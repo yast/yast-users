@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri May 18 13:50:52 CEST 2001 - kendy@suse.cz
+
+- fixed MAINTAINER: jbuch@suse.de, not me
+
+-------------------------------------------------------------------
 Mon May 14 15:30:34 CEST 2001 - jbuch@suse.de
 
 - added if( test_mode) for test output
