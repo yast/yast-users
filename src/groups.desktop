@@ -6,10 +6,10 @@ X-KDE-ModuleType=Library
 X-KDE-RootOnly=true
 X-KDE-HasReadOnlyMode=true
 X-KDE-Library=yast2
-X-SuSE-YaST-Call=users groups
+X-SuSE-YaST-Call=groups
 
 X-SuSE-YaST-Group=Security
-X-SuSE-YaST-Argument=groups
+X-SuSE-YaST-Argument=
 X-SuSE-YaST-RootOnly=true
 X-SuSE-YaST-AutoInst=
 X-SuSE-YaST-Geometry=
@@ -17,7 +17,7 @@ X-SuSE-YaST-SortKey=
 X-SuSE-YaST-AutoInstResource=
 
 Icon=group_add
-Exec=/sbin/yast2 users groups
+Exec=/sbin/yast2 groups
 
 Name=Edit and create groups
 GenericName=Edit and create groups

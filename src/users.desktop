@@ -6,10 +6,10 @@ X-KDE-ModuleType=Library
 X-KDE-RootOnly=true
 X-KDE-HasReadOnlyMode=true
 X-KDE-Library=yast2
-X-SuSE-YaST-Call=users users
+X-SuSE-YaST-Call=users
 
 X-SuSE-YaST-Group=Security
-X-SuSE-YaST-Argument=users
+X-SuSE-YaST-Argument=
 X-SuSE-YaST-RootOnly=true
 X-SuSE-YaST-AutoInst=all
 X-SuSE-YaST-Geometry=
@@ -19,7 +19,7 @@ X-SuSE-YaST-AutoInstMerge=users,groups,user_defaults
 X-SuSE-YaST-AutoInstMergeTypes=list,list,map
 
 Icon=user_add
-Exec=/sbin/yast2 users users
+Exec=/sbin/yast2 users
 
 Name=Edit and create users
 GenericName=Edit and create users
