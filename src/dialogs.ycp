@@ -12,25 +12,21 @@
 
 textdomain "users";
 
-import "Wizard";
-import "Mode";
-import "Report";
-import "Progress";
-import "Summary";
-import "Require";
 import "Autologin";
-import "Call";
+import "Label";
 import "Ldap";
 import "LdapPopup";
-
-
+import "Mode";
+import "Package";
+import "Popup";
+import "Progress";
+import "Report";
+import "Summary";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
 import "UsersPlugins";
-
-import "Label";
-import "Popup";
+import "Wizard";
 
 include "users/helps.ycp";
 include "users/routines.ycp";
@@ -78,7 +74,7 @@ define symbol AskForUppercasePopup (string username) ``{
     symbol ret = `ok;
 
     if (username != tolower (username) && !Users::NotAskUppercase () &&
-	Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
+	Package::InstalledAny (["sendmail", "postfix"]))
     {
 	// The login name contains uppercase 1/3
 	string text = _("<p>
@@ -2155,12 +2151,12 @@ define symbol AuthentizationDialog() ``{
 
     foreach (string client, configurable, ``{
 	string package = sformat ("yast2-%1-client", client);
-        if (Require::IsPackageAvailable (package))
+        if (Package::Available (package))
 	{
 	    available = add (available, client);
 	    mb = add (mb, `item(`id(client), to_string[client]:""));
 	}
-        if (Require::AreAllPackagesInstalled ([package]))
+        if (Package::Installed (package))
 	    installed = add (installed, client);
     });
 
@@ -2195,11 +2191,11 @@ define symbol AuthentizationDialog() ``{
 	    if (!contains (installed, (string) button))
 	    {
 		string package = sformat ("yast2-%1-client", button);
-		if ( Require::RequireAndConflictTargetButtons ( [package], [],
+		if (Package::InstallAllMsg ([package],
 		    // popup label (%1 is package to install)
 		    sformat (_("Package %1 is not installed.
 Install it now?
-"), package), Label::OKButton(), Label::CancelButton()))
+"), package)))
 		{
 		    installed = add (installed, (string) button);
 		}

@@ -15,10 +15,11 @@ textdomain "users";
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
-import "Users";
-import "Mode";
 import "CommandLine";
 import "Ldap";
+import "Mode";
+import "Users";
+import "UsersCache";
 
 include "users/wizards.ycp";
 include "users/cmdline.ycp";

@@ -12,10 +12,10 @@
 
     textdomain "users";
 
-    import "Users";
-    import "Require";
+    import "Package";
     import "Label";
     import "Ldap";
+    import "Users";
 
     any ret	= `back;
 
@@ -28,11 +28,11 @@
         map call_client = $[
 	    "samba": "samba-client",
 	];
-	if (Require::RequireAndConflictButtons ( [package], [],
+	if (Package::InstallAllMsg ([package],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
 Install it now?
-"), package), Label::OKButton(), Label::CancelButton()))
+"), package)))
         {
             ret = (symbol) WFM::CallFunction (call_client [client]:client,
 		WFM::Args ());

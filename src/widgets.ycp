@@ -423,9 +423,11 @@ Are you sure?")))
 define boolean AutologinPopup() ``{
 
     string help_text =
-// helptext 1/3 - caption and general info
-_("<p><b>Login Settings</b></p>
-<p>
+    // helptext 0/3 - caption
+    _("<p><b>Login Settings</b></p>") +
+
+     // helptext 1/3 - general info
+    _("<p>
 The features described below are only available if you are using KDM as a login manager.
 </p>
 ") +
