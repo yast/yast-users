@@ -1,0 +1,128 @@
+/**
+ * File:
+ *  users/functions.ycp
+ *
+ * Module:
+ *  Configuration of the users and groups
+ *
+ * Summary:
+ *  Functions for work with user_settings and so
+ *
+ * Authors:
+ *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *
+ * $Id$
+ *
+ */
+
+{
+    textdomain "users";
+
+    /**
+     * Test data for the user_settings
+     */
+    global define usersGetTestUserSettings() ``{
+	return $[
+	    "users": [
+	        $["fullname":"root", "gid":0, "home":"/root", "password":"x", "shell":"/bin/bash", "uid":0, "username":"root"],
+	        $["fullname":"bin", "gid":1, "home":"/bin",  "password":"x", "shell":"/bin/bash", "uid":1, "username":"bin"],
+		$["fullname":"daemon", "gid":2, "home":"/sbin", "password":"x", "shell":"/bin/bash", "uid":2, "username":"daemon"],
+		$["fullname":"lp daemon", "gid":7, "home":"/var/spool/lpd", "password":"x", "shell":"/bin/bash", "uid":4, "username":"lp"],
+		$["fullname":"News system", "gid":13, "home":"/etc/news", "password":"x", "shell":"/bin/bash", "uid":9, "username":"news"],
+		$["fullname":"Unix-to-Unix CoPy system", "gid":14, "home":"/etc/uucp", "password":"x", "shell":"/bin/bash", "uid":10, "username":"uucp"],
+		
+		$["fullname":"Martin Zaruba", "gid":100, "home":"/home/mazar", "password":"x", "shell":"/bin/bash", "uid":500, "username":"mazar"],
+		$["fullname":"Vit Hnilicka", "gid":100, "home":"/home/vyhnil", "password":"x", "shell":"/bin/bash", "uid":501, "username":"vyhnil"],
+		$["fullname":"David Kopriva", "gid":100, "home":"/home/cop", "password":"x", "shell":"/bin/bash", "uid":502, "username":"cop"],
+		$["fullname":"Milivoj Donutil", "gid":100, "home":"/home/don", "password":"x", "shell":"/bin/bash", "uid":503, "username":"don"],
+		$["fullname":"Jarmila Soukupova", "gid":100, "home":"/home/jas", "password":"x", "shell":"/bin/bash", "uid":504, "username":"jas"]
+	    ],
+	    "groups": [
+		$["gid":0, "groupname":"root", "password":"x", "userlist":"root"],
+	        $["gid":1, "groupname":"bin", "password":"x", "userlist":"root,bin,daemon"],
+		$["gid":2, "groupname":"daemon", "password":"x", "userlist":""],
+		$["gid":7, "groupname":"lp", "password":"x", "userlist":""],
+		$["gid":13, "groupname":"news", "password":"x", "userlist":"news"],
+		$["gid":14, "groupname":"uucp", "password":"x", "userlist":"uucp,fax,root,fnet"],
+		    
+		$["gid":100, "groupname":"users", "password":"x", "userlist":"jas"],
+		$["gid":101, "groupname":"blazni", "password":"x", "userlist":"vyhnil,cop,jas"],
+		$["gid":102, "groupname":"sasci", "password":"x", "userlist":"vyhnil"]
+	    ],
+	    "uid_min": 500,
+	    "uid_max": 60000,
+	    "gid_min": 100,
+	    "gid_max": 60000,
+	    "shells" : [ "/bin/bash", "/bin/csh", "/bin/ksh", "/bin/false", "/bin/true" ]
+	];
+    };
+
+    /**
+     * Returns map with a user stored in the user_settings
+     * @param string username
+     * @return map user
+     */
+    global define usersGetUser(string username) ``{
+	if (username == "")
+	    return $[];
+
+	map ret_user = $[];
+	foreach(`user, lookup(user_settings, "users", []), ``{
+	    if (lookup(user, "username", "") == username)
+		ret_user = user;
+	});
+
+	return ret_user;
+    };
+
+    /**
+     * Returns a list with all the groups which contain the user
+     * @param string username
+     * @param integer gid of this user
+     * @return list groups
+     */
+    global define usersAllGroupsContaining(string username, integer gid) ``{
+	list groups = lookup(user_settings, "groups", []);
+	string gid_name = sformat("%1", gid);
+	list in_userlist = [];
+	
+	// fill in_userlist with all the groups where the user is in the user_list
+	foreach(`group, groups, ``{
+	    string name = lookup(group, "groupname", "");
+	    if (lookup(group, "gid", -1) == gid && name != "")
+	        gid_name = name;
+
+	    list userlist = splitstring(lookup(group, "userlist", ""), ",");
+	    if (contains(userlist, username))
+		in_userlist = add(in_userlist, name);
+	});
+
+	// remove user's default group from in_userlist
+	if (contains(in_userlist, gid_name))
+	{
+	    in_userlist = filter(`groupname, in_userlist, ``(groupname != gid_name));
+	}
+
+	// prepend the edfault group
+	in_userlist = prepend(in_userlist, gid_name);
+
+	// return it
+	return in_userlist;
+    };
+
+    /**
+     * Adds a a user to the user settings
+     * @param map current_user
+     */
+    global define usersAddUser(map user_to_add) ``{
+	list users = lookup(user_settings, "users", []);
+
+	users = add(users, user_to_add);
+
+	user_settings = add(user_settings, "users", users);
+
+        /* TODO add the user to all the groups from list groups */
+	
+	return true;
+    };
+}

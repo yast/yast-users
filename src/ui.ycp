@@ -21,6 +21,7 @@
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
     include "ui/common_messages.ycp";
+    include "ui/common_popups.ycp";
 
     /**
      * Define the switch between Users and Groups administration.
@@ -39,15 +40,87 @@
     }
 
     /**
-     * The first of the two main dialogs.
+     * Create list of table items with all the users.
+     */
+    global define usersUsersTableItems() ``{
+	list users      = lookup(user_settings, "users", []);
+	integer uid_min = lookup(user_settings, "uid_min", 500);
+	integer uid_max = lookup(user_settings, "uid_max", 60000);
+
+	// Show just the root, the users in the <uid_min, uid_max) range and the
+	// newly added users (who do not have a uid)
+	users = filter(`user, users, ``{
+		    integer uid = lookup(user, "uid", -1);
+		    return (uid <= 0 || (uid_min <= uid && uid < uid_max));
+		});
+	
+	// Create a list
+	return maplist(`user, users, ``{
+		   string current = lookup(user, "username", "");
+		   return `item(`id(current),
+		                current,
+				lookup(user, "fullname", ""),
+				mergestring(usersAllGroupsContaining(current,
+				                                     lookup(user, "gid", -1)), ","));
+	       });
+    };
+    
+    /**
+     * Create list of combo box items with all the shells.
+     * @param list shells All the shells available
+     * @param string shell The one which is preselected
+     * @return list items A list of the combo box items
+     */
+    global define usersShellsCBoxItems(list shells, string shell) ``{
+	return maplist(`sh, shells, ``{
+		   return `item(`id(sh), sh, (sh == shell));
+	       });
+    };
+
+    /**
+     * The dialog that appears when the [Abort] button is pressed
+     * @return boolean true if user really wants to abort
+     */
+    global define usersReallyAbort() ``{
+        /*if (!changed_settings)
+            {
+                do_abort_now = true;
+                return true;
+            }*/
+        return UI(`AnyQuestionPopup
+	       (
+	           // message box label
+		   _("Exit without saving"),
+		   // message box text
+		   _("All your changes in the setup procedure\nwill be lost if you continue."),
+		   // push button 
+		   _("&Exit without saving"),
+		   // push button 
+		   _("&Cancel abort"),
+		   `focus_yes
+               ));
+    }
+
+    /**
+     * Check the username (loginname) for validity. Show a message if not OK.
+     * @return boolean true if user really wants to abort
+     */
+    global define usersCheckUsername(string username) ``{
+	/* TODO */
+    };
+
+    /**
+     * The first of the two main dialogs -- list of the users.
      */
     global define usersUsersDialog() ``{
 	string help_text = "TODO HELP user";
 
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
-		  `Table(`header(_("State"), _("Login"), _("Name"), _("Groups")),
-		         []),
+		  `Table(`id(`users_table),
+		         `opt(`notify,`immediate),
+		         `header(_("Login"), _("Name"), _("Groups")),
+		         usersUsersTableItems()),
 	          `HBox
 		  (
 		      `PushButton(`id(`new),       _("&Add")),
@@ -64,9 +137,28 @@
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
-	symbol ret = UI(`UserInput());
+	string current = lookup(current_user, "username", "");
+
+        // Set the current_user as the selected one
+	if (current != "")
+	    UI(`ChangeWidget(`id(`users_table), `CurrentItem, current));
 	
-	/* TODO change the current_user here */
+	symbol ret = `empty;
+	do
+	{
+            // Disable [Edit] and [Clone] if noone selected...
+	    UI(`ChangeWidget(`id(`clone), `Enabled, (current != "" && current != "root")));
+	    UI(`ChangeWidget(`id(`edit), `Enabled, (current != "")));
+	
+	    ret = UI(`UserInput());
+
+	    current = UI(`QueryWidget(`id(`users_table), `CurrentItem));
+
+	} while (ret == `empty ||
+	         ret == `users_table ||
+		 (ret == `abort && !usersReallyAbort()));
+	
+	current_user = usersGetUser(current);
 
 	return ret;
     }
@@ -105,50 +197,75 @@
     }
     
     /**
-     * Function that adds, clones or edits a user
-     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
+     * Function that cleans the current_user. Necessary for the [New] user
      */
-    global define usersEditUser(symbol what) ``{
-	map dialog_labels = $[
-	    `add_user:   UI(_("Add a new user")),
-	    `clone_user: UI(_("Add a new user using cloning")),
-	    `edit_user:  UI(_("Edit an existing user"))
-	];
+    global define usersClearCurrentUser() ``{
+        current_user = $[];
+	return `next;
+    }
 
+    /**
+     * Function that adds or edits a user
+     * @param term what <TT>`add_user</TT> or <TT>`edit_user</TT>
+     */
+    global define usersEditUserDialog(symbol what) ``{
 	string help_text = "TODO HELP Add/Clone/Edit user";
 
-	string username = "";
-	string fullname = "";
-	if (what == `clone_user || what == `edit_user)
-	{
-	    username = lookup(current_user, "username", "");
-	    fullname = lookup(current_user, "fullname", "");
-	}
+	// What we use here
+	string username = lookup(current_user, "username", "");
+	string fullname = lookup(current_user, "fullname", "");
+	string passwd   = lookup(current_user, "passwd",   "");
+	integer gid     = lookup(current_user, "gid", 100);
+
+	// Default setting if not set: gid
+	if (lookup(current_user, "gid", -1) < 0)
+	    current_user = add(current_user, "gid", 100);
 	
+	// Default setting if not set: home
+	if (lookup(current_user, "home", "") == "" && username != "")
+	    current_user = add(current_user, "home", "/home/"+username);
+	
+	// Default setting if not set: shell
+	if (lookup(current_user, "shell", "") == "")
+	    current_user = add(current_user, "shell", "/bin/bash");
+	
+	// Default setting if not set: groups
+	list in_groups  = (username != "")? usersAllGroupsContaining(username, gid): [];
+	if (size(lookup(current_user, "groups", [])) == 0)
+	    current_user = add(current_user, "groups", in_groups);
+	
+	map dialog_labels = $[
+	    `add_user:   UI(_("Add a new user")),
+	    `edit_user:  sformat(UI(_("Edit user \"%1\"")), username)
+	];
+
 	term contents = 
 	    `HSquash(`VBox
 	    (
 	        `VStretch(),
 		
 		// User account information, forename or first name
-		`TextEntry(`id(`forename), _("&Name:"), fullname),
+		`TextEntry(`id(`fullname), _("&Name:"), fullname),
 
-		`VSquash(`HBox
-		(
-		    // input field for login name
-		    `Bottom(`TextEntry( `id(`loginname), _("&User login:"), username )),
-		    // push button to generate a login name from first and last name
-		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-		)),
+                // Change of the username is allowed only for [New] or [Clone]
+		(what == `edit_user)?
+		    `VSpacing(0.0):
+		    `VSquash(`HBox
+		    (
+		        // input field for login name
+		        `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
+		        // push button to generate a login name from first and last name
+		        `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+		    )),
 		
 		// User account information, first version of user password, both versions must match
-		`Password(`id(`pw1), _("&Enter a password:"), ""),
+		`Password(`id(`passwd1), _("&Enter a password:"), ""),
 		// User account information, second version of user password, retyped to avoid typos
 		// This is a label, please use newline if it is longer than 48 characters
-		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+		`Password(`id(`passwd2), _("Re-enter the password for &verification:"), ""),
 		
 	        `VStretch(),
-		/*`Bottom(*/`PushButton(`id(`details), _("&Details..."))//)
+		`PushButton(`id(`details), _("&Details..."))
 	    ));
 
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
@@ -157,9 +274,76 @@
 			             BackButtonLabel(),
 				     NextButtonLabel()));
 
-	symbol ret = UI(`UserInput());
+	symbol ret = `empty;
+	do
+	{
+	    ret = UI(`UserInput());
+
+	    /* TODO Suggest the username! */
+
+	    // Get the settings from the dialog
+	    if (what != `edit_user)
+	    {
+		if (username != UI(`QueryWidget(`id(`username), `Value)))
+		{
+		    username = UI(`QueryWidget(`id(`username), `Value));
+
+		    current_user = add(current_user, "username", username);
+		    current_user = add(current_user, "home",     "/home/"+username);
+		}
+	    }
+
+	    current_user = add(current_user, "fullname",
+		               UI(`QueryWidget(`id(`fullname), `Value)));
+	    
+	    string pw1 = UI(`QueryWidget(`id(`passwd1), `Value));
+	    string pw2 = UI(`QueryWidget(`id(`passwd1), `Value));
+
+	    // Check if everything is OK
+	    if (ret == `next)
+	    {
+		// passwd
+		if (pw1 != pw2)
+		{
+		    /* TODO : the passwords do not match! */
+		    ret = `empty;
+		    continue;
+		}
+		else
+		{
+		    if (pw1 != "")
+		    {
+			string passwd = crypt(pw1);
+			current_user = add(current_user, "password", passwd);
+		    }
+		}
+
+		// Various checks
+		if (!usersCheckUsername(username) /* TODO || something else */)
+		{
+		    ret = `empty;
+		}
+	    }
+	} while (ret == `empty ||
+	         ret == `propose ||
+		 (ret == `abort && !usersReallyAbort()));
 	
-	/* TODO change the current_user here */
+	if (ret == `next)
+	{
+	    if (what == `add_user)
+	    {
+		current_user = add(current_user, "state", `added);
+
+		if (lookup(current_user, "home", "") == "")
+		    current_user = add(current_user, "home", "/home/"+username);
+
+		usersAddUser(current_user);
+	    }
+	    if (what == `edit_user)
+	    {
+		/* TODO usersEditUser(current_user); */
+	    }
+	}
 
 	return ret;
     }
@@ -168,36 +352,35 @@
      * Details of adding/cloning/editing dialog
      * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
      */
-    global define usersEditUserDetails() ``{
+    global define usersEditUserDetailsDialog() ``{
 	string help_text = "TODO HELP User Details";
 
-	string username = "";
-	string fullname = "";
+	// What we use here
+	string username = lookup(current_user, "username", "");
+	string home     = lookup(current_user, "home",     "");
 	
+	// Shells
+	list shells     = lookup(user_settings, "shells", []);
+	string shell    = lookup(current_user,  "shell");
+	if (!contains(shells, shell))
+	{
+	    shells = prepend(shells, shell);
+	}
+
 	term contents = 
 	    `HSquash(`VBox
 	    (
 	        `VStretch(),
 		
-		// User account information, forename or first name
-		`TextEntry(`id(`forename), _("&Name:"), fullname),
+		// TextEntry for the home direcory of the user
+		`TextEntry(`id(`home), _("&Home directory:"), home),
 
-		`VSquash(`HBox
-		(
-		    // input field for login name
-		    `Bottom(`TextEntry( `id(`loginname), _("&User login:"), username )),
-		    // push button to generate a login name from first and last name
-		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-		)),
+		// List of the available shells
+		`ComboBox(`id(`shell), `opt(`hstretch, `editable),
+		          _("&Which shell should this user use:"),
+			  usersShellsCBoxItems(shells, shell)),
 		
-		// User account information, first version of user password, both versions must match
-		`Password(`id(`pw1), _("&Enter a password:"), ""),
-		// User account information, second version of user password, retyped to avoid typos
-		// This is a label, please use newline if it is longer than 48 characters
-		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
-		
-	        `VStretch(),
-		/*`Bottom(*/`PushButton(`id(`details), _("&Details..."))//)
+	        `VStretch()
 	    ));
 
 	UI(`SetWizardContentsButtons(sformat(UI(_("Detailed profile for user %1")), username),
@@ -206,13 +389,35 @@
 			             BackButtonLabel(),
 				     OKButtonLabel()));
 
-	symbol ret = UI(`UserInput());
-	
-	/* TODO change the current_user here */
+	symbol ret = `empty;
+	do
+	{
+	    ret = UI(`UserInput());
 
-	// Every time I want to return to the previous dialog
-	if (ret == `next)
-	    ret = `back;
+	    // Get the info from the dialog
+	    home  = UI(`QueryWidget(`id(`home), `Value));
+	    shell = UI(`QueryWidget(`id(`shell), `Value));
+	    
+	    if (ret == `next)
+	    {
+		// Various checks
+		/* TODO if (!checkShell() || ...)
+		{
+		    ret = `empty;
+		    continue;
+		}
+		else */
+		{
+		    /* TODO change the current_user here */
+		    if (home != "")
+			current_user = add(current_user, "home", home);
+		    
+		    if (shell != "")
+			current_user = add(current_user, "shell", shell);
+		}
+	    }
+	} while (ret == `empty ||
+		 (ret == `abort && !usersReallyAbort()));
 	
 	return ret;
     }

@@ -8,7 +8,8 @@ modulesdir = $(YAST2DIR)/clients
 
 include_DATA =			\
 	io.ycp			\
-	ui.ycp
+	ui.ycp			\
+	functions.ycp
 
 modules_DATA = 				\
 	users.ycp
