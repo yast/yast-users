@@ -17,7 +17,7 @@ clients_DATA = 			\
 
 menu_DATA = menuentry_users.y2cc	\
 	menuentry_groups.y2cc	\
-	menuentry_add_user.y2cc  \
-	menuentry_add_group.y2cc 
+	menuentry_add_user.y2cc	\
+	menuentry_add_group.y2cc
 
 EXTRA_DIST = $(clients_DATA) $(menu_DATA) $(include_DATA)

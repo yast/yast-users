@@ -42,9 +42,9 @@ make install
 %dir @YAST2DIR@/include/users
 @YAST2DIR@/clients/users.ycp
 @YAST2DIR@/include/users/*
-@YAST2DIR@/menuentries/menuentry_users.ycp
-@YAST2DIR@/menuentries/menuentry_groups.ycp
-@YAST2DIR@/menuentries/menuentry_add_user.ycp
-@YAST2DIR@/menuentries/menuentry_add_group.ycp
+@YAST2DIR@/menuentries/menuentry_users.y2cc
+@YAST2DIR@/menuentries/menuentry_groups.y2cc
+@YAST2DIR@/menuentries/menuentry_add_user.y2cc
+@YAST2DIR@/menuentries/menuentry_add_group.y2cc
 %dir @DOCDIR@
 @DOCDIR@/*
