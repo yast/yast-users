@@ -113,7 +113,7 @@ Wizard::SetContents (caption, contents, help,
 		    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
 
 // select and enable to correct buttons
-if (Users::after_auth == "users")
+if (Users::AfterAuth () == "users")
 {
     UI::ChangeWidget (`id(`local), `Value, true);
     UI::ChangeWidget (`id(`network), `Value, false);
@@ -129,7 +129,7 @@ else
     UI::ChangeWidget (`id(`network), `Value, true);
 
     foreach (string client, available_clients, ``{
-	UI::ChangeWidget (`id(client), `Value, Users::after_auth == client);
+	UI::ChangeWidget (`id(client), `Value, Users::After_auth () == client);
     });
 }
 
@@ -161,15 +161,15 @@ repeat {
 if ( (boolean) UI::QueryWidget( `id(`network), `Value ) )
 {
     if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
-	Users::after_auth = "nis";
+	Users::SetAfterAuth ("nis");
     if ( (boolean) UI::QueryWidget( `id("nisplus"), `Value ) )
-	Users::after_auth = "nisplus";
+	Users::SetAfterAuth ("nisplus");
     if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
-	Users::after_auth = "ldap";
+	Users::SetAfterAuth ("ldap");
 }
 else
 {
-    Users::after_auth = "users";
+    Users::SetAfterAuth ("users");
 }
 
 return ret;
