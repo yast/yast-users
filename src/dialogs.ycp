@@ -71,8 +71,10 @@ define string GetString (map data, string key, string default_value) {
 }
 
 
-// upperase letters were used in username! bug #26409
-// FIXME -> CheckUsernameUI!
+/**
+ * Upperase letters were used in username! (see bug #26409)
+ * In these popup, ask user what to do.
+ */
 define symbol AskForUppercasePopup (string username) ``{
 
     symbol ret = `ok;
@@ -139,10 +141,16 @@ define symbol EditUserDialog (string what) ``{
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
 //y2internal ("user: %1", user);
+
+    if (user == $[])
+    {
+	Users::AddUser ($[]);
+	user = Users::GetCurrentUser ();
+    }
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
     string cn		= "";
-    // in LDAP, cn is list of strings...
+    // in LDAP, cn is list of strings... TODO should the list remain?
     if (is (user["cn"]:nil, list))
 	cn	= user["cn",0]:"";
     else
@@ -390,7 +398,6 @@ can be changed for non-local users.
 		}
 		UI::ChangeWidget(`id(`givenName), `Value, givenName);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
-		// FIXME use gecos as default!
 	    }
 	    else
 	    {
@@ -466,7 +473,6 @@ so the password settings cannot be edited.
                 continue;
 	    }
 	    user["username"]		= username;
-
 
 	    // --------------------------------- uid check (for nil value)
 	    if (!details)
@@ -601,7 +607,7 @@ Please try again."));
             }
 	    else
 	    {
-		Users::AddUser (user);// FIXME must contain SubstituteValues
+		Users::AddUser (user);
 	    }
 	}
 	if ((ret == `abort || ret == `cancel) &&
@@ -629,7 +635,7 @@ Please try again."));
         // ensuring installation the first user is stored
         // (to show it when clicking `back from Summary dialog)
 	Users::SaveCurrentUser ();
-	Users::SetStartDialog ("users");//FIXME hack, because currently not applied for `nosave
+	Users::SetStartDialog ("users");
     }
     return (symbol) ret;
 }
@@ -1045,13 +1051,12 @@ define symbol EditUserPasswordDialog() ``{
     if (last_change != "0")
     {
         map out = (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
-        // label
-//FIXME - recode       last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
+        // label (date of last password change)
 	last_change = out["stdout"]:_("unknown");
     }
     else
     {
-        // label
+        // label (date of last password change)
         last_change = _("never");
     }
     string exp_date = "";
@@ -1884,7 +1889,7 @@ Try again.
  */
 define symbol AuthentizationDialog() ``{
 
-    list configurable = [ "nis", "nisplus", "ldap", "kerberos", "samba" ];
+    list configurable = [ "nis", "ldap", "kerberos", "samba" ];
 
     list available = [];
     list installed = [];
@@ -1934,14 +1939,6 @@ define symbol AuthentizationDialog() ``{
 	    Nis::Read();
 	    ret = Nis::ShortSummary();
 	}
-	/*
-	else if (client == "nisplus")
-	{
-	    import "Nisplus";
-	    Nisplus::Read();
-	    ret = Nisplus::ShortSummary();
-	}
-	*/
 	else if (client == "kerberos")
 	{
 	    import "Kerberos";
@@ -2045,24 +2042,16 @@ Install it now?
     {
 	boolean was_nis_available = Users::NISAvailable ();
 	Users::ReadSourcesSettings();
-	// enabling NIS could add + lines!
-	// TODO what about some general solution?
+	// enabling NIS could add + lines:
 	if (was_nis_available != Users::NISAvailable ())
 	{
 	    if (Users::NISAvailable ()) // nis enabled now
 	    {
-		y2error ("FIXME: + lines have to be added!");
-		/*
-		Users::plus_passwd	= "+::::::";
-		Users::plus_group	= "+:::";
-		Users::plus_shadow	= "+";
-		*/
+		Users::SetPlusPasswd ("+::::::");
+		Users::SetPlusGroup ("+:::");
+		Users::SetPlusShadow ("+");
 	    }
 	}
-	// LDAP settings could be modified...??? (re_read_ldap)
-	// FIXME Ldap::file_server wasn't updated
-	// autologin could have been changed
-//        Users::BuildMenuButtonItems(); TODO -> GetSetItems in widgets.ycp (automaticaly?)...
     }
     return (symbol) button;
 }

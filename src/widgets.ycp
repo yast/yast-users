@@ -23,37 +23,37 @@ import "UsersLDAP";
 
 textdomain "users";
 
-    // values to MenuItem in Summary dialog
-    map userset_to_string = $[
-	// the type of user set
-        "system":    _("&System Users"),
-	// the type of user set
-        "local":     _("&Local Users"),
-        // the type of user set
-        "nis":       _("&NIS Users"),
-        // the type of user set
-        "ldap":      _("L&DAP Users"),
-        // the type of user set
-        "samba":     _("Sam&ba Users"),
-        // the type of user set
-        "custom":    _("&Custom")
-    ];
+// values to MenuItem in Summary dialog
+map userset_to_string = $[
+    // the type of user set
+    "system":    _("&System Users"),
+    // the type of user set
+    "local":     _("&Local Users"),
+    // the type of user set
+    "nis":       _("&NIS Users"),
+    // the type of user set
+    "ldap":      _("L&DAP Users"),
+    // the type of user set
+    "samba":     _("Sam&ba Users"),
+    // the type of user set
+    "custom":    _("&Custom")
+];
 
-    // values to MenuItem in Summary dialog
-    map groupset_to_string = $[
-        // the type of group set
-        "system":    _("&System Groups"),
-        // the type of group set
-        "local":     _("&Local Groups"),
-        // the type of group set
-        "nis":       _("&NIS Groups"),
-        // the type of group set
-        "ldap":      _("L&DAP Groups"),
-        // the type of group set
-        "samba":     _("Sam&ba Groups"),
-        // the type of group set
-	"custom":    _("&Custom")
-    ];
+// values to MenuItem in Summary dialog
+map groupset_to_string = $[
+    // the type of group set
+    "system":    _("&System Groups"),
+    // the type of group set
+    "local":     _("&Local Groups"),
+    // the type of group set
+    "nis":       _("&NIS Groups"),
+    // the type of group set
+    "ldap":      _("L&DAP Groups"),
+    // the type of group set
+    "samba":     _("Sam&ba Groups"),
+    // the type of group set
+    "custom":    _("&Custom")
+];
 
 /**
  * Popup for choosing the password encryption method.
@@ -163,11 +163,11 @@ As a general rule of thumb, use DES if you are unsure.
  */
 define boolean LDAPSearchFilterPopup () ``{
 
-    string default_user_f	= "";//Users::ldap_default_user_filter;
-    string default_group_f	= "";//Users::ldap_default_group_filter;
+    string default_user_f	= UsersLDAP::GetDefaultUserFilter ();
+    string default_group_f	= UsersLDAP::GetDefaultGroupFilter ();
 
-    string user_f	= "";//Users::ldap_user_filter;
-    string group_f	= "";//Users::ldap_group_filter;
+    string user_f	= UsersLDAP::GetCurrentUserFilter ();
+    string group_f	= UsersLDAP::GetCurrentGroupFilter ();
 
     if (user_f == "")
 	user_f = default_user_f;
@@ -176,7 +176,27 @@ define boolean LDAPSearchFilterPopup () ``{
 
     boolean ret = false;
 
-    string help_text = "";//FIXME LDAPSearchFilterPopupHelp();
+    string help_text =
+// helptext 1/4 - caption
+_("<p><b>LDAP Search Filter Changes</b></p>") +
+
+// helptext 2/4
+_("<p>Here, extend the search filters for users and groups beyond the default search filters.</p>") +
+
+// helptext 3/5
+_("<p>With <b>From Server</b>, load the filter values from the LDAP server, as entered in the <b>YaST LDAP Client</b> module. If you are not connected yet, you will be asked for password.</p>") +
+
+// helptext 3/4
+_("<p>Only extensions of default filters are allowed, so the values entered here are checked to verify they contain the default values as substrings.</p>") +
+
+// helptext 3/4 (do not translate the value (written as <tt> font))
+_("<p><b>Example:</b>
+<br>With user filter
+<br>
+<tt>(&(objectClass=posixAccount)(uid=u*))</tt>
+<br>
+only obtain users with a user name beginning with 'u'.</p>
+");
 
     UI::OpenDialog (`opt(`decorated), `HBox(`HSpacing(1.5),
         `VBox(
@@ -197,7 +217,7 @@ define boolean LDAPSearchFilterPopup () ``{
 		)),
             `VSpacing(0.5),
 	    `HBox(
-		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
 	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
 	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
 		// Pushbutton label (get data from LDAP server)
@@ -220,13 +240,10 @@ define boolean LDAPSearchFilterPopup () ``{
 	{
 	    if (UsersLDAP::ReadFilters())
 	    {
-		/*
 		UI::ChangeWidget(`id (`userf), `Value,
-		    Users::ldap_default_user_filter);
+		    UsersLDAP::GetDefaultUserFilter ());
 		UI::ChangeWidget(`id (`groupf),`Value,
-		    Users::ldap_default_group_filter);
-		*/
-		y2internal ("TODO: filters");
+		    UsersLDAP::GetDefaultGroupFilter ());
 	    }
 	}
 	if ( button == `ok)
@@ -262,18 +279,16 @@ Try again.
 		group_f = new_group_f;
 	    }
 	    // checks are OK, let's update the values now
-	    /* TODO
-	    if (user_f != Users::ldap_user_filter)
+	    if (user_f != UsersLDAP::GetCurrentUserFilter ())
 	    {
-		Users::ldap_user_filter = user_f;
+		UsersLDAP::SetCurrentUserFilter (user_f);
 		ret = true;
 	    }
-	    if (group_f != Users::ldap_group_filter)
+	    if (group_f != UsersLDAP::GetCurrentGroupFilter())
 	    {
-		Users::ldap_group_filter = group_f;
+		UsersLDAP::SetCurrentGroupFilter (group_f);
 		ret = true;
 	    }
-	    */
 	}
     } while ( button != `ok && button != `cancel );
 
@@ -283,11 +298,28 @@ Try again.
 
 
 /**
+ * Popup for Login settings (Auotolgin feature, login without passwords)
  * @return modified?
  **/
 define boolean AutologinPopup() ``{
 
-    string help_text = "";//FIXME AutologinPopupHelp();
+    string help_text =
+// helptext 1/3 - caption and general info
+_("<p><b>Login Settings</b></p>
+<p>
+The features desribed below are only available, if you are using KDM as a login manager.
+</p>") +
+
+// helptext 2/3
+_("<p><b>Auto Login</b><br>
+The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user choosed from the list will be logged in automatically.</p>") +
+
+// helptext 3/3
+_("<p><b>Password less logins</b><br>
+If this option is checked, all users will be allowed to login without entering
+the password. Otherwise, you will be asked for the password even if you set a user to login automatically.</p>");
+
+
     boolean ret = false;
 
     string user		= Autologin::user;
@@ -309,18 +341,18 @@ define boolean AutologinPopup() ``{
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`auto),`opt (`notify),
 			// checkbox label
-			_("Enable &Autologin"), auto_used)),
+			_("&Auto Login"), auto_used)),
 		    `VSpacing(0.2),
 		    `HBox (
 			`HSpacing (4), // move text under the checkbox
 			`Left(`ComboBox (`id(`autouser),
 			    // textentry label
-			    _("&User logged in"), usernames))
+			    _("&User to log in"), usernames))
 		    ),
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`pw_less),
 			// checkbox label
-			_("&Enable password less logins"), pw_less)),
+			_("Password &Less Logins"), pw_less)),
 		    `VSpacing(0.5)
 		  ),
 		  `HSpacing(0.5)
@@ -412,12 +444,10 @@ Please log off the user first."));
     }
 
     boolean no_home = false;
-    /* FIXME
-    if ((type == "ldap" && !Users::ldap_file_server) ||
+    if ((type == "ldap" && !Ldap::file_server) ||
         // check if dir exists with this owner
         (lookup ((map)SCR::Read(.target.stat, home), "uid", -1) != uid) )
         no_home = true;
-	*/
 
     // if the user want to delete a system user
     if (type == "system")
@@ -616,6 +646,8 @@ define boolean CustomizePopup (string what) ``{
     return modified;
 }
 
+//================================================================
+
 define list GetSetsItems (string set) ``{
 
     list items = [];
@@ -624,12 +656,14 @@ define list GetSetsItems (string set) ``{
 	foreach (string set, Users::GetAvailableUserSets (), ``{
 	    items = add (items, `item (`id(set), userset_to_string [set]:""));
 	});
+//	items = add (items, `item (`id(`customize), _("Customi&ze Filter...")));
     }
     else
     {
 	foreach (string set, Users::GetAvailableGroupSets (), ``{
 	    items = add (items, `item (`id(set), groupset_to_string [set]:""));
 	});
+//	items = add (items, `item (`id(`customize), _("Customi&ze Filter...")));
     }
     return items;
 }
@@ -657,7 +691,6 @@ define list GetExpertList () ``{
 	}
 	if (Users::LDAPAvailable () && !Users::LDAPModified ())
 	{
-	    // FIXME ExpertList generated too early -> LDAP not available
 	    expert_list = add (expert_list,
 		// menubutton label
 		`item(`id(`ldapfilter), _("LDAP &Search Filter")));
@@ -667,8 +700,136 @@ define list GetExpertList () ``{
 }
 
 //================================================================
+//----------------- some help texts ------------------------------
+
+/**
+ * First part of the help text.
+ * @return string help text
+ */
+define string help_main_start()``{
+    // help text 1/1
+    return _("<p>
+Linux is a <b>multiuser system</b>. Several different users can be logged in the
+system at the same time.  To avoid confusion, each user must have
+a unique identity if they want to use Linux. Furthermore, every user at
+least belongs to one group.
+</p>
+");
+}
 
 
+/**
+ * Last part of the help text.
+ * @return string help text
+ */
+define string help_main_end()``{
+
+    // button label (without shortcut sign)
+    string button = Mode::cont ? _("Next") : _("Finish");
+
+    // help text 1/3
+    return _("<p>
+Users and groups are arranged in various sets. Change the set currently shown in the table with <b>Set Filter</b>.
+Customize your view filter with <b>Customize Filter</b>.</p>
+") +
+
+    // help text 2/3
+_("<p>
+Click <b>Expert Options</b> to edit various expert settings:
+password encryption type, user authentication method, default values for new
+users, or configuration of LDAP search filters.
+</p>
+") +
+
+    // help text 3/3, %1 is translated button label
+    sformat(_("<p>
+To save the modified user and group setting to your system, press
+<b>%1</b>.
+</p>
+"), button);
+}
+
+/**
+ * Help for UsersDialog.
+ * @return string help text
+ */
+define string UsersDialogHelp() ``{
+    // help text 1/4
+    return help_main_start() + _("
+<p>
+In this dialog, get information about existing <b>Users</b>.
+</p>
+") +
+
+    // help text 2/4
+_("<p>
+To shift to the group dialog, select <b>Groups</b>.
+</p>
+") +
+
+    // help text 3/4
+_("
+<p>
+To create a new user, push the button <b>Add</b>.
+</p>
+") +
+
+    // help text 4/4
+_("<p>
+To edit or delete an existing user, select one user from the list and
+click <b>Edit</b> or <b>Delete</b>.
+</p>
+") +
+
+    help_main_end();
+}
+
+/**
+ * Help for usersGroups.
+ * @return string help text
+ */
+define string GroupsDialogHelp()``{
+    return help_main_start() +
+    // help text 1/4
+_("
+<p>
+In this dialog, get information about existing <b>Groups</b>.
+</p>
+") +
+    // help text 2/4
+_("<p>
+To shift to the user dialog, select <b>Users</b>.
+</p>
+") +
+
+    // help text 3/4
+_("
+<p>
+To create a new group, push the button <b>Add</b>.
+</p>
+") +
+    // help text 4/4
+_("<p>
+To edit or delete an existing group, select one group from the list and
+push the button <b>Edit</b> or <b>Delete</b>.
+</p>
+")     + help_main_end();
+}
+
+
+/*
+define string SummaryDialogHelp () ``{
+
+    return (UsersCache::GetCurrentSummary () == "users") ?
+	UsersDialogHelp () : GroupsDialogHelp ();
+}
+*/
+
+//================================================================
+
+/**
+ * Initialize the contents of Summary Table widget
+ */
 define void SummaryTableInit (string widget_id) ``{
 
     list items			= [];
@@ -722,14 +883,9 @@ define any SummaryTableHandler (string widget_id, map event) ``{
     if (ev_id == `new)
     {
 	if (UsersCache::GetCurrentSummary () == "users")
-	{
 	    Users::AddUser ($[]);
-//		Users::CheckUID () existence TODO
-	}
 	else
-	{
 	    Users::AddGroup ($[]);
-	}
     }
     if (ev_id == `edit || ev_id == `delete)
     {
@@ -741,13 +897,9 @@ define any SummaryTableHandler (string widget_id, map event) ``{
 	    {
 		Users::SelectUser (selected);
 		if (ev_id == `delete)
-		{
 		    ev_id = DeleteUserPopup ();
-		}
 		else
-		{
 		    Users::EditUser ($[]);
-		}
 	    }
 	    else
             {
@@ -762,13 +914,9 @@ you must do it on server.
                 }
 
                 if (ev_id == `delete)
-		{
                     ev_id = DeleteGroupPopup();
-		}
 		else
-		{
 		    Users::EditGroup ($[]);
-		}
             }
         }
         else
@@ -783,10 +931,9 @@ you must do it on server.
 	// ask for real LDAP password if reading was anonymous
 	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
     }
-    if (ev_id == `back && !Popup::ReallyAbort (Users::Modified()))
+    if (ev_id == `back && !Mode::cont && !Popup::ReallyAbort(Users::Modified()))
     {
-	y2error ("do not abort!");//FIXME
-	return nil;
+	return `summary;
     }
     return ev_id;
 }
@@ -823,7 +970,11 @@ define void RadioButtonsUsersGroupsInit (string widget_id) ``{
 	    ))),
 	    `Right (`Label (`id(`current_filter), curr))
     ));
+
     UI::ChangeWidget (`id (current_summary), `Value, true);
+    Wizard::RestoreHelp (
+	current_summary == "users" ? UsersDialogHelp () : GroupsDialogHelp ()
+    );
 }
 
 define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
@@ -850,6 +1001,10 @@ define void AdvancedButtonsInit (string widget_id) ``{
         `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
 	    GetSetsItems (UsersCache::GetCurrentSummary ()))
     ));
+    UI::ReplaceWidget (`id (`rpexpert),
+	// Menu Buton label
+	`MenuButton (`id(`expertlist), _("E&xpert Options..."), GetExpertList())
+    );
 }
 
 define any AdvancedButtonsHandler (string widget_id, map event) ``{
@@ -860,14 +1015,25 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (current_summary == "users" &&
 	contains (Users::GetAvailableUserSets (), ev_id))
     {
-	if (ev_id == "ldap" && Users::LDAPNotRead ())
+	// FIXME do not work if LDAP is in custom set!
+	if (ev_id == "ldap" && Ldap::bind_pass == nil)
 	{
 	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-// solve `cancel...
-// TODO wait popup when reading nis/ldap...
+	    if (Ldap::bind_pass == nil)
+		return nil;
+	}
+	boolean popup = false;
+	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
+	    (ev_id == "nis" && Users::NISNotRead ()))
+	{
+	    UI::OpenDialog (`opt(`decorated ),
+	        // wait popup
+		`Label(_("Reading sets of users and groups. Please wait...")));
+	    popup = true;
 	}
         if (Users::ChangeCurrentUsers ((string) ev_id))
         {
+	    if (popup) UI::CloseDialog ();
             UsersCache::SetCustomizedUsersView (ev_id == "custom");
 	    SummaryTableInit ("table");
 	    RadioButtonsUsersGroupsInit ("rb_users_groups");
@@ -877,7 +1043,7 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (current_summary == "groups" &&
 	contains (Users::GetAvailableGroupSets (), ev_id))
     {
-	if (ev_id == "ldap" && Users::LDAPNotRead ())
+	if (ev_id == "ldap" && Ldap::bind_pass == nil)
 	{
 	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
 	}
@@ -913,13 +1079,26 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (ev_id == `ldapfilter)
     {
 	// change of search filter (only when LDAP was not modified yet)
-	if (LDAPSearchFilterPopup()) //TODO !Users::LDAPModified ??
+	if (LDAPSearchFilterPopup() && !Users::LDAPModified())
 	{
 	    Users::SetLDAPNotRead (true);
-	     /*TODO
-	    re_read_ldap (); ->
-	    */
-	    SummaryTableInit ("table");
+	    list current = (current_summary == "users") ?
+		Users::GetCurrentUsers () : Users::GetCurrentGroups ();
+	    if (contains (current, "ldap"))
+	    {
+		AdvancedButtonsHandler (widget_id, $["ID":"ldap"]);
+	    }
+	    // now update the other list (not current_summary)
+	    current = (current_summary == "users") ?
+		Users::GetCurrentGroups () : Users::GetCurrentUsers ();
+	    if (contains (current, "ldap"))
+	    {
+		// customize view is lost... TODO
+		if (current_summary == "users")
+		    Users::ChangeCurrentGroups ("ldap");
+		else
+		    Users::ChangeCurrentUsers ("ldap");
+	    }
 	}
 	return nil;
     }
@@ -929,7 +1108,7 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 map widgets = $[
     "rb_users_groups" : $[
         "widget"		: `custom,
-        "help"			: _("Help for radio buttons"),
+//        "help"			:  SummaryDialogHelp (),
 	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox (
 	    `Left (`RadioButtonGroup (`HBox(
 		// radiobutton
@@ -945,7 +1124,6 @@ map widgets = $[
     ],
     "table" : $[
         "widget"		: `custom,
-        "help"			: _("help for table"),
 	"custom_widget"		: `VBox (
 	    `ReplacePoint (`id(`rptable), `Table (`id("table"), `header(""))),
 	    `HBox (
@@ -960,17 +1138,17 @@ map widgets = $[
     ],
     "advanced_buttons" : $[
         "widget"		: `custom,
-        "help"			: _("help for buttons"),
 	"custom_widget"		: `HBox (
 	    `ReplacePoint (`id (`rpfilter),
 		// menubutton label
-		`MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"), [])
+		`MenuButton (`id(`sets), `opt(`key_F2, `disabled), _("&Set Filter"), [])
 	    ),
             // PushButon
             `PushButton (`id(`customize), `opt(`key_F6),_("Customi&ze Filter")),
-            // Menu Buton label
-            `MenuButton (`id(`expertlist), _("E&xpert Options..."),
-                GetExpertList ()),
+	    `ReplacePoint (`id (`rpexpert),
+		// Menu Buton label
+		`MenuButton (`id(`expertlist), _("E&xpert Options..."),[])
+	    ),
             `HStretch()
 	),
 	"init"			: AdvancedButtonsInit,

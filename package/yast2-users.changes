@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Wed Feb 11 17:04:51 CET 2004 - jsuchome@suse.cz
+
+- agent-passwd: correct default values, store password from shadow
+- save + lines at the end of config files when NIS is enabled
+- LDAP: rename objects, configure search filters
+- corrected helptexts
+- 2.9.7
+
+-------------------------------------------------------------------
 Wed Feb 11 10:55:40 CET 2004 - jsuchome@suse.cz
 
 - fix: correct path to config files

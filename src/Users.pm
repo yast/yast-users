@@ -131,6 +131,11 @@ my $use_cracklib 		= 1;
 my $cracklib_dictpath		= "";
 my $obscure_checks 		= 1;
 
+# the +/- entries in config files:
+my $plus_passwd			= "";
+my $plus_group			= "";
+my $plus_shadow 		= "";
+
 # starting dialog for installation mode
 my $start_dialog		= "summary";
 my $use_next_time		= 0;
@@ -230,6 +235,11 @@ sub Modified {
 BEGIN { $TYPEINFO{NISAvailable} = ["function", "boolean"]; }
 sub NISAvailable {
     return $nis_available;
+}
+
+BEGIN { $TYPEINFO{NISNotRead} = ["function", "boolean"]; }
+sub NISNotRead {
+    return $nis_not_read;
 }
 
 BEGIN { $TYPEINFO{LDAPAvailable} = ["function", "boolean"]; }
@@ -493,7 +503,7 @@ sub CheckHomeMounted {
         };
 
         if (!$mounted) {
-            return sprintf (
+            return sprintf ( #FIXME question!
 # Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
 _("In %s, there is a mount point for the directory
 %s, which is used as a default home directory for new
@@ -511,6 +521,24 @@ after you mount correctly. Continue user configuration?"),
 
 ##-------------------------------------------------------------------------
 ##----------------- get routines ------------------------------------------
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer", "string"]; }
+sub GetMinPasswordLength {
+    if (defined ($min_pass_length{$_[0]})) {
+	return $min_pass_length{$_[0]};
+    }
+    else { return 5;}
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "integer", "string"]; }
+sub GetMaxPasswordLength {
+    if (defined ($max_pass_length{$_[0]})) {
+	return $max_pass_length{$_[0]};
+    }
+    else { return 8; }
+}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function",
@@ -854,7 +882,7 @@ sub ReadCustomSets {
     SCR::Execute (".target.bash", "/bin/touch $file");
     my $customs = SCR::Read (".target.ycp", $file);
 
-    if (ref ($customs) eq "HASH") {
+    if (defined $customs && ref ($customs) eq "HASH") {
 	my %custom_map	= %{$customs};
 	if (defined ($custom_map{"custom_users"}) &&
 	    ref ($custom_map{"custom_users"}) eq "ARRAY") {
@@ -1066,6 +1094,9 @@ sub ReadLocal {
 	$groups_by_name{$type}	= \%{SCR::Read(".passwd.$type.groups.by_name")};
     }
 
+    $plus_passwd	= SCR::Read (".passwd.passwd.plusline");
+    $plus_shadow	= SCR::Read (".passwd.shadow.plusline");
+    $plus_group		= SCR::Read (".passwd.group.plusline");
 }
 
 sub ReadUsersCache {
@@ -1251,6 +1282,9 @@ sub LoadShadow {
 	my $username	= $user_in_work{"username"};
 	my $type	= $user_in_work{"type"};
 	foreach my $key (keys %{$shadow{$type}{$username}}) {
+	    if ($key eq "userPassword") {
+		next;
+	    }
 	    $user_in_work{$key} = $shadow{$type}{$username}{$key};
 	}
     }
@@ -1385,9 +1419,8 @@ sub EditUser {
 	if ($type eq "ldap" && $key eq "dn") {
 
 	    my $new_dn	= UsersLDAP::CreateUserDN (\%data);
-	    if ($user_in_work{$key} ne $new_dn ||
-		!defined $user_in_work{"org_dn"})
-	    {
+	    if (defined $new_dn && ($user_in_work{$key} ne $new_dn ||
+				    !defined $user_in_work{"org_dn"})) {
 		$user_in_work{"org_dn"} = $user_in_work{$key}; 	
 		$user_in_work{$key}	= $new_dn;
 		next;
@@ -1428,7 +1461,6 @@ sub EditUser {
 	$user_in_work{$key}	= $data{$key};
     }
     $user_in_work{"what"}	= "edit_user";
-DebugMap (\%user_in_work);
     UsersCache::SetUserType ($type);
     return 1;
 }
@@ -1451,9 +1483,7 @@ sub EditGroup {
 
     # update the settings which should be changed
     foreach my $key (keys %data) {
-	if ($key eq "groupname" || $key eq "gidNumber" ||
-	    $key eq "type" || $key eq "dn")
-	{
+	if ($key eq "groupname" || $key eq "gidNumber" || $key eq "type") {
 	    # backup the values of important keys (if not already done)
 	    my $org_key = "org_$key";
 	    if (defined $group_in_work{$key} &&
@@ -1463,7 +1493,18 @@ sub EditGroup {
 	    {
 		$group_in_work{$org_key}	= $group_in_work{$key};
 	    }
-#TODO FIXME check change of group_naming_attr -> group DN
+	}
+	# change of DN requires special handling:
+	if ($type eq "ldap" && $key eq "dn") {
+
+	    my $new_dn	= UsersLDAP::CreateGroupDN (\%data);
+	    if (defined $new_dn && ($group_in_work{$key} ne $new_dn ||
+				    !defined $group_in_work{"org_dn"}))
+	    {
+		$group_in_work{"org_dn"} 	= $group_in_work{$key}; 	
+		$group_in_work{$key}		= $new_dn;
+		next;
+	    }
 	}
 	# compare the differences, create removed_userlist
 	if ($key eq "userlist" && defined $group_in_work{"userlist"}) {
@@ -1807,7 +1848,7 @@ sub CommitUser {
         $ldap_modified = 1;
     }
 
-    y2internal ("commiting user '$username', action is '$what_user'");
+    y2internal ("commiting user '$username', action is '$what_user', modified: $users_modified");
 
     # --- 1. do the special action
     if ($what_user eq "add_user") {
@@ -1955,7 +1996,6 @@ sub CommitUser {
 	    }
 	    $removed_homes{$h}	= 1;
 	}
-DebugMap (\%removed_homes);
     }
 
     # --- 2. and now do the common changes
@@ -2343,46 +2383,46 @@ sub Write {
 	}
 	# remove the passwd cache for nscd (bug 24748)
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
-    }
 
-    # check for homedir changes
-    foreach my $type (keys %modified_users)  {
-	if ($type eq "ldap") {
-	    next; #homes for LDAP are ruled in WriteLDAP
-	}
-	foreach my $uid (keys %{$modified_users{$type}}) {
+	# check for homedir changes
+        foreach my $type (keys %modified_users)  {
+	    if ($type eq "ldap") {
+		next; #homes for LDAP are ruled in WriteLDAP
+	    }
+	    foreach my $uid (keys %{$modified_users{$type}}) {
 	    
-	    my %user		= %{$modified_users{$type}{$uid}};
-	    my $home 		= $user{"homeDirectory"} || "";
-	    my $username 	= $user{"username"} || "";
-	    my $command 	= "";
-            my $user_mod 	= $user{"modified"} || "no";
-            my $gid 		= $user{"gidNumber"};
+		my %user	= %{$modified_users{$type}{$uid}};
+		my $home 	= $user{"homeDirectory"} || "";
+		my $username 	= $user{"username"} || "";
+		my $command 	= "";
+		my $user_mod 	= $user{"modified"} || "no";
+		my $gid 	= $user{"gidNumber"};
        
-	    if ($user_mod eq "imported" || $user_mod eq "added") {
-		if ((($user{"create_home"} || 0) || $user_mod eq "imported") &&
-		    !%{SCR::Read (".target.stat", $home)})
-		{
-		    UsersRoutines::CreateHome ($useradd_defaults{"skel"},$home);
-		}
-		UsersRoutines::ChownHome ($uid, $gid, $home);
-		# call the useradd.local
-		$command = sprintf ("%s %s", $useradd_cmd, $username);
-		y2milestone ("'$command' return value: ", 
-		    SCR::Execute (".target.bash", $command));
-	    }
-	    elsif ($user_mod eq "edited") {
-		my $org_home = $user{"org_homeDirectory"} || $home;
-		if ($home ne $org_home) {
-		    # move the home directory
-		    if ($user{"create_home"} || 0) {
-			UsersRoutines::MoveHome ($org_home, $home);
+		if ($user_mod eq "imported" || $user_mod eq "added") {
+		    if ((($user{"create_home"} || 0) || $user_mod eq "imported")
+			&& !%{SCR::Read (".target.stat", $home)})
+		    {
+			UsersRoutines::CreateHome ($useradd_defaults{"skel"},$home);
 		    }
+		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		    # call the useradd.local
+		    $command = sprintf ("%s %s", $useradd_cmd, $username);
+		    y2milestone ("'$command' return value: ", 
+			SCR::Execute (".target.bash", $command));
 		}
-		UsersRoutines::ChownHome ($uid, $gid, $home);
+		elsif ($user_mod eq "edited") {
+		    my $org_home = $user{"org_homeDirectory"} || $home;
+		    if ($home ne $org_home) {
+			# move the home directory
+			if ($user{"create_home"} || 0) {
+			    UsersRoutines::MoveHome ($org_home, $home);
+			}
+		    }
+		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		}
 	    }
-	};
-    };
+	}
+    }
 
     # Write passwords
     if ($use_gui) { Progress::NextStage (); }
@@ -2684,6 +2724,9 @@ sub CrackPassword {
     my $ret 	= "";
     my $pw 	= $_[0];
 
+    if (!defined $pw || $pw eq "") {
+	return $ret;
+    }
     if (!defined $cracklib_dictpath || $cracklib_dictpath eq "" ||
 	SCR::Read (".target.size", "$cracklib_dictpath.pwd") == -1) {
 	$ret = SCR::Execute (".crack", $pw);
@@ -3173,6 +3216,10 @@ sub CryptPassword {
     my $type	= $_[1];
     my $method	= uc ($encryption_method);
     
+    if (!defined $pw || $pw eq "") {
+	return $pw;
+    }
+
     if ($type eq "ldap") {
 	$method = uc (UsersLDAP::GetEncryption ());
 	if ($method eq "CLEAR") {
@@ -3386,5 +3433,32 @@ sub SetGUI {
     UsersLDAP::SetGUI ($use_gui);
 }
 
+# --- 
+BEGIN { $TYPEINFO{SetPlusPasswd} = ["function", "void", "string"];}
+sub SetPlusPasswd {
+    $plus_passwd = $_[0];
+    if (SCR::Write (".passwd.passwd.plusline", $plus_passwd)) {
+	$users_modified 	= 1;
+#TODO not necessary to write all passwd...
+    }
+}
+
+# ---
+BEGIN { $TYPEINFO{SetPlusShadow} = ["function", "void", "string"];}
+sub SetPlusShadow {
+    $plus_shadow = $_[0];
+    if (SCR::Write (".passwd.shadow.plusline", $plus_shadow)) {
+	$groups_modified	= 1;
+    }
+}
+
+# --- 
+BEGIN { $TYPEINFO{SetPlusGroup} = ["function", "void", "string"];}
+sub SetPlusGroup {
+    $plus_group = $_[0];
+    if (SCR::Write (".passwd.group.plusline", $plus_group)) {
+	$users_modified 	= 1;
+    }
+}
 
 # EOF
