@@ -74,7 +74,7 @@
 	"shadowMin", "shadowMax", "shadowFlag" ] :
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
-	"uniqueMember" ];
+	  UsersLDAP::GetMemberAttribute () ];
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
@@ -172,6 +172,8 @@
 	}
         if ( ret == `next )
         {
+	    // FIXME move this to Plugin API
+	    // FIXME include also required by schema
 	    // check for required attributes
 	    foreach (string req, required_attrs, ``{
 		if (ret == `notnext) return;
