@@ -1,7 +1,7 @@
 .etc.default.useradd
 
 `ag_anyagent(
-  SCR::AnyAgent (
+  Description (
     ``(File("/etc/default/useradd")),	// real file name
     "#\n",				// Comment
     false,				// read-only

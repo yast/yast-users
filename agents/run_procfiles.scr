@@ -13,7 +13,7 @@
 .run.procfiles
 
 `ag_anyagent(
-  SCR::AnyAgent (
+  Description (
       ``(Run("/bin/ls -l /proc")),	// real filename
       "#",			// Comment
       true,

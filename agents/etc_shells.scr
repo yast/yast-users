@@ -38,7 +38,7 @@
 #  ----------------------------------------------------------
 
 `ag_anyagent(
-  SCR::AnyAgent (
+  Description (
       ``(File("/etc/shells")),	// real filename
       "",			// Comment
       true,                    // true = ro false = rw

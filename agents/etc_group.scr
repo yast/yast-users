@@ -28,7 +28,7 @@
 .etc.group
 
 `ag_anyagent(
-  SCR::AnyAgent (
+  Description (
       ``(File("/etc/group")),	// real filename
       "#",			// Comment
       true,
