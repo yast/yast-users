@@ -14,9 +14,7 @@ textdomain "users";
 
 import "Mode";
 import "Console";
-//import "./UsersConsts";
 
-//include "./passwd.ycp";
 include "users/passwd.ycp";
 
 global map homelists = $[];
@@ -28,7 +26,7 @@ global map groups_itemlists = $[]; // global ??
 global list additional_users = [];
 global list user_itemlist = [];
 global list group_itemlist = [];
-global list uidlist = [];
+map uidlists = $[];
 global list gidlist = [];
 global list current_users = []; // global ??
 global list current_groups = []; // global ??
@@ -55,30 +53,38 @@ string encoding = "";
 
 integer last_used_local_uid = 1;
 
-global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g)
-``{
+    map symbol_to_string = $[
+        `local: "local",
+        `system:"system",
+        `nis:   "nis",
+        `ldap:  "ldap",
+        `kerb:  "kerb",
+        `smb:   "smb"
+        ];
+
+// build the cache structures, which should be changed only when necessary
+global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g,
+string dir) ``{
 
     encoding = Console::encoding;
 
-    // build the cache structures
-    // this variables should be changed only when necessary
     user_custom_sets = cust_u;
     current_users = cust_u;
 
     foreach (`type, `usersmap, usermap, ``{
-        if (homelists [type]:nil == nil)
-            homelists = add (homelists, type, BuildHomeList(usersmap));
-        if (usernamelists [type]:nil == nil)
-            usernamelists = add (usernamelists, type, BuildUsernameList(usersmap));
-        // itemlists are not externly pre-builded
-        users_itemlists = add (users_itemlists, type,
-            BuildUserItemList(usersmap));
+        BuildUsers (usersmap, type, dir);
     });
+    /*
     if (uidlist == [])
         uidlist = BuildUIDList(usermap);
+    */
+y2milestone ("uidlists: %1", uidlists);
     users_itemlists [ `custom ] = MergeUserTableItems();
-    user_itemlist = users_itemlists [ `custom ]:[]; // ukazatel?
+    user_itemlist = users_itemlists [ `custom ]:[];
 
+    last_used_local_uid = max_system_uid + 1;
+
+    // -- change groups building in a same way !!
     group_custom_sets = cust_g;
     current_groups = cust_g;
     foreach (`type, `groupsmap, groupmap, ``{
@@ -90,13 +96,45 @@ global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g)
     if (gidlist == [])
         gidlist = BuildGIDList(groupmap); // this doesn't look very useful...
     groups_itemlists [ `custom ] = MergeGroupTableItems();
-    group_itemlist = groups_itemlists [ `custom ]:[]; // ukazatel?
+    group_itemlist = groups_itemlists [ `custom ]:[];
 
-//y2milestone("groupnamelist: %1", groupnamelists);
-
-    last_used_local_uid = max_system_uid + 1;
 
     return true;
+}
+
+global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
+
+    string stringtype = symbol_to_string[type]:"";
+
+    if (! issubstring (dir, "/tmp/"))
+    {
+        homelists = add (homelists, type, BuildHomeList(usersmap));
+        usernamelists = add(usernamelists,type,BuildUsernameList(usersmap));
+        users_itemlists = add (users_itemlists, type,
+            BuildUserItemList(usersmap));
+        uidlists [type] = BuildUIDList(usersmap);
+    }
+    else // load from the file
+    {
+        homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +
+            stringtype + ".ycp");
+        usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
+            stringtype + ".ycp");
+        users_itemlists [type] = SCR::Read(.target.ycp, dir + "/itemlist_" +
+            stringtype + ".ycp");
+        uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" +
+            stringtype + ".ycp");
+    }
+}
+
+// to use for reseting settings during autoinstallation
+global define void EmptyStructures () ``{
+
+    homelists = $[];
+    usernamelists = $[];
+    uidlists = $[];
+    groupnamelists = $[];
+    gidlist = [];
 }
 
 /*
@@ -111,7 +149,7 @@ global define list BuildHomeList(map usersmap) ``{
     return ret;
 }
 
-/* -- merge to one function
+/*
  */
 global define list BuildUsernameList(map usersmap) ``{
 
@@ -136,20 +174,18 @@ global define list BuildGroupnameList(map groupsmap) ``{
 }
 
 
-/* -- is this useful?? could be created in initial read
+/*
 */
-global define list BuildUIDList(map allusers) ``{ //not allusers?
+global define list BuildUIDList(map usersset) ``{
 
     list ret = [];
-    foreach (`type, `usersset, allusers, ``{
         foreach (`uid, `usersmap, usersset, ``{
             ret = add (ret, uid);
         });
-    });
     return ret;
 }
 
-/* -- is this useful?? could be created in initial read
+/*
 */
 global define list BuildGIDList(map allgroups) ``{
 
@@ -162,12 +198,12 @@ global define list BuildGIDList(map allgroups) ``{
     return ret;
 }
 
-    /** -- check this !!
-     * Build a string with n blanks
-     * @param count number of blanks
-     * @return string of blanks
-     */
-    define string addBlanks(integer count ) ``{
+/** -- check this !!
+ * Build a string with n blanks
+ * @param count number of blanks
+ * @return string of blanks
+ */
+define string addBlanks(integer count ) ``{
     string  blanks = "";
     integer blanks_counter = 0;
 
@@ -175,18 +211,17 @@ global define list BuildGIDList(map allgroups) ``{
     {
         blanks_counter = blanks_counter + 1;
         blanks         = blanks + "\302\240"; // why this ??
-//        blanks         = blanks + " ";
     }
     return blanks;
-    }
+}
 
-/* item list for the user table
+/*
+ * Build item list for the user table
  */
 global define list BuildUserItemList(map map_of_users) ``{
 
     list items = [];
     foreach ( `key, `user,  map_of_users, ``{
-//y2milestone("user: %1", user);
         string username = user["username"]:"";
         string  s_uid = sformat("%1", key );
         term    a     = `item(`id(key));
@@ -197,7 +232,6 @@ global define list BuildUserItemList(map map_of_users) ``{
         a = add(a, username );
 
         if(key > max_system_uid)
-//            a = add(a, user["fullname"]:"" );
             a = add(a, Uncoding(user["fullname"]:"") );
         else
             a = add(a, SystemUsers[username]:user["fullname"]:"" );
@@ -207,24 +241,17 @@ global define list BuildUserItemList(map map_of_users) ``{
         string own_group = user["groupname"]:"";
         string grouplist = user["grouplist"]:"";
         list l_grouplist = splitstring (grouplist, ",");
-        /*
-        if ( contains (l_grouplist, own_group) && grouplist!="")
-            grouplist = substring (grouplist,1); // remove comma
-        else
-            grouplist = own_group + grouplist;
-        */
-        if ( !contains (l_grouplist, own_group))
+
+        if ( !contains (l_grouplist, own_group) && own_group != "")
         {
             if (grouplist != "")
-                grouplist = own_group + "," + grouplist;
+                    grouplist = own_group + "," + grouplist;
             else
                 grouplist = own_group;
         }
 
         a = add(a, grouplist );
         items = add( items, a );
-
-//y2milestone ("a[2] = %1", select(a,2,nil));
     });
 
     return items;
@@ -244,7 +271,8 @@ global define string Uncoding( string fullname ) ``{
 
 }
 
-/* item list for the user table
+/*
+ * Build item list for the group table
  */
 global define list BuildGroupItemList(map map_of_groups) ``{
 
@@ -300,7 +328,7 @@ global define void ChangeUserCustoms (list new) ``{
     user_custom_sets = new;
     users_itemlists [`custom] = MergeUserTableItems();
     if (customized_usersview)
-        user_itemlist = users_itemlists [`custom]:[]; //pointer ??
+        user_itemlist = users_itemlists [`custom]:[];
 }
 
 global define void ChangeGroupCustoms (list new) ``{
@@ -308,7 +336,7 @@ global define void ChangeGroupCustoms (list new) ``{
     group_custom_sets = new;
     groups_itemlists [`custom] = MergeGroupTableItems();
     if (customized_groupsview)
-        group_itemlist = groups_itemlists [`custom]:[]; //pointer ??
+        group_itemlist = groups_itemlists [`custom]:[];
 }
 
 
@@ -338,8 +366,11 @@ global define boolean HomeExists(string home) ``{
  */
 global define boolean UIDExists(integer uid) ``{
 
-    if ( contains (uidlist, uid)) return true;
-    return false;
+    boolean ret = false;
+    foreach (`type, `uids, uidlists, ``{
+        if ( contains (uids, uid)) ret = true;
+    });
+    return ret;
 }
 
 /*
@@ -372,12 +403,12 @@ global define integer NextFreeUid() ``{
     if (user_type == `system)
         max = max_system_uid;
     else // beware !! what about LDAP etc.??
-//        min = max_system_uid + 1;
         min = last_used_local_uid + 1;
     integer uid = min;
     repeat
     {
-        if (contains (uidlist, uid))
+//        if (contains (uidlist, uid))
+        if (UIDExists (uid))
             uid = uid + 1;
         else
         {
@@ -386,7 +417,6 @@ global define integer NextFreeUid() ``{
         }
     } until ( uid == max );
     return nil;
-    // what about last_uid_used ??
 }
 
 /**
@@ -458,8 +488,7 @@ global define void ChangeUser(symbol what, map user) ``{
 
     if (what == `add_user)
     {
-//y2milestone ("itemlist: %1", users_itemlists [type]:[]);
-        uidlist = prepend (uidlist, uid);
+        uidlists [type] = prepend (uidlists [type]:[], uid);
         homelists [type] = add (homelists [type]:[], home);
         usernamelists [type] = add (usernamelists [type]:[], username);
         users_itemlists [type] = merge (users_itemlists [type]:[],
@@ -491,7 +520,7 @@ global define void ChangeUser(symbol what, map user) ``{
     }
     else if (what == `delete_user)
     {
-        uidlist = filter (`u, uidlist, ``(u != uid));
+        uidlists [type] = filter (`u, uidlists [type]:[], ``(u != uid));
         homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
         usernamelists [type] = filter (`u, usernamelists [type]:[],
                 ``(u != username));
@@ -499,10 +528,10 @@ global define void ChangeUser(symbol what, map user) ``{
             ``(select(item,1,"") != username));
         UpdateUserItemlist ();
     }
-//y2milestone ("itemlist: %1", users_itemlists [type]:[]);
 
 }
 
+/* Update the cache after changing group */
 global define void ChangeGroup(symbol what, map group) ``{
 
     integer gid = group["gid"]:nil;
@@ -592,955 +621,4 @@ global define integer GetUid( string username )``{
         return uid;
 }*/
 
-    /** -- rework!!
-      * Split string of groups - estimation of behaviour
-      * @param str_grouplist string list of groups
-      * @return list of groups
-      *
-    global define list GroupString2groupList(string str_grouplist )``{
-
-y2milestone("grouplist: %1", str_grouplist);
-      list false_grouplist = [];
-      list true_grouplist  = [];
-      list str_list_grouplist = splitstring( str_grouplist, "," );
-
-//      ProgressInitGroups ("GroupString2groupList");
-      foreach( `key, `group, Users::groups , ``{
-      string groupname = lookup( group, "groupname","");
-
-      if( ! contains( str_list_grouplist, groupname ) )
-      {
-          term    a     = `item(`id(groupname ), groupname, false );
-          false_grouplist     = add( false_grouplist ,  a );
-      }
-//      ProgressNext ();
-      });
-//      ProgressDone ();
-
-      foreach( `groupname,  str_list_grouplist , ``{
-
-      term    a     = `item(`id(groupname ), groupname, true );
-      true_grouplist     = add( true_grouplist ,  a );
-      });
-
-y2milestone("true grouplist: %1", true_grouplist);
-y2milestone("false grouplist: %1", false_grouplist);
-      true_grouplist  = sort(true_grouplist);
-      false_grouplist = sort(false_grouplist);
-
-      return union( true_grouplist, false_grouplist);
-
-    }
-    */
-
-    /**
-     * Delete the group with groupname from current_gshadow.
-     * @param groupname name of the group
-     * @return void
-     *
-    global define void DeleteGroupFromShadow( string groupname )``{
-    current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname", "") != groupname ) );
-    }
-    */
-
-    /**
-     * Return the group with groupname from current_gshadow.
-     * @param groupname name of the group
-     * @return map gshadow entry
-     *
-    global define map GetGroupFromShadow( string groupname ) ``{
-    list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname","") == groupname ) );
-    if ( size ( password_group_list ) == 0 ) return $[];
-    return select(password_group_list, 0,$[]);
-    }
-    */
-
-  /** --- shouldn't be used !?
-   * This define returns the groups of a user.
-   * @param username the name of the user
-   * @return string group comma separated list
-   *
-  global define string FindGroupsBelongUser( string username ) ``{
-      if( username == "" ) return "";
-      string grouplist = "";
-      ProgressInitGroups ("FindGroupsBelongUser");
-      foreach( `key, `group, current_groups , ``{
-        string userlist      = lookup( group, "userlist","");
-        list   usersplitlist = splitstring( userlist, "," );
-
-        if( contains( usersplitlist, username ) )
-        {
-            string groupname = lookup( group, "groupname","");
-            if( grouplist == "" ) grouplist = groupname;
-            else grouplist = grouplist + "," + groupname;
-        }
-        ProgressNext ();
-      });
-      ProgressDone ();
-
-      if( grouplist != nil ) return grouplist;
-      else return "";
-  }
-  */
-
-    /**
-     * This define returns the additional groups of a user.
-     * It is just a compatibility wrapper to make use of SortGroupsByUsers
-     * @param username the name of the user
-     * @param groups_by_users the result of SortGroupsByUsers
-     * @return group comma separated list
-     *
-    global define string FindGroupsBelongUserHint (string username,
-                           map groups_by_users) ``{
-    list groups = groups_by_users[username]:[];
-    return mergestring (groups, ",");
-    }
-    */
-
-    /**
-     * Sorts current_groups according to additional users they contain.
-     * FIXME: how about group["todo"] == `delete?
-     * @return keys: user names (not all of them),
-     *         values: lists of group names
-     *
-    global define map SortGroupsByUsers () ``{
-    map groups = $[];
-    ProgressInitGroups ("SortGroupsByUsers");
-    foreach (integer gid, map group, current_groups , ``{
-        string users_s = group["userlist"]:"";
-        list users = splitstring (users_s, ",");
-        string groupname = group["groupname"]:"";
-        foreach (string user, users, ``{
-        groups[user] = add (groups[user]:[], groupname);
-        });
-        ProgressNext ();
-    });
-    ProgressDone ();
-    return groups;
-    }
-    */
-
-
-    /**
-     * Sorts current_users according to their primary group.
-     * This avoids calling FindUsersBelongGroup for each group (yuck).
-     * FIXME: how about user["todo"] == `delete?
-     * @return keys: gids (not all of them), values: lists of uids
-     *
-    global define map SortUsersByPrimaryGroup () ``{
-    map ubpg = $[];
-    integer pgid = nil;
-    ProgressInitUsers ("SortUsersByPrimaryGroup");
-    foreach(integer uid, map user, current_users , ``{
-        // group -1 is the users without a group
-        pgid = user["gid"]:-1;
-        ubpg[pgid] = add (ubpg[pgid]:[], uid);
-        ProgressNext ();
-    });
-    ProgressDone ();
-    return ubpg;
-    }
-    */
-
-    /**
-     * Return a comma separated list of users belonging to a group.
-     * This is an optimized version of FindUsersBelongGroup
-     * for use in GroupsRead.
-     * @param group a member of current_groups
-     * @param primary_users the hint, mapping gids to lists of uids
-     * @return sorted, uniq'd, comma separated list of user names
-     *
-    global define string FindUsersBelongGroupHint(map group, map primary_users) ``{
-    string s_unames = group["userlist"]:"";
-    list l_unames = splitstring (s_unames, ",");
-    // we enter it into a map so that it is sorted and uniq'd
-    map names = listmap (string uname, l_unames, ``( [ uname, true ] ));
-    // -1 is the users without a group, take -2
-    list l_uids = primary_users[group["gid"]:-2]:[];
-    foreach (integer uid, l_uids, ``{
-        names[ current_users[uid,"username"]:"" ] = true;
-    });
-    l_unames = maplist (string uname, boolean dummy, names, ``( uname ));
-    return mergestring (l_unames, ",");
-    }
-    */
-    
-  /**
-   * This define returns the users of a group.
-   * This is used in usersGroupRead  and usersEditGroup.
-   * @param gid integer group id
-   * @param what `string or `list
-   * @return a list of users (as a string or a list of terms)
-   *
-  global define any  FindUsersBelongGroup( integer gid, symbol what ) ``{
-
-      if( what == `string )
-      {
-      string userlist     = current_groups[gid, "userlist"]:"";
-      list split_userlist = splitstring( userlist, "," );
-
-      ProgressInitUsers ("FindUsersBelongGroup 1");
-      foreach( `key, `user, current_users , ``{
-
-          if ( gid == lookup(user, "gid", -1 ) &&(! contains( split_userlist, user["username"]:"" )  ))
-          {
-          if( userlist == "") userlist = lookup( user, "username", "");
-          else userlist = userlist + "," + lookup( user, "username", "");
-
-          split_userlist = add( split_userlist,  user["username"]:"" );
-          }
-          ProgressNext ();
-      });
-      ProgressDone ();
-      if (   userlist != nil )  return userlist;
-      else return "";
-      }
-      else
-      {
-
-      string str_userlist    = lookup( lookup( current_groups, gid, $[]),  "userlist", "");
-      list str_list_userlist = [];
-
-      if( str_userlist != "" )
-          str_list_userlist = splitstring( str_userlist, "," );
-
-      list false_userlist          = [];
-      list true_userlist           = [];
-
-      ProgressInitUsers ("FindUsersBelongGroup 2");
-      foreach( `key, `user, current_users , ``{
-
-          string username     =  lookup( user, "username", "");
-          //y2milestone( "%1", str_list_userlist );
-
-          if( (! contains(str_list_userlist,  username ) ))
-          {
-          if ( gid == lookup(user, "gid", -1))
-          {
-              term    a       = `item(`id(username), username, true );
-              true_userlist  =  add( true_userlist, a );
-          }
-          else
-          {
-              term    a       = `item(`id(username), username, false );
-              false_userlist  =  add( false_userlist, a );
-          }
-          }
-          ProgressNext ();
-      });
-      ProgressDone ();
-    
-      foreach( `user, str_list_userlist, ``{
-          term    a     = `item(`id(user), user, true );
-          true_userlist = add( true_userlist, a );
-      });
-
-      true_userlist  = sort(true_userlist);
-      false_userlist = sort(false_userlist);
-
-      return union( true_userlist, false_userlist );
-
-      }
-  }
-  */
-
-    /** --- we have GetUser, why use this?
-     * Return the username of a user.
-     * @param Id the user uid
-     * @return string username
-     *
-    global define string UserIdToName( integer Id ) ``{
-    return lookup( lookup( current_users, Id,$[]), "username", "");
-    }
-    */
-
-
-
-    /**
-     * Convert the map current_groups to a list
-     * @param todo specify the variant of the output list
-     *  `items = build a item list for the group table
-     *  `groupnamelist = list with all groupnames
-     * @param view_all_groups boolean
-     *   true  = add all groups to the output list
-     *   false = add only groups with gid > max_system_gid
-     * @return list of groups/items
-     *
-    global define list GroupsRead(symbol todo, boolean view_all_groups ) ``{
-
-
-    list    items         = []; //list for the group table
-    list    groupnamelist = []; //list with all groupnames
-
-    map primary_users = SortUsersByPrimaryGroup ();
-
-    ProgressInitGroups ("GroupsRead"); 
-    foreach ( `key, `group,  current_groups, ``{
-
-        if ( group["todo"]:"" != `delete )
-        {
-        if( todo == `items  &&
-            // Group #100 is "users". This is a kludge. Bug #19253.
-            ( view_all_groups || ( ! view_all_groups && (key == 100 ||
-                                     key >  Users::max_system_gid &&
-                                 group["groupname"]:"" != "nobody" &&
-                                 group["groupname"]:"" != "nogroup" ))))
-        {
-            string  s_gid = sformat("%1", key   );
-            term    a     = `item(`id(key));
-
-             if( size( s_gid) != Users::max_length_gid )
-             s_gid = addBlanks( Users::max_length_gid - size(s_gid)) + s_gid;
-
-            a = add(a, group["groupname"]:"" );
-            a = add(a, s_gid);
-            a = add(a, FindUsersBelongGroupHint(group, primary_users));
-
-            items = add( items, a );
-        }
-
-        if ( todo == `groupnamelist)
-        {
-            groupnamelist = add(groupnamelist, group["groupname"]:"" );
-        }
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-
-
-    if( todo == `items              ) return items;
-    else if (todo == `groupnamelist ) return groupnamelist;
-    }*/
-
-    /**
-      * Return map for mapping user names to UIDs
-      * @return map mapping
-      *
-    global define map UsersByName () ``{
-    ProgressInitUsers ("UsersByName");
-    map res = mapmap (`k, `v, current_users, ``{
-        ProgressNext ();
-        return [ lookup (v, "username", ""), k ];
-    });
-    ProgressDone ();
-    return res;
-    }
-    */
-
-    /** -- not necessary to rebuild all this after one user change
-      * patch list of groups for each user to it's structure
-      *
-    global define void patchUsers () ``{
-    ProgressInitUsers ("patchUsers 1");
-    current_users = mapmap (`k, `v, current_users, ``{
-        ProgressNext ();
-        return [k, add (v, "more groups", "")]; // add in Read functions
-    });
-    ProgressDone ();
-
-    map mapping = UsersByName ();// global?
-
-    ProgressInitGroups ("patchUsers 2");
-    foreach (`k, `v, current_groups, ``{
-        // group members
-        list members = splitstring (lookup (v, "userlist", ""), ",");
-
-        // group name
-        string name = lookup (v, "groupname", "");
-
-        foreach (`m, members, ``{
-            // uid of group member
-            integer uid = lookup (mapping, m, 0);
-            map u = lookup (current_users, uid, $[]);
-            string grouplist = lookup (u, "more groups", "");
-            grouplist = grouplist + "," + name;
-            u = add (u, "more groups", grouplist);
-            current_users = add (current_users, uid, u);
-        });
-        ProgressNext ();
-    });
-    ProgressDone ();
-    }
-    */
-
-
-    /** -------- tahle funkce se vola prilis casto
-     * Convert the map current_users to a list.
-     * @param todo specify the variant of the output list
-     *  `items = build a item list for the user table
-     *  `usernamelist = list with all usernames
-     *  `homelist     = list with all homes
-     * @param view_all_users boolean
-     *   true  = add all users to the output list
-     *   false = add only users with uid > max_system_uid
-     * @return list of users/items
-     *
-    global define list UsersRead(symbol todo, boolean view_all_users ) ``{
-    y2milestone ("Building %1", todo);
-
-    list     items        = []; // item list for the user table
-
-    patchUsers ();
-
-    ProgressInitUsers ("UsersRead");
-    foreach ( `key, `user,  current_users, ``{
-
-        if(  user["todo"]:"" != `delete )
-        {
-        string username = user["username"]:"";
-
-        if(
-            ( view_all_users || (                     (key >  Users::max_system_uid  && user["username"]:"" != "nobody" ))))
-        {
-            string  s_uid = sformat("%1", key );
-            term    a     = `item(`id(key));
-
-            if( size( s_uid) !=  Users::max_length_uid )
-            s_uid = addBlanks(  Users::max_length_uid - size(s_uid)) + s_uid;
-
-            a = add(a, username );
-
-            if(key > Users::max_system_uid)
-            a = add(a, user["fullname"]:"" );
-            else
-            a = add(a, SystemUsers[username]:user["fullname"]:"" );
-
-            a = add(a, s_uid );
-
-            string grouplist   = current_groups[user["gid"]:0, "groupname"]:"";
-            string more_groups = lookup (user, "more groups", ",");
-            if (size (more_groups) > 0)
-            more_groups = substring (more_groups, 1);
-
-//FindGroupsBelongUser( username );
-
-            if ( contains ( splitstring( more_groups , "," ) , grouplist )) grouplist = more_groups;
-            else
-            {
-            if( more_groups != "" ) grouplist = grouplist + "," + more_groups;
-            }
-
-            a = add(a, grouplist );
-
-            items = add( items, a );
-        }
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-
-    return items;
-    }
-    */
-
-    /**
-     * Scan usersettings for the next free uid.
-     * @return integer free uid
-     *
-    global define integer NextFreeUid() ``{
-
-    integer uid = Users::max_system_uid + 1 ;
-    repeat {
-        if ( haskey( Users::local_users, uid) )// which set should be scanned?
-        {
-        map user =  lookup ( Users::local_users , uid ,$[]);
-        if( user["todo"]:"" == `delete) return uid;
-        else
-        {
-            uid = uid + 1;
-        }
-        }
-        else return uid;
-
-    } until ( uid ==  Users::max_uid );
-    return uid;
-    }*/
-
-    /**
-     * Scan the groupsettings the next free gid.
-     * @return integer free gid
-     *
-    global define integer NextFreeGid() ``{
-
-    integer gid  =  Users::max_system_gid + 1;
-
-    // can't delete gid 101 with groupdel ????
-    // FIXME ERROR
-    if ( gid == 101 ) gid = 102;
-
-    repeat {
-        if ( haskey( Users::groups, gid ) )// more sets of groups needed
-        {
-        map group = Users::groups[ gid ]:$[] ;
-        if( group["todo"]:""  == `delete) return gid;
-        else
-        {
-            gid = gid + 1;
-            if ( gid == 101 ) gid = 102;
-        }
-        }
-        else return gid;
-    } until ( gid ==  Users::max_gid );
-    return gid;
-    }*/
-
-
-
-    /**
-     * Return the settings for a user. This is called from Summary dialog
-     * @param uid the user id
-     * @return map of user
-     *
-    global define map GetUser( integer uid )``{
-    map ret = $[];
-    foreach (`usersset, current_users, ``{
-        ret = Users::users[ usersset, uid ]:$[];
-        if (ret != $[])
-        {
-            y2debug("selected user: %1", ret);
-            user_type = ret [ "type" ]:nil;
-            return ret;
-        }
-    });
-    return ret;
-    }
-    */
-
-    /**
-      * Delete user
-      * @param uid the user id
-      *
-    global define void DelUser( integer uid ) ``{
-
-    UsersCache::current_users = filter( `key, `user, UsersCache::current_users, ``( uid != key));
-    }
-    */
-
-    /**
-     * Return the settings for a group.
-     * @param gid the group id
-     * @return map of group
-     *
-    global define map GetGroup( integer gid )``{
-    return current_groups[ gid ]:$[];
-    }
-    */
-
-
-    /**
-     * Update the settings for a user.
-     * @param uid the user id
-     * @param user the new settings for the user
-     *
-    global define void SetUser( integer uid , map user)``{
-    if (user_type == `local)
-    {
-        Users::local_users [ uid ] = user;
-    }
-    else if (user_type == `system)
-        Users::system_users [ uid ] = user;
-// zde by bylo mozne opravit items??
-
-//  current_users[ uid ] = user;
-    }*/
-
-    /**
-     * Update the settings for a group.
-     * @param gid the group id
-     * @param group the new settings for the group
-     *
-    global define void SetGroup( integer gid , map group )``{
-    current_groups[ gid ] = group;
-    }*/
-
-    /**
-      * Delete group
-      * @param gid integer group id
-      *
-    global define void DelGroup( integer gid ) ``{
-    UsersCache::current_groups = filter( `key, `group, UsersCache::current_groups, ``( gid != key));
-    }*/
-
-    /**
-      * Set group name for group specified by GID
-      * @param gid integer group id
-      * @param groupname string new name for group
-      * @return true if success
-      *
-    global define boolean SetGroupname( integer gid, string groupname) ``{
-    map current_group = current_groups[gid]:$[];
-    if ( current_group == $[] )
-    {
-        y2milestone(sformat("The group with the gid %1 does not exist", gid));
-        return false;
-    }
-    else
-    {
-        current_group["groupname"] = groupname;
-        current_groups[gid]        = current_group;
-        return true;
-    }
-    */
-
-    }
-    /**
-      * Get group name for group id
-      * @param gid integer group id
-      * @return strign group name
-      *
-    global define string GetGroupname( integer gid )``{
-    map current_group = current_groups[gid]:$[];
-    if ( current_group == $[] )
-    {
-        y2milestone(sformat("The group with the gid %1 does not exist", gid));
-        return "";
-    }
-    else
-    {
-        return current_group["groupname"]:"";
-    }
-    }
-    */
-
-    /**
-      * Set list of users having additional membership for specified group
-      * @param gid integer group id
-      * @param userlist string comma separated list of users
-      * @return boolean true if success
-      *
-    global define boolean SetUserlist( integer gid, string userlist ) ``{
-    map current_group = current_groups[gid]:$[];
-
-    if ( current_group == $[] )
-    {
-        y2milestone(sformat("The group with the gid %1 does not exist", gid));
-        return false;
-    }
-    else
-    {
-        current_group["userlist"] = userlist;
-        current_groups[gid]       = current_group;
-        return true;
-    }
-    }
-    */
-
-    /**
-      * Get list of users having additional membership for specified group
-      * @param gid integer group id
-      * @return string comma separated list of users
-      *
-    global define string GetUserlist( integer gid )``{
-    map current_group = current_groups[gid]:$[];
-    if ( current_group == $[] )
-    {
-        y2milestone(sformat("The group with the gid %1 does not exist", gid));
-        return "";
-    }
-    else
-    {
-        return current_group["userlist"]:"";
-    }
-    }
-    */
-
-    /**
-     * Add a group password entry.
-     * @param gshadow new entry for gshadow
-     *
-     *
-    global define void AddGshadowEntry( map gshadow )``{
-    current_gshadow = add( current_gshadow , gshadow );
-    }
-    */
-
-
-
-    /**
-     * Return the group password if the group have a password ( use current_gshadow ).
-     * @param groupname name of the group
-     * @return string/nil group password
-     *
-    define string getGroupPassword( string groupname ) ``{
-
-    list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname","") == groupname ) );
-    if( size (password_group_list ) == 0 ) return ( nil ) ;
-
-    string password = lookup( select(password_group_list, 0,$[]) , "password", "" );
-    if( (password != "*" ) &&
-        ( password  != "!" ) ) return password;
-    return ( nil ) ;
-    }
-*/
-
-    /**
-      * Backup /etc/passwd, shadow, group and gshadow files
-      *
-    global define void BackupConfFiles()``{
-    // save old settings
-    // TODO Fixme -> use local path values
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/shadow %1/shadow.YaST2save", Users::base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/passwd %1/passwd.YaST2save", Users::base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/gshadow %1/gshadow.YaST2save", Users::base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/group %1/group.YaST2save", Users::base_dir));
-    }
-    */
-
-
-    /*
-    global define boolean AddUserToGroups(string username, string grouplist)``{
-
-    // hodilo by se mit pole groupsbyname???
-    list search_groups = splitstring(grouplist, "," );
-    foreach (`g_id,`gr, Users::groups, ``{
-        if (contains (search_groups, gr["groupname"]:""))
-        {
-            string userlist = gr["userlist"]:"";
-            if (userlist != "") userlist = userlist + ",";
-            Users::groups [g_id, "userlist"] = userlist + username;
-        }
-    });
-    }
-    */
-
-    /**
-     * Change the username in current_groups.
-     * @param old_username the old username
-     * @param username     the new username
-     * @return boolean true if success
-     *
-    global define boolean ChangeUserNameInGroups(string old_username, string username)``{
-
-    // if the username has been changed update the map current_groups
-    map    tmp_current_groups = current_groups;
-
-    if ( old_username != username )
-    {
-        ProgressInitGroups ("ChangeUserNameInGroups");
-        foreach( `key, `group, current_groups, ``{
-
-        string userlist       =  lookup( group , "userlist" ,"");
-        list   split_userlist =  splitstring( userlist, ",");
-        if ( contains( split_userlist , old_username ) )
-        {
-            list   new_userlist     =  filter(`v, split_userlist , ``(v != old_username ));
-            list   new_userlist     =  add( new_userlist, username );
-            string new_userlist_str =  mergestring( new_userlist, ",");
-            group  = add(group, "userlist", new_userlist_str );
-            tmp_current_groups = add( tmp_current_groups, key, group );
-        }
-        ProgressNext ();
-        });
-        ProgressDone ();
-        current_groups = tmp_current_groups;
-    }
-    return true;
-    }*/
-
-
-    /**
-     * Change the userlist in current_groups.
-     * Add and remove entries form the userlist
-     * @param username the name of the changed user
-     * @param grouplist the new grouplist of the changed user
-     * @return boolean true if succeses
-     *
-    global define boolean ChangeUserlistInGroups( string username, string grouplist )``{
-
-    map tmp_current_groups = current_groups;
-    list search_groups = splitstring(grouplist, "," );
-
-    ProgressInitGroups ("ChangeUserlistInGroups");
-    foreach( `key, `group, tmp_current_groups, ``{
-        string userlist      = lookup(group, "userlist" , "");
-        list split_userlist  = splitstring( userlist, ",");
-        map    new_group     = group;
-
-        // delete username from userlist
-        if( contains( split_userlist, username )  &&( ! contains(search_groups, lookup( group, "groupname","")) ))
-        {
-        string new_userlist = "";
-
-        foreach( `entry, split_userlist, ``{
-
-            if( entry != username )
-            {
-            if( new_userlist == "") new_userlist = entry;
-            else new_userlist = new_userlist + "," + entry;
-            }
-        });
-        new_group = add( new_group, "userlist", new_userlist );
-
-        // write update to current_groups
-        SetGroup( key , new_group );
-        }
-
-        // add username to userlist
-        if(  contains(search_groups, lookup( group, "groupname","")) &&( ! contains(split_userlist, username )))
-        {
-        if ( userlist == "" ) userlist = username;
-        else userlist = userlist + "," + username;
-
-        new_group["userlist"] = userlist;
-
-        //write update to current_groups
-        SetGroup( key , new_group );
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-    return true;
-    }
-    */
-
-    /**
-     * delete the user from the map current_groups (userlist)
-     * @param username string username
-     *
-    global define void DelUserFromAllGroups( string username )``{
-
-    ProgressInitGroups ("DelUserFromAllGroups");
-    foreach( `key, `group, UsersCache::current_groups, ``{
-
-        string userlist  = group["userlist"]:"";
-        map    new_group = group;
-
-        if( issubstring( userlist, username ) )
-        {
-        list split_userlist = splitstring( userlist, ",");
-        string new_userlist = "";
-
-        foreach( `entry, split_userlist, ``{
-
-            if( entry != username )
-            {
-            if( new_userlist == "") new_userlist = entry;
-            else new_userlist = new_userlist + "," + entry;
-            }
-        });
-        new_group[ "userlist"] =  new_userlist;
-        UsersCache::SetGroup( key , new_group );
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-    }
-    */
-
-    /**
-     * Remove all users from the userlist with a default group (gid)
-     * that is part of the userlist.
-     * @param old_gid the gid
-     * @param split_userlist the userlist
-     * @return string new users list
-     *
-    global define string RemoveDefaultUserFromUserlist( integer old_gid , list split_userlist)``{
-    y2milestone ("IN: %1 %2", old_gid, split_userlist); //DEBUG
-    string new_userlist     = "";
-
-    map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid",nilinteger) == old_gid) );
-    map default_users_names = mapmap (any k, map v, default_users, ``(
-                          [ v["username"]:"", true ]
-                          ));
-
-    list more_users_l = splitstring (
-        lookup (GetGroup (old_gid), "userlist",""), ",");
-    map more_users = listmap (string u, more_users_l, ``( [u, true] ));
-
-    ProgressInit ("RemoveDefaultUserFromUserlist", size (split_userlist));
-    foreach(`entry, split_userlist, ``{
-        if (!haskey (default_users_names, entry) ||
-        haskey (more_users, entry))
-        {
-        if( new_userlist == "") new_userlist = entry;
-        else new_userlist = new_userlist + "," + entry;
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-
-    y2milestone ("OUT: %1", new_userlist); //DEBUG
-    return new_userlist;
-    }
-    */
-
-    /**
-     * Change the group id and the content of a group.
-     * @param old_gid the old group id
-     * @param gid the new group id
-     * @param current_group the new entry for the new group id
-     *
-    global define void ChangeGid( integer old_gid, integer gid, map current_group )``{
-
-    map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid",nilinteger) == old_gid) );
-
-    current_groups = filter(`key, `group, current_groups,``( key != old_gid ));
-
-    ProgressInit ("ChangeGid", size (default_users));
-    foreach( `key, `user, default_users, ``{
-
-        map new_user = user;
-        new_user     = add( new_user, "gid", gid);
-        SetUser( key, new_user);
-        ProgressNext ();
-    });
-    ProgressDone ();
-
-    SetGroup( gid, current_group );
-    }
-    */
-
-    /*
-     * -----------------------------------------------------------------
-     * This serves to debug the horribly inefficient design. (Bug 20072)
-     *
-
-    integer progress_counter = 0;
-    list (integer) saved_progress_counter = [];
- 
-    // If false, the Progress* functions do nothing.
-    boolean progress_enabled = WFM::Args () != [] && WFM::Args (0) == "progress_enabled";
-
-    define boolean ProgressInit (string title, integer len) ``{
-    if (!progress_enabled)
-    {
-        return;
-    }
-    y2milestone ("%1: %2", title, len);
-    saved_progress_counter = prepend (saved_progress_counter, progress_counter);
-    progress_counter = 0;
-    return UI::OpenDialog (`ProgressBar (`id (`p), title, len, 0));
-    }
-
-    define boolean ProgressInitUsers (string title) ``{
-    return progress_enabled &&
-        ProgressInit (title, size (current_users));
-    }
-
-    define boolean ProgressInitGroups (string title) ``{
-    return progress_enabled &&
-        ProgressInit (title, size (current_groups));
-    }
-
-    define void ProgressNext () ``{
-    if (!progress_enabled)
-    {
-        return;
-    }
-    progress_counter = progress_counter + 1;
-    UI::ChangeWidget (`id (`p), `Value, progress_counter);
-    }
-
-    define void ProgressDone () ``{
-    if (!progress_enabled)
-    {
-        return;
-    }
-    UI::CloseDialog ();
-    progress_counter = saved_progress_counter[0]:0;
-    saved_progress_counter = remove (saved_progress_counter, 0);
-    y2milestone ("done");
-    }
-    */
 }

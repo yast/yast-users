@@ -11,12 +11,20 @@
 
 global define map ReadGshadow(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/gshadow.ycp");
+//    return SCR::Read(.target.ycp, dir + "/gshadow.ycp");
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
+    ];
 }
 
 global define map ReadShadow(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/shadow.ycp");
+//    return SCR::Read(.target.ycp, dir + "/shadow.ycp");
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
+    ];
 }
 
 global define map ReadGroups(string dir)``{
@@ -48,16 +56,6 @@ global define map ReadPasswdByName(string dir)``{
     ];
 }
 
-global define map ReadNISUsers(string dir)``{
-
-    return SCR::Read(.target.ycp, dir + "/nis.ycp");
-}
-
-global define map ReadNISUsersByName(string dir)``{
-
-    return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
-}
-
 global define string ReadPlusGshadow(string dir)``{
 
     return SCR::Read(.target.ycp, dir + "/plus_gshadow.ycp");
@@ -78,73 +76,6 @@ global define string ReadPlusPasswd(string dir)``{
     return SCR::Read(.target.ycp, dir + "/plus_passwd.ycp");
 }
 
-/**
- * Returns a map with users retrieved from `getent passwd` and
- * not contained in other set (passwd and nis).
- * Currently is it supposed that they are the LDAP users
- */
-global define map ReadLDAPUsers(string dir) ``{
-
-    return (SCR::Read(.target.ycp, dir + "/getent.ycp"));
-}
-
-global define map ReadLDAPUsersByName(string dir) ``{
-
-    return (SCR::Read(.target.ycp, dir + "/getent_byname.ycp"));
-}
-
-/**
- */
-global define boolean WriteLDAPUsers(map ldap_users) ``{
-
-    if (ldap_users != $[])
-
-    foreach (`uid, `user, ldap_users, ``{
-
-        if (user["modified"]:`nothing != `nothing)
-        {
-            y2milestone ("There is a change of LDAP user with id %1, but it is not possible to save it yet...", uid);
-        }
-
-    });
-
-    return true;
-}
-
-/** Does it make sense?
- */
-global define boolean ReadLDAPGroups() ``{
-
-    return (SCR::Read(.target.ycp, dir + "/getent_group.ycp"));
-}
-
-/**
-  */
-global define boolean IsLDAPServer () ``{
-
-    y2milestone("dir ldap: %1", SCR::Dir(.etc.openldap.ldap_conf));
-    string host = SCR::Read(.etc.openldap.ldap_conf.host);
-    y2milestone("read ldap.host: %1", host);
-
-    if (host == "localhost" || host == "127.0.0.1")
-        return true;
-    return false;
-}
-
-/**
-  */
-global define boolean IsLDAPPresent () ``{
-
-    y2milestone("dir nsswitch: %1", SCR::Dir(.etc.nsswitch_conf));
-    string passwd_source = SCR::Read(.etc.nsswitch_conf.passwd);
-    y2milestone("read nsswitch.passwd: %1", passwd_source);
-
-    if (issubstring(passwd_source, "ldap")) // is it ok??
-        return true;
-
-    return false;
-}
-
 
 /**  -- using target.string
  */
@@ -152,7 +83,7 @@ global define boolean IsLDAPPresent () ``{
 global define boolean WriteGroup(string basedir, map system_groups, map local_groups, string plus) ``{
 
     string conf_path = basedir + "/group";
-    list modified = [];
+    list modified_list = [];
     list list_to_save = maplist (`gid, `group, system_groups, ``{
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
@@ -160,7 +91,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             group["gid"]:max_gid,
             group["userlist"]:"");
         if (group["modified"]:`nothing != `nothing)
-            modified = add (modified, group);
+            modified_list = add (modified_list, group);
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
@@ -170,7 +101,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             group["gid"]:max_gid,
             group["userlist"]:"");
         if (group["modified"]:`nothing != `nothing)
-            modified = add (modified, group);
+            modified_list = add (modified_list, group);
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
@@ -179,7 +110,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
-//    return modified;
+//    return modified_list;
 }
 
 
@@ -188,7 +119,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
 global define list WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
 
     string conf_path = basedir + "/passwd";
-    list modified = [];
+    list modified_list = [];
     list list_to_save = maplist (`uid, `user, system_users, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
@@ -198,8 +129,8 @@ global define list WritePasswd(string basedir, map system_users, map local_users
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
-        if (user["modified"]:`nothing != `nothing)
-            modified = add (modified, user);
+        if (user["modified_list"]:`nothing != `nothing)
+            modified_list = add (modified_list, user);
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`uid, `user, local_users, ``{
@@ -211,8 +142,8 @@ global define list WritePasswd(string basedir, map system_users, map local_users
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
-        if (user["modified"]:`nothing != `nothing)
-            modified = add (modified, user);
+        if (user["modified_list"]:`nothing != `nothing)
+            modified_list = add (modified_list, user);
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
@@ -222,18 +153,18 @@ global define list WritePasswd(string basedir, map system_users, map local_users
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
 
     if (ret)
-        return modified;
+        return modified_list;
     else
         return nil;
 }
 
 /**  -- using target.string
  */
-global define boolean WriteShadow(string basedir, map shadow, string plus) ``{
+global define boolean WriteShadow(string basedir, map system_shadow, map local_shadow, string plus) ``{
 
     string conf_path = basedir + "/shadow";
 
-    list list_to_save = maplist (`username, `entry, shadow, ``{
+    list list_to_save = maplist (`username, `entry, system_shadow, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
             username,
             entry["password"]:"",
@@ -246,6 +177,19 @@ global define boolean WriteShadow(string basedir, map shadow, string plus) ``{
             entry["flag"]:"");
         return to_save;
     });
+    list_to_save = merge(list_to_save, maplist (`username, `entry, local_shadow, ``{
+        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
+            username,
+            entry["password"]:"",
+            entry["last_change"]:"",
+            entry["min"]:"",
+            entry["max"]:"",
+            entry["warn"]:"",
+            entry["inact"]:"",
+            entry["expire"]:"",
+            entry["flag"]:"");
+        return to_save;
+    }));
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
@@ -257,10 +201,10 @@ global define boolean WriteShadow(string basedir, map shadow, string plus) ``{
 
 /**  -- using target.string
  */
-global define boolean WriteGshadow(string basedir, map gshadow, string plus) ``{
+global define boolean WriteGshadow(string basedir, map system_gshadow, map local_gshadow, string plus) ``{
 
     string conf_path = basedir + "/gshadow";
-    list list_to_save = maplist (`groupname, `entry, gshadow, ``{
+    list list_to_save = maplist (`groupname, `entry, system_gshadow, ``{
         string to_save = sformat("%1:%2:%3:%4",
             groupname,
             entry["password"]:"",
@@ -268,6 +212,14 @@ global define boolean WriteGshadow(string basedir, map gshadow, string plus) ``{
             entry["userlist"]:"");
         return to_save;
     });
+    list_to_save = merge(list_to_save, maplist (`groupname, `entry, local_gshadow, ``{
+        string to_save = sformat("%1:%2:%3:%4",
+            groupname,
+            entry["password"]:"",
+            entry["disposer"]:"",
+            entry["userlist"]:"");
+        return to_save;
+    }));
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;

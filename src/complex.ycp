@@ -16,10 +16,6 @@ import "Wizard";
 import "Mode";
 import "Report";  // we could use ErrorPopup instead of Report::
 
-/*
-import "./Users";
-import "./UsersCache";
-*/
 import "Users";
 import "UsersCache";
 
@@ -28,142 +24,15 @@ include "ui/common_messages.ycp";
 
 include "users/helps.ycp";
 
-//include "./routines.ycp";
 
 /**
  * Return a modification status
  * @return true if data was modified
- *
+ */
 global define boolean Modified() ``{
-    return Users::Modified();
-}*/
+    return Users::modified;
+}
 
-/**
- * Read settings dialog
- * @return `abort if aborted and `next otherwise
- *
-global define symbol ReadDialog() ``{
-    Wizard::RestoreHelp(HELPS["read"]:"");
-    Sk::AbortFunction = ``{ return PollAbort();};
-    boolean ret = Sk::Read();
-    return ret ? `next : `abort;
-}*/
-
-/**
- * Write settings dialog
- * @return `abort if aborted and `next otherwise
- *
-global define symbol WriteDialog() ``{
-    Wizard::RestoreHelp(HELPS["write"]:"");
-    Sk::AbortFunction = ``{ return PollAbort();};
-    boolean ret = Sk::Write();
-    return ret ? `next : `abort;
-}*/
-
-/**
- * Summary dialog
- * @return dialog result
- *
-global define symbol SummaryDialog() ``{
-
-    string caption = _("Sk configuration");
-
-    list summary = Sk::Summary();
-    list unconfigured = summary[1]:[];
-    string configured = summary[0]:"";
-
-    term contents = Wizard_hw::DetectedContent(_("Sk to configure"),
-	    unconfigured, false, configured);
-
-    Wizard::SetContentsButtons(caption, contents, HELPS["summary"]:"",
-	    BackButtonLabel(), FinishButtonLabel());
-
-    any ret = nil;
-    while(true) {
-
-	ret = UI::UserInput();
-
-	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
-	    else continue;
-	}
-        else if(ret == `edit_button) {
-            ret = `overview;
-            break;
-        }
-        else if(ret == `configure_button) {
-	    // TODO FIXME: check for change of the configuration
-            any selected = UI::QueryWidget(`id(`detected_selbox), `CurrentItem);
-            if(selected == `other) {
-                ret = `other;
-            }
-            else {
-                ret = `configure;
-            }
-            break;
-        }
-        else if(ret == `next || ret == `back) {
-            break;
-        }
-        else {
-            y2error("unexpected retcode: %1", ret);
-            continue;
-        }
-    }
-
-    return ret;
-}*/
-
-/**
- * Overview dialog
- * @return dialog result
- *
-global define symbol OverviewDialog() ``{
-
-    string caption = _("Sk overview");
-
-    list overview = Sk::Overview();
-
-    term contents = Wizard_hw::ConfiguredContent(
-	`header(_("Number"), _("Sk")),
-	overview, nil, nil, nil, nil );
-
-    contents = Wizard_hw::SpacingAround(contents, 1.5, 1.5, 1.0, 1.0);
-
-    Wizard::SetContentsButtons(caption, contents, HELPS["overview"]:"",
-	    BackButtonLabel(), FinishButtonLabel());
-
-    any ret = nil;
-    while(true) {
-
-	ret = UI::UserInput();
-
-	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
-	    else continue;
-	}
-        else if(ret == `add_button) {
-            ret = `add;
-            break;
-        }
-        else if(ret == `edit_button) {
-            ret = `edit;
-            break;
-        }
-        else if(ret == `delete_button) {
-            continue;
-        }
-        else if(ret == `next || ret == `back) {
-            break;
-        }
-        else {
-            y2error("unexpected retcode: %1", ret);
-            continue;
-        }
-    }
-
-    return ret;
-}*/
 
 /**
  * Read settings dialog
@@ -193,7 +62,6 @@ global define boolean WriteDialog (boolean useUI ) ``{
 
     // A callback function for abort
     block abort = ``{
-//        return UI::PollInput () == `abort; // ask !!
         if (UI::PollInput () == `abort && UI::YesNoPopup ("Do you really want to abort writing process?"))
             return true;
         return false;
@@ -232,27 +100,26 @@ global define symbol ReallyAbort() ``{
 
     if ( ! Mode::cont )
     {
-        ret =  UI::AnyQuestionPopup (
-                     // message box label
-                     _("Exit without saving"),
-                     // message box text
-                     _("All your changes in the setup procedure\nwill be lost if you continue."),
-                     // push button
-                     _("&Exit without saving"),
-                     // push button
-                     _("&Cancel abort"),
-                     `focus_yes
-                     );
+        if (Modified())
+            ret =  UI::AnyQuestionPopup (
+                // message box label
+                _("Exit without saving"),
+                // message box text
+                _("All your changes in the setup procedure\nwill be lost if you continue."),
+                // push button
+                _("&Exit without saving"),
+                // push button
+                _("&Cancel abort"),
+                `focus_yes
+                );
     }
     else
     {
-        // -- is there any function like that ??
         ret = CallFunction(`inst_confirm_abort(`incomplete));
     }
 
     if( ret )
     {
-//        return Users::Aborted();
         return `abort;
     }
     else return `back;
@@ -320,8 +187,13 @@ y2milestone("--------------- Users summary");
 
         if( contains (Users::available_usersets, ret) )
         {
+            UI::OpenDialog (`opt(`decorated ),
+                // -- wait popup
+                `Label(_("Reading set of users, one moment please...")));
             Users::ChangeCurrentUsers (ret);
             UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
+            UI::CloseDialog();
+
             UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
             if (ret == `custom)
                 UsersCache::customized_usersview = true;
@@ -382,15 +254,15 @@ y2milestone("--------------- Users summary");
         // UserWriteStack::Reset ();
         if (Mode::cont)
         {
-y2milestone ("start dialog = %1", Users::start_dialog);
             Users::start_dialog = "user_add";
-y2milestone ("start dialog = %1", Users::start_dialog);
             //UsersCache::ReadSettingsFromDisk(false);
         }
         Users::use_next_time = true; // ??
     }
     save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
+    if (!Mode::cont && ret == `next && !Modified())
+        ret = `nosave;
     return ret;
 }
 
@@ -502,6 +374,10 @@ y2milestone("--------------- Groups summary");
     } until ( ret != `not_next  );
 
     save_focus( UI::QueryWidget(`id(`group_table), `CurrentItem), ret, `group);
+
+    if (!Mode::cont && ret == `next && !Modified())
+        ret = `nosave;
+
     return ret;
 }
 
@@ -516,8 +392,7 @@ global define symbol DeleteUserPopup() ``{
     string org_home = Users::user_in_work["home"]:home;
     integer uid = Users::user_in_work["uid"]:Users::max_uid;
 
-    // -- deleting ldap user should be possible...
-    if (UsersCache::user_type == `nis || UsersCache::user_type == `ldap)
+    if (UsersCache::user_type == `nis)
     {
         // error popup
         Report::Message (sformat (_("Can't delete the user %1"), username));
@@ -682,7 +557,7 @@ global define boolean CustomizePopup(string what) ``{
             `HSpacing(40),
             `VSpacing(1),
 			// Frame label, %1 is "users" or "groups"
-	        `Frame(sformat(_("Customize the view of the %1 list"),what), view),
+	        `Frame(sformat(_("Customize the view of the %1 list"), what), view),
             `VSpacing(1),
 	        `HBox(
 	            `HSpacing(1),

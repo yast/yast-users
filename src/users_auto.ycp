@@ -67,32 +67,25 @@
     // Q: as parameter for Import, there should be always only local
     // users/groups, or optionaly the system ones?
 
+    // examples of input structure:
     map users = $[
      `local: $[
         501:$["fullname":"A", "gid":100, "grouplist":"", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
     ];
-    /*
-    map users = $[
-        501:$["fullname":"A", "gid":100, "grouplist":"", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]
-    ];
-    */
 
     map shadow = $[
-        "ab":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"],
+     `local: $[
+        "ab":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"]]
     ];
 
     map groups = $[
      `local: $[
         500:$["gid":500, "groupname":"some_group", "more_users":"", "password":"x", "userlist":"ab"]
         ]];
-    /*
-    map groups = $[
-        500:$["gid":500, "groupname":"some_group", "more_users":"", "password":"x", "userlist":"ab"]
-    ];
-    */
 
     map gshadow = $[
-        "some_group":$["disposer":"root", "password":"*", "userlist":"ab"]];
+     `local: $[
+        "some_group":$["disposer":"root", "password":"*", "userlist":"ab"]]];
 
     settings = [ users, groups, shadow, gshadow, useradd_defaults ];
 
