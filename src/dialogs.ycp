@@ -30,6 +30,22 @@ import "Popup";
 include "users/helps.ycp";
 include "users/routines.ycp";
 
+/**
+ * Helper function, converting some strings to symbols
+ *  (for later use by wizard sequencer)
+ * @param to_convert original string
+ * @return converted symbol
+ */
+global define symbol string_to_symbol (string to_convert) ``{
+
+    map to_symbol = $[
+	"back":		`back,
+	"add_user":	`add_user,
+	"edit_user":	`edit_user
+    ];
+    return to_symbol [to_convert]:`back;
+}
+
 
 /**
  * Function that adds or edits a user.
@@ -38,13 +54,11 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(string what) ``{
 
-//Users::start_dialog = "user_add";
-//Mode::cont = true;
     // maybe we have returned to the first "add user dialog"
     // during installation workflow:
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
-        Users::user_in_work = eval (Users::saved_user);
+        Users::user_in_work = (map) eval (Users::saved_user);
         Users::use_next_time = false;
     }
 
@@ -60,7 +74,7 @@ global define symbol EditUserDialog(string what) ``{
     }
 
     // use local map here...
-    map user = eval (Users::user_in_work);
+    map user = (map) eval (Users::user_in_work);
 
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
@@ -269,12 +283,26 @@ can be changed for non-local users.
     if (complex_layout && !Autologin::available)
 	UI::ChangeWidget(`id(`autologin), `Enabled, false );
 
-    any ret = `next;
+
+    /**
+     * Helper function for user dialog:
+     * invalidate any old password and clear password inputfields
+     */
+    define void clear_password_fields () ``{
+
+	password = "";
+	UI::ChangeWidget(`id(`pw1), `Value, "");
+	UI::ChangeWidget(`id(`pw2), `Value, "");
+	UI::SetFocus(`id(`pw1));
+    }
+
+    boolean details	= false;
+    any ret		= `next;
     repeat
     {
         ret = UI::UserInput();
 
-        username	= UI::QueryWidget(`id(`username), `Value);
+        username	= (string )UI::QueryWidget(`id(`username), `Value);
 
 	if (! contains ([`back, `cancel, `abort], ret))
 	{
@@ -283,8 +311,8 @@ can be changed for non-local users.
 		// Form the fullname for LDAP user
 		// sn (surname) and cn (fullname) are required attributes,
 		// they cannot be empty
-		givenName	= UI::QueryWidget(`id(`givenName), `Value);
-		sn		= UI::QueryWidget(`id(`sn ), `Value);
+		givenName = (string) UI::QueryWidget(`id(`givenName), `Value);
+		sn	  = (string) UI::QueryWidget(`id(`sn ), `Value);
 
 		// create default cn/sn if they are not marked for substitution
 		if (!(haskey (Users::ldap_user_defaults, "sn") &&
@@ -310,7 +338,7 @@ can be changed for non-local users.
 	    }
 	    else
 	    {
-		cn	= UI::QueryWidget(`id(`cn), `Value);
+		cn	= (string) UI::QueryWidget(`id(`cn), `Value);
 		if (findfirstof(cn, Users::invalid_gecos_chars) != nil)
 		{
 		    // error message
@@ -353,7 +381,7 @@ Try again.
             ret = `nosave;
         }
 
-        boolean details = (contains ([`details,`passwordsettings,`ldap], ret));
+        details = (contains ([`details,`passwordsettings,`ldap], ret));
 
 	if (ret == `passwordsettings && user_type == "ldap" &&
 	    !contains (user["objectClass"]:[], "shadowAccount"))
@@ -446,8 +474,8 @@ Try another one.
 	    // now save username to map
 	    user["username"]	= username;
 	    // --------------------------------- password checks
-            string pw1   = UI::QueryWidget(`id(`pw1), `Value);
-            string pw2   = UI::QueryWidget(`id(`pw2), `Value);
+            string pw1   = (string) UI::QueryWidget(`id(`pw1), `Value);
+            string pw2   = (string) UI::QueryWidget(`id(`pw2), `Value);
 
             if ( pw1 != pw2 )
             {
@@ -548,7 +576,7 @@ Really use it?
                     // error popup
                     Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
-                    home = defualt_home;
+                    home = default_home;
                     continue;
                 }
                 // do not check in autoinstal config and for ldap client
@@ -556,7 +584,7 @@ Please press button Details and edit home directory."));
                     !Mode::config && create_home &&
                     SCR::Read(.target.size, home ) != -1)
                 {
-                    integer dir_uid = lookup (SCR::Read(.target.stat, home), "uid", -1);
+                    integer dir_uid = lookup ((map)SCR::Read(.target.stat, home), "uid", -1);
                     string question = sformat(
 // yes-no popup, %1 is home directory
 _("The home directory selected (%1) already exists.
@@ -647,7 +675,7 @@ _("<p>Really use the entered value?</p>");
 
 		if (r != `cancel)
 		{
-		    Users::not_ask_uppercase = UI::QueryWidget(`id(`ch),`Value);
+		    Users::not_ask_uppercase = (boolean) UI::QueryWidget(`id(`ch),`Value);
 		    if (Users::not_ask_uppercase)
 			Users::customs_modified = true;
 		}
@@ -703,7 +731,7 @@ _("<p>Really use the entered value?</p>");
 		}
 		user["org_home"] = user["home"]:"";
 	    }
-	    Users::user_in_work = eval (user);
+	    Users::user_in_work = (map) eval (user);
 	}
 	// TODO check for `abort here (otherwise, new values are lost when abort
 	// is not confirmed)
@@ -713,13 +741,13 @@ _("<p>Really use the entered value?</p>");
 
     if (Users::start_dialog == "user_add" && Mode::cont)
     {
-        Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
+        Users::root_mail = (boolean)UI::QueryWidget (`id (`root_mail), `Value)
             ? username : "";
 	if (Autologin::available)
 	{
-	    Autologin::user = UI::QueryWidget (`id (`autologin), `Value)
+	    Autologin::user = (boolean)UI::QueryWidget (`id (`autologin),`Value)
 		? username : "";
-	    Autologin::used = UI::QueryWidget (`id (`autologin), `Value);
+	    Autologin::used = (boolean)UI::QueryWidget(`id (`autologin),`Value);
 	}
     }
     if( ret == `additional ||  ret == `nosave )
@@ -728,7 +756,7 @@ _("<p>Really use the entered value?</p>");
         // (to show it when clicking `back from Summary dialog)
         Users::saved_user = Users::user_in_work;
     }
-    return ret;
+    return (symbol) ret;
 }
 
 
@@ -765,11 +793,11 @@ global define symbol EditUserDetailsDialog( ) ``{
     string new_type = user_type;
 
     /* fill the list available_groups and set the user default group true */
-    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
+    foreach (string grouptype, list groupset, UsersCache::groupnamelists, ``{
         if (grouptype == "local" || grouptype == "system" ||
             (grouptype == "ldap" && user_type == "ldap"))
 	{
-          foreach ( `group, groupset, ``{
+          foreach (string group, groupset, ``{
 
             if (user_type == "ldap")
             {
@@ -854,12 +882,6 @@ global define symbol EditUserDetailsDialog( ) ``{
     term home_w = `VBox(
 	// textentry label
 	`TextEntry( `id(`home), _("&Home Directory"), home )
-	/*,
-	(skel_check)
-	    // checkbox label FIXME no checking
-	    ? `Left (`CheckBox (_("&Copy Skeleton"), user_type != "system"))
-	    : `Empty()
-	*/
     );
 
     term contents =
@@ -955,12 +977,12 @@ can be changed for non-local users.")) : `VSpacing (0),
 	}
         if ( ret == `next )
         {
-            string  new_home  = UI::QueryWidget(`id(`home),  `Value);
+            string  new_home  = (string) UI::QueryWidget(`id(`home),  `Value);
 	    if ( (findlastof( new_home, "/") + 1) == size(new_home) )
 		new_home = substring (new_home, 0, size(new_home)-1);
-            string  new_shell = UI::QueryWidget(`id(`shell), `Value);
-            string  new_uid   = UI::QueryWidget(`id(`uid),   `Value);
-            string  new_defaultgroup=UI::QueryWidget(`id(`defaultgroup),`Value);
+            string  new_shell = (string)UI::QueryWidget(`id(`shell), `Value);
+            string  new_uid   = (string)UI::QueryWidget(`id(`uid),   `Value);
+            string  new_defaultgroup = (string)UI::QueryWidget(`id(`defaultgroup),`Value);
 
             if (do_not_edit) // check for Ena/Dis
             {
@@ -972,7 +994,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    // additional data in GECOS field (passwd only)
             if (user_type == "local" || user_type == "system")
             {
-                addit_data  = UI::QueryWidget(`id(`addd),  `Value);
+                addit_data  = (string)UI::QueryWidget(`id(`addd),  `Value);
                 if (findfirstof(addit_data, ":") != nil)
                 {
                     // error message
@@ -995,12 +1017,12 @@ Remove the surplus.
                 }
             }
 
-            list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
+            list new_list_grouplist = (list)UI::QueryWidget(`id(`grouplist),
                 `SelectedItems );
 	    if (user_type == "ldap")
 	    {
 		new_list_grouplist = merge (new_list_grouplist,
-		    UI::QueryWidget(`id(`ldapgrouplist), `SelectedItems ));
+		    (list)UI::QueryWidget(`id(`ldapgrouplist),`SelectedItems ));
 	    }
             string new_grouplist = mergestring( new_list_grouplist, ",");
             integer new_i_uid    = tointeger( new_uid );
@@ -1121,7 +1143,7 @@ Please try again."));
                 if (SCR::Read(.target.size, new_home ) != -1 && !Mode::config &&
 		    (user_type != "ldap" || Users::ldap_file_server))
                 {
-                    integer dir_uid = lookup (SCR::Read(.target.stat, new_home), "uid", -1);
+                    integer dir_uid = lookup ((map)SCR::Read(.target.stat, new_home), "uid", -1);
                     string question =
 // yes-no popup
 _("The home directory selected already exists.
@@ -1168,7 +1190,7 @@ may be unable to log in. Continue?
             if( nil == findfirstnotof( new_grouplist,
                     Users::valid_grouplist_chars ) )
             {
-                foreach (`group, list_grouplist, ``{
+                foreach (string group, list_grouplist, ``{
                     // is not in new grouplist:
                     if (!contains (new_list_grouplist, group))
                     {
@@ -1233,7 +1255,7 @@ Please try again."));
 	if (user_type == "ldap")
 	    ret = `ldap;
     }
-    return ret;
+    return (symbol)ret;
 }
 
 
@@ -1278,7 +1300,7 @@ global define symbol EditUserPasswordDialog() ``{
 
     if (last_change != "0")
     {
-        map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
+        map out = (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
         // label
         last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
     }
@@ -1290,7 +1312,7 @@ global define symbol EditUserPasswordDialog() ``{
     string exp_date = "";
     if (expires != "0" && expires != "-1" )
     {
-        exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
+        exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
         exp_date = deletechars (exp_date, "\n");
     }
@@ -1334,7 +1356,7 @@ global define symbol EditUserPasswordDialog() ``{
         ret = UI::UserInput();
         if( ret == `next )
         {
-            string exp = UI::QueryWidget (`id ("expire"), `Value);
+            string exp = (string)UI::QueryWidget (`id ("expire"), `Value);
             if (exp != "" &&
                 !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
             {
@@ -1345,25 +1367,25 @@ global define symbol EditUserPasswordDialog() ``{
             continue;
             }
             // update the values in shadow map
-            foreach(`shadowsymbol, shadow_symbols, ``{
+            foreach(string shadowsymbol, shadow_symbols, ``{
                 if ( shadow[shadowsymbol]:-2 != UI::QueryWidget (
                         `id(shadowsymbol), `Value))
                     shadow[shadowsymbol] = sformat ("%1",
                         UI::QueryWidget(`id(shadowsymbol), `Value));
             });
-            integer new_inact = UI::QueryWidget(`id("inact"), `Value);
+            integer new_inact = (integer)UI::QueryWidget(`id("inact"), `Value);
             if (new_inact != inact)
             {
                 shadow["inact"] = sformat("%1", new_inact);
             }
-            string new_exp_date = UI::QueryWidget(`id("expire"), `Value);
+            string new_exp_date = (string)UI::QueryWidget(`id("expire"), `Value);
             if (new_exp_date != exp_date)
             {
                 if (new_exp_date == "")
                     shadow["expire"] = user["type"]:"local"=="ldap"? "": "0";
                 else
                 {
-                    map out = SCR::Execute(.target.bash_output,
+                    map out = (map)SCR::Execute(.target.bash_output,
                         sformat("date --date='%1 UTC' ", new_exp_date) + "+%s");
 		    string seconds_s = deletechars(out["stdout"]:"0","\n");
                     if (seconds_s != "")
@@ -1381,17 +1403,17 @@ global define symbol EditUserPasswordDialog() ``{
 	ret = string_to_symbol (Users::user_in_work["what"]:"back");
 
 	if (user["type"]:"local" != "ldap")
-	    Users::user_in_work["shadow"] = eval (shadow);
+	    Users::user_in_work["shadow"] = (map) eval (shadow);
 	else
 	{
-	    foreach (`key, `value, shadow, ``{
+	    foreach (string key, string value, shadow, ``{
 		Users::user_in_work [Users::ldap_attrs_conversion[key]:key] =
 		    value;
 	    });
 	}
     }
 
-    return ret;
+    return (symbol)ret;
 }
 
 /**
@@ -1400,10 +1422,11 @@ global define symbol EditUserPasswordDialog() ``{
  */
 global define symbol LDAPSettingsDialog(string what) ``{
 
+    import "Ldap";
     import "LdapPopup";
 
     // use local copy here
-    map object	= eval (
+    map object	= (map) eval (
 	(what == "user")? Users::user_in_work: Users::group_in_work);
     list items			= [];
     list used_attributes	= [];
@@ -1431,7 +1454,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
 	Users::ldap_group_template["requiredAttribute"]:[];
 
     // generate table items from already existing values
-    foreach (`attr, `val, object, ``{
+    foreach (string attr, any val, object, ``{
 	if (contains (internal_keys, attr))
 	    return;
 	if (contains (already_edited_keys, attr))
@@ -1444,7 +1467,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
 	    value = [ val ];
 	    object [attr] = value;
 	}
-	else value = val;
+	else value = (list)val;
 	used_attributes = add (used_attributes, attr);
 	items = add (items, `item (`id(attr), attr, mergestring(value,",")));
     });
@@ -1453,8 +1476,8 @@ global define symbol LDAPSettingsDialog(string what) ``{
     // we need to read available attributes from Ldap
     map ldap2yast = (what == "user") ? Users::ldap2yast_user_attrs :
 	Users::ldap2yast_group_attrs;
-    foreach (`class, object["objectClass"]:[], ``{
-	foreach (`at, Ldap::GetAllAttributes (class), ``{
+    foreach (string class, object["objectClass"]:[], ``{
+	foreach (string at, Ldap::GetAllAttributes (class), ``{
 	    // remove already used (uid, uidNumber, homeDirectory etc.)
 	    if (!haskey (object, ldap2yast [at]:at) &&
 		!contains (already_edited_keys, ldap2yast [at]:at))
@@ -1495,7 +1518,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
         ret = UI::UserInput();
 	if ( ret == `edit || ret == `table)
 	{
-	    string attr		= UI::QueryWidget (`id(`table), `CurrentItem);
+	    string attr	= (string) UI::QueryWidget (`id(`table), `CurrentItem);
 	    list value		= object [attr]:[];
 	    value = LdapPopup::EditAttribute (attr, value, [],
 		Ldap::SingleValued (attr), []);
@@ -1508,7 +1531,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
         {
 	    // check for required attributes
 	    boolean again = false;
-	    foreach (`req, required_attrs, ``{
+	    foreach (string req, required_attrs, ``{
 		if (again) return;
 		if ((contains (used_attributes, req) ||
 		     contains (new_attributes, req)) &&
@@ -1522,15 +1545,17 @@ Are you sure?"), req)))
 	    });
 	    if (again) continue;
 	    // update global variables
-	    foreach (`k,`v, object, ``{
+	    foreach (string k, list v, object, ``{
 		if (v != [] || contains (used_attributes, k))
+		{
 		    if (what == "user")
 			Users::user_in_work [k] = v;
-		    else if (Users::group_in_work[k]:"" != v)
+		    else if (Users::group_in_work[k]:[] != v)
 		    {
 			modified = true;
 			Users::group_in_work [k] = v;
 		    }
+		}
 	    });
          }
     } until (contains ([`next, `abort, `back, `cancel], ret));
@@ -1547,7 +1572,7 @@ Are you sure?"), req)))
 	    Users::group_in_work ["what"] = "edit_group";
 	}
     }
-    return ret;
+    return (symbol)ret;
 }
 
 
@@ -1586,7 +1611,7 @@ global define symbol EditGroupDialog(string what ) ``{
     }
 
     // load group saved in group_in_work
-    map group			= eval (Users::group_in_work);
+    map group			= (map) eval (Users::group_in_work);
     string  groupname		= group["groupname"]:"";
     string  password		= group["password"]:"x";
     integer gid			= group["gid"]:nil;
@@ -1671,6 +1696,18 @@ global define symbol EditGroupDialog(string what ) ``{
         UI::ChangeWidget (`id(`more_users), `Enabled, false);
     }
 
+    /**
+     * Helper function for group dialog:
+     * invalidate any old password and clear password inputfields
+     */
+    define void clear_password_fields () ``{
+
+	password = "";
+	UI::ChangeWidget(`id(`pw1), `Value, "");
+	UI::ChangeWidget(`id(`pw2), `Value, "");
+	UI::SetFocus(`id(`pw1));
+    }
+
     any ret = `next;
     repeat
     {
@@ -1678,11 +1715,11 @@ global define symbol EditGroupDialog(string what ) ``{
 
         if ( ret == `next  )
         {
-            string pw1            = UI::QueryWidget(`id(`pw1),       `Value);
-            string pw2            = UI::QueryWidget(`id(`pw2),       `Value);
-            string new_groupname  = UI::QueryWidget(`id(`groupname), `Value);
-            string new_gid        = UI::QueryWidget(`id(`gid),       `Value);
-            list(string) new_users = UI::QueryWidget(`id(`userlist), `SelectedItems );
+            string pw1            = (string) UI::QueryWidget(`id(`pw1), `Value);
+            string pw2            = (string)UI::QueryWidget(`id(`pw2),`Value);
+            string new_groupname  = (string)UI::QueryWidget(`id(`groupname), `Value);
+            string new_gid        = (string)UI::QueryWidget(`id(`gid), `Value);
+            list<string> new_users = (list)UI::QueryWidget(`id(`userlist), `SelectedItems );
 
 	    // --------------------------------- groupname checks
             if ( new_groupname == "" )
@@ -1852,7 +1889,7 @@ Select a valid integer between %1 and %2.
 
 	    // --------------------------------- update userlist
             string new_userlist   = "";
-            foreach (`user, list_userlist, ``{
+            foreach (string user, list_userlist, ``{
                 if (!contains (new_users, user))
                     removed = add (removed, user);
             });
@@ -1918,7 +1955,7 @@ Select a valid integer between %1 and %2.
 			group ["org_dn"]= new_dn;
 		    }
 		}
-		Users::group_in_work = eval (group);
+		Users::group_in_work = (map) eval (group);
             }
             else
             {
@@ -1929,7 +1966,7 @@ Select a valid integer between %1 and %2.
         }
     } until ( contains ([`next, `abort, `back, `ldap], ret));
 
-    return ret;
+    return (symbol)ret;
 }
 
 /**
@@ -1951,11 +1988,11 @@ global define symbol DefaultsDialog() ``{
     list available_groups = [];
     list available_shells = Users::all_shells_items;
 
-    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
+    foreach (string grouptype, list groupset, UsersCache::groupnamelists, ``{
 	// only local sets
 	if (!contains (["local", "system"], grouptype))
 	    return;
-        foreach ( `group, groupset, ``{
+        foreach (string group, groupset, ``{
             if ( group == defaultgroup )
                 available_groups = add (available_groups,
                     `item( `id(group), group, true));
@@ -1967,7 +2004,7 @@ global define symbol DefaultsDialog() ``{
 
     if (expire != "0" && expire != "")
     {
-        exp_date = lookup (SCR::Execute (.target.bash_output, (sformat (
+        exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat (
 		"date --date='1970-01-01 00:00:01 %1 days' ", expire) +
 		"+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -2038,14 +2075,15 @@ global define symbol DefaultsDialog() ``{
     string new_expire = expire;
     string new_grouplist = grouplist;
 
+    symbol ret = `next;
     while (true)
     {
         modified = false;
-        ret = UI::UserInput();
+        ret = (symbol) UI::UserInput();
         if (ret == `back || ret == `abort || ret == `cancel) break;
 	if ( ret == `brow_h)
 	{
-	    string dir = UI::QueryWidget(`id(`home),  `Value);
+	    string dir = (string) UI::QueryWidget(`id(`home),  `Value);
 	    if (SCR::Read(.target.size, dir ) == -1)
 		dir = home;
 	    dir = UI::AskForExistingDirectory (dir, "");
@@ -2056,7 +2094,7 @@ global define symbol DefaultsDialog() ``{
 	}
 	if ( ret == `brow_s)
 	{
-	    string dir = UI::QueryWidget(`id(`skel),  `Value);
+	    string dir = (string) UI::QueryWidget(`id(`skel),  `Value);
 	    if (SCR::Read(.target.size, dir ) == -1)
 		dir = skel;
 	    dir = UI::AskForExistingDirectory (dir, "");
@@ -2067,19 +2105,19 @@ global define symbol DefaultsDialog() ``{
 	}
         if (ret == `next)
         {
-            new_home  = UI::QueryWidget(`id(`home),  `Value);
-            new_shell = UI::QueryWidget(`id(`shell), `Value);
-            new_skel = UI::QueryWidget(`id(`skel), `Value);
-            new_inact = UI::QueryWidget(`id(`inact), `Value);
-            new_defgroup = UI::QueryWidget(`id(`defaultgroup),`Value);
-            new_exp_date = UI::QueryWidget(`id(`exp),`Value);
-	    new_grouplist = UI::QueryWidget(`id(`grouplist),`Value);
+            new_home  = (string)UI::QueryWidget(`id(`home),  `Value);
+            new_shell = (string)UI::QueryWidget(`id(`shell), `Value);
+            new_skel = (string)UI::QueryWidget(`id(`skel), `Value);
+            new_inact = (integer)UI::QueryWidget(`id(`inact), `Value);
+            new_defgroup = (string)UI::QueryWidget(`id(`defaultgroup),`Value);
+            new_exp_date = (string)UI::QueryWidget(`id(`exp),`Value);
+	    new_grouplist = (string)UI::QueryWidget(`id(`grouplist),`Value);
 	    // check new grouplist...
 	    if (new_grouplist != grouplist)
 	    {
 		list l_grouplist = [];
 		list dont_exist = [];
-		foreach (`g, splitstring (new_grouplist, ","), ``{
+		foreach (string g, splitstring (new_grouplist, ","), ``{
 		    // check for group existence
 		    if (!contains (UsersCache::groupnamelists["local"]:[],g) &&
 			!contains (UsersCache::groupnamelists["system"]:[], g))
@@ -2123,7 +2161,7 @@ Try again.
 Create it now?
 ")))
 			{
-			    if (! SCR::Execute (.target.mkdir, new_home))
+			    if (!(boolean)SCR::Execute(.target.mkdir, new_home))
 			    {
 		                // error popup message
 				Report::Error (sformat (_("Unable to create directory '%1'."), new_home));
@@ -2182,7 +2220,7 @@ Try again.
                     new_expire = "";
                 else
                 {
-                    map out = SCR::Execute(.target.bash_output,
+                    map out = (map) SCR::Execute(.target.bash_output,
                         sformat("date --date='%1 UTC' ", new_exp_date) + "+%s");
                     string seconds_s = deletechars (out["stdout"]:"0", "\n");
                     if (seconds_s != "")
@@ -2222,6 +2260,30 @@ Try again.
  * @return symbol for sequencer
  */
 global define symbol AuthentizationDialog() ``{
+
+    list configurable = [ "nis", "nisplus", "ldap", "kerberos", "samba" ];
+
+    list available = [];
+    list installed = [];
+    list mb = [];
+
+    map to_string = $[
+        // just the name (do not translate)
+        "nis"   : _("&NIS"),
+        // just the name (do not translate)
+        "nisplus"   : _("N&IS+"),
+        // just the name (do not translate)
+        "ldap"  : _("&LDAP"),
+        // just the name (do not translate)
+        "kerberos"  : _("&Kerberos"),
+        // just the name (do not translate)
+        "samba"  : _("&Samba"),
+	 ];
+
+    // name of module to call
+    map call_module = $[
+	"samba": "samba-client",
+    ];
 
     /**
      * helper function to get information about authentication from
@@ -2277,7 +2339,7 @@ global define symbol AuthentizationDialog() ``{
     define void reload_config() ``{
 
         string summary = "";
-	foreach (`client, available, ``{
+	foreach (string client, available, ``{
 	    summary = Summary::AddHeader (summary, sformat (
 		"<font color=\"#8BC460\"><a href=\"%1\">%2</a></font>",
 		client,
@@ -2287,31 +2349,8 @@ global define symbol AuthentizationDialog() ``{
         UI::ChangeWidget(`id(`summary), `Value, summary);
     }
 
-    list configurable = [ "nis", "nisplus", "ldap", "kerberos", "samba" ];
 
-    list available = [];
-    list installed = [];
-    list mb = [];
-
-    map to_string = $[
-        // just the name (do not translate)
-        "nis"   : _("&NIS"),
-        // just the name (do not translate)
-        "nisplus"   : _("N&IS+"),
-        // just the name (do not translate)
-        "ldap"  : _("&LDAP"),
-        // just the name (do not translate)
-        "kerberos"  : _("&Kerberos"),
-        // just the name (do not translate)
-        "samba"  : _("&Samba"),
-	 ];
-
-    // name of module to call
-    map call_module = $[
-	"samba": "samba-client",
-    ];
-
-    foreach (`client, configurable, ``{
+    foreach (string client, configurable, ``{
 	string package = sformat ("yast2-%1-client", client);
         if (Require::IsPackageAvailable (package))
 	{
@@ -2363,7 +2402,8 @@ Install it now?
 		}
 		else continue;
 	    }
-            if (Call::Function (call_module[button]:button, []) == `next)
+            if (WFM::CallFunction (
+		(string)lookup (call_module,button,button), []) == `next)
 	    {
 		changed = true;
 		reload_config ();
@@ -2392,7 +2432,7 @@ Install it now?
 	// autologin could have been changed
         Users::BuildMenuButtonItems();
     }
-    return button;
+    return (symbol) button;
 }
 
 
@@ -2419,34 +2459,6 @@ global define symbol GroupSave() ``{
     Users::Commit("group", true);
 
     return `next;
-}
-
-/**
- * Helper function, converting some strings to symbols
- *  (for later use by wizard sequencer)
- * @param to_convert original string
- * @return converted symbol
- */
-global define symbol string_to_symbol (string to_convert) ``{
-
-    map to_symbol = $[
-	"back":		`back,
-	"add_user":	`add_user,
-	"edit_user":	`edit_user
-    ];
-    return to_symbol [to_convert]:`back;
-}
-
-/**
- * Helper function for user/group dialog:
- * invalidate any old password and clear password inputfields
- */
-global define void clear_password_fields () ``{
-
-    password = "";
-    UI::ChangeWidget(`id(`pw1), `Value, "");
-    UI::ChangeWidget(`id(`pw2), `Value, "");
-    UI::SetFocus(`id(`pw1));
 }
 
 

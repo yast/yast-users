@@ -62,7 +62,7 @@ map button_labels = $[
     // radiobutton to select nis+ user auth.
     "nisplus":	_("NI&S+"),
     // radiobutton to select ldap user auth.
-	"ldap":      _("&LDAP")
+    "ldap":      _("&LDAP")
 ];
 
 // check if nis+/ldap are available (there are not in personal edition)
@@ -75,7 +75,7 @@ if (Require::IsPackageAvailable("yast2-nisplus-client"))
 
 term net_buttons = `VBox (`VSpacing(0.5));
 
-foreach (`client, available_clients, ``{
+foreach (string client, available_clients, ``{
     net_buttons = add (net_buttons,
 	`Left(`RadioButton(`id(client), button_labels[client]:"")));
 });
@@ -109,7 +109,8 @@ term contents = `VBox (
 		       `VStretch()
 		       );
 
-Wizard::SetContents (caption, contents, help, Args(0), Args(1));
+Wizard::SetContents (caption, contents, help,
+		    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
 
 // select and enable to correct buttons
 if (Users::after_auth == "users")
@@ -118,7 +119,7 @@ if (Users::after_auth == "users")
     UI::ChangeWidget (`id(`network), `Value, false);
     UI::ChangeWidget (`id("nis"), `Value, true);
 
-    foreach (`client, available_clients, ``{
+    foreach (string client, available_clients, ``{
 	UI::ChangeWidget (`id(client), `Enabled, false);
     });
 }
@@ -127,7 +128,7 @@ else
     UI::ChangeWidget (`id(`local), `Value, false);
     UI::ChangeWidget (`id(`network), `Value, true);
 
-    foreach (`client, available_clients, ``{
+    foreach (string client, available_clients, ``{
 	UI::ChangeWidget (`id(client), `Value, Users::after_auth == client);
     });
 }
@@ -145,7 +146,7 @@ repeat {
     }
     else if (ret == `local || ret == `network)
     {
-	boolean tmp = !UI::QueryWidget (`id(`local), `Value);
+	boolean tmp = !(boolean)UI::QueryWidget (`id(`local), `Value);
 	foreach (`client, available_clients, ``{
 	    UI::ChangeWidget (`id(client), `Enabled, tmp);
 	});
@@ -157,13 +158,13 @@ repeat {
 
 } until ( ret == `next || ret == `back );
 
-if ( UI::QueryWidget( `id(`network), `Value ) )
+if ( (boolean) UI::QueryWidget( `id(`network), `Value ) )
 {
-    if ( UI::QueryWidget( `id("nis"), `Value ) )
+    if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
 	Users::after_auth = "nis";
-    if ( UI::QueryWidget( `id("nisplus"), `Value ) )
+    if ( (boolean) UI::QueryWidget( `id("nisplus"), `Value ) )
 	Users::after_auth = "nisplus";
-    if ( UI::QueryWidget( `id("ldap"), `Value ) )
+    if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
 	Users::after_auth = "ldap";
 }
 else

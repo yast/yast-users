@@ -101,58 +101,113 @@ global map last_gid = $[
     "ldap": 500];
 
 /**
- * Build the cache structures, used for fasten operations
- * @param usermap the map of users
- * @param groupmap the map of groups
- * @param cust_u custom view of user sets
- * @param cust_g custom view of group sets
- * @return true
+ * Builds the list of uid's
+ * @param usersset map of users of one type
+ * @return list of id's
  */
-global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) ``{
+global define list BuildUIDList(map usersset) ``{
 
-    current_users = user_custom_sets;
-
-    foreach (`type, `usersmap, usermap, ``{
-        BuildUsers (usersmap, type);
+    list ret = [];
+    foreach (integer uid, map usersmap, usersset, ``{
+	ret = add (ret, uid);
     });
-    users_itemlists [ "custom" ] = MergeUserTableItems();
-    user_itemlist = users_itemlists [ "custom" ]:[];
-
-    current_groups = group_custom_sets;
-
-    foreach (`type, `groupsmap, groupmap, ``{
-        BuildGroups (groupsmap, type);
-    });
-    groups_itemlists [ "custom" ] = MergeGroupTableItems();
-    group_itemlist = groups_itemlists [ "custom" ]:[];
-
-    return true;
+    return ret;
 }
 
 /**
- * Read the prebuilded cache structures from files
- * @param dir the location of input files
- * @return true
+ * Builds the list of home directories of given users
+ * @param usersmap map of users of one type
+ * @return list of homedirs
  */
-global define void ReadFromFiles (string dir) ``{
+global define list BuildHomeList(map usersmap) ``{
 
-    current_users = user_custom_sets;
-
-    // could be the sets here explicitly?
-    list start_sets = ["local", "system"];
-    foreach (`type, start_sets , ``{
-        ReadUsers (type, dir);
+    list ret = [];
+    foreach (integer k, map v, usersmap, ``{
+        if (v["home"]:nil != nil)
+            ret = add (ret, v["home"]:nil);
     });
-    users_itemlists [ "custom" ] = MergeUserTableItems();
-    user_itemlist = users_itemlists [ "custom" ]:[];
-
-    foreach (`type, start_sets , ``{
-        ReadGroups (type, dir);
-    });
-    groups_itemlists [ "custom" ] = MergeGroupTableItems();
-    group_itemlist = groups_itemlists [ "custom" ]:[];
-
+    return ret;
 }
+
+/**
+ * Builds the list of user names
+ * @param usersmap map of users of one type
+ * @return list of names
+ */
+global define list BuildUsernameList(map usersmap) ``{
+
+    list ret = [];
+    foreach (integer k, map v, usersmap, ``{
+        if (v["username"]:nil != nil)
+            ret = add (ret, v["username"]:nil);
+    });
+    return ret;
+}
+
+/**
+ * Build a string with n blanks
+ * @param count number of blanks
+ * @return string of blanks
+ */
+define string addBlanks(integer count ) ``{
+    string  blanks = "";
+    integer blanks_counter = 0;
+
+    while (  blanks_counter < count )
+    {
+        blanks_counter = blanks_counter + 1;
+//        blanks         = blanks + "\302\240"; // why this ??
+        blanks         = blanks + " ";
+    }
+    return blanks;
+}
+
+
+/**
+ * Builds item list for the user table
+ * @param map_of_users users of one type
+ * @return list of items for table widget
+ */
+global define list BuildUserItemList(map map_of_users) ``{
+
+    list items = [];
+    foreach ( integer key, map user,  map_of_users, ``{
+        string username = user["username"]:"";
+        string full	= user["cn"]:"";
+        string  s_uid = sformat("%1", key );
+        term    a     = `item(`id(key));
+
+        if( size(s_uid) !=  max_length_uid )
+            s_uid = addBlanks(max_length_uid - size(s_uid)) + s_uid;
+
+        a = add(a, username );
+
+        if (user["type"]:"local" == "system")
+            a = add(a, SystemUsers [full]:full );
+        else
+            a = add(a, full );
+
+        a = add(a, s_uid );
+
+        string own_group = user["groupname"]:"";
+        string grouplist = user["grouplist"]:"";
+        list l_grouplist = splitstring (grouplist, ",");
+
+        if ( !contains (l_grouplist, own_group) && own_group != "")
+        {
+            if (grouplist != "")
+                    grouplist = own_group + "," + grouplist;
+            else
+                grouplist = own_group;
+        }
+
+        a = add(a, grouplist );
+        items = add( items, a );
+    });
+
+    return items;
+}
+
 
 /**
  * Build the cache structures for user set
@@ -170,6 +225,107 @@ global define void BuildUsers (map usersmap, string type) ``{
 }
 
 /**
+ * Merge the users's item lists of types included in "custom view" to one list
+ * @return new table itemlist
+ */
+global define list MergeUserTableItems() ``{
+
+    list items = [];
+    foreach (string usersset, user_custom_sets, ``{
+        items = merge(items, users_itemlists [ usersset ]:[]);
+    });
+    return items;
+}
+
+/**
+ * Builds the list of group names
+ * @param groupsmap map of groups of one type
+ * @return list of names
+ */
+global define list BuildGroupnameList(map groupsmap) ``{
+
+    list ret = [];
+    foreach (integer k, map v, groupsmap, ``{
+        if (v["groupname"]:nil != nil)
+            ret = add (ret, v["groupname"]:nil);
+    });
+    return sort (ret); //-- is this needed??
+}
+
+
+/**
+ * Builds the list of gid's
+ * @param groupsset map of groups of one type
+ * @return list of id's
+ */
+global define list BuildGIDList(map groupsset) ``{
+
+    list ret = [];
+    foreach (integer gid, map groupsmap, groupsset, ``{
+            ret = add (ret, gid);
+    });
+    return ret;
+}
+
+/**
+ * Builds item list for the group table
+ * @param map_of_groups groups of one type
+ * @return list of items for table widget
+ */
+global define list BuildGroupItemList(map map_of_groups) ``{
+
+    integer the_answer = 42;
+    list items = [];
+    foreach ( integer key, map group, map_of_groups, ``{
+
+        string  s_gid = sformat("%1", key   );
+        term    a     = `item(`id(key));
+
+        if( size( s_gid) != max_length_gid )
+            s_gid = addBlanks( max_length_gid - size(s_gid)) + s_gid;
+
+        a = add (a, group["groupname"]:"" );
+        a = add (a, s_gid);
+
+        string userlist = group["userlist"]:"";
+
+        string more = group["more_users"]:"";
+        if ((userlist != "") && (more != ""))
+            userlist = userlist + ",";
+        userlist = userlist + more;
+        list all_users = splitstring (userlist, ",");
+	// ldap groups have list of user dn's...
+	if (group_type == "ldap")
+	{
+	    all_users = merge (all_users,
+		maplist (string dn, group["uniqueMember"]:[], ``{
+		    list dn_l = splitstring (dn, ",");
+		    return substring (dn_l[0]:"", find (dn_l[0]:"", "=")+1);
+		}));
+	    if (size (all_users) <= the_answer)
+		userlist = mergestring (all_users, ",");
+	}
+        // shorten the list, if it is too long:
+        if (size (all_users) > the_answer)
+        {
+            userlist = "";
+            integer i = 0;
+            while (i < the_answer)
+            {
+                userlist = userlist + all_users[i]:"" + ",";
+                i = i + 1;
+            }
+            userlist = userlist + "...";
+        }
+        a = add(a, userlist);
+
+        items = add( items, a );
+    });
+    return items;
+}
+
+
+/**
  * Build the cache structures for group set
  * @param groupsmap map of groups of one type
  * @param type the groups type
@@ -184,6 +340,49 @@ global define void BuildGroups (map groupsmap, string type) ``{
 }
 
 /**
+ * Merge the groups's item lists of types included in "custom view" to one list
+ * @return new table itemlist
+ */
+global define list MergeGroupTableItems() ``{
+
+    list items = [];
+    foreach (string groupsset, group_custom_sets, ``{
+        items = merge(items, groups_itemlists [ groupsset ]:[]);
+    });
+    return items;
+}
+
+
+/**
+ * Build the cache structures, used for fasten operations
+ * @param usermap the map of users
+ * @param groupmap the map of groups
+ * @param cust_u custom view of user sets
+ * @param cust_g custom view of group sets
+ * @return true
+ */
+global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) ``{
+
+    current_users = user_custom_sets;
+
+    foreach (string type, map usersmap, usermap, ``{
+        BuildUsers (usersmap, type);
+    });
+    users_itemlists [ "custom" ] = MergeUserTableItems();
+    user_itemlist = users_itemlists [ "custom" ]:[];
+
+    current_groups = group_custom_sets;
+
+    foreach (string type, map groupsmap, groupmap, ``{
+        BuildGroups (groupsmap, type);
+    });
+    groups_itemlists [ "custom" ] = MergeGroupTableItems();
+    group_itemlist = groups_itemlists [ "custom" ]:[];
+
+    return true;
+}
+
+/**
  * Read the prepared user data from the files
  * @param type the type of users
  * @param dir the source directory
@@ -195,7 +394,7 @@ global define boolean ReadUsers (string type, string dir) ``{
     {
 	homelists [type] = SCR::Read(.ldap.users.homes);
         usernamelists [type] = SCR::Read(.ldap.users.usernames);
-        userdnlist = SCR::Read(.ldap.users.userdns);
+        userdnlist = (list) SCR::Read(.ldap.users.userdns);
 
 	users_itemlists [type] =
 	    SCR::Read (.ldap.users.itemlist);
@@ -255,6 +454,31 @@ global define boolean ReadGroups (string type, string dir) ``{
     return true;
 }
 
+/**
+ * Read the prebuilded cache structures from files
+ * @param dir the location of input files
+ * @return true
+ */
+global define void ReadFromFiles (string dir) ``{
+
+    current_users = user_custom_sets;
+
+    // could be the sets here explicitly?
+    list start_sets = ["local", "system"];
+    foreach (string type, start_sets , ``{
+        ReadUsers (type, dir);
+    });
+    users_itemlists [ "custom" ] = MergeUserTableItems();
+    user_itemlist = users_itemlists [ "custom" ]:[];
+
+    foreach (string type, start_sets , ``{
+        ReadGroups (type, dir);
+    });
+    groups_itemlists [ "custom" ] = MergeGroupTableItems();
+    group_itemlist = groups_itemlists [ "custom" ]:[];
+
+}
+
 
 /**
  * Reset the structures, to use during autoinstallation
@@ -269,143 +493,6 @@ global define void EmptyStructures () ``{
 }
 
 /**
- * Builds the list of home directories of given users
- * @param usersmap map of users of one type
- * @return list of homedirs
- */
-global define list BuildHomeList(map usersmap) ``{
-
-    list ret = [];
-    foreach (`k, `v, usersmap, ``{
-        if (v["home"]:nil != nil)
-            ret = add (ret, v["home"]:nil);
-    });
-    return ret;
-}
-
-/**
- * Builds the list of user names
- * @param usersmap map of users of one type
- * @return list of names
- */
-global define list BuildUsernameList(map usersmap) ``{
-
-    list ret = [];
-    foreach (`k, `v, usersmap, ``{
-        if (v["username"]:nil != nil)
-            ret = add (ret, v["username"]:nil);
-    });
-    return ret;
-}
-
-/**
- * Builds the list of group names
- * @param groupsmap map of groups of one type
- * @return list of names
- */
-global define list BuildGroupnameList(map groupsmap) ``{
-
-    list ret = [];
-    foreach (`k, `v, groupsmap, ``{
-        if (v["groupname"]:nil != nil)
-            ret = add (ret, v["groupname"]:nil);
-    });
-    return sort (ret); //-- is this needed??
-}
-
-
-/**
- * Builds the list of uid's
- * @param usersset map of users of one type
- * @return list of id's
- */
-global define list BuildUIDList(map usersset) ``{
-
-    list ret = [];
-        foreach (`uid, `usersmap, usersset, ``{
-            ret = add (ret, uid);
-        });
-    return ret;
-}
-
-/**
- * Builds the list of gid's
- * @param groupsset map of groups of one type
- * @return list of id's
- */
-global define list BuildGIDList(map groupsset) ``{
-
-    list ret = [];
-    foreach (`gid, `groupsmap, groupsset, ``{
-            ret = add (ret, gid);
-    });
-    return ret;
-}
-
-/**
- * Build a string with n blanks
- * @param count number of blanks
- * @return string of blanks
- */
-define string addBlanks(integer count ) ``{
-    string  blanks = "";
-    integer blanks_counter = 0;
-
-    while (  blanks_counter < count )
-    {
-        blanks_counter = blanks_counter + 1;
-//        blanks         = blanks + "\302\240"; // why this ??
-        blanks         = blanks + " ";
-    }
-    return blanks;
-}
-
-/**
- * Builds item list for the user table
- * @param map_of_users users of one type
- * @return list of items for table widget
- */
-global define list BuildUserItemList(map map_of_users) ``{
-
-    list items = [];
-    foreach ( `key, `user,  map_of_users, ``{
-        string username = user["username"]:"";
-        string full	= user["cn"]:"";
-        string  s_uid = sformat("%1", key );
-        term    a     = `item(`id(key));
-
-        if( size(s_uid) !=  max_length_uid )
-            s_uid = addBlanks(max_length_uid - size(s_uid)) + s_uid;
-
-        a = add(a, username );
-
-        if (user["type"]:"local" == "system")
-            a = add(a, SystemUsers [full]:full );
-        else
-            a = add(a, full );
-
-        a = add(a, s_uid );
-
-        string own_group = user["groupname"]:"";
-        string grouplist = user["grouplist"]:"";
-        list l_grouplist = splitstring (grouplist, ",");
-
-        if ( !contains (l_grouplist, own_group) && own_group != "")
-        {
-            if (grouplist != "")
-                    grouplist = own_group + "," + grouplist;
-            else
-                grouplist = own_group;
-        }
-
-        a = add(a, grouplist );
-        items = add( items, a );
-    });
-
-    return items;
-}
-
-/**
  * Uncode the string.
  * @param from string
  * @return string string recoded to UTF
@@ -417,89 +504,6 @@ global define string Uncoding( string from ) ``{
     else
         return UI::Recode( encoding, "UTF-8",  from );
 
-}
-
-/**
- * Builds item list for the group table
- * @param map_of_groups groups of one type
- * @return list of items for table widget
- */
-global define list BuildGroupItemList(map map_of_groups) ``{
-
-    integer the_answer = 42;
-    list items = [];
-    foreach ( `key, `group, map_of_groups, ``{
-
-        string  s_gid = sformat("%1", key   );
-        term    a     = `item(`id(key));
-
-        if( size( s_gid) != max_length_gid )
-            s_gid = addBlanks( max_length_gid - size(s_gid)) + s_gid;
-
-        a = add (a, group["groupname"]:"" );
-        a = add (a, s_gid);
-
-        string userlist = group["userlist"]:"";
-
-        string more = group["more_users"]:"";
-        if ((userlist != "") && (more != ""))
-            userlist = userlist + ",";
-        userlist = userlist + more;
-        list all_users = splitstring (userlist, ",");
-	// ldap groups have list of user dn's...
-	if (group_type == "ldap")
-	{
-	    all_users = merge (all_users,
-		maplist (`dn, group["uniqueMember"]:[], ``{
-		    list dn_l = splitstring (dn, ",");
-		    return substring (dn_l[0]:"", find (dn_l[0]:"", "=")+1);
-		}));
-	    if (size (all_users) <= the_answer)
-		userlist = mergestring (all_users, ",");
-	}
-        // shorten the list, if it is too long:
-        if (size (all_users) > the_answer)
-        {
-            userlist = "";
-            integer i = 0;
-            while (i < the_answer)
-            {
-                userlist = userlist + all_users[i]:"" + ",";
-                i = i + 1;
-            }
-            userlist = userlist + "...";
-        }
-        a = add(a, userlist);
-
-        items = add( items, a );
-    });
-    return items;
-}
-
-/**
- * Merge the users's item lists of types included in "custom view" to one list
- * @return new table itemlist
- */
-global define list MergeUserTableItems() ``{
-
-    list items = [];
-    foreach (`usersset, user_custom_sets, ``{
-            items = merge(items, users_itemlists [ usersset ]:[]);
-    });
-    return items;
-}
-
-/**
- * Merge the groups's item lists of types included in "custom view" to one list
- * @return new table itemlist
- */
-global define list MergeGroupTableItems() ``{
-
-    list items = [];
-    foreach (`groupsset, group_custom_sets, ``{
-            items = merge(items, groups_itemlists [ groupsset ]:[]);
-    });
-    return items;
 }
 
 /**
@@ -546,12 +550,34 @@ global define boolean HomeExists(string home) ``{
 	sets_to_check = ["ldap"];
     }
 
-    foreach (`type, sets_to_check, ``{
+    foreach (string type, sets_to_check, ``{
         if ( contains (homelists[type]:[], home)) ret = true;
     });
 
     return ret;
 }
+
+
+/**
+ * Asks agent if given ID is not UID of any user in system
+ * @param uid ID to check
+ * @return false when UID already exists
+ */
+global define boolean IsIDUnique (integer uid) ``{
+
+    return (boolean) SCR::Read (.uid.uid, uid);
+}
+
+/**
+ * Asks agent if given name is not username of any user in system
+ * @param username name to check
+ * @return false when username already exists
+ */
+global define boolean IsUsernameUnique (string username) ``{
+
+    return (boolean) SCR::Read (.uid.username, username);
+}
+
 
 /**
  * Check if username already exists
@@ -561,7 +587,7 @@ global define boolean HomeExists(string home) ``{
 global define boolean UsernameExists(string username) ``{
 
     boolean ret = false;
-    foreach (`type, `usernames, usernamelists, ``{
+    foreach (string type, list usernames, usernamelists, ``{
 	if ( !ret && contains (usernames, username)) ret = true;
     });
     // for autoyast, check only loaded sets
@@ -577,7 +603,7 @@ global define boolean UsernameExists(string username) ``{
 	{
 	    sets_to_check = add (sets_to_check, "ldap");
 	}
-	foreach (`type, sets_to_check, ``{
+	foreach (string type, sets_to_check, ``{
 	    if (contains (removed_usernamelists[type]:[],username)) ret = false;
 	});
     }
@@ -592,7 +618,7 @@ global define boolean UsernameExists(string username) ``{
 global define boolean UIDExists(integer uid) ``{
 
     boolean ret = false;
-    foreach (`type, `uids, uidlists, ``{
+    foreach (string type, list uids, uidlists, ``{
 	if ( !ret && contains (uids, uid)) ret = true;
     });
     // for autoyast, check only loaded sets
@@ -611,7 +637,7 @@ global define boolean UIDExists(integer uid) ``{
 	{
 	    sets_to_check = add (sets_to_check, "ldap");
 	}
-	foreach (`type, sets_to_check, ``{
+	foreach (string type, sets_to_check, ``{
 	    if (contains (removed_uidlists[type]:[], uid)) ret = false;
 	});
     }
@@ -749,13 +775,14 @@ global define void ChangeUser(string what, map user) ``{
 	if (type == "ldap")
 	    userdnlist = add (userdnlist, dn);
         uidlists [type] = prepend (uidlists [type]:[], uid);
-	removed_uidlists = mapmap (`type, `uids, removed_uidlists, ``{
-	    return [ type, filter (`u, uids, ``(u != uid))];
+	removed_uidlists = mapmap (string type, list uids, removed_uidlists, ``{
+	    return $[ type : filter (integer u, uids, ``(u != uid))];
 	});
         homelists [type] = add (homelists [type]:[], home);
         usernamelists [type] = add (usernamelists [type]:[], username);
-	removed_usernamelists=mapmap(`type,`usernames,removed_usernamelists, ``{
-	    return [ type, filter (`u, usernames, ``(u != username))];
+	removed_usernamelists = mapmap(string type, list usernames,
+	    removed_usernamelists, ``{
+		return $[ type: filter (string u, usernames,``(u != username))];
 	});
         users_itemlists [type] = merge (users_itemlists [type]:[],
             BuildUserItemList( $[ uid : user ] ));
@@ -767,38 +794,39 @@ global define void ChangeUser(string what, map user) ``{
     {
         if (uid != org_uid)
         {
-            uidlists [org_type] = filter (`u, uidlists [org_type]:[],
+            uidlists [org_type] = filter (integer u, uidlists [org_type]:[],
 		``(u != org_uid));
             uidlists [type] = prepend (uidlists [type]:[], uid);
 	    removed_uidlists [type] = add (removed_uidlists [type]:[], org_uid);
-	    removed_uidlists = mapmap (`t, `uids, removed_uidlists, ``{
-		return [ t, filter (`u, uids, ``(u != uid))];
-	    });
+	    removed_uidlists = mapmap (string t, list uids, removed_uidlists,
+		``( $[ t : filter (integer u, uids, ``(u != uid))]));
 	}
         if (home != org_home)
         {
-            homelists [org_type] = filter (`h, homelists [org_type]:[],
+            homelists [org_type] = filter (string h, homelists [org_type]:[],
 		``(h != home));
             homelists [type] = prepend (homelists [type]:[], home);
         }
         if (username != org_username)
         {
-            usernamelists [org_type] = filter (`u, usernamelists [org_type]:[],
+            usernamelists [org_type] =
+		filter (string u, usernamelists [org_type]:[],
                 ``(u != org_username));
 	    removed_usernamelists = mapmap
-		(`typ, `usernames, removed_usernamelists, ``{
-		return [ typ, filter (`u, usernames, ``(u != username))];
+		(string typ, list usernames, removed_usernamelists, ``{
+		return $[ typ: filter (string u, usernames, ``(u != username))];
 	    });
 	    removed_usernamelists [type] = add (removed_usernamelists [type]:[],
 		org_username);
             usernamelists [type] = prepend (usernamelists [type]:[], username);
 	    if (type == "ldap")
 	    {
-		userdnlist = filter (`u, userdnlist , ``(u != org_dn));
+		userdnlist = filter (string u, userdnlist , ``(u != org_dn));
 		userdnlist = add (userdnlist, dn);
 	    }
         }
-        users_itemlists [org_type] = filter (`it, users_itemlists [org_type]:[],
+        users_itemlists [org_type] =
+	    filter (term it, users_itemlists [org_type]:[],
             ``(select(it,1,"") != org_username));
         users_itemlists [type] = prepend (users_itemlists [type]:[],
             select (BuildUserItemList( $[ uid : user ] ), 0, []));
@@ -815,15 +843,15 @@ global define void ChangeUser(string what, map user) ``{
     else if (what == "delete_user")
     {
 	if (type == "ldap")
-	    userdnlist = filter (`u, userdnlist , ``(u != org_dn));
-        uidlists [type] = filter (`u, uidlists [type]:[], ``(u != uid));
-        homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
-        usernamelists [type] = filter (`u, usernamelists [type]:[],
+	    userdnlist = filter (string u, userdnlist , ``(u != org_dn));
+        uidlists [type] = filter (integer u, uidlists [type]:[], ``(u != uid));
+        homelists [type] = filter (string h, homelists [type]:[],``(h != home));
+        usernamelists [type] = filter (string u, usernamelists [type]:[],
                 ``(u != username));
 	removed_uidlists [type] = add (removed_uidlists [type]:[], uid);
 	removed_usernamelists [type] = add (removed_usernamelists [type]:[],
 	    username);
-        users_itemlists [type] = filter (`item, users_itemlists [type]:[],
+        users_itemlists [type] = filter (term item, users_itemlists [type]:[],
             ``(select(item,1,"") != username));
         UpdateUserItemlist (type);
 	focusline_user = nil;
@@ -858,21 +886,15 @@ global define void ChangeGroup (string what, map group) ``{
     {
         if (gid != org_gid)
         {
-	    /*
-            gidlists [type] = filter (`g, gidlists [type]:[], ``(g != org_gid));
-	    */
-            gidlists [org_type] = filter (`g, gidlists [org_type]:[],
+            gidlists [org_type] = filter (integer g, gidlists [org_type]:[],
 		``(g != org_gid));
             gidlists [type] = prepend (gidlists [type]:[], gid);
         }
         if (groupname != org_groupname)
         {
-	    /*
-            groupnamelists [type] = filter (`u, groupnamelists [type]:[],
-                ``(u != org_groupname));
-	    */
-            groupnamelists [org_type] = filter (`u, groupnamelists[org_type]:[],
-                ``(u != org_groupname));
+            groupnamelists [org_type] =
+		filter (string u, groupnamelists[org_type]:[],
+		    ``(u != org_groupname));
             groupnamelists [type] = prepend (groupnamelists[type]:[],groupname);
         }
 	focusline_group = gid;
@@ -884,7 +906,7 @@ global define void ChangeGroup (string what, map group) ``{
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
 	*/
-        groups_itemlists [org_type] = filter (`i,
+        groups_itemlists [org_type] = filter (term i,
 	    groups_itemlists [org_type]:[],``(select(i,1,"") != org_groupname));
         groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?
             BuildGroupItemList( $[ gid : group ] ));
@@ -897,51 +919,22 @@ global define void ChangeGroup (string what, map group) ``{
     }
     if (what == "delete_group")
     {
-        gidlists [type] = filter (`g, gidlists [type]:[], ``(g != gid));
-        groupnamelists [type] = filter (`g, groupnamelists [type]:[],
+        gidlists [type] = filter (integer g, gidlists [type]:[], ``(g != gid));
+        groupnamelists [type] = filter (string g, groupnamelists [type]:[],
                 ``(g != groupname));
-        groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
+        groups_itemlists [type] = filter (term item, groups_itemlists [type]:[],
             ``(select(item,1,"") != groupname));
         UpdateGroupItemlist (type);
 	focusline_group = nil;
     }
     if (what == "itemlist")
     {
-        groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
+        groups_itemlists [type] = filter (term item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
         groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist (type);
     }
-}
-
-/**
- * debug function - prints current time to log
- * @param message debug message
- */
-global define void PrintDate(string message) ``{
-
-    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
-}
-
-/**
- * Asks agent if given ID is not UID of any user in system
- * @param uid ID to check
- * @return false when UID already exists
- */
-global define boolean IsIDUnique (integer uid) ``{
-
-    return SCR::Read (.uid.uid, uid);
-}
-
-/**
- * Asks agent if given name is not username of any user in system
- * @param username name to check
- * @return false when username already exists
- */
-global define boolean IsUsernameUnique (string username) ``{
-
-    return SCR::Read (.uid.username, username);
 }
 
 /**
@@ -961,7 +954,7 @@ global define string ProposeUsername( string cn ) ``{
 	proposed_usernames = [];
 	// do not propose username with uppercase (problematic: #26409)
 	list parts = splitstring (tolower(cn), " ");
-	list tested_usernames = eval (parts);
+	list tested_usernames = (list) eval (parts);
 
 	// 1st: add some interesting modifications...
 	integer i = 0;
@@ -987,7 +980,7 @@ global define string ProposeUsername( string cn ) ``{
 	tested_usernames = add (tested_usernames, default_login);
 
 	// 2nd: check existence
-	foreach (`name, tested_usernames, ``{
+	foreach (string name, tested_usernames, ``{
 	    integer name_count = 0;
 	    while (UsernameExists (name))
 	    {

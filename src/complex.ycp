@@ -25,6 +25,7 @@ import "Popup";
 import "Label";
 
 include "users/helps.ycp";
+include "users/routines.ycp"; //EncryptionD
 
 /**
  * Return a modification status
@@ -49,7 +50,7 @@ global define symbol ReadDialog (boolean useUI ) ``{
     if ( useUI ) Wizard::RestoreHelp ( ReadDialogHelp () );
 
     // A callback function for abort
-    block abort = ``{
+    block<boolean> abort = ``{
         return UI::PollInput () == `abort;
     };
 
@@ -68,7 +69,7 @@ global define symbol WriteDialog (boolean useUI ) ``{
     if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
 
     // A callback function for abort
-    block abort = ``{
+    block<boolean> abort = ``{
         // popup text
         if (UI::PollInput () == `abort && Popup::YesNo (_("Really abort the writing process?")))
             return true;
@@ -121,6 +122,433 @@ global define symbol ReallyAbort() ``{
     else return `back;
 }
 
+/**
+ * Define the switch between Users and Groups administration.
+ * This is used in UsersDialog and GroupsDialog.
+ * @param what what can be `users or `groups
+ * @return term RadioButtonGroup widget
+ */
+global define term rbUsersGroup(symbol what) ``{
+    string curr = "";
+    if (what == `users)
+    {
+        if (size (Users::current_users) == 1)
+            curr = Users::userset_to_string[Users::current_users[0]:"custom"]:"";
+        else
+            curr = Users::userset_to_string["custom"]:"";
+    }
+    else
+    {
+        if (size (Users::current_groups) == 1)
+            curr = Users::groupset_to_string[Users::current_groups[0]:"custom"]:"";
+        else
+            curr = Users::groupset_to_string["custom"]:"";
+    }
+    curr = deletechars (curr, "&");
+    return
+        `HBox(
+        `Left(`RadioButtonGroup(`HBox(
+            `RadioButton(`id(`switch_users), `opt(`notify),
+                // pushbutton
+                _("&Users"), what == `users),
+            `RadioButton(`id(`switch_groups), `opt(`notify),
+                // pushbutton
+                _("&Groups"), what == `groups)
+        ))),
+        `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
+        );
+}
+
+/**
+ * Dialog for definition of customized view
+ * @param what "user" or "group"
+ * @return true if customs were modified
+ */
+global define boolean CustomizePopup(string what) ``{
+
+    term view = `VBox();
+    string label = "";
+    list sets = [];
+    list custom_sets = [];
+    map set_to_string = $[];
+
+    if (what == "user")
+    {
+        sets = filter (`set, Users::available_usersets, ``(set != "custom"));
+        custom_sets = Users::user_custom_sets;
+        set_to_string = Users::userset_to_string;
+		// Frame label
+        label = _("Customize the View of the User List");
+    }
+    else
+    {
+        sets = filter (`set, Users::available_groupsets, ``(set != "custom"));
+        custom_sets = Users::group_custom_sets;
+        set_to_string = Users::groupset_to_string;
+		// Frame label
+        label = _("Customize the View of the Group List");
+    }
+
+    foreach (`set, sets, ``{
+        view = add (view, `VSpacing(0.5));
+        if ( contains (custom_sets, set) )
+	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
+		true)));
+        else
+	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
+		false)));
+    });
+    view = add (view, `VSpacing(0.5));
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+	        `Frame(label, view),
+            `VSpacing(0.5),
+	    `HBox(
+	        `PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+    any ret = UI::UserInput();
+    boolean modified = false;
+    list new_customs = [];
+    if (ret == `ok)
+    {
+        foreach (`set, sets, ``{
+            if ((boolean)UI::QueryWidget(`id(set), `Value))
+            {
+                new_customs = add (new_customs, set);
+                if (! contains (custom_sets, set)) modified = true;
+            }
+            else
+            {
+                if (contains (custom_sets, set)) modified = true;
+            }
+        });;
+    }
+    UI::CloseDialog();
+    if (modified)
+    {
+        modified = Users::ChangeCustoms (what, new_customs);
+    }
+    return modified;
+}
+
+/**
+ * Popup for configuration user/group filter for making the LDAP search
+ * @return modified?
+ */
+global define boolean LDAPSearchFilterPopup () ``{
+
+    string default_user_f = Users::ldap_default_user_filter;
+    string default_group_f = Users::ldap_default_group_filter;
+
+    string user_f = Users::ldap_user_filter;
+    string group_f = Users::ldap_group_filter;
+
+    if (user_f == "")
+	user_f = default_user_f;
+    if (group_f == "")
+	group_f = default_group_f;
+
+    boolean ret = false;
+
+    string help_text = LDAPSearchFilterPopupHelp();
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(50),
+            `VSpacing(0.5),
+	        `Frame(_("Filter for Searching the LDAP Directory"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`userf), _("&User Filter"), user_f),
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`groupf), _("&Group Filter"), group_f),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
+		// Pushbutton label (get data from LDAP server)
+	        `PushButton(`id(`read), `opt(`key_F3), _("From &Server"))
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    symbol button = nil;
+    do
+    {
+	button = (symbol) UI::UserInput();
+
+	if ( button == `help )
+        {
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `read )
+	{
+	    if (Users::ReadLDAPFilters())
+	    {
+		UI::ChangeWidget(`id (`userf), `Value,
+		    Users::ldap_default_user_filter);
+		UI::ChangeWidget(`id (`groupf),`Value,
+		    Users::ldap_default_group_filter);
+	    }
+	}
+	if ( button == `ok)
+	{
+	    string new_user_f = (string) UI::QueryWidget(`id (`userf), `Value);
+	    string new_group_f = (string)UI::QueryWidget(`id (`groupf), `Value);
+	    if (new_user_f != user_f)
+	    {
+		if (!issubstring (new_user_f, default_user_f))
+		{
+		    // error popup
+		    Popup::Error (_("The new user filter does not contain the default user filter.
+Try again.
+"));
+		    UI::SetFocus (`id(`userf));
+		    continue;
+		}
+		user_f = new_user_f;
+	    }
+	    if (new_group_f != group_f)
+	    {
+		if (!issubstring (new_group_f, default_group_f))
+		{
+		    // error popup
+		    Popup::Error (_("The new group filter does not contain the default group filter.
+Try again.
+"));
+		    UI::SetFocus (`id(`groupf));
+		    continue;
+		}
+		group_f = new_group_f;
+	    }
+	    // checks are OK, let's update the values now
+	    if (user_f != Users::ldap_user_filter)
+	    {
+		Users::ldap_user_filter = user_f;
+		ret = true;
+	    }
+	    if (group_f != Users::ldap_group_filter)
+	    {
+		Users::ldap_group_filter = group_f;
+		ret = true;
+	    }
+	}
+    } while ( button != `ok && button != `cancel );
+
+    UI::CloseDialog();
+    return ret;
+}
+
+/**
+ * @return modified?
+ **/
+global define boolean AutologinPopup() ``{
+
+    string help_text = AutologinPopupHelp();
+    boolean ret = false;
+
+    string user		= Autologin::user;
+    boolean pw_less	= Autologin::pw_less;
+    boolean auto_used	= (user != "");
+
+    // TODO check if nis/ldap users were read?
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+		// frame label
+	        `Frame(_("KDM Login Settings"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`auto),`opt (`notify),
+			// checkbox label
+			_("Enable &Autologin"), auto_used)),
+		    `VSpacing(0.2),
+		    `HBox (
+			`HSpacing (4), // move text under the checkbox
+			`Left(`ComboBox (`id(`autouser),
+			    // textentry label
+			    _("&User logged in"), UsersCache::usernamelist))
+		    ),
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`pw_less),
+			// checkbox label
+			_("&Enable password less logins"), pw_less)),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    if (user != "")
+	UI::ChangeWidget (`id (`autouser), `Value, user);
+    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+
+    symbol button = nil;
+    do
+    {
+	button = (symbol) UI::UserInput();
+
+	if ( button == `help )
+	{
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `auto )
+	{
+	    auto_used = (boolean) UI::QueryWidget (`id(`auto), `Value);
+	    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+	}
+    } while ( !contains ([`ok, `cancel, `abort], button));
+
+    if (button == `ok)
+    {
+	user = (auto_used) ?(string)UI::QueryWidget (`id(`autouser), `Value):"";
+	pw_less = (boolean) UI::QueryWidget (`id(`pw_less), `Value);
+
+	if (user != Autologin::user || pw_less != Autologin::pw_less)
+	{
+	    ret = true;
+	    Autologin::used	= auto_used;
+	    Autologin::user	= user;
+	    Autologin::pw_less	= pw_less;
+	    Autologin::modified = true;
+	}
+    }
+    UI::CloseDialog();
+    return ret;
+};
+
+/**
+ * Popup for deleting user
+ * @return symbol for sequencer
+ */
+global define symbol DeleteUserPopup() ``{
+
+    boolean delete      = true;
+    boolean delete_home = false;
+    string type		= UsersCache::user_type;
+    string username       = Users::user_in_work["username"]:"";
+    string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
+    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid[type]:60000;
+
+    if (type == "nis")
+    {
+        // error popup
+        Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
+        return `not_next;
+    }
+
+    // if the user has log on system
+    string proc = lookup ((map)SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
+    if (size (proc) != 0)
+    {
+        // error popup
+        Report::Error(_("You can not delete this user, because the user is present.
+Please log off the user first."));
+        delete = false;
+        return `not_next;
+    }
+
+    boolean no_home = false;
+    if ((type == "ldap" && !Users::ldap_file_server) ||
+        // check if dir exists with this owner
+        (lookup ((map)SCR::Read(.target.stat, home), "uid", -1) != uid) )
+        no_home = true;
+
+    // if the user want to delete a system user
+    if ( type == "system" )
+    {
+        // yes-no popup headline
+        if(! Popup::YesNoHeadline(_("The marked user is a system user."),
+        // yes-no popup contents
+         _("Do you really want to delete this user?")))
+        {
+	    delete = false;
+        }
+    }
+    else
+    {
+        if( home != "")
+        {
+        term contents = `HBox(
+            `HSpacing(3),
+            `VBox(`VSpacing(1),
+                // question popup. %^1 is username
+                `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
+                `VSpacing(0.5),
+                no_home ? `VSpacing (0) :
+                // checkbox label
+                `Left (`CheckBox(`id(`delete_home), sformat(_("delete &home directory
+%1"), home ) )),
+                `VSpacing(1),
+                `HBox(
+                    `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
+                        Label::YesButton()  )),
+                    `Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
+                        Label::NoButton()))
+                )
+            ),
+            `HSpacing(3));
+
+        UI::OpenDialog(`opt( `decorated ), contents );
+        any ret  = UI::UserInput();
+        delete_home = no_home ? false : UI::QueryWidget(`id(`delete_home), `Value);
+
+        UI::CloseDialog();
+
+        if( ret == `cancel )
+        {
+            delete = false;
+        }
+        }
+        else
+        {
+            // yes-no popup. %1 is username
+            if( ! Popup::YesNo(sformat(_("
+Do you really want to delete the user %1?
+"), username )))
+        {
+            delete = false;
+        }
+        }
+    }
+
+    if (delete)
+    {
+        Users::user_in_work["what"] = "delete_user";
+        Users::user_in_work["delete_home"] = delete_home;
+        return `delete;
+    }
+    return `not_next;
+}
+
+
 
 /**
  * The first of the two main (summary) dialogs -- list of the users.
@@ -132,7 +560,7 @@ global define symbol UsersDialog() ``{
      * Helper function for reading again current user/group lists if necessary
      * For use inside UsersDialog
      */
-    global define void re_read_ldap () ``{
+    define void re_read_ldap () ``{
 
 	// re-read the list when LDAP are shown
 	if (contains (UsersCache::current_users, "ldap"))
@@ -243,7 +671,7 @@ global define symbol UsersDialog() ``{
 
         if ( contains (Users::available_usersets, ret) )
         {
-            if (Users::ChangeCurrentUsers (ret))
+            if (Users::ChangeCurrentUsers ((string)ret))
             {
                 UsersCache::user_itemlist = UsersCache::users_itemlists[ret]:[];
 
@@ -325,7 +753,7 @@ global define symbol UsersDialog() ``{
             any selected = UI::QueryWidget(`id(`user_table), `CurrentItem);
             if (selected != nil)
             {
-                Users::SelectUser( selected );
+                Users::SelectUser((integer)selected );
                 if (ret == `delete)
                     ret = DeleteUserPopup();
             }
@@ -363,12 +791,60 @@ Are you sure?
         }
         Users::use_next_time = true;
     }
-    UsersCache::focusline_user = UI::QueryWidget(`id(`user_table),`CurrentItem);
+    UsersCache::focusline_user = (integer)UI::QueryWidget(`id(`user_table),`CurrentItem);
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
 
-    return ret;
+    return (symbol)ret;
+}
+
+/**
+ * Popup for deleting group
+ * @return symbol for sequencer
+ */
+global define symbol DeleteGroupPopup() ``{
+
+    boolean delete = true;
+    integer gid = Users::group_in_work["gid"]:-1;
+
+    // if no user is in this group
+    if (Users::group_in_work["userlist"]:"" == "" &&
+        Users::group_in_work["more_users"]:"" == "" &&
+        Users::group_in_work["uniqueMember"]:[] == [])
+    {
+        //if the group is a system group ask the user ..
+        if ( UsersCache::group_type == "system" )
+        {
+            // yes-no popup headline
+            if(!Popup::YesNoHeadline(_("The marked group is a system group."),
+            /// yes-no popup contents
+            _("Really delete this group?")))
+
+                return `not_next;
+        }
+        else
+        {
+            // yes-no popup, %1 si group name
+            if (! Popup::YesNo(sformat(_("
+Do you really want to delete the group %1?
+"), Users::group_in_work["groupname"]:"")))
+
+                return `not_next;
+        }
+    }
+    else
+    {
+        // warning popup
+        Popup::Warning(_("You cannot delete this group because
+there are users in the group.
+Remove these users from the group first.
+"));
+        return `not_next;
+    }
+
+    Users::group_in_work["what"] = "delete_group";
+    return `delete;
 }
 
 
@@ -430,7 +906,7 @@ global define symbol GroupsDialog() ``{
 
         if( contains (Users::available_groupsets, ret) )
         {
-            if (Users::ChangeCurrentGroups (ret))
+            if (Users::ChangeCurrentGroups ((string)ret))
             {
                 UsersCache::group_itemlist=UsersCache::groups_itemlists[ret]:[];
 
@@ -464,7 +940,7 @@ global define symbol GroupsDialog() ``{
 
         if ( ret == `edit  || ret == `delete )
         {
-            integer selected = UI::QueryWidget(`id(`group_table), `CurrentItem);
+            integer selected = (integer)UI::QueryWidget(`id(`group_table), `CurrentItem);
             if( selected != nil )
             {
                 Users::SelectGroup( selected );
@@ -493,490 +969,15 @@ you must do it on server.
         }
     } until ( ret != `not_next  );
 
-    UsersCache::focusline_group=UI::QueryWidget(`id(`group_table),`CurrentItem);
+    UsersCache::focusline_group = (integer)UI::QueryWidget(`id(`group_table),`CurrentItem);
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
 
-    return ret;
-}
-
-/**
- * Popup for deleting user
- * @return symbol for sequencer
- */
-global define symbol DeleteUserPopup() ``{
-
-    boolean delete      = true;
-    boolean delete_home = false;
-    string type		= UsersCache::user_type;
-    string username       = Users::user_in_work["username"]:"";
-    string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
-    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid[type]:60000;
-
-    if (type == "nis")
-    {
-        // error popup
-        Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
-        return `not_next;
-    }
-
-    // if the user has log on system
-    string proc = lookup (SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
-    if (size (proc) != 0)
-    {
-        // error popup
-        Report::Error(_("You can not delete this user, because the user is present.
-Please log off the user first."));
-        delete = false;
-        return `not_next;
-    }
-
-    boolean no_home = false;
-    if ((type == "ldap" && !Users::ldap_file_server) ||
-        // check if dir exists with this owner
-        (lookup (SCR::Read(.target.stat, home), "uid", -1) != uid) )
-        no_home = true;
-
-    // if the user want to delete a system user
-    if ( type == "system" )
-    {
-        // yes-no popup headline
-        if(! Popup::YesNoHeadline(_("The marked user is a system user."),
-        // yes-no popup contents
-         _("Do you really want to delete this user?")))
-        {
-	    delete = false;
-        }
-    }
-    else
-    {
-        if( home != "")
-        {
-        term contents = `HBox(
-            `HSpacing(3),
-            `VBox(`VSpacing(1),
-                // question popup. %^1 is username
-                `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
-                `VSpacing(0.5),
-                no_home ? `VSpacing (0) :
-                // checkbox label
-                `Left (`CheckBox(`id(`delete_home), sformat(_("delete &home directory
-%1"), home ) )),
-                `VSpacing(1),
-                `HBox(
-                    `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
-                        Label::YesButton()  )),
-                    `Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
-                        Label::NoButton()))
-                )
-            ),
-            `HSpacing(3));
-
-        UI::OpenDialog(`opt( `decorated ), contents );
-        any ret  = UI::UserInput();
-        delete_home = no_home ? false : UI::QueryWidget(`id(`delete_home), `Value);
-
-        UI::CloseDialog();
-
-        if( ret == `cancel )
-        {
-            delete = false;
-        }
-        }
-        else
-        {
-            // yes-no popup. %1 is username
-            if( ! Popup::YesNo(sformat(_("
-Do you really want to delete the user %1?
-"), username )))
-        {
-            delete = false;
-        }
-        }
-    }
-
-    if (delete)
-    {
-        Users::user_in_work["what"] = "delete_user";
-        Users::user_in_work["delete_home"] = delete_home;
-        return `delete;
-    }
-    return `not_next;
+    return (symbol)ret;
 }
 
 
-/**
- * Popup for deleting group
- * @return symbol for sequencer
- */
-global define symbol DeleteGroupPopup() ``{
-
-    boolean delete = true;
-    integer gid = Users::group_in_work["gid"]:-1;
-
-    // if no user is in this group
-    if (Users::group_in_work["userlist"]:"" == "" &&
-        Users::group_in_work["more_users"]:"" == "" &&
-        Users::group_in_work["uniqueMember"]:[] == [])
-    {
-        //if the group is a system group ask the user ..
-        if ( UsersCache::group_type == "system" )
-        {
-            // yes-no popup headline
-            if(!Popup::YesNoHeadline(_("The marked group is a system group."),
-            /// yes-no popup contents
-            _("Really delete this group?")))
-
-                return `not_next;
-        }
-        else
-        {
-            // yes-no popup, %1 si group name
-            if (! Popup::YesNo(sformat(_("
-Do you really want to delete the group %1?
-"), Users::group_in_work["groupname"]:"")))
-
-                return `not_next;
-        }
-    }
-    else
-    {
-        // warning popup
-        Popup::Warning(_("You cannot delete this group because
-there are users in the group.
-Remove these users from the group first.
-"));
-        return `not_next;
-    }
-
-    Users::group_in_work["what"] = "delete_group";
-    return `delete;
-}
-
-/**
- * Popup for configuration user/group filter for making the LDAP search
- * @return modified?
- */
-global define boolean LDAPSearchFilterPopup () ``{
-
-    string default_user_f = Users::ldap_default_user_filter;
-    string default_group_f = Users::ldap_default_group_filter;
-
-    string user_f = Users::ldap_user_filter;
-    string group_f = Users::ldap_group_filter;
-
-    if (user_f == "")
-	user_f = default_user_f;
-    if (group_f == "")
-	group_f = default_group_f;
-
-    boolean ret = false;
-
-    string help_text = LDAPSearchFilterPopupHelp();
-
-    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
-        `VBox(
-            `HSpacing(50),
-            `VSpacing(0.5),
-	        `Frame(_("Filter for Searching the LDAP Directory"), `HBox(
-		  `HSpacing (0.5),
-		  `VBox(
-		    `VSpacing(0.5),
-		    // textentry label
-		    `TextEntry (`id(`userf), _("&User Filter"), user_f),
-		    `VSpacing(0.5),
-		    // textentry label
-		    `TextEntry (`id(`groupf), _("&Group Filter"), group_f),
-		    `VSpacing(0.5)
-		  ),
-		  `HSpacing(0.5)
-		)),
-            `VSpacing(0.5),
-	    `HBox(
-		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
-	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
-	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
-		// Pushbutton label (get data from LDAP server)
-	        `PushButton(`id(`read), `opt(`key_F3), _("From &Server"))
-	    ),
-            `VSpacing(0.5)),
-        `HSpacing(1.5)
-    ));
-
-    symbol button = nil;
-    do
-    {
-	button = UI::UserInput();
-
-	if ( button == `help )
-        {
-	    Wizard::ShowHelp( help_text );
-	}
-	if ( button == `read )
-	{
-	    if (Users::ReadLDAPFilters())
-	    {
-		UI::ChangeWidget(`id (`userf), `Value,
-		    Users::ldap_default_user_filter);
-		UI::ChangeWidget(`id (`groupf),`Value,
-		    Users::ldap_default_group_filter);
-	    }
-	}
-	if ( button == `ok)
-	{
-	    string new_user_f = UI::QueryWidget(`id (`userf), `Value);
-	    string new_group_f = UI::QueryWidget(`id (`groupf), `Value);
-	    if (new_user_f != user_f)
-	    {
-		if (!issubstring (new_user_f, default_user_f))
-		{
-		    // error popup
-		    Popup::Error (_("The new user filter does not contain the default user filter.
-Try again.
-"));
-		    UI::SetFocus (`id(`userf));
-		    continue;
-		}
-		user_f = new_user_f;
-	    }
-	    if (new_group_f != group_f)
-	    {
-		if (!issubstring (new_group_f, default_group_f))
-		{
-		    // error popup
-		    Popup::Error (_("The new group filter does not contain the default group filter.
-Try again.
-"));
-		    UI::SetFocus (`id(`groupf));
-		    continue;
-		}
-		group_f = new_group_f;
-	    }
-	    // checks are OK, let's update the values now
-	    if (user_f != Users::ldap_user_filter)
-	    {
-		Users::ldap_user_filter = user_f;
-		ret = true;
-	    }
-	    if (group_f != Users::ldap_group_filter)
-	    {
-		Users::ldap_group_filter = group_f;
-		ret = true;
-	    }
-	}
-    } while ( button != `ok && button != `cancel );
-
-    UI::CloseDialog();
-    return ret;
-}
-
-
-/**
- * Dialog for definition of customized view
- * @param what "user" or "group"
- * @return true if customs were modified
- */
-global define boolean CustomizePopup(string what) ``{
-
-    term view = `VBox();
-    string label = "";
-    list sets = [];
-    list custom_sets = [];
-    map set_to_string = $[];
-
-    if (what == "user")
-    {
-        sets = filter (`set, Users::available_usersets, ``(set != "custom"));
-        custom_sets = Users::user_custom_sets;
-        set_to_string = Users::userset_to_string;
-		// Frame label
-        label = _("Customize the View of the User List");
-    }
-    else
-    {
-        sets = filter (`set, Users::available_groupsets, ``(set != "custom"));
-        custom_sets = Users::group_custom_sets;
-        set_to_string = Users::groupset_to_string;
-		// Frame label
-        label = _("Customize the View of the Group List");
-    }
-
-    foreach (`set, sets, ``{
-        view = add (view, `VSpacing(0.5));
-        if ( contains (custom_sets, set) )
-	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
-		true)));
-        else
-	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
-		false)));
-    });
-    view = add (view, `VSpacing(0.5));
-
-    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
-        `VBox(
-            `HSpacing(40),
-            `VSpacing(0.5),
-	        `Frame(label, view),
-            `VSpacing(0.5),
-	    `HBox(
-	        `PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
-		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
-	    ),
-            `VSpacing(0.5)),
-        `HSpacing(1.5)
-    ));
-    any ret = UI::UserInput();
-    boolean modified = false;
-    list new_customs = [];
-    if (ret == `ok)
-    {
-        foreach (`set, sets, ``{
-            if (UI::QueryWidget(`id(set), `Value))
-            {
-                new_customs = add (new_customs, set);
-                if (! contains (custom_sets, set)) modified = true;
-            }
-            else
-            {
-                if (contains (custom_sets, set)) modified = true;
-            }
-        });;
-    }
-    UI::CloseDialog();
-    if (modified)
-    {
-        modified = Users::ChangeCustoms (what, new_customs);
-    }
-    return modified;
-}
-
-/**
- * Define the switch between Users and Groups administration.
- * This is used in UsersDialog and GroupsDialog.
- * @param what what can be `users or `groups
- * @return term RadioButtonGroup widget
- */
-global define term rbUsersGroup(symbol what) ``{
-    string curr = "";
-    if (what == `users)
-    {
-        if (size (Users::current_users) == 1)
-            curr = Users::userset_to_string[Users::current_users[0]:"custom"]:"";
-        else
-            curr = Users::userset_to_string["custom"]:"";
-    }
-    else
-    {
-        if (size (Users::current_groups) == 1)
-            curr = Users::groupset_to_string[Users::current_groups[0]:"custom"]:"";
-        else
-            curr = Users::groupset_to_string["custom"]:"";
-    }
-    curr = deletechars (curr, "&");
-    return
-        `HBox(
-        `Left(`RadioButtonGroup(`HBox(
-            `RadioButton(`id(`switch_users), `opt(`notify),
-                // pushbutton
-                _("&Users"), what == `users),
-            `RadioButton(`id(`switch_groups), `opt(`notify),
-                // pushbutton
-                _("&Groups"), what == `groups)
-        ))),
-        `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
-        );
-}
-
-
-/**
- * @return modified?
- **/
-global define boolean AutologinPopup() ``{
-
-    string help_text = AutologinPopupHelp();
-    boolean ret = false;
-
-    string user		= Autologin::user;
-    boolean pw_less	= Autologin::pw_less;
-    boolean auto_used	= (user != "");
-
-    // TODO check if nis/ldap users were read?
-
-    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
-        `VBox(
-            `HSpacing(40),
-            `VSpacing(0.5),
-		// frame label
-	        `Frame(_("KDM Login Settings"), `HBox(
-		  `HSpacing (0.5),
-		  `VBox(
-		    `VSpacing(0.5),
-		    `Left(`CheckBox (`id(`auto),`opt (`notify),
-			// checkbox label
-			_("Enable &Autologin"), auto_used)),
-		    `VSpacing(0.2),
-		    `HBox (
-			`HSpacing (4), // move text under the checkbox
-			`Left(`ComboBox (`id(`autouser),
-			    // textentry label
-			    _("&User logged in"), UsersCache::usernamelist))
-		    ),
-		    `VSpacing(0.5),
-		    `Left(`CheckBox (`id(`pw_less),
-			// checkbox label
-			_("&Enable password less logins"), pw_less)),
-		    `VSpacing(0.5)
-		  ),
-		  `HSpacing(0.5)
-		)),
-            `VSpacing(0.5),
-	    `HBox(
-		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
-	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
-	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
-	    ),
-            `VSpacing(0.5)),
-        `HSpacing(1.5)
-    ));
-
-    if (user != "")
-	UI::ChangeWidget (`id (`autouser), `Value, user);
-    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
-
-    symbol button = nil;
-    do
-    {
-	button = UI::UserInput();
-
-	if ( button == `help )
-	{
-	    Wizard::ShowHelp( help_text );
-	}
-	if ( button == `auto )
-	{
-	    auto_used = UI::QueryWidget (`id(`auto), `Value);
-	    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
-	}
-    } while ( !contains ([`ok, `cancel, `abort], button));
-
-    if (button == `ok)
-    {
-	user = (auto_used) ? UI::QueryWidget (`id(`autouser), `Value) : "";
-	pw_less = UI::QueryWidget (`id(`pw_less), `Value);
-
-	if (user != Autologin::user || pw_less != Autologin::pw_less)
-	{
-	    ret = true;
-	    Autologin::used	= auto_used;
-	    Autologin::user	= user;
-	    Autologin::pw_less	= pw_less;
-	    Autologin::modified = true;
-	}
-    }
-    UI::CloseDialog();
-    return ret;
-};
 
 /* EOF */
 }

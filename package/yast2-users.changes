@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Dec  1 14:20:39 CET 2003 - jsuchome@suse.cz
+
+- syntax fixes for new interpreter
+- 2.9.3
+
+-------------------------------------------------------------------
 Thu Nov 27 15:27:09 CET 2003 - jsuchome@suse.cz
 
 - LDAP: added crypting passwords via slappaswd

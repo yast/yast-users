@@ -6,8 +6,6 @@
  *
  * $Id$
  *
- * Important! It is supposed that this file is included from Users.ycp,
- * some variables are used from here... (every ldap_*)
  */
 
 {
@@ -15,6 +13,9 @@
 import "Label";
 import "Users";
 import "UsersCache";
+
+import "Ldap";
+include "users/routines.ycp";
 
 textdomain "users";
 
@@ -24,7 +25,7 @@ textdomain "users";
  */
 global define map ReadLDAPUsers() ``{
 
-    return SCR::Read(.ldap.users);
+    return (map) SCR::Read(.ldap.users);
 }
 
 /**
@@ -33,7 +34,7 @@ global define map ReadLDAPUsers() ``{
  */
 global define map ReadLDAPUsersByName() ``{
 
-    return (SCR::Read(.ldap.users.by_name));
+    return (map) SCR::Read(.ldap.users.by_name);
 }
 
 /**
@@ -42,7 +43,7 @@ global define map ReadLDAPUsersByName() ``{
  */
 global define map ReadLDAPGroups()``{
 
-    return (SCR::Read(.ldap.groups));
+    return (map)SCR::Read(.ldap.groups);
 }
 
 /**
@@ -51,7 +52,7 @@ global define map ReadLDAPGroups()``{
  */
 global define map ReadLDAPGroupsByName()``{
 
-    return (SCR::Read(.ldap.groups.by_name));
+    return (map)SCR::Read(.ldap.groups.by_name);
 }
 
 /**
@@ -59,7 +60,6 @@ global define map ReadLDAPGroupsByName()``{
  */
 global define boolean InitializeLDAP () ``{
 
-    import "Ldap";
     Ldap::Read();
 
     string ldap_mesg = Ldap::LDAPInit ();
@@ -77,7 +77,7 @@ global define boolean InitializeLDAP () ``{
 
     Ldap::InitSchema ();
 
-    foreach (`dn, `config_module, Ldap::ReadConfigModules (), ``{
+    foreach (string dn, map config_module, Ldap::ReadConfigModules (), ``{
 	if (contains (config_module["objectClass"]:[], "userConfiguration"))
 	{
 	    Users::ldap_user_config_dn = dn;
@@ -99,11 +99,11 @@ global define boolean InitializeLDAP () ``{
     {
 	term rbu_buttons = `VBox( `Left(`Label (_("User Templates"))));
 	term rbg_buttons = `VBox( `Left(`Label (_("Group Templates"))));
-	foreach (`templ, user_templates, ``{
+	foreach (string templ, user_templates, ``{
 	    rbu_buttons = add (rbu_buttons,
 		`Left(`RadioButton (`id(templ), templ, true)));
 	});
-	foreach (`templ, group_templates, ``{
+	foreach (string templ, group_templates, ``{
 	    rbg_buttons = add (rbg_buttons,
 		`Left(`RadioButton (`id(templ), templ, true)));
 	});
@@ -132,9 +132,9 @@ global define boolean InitializeLDAP () ``{
 	if (ret == `ok)
 	{
 	    if (user_templates != [])
-		user_template = UI::QueryWidget (`id(`rbu), `CurrentButton);
+		user_template = (string) UI::QueryWidget (`id(`rbu), `CurrentButton);
 	    if (group_templates != [])
-		group_template = UI::QueryWidget (`id(`rbg), `CurrentButton);
+		group_template = (string)UI::QueryWidget (`id(`rbg), `CurrentButton);
 	}
 	UI::CloseDialog();
     }
@@ -142,8 +142,20 @@ global define boolean InitializeLDAP () ``{
 	Ldap::GetLDAPEntry (user_template));
     Users::ldap_group_template = Ldap::ConvertDefaultValues (
 	Ldap::GetLDAPEntry (group_template));
-    ldap_initialized = true;
+    Users::ldap_initialized = true;
     return true;
+}
+
+/**
+ * Checks if ldap server is set to localhost
+ * @param host adress of LDAP server
+ * @return result
+ */
+global define boolean IsLDAPServer (string host) ``{
+
+    if (host == "localhost" || host == "127.0.0.1")
+        return true;
+    return false;
 }
 
 
@@ -155,18 +167,18 @@ global define boolean ReadLDAPFilters() ``{
 
     boolean init = true;
 
-    if (!ldap_initialized)
+    if (!Users::ldap_initialized)
 	init = InitializeLDAP();
 
     if (!init)
 	return false;
     // get the default filters from config modules (already read)
-    ldap_default_user_filter	=
-	ldap_user_config["searchFilter",0]:ldap_default_user_filter;
-    ldap_default_group_filter	=
-	ldap_group_config["searchFilter",0]:ldap_default_group_filter;
+    Users::ldap_default_user_filter	=
+	Users::ldap_user_config["searchFilter",0]:Users::ldap_default_user_filter;
+    Users::ldap_default_group_filter	=
+	Users::ldap_group_config["searchFilter",0]:Users::ldap_default_group_filter;
 
-    ldap_filters_read = true;
+    Users::ldap_filters_read = true;
     return true;
 }
 
@@ -187,15 +199,12 @@ global define boolean ReadLDAPSettings () ``{
 
     boolean init = true;
 
-    if (!ldap_filters_read)
+    if (!Users::ldap_filters_read)
 	init = ReadLDAPFilters();
     if (!init)
 	return false;
 
-    // currently not used for anything
-    is_ldap_server	= IsLDAPServer (Ldap::GetFirstServer (Ldap::server));
-
-    ldap_file_server	= Ldap::file_server;
+    Users::ldap_file_server	= Ldap::file_server;
 
     map user_config	= Users::ldap_user_config;
     map user_template	= Users::ldap_user_template;
@@ -203,16 +212,18 @@ global define boolean ReadLDAPSettings () ``{
     map group_template	= Users::ldap_group_template;
 
     // every time take the first value from the list...
-    ldap_user_base	= user_config ["defaultBase",0]:Ldap::nss_base_passwd;
-    if (ldap_user_base == "")
-	ldap_user_base = Ldap::GetDomain();
-    ldap_encryption	= user_config ["passwordHash",0]:Ldap::pam_password;
-    ldap_user_class	= user_template ["defaultObjectClass"]:ldap_user_class;
+    Users::ldap_user_base = user_config ["defaultBase",0]:Ldap::nss_base_passwd;
+    if (Users::ldap_user_base == "")
+	Users::ldap_user_base = Ldap::GetDomain();
+    Users::ldap_encryption = user_config ["passwordHash",0]:Ldap::pam_password;
+    Users::ldap_user_class =
+	user_template["defaultObjectClass"]:Users::ldap_user_class;
 
-    ldap_group_base	= group_config ["defaultBase",0]:Ldap::nss_base_group;
-    if (ldap_group_base == "")
-	ldap_group_base = ldap_user_base;
-    ldap_group_class	= group_template["defaultObjectClass"]:ldap_group_class;
+    Users::ldap_group_base = group_config["defaultBase",0]:Ldap::nss_base_group;
+    if (Users::ldap_group_base == "")
+	Users::ldap_group_base = Users::ldap_user_base;
+    Users::ldap_group_class =
+	group_template["defaultObjectClass"]:Users::ldap_group_class;
 
     map user_defaults = user_template["default_values"]:$[];
     map group_defaults = group_template["default_values"]:$[];
@@ -220,7 +231,7 @@ global define boolean ReadLDAPSettings () ``{
     Users::ldap_user_defaults = user_defaults;
     Users::ldap_group_defaults = group_defaults;
     // default shadow (for new users)
-    ldap_shadow		= $[
+    Users::ldap_shadow		= $[
 	"shadowWarning"		: user_defaults ["shadowWarning"]:"",
 	"shadowInactive"	: user_defaults ["shadowInactive"]:"",
 	"shadowExpire"		: user_defaults ["shadowExpire"]:"0",
@@ -228,7 +239,7 @@ global define boolean ReadLDAPSettings () ``{
 	"shadowMax"		: user_defaults ["shadowMax"]:"",
     ];
     // other defaults (for new users)
-    ldap_defaults	= $[
+    Users::ldap_defaults	= $[
 	"skel": user_config ["skelDir",0]:Users::default_skel,
 	"home": user_defaults ["homeDirectory"]:
 	    Users::GetDefaultHome(false,"local"),
@@ -247,7 +258,7 @@ global define boolean ReadLDAPSettings () ``{
     // set default secondary groups
     // WARNING: there are DN's, but we expect only names...
     string grouplist = Users::ldap_default_grouplist;
-    foreach (`dn, user_template ["secondaryGroup"]:[], ``{
+    foreach (string dn, user_template ["secondaryGroup"]:[], ``{
 	if (grouplist != "")
 	    grouplist = grouplist + ",";
 	grouplist = grouplist + get_first (dn);
@@ -301,10 +312,9 @@ global define boolean ReadLDAPSettings () ``{
 	UsersCache::min_gid ["ldap"] = Users::min_gid ["ldap"]:1000;
     }
 
-    //FIXME only crypt works?
-    ldap_encryption	= user_config ["passwordHash",0]:Ldap::pam_password;
-    if (ldap_encryption == "")
-	ldap_encryption = "crypt"; // same as "des"
+    Users::ldap_encryption = user_config ["passwordHash",0]:Ldap::pam_password;
+    if (Users::ldap_encryption == "")
+	Users::ldap_encryption = "crypt"; // same as "des"
 
     return true;
 }
@@ -317,18 +327,18 @@ global define string ReadLDAP () ``{
 
     string ret = "";
 
-    string user_filter = (ldap_user_filter != "") ?
-	    ldap_user_filter: ldap_default_user_filter;
-    string group_filter = (ldap_group_filter != "") ?
-	    ldap_group_filter: ldap_default_group_filter;
+    string user_filter = (Users::ldap_user_filter != "") ?
+	    Users::ldap_user_filter: Users::ldap_default_user_filter;
+    string group_filter = (Users::ldap_group_filter != "") ?
+	    Users::ldap_group_filter: Users::ldap_default_group_filter;
 
     list ldap_user_attrs = []; // TODO use allowed/required attrs from config?
     // if yes, objectClass must be in required!
     list ldap_group_attrs = [];
 
-    if (!SCR::Execute (.ldap.users.search, $[
-	"user_base"	: ldap_user_base,
-	"group_base"	: ldap_group_base,
+    if (!(boolean)SCR::Execute (.ldap.users.search, $[
+	"user_base"	: Users::ldap_user_base,
+	"group_base"	: Users::ldap_group_base,
 	"user_filter"	: user_filter,
 	"group_filter"	: group_filter,
 	"user_scope"	: 2,//sub
@@ -353,24 +363,27 @@ global define string ReadLDAP () ``{
 global define map ConvertUserToLDAP (map user, list attributes) ``{
 
     map ret = $[];
-    foreach (`key, `value, user, ``{
+    foreach (string key, any value, user, ``{
 	any val = value;
-	if (contains (user_internal_keys, key))
+	if (contains (Users::user_internal_keys, key))
 	    return;
 	if (key == "password")
 	{
 	    if  (contains (["x","*","!"], value))
 		return;
-	    if (ldap_encryption != "clear" &&
-		!issubstring (value, sformat("{%1}",toupper (ldap_encryption))))
-		val = sformat ("{%1}%2", toupper (ldap_encryption), value);
+	    if (Users::ldap_encryption != "clear" &&
+		!issubstring ((string)value,
+		    sformat("{%1}",toupper (Users::ldap_encryption))))
+	    {
+		val = sformat ("{%1}%2",toupper(Users::ldap_encryption), value);
+	    }
 	}
 
 	if (is (value, integer))
 	    val = sformat ("%1", value);
 	if (is (value, map))
 	{
-	    foreach (`k, `v, ConvertUserToLDAP (value, attributes), ``{
+	    foreach (string k, any v, ConvertUserToLDAP ((map)value, attributes), ``{
 		ret = add (ret, k, v);
 	    });
 	}
@@ -402,22 +415,25 @@ global define map ConvertGroupToLDAP (map group, list attributes) ``{
     map ret = $[];
     list to_list = [ "userlist" ];
 
-    foreach (`key, `value, group, ``{
+    foreach (string key, any value, group, ``{
 	any val = value;
-	if (contains (group_internal_keys, key))
+	if (contains (Users::group_internal_keys, key))
 	    return;
 	if (key == "password")
 	{
 	    if (contains (["x","*","!"], value))
 		return;
-	    if (ldap_encryption != "clear" &&
-		!issubstring (value, sformat("{%1}",toupper (ldap_encryption))))
-		val = sformat ("{%1}%2", ldap_encryption, value);
+	    if (Users::ldap_encryption != "clear" &&
+		!issubstring ((string)value,
+		    sformat("{%1}",toupper (Users::ldap_encryption))))
+	    {
+		val = sformat ("{%1}%2", toupper(Users::ldap_encryption),value);
+	    }
 	}
 	if (is (value, integer))
 	    val = sformat ("%1", value);
 	if (contains (to_list, key))
-	    val = splitstring (value, ",");
+	    val = splitstring ((string)value, ",");
 	// check if the attributes are allowed by objectClass
 	string attr = Users::ldap_attrs_conversion [key]:key;
 	if (!contains (attributes, attr))
@@ -442,14 +458,14 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
     string dn_attr = Users::ldap_user_naming_attr;
     integer last_uid = Users::ldap_last_uid;
 
-    foreach (`uid, `user, ldap_users, ``{
+    foreach (integer uid, map user, ldap_users, ``{
 
         string  action      = user["modified"]:"no";
         if (action == "no" || ret != $[])
             return; // return on first error
         string home		= user["home"]:"";
         string org_home		= user["org_home"]:home;
-        integer gid		= user["gid"]:default_gid;
+        integer gid		= user["gid"]:Users::default_gid;
 	boolean create_home	= user["create_home"]:false;
 	boolean delete_home	= user["delete_home"]:false;
 
@@ -458,18 +474,17 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
 	string org_dn		= user["org_dn"]:dn;
 	list object_classes	= user["objectClass"]:[];
 	if (object_classes == [])
-	    object_classes	= ldap_user_class;
+	    object_classes	= Users::ldap_user_class;
 	// check allowed object classes
 	list ocs = [];
 	foreach (string oc, object_classes, ``{
 	    if (Ldap::ObjectClassExists (oc))
 		ocs = add (ocs, oc);
 	});
-	// FIXME: we need structural object class: person or inetOrgPerson?
 	user ["objectClass"]	= eval (ocs);
 	user	= ConvertUserToLDAP (user, Ldap::GetObjectAttributes (ocs));
 	string rdn	= sformat ("%1=%2", dn_attr, user[dn_attr]:"");
-	string new_dn	= sformat ("%1,%2", rdn, ldap_user_base);
+	string new_dn	= sformat ("%1,%2", rdn, Users::ldap_user_base);
 	map arg_map	= $[ "dn": (org_dn != "")? org_dn: new_dn ];
 
         if (action == "added")
@@ -484,7 +499,7 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
 		if (server)
 		{
 		    if (create_home)
-			CreateHome (ldap_defaults["skel"]:default_skel, home);
+			CreateHome (Users::ldap_defaults["skel"]:Users::default_skel, home);
 		    ChownHome (uid, gid, home);
 		}
 	    }
@@ -548,7 +563,7 @@ global define map WriteLDAPGroups(map ldap_groups)``{
     string dn_attr = Users::ldap_group_naming_attr;
     integer last_gid = Users::ldap_last_gid;
 
-    foreach (`gid, `group, ldap_groups, ``{
+    foreach (integer gid, map group, ldap_groups, ``{
 
         string action = group["modified"]:"no";
         if (action == "no" || ret != $[])
@@ -561,7 +576,7 @@ global define map WriteLDAPGroups(map ldap_groups)``{
 	string org_dn		= group["org_dn"]:dn;
 	list object_classes	= group["objectClass"]:[];
 	if (object_classes == [])
-	    object_classes	= ldap_group_class;
+	    object_classes	= Users::ldap_group_class;
 
 	// if there is no member of the group, group must be changed
 	// to namedObject
@@ -577,7 +592,7 @@ global define map WriteLDAPGroups(map ldap_groups)``{
 	    if (action == "edited")
 	    {
 		// delete old group and create new with altered objectClass
-		new_group	= eval (group);
+		new_group	= (map)eval (group);
 		action		= "deleted";
 	    }
 	}
@@ -592,14 +607,14 @@ global define map WriteLDAPGroups(map ldap_groups)``{
 	    object_classes	= filter (`cl, object_classes,
 		``(cl != "namedObject"));
 	    object_classes	= union (object_classes,["groupOfUniqueNames"]);
-	    new_group		= eval (group);
+	    new_group		= (map)eval (group);
 	    new_group ["objectClass"]	= object_classes;
 	}
 	group		= ConvertGroupToLDAP (group,
 	    Ldap::GetObjectAttributes (object_classes));
 
 	string rdn	= sformat ("%1=%2", dn_attr, group[dn_attr]:"");
-	string new_dn	= sformat ("%1,%2", rdn, ldap_group_base);
+	string new_dn	= sformat ("%1,%2", rdn, Users::ldap_group_base);
 	map arg_map	= $[ "dn": (org_dn != "")? org_dn: new_dn ];
         if (action == "added")
         {
@@ -649,18 +664,6 @@ global define map WriteLDAPGroups(map ldap_groups)``{
         ret = Ldap::WriteToLDAP (modules);
     }
     return ret;
-}
-
-/**
- * Checks if ldap server is set to localhost
- * @param host adress of LDAP server
- * @return result
- */
-global define boolean IsLDAPServer (string host) ``{
-
-    if (host == "localhost" || host == "127.0.0.1")
-        return true;
-    return false;
 }
 
 /**

@@ -30,28 +30,27 @@ import "Popup";
 
 include "users/routines.ycp";   // for EncryptionDialog()
 
-  if (Mode::cont && ! Mode::usessh)
-  {
+    if (Mode::cont && ! Mode::usessh)
+    {
         // what is this for??
         SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
-  }
+    }
 
-  boolean this_is_for_real = ! Mode::test;
+    boolean this_is_for_real = ! Mode::test;
 
-  Progress::off();
-  Security::Read();
-  Progress::on();
+    Progress::off();
+    Security::Read();
+    Progress::on();
 
-  string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
-  Users::encryptionMethod = encryptionMethod;
-  Users::pass_length ["local", "max"] =
+    string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
+    Users::encryptionMethod = encryptionMethod;
+    Users::pass_length ["local", "max"] =
 	Security::PasswordMaxLengths [encryptionMethod]:8;
 
-  // Title for root-password dialogue
-  string title = _("Password for \"root\", the system administrator");
+    // Title for root-password dialogue
+    string title = _("Password for \"root\", the system administrator");
 
-  term contents =
-      `VBox(
+    term contents = `VBox(
         `VStretch(),
         `HSquash(
             `VBox(
@@ -75,58 +74,59 @@ include "users/routines.ycp";   // for EncryptionDialog()
         // push button
         `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
         `VStretch()
-        );
+    );
 
-  // help text ( explain what the user "root" is and does ) 1/5
-  string helptext = UI(_("<p>
+    // help text ( explain what the user "root" is and does ) 1/5
+    string helptext = _("<p>
 Unlike normal users of the system, who, for instance, write texts, create
 graphics, or browse the Internet, the user \"root\" exists on
 every system and is called into action whenever
 administrative tasks need to be performed. Log in as root
 when you need to be the system administrator and only then.
 </p>
-"));
+");
 
-  // help text, continued 2/5
-  helptext = helptext + UI(_("<p>
+    // help text, continued 2/5
+    helptext = helptext + _("<p>
 Because the root user is equipped with extensive permissions, the password
 for \"root\" should be chosen carefully. A combination of letters and numbers
 is recommended. To ensure that the password was entered correctly,
 reenter it in a second field.
 </p>
-"));
+");
 
-  // help text, continued 3/5
-  helptext = helptext + UI(_("<p>
+    // help text, continued 3/5
+    helptext = helptext + _("<p>
 All the rules for user passwords apply to the \"root\" password:
 Distinguish between uppercase and lowercase. A password should have at
 least 5 characters and, as a rule, not contain any special characters
 (e.g., accented letters or umlauts).
 </p>
-"));
+");
 
-  // help text, continued 4/5
-  helptext = helptext + _("<p>
+    // help text, continued 4/5
+    helptext = helptext + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
 
-  // help text, continued 5/5
-  helptext = helptext + UI(_("<p>
+    // help text, continued 5/5
+    helptext = helptext + _("<p>
 Do not forget this \"root\" password!
-</p>"));
+</p>");
 
- Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+    Wizard::SetContents (title, contents, helptext,
+			 (boolean) WFM::Args(0), (boolean) WFM::Args(1));
 
-  if ("" == UI::QueryWidget(`id(`pw1), `Value))
-    UI::SetFocus (`id (`pw1));
-  else if ("" == UI::QueryWidget(`id(`pw2), `Value))
-    UI::SetFocus (`id (`pw2));
+    if ("" == (string) UI::QueryWidget(`id(`pw1), `Value))
+	UI::SetFocus (`id (`pw1));
+    else if ("" == (string) UI::QueryWidget(`id(`pw2), `Value))
+	UI::SetFocus (`id (`pw2));
 
-  any ret = nil;
+    symbol ret = nil;
 
-  repeat
-  {
+    repeat
+    {
       if ( ret != `expert && ret != `abort)
       {
         // Clear password fields on every round
@@ -134,7 +134,7 @@ Do not forget this \"root\" password!
           UI::ChangeWidget(`id(`pw2), `Value, "");
           UI::SetFocus( `id(`pw1) );
       }
-      ret = Wizard::UserInput();
+      ret = (symbol) Wizard::UserInput();
 
       if ( ret == `abort )
       {
@@ -151,13 +151,13 @@ Do not forget this \"root\" password!
       {
 	    encryptionMethod = EncryptionDialog();
 
-          string pw1 = UI::QueryWidget(`id(`pw1), `Value);
+          string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
       }
       else if (ret != `back)
       {
-          string pw1 = UI::QueryWidget(`id(`pw1), `Value);
-          string pw2 = UI::QueryWidget(`id(`pw2), `Value);
+          string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
+          string pw2 = (string) UI::QueryWidget(`id(`pw2), `Value);
 
       if (this_is_for_real && pw1 != pw2 )
       {
@@ -235,7 +235,7 @@ You will not be able to log in.\n"));
         }
       }
       }
-  } until ( ret == `next || ret == `back || ret == `cancel );
+    } until ( ret == `next || ret == `back || ret == `cancel );
 
-  return ret;
+    return ret;
 }

@@ -32,28 +32,23 @@
 Install it now?
 "), package), Label::OKButton(), Label::CancelButton()))
         {
-            return CallFunction (Users::after_auth, WFM::Args ());
+            return (symbol) WFM::CallFunction (Users::after_auth, WFM::Args ());
         }
         else
             return `back;
     }
 
     // else run the users module
-    string start_mod = "user_inst_start";
-    term   users_mod = `users( start_mod );
+    list start_params = [ "user_inst_start" ];
 
-    if ( Mode::test )
-        users_mod = add( users_mod, .test );
-
-    y2debug( "Starting user management module: %1", users_mod );
-    any ret = CallFunction( users_mod );
-    y2debug( "User management module returned %1", ret );
+    y2debug("Starting user management module with parameters %1", start_params);
+    any ret = WFM::CallFunction ("users", start_params );
+    y2debug("User management module returned %1", ret );
 
     if ( ret == nil )
     {
         y2warning( "Couldn't call 'users' module - is it installed?" );
         ret = `auto;
     }
-
-    return ret;
+    return (symbol) ret;
 }

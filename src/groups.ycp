@@ -26,22 +26,20 @@ import "Mode";
 
 include "users/wizards.ycp";
 
-include "commandline/commandline.ycp";
-
 string  start_dialog	= "groups";
 
 any	ret		= nil;
 integer arg		= 0;
 list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
 
-while ( arg < size( Args() ) )
+while ( arg < size( WFM::Args() ) )
 {
-	any a = Args( arg );
-	if ( is (a, string) && contains( possible_start_dialogs, a))
-	{
-	    start_dialog = Args( arg );
-	}
-	arg = arg + 1;
+    any a = WFM::Args( arg );
+    if ( is (a, string) && contains( possible_start_dialogs, a))
+    {
+	start_dialog = (string) WFM::Args( arg );
+    }
+    arg = arg + 1;
 }
 
 y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );

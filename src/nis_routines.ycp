@@ -19,7 +19,7 @@ import "Label";
  */
 global define map ReadNISUsers(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/nis.ycp");
+    return (map) SCR::Read(.target.ycp, dir + "/nis.ycp");
 }
 
 /**
@@ -29,7 +29,7 @@ global define map ReadNISUsers(string dir)``{
  */
 global define map ReadNISUsersByName(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
+    return (map) SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
 }
 
 /**
@@ -39,7 +39,7 @@ global define map ReadNISUsersByName(string dir)``{
  */
 global define map ReadNISGroups(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/group_nis.ycp");
+    return (map) SCR::Read(.target.ycp, dir + "/group_nis.ycp");
 }
 
 /**
@@ -49,7 +49,7 @@ global define map ReadNISGroups(string dir)``{
  */
 global define map ReadNISGroupsByName(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/group_nis_byname.ycp");
+    return (map) SCR::Read(.target.ycp, dir + "/group_nis_byname.ycp");
 }
 
 /**
@@ -77,38 +77,6 @@ global define boolean IsNISAvailable (list passwd_source) ``{
         return Runlevel::ServiceEnabled ("ypbind");
     }
     return false;
-}
-
-/**
- * If we can ask and are a NIS server, ask which set of users
- * to administer and set UserWriteStack accordingly.
- * @param basedir the directory, where the data are stored
- * @return success?
- */
-global define boolean ReadNISConfigurationType (string basedir)``{
-
-    string ypdir = SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
-    while (substring (ypdir, size (ypdir) - 1) == "/")
-        ypdir = substring (ypdir, 0, size (ypdir) -1);
-    if ("" == ypdir)
-        ypdir = "/";
-    if (ypdir != basedir)
-    {
-        symbol type = getConfigurationType (ypdir);
-        if (type == `abort)
-        {
-            return nil;
-        }
-        if (type == `nis)
-        {
-            // this should never happen, probably only in testsuites
-            if (ypdir == nil)
-                ypdir = basedir;
-        }
-        else
-            ypdir = basedir;
-    }
-    return ypdir;
 }
 
 /**
@@ -146,14 +114,47 @@ Select which one to configure.
     symbol ret = nil;
     while (ret == nil)
     {
-        ret = UI::UserInput ();
+        ret = (symbol) UI::UserInput ();
         if (ret != `cancel && ret != `ok)
             continue;
     }
     if (ret == `ok)
-        ret = UI::QueryWidget (`id (`configtype), `CurrentButton);
+        ret = (symbol) UI::QueryWidget (`id (`configtype), `CurrentButton);
     UI::CloseDialog ();
     return ret;
 }
+/**
+ * If we can ask and are a NIS server, ask which set of users
+ * to administer and set UserWriteStack accordingly.
+ * @param basedir the directory, where the data are stored
+ * @return directory
+ */
+global define string ReadNISConfigurationType (string basedir)``{
+
+    string ypdir = (string)SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
+    while (substring (ypdir, size (ypdir) - 1) == "/")
+        ypdir = substring (ypdir, 0, size (ypdir) -1);
+    if ("" == ypdir)
+        ypdir = "/";
+    if (ypdir != basedir)
+    {
+        symbol type = getConfigurationType (ypdir);
+        if (type == `abort)
+        {
+            return nil;
+        }
+        if (type == `nis)
+        {
+            // this should never happen, probably only in testsuites
+            if (ypdir == nil)
+                ypdir = basedir;
+        }
+        else
+            ypdir = basedir;
+    }
+    return ypdir;
+}
+
+
 
 }
