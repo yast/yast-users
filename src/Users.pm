@@ -3,8 +3,6 @@
 # Users module
 #
 
-#TODO do not dereference large maps if not necessary...
-
 package Users;
 
 use strict;
@@ -455,7 +453,6 @@ sub ChangeCustoms {
 
     my $self	= shift;
     my @new	= @{$_[1]};
-
     if ($_[0] eq "users") {
         my @old			= @user_custom_sets;
         @user_custom_sets 	= @new;
@@ -1142,6 +1139,7 @@ sub ReadLoginDefaults {
     }
 
     UsersLDAP->InitConstants (\%useradd_defaults);
+    UsersLDAP->SetDefaultShadow ($self->GetDefaultShadow ("local"));
 
     if (%useradd_defaults) {
         return 1;
@@ -1263,6 +1261,8 @@ sub ReadLocal {
 
 sub ReadUsersCache {
     
+    my $self	= shift;
+
     UsersCache->Read ();
 
     UsersCache->BuildUserItemList ("local", $users{"local"});
@@ -1271,8 +1271,14 @@ sub ReadUsersCache {
     UsersCache->BuildGroupItemList ("local", $groups{"local"});
     UsersCache->BuildGroupItemList ("system", $groups{"system"});
  
-    UsersCache->SetCurrentUsers (\@user_custom_sets);
-    UsersCache->SetCurrentGroups (\@group_custom_sets);
+    if ((contains (\@user_custom_sets, "ldap") ||
+	 contains (\@group_custom_sets, "ldap")) &&
+	 !defined (Ldap->bind_pass () && !Mode->config ()))
+    {
+	Ldap->SetBindPassword (Ldap->GetLDAPPassword (1));
+    }
+    $self->ChangeCurrentUsers ("custom");
+    $self->ChangeCurrentGroups ("custom");
 }
 
 sub ReadAvailablePlugins {
@@ -1556,6 +1562,25 @@ sub SelectUser {
 }
 
 ##------------------------------------
+# this is hacked a bit; there probably could be a case when more groups have
+# different DN, but same 'cn'
+# (let's rule out this case with properly set "group_base")
+BEGIN { $TYPEINFO{SelectGroupByDN} = [ "function",
+    "void",
+    "string"];
+}
+sub SelectGroupByDN {
+
+    my $self		= shift;
+    my $cn		= UsersCache->get_first ($_[0]);
+    my $group		= $self->GetGroupByName ($cn, "ldap");
+    if (defined $group->{"dn"} && $group->{"dn"} eq $_[0]) {
+	%group_in_work	= %$group;
+    }
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{SelectGroupByName} = [ "function",
     "void",
     "string"];
@@ -1759,7 +1784,6 @@ sub EditUser {
     my $self		= shift;
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
-
     if (defined $data{"type"}) {
 	$type 	= $data{"type"};
     }
@@ -1803,6 +1827,8 @@ sub EditUser {
     }, \%user_in_work);
     if (defined ($result) && ref ($result) eq "HASH") {
         $plugins = [];
+#FIXME it is not possible to add new plugin via this function!
+#similar problem when calling from dialogs...
 	foreach my $plugin (keys %{$result}) {
 	    # check if plugin has done the 'PluginPresent' action
 	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
@@ -2425,7 +2451,6 @@ sub UserReallyModified {
 
     my $self	= shift;
     my %user	= %{$_[0]};
-
     if (($user{"what"} || "") eq "group_change") {
         return 0;
     }
@@ -3863,7 +3888,9 @@ Try again.");
     }
 
     # check if directory is writable
-    if (!Mode->config () && ($type ne "ldap" || Ldap->file_server () )) {
+    if (!Mode->config () && !Mode->test () &&
+	($type ne "ldap" || Ldap->file_server () ))
+    {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = $self->IsDirWritable ($home_path);
         if ($home_path ne "") {
@@ -4259,6 +4286,51 @@ sub CheckGroup {
     return $error;
 }
 
+##------------------------------------
+# check if group could be deleted
+BEGIN { $TYPEINFO{CheckGroupForDelete} = ["function",
+    "string",
+    ["map","string","any"]];
+}
+sub CheckGroupForDelete {
+
+    my $self	= shift;
+    my $group;
+    if (!defined $_[0] || ref ($_[0]) ne "HASH" || !%{$_[0]}) {
+	$group 	= \%group_in_work;
+    }
+    else {
+	$group	= shift;
+    }
+    my $error	= "";
+    my $m_attr  = UsersLDAP->GetMemberAttribute ();
+
+    if (defined $group->{"more_users"} && %{$group->{"more_users"}}) {
+
+	# error message: group cannot be deleted
+        $error = _("You cannot delete this group because
+there are users which use this group
+as their default group.");
+    }
+    elsif ((defined $group->{"userlist"}   && %{$group->{"userlist"}}) ||
+	   (defined $group->{$m_attr}      && %{$group->{$m_attr}})) {
+	# error message: group cannot be deleted
+        $error = _("You cannot delete this group because
+there are users in the group.
+Remove these users from the group first.");
+    }
+
+    # disable commit
+    if ($error ne "") {
+	$group_in_work{"check_error"} = $error;
+    }
+    elsif (defined ($group_in_work{"check_error"})) {
+	delete $group_in_work{"check_error"};
+    }
+    return $error;
+}
+
+
 ##-------------------------------------------------------------------------
 ## -------------------------------------------- password related routines 
 
@@ -4369,24 +4441,21 @@ sub SetRootPassword {
 
 ##------------------------------------
 # Writes password of superuser
+# This is called during install
 # @return true on success
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
 
     my $self		= shift;
-    return SCR->Write (".target.passwd.root", $root_password);
+    # Crypt the root password according to method defined in encryption_method
+    my $crypted		= $self->CryptPassword ($root_password, "system");
+    return SCR->Write (".target.passwd.root", $crypted);
 }
 
 ##------------------------------------
-# Crypt the root password according to method defined in encryption_method
-# This is called during install
-BEGIN { $TYPEINFO{CryptRootPassword} = ["function", "void"];}
-sub CryptRootPassword {
-
-    my $self	= shift;
-    if (!Mode->test ()) {
-	$root_password = $self->CryptPassword ($root_password, "system");
-    }
+BEGIN { $TYPEINFO{GetRootPassword} = ["function", "string"];}
+sub GetRootPassword {
+    return $root_password;
 }
 
 ##-------------------------------------------------------------------------

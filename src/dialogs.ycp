@@ -490,13 +490,18 @@ log in, check <b>Disable User Login</b> option.</p>");
 	    list ocs = maplist (string oc, user["objectclass"]:[], ``(tolower (oc)));
 	    if (!contains (ocs, "shadowaccount"))
 	    {
+		/*
 		// error, do not translate 'shadowaccount' (LDAP user parameter)
 		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
 so the password settings cannot be edited.
 "));
-		UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
-		ret = `notnext;
-		continue;
+		*/
+		ocs = add (ocs, "shadowaccount");
+		user["objectclass"]	= ocs;
+		foreach (string k, any v, Users::GetDefaultShadow ("ldap"), ``{
+		    if (!haskey (user, k))
+			user[k]	= v;
+		});
 	    }
 	}
 

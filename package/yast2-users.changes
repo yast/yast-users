@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Apr 15 10:51:40 CEST 2004 - jsuchome@suse.cz
+
+- fix: enable user membership management for LDAP groups (#38919)
+- fix: add shadowAccount attribute if not present (#38467)
+- fix: save encoding settings during installation
+- fix: read LDAP users at module start when they are in custom set
+- plugins: differ between plugin for users and groups
+- 2.9.28
+
+-------------------------------------------------------------------
 Tue Apr  6 13:04:39 CEST 2004 - jsuchome@suse.cz
 
 - fix: check for shadowAccount attribute of LDAP users (#38467)
