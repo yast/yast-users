@@ -26,9 +26,34 @@
     global define UI::Recode (string s1, string s2, string s) ``{return s;}
 
     include "testsuite.ycp";
-    import "UserWriteStack";
+    import "./../src/UserWriteStack";
 
-UserWriteStack::write_to_system_stack = [$["error":"Can't create the new user aaa", "id":500, "todo":"/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa", "type":`user, "what":`add_user], $["error":"Can't execute /usr/sbin/useradd.local", "id":500, "todo":"/usr/sbin/useradd.local aaa", "type":`user, "what":`add_user_local], $["error":"Can't create the new user aaa", "id":500, "todo":"/usr/sbin/useradd -s /bin/bash -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa", "type":`user, "what":`add_user], $["error":"Can't execute /usr/sbin/useradd.local", "id":500, "todo":"/usr/sbin/useradd.local aaa", "type":`user, "what":`add_user_local], $["error":"Can't chown home directory", "id":500, "todo":"/bin/chown -R aaa: /home/aaa", "type":`user, "what":`chown_home]];
+    UserWriteStack::write_to_system_stack = [
+	$[ "error":"Can't create the new user aaa",
+	   "id":500,
+	   "todo":"/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa",
+	   "type":`user,
+	   "what":`add_user],
+	$[ "error":"Can't execute /usr/sbin/useradd.local",
+	   "id":500,
+	   "todo":"/usr/sbin/useradd.local aaa",
+	   "type":`user,
+	   "what":`add_user_local],
+	$[ "error":"Can't create the new user aaa",
+	   "id":500,
+	   "todo":"/usr/sbin/useradd -s /bin/bash -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa",
+	   "type":`user,
+	   "what":`add_user],
+	$[ "error":"Can't execute /usr/sbin/useradd.local",
+	   "id":500,
+	   "todo":"/usr/sbin/useradd.local aaa",
+	   "type":`user,
+	   "what":`add_user_local],
+	$[ "error":"Can't chown home directory",
+	   "id":500,
+	   "todo":"/bin/chown -R aaa: /home/aaa",
+	   "type":`user,
+	   "what":`chown_home]];
 
     TEST(``(UserWriteStack::SaveDialog (false)), [], 0);
 

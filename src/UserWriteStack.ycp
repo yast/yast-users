@@ -107,7 +107,6 @@
    */
   define boolean consoleEncoding( string fullname ) ``{
 
-
 	any ret = findfirstof( fullname , "\"" );
 
 	if(  ret != nil )
@@ -120,8 +119,11 @@
 		else fullname = fullname + "\\\"" + split;
 	    });
 	}
-
-	return  UI::Recode("UTF-8", UserDefs::encoding, sformat("\"%1\"", fullname ));
+	// if running in testsuite, UI::Recode returns nil !
+	string s = UI::Recode("UTF-8", UserDefs::encoding, sformat("\"%1\"", fullname ));
+	if (s == nil)
+	    return sformat("\"%1\"", fullname );
+	return s;
     }
 
 

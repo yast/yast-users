@@ -28,13 +28,39 @@
     include "testsuite.ycp";
     import "UserWriteStack";
 
-    map user = $["create_home":true, "forename":"", "fullname":"", "gid":100, "grouplist":"dialout,uucp,video,audio", "home":"/home/aaa", "org_home":"/home/aaa", "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "uid":500, "username":"aaa", "what":`add_user];
+    map user = $["create_home":true,
+	"forename":"",
+	"fullname":"",
+	"gid":100,
+	"grouplist":"dialout,uucp,video,audio",
+	"home":"/home/aaa",
+	"org_home":"/home/aaa",
+	"password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1",
+	"shadow":$["inact":-1, "max":99999, "min":0, "warn":7],
+	"shell":"/bin/bash",
+	"surname":"",
+	"uid":500,
+	"username":"aaa",
+	"what":`add_user];
 
     TEST(``(UserWriteStack::UserSave (user, false)), [], 0);
     DUMP (sformat ("%1", UserWriteStack::write_to_system_stack));
     DUMP ("==========================================================");
 
-    user = $["create_home":false, "forename":"", "fullname":"", "gid":100, "grouplist":"dialout,uucp,video,audio", "home":"/home/aaa", "org_home":"/home/aaa", "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "uid":500, "username":"aaa", "what":`add_user];
+    user = $["create_home":false,
+	"forename":"",
+	"fullname":"",
+	"gid":100,
+	"grouplist":"dialout,uucp,video,audio",
+	"home":"/home/aaa",
+	"org_home":"/home/aaa",
+	"password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1",
+	"shadow":$["inact":-1, "max":99999, "min":0, "warn":7],
+	"shell":"/bin/bash",
+	"surname":"",
+	"uid":500,
+	"username":"aaa",
+	"what":`add_user];
     TEST(``(UserWriteStack::UserSave (user, false)), [], 0);
     DUMP (sformat ("%1", UserWriteStack::write_to_system_stack));
 }
