@@ -89,9 +89,17 @@ sub Apply {
     my $type	= "";
     if (defined $data && ref ($data) eq "HASH" && defined $data->{"type"}) {
 	$type	= $data->{"type"};
+#FIXME 'type' parameter must be part of config hash!
+#(plugins should work even without Users internal parameters)
     }
 
-    foreach my $module (@available_plugins) {
+    my @plugins_to_call	= @available_plugins;
+    # Apply only for one plugin
+    if (defined $config->{"plugin"}) {
+	@plugins_to_call	= ( $config->{"plugin"} );
+    }	
+
+    foreach my $module (@plugins_to_call) {
 
 	# check if plugin has this function defined
 	if (!defined $plugins{$module}{$action}) {
