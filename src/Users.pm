@@ -3709,6 +3709,8 @@ sub Write {
 
     my $self		= shift;
     my $ret		= "";
+    my $nscd_passwd	= 0;
+    my $nscd_group	= 0;
 
     # progress caption
     my $caption 	= __("Writing user and group configuration...");
@@ -3765,6 +3767,7 @@ sub Write {
 	    else {
 		delete $removed_users{"ldap"};
 	    }
+	    $nscd_passwd	= 1;
 	}
 		
 	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
@@ -3776,6 +3779,7 @@ sub Write {
 		$self->UpdateUsersAfterWrite ("ldap");
 		delete $modified_users{"ldap"};
 	    }
+	    $nscd_passwd	= 1;
 	}
 
 	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
@@ -3786,6 +3790,7 @@ sub Write {
 	    else {
 		delete $removed_groups{"ldap"};
 	    }
+	    $nscd_group		= 1;
 	}
 
 	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
@@ -3797,6 +3802,7 @@ sub Write {
 		$self->UpdateGroupsAfterWrite ("ldap");
 		delete $modified_groups{"ldap"};
 	    }
+	    $nscd_group		= 1;
 	}
 
 	if ($error_msg eq "") {
@@ -3866,8 +3872,7 @@ sub Write {
 	    return $plugin_error;
 	}
 	if (!$write_only) {
-	    # remove the group cache for nscd (bug 24748)
-	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
+	    $nscd_group		= 1;
 	}
     }
 
@@ -3935,8 +3940,7 @@ sub Write {
 	    return $plugin_error;
 	}
 	if (!$write_only) {
-	    # remove the passwd cache for nscd (bug 24748)
-	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	    $nscd_passwd	= 1;
 	}
 
 	# check for homedir changes
@@ -4013,6 +4017,15 @@ sub Write {
         }
     }
 
+    # remove the passwd cache for nscd (bug 24748, 41648)
+    if (!$write_only) {
+	if ($nscd_passwd) {
+	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	}
+	if ($nscd_group) {
+	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
+	}
+    }
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {

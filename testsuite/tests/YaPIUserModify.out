@@ -131,9 +131,9 @@ Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["500":$["grouplist":$["users":"1"], "modified":"edited", "org_uid":"hh", "org_uidnumber":"500", "org_user":$["grouplist":$["users":"1"], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HHH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["type":"system", "uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$["hh":$["userpassword":"x"]], "system":$[]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Return	
 Dump	============ edit done ========================================
 Dump	============ edit existing user 'hh': (changed uid) ============
@@ -180,12 +180,12 @@ Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["100":$["cn":"users", "gidnumber":"100", "modified":"edited", "more_users":$["hhh":"1"], "org_cn":"users", "org_gidnumber":"100", "type":"local", "userlist":$["hhh":"1"], "what":"user_change_default"], "by_name":$["users":"100"], "gids":$["100":"1"], "groupnames":$["users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "by_name":$["root":"0"], "gids":$["0":"1"], "groupnames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["500":$["grouplist":$["users":"1"], "modified":"edited", "org_uid":"hhh", "org_uidnumber":"500", "org_user":$["grouplist":$["users":"1"], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HHH", "type":"local", "uid":"hhh", "uidnumber":"500", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["type":"system", "uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$["hhh":$["userpassword":"x"]], "system":$[]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Return	
 Dump	============ edit done ========================================
 Dump	============ edit existing user 'hh': (uid conflict) ==========

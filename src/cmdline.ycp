@@ -31,11 +31,11 @@ define boolean bind_and_read_LDAP (string pw) {
 	{
 	    if (pw == "")
 	    {
-		// error message
-		CommandLine::Print (_("You have to enter password to LDAP server ('ldap_pw' parameter)."));
-		return false;
+		// password entering label
+		pw = CommandLine::PasswordInput (_("Enter the Password for LDAP Server:"));
 	    }
 	    Ldap::SetBindPassword (pw);
+	    // TODO check bind...
 	}
 	string error = UsersLDAP::ReadSettings ();
 	if (error != "")
@@ -92,12 +92,12 @@ define map<string,any> convert_keys (map<string,any> input) ``{
 	{
 	    string sep = ",";
 	    if (issubstring ((string)value,"="))//for DN
-		sep = ";";//FIXME not supported
+		sep = ":";
 	    value = listmap (
 		string u, splitstring ((string)value,sep), ``($[u:1]));
 	}
 
-	if (new_key == "ldap_pw")
+	if (new_key == "ldap_password")
 	    return;
 	if ((key == "username" && haskey (input, "new_username")) ||
 	    (key == "uid" && haskey (input, "new_uid")) ||
@@ -250,13 +250,21 @@ define boolean UserAddHandler (map <string, any> options ) ``{
     string type = user["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
 	if (!haskey (user,"sn"))
 	    user["sn"] = user["uid"]:"";
     }
 
     Users::ResetCurrentUser ();
+
+    if (!haskey(user,"userpassword"))
+    {
+	// question label
+	string pw = CommandLine::PasswordInput (_("Enter the Password for new user:"));
+	user["userpassword"]	= pw;
+    }
+
     string error = Users::AddUser (user);
 
     if (error != "")
@@ -287,14 +295,13 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 define boolean UserDeleteHandler (map  <string, any>options ) ``{
 
     integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
-// FIXME with wrong uid, 0 (=root) is returned!!!
     string username = options ["username"]:"";
     boolean delete_home = haskey (options, "delete_home");
 
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
     if (uid != -1)
@@ -304,6 +311,7 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
     else if (username != "")
     {
 	Users::SelectUserByName (username);
+	uid	= lookup (Users::GetCurrentUser(),"uidnumber",-1);
     }
     if (Users::GetCurrentUser () == $[])
     {
@@ -311,7 +319,15 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
 	CommandLine::Print (_("There is no such user."));
 	return false;
     }
-
+    // if the user has log on system
+    string proc = lookup ((map)SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
+    if (size (proc) != 0)
+    {
+        // error popup
+        Report::Error(_("You can not delete this user, because the user is present.
+Please log off the user first."));
+        return false;
+    }
     return Users::DeleteUser (delete_home) && Users::CommitUser ();
 }
 
@@ -321,13 +337,14 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
  */
 define boolean UserEditHandler (map<string,any> options) {
 
+//FIXME check tointeger!
     integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
     if (uid != -1)
@@ -499,7 +516,7 @@ define boolean GroupDeleteHandler (map<string,any> options ) {
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
     if (gid != -1)
@@ -536,7 +553,7 @@ define boolean GroupAddHandler (map <string, any> options ) {
     string type = group["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
     string member_attr	= (type == "ldap") ? UsersLDAP::GetMemberAttribute () :
@@ -589,7 +606,7 @@ define boolean GroupEditHandler (map<string,any> options) {
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_pw"]:""))
+	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
     if (gid != -1)
