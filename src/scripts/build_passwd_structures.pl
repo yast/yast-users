@@ -118,7 +118,6 @@ sub addBlanks {
     }
     return $id;
 }
-    
 
 #---------------------------------------------
 # read shadow, write it as a YCP map and prepare shadowmap structure
@@ -356,7 +355,9 @@ foreach my $user (<PASSWD>)
             }
         }
         # recode the fullname to utf
-        from_to ($full, $encod, "utf-8"); # this slows a bit...
+	if ((defined $enc) && ($enc ne "")) {
+	    from_to ($full, $encod, "utf-8"); # this slows a bit...
+	}
     
         my $colon = index ($full, ",");
         my $additional = "";
