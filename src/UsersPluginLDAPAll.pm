@@ -43,7 +43,13 @@ sub Interface {
 	    "Summary",
 	    "Restriction",
 	    "WriteBefore",
-	    "Write"
+	    "Write",
+	    "AddBefore",
+	    "Add",
+	    "EditBefore",
+	    "Edit",
+	    "Interface",
+	    "Disable"
     );
     return \@interface;
 }
@@ -132,23 +138,76 @@ to its LDAP configuration, but it is currently empty."), $req);
     return "";
 }
 
-# ???
-# fill the map and return new one?
-BEGIN { $TYPEINFO{Edit} = ["function", ["map", "string", "any"], "any", "any"];}
-sub Edit {
+# this will be called at the beggining of Users::Edit
+BEGIN { $TYPEINFO{Disable} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub Disable {
 
-    # TODO should it be called at the beggining or at the end of Users::Edit?
-    y2internal ("Edit LDAPAll called");
-    return;
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    y2internal ("Disable LDAPAll called");
+    return $data;
 }
 
+
+# this will be called at the beggining of Users::Edit
+BEGIN { $TYPEINFO{EditBefore} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub EditBefore {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    y2internal ("EditBefore LDAPAll called");
+    return $data;
+}
+
+# this will be called just after Users::Edit
+BEGIN { $TYPEINFO{Edit} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub Edit {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    y2internal ("Edit LDAPAll called");
+    return $data;
+}
+
+# this will be called at the beggining of Users::Add
+# TODO: should it be called only once (=with empty map), or multiple times,
+# like in Users module?
+BEGIN { $TYPEINFO{AddBefore} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub AddBefore {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    y2internal ("AddBefore LDAPAll called");
+    return $data;
+}
+
+
+# this will be called just after Users::Add
+# coould be called multiple times!
 BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
 sub Add {
 
-    # TODO should it be called at the beggining or at the end of Users::Edit?
-    # add some goud defaults...
+    my $config	= $_[0];
+    my $data	= $_[1];
+
     y2internal ("Add LDAPAll called");
-    return;
+    return $data;
 }
 
 
@@ -157,6 +216,7 @@ sub Add {
 BEGIN { $TYPEINFO{WriteBefore} = ["function", "boolean", "any", "any"];}
 sub WriteBefore {
 
+#FIXME in 'config' map we need the info added/modified/deleted/disabled/enabled
     y2internal ("WriteBefore LDAPAll called");
     return;
 }
@@ -165,6 +225,7 @@ sub WriteBefore {
 BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
+#FIXME in 'config' map we need the info added/modified/deleted/disabled/enabled
     y2internal ("Write LDAPAll called");
     return;
 }
