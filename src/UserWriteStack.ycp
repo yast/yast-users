@@ -515,11 +515,12 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	integer value = 0;
 	boolean ok    = true;
 	boolean is_nis_master = UserSettings::isNisMaster ();
+	string command = "";
 
 	foreach( `todomap, write_to_system_stack, ``{
 
 	    symbol what  = lookup ( todomap , "what" , `error );
-	    boolean ret = true;
+	    map ret = $[];
 	    y2debug ("Processing %1", todomap);
 
 	    if( what == `set_group_password )
@@ -548,19 +549,25 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 		UserSettings::AddGshadowEntry(new_group);
 
 		//save /etc/gshadow file
-		ret = SCR::Write (.etc.gshadow, UserSettings::current_gshadow);
+		boolean r = SCR::Write (.etc.gshadow, UserSettings::current_gshadow);
+		ret = $["exit" : r ? 0 : 1];
+		command = "write /etc/shadow";
 	    }
 	    else
 	    {
 		// execute the save string from write_to_system_stack
 		string todo  = lookup ( todomap , "todo" , "" );
-		ret = (0 == SCR::Execute(.target.bash, todo ));
+		command = todo;
+		ret = SCR::Execute(.target.bash_output, todo );
 	    }
 
-	    if (ret && is_nis_master)
-		ret = (0 == SCR::Execute(.target.bash, "/usr/bin/make -C /var/yp"));
+	    if (lookup (ret, "exit", 0) == 0 && is_nis_master)
+	    {
+		ret = SCR::Execute(.target.bash_output, "/usr/bin/make -C /var/yp");
+		command = "/usr/bin/make -C /var/yp";
+	    }
 
-	    if( ret == true )
+	    if( lookup (ret, "exit", 1)  == 0 )
 	    {
 		value	= value + 1;
 		if( ! Mode::cont && ! Mode::autoinst && useUI) {
@@ -571,6 +578,9 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    {
 		ok = false;
 		Report::Error( lookup ( todomap , "error", "" ));
+		y2error ("Error: command: %4, exit code: %1, stdout: %2, stderr: %3",
+		    lookup (ret, "exit", "unknown"), lookup (ret, "stdout", "unknown"), lookup (ret, "stderr", "unknown"),
+		    command);
 	    }
 	});
 

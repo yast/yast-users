@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Aug  5 15:01:47 CEST 2002 - jsrain@suse.cz
+
+- added more verbose error logging
+- 2.6.16
+
+-------------------------------------------------------------------
 Thu Aug  1 10:48:47 CEST 2002 - jsrain@suse.cz
 
 - fixed reading values from /etc/login.defs

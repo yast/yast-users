@@ -28,6 +28,12 @@
     include "testsuite.ycp";
     import "./../src/UserWriteStack";
 
+    map EXEC = $[
+	"target" : $[
+	    "bash_output" : $["exit" : 0, "stdout" : "stdout", "stderr" : "stderr"]
+	]
+    ];
+
     UserWriteStack::write_to_system_stack = [
 	$[ "error":"Can't create the new user aaa",
 	   "id":500,
@@ -55,6 +61,6 @@
 	   "type":`user,
 	   "what":`chown_home]];
 
-    TEST(``(UserWriteStack::SaveDialog (false)), [], 0);
+    TEST(``(UserWriteStack::SaveDialog (false)), [$[], $[], EXEC], 0);
 
 }
