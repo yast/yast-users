@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jun 20 13:56:02 CEST 2003 - mvidner@suse.cz
+
+- Requires yast2-mail-aliases, which has been split off yast2.rpm
+
+-------------------------------------------------------------------
 Wed Jun  4 10:07:11 CEST 2003 - jsuchome@suse.de
 
 - added agent-crack for checking passwords strength (bug #21266)
