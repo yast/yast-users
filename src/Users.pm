@@ -878,7 +878,8 @@ sub FindGroupsBelongUser {
 	    my $group	= $groups{$type}{$gid};
             my $userlist = $group->{"userlist"};
 	    if ($type eq "ldap") { 
-		$userlist = $group->{"uniqueMember"};
+		my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+		$userlist = $group->{$member_attribute};
 	    }
             if (defined $userlist->{$uname}) {
 		$grouplist{$group->{"groupname"}}	= 1;
@@ -1269,6 +1270,7 @@ sub Read {
     if ($error_msg) {
 	Report::Error ($error_msg);
 	return 0; # problem with reading config files ( /etc/passwd etc.)
+	# TODO enable continue at "users risk"?
     }
 
     # Build the cache structures
@@ -1323,8 +1325,9 @@ sub RemoveUserFromGroup {
 	if (defined $user_in_work{"org_dn"}) {
 	    $user	= $user_in_work{"org_dn"};
 	}
-	if (defined $group_in_work{"uniqueMember"}{$user}) {
-	    delete $group_in_work{"uniqueMember"}{$user};
+	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	if (defined $group_in_work{$member_attribute}{$user}) {
+	    delete $group_in_work{$member_attribute}{$user};
 	    $ret			= 1;
 	    $group_in_work{"what"}	= "user_change";
 	}
@@ -1348,8 +1351,9 @@ sub AddUserToGroup {
 
     if ($group_type eq "ldap") {
         $user           = $user_in_work{"dn"};
-	if (!defined $group_in_work{"uniqueMember"}{$user}) {
-            $group_in_work{"uniqueMember"}{$user}	= 1;
+	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	if (!defined $group_in_work{$member_attribute}{$user}) {
+            $group_in_work{$member_attribute}{$user}	= 1;
 	    $group_in_work{"what"}			= "user_change";
 	    $ret					= 1;
 	}
@@ -1606,10 +1610,13 @@ sub EditGroup {
 	    }
 	}
 	# same, but for LDAP groups
-	if ($key eq "uniqueMember" && defined $group_in_work{"uniqueMember"}) {
+	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	if ($key eq $member_attribute &&
+	    defined $group_in_work{$member_attribute})
+	{
 	    my %removed = ();
-	    foreach my $user (keys %{$group_in_work{"uniqueMember"}}) {
-		if (!defined $data{"uniqueMember"}{$user}) {
+	    foreach my $user (keys %{$group_in_work{$member_attribute}}) {
+		if (!defined $data{$member_attribute}{$user}) {
 		    $removed{$user} = 1;
 		}
 	    }
@@ -2200,8 +2207,9 @@ sub CommitGroup {
     }
     if ($type eq "ldap" && $what_group ne "") {
 	$ldap_modified	= 1;
-	if (defined $group{"uniqueMember"}) {
-	    %userlist	= %{$group{"uniqueMember"}};
+	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	if (defined $group{$member_attribute}) {
+	    %userlist	= %{$group{$member_attribute}};
 	}
     }
 
@@ -2577,23 +2585,39 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($ldap_modified) {
-	# TODO return value from UsersLDAP::Write
+	my $error_msg	= "";
+
 	if (defined ($removed_users{"ldap"})) {
-	    UsersLDAP::WriteUsers ($removed_users{"ldap"});
+	    $error_msg	= UsersLDAP::WriteUsers ($removed_users{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap::LDAPErrorMessage ("users", $error_msg);
+	    }
 	}
-	
-	if (defined ($modified_users{"ldap"})) {
-	    UsersLDAP::WriteUsers ($modified_users{"ldap"});
+		
+	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
+	    $error_msg	= UsersLDAP::WriteUsers ($modified_users{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap::LDAPErrorMessage ("users", $error_msg);
+	    }
 	}
 
-	if (defined ($removed_groups{"ldap"})) {
-	    UsersLDAP::WriteGroups ($removed_groups{"ldap"});
+	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
+	    $error_msg	= UsersLDAP::WriteGroups ($removed_groups{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap::LDAPErrorMessage ("groups", $error_msg);
+	    }
 	}
 
-	if (defined ($modified_groups{"ldap"})) {
-	    UsersLDAP::WriteGroups ($modified_groups{"ldap"});
+	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
+	    $error_msg	= UsersLDAP::WriteGroups ($modified_groups{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap::LDAPErrorMessage ("groups", $error_msg);
+	    }
 	}
-	$ldap_modified = 0;
+
+	if ($error_msg eq "") {
+	    $ldap_modified = 0;
+	}
     }
 
     # call make on NIS server

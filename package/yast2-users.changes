@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Mar  3 16:55:39 CET 2004 - jsuchome@suse.cz
+
+- LDAP: configurable group member attribute (member vs. uniqueMember)
+- check for errors in config files (/etc/passwd) and warn user
+- error popups when LDAP writing fails
+- 2.9.11
+
+-------------------------------------------------------------------
 Wed Mar  3 11:12:43 CET 2004 - jsuchome@suse.cz
 
 - fix of inst_root client
