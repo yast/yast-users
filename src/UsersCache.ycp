@@ -21,6 +21,8 @@ include "users/passwd.ycp";
 global map homelists = $[];
 // map of list of usernames
 global map usernamelists = $[];
+// list of user DN's (LDAP only)
+global list userdnlist	= [];
 /**
  * map of lists of usernames removed so far
  */
@@ -57,11 +59,10 @@ global string group_type = "local";
 global integer focusline_group = nil;
 global integer focusline_user  = nil;
 
-// TODO move elsewhere...
-global integer max_uid  = 60000;
-global integer max_gid  = 60000;
-global integer max_system_uid = 500-1;
-global integer max_system_gid = 100-1;//TODO will be changed to 500...
+global map max_uid  = $[];
+global map max_gid  = $[];
+global map min_uid  = $[];
+global map min_gid  = $[];
 global integer max_length_uid = 5;
 global integer max_length_gid = 5;
 global integer max_length_login = 32; // see for example man utmp, UT_NAMESIZE
@@ -82,8 +83,15 @@ global list proposed_usernames = [];
 global integer proposal_count = -1;
 
 
-// map of last uid used for new user (to fasten searching of free uid)
-map last_uid = $[
+/**
+ * map of last uid used for new user (to fasten searching of free uid)
+ */
+global map last_uid = $[
+    "system": 1,
+    "local": 500,
+    "ldap": 500];
+
+global map last_gid = $[
     "system": 1,
     "local": 500,
     "ldap": 500];
@@ -154,10 +162,7 @@ global define void BuildUsers (map usersmap, string type) ``{
     users_itemlists = add (users_itemlists, type,
         BuildUserItemList(usersmap));
     uidlists [type] = BuildUIDList(usersmap);
-    if (type != "system")
-        last_uid [type] = max_system_uid + 1;
-    else
-        last_uid [type] = 1;
+    last_uid [type] = min_uid [type]:0;
 }
 
 /**
@@ -186,14 +191,13 @@ global define boolean ReadUsers (string type, string dir) ``{
     {
 	homelists [type] = SCR::Read(.ldap.users.homes);
         usernamelists [type] = SCR::Read(.ldap.users.usernames);
+        userdnlist = SCR::Read(.ldap.users.userdns);
 
 	users_itemlists [type] =
 	    SCR::Read (.ldap.users.itemlist);
 
 	uidlists [type] = SCR::Read (.ldap.users.uids);
-//FIXME        last_uid [type] = SCR::Read (.ldap.users.last_uid);
-// get from Ldap module (nextUniqueId)
-	last_uid [type] = 1;
+	// last_uid is set in ReadLDAPSettings (ldap_routines.ycp)
 
 	return true;
     }
@@ -423,17 +427,28 @@ global define list BuildGroupItemList(map map_of_groups) ``{
         if( size( s_gid) != max_length_gid )
             s_gid = addBlanks( max_length_gid - size(s_gid)) + s_gid;
 
-        a = add(a, group["groupname"]:"" );
-        a = add(a, s_gid);
+        a = add (a, group["groupname"]:"" );
+        a = add (a, s_gid);
 
         string userlist = group["userlist"]:"";
+
         string more = group["more_users"]:"";
         if ((userlist != "") && (more != ""))
             userlist = userlist + ",";
         userlist = userlist + more;
-        // filter out the duplicates from more_groups??
-        // shorten the list, if it is too long:
         list all_users = splitstring (userlist, ",");
+	// ldap groups have list of user dn's...
+	if (group_type == "ldap")
+	{
+	    all_users = merge (all_users,
+		maplist (`dn, group["uniqueMember"]:[], ``{
+		    list dn_l = splitstring (dn, ",");
+		    return substring (dn_l[0]:"", find (dn_l[0]:"", "=")+1);
+		}));
+	    if (size (all_users) <= the_answer)
+		userlist = mergestring (all_users, ",");
+	}
+        // shorten the list, if it is too long:
         if (size (all_users) > the_answer)
         {
             userlist = "";
@@ -632,10 +647,8 @@ global define boolean GroupnameExists(string groupname) ``{
  */
 global define integer NextFreeUid() ``{
 
-    integer uid = (last_uid [user_type]:last_uid ["local"]:0) + 1;
-    integer max = max_uid;
-    if (user_type == "system")
-        max = max_system_uid;
+    integer max = max_uid [user_type]:max_uid ["local"]:60000;
+    integer uid = last_uid [user_type]:min_uid [user_type]:500;
     repeat
     {
         if (UIDExists (uid))
@@ -655,13 +668,8 @@ global define integer NextFreeUid() ``{
  */
 global define integer NextFreeGid() ``{
 
-    integer min = 1;
-    integer max = max_gid;
-    if (group_type == "system")
-        max = max_system_gid;
-    else
-        min = max_system_gid + 1;
-    integer gid = min;
+    integer max = max_gid [group_type]:max_gid ["local"]:60000;
+    integer gid = last_gid [group_type]:min_gid [group_type]:500;
     repeat
     {
         if (GIDExists (gid))
@@ -708,7 +716,7 @@ define void UpdateGroupItemlist () ``{
 }
 
 /**
- * Update the cache after changing user // TODO:change to Commit?
+ * Update the cache after changing user
  * @param what the action done with the user
  * @param user the user's map
  */
@@ -721,9 +729,13 @@ global define void ChangeUser(string what, map user) ``{
     string username = user["username"]:nil;
     string org_username = user["org_username"]:username;
     string type = user["type"]:"local";
+    string dn = user["dn"]:"";
+    string org_dn = user["org_dn"]:nil;
 
     if (what == "add_user")
     {
+	if (type == "ldap")
+	    userdnlist = add (userdnlist, dn);
         uidlists [type] = prepend (uidlists [type]:[], uid);
 	removed_uidlists = mapmap (`type, `uids, removed_uidlists, ``{
 	    return [ type, filter (`u, uids, ``(u != uid))];
@@ -736,6 +748,8 @@ global define void ChangeUser(string what, map user) ``{
         users_itemlists [type] = merge (users_itemlists [type]:[],
             BuildUserItemList( $[ uid : user ] ));
         UpdateUserItemlist ();
+	// set table focus
+	focusline_user = uid;
     }
     else if (what == "edit_user" || what == "group_change")
     {
@@ -764,15 +778,24 @@ global define void ChangeUser(string what, map user) ``{
 	    removed_usernamelists [type] = add (removed_usernamelists [type]:[],
 		org_username);
             usernamelists [type] = prepend (usernamelists [type]:[], username);
+	    if (type == "ldap")
+	    {
+		userdnlist = filter (`u, userdnlist , ``(u != org_dn));
+		userdnlist = add (userdnlist, dn);
+	    }
         }
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
             ``(select(item,1,"") != org_username));
         users_itemlists [type] = prepend (users_itemlists [type]:[],
             select (BuildUserItemList( $[ uid : user ] ), 0, []));
         UpdateUserItemlist ();
+	if (what != "group_change")
+	    focusline_user = uid;
     }
     else if (what == "delete_user")
     {
+	if (type == "ldap")
+	    userdnlist = filter (`u, userdnlist , ``(u != org_dn));
         uidlists [type] = filter (`u, uidlists [type]:[], ``(u != uid));
         homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
         usernamelists [type] = filter (`u, usernamelists [type]:[],
@@ -783,6 +806,7 @@ global define void ChangeUser(string what, map user) ``{
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
             ``(select(item,1,"") != username));
         UpdateUserItemlist ();
+	focusline_user = nil;
     }
 
 }
@@ -800,6 +824,7 @@ global define void ChangeGroup (string what, map group) ``{
     string org_groupname = group["org_groupname"]:groupname;
     string type = group["type"]:"local";
 
+
     if (what == "add_group")
     {
         gidlists [type] = prepend (gidlists [type]:[], gid);
@@ -807,6 +832,7 @@ global define void ChangeGroup (string what, map group) ``{
         groups_itemlists [type] = merge (groups_itemlists [type]:[],
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
+	focusline_group = gid;
     }
     if (what == "edit_group")
     {
@@ -821,6 +847,7 @@ global define void ChangeGroup (string what, map group) ``{
                 ``(u != org_groupname));
             groupnamelists [type] = prepend (groupnamelists[type]:[],groupname);
         }
+	focusline_group = gid;
     }
     if (what == "edit_group" || what == "user_change" ||
              what == "user_change_default")
@@ -839,6 +866,7 @@ global define void ChangeGroup (string what, map group) ``{
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != groupname));
         UpdateGroupItemlist ();
+	focusline_group = nil;
     }
     if (what == "itemlist")
     {
@@ -851,7 +879,7 @@ global define void ChangeGroup (string what, map group) ``{
 }
 
 /**
- * Speed debug function - prints current time to log
+ * debug function - prints current time to log
  * @param message debug message
  */
 global define void PrintDate(string message) ``{

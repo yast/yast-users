@@ -1,7 +1,7 @@
 Dump	local groups::
-Dump	 $[17:$["groupname":"audio", "more_users":"", "type":`local, "userlist":"hh,ab"], 100:$["groupname":"users", "more_users":"hh", "type":`local, "userlist":""]]
+Dump	 $[17:$["groupname":"audio", "more_users":"", "type":"local", "userlist":"hh,ab"], 100:$["groupname":"users", "more_users":"hh", "type":"local", "userlist":""]]
 Dump	ldap groups::
-Dump	 $[100:$["groupname":"users", "more_users":"u1,u2", "type":`ldap, "userlist":"hh"]]
+Dump	 $[100:$["groupname":"users", "more_users":"u1,u2", "type":"ldap", "uniqueMember":["uid=hh"]]]
 Dump	==========================================================
 Dump	user hh is in groups:
 Return	users,audio

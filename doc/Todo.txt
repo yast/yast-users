@@ -1,23 +1,14 @@
 Users module Todo
 -----------------
 
+LDAP:
+
+- edit user's DN
+- groupOfNames, not posixGroup
+
 NIS:
 - edit fields on client
     - problem: tools are interactive?
-
-LDAP:
-- edit password
-    - problem: doesn't work with cpu
-
-- adding users to LDAP groups
-    - problem: not possible with cpu?
-
-- dialog for definition query filter
-    - problem: needed all id's, usernames for checking
-    
-- "reconnect to server" button (with new password/query)
-
-- showing error cpu's messages
 
 Kerberos:
 
@@ -26,7 +17,7 @@ Kerberos:
 
 Expert login dialog (authentication):
 
-- better workflow (some checkboxes?)
+- Samba
 
 - other values for pam/nsswitch (krb5 - required?)
 
@@ -40,8 +31,7 @@ System users:
 
 - script to gather all system users from rpms
 
-
 Performance:
 
-- writing with perl script
+- writing with perl script (agent)
 - read scripts change to perl agents

@@ -3,7 +3,7 @@
     include "testsuite.ycp";
     import "Users";
 
-   Users::users [`local] = $[
+   Users::users ["local"] = $[
         501: $[
             "forename":"",
             "fullname":"",
@@ -18,10 +18,10 @@
 	        "surname":"",
 	        "uid":501,
 	        "username":"aaa",
-            "type":`local]
+            "type":"local"]
     ];
 
-   Users::users [`ldap] = $[
+   Users::users ["ldap"] = $[
         5001: $[
             "forename":"",
             "fullname":"",
@@ -33,10 +33,10 @@
 	        "surname":"",
 	        "uid":5001,
 	        "username":"ldap_user1",
-            "type":`ldap]
+            "type":"ldap"]
     ];
 
-    Users::current_users = [`local, `ldap];
+    Users::current_users = ["local", "ldap"];
 
     TEST(``(Users::SelectUser (501)), [], 0);
 
