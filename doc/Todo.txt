@@ -27,6 +27,8 @@ LDAP:
         - password changing is strange
         - changing homedir only on server [done]
 
+- dialog for definition of query to ldapsearch
+
 Kerberos:
 - show users
     - requires read/list access, defined on Kerberos server
@@ -35,7 +37,9 @@ Kerberos:
     - password changing utilities are interactive
 - basic client configuration [done]
 
-Auth dialog (during installation):
+Expert login dialog (during installation):
 - running LDAP, NIS, Kerberos configuration [done]
-    
+
+- better workflow (some checkboxes?)
+
 - other values for pam/nsswitch
