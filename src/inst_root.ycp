@@ -152,6 +152,7 @@ Do not forget this \"root\" password!
       if (ret == `expert)
       {
 	encryptionMethod = EncryptionPopup ();
+	Users::SetEncryptionMethod (encryptionMethod);
 
         string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
 
