@@ -106,6 +106,9 @@ my $min_gid 			= 1000;
 my $min_pass_length		= 5;
 my $max_pass_length		= 8;
 
+# Umask which is used for creating new home directories. (/etc/login.defs)
+my $umask			= "022";
+
 # keys in user's map which are not saved anywhere, they are used for internal
 # purposes only
 my @user_internal_keys		=
@@ -594,6 +597,17 @@ sub SetDefaultShadow {
 	if (defined ($shadow_map->{$k}) && $shadow_map->{$k} ne "") {
 	    $shadow{$k}	= $shadow_map->{$k};
 	}
+    }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetUmask} = ["function", "void", "string"];}
+sub SetUmask {
+
+    my $self    = shift;
+    my $u	= shift;
+    if (defined ($u) && $u ne "") {
+	$umask	= $u;
     }
 }
 
@@ -1322,7 +1336,8 @@ sub WriteUsers {
 		}
 		if ($server) {
 		    if ($create_home) {
-			UsersRoutines->CreateHome ($useradd_defaults{"skel"}, $home);
+			UsersRoutines->CreateHome (
+			    $useradd_defaults{"skel"}, $home, $umask);
 		    }
 		    if ($home ne "/var/lib/nobody") {
 			UsersRoutines->ChownHome ($uid, $gid, $home);

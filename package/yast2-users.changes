@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 24 09:47:52 CET 2004 - jsuchome@suse.cz
+
+- use UMASK from /etc/login.defs when creating new directories (#48372)
+- 2.11.3
+
+-------------------------------------------------------------------
 Mon Nov 15 16:43:48 CET 2004 - jsuchome@suse.cz
 
 - fix of creating custom user/group filter (#45263)

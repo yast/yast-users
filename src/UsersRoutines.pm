@@ -28,13 +28,14 @@ YaST::YCP::Import ("SCR");
 # @return success
 BEGIN { $TYPEINFO{CreateHome} = ["function",
     "boolean",
-    "string", "string"];
+    "string", "string", "string"];
 }
 sub CreateHome {
 
     my $self	= shift;
     my $skel	= $_[0];
     my $home	= $_[1];
+    my $umask	= $_[2];
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
@@ -60,6 +61,9 @@ sub CreateHome {
     # now copy homedir from skeleton
     else {
 	my $command	= "/bin/cp -r $skel $home";
+	if (defined $umask && $umask ne "") {
+	    $command	= "umask $umask; $command";
+	}
 	my %out		= %{SCR->Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
 	    y2error ("error calling $command: ", $out{"stderr"} || "");

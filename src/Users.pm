@@ -153,6 +153,9 @@ my $obscure_checks 		= 1;
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.\$-]\\?";
 
+# Umask which is used for creating new home directories. (/etc/login.defs)
+my $umask			= "022";
+
 # the +/- entries in config files:
 my @pluses_passwd		= ();
 my @pluses_group		= ();
@@ -1193,6 +1196,8 @@ sub ReadSystemDefaults {
 
     $character_class 	= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
 
+    $umask		= SCR->Read (".etc.login_defs.UMASK");
+
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
 	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
@@ -1200,6 +1205,7 @@ sub ReadSystemDefaults {
     }
 
     UsersCache->InitConstants (\%security);
+    UsersLDAP->SetUmask ($umask);
 }
 
 ##------------------------------------
@@ -4044,7 +4050,7 @@ sub Write {
 		    if ((bool ($create_home) || $user_mod eq "imported")
 			&& !%{SCR->Read (".target.stat", $home)})
 		    {
-			UsersRoutines->CreateHome ($skel, $home);
+			UsersRoutines->CreateHome ($skel, $home, $umask);
 		    }
 		    if ($home ne "/var/lib/nobody") {
 			UsersRoutines->ChownHome ($uid, $gid, $home);
