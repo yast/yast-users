@@ -61,17 +61,22 @@
     string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
 
-
+    
+   
     
     include "security/io.ycp";              
-    map security  = SecurityRead();
+    map security  		= SecurityRead();
     integer max_uid             = tointeger(lookup( security, "UID_MAX" ));
     integer max_gid             = tointeger(lookup( security, "GID_MAX" ));
     integer max_system_uid      = tointeger(lookup( security, "UID_MIN" )); 
     integer max_system_gid      = tointeger(lookup( security, "GID_MIN" ));
     integer max_length_uid      = size(sformat("%1", max_uid));
     integer max_length_gid      = size(sformat("%1", max_gid));
-  
+    integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN"));
+    integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN"));
+						    
+    
+    if( test_mode )    SCR(`Write(.dumpto.tmp.security, security  ));
     
     max_system_gid = max_system_gid - 1;
     max_system_uid = max_system_uid - 1;
@@ -96,7 +101,27 @@
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
 
+    list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
+    map  pam_map  = select( pam_list, 0);
+    boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
+
     
+    // test pam -md5
+    if( test_mode ) {
+	y2milestone(" orgi pam : %1 ", pam );
+	//pam = true;
+	y2milestone(" cryptmd5 : %1 ", cryptmd5( "askldjfhakjsh"));
+	y2milestone(" crypt    : %1 ",  crypt( "askldjfhakjsh"));
+	SCR(`Write(.dumpto.tmp.pam, pam_list ));
+    }
+
+    if( pam )
+    {
+	max_length_pas = 128;
+	min_length_pas = 8;
+    }
+    
+ 
     // ===== Open UI ==================================================
     UI(`CreateWizardDialog());
     
@@ -200,11 +225,5 @@
 
     return UI(`CloseDialog());
     // ===== Write ====================================================
-    /*
-    if (!test_mode)
-    {
-	usersWrite(current_groups, current_users);
-    }
-    */
-
+   
 } // End

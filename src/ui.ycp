@@ -519,10 +519,9 @@ Please try again.")));
 	
 	
 	term contents = 
-	    `HSquash(`VBox
-	    (
+	    `HSquash(`VBox(
 	     
-	       `VStretch(),
+	        `VStretch(),
 		// User account information, forename or first name
 	       //   name_edit,
 
@@ -544,12 +543,17 @@ Please try again.")));
 		`Password(`id(`pw1), _("&Enter a password:"), ""),
 		// User account information, second version of user password, retyped to avoid typos
 		// This is a label, please use newline if it is longer than 48 characters
-		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+	       `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
 		
-	        `VStretch(),
-		`PushButton(`id(`details), _("&Details..."))
+	       `VStretch(),
+	       `PushButton(`id(`details), _("&Details..."))
 	    ));
 
+	
+
+	
+
+	
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditUserHelp(),
@@ -560,7 +564,7 @@ Please try again.")));
 	
 
 	// Modify the dialog 
-	if( what == `clone_user ) UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
+	if( what == `clone_user )      UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
 	else  if( what == `add_user )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
 	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Ok")));
 	
@@ -708,12 +712,14 @@ Please try again.")));
 			    UI(`SetFocus(`id(`pw1)));
 			    continue;
 			}
-			if ( size (pw1) < 5 )
+			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
-			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
+			    UI::ErrorPopup(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+						   min_length_pas,
+						   max_length_pas));
 			    password = "";
 			    
 			    // clear password inputfields in this case
@@ -745,31 +751,21 @@ Please try again.")));
 				continue;
 			    }	
 			}
-			password = crypt (pw1);
+
+			if( pam  && what == `add_user )
+			{
+			    password = cryptmd5(pw1);
+			}
+			else
+			{
+			    password = crypt (pw1);
+			}
 		    }
 
 		    // bild default home dir
 		    if ( what == `add_user && home == "/home/" )
 		    {
 			home = home + username;
-			/*
-			y2milestone("read tmp: ");
-			any tmp =  SCR::Read (.target.dir  , "/tmp" );
-			y2milestone("readed tmp dir: %1" , tmp);
-
-			
-			y2milestone("read home:%1 ",home);
-			tmp =  SCR::Read (.target.dir  , home );
-			y2milestone("readed home dir: %1" , tmp);
-
-			y2milestone("fileexists :%1 ",home);
-			tmp =  fileexist( home);
-			y2milestone("readed fileexists dir: %1" , tmp);
-
-			y2milestone("fileexists :%1 ", "/tmp");
-			tmp =  fileexist( "/tmp");
-			y2milestone("readed fileexists /tmp: %1" , tmp);
-			*/
 			
 			//if( SCR(`Read(.target.dir , home )) != nil )
 			if(  fileexist( home ) )
@@ -988,6 +984,7 @@ Please log off the user first.")));
 	string  userlist      = findUsersBelongGroup(gid);
 	if( gid == max_gid )   gid = usersFreeGid(current_groups);
 
+	
 	// make dialog
 	term contents = 
 	    `HSquash(`VBox
@@ -1006,9 +1003,9 @@ Please log off the user first.")));
 	       `HBox(
 		     `HSpacing(10),
 		     `VBox(
-		     // User account information, first version of user password, both versions must match
+			   // User account information, first version of user password, both versions must match
 			   `Password(`id(`pw1), _("&Enter a password:"), ""),
-			   // User account information, second version of user password, retyped to avoid typos
+			     // User account information, second version of user password, retyped to avoid typos
 			   // This is a label, please use newline if it is longer than 48 characters
 			   `Password(`id(`pw2), _("Re-enter the password for &verification:"),  "")
 			   ),
@@ -1142,12 +1139,14 @@ Please try again.")));
 			  ( (pw1 != default_pw) && (pw2 != default_pw))  )
 		    {
 			
-			if ( size (pw1) < 5 && pw1 != "" )
+			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
-			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
+			    UI::ErrorPopup(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+						   min_length_pas,
+						   max_length_pas));
 			    password = "x";
 			    
 			    // clear password inputfields in this case
@@ -1157,8 +1156,10 @@ Please try again.")));
 			    UI(`SetFocus(`id(`pw1)));
 			    continue;
 			}
+		
 			
-			if ( size(pw1) >= 5 && pw1 != "" )
+			
+			if ( pw1 != "" )
 			{
 			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
 			    {
@@ -1179,7 +1180,16 @@ Please try again.")));
 				continue;
 			    }	
 			}
-			password = crypt (pw1);
+
+			
+			if( pam  && what == `add_group )
+			{
+			    password  = cryptmd5(pw1);
+			}
+			else
+			{
+			    password  = crypt (pw1);
+			}
 		    }
 
 		    // need for update /etc/gshadow
