@@ -3639,14 +3639,20 @@ sub WriteSecurity {
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
-    SCR->Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save");
+    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save") != 0)
+    {
+	return 0;
+    }
     return SCR->Write (".passwd.groups", \%groups);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
-    SCR->Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save");
+    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save") != 0)
+    {
+	return 0;
+    }
     return SCR->Write (".passwd.users", \%users);
 }
 
@@ -3654,7 +3660,10 @@ sub WritePasswd {
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
     
-    SCR->Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save");
+    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save") != 0)
+    {
+	return 0;
+    }
     return SCR->Write (".passwd.shadow", \%shadow);
 }
 
