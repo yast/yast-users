@@ -65,24 +65,24 @@ map last_uid = $[
         `smb:   "smb"
         ];
 
-// build the cache structures, which should be changed only when necessary
+/**
+ * Build the cache structures, used for fasten operations
+ */
 global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g,
 string dir) ``{
 
-    user_custom_sets = cust_u;
-    current_users = cust_u;
+    current_users = user_custom_sets;
+    PrintDate ("read cache start");
 
     foreach (`type, `usersmap, usermap, ``{
-        BuildUsers (usersmap, type, dir);
+        BuildUsers (usersmap, type);
     });
     users_itemlists [ `custom ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ `custom ]:[];
 
-    // -- change groups building in a same way !!
-    group_custom_sets = cust_g;
-    current_groups = cust_g;
+    current_groups = group_custom_sets;
 
-    BuildGroups (groupmap, dir);
+    BuildGroups (groupmap);
 
     groups_itemlists [ `custom ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ `custom ]:[];
@@ -90,66 +90,110 @@ string dir) ``{
     return true;
 }
 
-global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
+global define boolean ReadFromFiles (string dir) ``{
+
+    current_users = user_custom_sets;
+    PrintDate ("read cache start");
+
+    // could be the sets here explicitly?
+    list start_sets = [`local, `system];
+    foreach (`type, start_sets , ``{
+        ReadUsers (type, dir);
+    });
+    PrintDate ("before merge");
+    users_itemlists [ `custom ] = MergeUserTableItems();
+    user_itemlist = users_itemlists [ `custom ]:[];
+    PrintDate ("after merge");
+
+    ReadGroups ( start_sets, dir);
+    groups_itemlists [ `custom ] = MergeGroupTableItems();
+    group_itemlist = groups_itemlists [ `custom ]:[];
+
+    PrintDate ("read cache end");
+}
+
+/**
+ * Build the cache structures for user set
+ */
+global define boolean BuildUsers (map usersmap, symbol type) ``{
+
+    PrintDate ("build users start");
+
+    homelists = add (homelists, type, BuildHomeList(usersmap));
+    usernamelists = add(usernamelists,type,BuildUsernameList(usersmap));
+    users_itemlists = add (users_itemlists, type,
+        BuildUserItemList(usersmap));
+    uidlists [type] = BuildUIDList(usersmap);
+    if (type != `system)
+        last_uid [type] = max_system_uid + 1;
+    else
+        last_uid [type] = 1;
+}
+
+/**
+ */
+global define boolean ReadUsers (symbol type, string dir) ``{
 
     string stringtype = symbol_to_string[type]:"";
 
-    if (! issubstring (dir, "/tmp/")) // build it here
-    {
-        homelists = add (homelists, type, BuildHomeList(usersmap));
-        usernamelists = add(usernamelists,type,BuildUsernameList(usersmap));
-        users_itemlists = add (users_itemlists, type,
-            BuildUserItemList(usersmap));
-        uidlists [type] = BuildUIDList(usersmap);
-        if (type != `system)
-            last_uid [type] = max_system_uid + 1;
-        else
-            last_uid [type] = 1;
-    }
-    else // load from the file
-    {
-        homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +
-            stringtype + ".ycp");
-        usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
-            stringtype + ".ycp");
-        // eval due to translation of system use names
-        users_itemlists [type] = eval (
-            SCR::Read(.target.ycp, dir + "/itemlist_" + stringtype + ".ycp"));
-        uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" +
-            stringtype + ".ycp");
-        if (type != `nis)
-            last_uid [type] = SCR::Read (.target.ycp, dir + "/last_" +
-                stringtype + "_uid.ycp");
-    }
+    PrintDate ("build users start");
+
+    homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +
+        stringtype + ".ycp");
+    usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
+        stringtype + ".ycp");
+
+    PrintDate ("homelist");
+    // eval due to translation of system user names
+    users_itemlists [type] = eval (
+        SCR::Read(.target.ycp, dir + "/itemlist_" + stringtype + ".ycp"));
+
+    PrintDate ("itemlists");
+    uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" +
+        stringtype + ".ycp");
+    if (type != `nis)
+        last_uid [type] = SCR::Read (.target.ycp, dir + "/last_" +
+            stringtype + "_uid.ycp");
 }
 
-global define boolean BuildGroups (map groupmap, string dir) ``{
+/**
+ * Build the cache structures for group set
+ */
+global define boolean BuildGroups (map groupmap) ``{
 
+    foreach (`type, `groupsmap, groupmap, ``{
+        if (groupnamelists [type]:nil == nil)
+            groupnamelists [type] = BuildGroupnameList (groupsmap);
+        groups_itemlists [type] = BuildGroupItemList(groupsmap);
+    });
 
-    if (! issubstring (dir, "/tmp/"))
-    {
+    gidlist = BuildGIDList(groupmap);
+}
 
-        foreach (`type, `groupsmap, groupmap, ``{
-            if (groupnamelists [type]:nil == nil)
-                groupnamelists [type] = BuildGroupnameList (groupsmap);
-            groups_itemlists [type] = BuildGroupItemList(groupsmap);
-        });
+/**
+ */
+global define boolean ReadGroups (list sets, string dir) ``{
 
-        gidlist = BuildGIDList(groupmap);
-    }
-    else
-    {
-        gidlist = SCR::Read (.target.ycp, dir + "/gidlist.ycp");
-        groupnamelists = SCR::Read (.target.ycp, dir + "/groupnamelists.ycp");
-        foreach (`type, `groupsmap, groupmap, ``{
-            groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
-                + symbol_to_string [type]:"" + "_itemlist.ycp");
-        });
-    }
+    PrintDate ("build groups start");
+
+    gidlist = SCR::Read (.target.ycp, dir + "/gidlist.ycp");
+    groupnamelists = SCR::Read (.target.ycp, dir + "/groupnamelists.ycp");
+
+    PrintDate ("groupnamelits");
+
+    foreach (`type, sets, ``{
+        groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
+            + symbol_to_string [type]:"" + "_itemlist.ycp");
+    PrintDate ("group itemlits");
+    });
 }
 
 
-// to use for reseting settings during autoinstallation
+
+
+/**
+ * Reset the structures, to use during autoinstallation
+ */
 global define void EmptyStructures () ``{
 
     homelists = $[];
@@ -159,7 +203,8 @@ global define void EmptyStructures () ``{
     gidlist = [];
 }
 
-/*
+/**
+ * Builds the list of homedirectories
  */
 global define list BuildHomeList(map usersmap) ``{
 
@@ -171,7 +216,8 @@ global define list BuildHomeList(map usersmap) ``{
     return ret;
 }
 
-/*
+/**
+ * Builds the list of user names
  */
 global define list BuildUsernameList(map usersmap) ``{
 
@@ -183,7 +229,8 @@ global define list BuildUsernameList(map usersmap) ``{
     return ret;
 }
 
-/*
+/**
+ * Builds the list of group names
  */
 global define list BuildGroupnameList(map groupsmap) ``{
 
@@ -196,8 +243,9 @@ global define list BuildGroupnameList(map groupsmap) ``{
 }
 
 
-/*
-*/
+/**
+ * Builds the list of uid's
+ */
 global define list BuildUIDList(map usersset) ``{
 
     list ret = [];
@@ -207,8 +255,9 @@ global define list BuildUIDList(map usersset) ``{
     return ret;
 }
 
-/*
-*/
+/**
+ * Builds the list of gid's
+ */
 global define list BuildGIDList(map allgroups) ``{
 
     list ret = [];
@@ -220,7 +269,7 @@ global define list BuildGIDList(map allgroups) ``{
     return ret;
 }
 
-/** -- check this !!
+/**
  * Build a string with n blanks
  * @param count number of blanks
  * @return string of blanks
@@ -233,13 +282,13 @@ define string addBlanks(integer count ) ``{
     {
         blanks_counter = blanks_counter + 1;
 //        blanks         = blanks + "\302\240"; // why this ??
-        blanks         = blanks + " "; // why this ??
+        blanks         = blanks + " ";
     }
     return blanks;
 }
 
-/*
- * Build item list for the user table
+/**
+ * Builds item list for the user table
  */
 global define list BuildUserItemList(map map_of_users) ``{
 
@@ -294,8 +343,8 @@ global define string Uncoding( string fullname ) ``{
 
 }
 
-/*
- * Build item list for the group table
+/**
+ * Builds item list for the group table
  */
 global define list BuildGroupItemList(map map_of_groups) ``{
 
@@ -331,8 +380,6 @@ global define list BuildGroupItemList(map map_of_groups) ``{
             }
             userlist = userlist + "...";
         }
-
-
         /*
         userlist_l = splitstring(userlist, ",");
         if (!contains (userlist_l, all_users[i]) //this is for "nobody"
@@ -484,7 +531,9 @@ global define integer NextFreeGid() ``{
     return nil;
 }
 
-/* Update the proper itemlist showed in table */
+/**
+ * Update the proper itemlist shown in table
+ */
 define void UpdateUserItemlist () ``{
 
     if (contains (user_custom_sets, user_type))
@@ -500,7 +549,9 @@ define void UpdateUserItemlist () ``{
     user_itemlist = sort (user_itemlist);
 }
 
-/* Update the proper itemlist showed in table */
+/**
+ * Update the proper itemlist shown in table
+ */
 define void UpdateGroupItemlist () ``{
 
     if (contains (group_custom_sets, group_type))
@@ -516,7 +567,9 @@ define void UpdateGroupItemlist () ``{
     group_itemlist = sort (group_itemlist);
 }
 
-/* Update the cache after changing user */
+/**
+ * Update the cache after changing user
+ */
 global define void ChangeUser(symbol what, map user) ``{
 
     integer uid = user["uid"]:nil;
@@ -573,7 +626,9 @@ global define void ChangeUser(symbol what, map user) ``{
 
 }
 
-/* Update the cache after changing group */
+/**
+ * Update the cache after changing group
+ */
 global define void ChangeGroup (symbol what, map group) ``{
 
     integer gid = group["gid"]:nil;
@@ -626,6 +681,11 @@ global define void ChangeGroup (symbol what, map group) ``{
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
+}
+
+global define void PrintDate(string message) ``{
+
+//    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
 }
 
 
