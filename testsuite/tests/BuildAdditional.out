@@ -11,6 +11,7 @@ Read	.sysconfig.console.CONSOLE_SCREENMAP ""
 Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
+Read	.sysconfig.language.RC_LANG ""
 Write	.target.string "/tmp/additional_userlist" "aa" true
 Write	.target.string "/tmp/additional_moreusers" "hh" true
 Write	.target.ycp "/tmp/additional_usernames" $["ldap":["ldap1", "ldap2"], "local":["aa", "bb", "hh"]] true

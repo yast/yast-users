@@ -11,6 +11,7 @@ Read	.sysconfig.console.CONSOLE_SCREENMAP ""
 Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
+Read	.sysconfig.language.RC_LANG ""
 Dump	first group with this name:
 Return	$["groupname":"users", "more_users":"u1,u2", "type":"ldap", "userlist":""]
 Dump	non-existent group:

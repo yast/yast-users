@@ -11,6 +11,7 @@ Read	.sysconfig.console.CONSOLE_SCREENMAP ""
 Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
+Read	.sysconfig.language.RC_LANG ""
 Dump	local groups::
 Dump	 $[17:$["groupname":"audio", "more_users":"", "type":"local", "userlist":"hh,ab"], 100:$["groupname":"users", "more_users":"hh", "type":"local", "userlist":""]]
 Dump	ldap groups::
