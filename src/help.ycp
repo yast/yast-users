@@ -227,7 +227,10 @@ audio,video,dialout.
   
   global define usersSaveDialogHelp() ``{
       
-      return "TODP HELP SAVE";
+      return (UI(_("<p>
+Save the current user and group settings to system
+</p>")));
+      
   }
   
 }

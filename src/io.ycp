@@ -336,7 +336,7 @@ to new home directory %2")), old_home, home));
 	    }
 
 	    //add password to string 
-	    if (                                "x" != password )  todo = todo + " -p '"  + password + "'";
+	    if ( "x" != password )  todo = todo + " -p '"  + password + "'";
 
 	    //no change id at the moment 
             // if ( lookup( org_user, "uid",      "")  != uid     )  todo = todo + " -u " + sformat("%1", uid ) + " -o";
@@ -344,6 +344,9 @@ to new home directory %2")), old_home, home));
 	    //add loginname to string
 	    if ( lookup( org_user, "username" ,"")  != username )  todo = todo + " -l "  + username;
 
+	    //add shell to string
+	    if ( lookup( org_user, "shell" , "") != shell ) todo = todo + " -s " + shell;
+	    
 	    //add groups to  string
 	    if ( findGroupsBelongUser(username )    != grouplist)
 	    {
@@ -352,17 +355,21 @@ to new home directory %2")), old_home, home));
 	    }
 
 	    // add username to string
-	    todo = todo + " " + userIdToName( uid );
+	    if( todo !=  "/usr/sbin/usermod" )
+	    {
+		todo = todo + " " + userIdToName( uid );
+	    
+		usersAddTodo( todo,
+			      `edit_user,
+			      sformat(UI(_("Can't change the settings of the user %1")), username ));
+	    
 
-	    usersAddTodo( todo,
-			  `edit_user,
-			  sformat(UI(_("Can't change the settings of the user %1")), username ));
-
-	    if ( lookup( org_user, "username" ,"")  != username  ||
-		 lookup( org_user, "gid" ,     "" ) != gid       ||
-		 lookup( org_user, "home" ,    "" ) != home      	 )
-	    {  
-		usersAddChownHome( home, username , groupIdToName(gid ));
+		if ( lookup( org_user, "username" ,"")  != username  ||
+		     lookup( org_user, "gid" ,     "" ) != gid       ||
+		     lookup( org_user, "home" ,    "" ) != home      	 )
+		{  
+		    usersAddChownHome( home, username , groupIdToName(gid ));
+		}
 	    }
 	}
 
@@ -661,12 +668,12 @@ to new home directory %2")), old_home, home));
     /**
      * Read the map current_users
      * This is used in <TT>usersUsersDialog</TT> and <TT>usersEditUser</TT> 
-     * @param symbol what can be <TT>`items</TT> or <TT>`usernamelist</TT>
+     * @param symbol what can be <TT>`items</TT> or <TT>`usernamelist</TT> of <TT>`homelist</TT>
      */
     global define usersUsersRead(symbol todo) ``{
 	
 	
-	list     usernamelist    = [];
+	list     todo_list    = [];
 	list     items           = [];
 	
 	foreach ( `key, `user,  current_users, ``{
@@ -700,13 +707,17 @@ to new home directory %2")), old_home, home));
 		}
 		else if ( todo == `usernamelist )
 		{
-		    usernamelist = add( usernamelist, lookup(user, "username" ));
+		    todo_list = add( todo_list, lookup(user, "username" ));
+		}
+		else if ( todo == `homelist )
+		{
+		    todo_list = add( todo_list, lookup( user, "home" ));
 		}
 	    }
 	});
 		  
-	if( todo == `items             ) return items;
-	else if( todo == `usernamelist ) return usernamelist;
+	if( todo == `items                               ) return items;
+	else if( todo == `todo_list || todo == `homelist ) return todo_list;
 	
     }	
 
@@ -774,8 +785,8 @@ to new home directory %2")), old_home, home));
 	    
 	    if( is( shell_entry, string ))
 	    { 
-		if( (! issubstring( shell_entry, "true")) &&
-		    (! issubstring( shell_entry, "false")) &&
+		if(/* ( ! issubstring( shell_entry, "true")) &&*/
+		   /* ( ! issubstring( shell_entry, "false")) &&*/
 		    (! issubstring( shell_entry, "passwd")) &&
 		    (! issubstring( shell_entry, "bash1")) )
 		{

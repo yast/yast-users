@@ -232,6 +232,7 @@
 			    string error = sformat(UI(_("The selected User Id is not allowed.
 Please select a valid integer between 0 and %1")), max_uid );
 			    UI(`ErrorPopup( error ));
+			    UI(`SetFocus(`id(`uid)));
 			    continue;
 			}
 		   
@@ -243,6 +244,7 @@ Please select a valid integer between 0 and %1")), max_uid );
 because the Id is smaller than %1. \nDo you really want to create a new system user")), max_system_uid );
 			    if( ! UI(`YesNoPopup( error )))
 			    {
+				UI(`SetFocus(`id(`uid)));
 				continue;
 			    }
 			    
@@ -252,20 +254,22 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
 			{
 			    UI(`ErrorPopup(_("The inputted User Id is reserved.
 Please select a another User Id")));
+			    UI(`SetFocus(`id(`uid)));
 			    continue;
 			}
 		    }
 		    
 
 		    
-		    // check the defaultgroup ( filter!! )
+		    // check the defaultgroup ( replace by filter!! )
 		    foreach ( `key, `group,  current_groups, ``{
 			if( lookup( group, "groupname", "") == new_defaultgroup )
 			{
 			    gid = lookup(group, "gid", max_gid);
 			}
 		    });
-		
+
+		    
 		    // check the homedirectory
 		    if ( home != new_home  )
 		    {
@@ -275,11 +279,17 @@ Please select a another User Id")));
 			    UI(`ErrorPopup(_("The home directory  may only contain the following characters:
 a..zA..Z0..9/
 Please try again.")));
+			    UI(`SetFocus(`id(`home)));
 			    continue;
 			}
-			
-
-			
+			if ( contains( usersUsersRead(`homelist), new_home ) )
+			{
+			    UI(`ErrorPopup(_("The home directory is used from another user.
+Please try again.")));
+			    UI(`SetFocus(`id(`home)));
+			    continue;
+			    
+			}	
 		    }
 
 		    // chech the grouplist
@@ -304,6 +314,7 @@ Please try again.")));
 					UI(`ErrorPopup(_("You can only assign the user
 groups that really exists.
 Please try again.")));
+					UI(`SetFocus(`id(`grouplist)));
 					input_ok = false;
 				    }
 				}
@@ -315,6 +326,7 @@ Please try again.")));
 			    UI(`ErrorPopup(_("The groupfield may contain only
 letters and digits.
 Please try again.")));
+			    UI(`SetFocus(`id(`grouplist)));
 			    continue;
 			}
 		    }
@@ -340,12 +352,27 @@ Please try again.")));
      */
     global define usersProposeUsername( string forename, string surname ) ``{
 
-	string  username           = "";
-	string  default_login_name = "lxuser";
-	integer part_len           = 3;
-	integer login_len          = part_len * 2;
-	  
-			
+	string  username             = "";
+	string  default_login_name   = "lxuser";
+	integer default_login_count  = 0;
+	integer part_len             = 3;
+	integer login_len            = part_len * 2;
+	string  test_login_name      = default_login_name;
+	while (true)
+	{
+	    if (  contains( usersUsersRead(`usernamelist), test_login_name ) )
+	    {	
+		default_login_count = default_login_count + 1;
+		test_login_name  = default_login_name  + sformat("%1",default_login_count);
+	    }
+	    else
+	    {
+		default_login_name = test_login_name;
+		break;
+	    }   	    
+	}
+
+	
 	string f_name = filterchars(tolower(forename), valid_logname_chars);
 	integer f_len = size( f_name );
 
@@ -494,7 +521,7 @@ Please try again.")));
 	// Modify the dialog 
 	if( what == `clone_user ) UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
 	else  if( what == `add_user )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
-	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Modify")));
+	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Ok")));
 	
 	if( uid <= max_system_uid && what == `edit_user )
 	{
@@ -624,7 +651,7 @@ Please try again.")));
 		    
 		    // Use the old password (if any) if no passwords were entered.
 		    // only check pw1 here, its identical with pw2 as checked before
-		    if (  (password != "x")  && (pw1 != default_pw) && (pw2 != default_pw ))
+		    if ( (pw1 != default_pw) && (pw2 != default_pw ))
 		    {
 			if ( pw1 == "" )
 			{
@@ -825,7 +852,7 @@ Please try again.")));
 		    if( !isnil( group_table_input )) group_in_work = lookup( current_groups , group_table_input );
 		    else
 		    {
-			UI(`ErrorPopup(_("Please select an entry in the user table")));
+			UI(`ErrorPopup(_("Please select an entry in the group table")));
 			ret = `not_next;
 		    }
 		   
@@ -907,7 +934,7 @@ Please try again.")));
 
 	if( what == `clone_group )       UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
 	else   if( what == `add_group )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
-	else   if( what == `edit_group)  UI(`ChangeWidget(`id(`next) , `Label, _("&Modify")));
+	else   if( what == `edit_group)  UI(`ChangeWidget(`id(`next) , `Label, _("&Ok")));
 
 	if( what == `edit_group  )
 	{
