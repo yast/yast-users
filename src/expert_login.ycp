@@ -20,6 +20,8 @@ import "Security";
 import "Progress";
 
 include "ui/common_messages.ycp";
+include "require.ycp";
+
 
     string help_text = _("<p>
 <b>This is for experts only.</b>
@@ -223,20 +225,38 @@ You can configure these settings by running appropriate modules. Select the modu
 
         if ( button == `conf_nis)
         {
-            WFM::CallModule("nis", []);
-            reload_config ();
+            if ( RequireAndConflictButtons ( ["yast2-nis-client"], [],
+                // popup label (package to install)
+                _("Package yast2-nis-client is not installed.
+Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+            {
+                WFM::CallModule("nis", []);
+                reload_config ();
+            }
         }
 
         if ( button == `conf_ldap)
         {
-            WFM::CallModule("ldap", []);
-            reload_config ();
+            if ( RequireAndConflictButtons ( ["yast2-ldap-client"], [],
+                // popup label (package to install)
+                _("Package yast2-ldap-client is not installed.
+Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+            {
+                WFM::CallModule("ldap", []);
+                reload_config ();
+            }
         }
 
         if ( button == `conf_krb)
         {
-            WFM::CallModule("kerberos", []);
-            reload_config ();
+            if ( RequireAndConflictButtons ( ["yast2-kerberos-client"], [],
+                // popup label (package to install)
+                _("Package yast2-kerberos-client is not installed.
+Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+            {
+                WFM::CallModule("kerberos", []);
+                reload_config ();
+            }
         }
 
         if ( button == `conf_krb)
