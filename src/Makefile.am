@@ -15,9 +15,9 @@ clients_DATA = 			\
 	users.ycp
 #	users_write.ycp
 
-menu_DATA = menuentry_users.ycp	\
-	menuentry_groups.ycp	\
-	menuentry_add_user.ycp  \
-	menuentry_add_group.ycp 
+menu_DATA = menuentry_users.y2cc	\
+	menuentry_groups.y2cc	\
+	menuentry_add_user.y2cc  \
+	menuentry_add_group.y2cc 
 
 EXTRA_DIST = $(clients_DATA) $(menu_DATA) $(include_DATA)
