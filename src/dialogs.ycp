@@ -261,7 +261,6 @@ can be changed for non-local users.
         UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
     }
 
-    // FIXME popup? helptext?
     if (complex_layout && !Autologin::available)
 	UI::ChangeWidget(`id(`autologin), `Enabled, false );
 
@@ -836,10 +835,22 @@ global define symbol EditUserDetailsDialog( ) ``{
             `Top(`TextEntry(`id(`addd), _("&Additional User Information:"),
                 addit_data));
 
-    // button label
+    boolean skel_check = (what == "add_user" &&
+	(user_type != "ldap" || Users::ldap_file_server));
+
     term browse = `VBox(
-	`Label (""),
+	skel_check ? `Empty() : `Label (""),
+	// button label
         `PushButton( `id(`browse), `opt(`key_F6), _("Bro&wse...")));
+
+    term home_w = `VBox(
+	// textentry label
+	`TextEntry( `id(`home), _("&Home Directory"), home ),
+	(skel_check)
+	    // checkbox label
+	    ? `Left (`CheckBox (_("Copy Skeleton"), user_type != "system"))
+	    : `Empty()
+    );
 
     term contents =
         `HBox(
@@ -861,10 +872,7 @@ can be changed for non-local users.")) : `VSpacing (0),
                     // textentry label
                     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
                         sformat("%1",uid ))),
-                    `Top(`HBox (
-			// textentry label
-			`TextEntry( `id(`home), _("&Home Directory"), home ),
-			browse)),
+                    `Top(`HBox ( home_w, browse)),
                     additional_data,
                     `Top(edit_shell),
                     `Top(edit_defaultgroup),
@@ -2317,15 +2325,16 @@ global define symbol AuthentizationDialog() ``{
         `HSpacing(4)
     );
 
-    // dialog title FIXME "sources of user data/accounts..."
-    string title = _("Authentication and User Sources");
+    // dialog title
+    string title = _("Authentication and User Data Sources");
 
     Wizard::SetContentsButtons (title, contents, AuthentizationDialogHelp(),
-        Label::BackButton(), Label::NextButton());
+        Label::BackButton(), Label::OKButton());
 
     reload_config();
 
     any button = nil;
+    boolean changed = false;
     do
     {
         button = UI::UserInput();
@@ -2344,13 +2353,16 @@ Install it now?
 		}
 		else continue;
 	    }
-	    // FIXME use CallFunction...
-            WFM::CallModule(call_module[button]:button, []);
-            reload_config ();
+            if (WFM::CallModule (call_module[button]:button, []) == `next)
+	    {
+		changed = true;
+		reload_config ();
+		UI::ChangeWidget (`id(`back), `Enabled, false);
+	    }
         }
     } while ( !contains ([`next, `abort, `back, `cancel], button) );
 
-    if (button == `next || button == `back)//TODO `back? (client was changed)
+    if (changed)
     {
 	boolean was_nis_available = Users::is_nis_available;
 	Users::ReadSourcesSettings();
@@ -2365,6 +2377,9 @@ Install it now?
 		Users::plus_shadow	= "+";
 	    }
 	}
+	// LDAP settings could be modified...??? (re_read_ldap)
+	// FIXME Ldap::file_server wasn't updated
+	// autologin could have been changed
         Users::BuildMenuButtonItems();
     }
     return button;
