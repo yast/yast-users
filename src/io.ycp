@@ -21,7 +21,35 @@
 
   textdomain "users";
   
-  
+    
+    global define save_focus( integer table_input, any ret , symbol what) ``{
+
+	integer l_focusline = 0;
+	
+	if ( what == `group )
+	    l_focusline = focusline_group;
+	if ( what == `user )
+	    l_focusline = focusline_user;
+	
+	
+	if ( is ( table_input, integer ))
+	{
+	    l_focusline = table_input;
+	    if( ret == `delete )
+		l_focusline = 0;
+	}
+	if( l_focusline == nil || l_focusline < 0 )
+	{
+	    l_focusline = 0;
+	}
+
+	if ( what == `group )
+	    focusline_group = l_focusline;
+	if ( what == `user )
+	    focusline_user = l_focusline;
+    }
+
+    
     /**
      * Return the group password if the group have a password ( use current_gshadow ).
      * @param groupname name of the group
@@ -255,9 +283,12 @@
 	    if( sub_dir != "" )
 	    {
 		tmp_dir = tmp_dir + "/"+sub_dir;
-		if( nil == Dir(tmp_dir) )  usersAddTodo( ("/bin/mkdir " + tmp_dir),
-							 `mkdir,
-							 sformat(UI(_("Can't make directory %1")), tmp_dir));
+		y2milestone("be 2. dir");
+		//if( nil == SCR(`Read(.target.dir , tmp_dir) ))
+		if( ! fileexist( tmp_dir ) )
+		    usersAddTodo( ("/bin/mkdir " + tmp_dir),
+				  `mkdir,
+				  sformat(UI(_("Can't make directory %1")), tmp_dir));
 	    }
 	});
     }
@@ -919,7 +950,7 @@ to new home directory %2")), old_home, home));
 		{
 		    if( fileexist( shell_entry ) )
 		    {
-			if ( todo == `items      )  available_shells = add( available_shells, `item(shell_entry ));
+			if ( todo == `items      )  available_shells = add( available_shells, `item( `id(shell_entry), shell_entry ));
 			if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);
 		    }
 		}

@@ -85,7 +85,7 @@
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
 
-		  `Table(`id(`user_table), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items)),
+		  `Table(`id(`user_table), `opt(`notify), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items)),
 	          `HBox
 		  (
 		      `PushButton(`id(`new),       _("&Add")),
@@ -99,16 +99,22 @@
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 				     usersUsersDialogHelp(),
-			             CancelButtonLabel(),
-				     FinishButtonLabel()));
+			             UI::CancelButtonLabel(),
+				     UI::FinishButtonLabel()));
 
 
-	
+	if( focusline_user != 0) 
+	    UI::ChangeWidget(`id(`user_table), `CurrentItem, focusline_user );	
 			 
 	symbol ret = `next;
 	repeat
 	    {
 		ret = UI(`UserInput());
+
+		// double click
+		if( ret == `user_table )
+		    ret = `edit;
+		
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
 		    any  user_table_input   = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
@@ -122,6 +128,9 @@
 		}
 	    } until ( ret != `not_next  );
 	if ( ret == `back) ret = `exit;
+
+	save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
+
 	return ret;
     }
 
@@ -156,11 +165,13 @@
 	    {
 		if ( key == gid )
 		{
-		    available_groups = add( available_groups ,`item(lookup( group , "groupname" , "" ), true));
+		    available_groups = add( available_groups ,`item( `id(lookup( group , "groupname" , "" )),
+									 lookup( group , "groupname" , "" ) , true));
 		}
 		else
 		{
-		    available_groups = add( available_groups , `item(lookup( group , "groupname" , "" )));
+		    available_groups = add( available_groups , `item( `id(lookup( group , "groupname" , "" )),
+									  lookup( group , "groupname" , "" )));
 		}	   
 	    }
 	});
@@ -172,7 +183,7 @@
 	term contents = 
 	    `HVSquash(
 		     `HBox(
-			   `HSpacing(4),
+			   `HSpacing(1),
 			   `VBox(
 			   `VSpacing(1),
 			   // User account information, forename or first name
@@ -181,13 +192,13 @@
 			   `HBox(
 				 `HWeight(40, edit_defaultgroup),	
 				 // input field for login name,
-				 `HSpacing(3),
+				 `HSpacing(1),
 				 `HWeight(40, `Bottom(`TextEntry( `id(`uid), _("User &ID (uid)"), sformat("%1",uid ))))
 				)	,
 			   `VSpacing(0.5),	   
 			   `HBox(
 				 `HWeight(40, `Bottom(`TextEntry( `id(`home), _("&Home directory"), home ))),
-				 `HSpacing(3),
+				 `HSpacing(1),
 				 `HWeight(40,  edit_shell )
 				 ),
 			   `VSpacing(2),	
@@ -195,14 +206,14 @@
 				      ,grouplist ),
 			   `VSpacing(2)
 			   ),
-			   `HSpacing(4))
+			   `HSpacing(1))
 			   );
 
 	UI(`SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 				     usersEditUserDetailsHelp(),
-			             BackButtonLabel(),
-				     OKButtonLabel()));
+			             UI::BackButtonLabel(),
+				     UI::OKButtonLabel()));
 
 	//Modify the dialog 
 	UI(`ChangeWidget(`id(`fullname), `Enabled, false ));
@@ -285,7 +296,9 @@ Please try again.")));
 			    UI(`SetFocus(`id(`home)));
 			    continue;
 			}
-			if ( contains( usersUsersRead(`homelist), new_home ) || ( Dir( new_home ) != nil) )
+			y2milestone("be1 . dir");
+			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
+			if ( contains( usersUsersRead(`homelist), new_home ) || fileexist( new_home ) )
 			{
 			    UI(`ErrorPopup(_("The home directory is used from another user.
 Please try again.")));
@@ -540,8 +553,8 @@ Please try again.")));
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditUserHelp(),
-			             BackButtonLabel(),
-				     NextButtonLabel()));
+			             UI::BackButtonLabel(),
+				     UI::NextButtonLabel()));
 
 	
 	
@@ -739,7 +752,27 @@ Please try again.")));
 		    if ( what == `add_user && home == "/home/" )
 		    {
 			home = home + username;
-			if(  Dir( home ) != nil )
+			/*
+			y2milestone("read tmp: ");
+			any tmp =  SCR::Read (.target.dir  , "/tmp" );
+			y2milestone("readed tmp dir: %1" , tmp);
+
+			
+			y2milestone("read home:%1 ",home);
+			tmp =  SCR::Read (.target.dir  , home );
+			y2milestone("readed home dir: %1" , tmp);
+
+			y2milestone("fileexists :%1 ",home);
+			tmp =  fileexist( home);
+			y2milestone("readed fileexists dir: %1" , tmp);
+
+			y2milestone("fileexists :%1 ", "/tmp");
+			tmp =  fileexist( "/tmp");
+			y2milestone("readed fileexists /tmp: %1" , tmp);
+			*/
+			
+			//if( SCR(`Read(.target.dir , home )) != nil )
+			if(  fileexist( home ) )
 			{
 			    UI(`ErrorPopup(_("The default home directory is used from another user.
 Please press button Details and edit home directory.")));
@@ -880,7 +913,7 @@ Please log off the user first.")));
 	
 	term contents = 
 	    `VBox(rbUsersGroup(`groups),
-		  `Table(`id(`group_table ), `header(_("Group name"), _("Group ID"), _("Group members")),
+		  `Table(`id(`group_table ), `opt(`notify) , `header(_("Group name"), _("Group ID"), _("Group members")),
 		         usersGroupsRead(`items) ),
 	          `HBox
 		  (
@@ -895,16 +928,25 @@ Please log off the user first.")));
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 			             usersGroupsDialogHelp(),
-			             CancelButtonLabel(),
-				     FinishButtonLabel()));
+			             UI::CancelButtonLabel(),
+				     UI::FinishButtonLabel()));
 
+	if( focusline_group != 0 )
+	    UI::ChangeWidget(`id(`group_table), `CurrentItem, focusline_group );
+	
 	// save marked tabelentry to group_in_work
 	symbol ret = `next;
-	repeat	    {
+	repeat
+	    {
 		ret = UI(`UserInput());
+
+		// double click
+		if( ret == `group_table )
+		    ret = `edit;
+			
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
-		    any group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
+		    integer group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
 		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input );
 		    else
 		    {
@@ -913,14 +955,16 @@ Please log off the user first.")));
 		    }
 		   
 		}
+
+		
+		
 	    } until ( ret != `not_next  );
 	if( ret == `back) ret = `exit ;
+	
+	save_focus( UI::QueryWidget(`id(`group_table), `CurrentItem), ret, `group);
 	return ret;
     }
 
-
-    
-  
 
 
     /**
@@ -980,8 +1024,8 @@ Please log off the user first.")));
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditGroupHelp(),
-			             BackButtonLabel(),
-				     NextButtonLabel()));
+			             UI::BackButtonLabel(),
+				     UI::NextButtonLabel()));
 
 	
 
@@ -1374,10 +1418,10 @@ Delete this users first.")));
 				);
 
 	UI(`SetWizardContentsButtons(  "" ,
-		                     contents,
-			             usersSaveDialogHelp(),
-			             BackButtonLabel(),
-				     NextButtonLabel()));
+				       contents,
+				       usersSaveDialogHelp(),
+				       UI::BackButtonLabel(),
+				       UI::NextButtonLabel()));
 
 
 

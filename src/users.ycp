@@ -62,6 +62,7 @@
     string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
 
 
+    
     include "security/io.ycp";              
     map security  = SecurityRead();
     integer max_uid             = tointeger(lookup( security, "UID_MAX" ));
@@ -75,7 +76,8 @@
     max_system_gid = max_system_gid - 1;
     max_system_uid = max_system_uid - 1;
     string default_pw           = "******";
-
+    integer focusline_group = 0;
+    integer focusline_user  = 0;
     
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
