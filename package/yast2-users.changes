@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr 22 10:11:49 CEST 2003 - jsuchome@suse.de
+
+- only one field for fullname (#21175)
+- "Browse" button for home directory
+
+-------------------------------------------------------------------
 Thu Apr 17 13:35:25 CEST 2003 - jsuchome@suse.de
 
 - check passwords max length (#13291)

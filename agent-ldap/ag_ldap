@@ -79,7 +79,7 @@ while ( <STDIN> )
 {
     my ($command, $path, $argument) = ycp::ParseCommand ($_);
 
-    y2milestone ("path: $path");
+    y2debug ("path: $path");
     
     if ( $command eq "Execute" )
     {
@@ -161,7 +161,7 @@ while ( <STDIN> )
 			push @{ $users_groups{$u}}, $groupname;
 		    }
 		}
-# userPasword is not searched
+# userPasword is not searched for
 #		if (defined $entry->get_value("userPassword")) {
 #		    $groups{$gid}{"password"} = "x";
 #		}
@@ -206,7 +206,7 @@ while ( <STDIN> )
 		}
 
 		$users{$uid} = {
-		    "surname"	=> $entry->get_value("sn"),
+		    "sn"	=> $entry->get_value("sn"),
 		    "home"	=> $entry->get_value("homeDirectory"),
 		    "username"	=> $username,
 		    "uid"	=> $uid,
@@ -219,7 +219,7 @@ while ( <STDIN> )
 		};
 
 		if (defined $entry->get_value("givenName")) {
-		    $users{$uid}{"forename"} = $entry->get_value("givenName");
+		    $users{$uid}{"givenName"} = $entry->get_value("givenName");
 		}
 		if (defined $entry->get_value("mail")) {
 		    $users{$uid}{"mail"} = $entry->get_value("mail");
@@ -443,6 +443,7 @@ while ( <STDIN> )
 	    # ---------- add a new LDAP user
 
 	    my %user = %{$argument};
+y2internal ("user: ", %user);
 	    my $username = $user{"username"};
 	    my $dn = get_dn($username, "user");
 
@@ -455,13 +456,13 @@ while ( <STDIN> )
 		    "gidNumber" => $user{"gid"},
 		    "homeDirectory" => $user{"home"},
 		    "cn" => $user{"fullname"},
-		    "sn" => $user{"surname"},
+		    "sn" => $user{"sn"},
 		    "objectClass" => @user_object_class
 	    );
 	    # ---------- add optional parameters
 	    # TODO: new values
-	    if (defined $user{"forename"} && $user{"forename"} ne "") {
-		$entry->add ("givenName" => $user{"forename"});
+	    if (defined $user{"givenName"} && $user{"givenName"} ne "") {
+		$entry->add ("givenName" => $user{"givenName"});
 	    }
 	    if (defined $user{"shell"} && $user{"shell"} ne "") {
 		$entry->add ("loginShell" => $user{"shell"});
@@ -474,7 +475,7 @@ while ( <STDIN> )
 	    }
 	   
 	    my $res = $ldap->add ($entry);
- 
+
 	    ycp::Return(LDAPerror ($res->code));
 	    # ---------------------------------------
 	}
@@ -494,11 +495,11 @@ while ( <STDIN> )
 		    "gidNumber" => $user{"gid"},
 		    "homeDirectory" => $user{"home"},
 		    "cn" => $user{"fullname"},
-		    "sn" => $user{"surname"},
+		    "sn" => $user{"sn"},
 	    );
 	    # ---------- modify optional parameters
-	    if (defined $user{"forename"} && $user{"forename"} ne "") {
-		$replace{"givenName"} = $user{"forename"};
+	    if (defined $user{"givenName"} && $user{"givenName"} ne "") {
+		$replace{"givenName"} = $user{"givenName"};
 	    }
 	    else {
 		$replace{"givenName"} = [];
