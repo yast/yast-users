@@ -12,6 +12,7 @@
     textdomain "users";
 
     import "Wizard";
+    import "Users";
 
 
     // caption for dialog "User Authentication Method"
@@ -112,6 +113,17 @@ Here you can choose the authentication method of users on your system.
 
     } until ( ret == `next || ret == `back );
 
+    if ( UI::QueryWidget( `id(`network), `Value ) )
+    {
+        if ( UI::QueryWidget( `id(`nis), `Value ) )
+            Users::after_auth = `nis;
+        if ( UI::QueryWidget( `id(`nisplus), `Value ) )
+            Users::after_auth = `nisplus;
+        if ( UI::QueryWidget( `id(`ldap), `Value ) )
+            Users::after_auth = `ldap;
+    }
+    else
+        Users::after_auth = `users;
     return ret;
 
 /* EOF */

@@ -204,6 +204,7 @@ You can configure these settings by running appropriate modules. Select the modu
                 // button label
                 `MenuButton(`opt(`key_F4), _("&Configure..."), [
                     `item(`id(`conf_nis), "&NIS"),
+                    `item(`id(`conf_nisplus), "N&IS+"),
                     `item(`id(`conf_ldap), "&LDAP"),
                     `item(`id(`conf_krb), "&Kerberos")]),
                 `VSpacing (0.5)
@@ -234,48 +235,25 @@ You can configure these settings by running appropriate modules. Select the modu
     {
         button = UI::UserInput();
 
-        if ( button == `conf_nis)
+        if (contains ([`conf_krb, `conf_ldap, `conf_nis, `conf_nisplus],button))
         {
-            if ( RequireAndConflictButtons ( ["yast2-nis-client"], [],
-                // popup label (package to install)
-                _("Package yast2-nis-client is not installed.
+            map to_module = $[
+                `conf_krb:      "kerberos",
+                `conf_ldap:     "ldap",
+                `conf_nis:      "nis",
+                `conf_nisplus:  "nisplus" ];
+            string module_name = to_module [button]:"nis";
+            string package = sformat ("yast2-%1-client", module_name);
+
+            if ( RequireAndConflictButtons ( [package], [],
+                // popup label (%1 is package to install)
+                sformat (_("Package %1 is not installed.
 Install it now?
-"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+"), package), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             {
-                WFM::CallModule("nis", []);
+                WFM::CallModule(module_name, WFM::Args ());
                 reload_config ();
             }
-        }
-
-        if ( button == `conf_ldap)
-        {
-            if ( RequireAndConflictButtons ( ["yast2-ldap-client"], [],
-                // popup label (package to install)
-                _("Package yast2-ldap-client is not installed.
-Install it now?
-"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
-            {
-                WFM::CallModule("ldap", []);
-                reload_config ();
-            }
-        }
-
-        if ( button == `conf_krb)
-        {
-            if ( RequireAndConflictButtons ( ["yast2-kerberos-client"], [],
-                // popup label (package to install)
-                _("Package yast2-kerberos-client is not installed.
-Install it now?
-"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
-            {
-                WFM::CallModule("kerberos", []);
-                reload_config ();
-            }
-        }
-
-        if ( button == `conf_krb)
-        {
-
         }
 
         if ( button == `abort )

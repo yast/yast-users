@@ -29,7 +29,8 @@ include "users/routines.ycp";
 include "users/nis_routines.ycp";
 include "users/ldap_routines.ycp";
 
-
+// What module to call after auth. dialog during installation: see inst_auth.ycp
+global symbol after_auth = `users;
 
 // Encryption method: "des", "md5" - for future use: "blowfish"
 global string encryptionMethod = "des";
