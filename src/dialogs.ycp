@@ -65,6 +65,7 @@ global define symbol EditUserDialog(symbol what) ``{
     list removed_grouplist = Users::user_in_work["removed_grouplist"]:[];
     string org_username = Users::user_in_work["org_username"]:username;
     string addit_data   = Users::user_in_work["addit_data"]:"";
+    symbol modified_flag = Users::user_in_work["modified"]:`nothing;
 
     if (user_type == nil)
     {
@@ -626,6 +627,8 @@ Please try again."));
                 Users::user_in_work ["email"] = email;
             if ( addit_data != "")
                 Users::user_in_work ["addit_data"] = addit_data;
+            if (modified_flag != `nothing)
+                Users::user_in_work ["modified"] = modified_flag;
 
             y2debug ("edited user: %1", Users::user_in_work );
         }
@@ -874,7 +877,7 @@ Please remove the surplus.
 
             // check the uid -- only for adding??
 //            if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
-            if ( (what == `add_user) && (new_i_uid != uid) )
+            if (new_i_uid != uid)
             {
             if( ! ( new_i_uid >= 0  && new_i_uid <= Users::max_uid )  ||
                 nil != findfirstnotof( new_uid , Users::valid_id_chars ) )
@@ -900,7 +903,7 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
                 // change user_type
                 user_type = `system;
             }
-            if( ( uid != new_i_uid ) && UsersCache::UIDExists( new_i_uid ) )
+            if( UsersCache::UIDExists( new_i_uid ) )
             {
                 // error popup
                 Report::Error(_("The inputted User Id is reserved.
