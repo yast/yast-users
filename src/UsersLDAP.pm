@@ -481,8 +481,15 @@ BEGIN { $TYPEINFO{InitConstants} = ["function",
 }
 sub InitConstants {
     my $self 		= shift;
-    if (defined $_[0] && ref ($_[0]) eq "HASH") {
-	%useradd_defaults	= %{$_[0]};
+    my $local_defaults	= shift;
+    if ($local_defaults && ref ($local_defaults) eq "HASH") {
+	foreach my $key (keys %$local_defaults) {
+	    $useradd_defaults{$key}	= $local_defaults->{$key};
+	}
+	# do not use local groups as secondary groups here (#38987)
+	if (defined $local_defaults->{"groups"}) {
+	    $useradd_defaults{"groups"}	= "";
+	}    
     }
 }
 
