@@ -1,0 +1,46 @@
+/**
+ * File:
+ *  shells.ycp
+ *
+ * Module:
+ *  Users
+ *
+ * Summary:
+ *  Available shells listing test.
+ *
+ * Authors:
+ *  Petr Blahos <pblahos@suse.cz>
+ *
+ * $Id$
+ *
+ */
+
+{
+
+    include "testsuite.ycp";
+
+    import "Users";
+
+    map READ = $[
+	"target" : $[
+	    "string" :
+"/bin/ash
+/bin/bash
+/bin/bash1
+/bin/csh
+/bin/false
+/bin/ksh
+/bin/sh"
+	]
+    ];
+
+    map EXECUTE = $[
+	"target" : $[
+	    "size" : 0
+	]
+    ];
+
+    TEST (``(Users::ReadAllShells ()), [READ, $[], EXECUTE], 0);
+    DUMP ("==========================================================");
+    DUMP (sformat ("shells: %1", Users::AllShells()));
+}

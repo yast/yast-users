@@ -1,0 +1,10 @@
+Read	.target.string "/etc/shells" "/bin/ash\n/bin/bash\n/bin/bash1\n/bin/csh\n/bin/false\n/bin/ksh\n/bin/sh"
+Read	.target.size "/bin/ash" 0
+Read	.target.size "/bin/bash" 0
+Read	.target.size "/bin/csh" 0
+Read	.target.size "/bin/false" 0
+Read	.target.size "/bin/ksh" 0
+Read	.target.size "/bin/sh" 0
+Return	nil
+Dump	==========================================================
+Dump	shells: ["/bin/ash", "/bin/bash", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]
