@@ -4559,11 +4559,20 @@ a..zA..Z0..9_-/
 Try again.");
     }
 
+    my $modified	= 
+	(($user_in_work{"what"} || "") eq "add_user")		||
+	($home ne ($user_in_work{"homedirectory"} || "")) 	||
+	(defined $user_in_work{"org_homedirectory"} && 
+		 $user_in_work{"org_homedirectory"} ne $home);
+
+    if (!$modified) {
+	return "";
+    }
+
     # check if directory is writable
     if (!Mode->config () && !Mode->test () &&
 	($type ne "ldap" || Ldap->file_server ()))
     {
-#FIXME do not check if not changed?
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = $self->IsDirWritable ($home_path);
         if ($home_path ne "") {
@@ -4577,16 +4586,10 @@ Choose another path for the home directory."), $home_path);
 	return "";
     }
     
-    if (("add_user" eq ($user_in_work{"what"} || ""))		||
-	($home ne ($user_in_work{"homedirectory"} || "")) 	||
-	(defined $user_in_work{"org_homedirectory"} && 
-		 $user_in_work{"org_homedirectory"} ne $home)) {
-
-	if (UsersCache->HomeExists ($home)) {
-	    # error message
-	    return __("The home directory is used from another user.
+    if (UsersCache->HomeExists ($home)) {
+	# error message
+	return __("The home directory is used from another user.
 Please try again.");
-	}
     }
     return "";
 }
