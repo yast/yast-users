@@ -872,6 +872,7 @@ global define boolean Import (list settings) ``{
     RunPrepare("passwd"); // creates the files with data structures in tmpdir
 
     // read the system users from local file if they're not in parameters
+// TODO system users must be read every time and compared with imported
     if (users [`system]:nil == nil || users [`system]:nil == $[])
     {
         map passwd_users = ReadPasswd (tmpdir);
@@ -902,7 +903,7 @@ global define boolean Import (list settings) ``{
         // group users must be created
         map group = $[
              "gid": default_gid, "groupname": "users",
-             "password": "x", "userlist": "games"];
+             "password": "x", "userlist": ""];
         groups [`local] = add (groups [`local]:$[], default_gid, group);
         gshadow [`local] = add (gshadow [`local]:$[], "users",
             $[ "password": "*", "disposer": "root", "userlist": ""]);
@@ -921,7 +922,6 @@ global define boolean Import (list settings) ``{
         shadow = add (shadow, `local, $[]);
     plus_shadow = ReadPlusShadow(tmpdir);
 
-//y2warning ("gshadow: %1", gshadow);
     if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
     {
         map all_gshadow = ReadGshadow (tmpdir);
@@ -934,10 +934,49 @@ global define boolean Import (list settings) ``{
     // maybe the `system users/groups shouldn't be available??
     available_usersets = [`local, `system];
     available_groupsets = [`local, `system];
-//y2warning ("gshadow: %1", gshadow);
 
     ReadAllShells();
     ReadDefaultGroup(false);
+
+// TODO: define more_users (for groups) and grouplist (for users)
+
+    foreach (`uid, `user, users [`local]:$[], ``{
+        string username = user["username"]:":";
+        user["grouplist"] = FindGroupsBelongUser (username);
+        map group = GetGroupFromAll (user["gid"]:default_gid);
+        user["groupname"] = group ["groupname"]:default_groupname;
+        users [`local, uid] = user;
+
+        // update the group's more_users (use Commit?)
+        string more_users = group ["more_users"]:"";
+        list more_list = splitstring (more_users, ",");
+        if (! contains (more_list, username))
+        {
+            if (more_users != "") more_users = more_users + ",";
+            group ["more_users"] = more_users + username;
+            groups [ group["type"]:`local, user["gid"]:default_gid] = group;
+        }
+
+    });
+
+    foreach (`uid, `user, users [`system]:$[], ``{
+        string username = user["username"]:":";
+        user["grouplist"] = FindGroupsBelongUser (username);
+        map group = GetGroupFromAll (user["gid"]:default_gid);
+        user["groupname"] = group ["groupname"]:default_groupname;
+        users [`system, uid] = user;
+
+        // update the group's more_users (use Commit?)
+        string more_users = group ["more_users"]:"";
+        list more_list = splitstring (more_users, ",");
+        if (! contains (more_list, username))
+        {
+            if (more_users != "") more_users = more_users + ",";
+            group ["more_users"] = more_users + username;
+            groups [ group["type"]:`system, user["gid"]:default_gid] = group;
+        }
+    });
+
 
     ReadUsersCache(false);
     return true;
@@ -980,7 +1019,50 @@ global define void Set (list settings) ``{
  */
 global define map Export() ``{
 
-    return [ users, groups, shadow, gshadow, useradd_defaults ];
+    map system_users = modified_users[`system]:$[]; // these are deleted!
+    map system_shadow = $[];
+    foreach (`uid, `user, users[`system]:$[], ``{
+
+        if (user["modified"]:`nothing != `nothing)
+        {
+            system_users = add (system_users, uid, user);
+            string name = user["username"]:"";
+            system_shadow = add (system_shadow, name,
+                shadow[`system, name]:$[]);
+        }
+    });
+    map system_groups = modified_groups[`system]:$[];
+    map system_gshadow = $[];
+    foreach (`gid, `group, groups[`system]:$[], ``{
+
+        if (group["modified"]:`nothing != `nothing)
+        {
+            system_groups = add (system_groups, gid, group);
+            string name = group["groupname"]:"";
+                system_shadow = add (system_shadow, name,
+                    shadow[`system, name]:$[]);
+        }
+    });
+
+    return [
+        $[
+            `system: system_users, // only modified (also deleted)
+            `local: users [`local]:$[] // all
+        ],
+        $[
+            `system: system_groups,
+            `local: groups [`local]:$[]
+        ],
+        $[
+            `system: system_shadow,
+            `local: shadow [`local]:$[]
+        ],
+        $[
+            `system: system_gshadow,
+            `local: gshadow [`local]:$[]
+        ],
+        useradd_defaults
+    ];
 }
 
 /**
@@ -1924,7 +2006,11 @@ global define map GetGroupFromAll( integer gid )``{
     map group = $[];
     foreach (`grouptype, `groupset, groups, ``{
         if (group == $[])
+        {
             group = groupset [gid]:$[];
+            if (group != $[] && group["type"]:`no == `no)// FIXME
+                group ["type"] = grouptype;
+        }
     });
 	return group;
 }

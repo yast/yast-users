@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan 16 19:25:56 CET 2003 - jsuchome@suse.de
+
+- autoinst
+- fixed build_additional_users.pl script
+
+-------------------------------------------------------------------
 Wed Jan 15 17:58:36 CET 2003 - jsuchome@suse.cz
 
 - use cpu_configure from ldap-client to set cpu.cfg values (for LDAP)

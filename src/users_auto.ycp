@@ -93,18 +93,18 @@
         "my_user":$["password":"pass"]
      ]];
 
-    map groups = $[
-     `local: $[
+    map groups = $[];
+/*     `local: $[
         500: $[ "groupname":"users", "gid":500, "more_users": "my_user" ]
-     ]];
+     ]];*/
 
-    map gshadow = $[
-     `local: $[
+    map gshadow = $[];
+/*     `local: $[
         "users":$["disposer":"root", "password":"*"]
-     ]];
+     ]];*/
 
 
-    // param = [ users, groups, shadow, gshadow, $[] ];
+//    param = [ users, groups, shadow, gshadow, $[] ];
 
     /* create a  summary*/
     if (func == "Summary") {
@@ -122,6 +122,7 @@
 	ret = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
 //list ex = Users::Export(); // for debug...
+//y2warning ("all export: %1", ex);
 //y2warning ("local users: %1", ex[0,`local]:$[]);
     }
     else if (func == "Result") {

@@ -529,8 +529,10 @@ Use it and change its owner?
                 }
             }
 
+            /*
             if ( what == `add_user )
                 org_home = home;
+                */
 
             if (password != "x" && password != "")
             {
@@ -545,7 +547,6 @@ Use it and change its owner?
                      "gid"         :  gid,
                      "groupname"   :  groupname,
                      "home"        :  home,
-                     "org_home"    :  org_home,
                      "password"    :  password,
                      "shell"       :  shell,
                      "uid"         :  uid,
@@ -559,19 +560,21 @@ Use it and change its owner?
             ];
 
             // something has changed -> new entry
-            if ( org_username != username && org_username !="")
-                Users::user_in_work["org_username"] = org_username;
-
-            if ( removed_grouplist != [] )
-                Users::user_in_work["removed_grouplist"] = removed_grouplist;
-
-            if ( org_groupname != groupname)
-                Users::user_in_work["org_groupname"] = org_groupname;
-
-            if ( org_uid != uid )
+            if ( what != `add_user )
             {
-                Users::user_in_work["org_uid"] = org_uid;
-                UsersCache::focusline_user = uid;
+                if (home !=org_home)
+                    Users::user_in_work["org_home"] = org_home;
+                if ( org_username != username && org_username !="")
+                    Users::user_in_work["org_username"] = org_username;
+                if ( org_groupname != groupname)
+                    Users::user_in_work["org_groupname"] = org_groupname;
+                if ( org_uid != uid )
+                {
+                    Users::user_in_work["org_uid"] = org_uid;
+                    UsersCache::focusline_user = uid;
+                }
+                if ( removed_grouplist != [] )
+                    Users::user_in_work["removed_grouplist"]=removed_grouplist;
             }
 
             y2debug ("edited user: %1", Users::user_in_work );
