@@ -822,8 +822,10 @@ define boolean CustomizePopup (string what) ``{
 	if (contains (new_customs, "ldap") && Ldap::bind_pass == nil)
 	{
 	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-	    if (Ldap::bind_pass == nil)
-		return false;
+	    if (Ldap::bind_pass == nil || UsersLDAP::ReadSettings () != "")
+	    {
+		new_customs = filter (string set, new_customs,``(set !="ldap"));
+	    }
 	}
         modified = Users::ChangeCustoms (what, new_customs);
     }
