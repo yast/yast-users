@@ -1,32 +1,31 @@
-<html><head><title>YaST2 Users module docuentation</title></head>
+<html><head><title>YaST2 Users module documentation</title></head>
 <body>
 <h1>YaST2: Users configuration module</h1>
 
-<h2>Features (SL 8.2)</h2>
+<h2>Current Features (SL 9.0)</h2>
 
 <p>
 Basic module abilities:
 <ul>
-<li>add, remove and edit local users
-<li>add, remove and edit local groups
+<li>add, remove and edit local users and groups
+<li>add, remove and edit LDAP users and groups
 <li>read NIS users and groups
-<li>add, remove and (partial) edit of LDAP users and groups
 <li>configure password encryption type
 <li>configure authentication type
 <li>edit defaults from /etc/defaults/useradd
-<li>password changing and warning limits
 </ul>
 
 User attributes:
 <ul>
 <li>name
 <li>password
-<li>uid (UID currently cannot be changed)
-<li>GECOS
-<li>group (groups)
+<li>uid
+<li>GECOS (fullname and other attributes)
+<li>default group, additional group membership
 <li>shell
 <li>home directory
-<li>password settings (warning limits etc.)
+<li>password settings (warning limits, expiration date etc.)
+<li>special attributes for LDAP users
 </ul>
 
 Group attributes:
@@ -35,23 +34,13 @@ Group attributes:
 <li>gid
 <li>users
 <li>password access
-</ul>
-
-<h2>Changes from 8.1</h2>
-
-<ul>
-<li>major speedup, see <a href="benchmark.txt">benchmark</a>
-<li>LDAP support
-<li>editing defaults (
-<a href="http://bugzilla.suse.de/show_bug.cgi?id=14129">bug #14129</a>)
-<li>expert dialog (authentication and password encryption)
-<li>editing UID (
-<a href="http://bugzilla.suse.de/show_bug.cgi?id=16084">bug #16084</a>)
+<li>special attributes for LDAP groups
 </ul>
 
 <h2>TODO</h2>
 
 <ul>
+<li>Re-write to Perl... :-)
 <li>
 If it makes some sense, there could be a possibility for creating own group for
 a new user by checking checkbox in "Add user dialog".
@@ -63,54 +52,160 @@ a new user by checking checkbox in "Add user dialog".
 
 <h3>1. The workflow</h3>
 
-Current workflow (can be found at 
-<a href="http://lide.suse.cz/~~jsuchome/users/workflow.png">
-http://lide.suse.cz/~~jsuchome/users/workflow.png</a>):
+Current workflow
 
 <p>
 <img src="workflow.png">
 <p>
 
-<h4>1.1 Dialogs</h4>
+<h3>1.1 Common Dialogs</h3>
 
 <ul>
 <li>
-Summary dialog (<a href="http://lide.suse.cz/~~jsuchome/users/01-summary_users.png">current screenshot</a>):
+Summary dialog:
 <p>
 <img src="summary-dialog.png">
 <p>
-This dialog provides multiple views to sets of users (local/system/...).
-So there is a Menubutton for seting such view. New "Customize view" button
-will open the Customize popup. 
-
-<li>
-Defaults dialog
-(<a href="http://lide.suse.cz/~~jsuchome/users/09-useradd_defaults.png">
-current screenshot</a>)
+This dialog provides multiple filters (views) to sets of users
+(local/system/ldap/nis/custom). "Customize Filter" button will open the
+Customize popup for configuring the custom view (e.g. system+local). This
+setting is saved to configuration file (currently /var/lib/YaST2/users.ycp).
 <p>
-<img src="defaults-dialog.png">
-<p>
-
-Here the deafault settings for new users, such as default group, default shell,
-etc. are editable
-(<a href="http://bugzilla.suse.de/show_bug.cgi?id=14129">bug #14129</a>).
-
-<li>
 Customize popup
-(<a href="http://lide.suse.cz/~~jsuchome/users/08-customize_filter.png">
-current screenshot</a>)
 <p>
 <img src="customize-popup.png">
 <p>
 
 In this popup user can customize the view of the users set. (He can e.g. set to
 view only local and NIS users.)
+<p>
+"Expert Options" menubutton provides extended features:
+<ul>
+<li>Defaults
+<li>Pasword Encryption
+<li>Authetication and User Sources
+<li>LDAP Client configuration (just runs yast2-ldap-client module)
+<li>setting LDAP Search Filter (entry is only shown when LDAP source is
+available)
 </ul>
 <p>
-Other screenshots should be found at
-<a href="http://lide.suse.cz/~~jsuchome/users/">http://lide.suse.cz/~~jsuchome/users</a>
 
-<h3>2. The files</h3>
+<li>
+Defaults dialog
+<p>
+Here the default settings for new users could be set.
+<p>
+<img src="defaults-dialog.png">
+<p>
+
+<li>Encryption
+<p>
+For password encryption, use only small popup
+(known from installation sequence):
+<p>
+<img src="encryption.png">
+
+<li>Authentication and user sources
+<p>
+There is a list of various modules which configure authentization of user data
+sources and its stettings. The modules could be called from here to change the
+appropriate configuration.
+<p>
+<img src="authentication.png">
+<p>
+</ul>
+
+<ul>
+<h4>But the main purpose of module is editing users and groups</h4>
+
+"User" and "Group" dialog could be opened directly form Summary dialog, by using
+<i>Add</i> or <i>Edit</i> buttons
+<p>
+
+<li>Group Add/Edit dialog
+<p>
+<img src="group_edit.png">
+<p>
+
+<p>
+<li>User Add/Edit dialog
+<p>
+<img src="user_add.png">
+<p>
+<i>Suggestion</i> creates a proposal for username from the given full name
+<p>
+From this dialog, two additional could be opened: "User Details Dialog"
+and "User Password Settings" dialog as it arises from the button labels.
+<p>
+<li>User Details dialog
+<p>
+<img src="user_details.png">
+<p>
+
+<li>User Password Settings dialog
+<p>
+<img src="user_password_settings.png">
+<p>
+
+</ul>
+
+<h3>1.2 LDAP specials: dialogs extending traditional User/Group dialogs</h3>
+
+<ul>
+
+<li>LDAP filter
+<p>
+This popup is envoked by entry in "Expert Options" menubutton from Summary
+dialog. It is used for setting filter for LDAP users/groups which are to be
+loaded from LDAP server (can be defined some smaller group when it is not
+necessary to read all of them).
+<p>
+<img src="ldap_filter.png">
+<p>
+
+<li>Dialog for single user
+<p>
+After Details dialog, there is one more dialog, called "LDAP settings".
+In the dialog there is be possibility to set
+values that are used only for LDAP users, just like "e-mail", "homePhone",
+"description" or "roomNumber".
+<p>
+<img src="ldap_user_settings.png">
+<p>
+
+<li>Also for groups there is such dialog, showed after slicking Next from Edit
+Group dialog:
+<p>
+<img src="ldap_group_settings.png">
+<p>
+</ul>
+
+<h3>1.3 Installation workflow: what is different</h3>
+
+During installation workflow, the extened "Add User Dialog" is shown at first
+(not the Summary dialog) to add the first (and possible only) user.
+<ul>
+
+<li>User Add dialog
+<p>
+<img src="user_add_install.png">
+<p>
+The additional widhets (2 checkboxes and 1 button) are shown only in this
+(installation) time and only for this first user. So you won't see them if
+you go to Summary dialog and use "Add" button to add new user with the standard
+way.
+<p>
+
+<i>Recieve System Mail</i> sets forwaring of root's mail to this user<br>
+<i>Auto Login</i> means that user will be logged in automatically without
+prompting for pasword (works only with KDM). It is true by default.<br>
+<i>User Management</i> brings us to traditional "Summary" dialog of users
+module.
+
+</ul>
+
+
+<h2>2. The files</h2>
 
 For more, see <a href="autodocs/index.html">developer's documentation</a>.
 </body></html>

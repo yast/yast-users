@@ -4,7 +4,6 @@ Users module Todo
 LDAP:
 
 - edit user's DN
-- groupOfNames, not posixGroup
 
 NIS:
 - edit fields on client
@@ -14,14 +13,6 @@ Kerberos:
 
 - edit password 
     - problem: password changing utilities are interactive
-
-Expert login dialog (authentication):
-
-- Samba
-
-- other values for pam/nsswitch (krb5 - required?)
-
-- do not enable call from installation?
 
 Dialogs behaviour:
 
