@@ -32,6 +32,19 @@
     include "ui/common_popups.ycp";
     include "users/help.ycp";
 
+    global map saved_user = $[];
+
+    global define symbol userSetup () ``{
+	start_dialog = "users" ;
+	return `next;
+    }
+
+    global define symbol usersInstStart () ``{
+	start_dialog = "user_add";
+	UserWriteStack::Reset ();
+	return `next;
+    }
+
      global define void save_focus( integer table_input, any ret , symbol what) ``{
 
 	integer l_focusline = 0;
@@ -291,7 +304,7 @@ Select which one do you want to configure.")),
      * @return symbol
      */
     global define symbol usersUsersDialog() ``{
-
+	start_dialog              ="users";
 	user_in_work = $[];
 
 	term contents =
@@ -839,6 +852,11 @@ Please try again."));
 	    `clone_user: _("Add a new user by cloning user "),
 	    `edit_user:  _("Edit an existing user")
 	];
+	if (start_dialog == "user_add" && Mode::cont)
+	{
+	    y2error ("Using");
+	    user_in_work = saved_user;
+	}
 
 	boolean create_home    = lookup (user_in_work, "create_home", true);
 	string  username       = lookup( user_in_work, "username", "");
@@ -965,8 +983,10 @@ Please try again."));
 		// only in continue mode
 		if( ret == `additional )
 		{
-
-		    if( ! UI::YesNoPopup(_("Do you want to create one user first?")) )
+		    if (UI::QueryWidget(`id(`pw1), `Value) == "" && UI::QueryWidget(`id(`pw2),`Value) == ""
+			&& UI::QueryWidget(`id(`username), `Value) == "" && UI::QueryWidget(`id(`forename), `Value) == ""
+			&&UI::QueryWidget(`id(`surname ), `Value) == "")
+//		    if( ! UI::YesNoPopup(_("Do you want to create one user first?")) )
 		    {
 			ret = `nosave;
 		    }
@@ -976,9 +996,8 @@ Please try again."));
 
 		// check the settings
 		if (( ! Mode::cont && ( ret == `next || details ) )
-		 || (   Mode::cont && ( details || ret ==  ret == `additional || ret == `next )))
+		 || (   Mode::cont && ( details || ret == `additional || ret == `next )))
 		{
-
 		    string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
 		    string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
 		    username     = UI::QueryWidget(`id(`username), `Value);
@@ -1251,6 +1270,11 @@ Do you want to use it and change it's owner?.")))
 				     "type"	   :  user_type
 
 		    ];
+/*		    if (start_dialog == user_add && Mode::cont)
+		    {
+			saved_user = user_in_work;
+		    }
+*/
 
 		}
 	    } until ( ret == `next || details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional || ret == `nosave );
@@ -1260,9 +1284,10 @@ Do you want to use it and change it's owner?.")))
 	// leave sequencer and start it again with new start_dialog
 	if( ret == `additional ||  ret == `nosave )
 	{
-	    start_sequencer_again = true;
+	    saved_user = user_in_work;
+//	    start_sequencer_again = true;
 
-	    if ( ret == `additional ) ret = `next;
+//	    if ( ret == `additional ) ret = `next;
 	}
 	else start_sequencer_again = false;
 	return ret;

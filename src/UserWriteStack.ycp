@@ -236,7 +236,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    //add the todo string to the write stack
 	    if( todo !=  usermod )
 	    {
-		if (substring (todo, 0, 15) == sunstring (usermod, 0, 15))
+		if (substring (todo, 0, 15) == substring (usermod, 0, 15))
 		    todo = todo + " " + UserSettings::UserIdToName( uid );
 
 		AddTodo( todo,
@@ -463,7 +463,6 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
    * @return symbol
    */
   global define symbol SaveDialog(boolean useUI ) ``{
-
 	if ( IsEmpty() ) return `next;
 
 	UserSettings::BackupConfFiles();
@@ -493,7 +492,6 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	integer value = 0;
 	boolean ok    = true;
 	boolean is_nis_master = UserSettings::isNisMaster ();
-is_nis_master = true;
 
 	foreach( `todomap, write_to_system_stack, ``{
 

@@ -16,6 +16,7 @@
 
     import "Console";
     import "UserAddDefs";
+    import "Installation";
 
     include "security/io.ycp";
 
@@ -99,7 +100,8 @@
 
 	/* set encoding */
 	string language = UI::GetLanguage(true);
-	encoding = Console::SelectFont( language);
+//	encoding = Console::SelectFont( language);
+	encoding = Console::encoding;
 
 	/* set maximal password length */
 	if( pam ) max_length_pas = 128;

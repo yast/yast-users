@@ -38,7 +38,7 @@
     // ===== arguments ================================================
     string  start_dialog	   = "users";
     integer arg		   = 0;
-    list    possible_start_dialogs = ["user_add", "group_add", "groups", "users" ];
+    list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
 
     while ( arg < size( WFM::Args() ) )
     {
@@ -102,12 +102,15 @@
     map aliases = $[
 	"users":         ``(usersUsersDialog()),
         "user_add":      ``(usersEditUser(`add_user)),
+	"user_add_inst": [``(usersEditUser(`add_user)), true],
+	"user_inst_start":``(usersInstStart ()),
         "user_clone":    ``(usersEditUser(`clone_user)),
         "user_edit":     ``(usersEditUser(`edit_user)),
 	"user_details":  ``(usersEditUserDetails()),
 	"user_password": ``(usersEditUserPassword()),
         "user_delete":   ``(usersDeleteUser()),
-	"user_save":     ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )),
+	"user_save":     [ ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )), true],
+	"user_setup":	 [ ``(userSetup ()), true],
 
 	"groups":        ``(usersGroupsDialog()),
         "group_add":     ``(usersEditGroup(`add_group)),
@@ -133,13 +136,25 @@
 			    `cancel:         "without_save",
 			    `exit:           `abort ],
 	"user_add":      $[ `nextmodule:     `next,
-			    `nosave:         `next,
+			    `nosave:         "users",
+			    `additional:     "user_setup",
 			    `next:           "user_save",
 			    `details:        "user_details",
 			    `passwordsettings: "user_password",
 			    `abort:          "without_save",
 			    `cancel:         "without_save",
 			    `back:           "users" ],
+	"user_add_inst": $[ `nextmodule:     `next,
+                            `nosave:         "users",
+                            `additional:     "user_setup",
+                            `next:           "user_save",
+                            `details:        "user_details",
+                            `passwordsettings: "user_password",
+                            `abort:          "without_save",
+                            `cancel:         "without_save",
+                            `back:           "users" ],
+	"user_inst_start": $[ `next : "user_add_inst"],
+	"user_setup":	 $[ `next : "user_save" ],
 	"user_clone":    $[ `next:           "user_save",
 			    `details:        "user_details",
 			    `passwordsettings: "user_password",

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jul 15 18:43:37 CEST 2002 - jsrain@suse.cz
+
+- Fixed installation workflow (Bug #14079)
+- Fixed console encoding detection (Bug #16827)
+
+-------------------------------------------------------------------
 Fri Jul 12 16:10:45 CEST 2002 - jsrain@suse.cz
 
 - Fixed detection whether is NIS domain master

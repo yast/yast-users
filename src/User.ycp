@@ -49,7 +49,7 @@
 	integer ret = 0;
 
 	// back to console encoding
-	string comment = UI::Recode ("UTF-8", Installation::encoding, sformat("\"%1 %2\"", forename, surname ));
+	string comment = UI::Recode ("UTF-8", UserDefs::encoding, sformat("\"%1 %2\"", forename, surname ));
 
 	if (!Mode::test)
 	{

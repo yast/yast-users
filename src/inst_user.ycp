@@ -15,13 +15,13 @@
     import "Wizard";
     import "Mode";
     import "Product";
-
+Mode::cont = true;
     Wizard::CreateDialog ();
     // no user for imap server cd, y2c_imap will create it
     if (Product::imap_server || Product::fwadmin_host)
 	return `auto;
 
-    string start_mod = "user_add";
+    string start_mod = "user_inst_start";
     term   users_mod = `users( start_mod );
 
     if ( Mode::test )

@@ -409,6 +409,9 @@
 		}
 		if (type == `nis)
 		{
+		    // this should never happen, probably only in testsuites
+		    if (ypdir == nil)
+			ypdir = "";
 		    base_dir = ypdir;
 		    UserWriteStack::chage = sformat ("/usr/bin/chage -P %1 ", ypdir);
 		    UserWriteStack::useradd = sformat ("/usr/sbin/useradd -P %1 ", ypdir);
