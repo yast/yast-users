@@ -12,29 +12,28 @@ use Net::LDAP::Util qw( ldap_error_name ldap_error_text);# LDAP error messages
 
 # --------------------------------------------------------------------
 # --------- global values, initialized by calling Execute (.ldap.init)
-# TODO comment them
 
 my $ldap;			# ---- main object for LDAP database
-my $user_base;
-my $group_base;
-my @user_object_class;
-my @group_object_class;
+my $user_base;			# ---- DN of base for adding/editing users
+my $group_base;			# ---- DN of base for adding/editing groups
+my @user_object_class;		# ---- classes which user object belongs to
+my @group_object_class;		# ---- classes which group object belongs to
 my $bind_dn;			# ---- DN for binding to server
 my $hash = "CRYPT";		# ---- how to crypt user passwords
 
-my %users = ();
-my %users_by_name = ();
+my %users = ();			# ---- hash (map) of users, see Users::users
+my %users_by_name = ();		# ---- mapping username -> uid
 my @uids = ();			# ---- list of all LDAP UID's
 my @usernames = ();		# ---- list of all LDAP user names
 my @homes = ();			# ---- list of all LDAP home directories
-my %groups = ();
-my %groups_by_name = ();
+my %groups = ();		# ---- hash (map) of groups, see Users::groups
+my %groups_by_name = ();	# ---- hash (map) of groups, keys are groupnames
 my @gids = ();			# ---- list of all LDAP GID's
 my @groupnames = ();		# ---- list of all LDAP group names
 
 my $last_ldap_uid = 1;		# ---- UID last used
 my $the_answer = 42;		# ---- Definitely: this is the answer. ;-)
-my $max_length_id = 5;
+my $max_length_id = 5;		# ---- length of highest UID (used in widgets)
 
 # --------------------------------------------------------------------
 # ---------- retrieve the error type
@@ -129,8 +128,10 @@ while ( <STDIN> )
 
 	    my $user_filter = $argument->{"user_filter"};
 	    my $group_filter = $argument->{"group_filter"};
-	    my $output_dir = $argument->{"output_dir"}; # FIXME not needed
+	    my $output_dir = $argument->{"output_dir"};
 	    my %more_usersmap = ();
+	    # list of groups each user is member of; indexed by usernames
+	    my %users_groups = ();
 
 	    # --- get LDAP groups 
 	    my $mesg = $ldap->search(
@@ -145,15 +146,24 @@ while ( <STDIN> )
 	    foreach my $entry ($mesg->all_entries)
 	    { 
 		my $gid = $entry->get_value("gidNumber");
+		my $groupname = $entry->get_value("cn");
 	        $groups{$gid} = {
 		    "gid"	=> $gid,
-		    "groupname"	=> $entry->get_value("cn"),
+		    "groupname"	=> $groupname,
 		    "type"	=> "ldap"
 		};
-	        # TODO userlist -> memberUid
-#		if (defined $entry->get_value("memberUid")) {
-#		    $groups{$gid}{"userlist"} =
-#			join (',', $entry->get_value("memberUid"));
+	        # create userlist and save it to users_groups hash
+		if (defined $entry->get_value("memberUid"))
+		{
+		    my @members = $entry->get_value("memberUid");
+		    $groups{$gid}{"userlist"} = join (',', @members);
+		    foreach my $u (@members) {
+			push @{ $users_groups{$u}}, $groupname;
+		    }
+		}
+# userPasword is not searched
+#		if (defined $entry->get_value("userPassword")) {
+#		    $groups{$gid}{"password"} = "x";
 #		}
 	    }
 
@@ -189,7 +199,11 @@ while ( <STDIN> )
 		if (! defined ($groupname)) {
 		    $groupname = "";
 		}
+
 		my $grouplist = "";
+		if (defined $users_groups{$username}) {
+		    $grouplist = join (',', @{$users_groups{$username}});
+		}
 
 		$users{$uid} = {
 		    "surname"	=> $entry->get_value("sn"),
@@ -219,10 +233,21 @@ while ( <STDIN> )
    		push @usernames, $username;
 		push @homes, $entry->get_value("homeDirectory");
 
-		# TODO: grouplist!!!
-		my $all_groups = $groupname;
-		if ($groupname ne "") {
+		my $all_groups = $grouplist;
+		if ( $groupname ne "" ) {
+		    if ($grouplist eq "") {
+			$all_groups = $groupname;
+		    }
+		    else {
+			$all_groups = "$groupname,$grouplist";
+		    }
+		}
+		# these 3 dots are for local groups
+		if ($all_groups ne "") {
 		    $all_groups .= ",...";
+		}
+		else {
+		    $all_groups = "...";
 		}
 	        my $uid_wide = addBlanks ($uid);
 
@@ -250,19 +275,22 @@ while ( <STDIN> )
 	    foreach my $gid (keys %groups)
 	    {
 		my $groupname = $groups{$gid}{"groupname"};
-		my $userlist = "";
+		my $all_users = $groups{$gid}{"userlist"};
 		my $more_users = "";
 		if (defined $more_usersmap{$gid}) {
 		    $more_users = $more_usersmap{$gid};
 		    $groups{$gid}{"more_users"} = $more_users;
 		}
-		# TODO: userlist
  
+		$groups_by_name{$groupname} = $groups{$gid};
+
 		push @groupnames, $groupname;
-		push @gids, $gid;   
-           
-		my $all_users = $userlist;
-		if ($userlist ne "" && $more_users ne "") {
+		push @gids, $gid;
+       
+		if (! defined ($all_users)) {
+		    $all_users = "";
+		}
+		if ($all_users ne "" && $more_users ne "") {
 		    $all_users .= ",";
 		}
 		$all_users .= $more_users;
@@ -314,11 +342,6 @@ while ( <STDIN> )
 
 	    ycp::Return (\@usernames);
 	}
-	# FIXME: cannot return as YCP value...
-#	elsif ( $path eq '.users.items' ) {
-#
-#	    ycp::Return (\@user_items);
-#	}
 	elsif ( $path eq '.users.last_uid' ) {
 
 	    ycp::Return ($last_ldap_uid);
@@ -363,7 +386,12 @@ while ( <STDIN> )
 		    "objectClass" => @group_object_class
 	    );
 	    # ---------- add optional parameters:
-	    # TODO: memberUid, userPassword
+	    if (defined $group{"userlist"}) {
+		$entry->add ("memberUid" => split (/,/,$group{"userlist"}));
+	    }
+	    if (defined $group{"password"}) {
+		$entry->add ("userPassword" => "{$hash}".$group{"password"});
+	    }
 	   
 	    my $res = $ldap->add ($entry);
  
@@ -386,7 +414,12 @@ while ( <STDIN> )
 	    );
 
 	    # ---------- modify optional parameters
-	    # TODO: memberUid, userPassword
+	    if (defined $group{"userlist"}) {
+		@{$replace{"memberUid"}} = split (/,/,$group{"userlist"});
+	    }
+	    if (defined $group{"password"}) {
+		$replace{"userPassword"} = "{$hash}".$group{"password"};
+	    }
 	   
 	    my $res = $ldap->modify ($dn, replace => \%replace);
 	    
@@ -426,17 +459,18 @@ while ( <STDIN> )
 		    "objectClass" => @user_object_class
 	    );
 	    # ---------- add optional parameters
-	    # TODO: mail, etc.
+	    # TODO: new values
 	    if (defined $user{"forename"} && $user{"forename"} ne "") {
 		$entry->add ("givenName" => $user{"forename"});
 	    }
-	    
 	    if (defined $user{"shell"} && $user{"shell"} ne "") {
 		$entry->add ("loginShell" => $user{"shell"});
 	    }
-
 	    if (defined $user{"password"} && $user{"password"} ne "x") {
 		$entry->add ("userPassword" => "{$hash}".$user{"password"});
+	    }
+	    if (defined $user{"mail"} && $user{"mail"} ne "") {
+		$entry->add ("mail" => $user{"mail"});
 	    }
 	   
 	    my $res = $ldap->add ($entry);
@@ -474,6 +508,12 @@ while ( <STDIN> )
 	    }
 	    else {
 		$replace{"loginShell"} = [];
+	    }
+	    if (defined $user{"mail"} && $user{"mail"} ne "") {
+		$replace{"mail"} = $user{"mail"};
+	    }
+	    else {
+		$replace{"mail"} = [];
 	    }
 	    if (defined $user{"password"} && $user{"password"} ne "x") {
 		$replace{"userPassword"} = "{$hash}".$user{"password"};

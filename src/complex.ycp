@@ -31,7 +31,7 @@ include "users/helps.ycp";
 global define boolean Modified() ``{
     return (Users::users_modified || Users::groups_modified ||
         Users::customs_modified || Users::ldap_modified ||
-        Users::defaults_modified);
+        Users::defaults_modified || Users::security_modified);
 }
 
 
@@ -268,25 +268,11 @@ global define symbol UsersDialog() ``{
                 Ldap::WriteCpuSettings();
             ret = `not_next;
         }
-	/*
-        if ( ret == `auth)
-        {
-            ret = `not_next;
-            // if (CallFunction(`expert_login()) == `next)
-            if (AuthentizationDialog() == `next)
-            {
-                // check the sources, they could be modified
-                Users::ReadSourcesSettings();
-                Users::BuildMenuButtonItems();
-                ret = `users;
-            }
-        }
-	*/
         if ( ret == `enc)
         {
             ret = `not_next;
             Users::encryptionMethod = EncryptionDialog();
-            // FIXME: do Security::Save!!!
+	    Users::security_modified = true;
         }
         if ( ret == `user_table )
             ret = `edit;

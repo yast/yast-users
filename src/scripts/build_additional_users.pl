@@ -67,8 +67,9 @@ foreach my $line (<USERNAMES>)
 close USERNAMES;
 
 my @nameslist = ();
+my $first_idx = 0;
 
-while (index ($usernames, "\"") > -1)
+while (index ($usernames, "\"") > -1 && $first_idx > -1)
 {
     $first_idx = index($usernames, ":");
     $last_idx = index($usernames, "]");

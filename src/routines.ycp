@@ -6,6 +6,9 @@
  *          Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
+ *
+ * Important! It is supposed that this file is included from Users.ycp,
+ * some variables are used from here...
  */
 {
 include "users/passwd.ycp";
@@ -421,6 +424,104 @@ global define void BackupConfFiles(string dir)``{
     SCR::Execute(.target.bash,
         sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
 }
+
+/**
+ * Create home directory
+ * @param skeleton skeleton directory for new home
+ * @param home name of new home directory
+ * @return success
+ */
+global define boolean CreateHome (string skeleton, string home) ``{
+
+    // create a path to new home directory, if not exists
+    string home_path = substring (home, 0, findlastof (home,"/"));
+    if (SCR::Read(.target.stat, home_path) == $[])
+	SCR::Execute(.target.mkdir, home_path);
+
+    // copy homedir from skel
+    string command = sformat("/bin/cp -r %1 %2", skeleton, home);
+
+    map out = SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("The directory %1 was created", home);
+
+    return true;
+}
+
+/**
+ * Change ownership of directory
+ * @param uid UID of new owner
+ * @param gid GID of new owner's default group
+ * @param home name of new home directory
+ * @return success
+ */
+global define boolean ChownHome (integer uid, integer gid, string home)``{
+
+    // directory already exists and chown is needed
+    if (uid == lookup (SCR::Read(.target.stat, home), "uid", -1) &&
+	gid == lookup (SCR::Read(.target.stat, home), "gid", -1))
+	return true;
+
+    string command = sformat("/bin/chown -R %1:%2 %3", uid, gid, home);
+    map out = SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("Changed owner of files in %2 to user %1", uid, home);
+
+    return true;
+}
+
+/**
+ * Move the directory
+ * @param org_home original name of directory
+ * @param home name of new home directory
+ * @return success
+ */
+global define boolean MoveHome (string org_home, string home) ``{
+
+    // create a path to new home directory, if not exists
+    string home_path = substring (home, 0, findlastof (home,"/"));
+    if (SCR::Read(.target.stat, home_path) == $[])
+        SCR::Execute(.target.mkdir, home_path);
+
+    string command = sformat("/bin/mv %1 %2", org_home, home);
+    map out = SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("The directory %1 was moved to %2", org_home, home);
+
+    return true;
+}
+
+/**
+ * Delete the directory
+ * @param home name of directory
+ * @return success
+ */
+global define boolean DeleteHome (string home) ``{
+
+    string command = sformat("/bin/rm -rf %1", home);
+    map out = SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("The directory %1 was deleted", home);
+
+    return true;
+}
+
 
 /**
  * Split fullname in forename and surname.

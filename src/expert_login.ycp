@@ -8,6 +8,7 @@
  */
 
 {
+// FIXME: not needed!
 
 textdomain "users";
 
