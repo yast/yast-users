@@ -777,7 +777,26 @@ Please press button Details and edit home directory.")));
      * @return symbol
      */
     global define usersDeleteUser() ``{
+	string username       = lookup( user_in_work, "username", "");
+	map new_current_users = $[];
+	
+	// if the user has log on system
+	SCR(`Execute(.target.bash, "/bin/ls -l /proc >/tmp/lsl"));
+	list proc  = SCR(`Read(.tmp.lsl ));
+	SCR(`Execute(.target.bash, "/bin/rm /tmp/lsl"));
 
+        // the user that should deleted is present
+	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
+				       (groupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
+	{
+	    UI(`ErrorPopup(_("You can not delete this user, because the user is present.
+Please log off the user first.")));
+	    user_in_work = $[];
+	    return `next; 
+	}
+	
+	
+	
 	// if the user want to delete a system user
 	if ( lookup(user_in_work , "uid") <= max_system_uid )
 	{	
@@ -790,8 +809,6 @@ Please press button Details and edit home directory.")));
 
 
 	// delete the user from the map current_users
-	string username       = lookup( user_in_work, "username", "");
-	map new_current_users = $[];
 	foreach(`key, `user, current_users, ``{
 	    if( lookup( user_in_work, "uid") != key) new_current_users = add( new_current_users , key, user);
 	});
