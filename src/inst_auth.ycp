@@ -21,7 +21,7 @@ import "Internet";
 import "DSL";
 
 // Check if lan is configured
-list net_devices = NetworkDevices::GetDevices("all");
+list net_devices = NetworkDevices::List("");
 y2debug("net_devices: %1", net_devices);
 
 if(size(net_devices) == 0) {
