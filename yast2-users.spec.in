@@ -3,7 +3,7 @@
 # neededforbuild  yast2-devel-packages
 
 @HEADER@
-Requires:	yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
+Requires:	yast2 yast2-security yast2-pam
 
 BuildArchitectures:	noarch
 
