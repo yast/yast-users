@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 12 16:10:46 CET 2003 - jsuchome@suse.de
+
+- missing texts for translations (#25189)
+
+-------------------------------------------------------------------
 Mon Mar 10 15:25:47 CET 2003 - jsuchome@suse.de
 
 - enable uppercase in user/groupnames (#24891)

@@ -107,15 +107,15 @@ You can configure these settings by running appropriate modules. Select the modu
             "krb5"  : _("Kerberos")
          ];
 
-        string sources_text = "<b>Summary</b>
-<p><i>The sources of user data are:</i><br>";
+        string sources_text = _("<b>Summary</b>
+<p><i>The sources of user data are:</i><br>");
         foreach (`source, users_sources, ``{
 
             sources_text = sources_text + to_string [source]:"" + "<br>";
         });
 
-        sources_text = sources_text + "</p>
-<p><i>Users are authenticated using:</i><br>";
+        sources_text = sources_text + _("</p>
+<p><i>Users are authenticated using:</i><br>");
 
         // this looks to /etc/pam.d/login ...
         string auth_text = sources_text;
