@@ -31,7 +31,7 @@
 
     any ret = nil;
     string func = "";
-    list param = [];
+    map param = $[];
     /* Check arguments */
     if(size(Args()) > 0 && is(Args(0), string)) {
 	func = WFM::Args(0);
@@ -58,17 +58,18 @@
 
 //    param = [users, groups, $[]];
 
+    if (func == "Import") {
+	ret = Users::Import(param);
+    }
     /* create a  summary*/
     if (func == "Summary") {
-	Users::Import(param);
 	ret =  Users::Summary();
     }
     else if (func == "Reset") {
-	Users::Import([]);
-	ret = [];
+	Users::Import($[]);
+	ret = $[];
     }
     else if (func == "Change") {
-	Users::Import(param);
 	string start_dialog = "users"; //look to users.ycp for possible values
 	Wizard::CreateDialog();
 	ret = AutoSequence(start_dialog);

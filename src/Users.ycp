@@ -929,14 +929,14 @@ define map ImportGroup (map group) ``{
  * to be added to the system.
  * @return true
  */
-global define boolean Import (list settings) ``{
+global define boolean Import (map settings) ``{
 
     y2debug("importing: %1", settings);
 
-    if (settings[2]:$[] == $[])
+    if (settings["userdefaults"]:$[] == $[])
         ReadLoginDefaults(false);
     else
-        useradd_defaults = settings[2]:$[];
+        useradd_defaults = settings["userdefaults"]:$[];
 
     ReadSystemDefaults();
     tmpdir = SCR::Read(.target.tmpdir);
@@ -956,7 +956,7 @@ global define boolean Import (list settings) ``{
     users [`system] = passwd_users [`system]:$[];
     users [`local] = $[];
 
-    foreach (`imp_user, settings[0]:[], ``{
+    foreach (`imp_user, settings["users"]:[], ``{
         map user = ImportUser (imp_user);
         symbol type = user ["type"]:`local;
         users [type] = add (users[type]:$[], user["uid"]:-1, user);
@@ -993,7 +993,7 @@ global define boolean Import (list settings) ``{
     groups [`system] = system_groups;
     groups [`local] = $[];
 
-    foreach (`imp_group, settings[1]:[], ``{
+    foreach (`imp_group, settings["groups"]:[], ``{
         map group = ImportGroup (imp_group);
         symbol type = group ["type"]:`local;
         string groupname = group ["groupname"]:"";
@@ -1181,7 +1181,7 @@ global define map Export() ``{
         }
     });
 
-    return [ exported_users, exported_groups, useradd_defaults ];
+    return $[ "users":exported_users, "groups": exported_groups, "userdefaults": useradd_defaults ];
 
 }
 

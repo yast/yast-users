@@ -44,5 +44,8 @@ Autoinst = all
 ; data type
 AutoinstDataType = list
 
+AutoinstMerge = users,groups,user_defaults
+AutoinstMergeTypes = list,list,map
+
 
 ; vim:syntax=dosini
