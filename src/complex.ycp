@@ -533,20 +533,26 @@ Remove these users from the group first."));
 global define boolean CustomizePopup(string what) ``{
 
     term view = `VBox();
+    string label = "";
     list sets = [];
     list custom_sets = [];
     map set_to_string = $[];
+
     if (what == "user")
     {
         sets = filter (`set, Users::available_usersets, ``(set != `custom));
         custom_sets = Users::user_custom_sets;
         set_to_string = Users::userset_to_string;
+		// Frame label
+        label = _("Customize the view of the user list");
     }
     else
     {
         sets = filter (`set, Users::available_groupsets, ``(set != `custom));
         custom_sets = Users::group_custom_sets;
         set_to_string = Users::groupset_to_string;
+		// Frame label
+        label = _("Customize the view of the group list");
     }
 
     foreach (`set, sets, ``{
@@ -565,8 +571,7 @@ global define boolean CustomizePopup(string what) ``{
         `VBox(
             `HSpacing(40),
             `VSpacing(1),
-			// Frame label, %1 is "users" or "groups"
-	        `Frame(sformat(_("Customize the view of the %1 list"), what), view),
+	        `Frame(label, view),
             `VSpacing(1),
 	        `HBox(
 	            `HSpacing(1),
