@@ -1213,7 +1213,7 @@ global define symbol EditUserPasswordDialog() ``{
  */
 global define symbol LDAPUserSettingsDialog() ``{
 
-    // TODO: offer a table, where use can add/remove the attributes
+    // TODO FIXME: offer a table, where use can add/remove the attributes
     // (schema has to be read from server)
     string mail                 = Users::user_in_work["mail"]:"";
     string roomNumber           = Users::user_in_work["roomNumber"]:"";
@@ -1910,7 +1910,7 @@ global define symbol AuthentizationDialog() ``{
 
     define string additional_info (list labels, list values, boolean enabled)``{
 
-	// FIXME: richtext looks ugly in ncurses!
+	// TODO: richtext looks ugly in ncurses!
 	string ret = "";
 	integer i = 0;
 	foreach (`value, values, ``{
@@ -1919,6 +1919,7 @@ global define symbol AuthentizationDialog() ``{
 	    if (ret != "")
 		ret = ret + "<br>";
 	    ret = sformat ("%1<b>%2</b> %3", ret, labels[i]:"", value);
+
 	    i = i + 1;
 	});
 	if (!enabled)

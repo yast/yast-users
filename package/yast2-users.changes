@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Wed Jun  4 10:07:11 CEST 2003 - jsuchome@suse.de
+
+- added agent-crack for checking passwords strength (bug #21266)
+- 2.8.3
+
+-------------------------------------------------------------------
+Fri May 23 15:30:53 CEST 2003 - jsuchome@suse.de
+
+- warning when username has uppercase letters (bug #26409)
+
+-------------------------------------------------------------------
 Mon May  5 13:00:51 CEST 2003 - jsuchome@suse.de
 
 - popup for setting LDAP search filters

@@ -212,6 +212,7 @@ global define void ReadLDAPSettings () ``{
 			     "group": "100",
 			     "shell":  default_shell ];//Ldap::GetUserDefaults
     ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
+//    ldap_port		= Ldap::port;// FIXME not present
 }
 
 /**
@@ -222,6 +223,10 @@ global define string LDAPInit () ``{
 
     map ldap = $[
 	"host":		ldap_host,
+	"port":		ldap_port
+    ];
+    string ret = SCR::Execute (.ldap.init, ldap);
+    ldap = $[
         "user_base":	ldap_user_base,
         "group_base":	ldap_group_base,
 	"user_class":	ldap_user_class,
@@ -230,7 +235,8 @@ global define string LDAPInit () ``{
 	"bind_dn":	ldap_bind_dn,
 	"pw_hash":	toupper (ldap_encryption) // TODO is toupper needed?
     ];
-    return SCR::Execute (.ldap.init, ldap);
+    SCR::Execute (.ldap.users.init, ldap);
+    return ret;
 }
 
 
@@ -265,13 +271,13 @@ global define string ReadLDAP () ``{
     string group_filter = (ldap_group_filter != "") ?
 	    ldap_group_filter: ldap_default_group_filter;
 
-    ret = SCR::Read(.ldap.filter_check, user_filter);
+    ret = SCR::Read(.ldap.filter.check, user_filter);
     if (ret != "") return ret+"_USER";
 
-    ret = SCR::Read(.ldap.filter_check, group_filter);
+    ret = SCR::Read(.ldap.filter.check, group_filter);
     if (ret != "") return ret+"_GROUP";
 
-    ret = SCR::Execute (.ldap.search, $[
+    ret = SCR::Execute (.ldap.users.search, $[
 	"output_dir":	tmpdir,
 	"user_filter":	user_filter,
 	"group_filter":	group_filter
@@ -360,7 +366,7 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
 
         if (action == "added")
         {
-	    ldap_ret = SCR::Write (.ldap.add, user);
+	    ldap_ret = SCR::Write (.ldap.user.add, user);
             // on server, we can modify homes
             if (server && ldap_ret == "")
             {
@@ -371,7 +377,7 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
         }
         else if (action == "deleted")
         {
-	    ldap_ret = SCR::Write (.ldap.delete, user);
+	    ldap_ret = SCR::Write (.ldap.user.delete, user);
             if (server && user["delete_home"]:false && ldap_ret == "")
             {
                 DeleteHome (home);
@@ -379,7 +385,7 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
         }
         else if (action == "edited")
         {
-	    ldap_ret = SCR::Write (.ldap.modify, user);
+	    ldap_ret = SCR::Write (.ldap.user.modify, user);
             if (server && home != org_home && ldap_ret == "")
             {
 		if (user["create_home"]:false)

@@ -522,7 +522,7 @@ global define boolean DeleteHome (string home) ``{
     return true;
 }
 
-/** TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
+/**
  * Split fullname in forename and surname.
  * @param what `surname or `forename
  * @param fullname fullname
@@ -530,6 +530,8 @@ global define boolean DeleteHome (string home) ``{
  * @return string selected part of user name
  */
 global define string SplitFullName(symbol what,string fullname) ``{
+
+// TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
 
     if( fullname == nil )
         fullname = "";
@@ -553,7 +555,8 @@ global define string SplitFullName(symbol what,string fullname) ``{
 }
 
 
-/** TODO: move to ui_routines.ycp?
+/**
+ * TODO: move to ui_routines.ycp?
  * Let user choose the encryption method.
  **/
 global define string EncryptionDialog() ``{
@@ -708,14 +711,14 @@ This is not good security practice. Are you sure?");
  * Try to crack password using cracklib
  * @param username user name
  * @param pw password
- * @return utility output: ether "OK" or error message
+ * @return utility output: either "OK" or error message
  */
 global define string CrackPassword (string username, string pw) ``{
 
-
-    return "OK"; //FIXME use crack agent
-//    return (SCR::Execute(.crack, pw));
-
+    if (SCR::Read (.target.size, Users::cracklib_dictpath + ".pwd") == -1)
+	return SCR::Execute(.crack, pw);
+    else
+	return SCR::Execute(.crack, pw, Users::cracklib_dictpath);
 }
 
 

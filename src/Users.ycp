@@ -116,6 +116,10 @@ global string default_pw     = "******";
  * if password should be checked against crack
  */
 global boolean use_cracklib = false;
+/**
+ * default path to password cracking dictionary
+ */
+global string cracklib_dictpath = "/usr/lib/cracklib_dict";
 
 /**
  * if password should be checked
@@ -220,6 +224,7 @@ global boolean is_ldap_server = false; // TODO currently not used
 global boolean ldap_file_server = false;
 global string ldap_encryption = "crypt";// TODO read from Ldap!
 global integer ldap_version = 3;
+global integer ldap_port = 389;
 
 // type of pam kerberos authentication: required/optional/sufficient/""
 global string kerberos_auth = "";
@@ -2268,7 +2273,7 @@ global define boolean ReadSystemDefaults()``{
     if (nil == pass_warn_age)
         pass_warn_age = 7;
 
-    // add a progress for this?
+    // TODO add a progress for this?  ReadSecurity
     Progress::off();
     Security::Read();
     Progress::on();
@@ -2279,6 +2284,8 @@ global define boolean ReadSystemDefaults()``{
     use_cracklib = (sec == "yes") ? true: false;
     sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
     obscure_checks = (sec == "yes") ? true: false;
+
+    cracklib_dictpath = SCR::Read(.etc.login_defs.CRACKLIB_DICTPATH);
 
     max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
     y2debug ("encryption: %1", Users::encryptionMethod);
@@ -2678,6 +2685,14 @@ global define integer NextFreeUid() ``{
 }
 
 /**
+ * Scan gidlist for the next free gid.
+ * @return integer free gid
+ */
+global define integer NextFreeGid() ``{
+    return UsersCache::NextFreeGid();
+}
+
+/**
  * Read new set of users - "on demand" (called from running module)
  * @param type the type of users, currently "ldap" or "nis"
  * @return success
@@ -2700,7 +2715,7 @@ global define boolean ReadNewSet (string type) ``{
         groups ["nis"] = ReadNISGroups (tmpdir);
         groups_by_name ["nis"] = ReadNISGroupsByName (tmpdir);
     }
-    else if (type == "ldap")
+    else if (type == "ldap") //FIXME: perl-ldap not needed to check->agent-ldap
     {
         // first: check for required packages:
         if (!Require::RequireAndConflict (["perl-ldap","yast2-ldap-client"], [], sformat (
