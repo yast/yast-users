@@ -501,6 +501,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 
 	    symbol what  = lookup ( todomap , "what" , `error );
 	    boolean ret = true;
+	    y2debug ("Processing %1", todomap);
 
 	    if( what == `set_group_password )
 	    {

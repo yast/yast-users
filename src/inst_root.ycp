@@ -79,7 +79,10 @@ As a general rule of thumb, use DES if you are unsure.
 
 								 // Radio buttons for password encryption: MD5-crypt
 								 `Left(`RadioButton(`id(`md5), _("&MD5" ),
-										    User::encryptionMethod == "md5" ) )
+										    User::encryptionMethod == "md5" ) ),
+								 // Radio buttons for password encryption: blowfish-crypt
+                                                                 `Left(`RadioButton(`id(`blowfish), _("&Blowfish" ),
+                                                                                    User::encryptionMethod == "blowfish" ) )
 								 )
 							   )
 						   ),
@@ -112,6 +115,7 @@ As a general rule of thumb, use DES if you are unsure.
 	  {
 	      if      ( UI::QueryWidget( `id(`des), `Value ) )	User::encryptionMethod = "des";
 	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	User::encryptionMethod = "md5";
+	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) User::encryptionMethod = "blowfish";
 
 	      y2milestone( "Password expert options: Changing encryption method to %1", User::encryptionMethod );
 	  }
@@ -290,6 +294,32 @@ Try again.
 
 	     y2milestone( "encrypting with %1", User::encryptionMethod );
 
+	     SCR::Write(.pam.all.password.pam_unix2, "-md5");
+	     SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
+	     /* Remove old config options */
+	     SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
+	     SCR::Write(.pam.login.password.pam_unix, "-md5");
+	     SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
+	     SCR::Write(.pam.passwd.password.pam_unix, "-md5");
+	     SCR::Write(.pam.sshd.password.pam_pwcheck, "-md5");
+	     SCR::Write(.pam.sshd.password.pam_unix, "-md5");
+	     SCR::Write(.pam.rlogin.password.pam_pwcheck, "-md5");
+	     SCR::Write(.pam.rlogin.password.pam_unix, "-md5");
+
+	     SCR::Write(.pam.all.password.pam_unix2, "-blowfish");
+             SCR::Write(.pam.all.password.pam_pwcheck, "-blowfish");
+             /* Remove old config options */
+             SCR::Write(.pam.login.password.pam_pwcheck, "-blowfish");
+             SCR::Write(.pam.login.password.pam_unix, "-blowfish");
+             SCR::Write(.pam.passwd.password.pam_pwcheck, "-blowfish");
+             SCR::Write(.pam.passwd.password.pam_unix, "-blowfish");
+             SCR::Write(.pam.sshd.password.pam_pwcheck, "-blowfish");
+             SCR::Write(.pam.sshd.password.pam_unix, "-blowfish");
+             SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
+             SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
+
+
+
 	     if ( User::encryptionMethod == "md5" )
 	     {
 		 if ( this_is_for_real )
@@ -300,13 +330,23 @@ Try again.
 
 		 User::rootPassword = cryptmd5 (pw1);
 	     }
+	     else if (User::encryptionMethod == "blowfish" )
+	     {
+		if ( this_is_for_real )
+		{
+                     SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
+                     SCR::Write( .pam.all.password.pam_pwcheck, "+blowhish" );
+		}
+
+		User::rootPassword = cryptblowfish (pw1);
+	     }
 	     else
 	     {
-		 if ( this_is_for_real )
+/*		 if ( this_is_for_real )
 		 {
 		     SCR::Write( .pam.all.password.pam_unix2,   "-md5" );
 		     SCR::Write( .pam.all.password.pam_pwcheck, "-md5" );
-		 }
+		 }*/
 
 		 User::rootPassword = crypt (pw1);
 	     }

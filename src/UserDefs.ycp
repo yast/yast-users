@@ -45,7 +45,8 @@
     global string default_pw     = "******";
     global string encoding       = "";
 
-    global boolean pam           = false;
+//    global boolean pam           = false;
+    global symbol encryption	 = `des;
 
 
 
@@ -77,6 +78,21 @@
 	/* read defaults form system */
 	map security  = SecurityRead();
 
+	/* pam stuff */
+	map pam_unix_map = $[];
+	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
+	if(pam_list != [] && pam_list != nil)
+	    pam_unix_map = select(pam_list,0,$[]);
+
+	map pam_check_map = $[];
+	pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
+	if(pam_list != [] && pam_list != nil)
+	    pam_check_map = select(pam_list,0,$[]);
+
+	/* md5 support */
+	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""), " "), "md5");
+	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments", ""), " "), "blowfish");
+
 	/* set defaults */
 	if ( security != $[] && security != nil )
 	{
@@ -92,7 +108,8 @@
 	    pass_min_days       = tointeger(security["PASS_MIN_DAYS"]:"0");
 	    pass_warn_age	= tointeger(security["PASS_WARN_AGE"]:"7");
 
-	    pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ;
+	    encryption		= md5 ? `md5 : blowfish ? `blowfish : `des;
+//	    pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ;
 	}
 	else
 	{
@@ -106,7 +123,9 @@
 	encoding = Console::encoding;
 
 	/* set maximal password length */
-	if( pam ) max_length_pas = 128;
+//	if( pam ) max_length_pas = 128;
+	if (`des != encryption)
+	    max_length_pas = 128;
 
 	return true;
     }

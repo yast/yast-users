@@ -916,7 +916,7 @@ Please try again."));
 	{
 	    detailsmorebox = add(detailsmorebox, `PushButton(`id(`additional), _("Additional users/&groups")));
 	    detailsmorebox = `VBox (
-		`CheckBox (`id (`root_mail), _("Forward root's mail to this user"), UserWriteStack::root_mail != ""),
+		`CheckBox (`id (`root_mail), _("For&ward root's mail to this user"), UserWriteStack::root_mail != ""),
 		`VStretch (),
 		detailsmorebox
 	    );
@@ -1207,11 +1207,13 @@ Please try again."));
 				continue;
 			    }
 			}
-
-			if( UserDefs::pam )
-
+			if (UserDefs::encryption == `md5)
 			{
 			    password = cryptmd5(pw1);
+			}
+			else if (UserDefs::encryption == `blowfish)
+			{
+			    password = cryptblowfish(pw1);
 			}
 			else
 			{
@@ -1739,15 +1741,18 @@ Please try again."));
 			    }
 			}
 
-			if( UserDefs::pam )
-
-			{
-			    password  = cryptmd5(pw1);
-			}
-			else
-			{
-			    password  = crypt (pw1);
-			}
+                        if (UserDefs::encryption == `md5)
+                        {
+                            password = cryptmd5(pw1);
+                        }
+                        else if (UserDefs::encryption == `blowfish)
+                        {
+                            password = cryptblowfish(pw1);
+                        }
+                        else
+                        {
+                            password = crypt (pw1);
+                        }
 		    }
 
 		    // need for update /etc/gshadow

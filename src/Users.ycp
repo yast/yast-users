@@ -55,10 +55,14 @@
 
 		string mod_password = "";
 		if (! u["encrypted"]:false) {
-           if( UserDefs::pam )
+	    if (UserDefs::encryption == `md5)
             {
 				mod_password = cryptmd5( u["user_password"]:"");
             }
+	    else if (UserDefs::encryption == `blowfish)
+	    {
+				mod_password = cryptblowfish( u["user_password"]:"");
+	    }
             else
             {
 				mod_password = crypt( u["user_password"]:"");

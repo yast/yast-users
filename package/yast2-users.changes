@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jul 18 14:40:19 CEST 2002 - jsrain@suse.cz
+
+- Added blowfish password encryption support
+
+-------------------------------------------------------------------
 Tue Jul 16 10:50:05 CEST 2002 - jsrain@suse.cz
 
 - Removed namaspace using for Args and CallFunction
