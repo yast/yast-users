@@ -131,7 +131,7 @@
 	    `Label (_("You have installed an NIS master server.
 It is configured to use a different database
 of users and groups than the local system 
-database in /etc directory.
+database in the /etc directory.
 Select which one to configure.
 ")),
 	    `VSpacing (1),
@@ -637,7 +637,9 @@ Use it and change its owner?
 
                     if ((! contains (as, new_shell)) && (new_shell != lookup (user_in_work, "shell", "")))
                     {
-                        if (! UI::YesNoPopup (_("If you select unexistent shell, user\nmay be unable to log in. Continue?")))
+                        if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
+may be unable to log in. Continue?
+")))
                             continue;
                     }
 

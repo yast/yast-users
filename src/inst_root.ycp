@@ -43,32 +43,32 @@
   define void expert_dialog() ``{
 
       // Help text for password expert dialog 1/4
-      string help_text = _( "<p>
+      string help_text = _("<p>
 <b>This is for experts only.</b>
 </p>");
 
       // Help text for password expert dialog 2/4
-      help_text = help_text + _( "<p>
+      help_text = help_text + _("<p>
 Choose a password encryption method.
 <b>DES</b>, the Linux default method, works in all network environments, but it
 restricts you to passwords no longer than eight characters.
 </p>");
 
       // Help text for password expert dialog 3/4
-      help_text = help_text + _( "<p>
+      help_text = help_text + _("<p>
 <b>MD5</b> allows longer passwords, thus provides more security, but some
 network protocols don't support this, and you may have problems with NIS.
 </p>");
 
       // Help text for password expert dialog 4/4
-      help_text = help_text + _( "<p>
+      help_text = help_text + _("<p>
 As a general rule of thumb, use DES if you are unsure.
 </p>");
 
       UI::OpenDialog(
 		     `VBox(
 				// Label
-			   `Heading( _("Password Expert Options" ) ),
+			   `Heading( _("Password Expert Options") ),
 			   `VSpacing( 0.7 ),
 			   `HBox(
 				 `HSpacing( 2 ),
@@ -79,14 +79,14 @@ As a general rule of thumb, use DES if you are unsure.
 								 `VSpacing( 0.5 ),
 
 								 // Radio buttons for password encryption: DES-crypt
-								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)" ),
+								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
 										    Users::encryptionMethod == "des" ) ),
 
 								 // Radio buttons for password encryption: MD5-crypt
-								 `Left(`RadioButton(`id(`md5), _("&MD5" ),
+								 `Left(`RadioButton(`id(`md5), _("&MD5"),
 										    Users::encryptionMethod == "md5" ) ),
 								 // Radio buttons for password encryption: blowfish-crypt
-                                                                 `Left(`RadioButton(`id(`blowfish), _("&Blowfish" ),
+                                                                 `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
                                                                                     Users::encryptionMethod == "blowfish" ) )
 								 )
 							   )
@@ -163,7 +163,7 @@ As a general rule of thumb, use DES if you are unsure.
 		     ),
 	    `VStretch(),
 		// push button
-	    `PushButton(`id(`expert), _( "E&xpert Options..." ) ),
+	    `PushButton(`id(`expert), _("E&xpert Options...") ),
 	    `VStretch()
 	    );
 

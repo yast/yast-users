@@ -351,7 +351,7 @@ can use the same password before it expires.</P>
 +
 // Help text 4/5
 _("<P><B>Minimum age of password</B><BR>Set the minimum age of 
-the password when user will be allowed to change it.</P>
+a password before a user is allowed to change it.</P>
 ")
 +
 // Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
