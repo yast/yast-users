@@ -1184,14 +1184,12 @@ sub ReadLDAPSet {
     
     my $self	= shift;
     my $type	= "ldap";
-
     # generate ldap users/groups list in the agent:
     my $ldap_mesg = UsersLDAP->Read();
     if ($ldap_mesg ne "") {
         Ldap->LDAPErrorMessage ("read", $ldap_mesg);
         return $ldap_mesg;
     }
-
     # read the LDAP data (users, groups, items)
     $users{$type}		= \%{SCR->Read (".ldap.users")};
     $users_by_name{$type}	= \%{SCR->Read (".ldap.users.by_name")};
@@ -2673,7 +2671,7 @@ sub AddUser {
 	$plugins	= $data{"plugins"};
     }
     my $plugin_error	= "";
-    foreach my $plugin (sort @{$plugins}) {
+    foreach my $plugin (sort @{$plugins}) {#FIXME sort: default LDAP plugin shoul be first!!! (or Samba plugin must add object classes every time)
 	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("AddBefore", {
 	    "what"	=> "user",
