@@ -847,7 +847,6 @@ global define string Summary() ``{
  */
 global define boolean Import (list settings) ``{
 
-    // probably only the local users/groups are in settings
     y2debug("importing: %1", settings);
 
     users = settings[0]:users;
@@ -856,7 +855,7 @@ global define boolean Import (list settings) ``{
     gshadow = settings[3]:gshadow;
 
     if (settings[4]:$[] == $[])
-        ReadLoginDefaults();
+        ReadLoginDefaults(false);
     else
         useradd_defaults = settings[4]:$[];
 
@@ -879,6 +878,7 @@ global define boolean Import (list settings) ``{
     // -- move the plus_strings to if sections ??
     plus_passwd = ReadPlusPasswd (tmpdir);
 
+
     if (groups [`system]:nil == nil || groups [`system]:nil == $[])
     {
         map all_groups = ReadGroups (tmpdir);
@@ -886,22 +886,22 @@ global define boolean Import (list settings) ``{
         // but we're not interested in local userlists...
         system_groups = RemoveDiskUsersFromGroups(system_groups);
         groups [`system] = system_groups;
-        // hack for group users, which is count as local
-        if ( lookup (GetGroupFromAll (100), "groupname", "") != "users" &&
-             lookup (GetGroupFromAll (500), "groupname", "") != "users")
-        {
-            map local_groups = all_groups [`local]:$[];
-            map group = local_groups [default_gid]:
-                $[ "gid": default_gid, "groupname": "users",
-                   "password": "x", "userlist": "games"];
-            local_groups = RemoveDiskUsersFromGroups ($[ default_gid: group ]);
-            groups [`local] = union (groups [`local]:$[], local_groups);
-        }
-        groups_by_name [`system] = GroupsByName (system_groups);
+    }
+    groups_by_name [`system] = GroupsByName (groups [`system]:$[]);
+
+    if (groups[`local, 100, "groupname"]:"" != "users" &&
+        groups[`local, 500, "groupname"]:"" != "users")
+    {
+        // group users must be created
+        map group = $[
+             "gid": default_gid, "groupname": "users",
+             "password": "x", "userlist": "games"];
+        groups [`local] = add (groups [`local]:$[], default_gid, group);
+        gshadow [`local] = add (gshadow [`local]:$[], "users",
+            $[ "password": "*", "disposer": "root", "userlist": ""]);
     }
     if (groups [`local]:nil == nil)
         groups = add (groups, `local, $[]);
-//    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
     groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
     plus_group = ReadPlusGroup(tmpdir);
 
@@ -914,6 +914,7 @@ global define boolean Import (list settings) ``{
         shadow = add (shadow, `local, $[]);
     plus_shadow = ReadPlusShadow(tmpdir);
 
+//y2warning ("gshadow: %1", gshadow);
     if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
     {
         map all_gshadow = ReadGshadow (tmpdir);
@@ -926,12 +927,12 @@ global define boolean Import (list settings) ``{
     // maybe the `system users/groups shouldn't be available??
     available_usersets = [`local, `system];
     available_groupsets = [`local, `system];
+//y2warning ("gshadow: %1", gshadow);
 
     ReadAllShells();
     ReadDefaultGroup(false);
 
     ReadUsersCache(false);
-
     return true;
 }
 

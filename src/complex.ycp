@@ -160,6 +160,7 @@ global define symbol UsersDialog() ``{
             `PushButton(`id(`customize), _("Customi&ze filter")),
             // PushButon
             `PushButton(`id(`defaults), _("S&et defaults")),
+            Mode::config ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
             `HStretch())

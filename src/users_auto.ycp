@@ -53,6 +53,7 @@
     // users/groups, or optionaly the system ones?
 
     // examples of input structure:
+    /*
     map users = $[
      `local: $[
         501:$["fullname":"A", "gid":100, "grouplist":"somegr", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
@@ -73,9 +74,30 @@
         "somegr":$["disposer":"root", "password":"*", "userlist":"ab"]]];
 
     // settings = [ users, groups, shadow, gshadow, useradd_defaults ];
-    // settings = [ $[], $[], $[], $[], $[] ];
+    */
 
- 
+    map users = $[
+     `local: $[
+        501: $[ "username":"my_user", "uid":501, "gid":500, "password":"pass" ]
+     ]];
+
+    map shadow = $[
+     `local: $[
+        "my_user":$["password":"pass"]
+     ]];
+
+    map groups = $[
+     `local: $[
+        500: $[ "groupname":"users", "gid":500, "more_users": "my_user" ]
+     ]];
+
+    map gshadow = $[
+     `local: $[
+        "users":$["disposer":"root", "password":"*"]
+     ]];
+
+
+    param = [ users, groups, shadow, gshadow, $[] ];
 
     /* create a  summary*/
     if (func == "Summary") {
@@ -92,6 +114,8 @@
 	Wizard::CreateDialog();
 	any res = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
+//list ex = Users::Export(); // for debug...
+//y2warning ("local users: %1", ex[0,`local]:$[]);
 	return res;
     }
     else if (func == "Result") {

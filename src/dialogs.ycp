@@ -107,6 +107,8 @@ global define symbol EditUserDialog(symbol what) ``{
             grouplist = Users::FindGroupsBelongUser (username);
             Users::user_in_work["grouplist"] = grouplist;
         }
+        else
+            grouplist = "";
     }
 
     if ( grouplist == "empty" && what == `add_user)
@@ -490,11 +492,10 @@ Please try again."));
             }
             }
 
-            // bild default home dir
+            // bild default home dir - when could be home empty string??
             // TODO Fixme
-            if ( what == `add_user &&
-                ( home == Users::default_home || home == "") )
-
+//            if ( what == `add_user &&
+            if ( home == Users::default_home || home == "")
             {
                 home = home + username;
             }
@@ -513,7 +514,8 @@ Please press button Details and edit home directory."));
                     home = Users::default_home;
                     continue;
                 }
-                if (SCR::Read(.target.size, home ) != -1)
+                // do not check in autoinstal config
+                if (SCR::Read(.target.size, home ) != -1 && !Mode::config)
                 {
                     // yes-no popup
                     if (! UI::YesNoPopup(_("The home directory selected already exists.
