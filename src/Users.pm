@@ -1168,9 +1168,9 @@ sub ReadSystemDefaults {
     my $self		= shift;
 
     if (! Security->GetModified ()) {
-	Progress->off ();
+	my $progress_orig = Progress->set (0);
 	Security->Read ();
-	if ($use_gui) { Progress->on (); }
+	if ($use_gui) { Progress->set ($progress_orig); }
     }
 
     my %security	= %{Security->Export ()};
@@ -3639,10 +3639,10 @@ sub WriteSecurity {
 	    "PASSWD_ENCRYPTION"	=> $encryption_method
 	);
 	Security->Import (\%security);
-	Progress->off();
+	my $progress_orig = Progress->set (0);
 	$ret = Security->Write();
 	if (!$write_only && $use_gui) {
-	    Progress->on();
+	    Progress->set ($progress_orig);
 	}
     }
     y2milestone ("Security module settings written: $ret");	

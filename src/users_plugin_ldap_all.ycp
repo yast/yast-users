@@ -154,8 +154,8 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// generate table items with empty values
 	// (not set for this user/group yet)
 	// we need to read available attributes from Ldap
-	foreach (string class, object_class, ``{
-	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), ``{
+	foreach (string class, object_class, {
+	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), {
 		// remove already used (uid, uidnumber, homedirectory etc.)
 		if (!haskey (data, at) &&
 		    !contains (do_not_show_keys, at))
@@ -189,7 +189,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 
 	// dialog caption
 	Wizard::SetContentsButtons(_("Additional LDAP Settings"),
-	    contents, help_text, Label::BackButton(), Label::NextButton());
+	    contents, help_text, Label::CancelButton(), Label::AcceptButton());
 
 	Wizard::HideAbortButton ();
 
