@@ -837,7 +837,10 @@ Please press button Details and edit home directory."));
     global define symbol usersDeleteUser() ``{
 
 	boolean delete        = true;
+	boolean delete_home   = false;
 	string username       = lookup( user_in_work, "username", "");
+	string home           = lookup( user_in_work, "home", "");
+
 	map new_current_users = $[];
 	
 	// if the user has log on system
@@ -865,12 +868,44 @@ Please log off the user first."));
 	    }
 	}
 	else
-	{	
-	    if( ! UI::YesNoPopup(sformat(_("
+	{
+	    if( lookup( user_in_work, "exist", true ) && home != "" && SCR::Read(.target.size, home ) !=-1)
+	    {
+		term contents = `HBox(
+				      `HSpacing(2),
+				      `VBox(`VSpacing(1),
+					    `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
+					    `VSpacing(0.5),
+					    `Left(`CheckBox(`id(`delete_home), sformat(_("delete &home directory
+%1"),home ) )),
+					    `VSpacing(1),
+					    `HBox(
+						  `Bottom(`PushButton(`id(`ok),	OKButtonLabel()  )),
+						  `Bottom(`PushButton(`id(`cancel),UI(`CancelButtonLabel())))
+						  )
+					    ),
+					    `HSpacing(2)
+				      );
+				  
+		UI::OpenDialog(`opt( `decorated ), contents );
+		symbol ret  = UI::UserInput();
+		delete_home = UI::QueryWidget(`id(`delete_home), `Value);
+
+		UI::CloseDialog();
+	    
+		if( ret == `cancel )
+		{ 
+		    delete = false;
+		}
+	    }
+	    else
+	    {
+		if( ! UI::YesNoPopup(sformat(_("
 Do you really want to delete the user %1?
 "), username )))
-	    {
-		delete = false;
+		{
+		    delete = false;
+		}
 	    }
 	}
 
@@ -898,15 +933,23 @@ Do you really want to delete the user %1?
 	usersAddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
 		     sformat(UI(_("Can't delete the user %1")), username) );
-	//usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
 
 	
+	
         //build a shell delete command and save it to user_settings
-	if(! lookup( user_in_work, "exist", true ) )
+	if(! lookup( user_in_work, "exist", true ))
 	{
 	    //UI(`MessagePopup( lookup( user_in_work , "home", "" )));
 	    if( lookup( user_in_work , "home", "" ) != "") 
 		usersAddRmDir( lookup( user_in_work , "home", "" ));
+	}
+	else
+	{
+	  if( delete_home )
+	  {
+	      usersAddRmDir( lookup( user_in_work, "home", "" ));
+	      y2milestone("delete home");
+	  }
 	}
 	   
 	
