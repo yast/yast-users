@@ -43,5 +43,8 @@ make install
 @YAST2DIR@/clients/users.ycp
 @YAST2DIR@/include/users/*
 @YAST2DIR@/menuentries/menuentry_users.ycp
+@YAST2DIR@/menuentries/menuentry_groups.ycp
+@YAST2DIR@/menuentries/menuentry_add_user.ycp
+@YAST2DIR@/menuentries/menuentry_add_group.ycp
 %dir @DOCDIR@
 @DOCDIR@/*
