@@ -872,7 +872,7 @@ sub WriteUsers {
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
-	my $org_dn	= $user->{"org_dn"} || $dn;
+	my $org_dn	= $user->{"org_user"}{"dn"} || $dn;
 	my @obj_classes	= @{$user->{"objectClass"}};
 	if (@obj_classes == 0) {
 	    @obj_classes= @user_class;
@@ -1079,7 +1079,8 @@ sub WriteGroups {
 	    $arg_map{"check_attrs"}	= YaST::YCP::Boolean (1);
 
 	    if (lc ($dn) ne lc ($org_dn)) {
-		$arg_map{"rdn"}	= $rdn;
+		$arg_map{"rdn"}		= $rdn;
+		$arg_map{"new_dn"}	= $dn;
 	    }
 
 	    if (!SCR::Write (".ldap.modify", \%arg_map, $group)) {
