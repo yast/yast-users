@@ -20,6 +20,13 @@
     import "UserSettings";
     import "UserWriteStack";
 
+    // Encryption method: "des", "md5" - for future use: "blowfish"
+    global string encryptionMethod = "des";
+
+    // The root user
+    global string rootPassword = "";
+
+    
 
     map user_in_work  = $[];
 
@@ -32,6 +39,78 @@
 	UserDefs::Read();
 	UserSettings::ReadSettingsFromDisk(false);
     }
+
+
+
+    /**
+     * Remove old config options
+     * @return void;
+     */
+    global define removeOldConf()
+	``{
+	SCR::Write(.pam.all.password.pam_unix2, "-md5");
+	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
+	
+	SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.login.password.pam_unix, "-md5");
+	SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.passwd.password.pam_unix, "-md5");
+	SCR::Write(.pam.sshd.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.sshd.password.pam_unix, "-md5");
+	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.rlogin.password.pam_unix, "-md5");
+
+	SCR::Write(.pam.all.password.pam_unix2, "-blowfish");
+	SCR::Write(.pam.all.password.pam_pwcheck, "-blowfish");
+	
+	SCR::Write(.pam.login.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.login.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.passwd.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.passwd.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.sshd.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.sshd.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
+
+    }
+
+    /**
+     * Crypt the root password according to method defined in encryptionMethod
+     * @return void
+     */
+    global define void cryptRootPassword()
+	``{
+	if (Mode::test) {
+	    return;
+	}
+	if (encryptionMethod == "md5" )
+	{	  
+	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
+	    rootPassword = cryptmd5 (pw1);
+	}
+	else if (encryptionMethod == "blowfish" )
+	{
+	    SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowhish" );
+	    rootPassword = cryptblowfish (pw1);
+	}
+	else
+	{	    
+	    rootPassword = crypt (pw1);
+	}
+	return;
+    }
+
+    
+    /**
+     * Writes password of superuser
+     * @return true on success
+     */
+    global define boolean SetRootPassword()
+	``{
+	return (SCR::Write(.target.passwd.root, rootPassword));
+    }  
 
     /**
      * Get all the user configuration from a map.

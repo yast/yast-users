@@ -27,7 +27,7 @@
   textdomain "users";
 
   import "Wizard";
-  import "User";
+  import "Users";
   import "Mode";
   include "ui/common_messages.ycp";
 
@@ -75,14 +75,14 @@ As a general rule of thumb, use DES if you are unsure.
 
 								 // Radio buttons for password encryption: DES-crypt
 								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)" ),
-										    User::encryptionMethod == "des" ) ),
+										    Users::encryptionMethod == "des" ) ),
 
 								 // Radio buttons for password encryption: MD5-crypt
 								 `Left(`RadioButton(`id(`md5), _("&MD5" ),
-										    User::encryptionMethod == "md5" ) ),
+										    Users::encryptionMethod == "md5" ) ),
 								 // Radio buttons for password encryption: blowfish-crypt
                                                                  `Left(`RadioButton(`id(`blowfish), _("&Blowfish" ),
-                                                                                    User::encryptionMethod == "blowfish" ) )
+                                                                                    Users::encryptionMethod == "blowfish" ) )
 								 )
 							   )
 						   ),
@@ -113,11 +113,11 @@ As a general rule of thumb, use DES if you are unsure.
 	  }
 	  else if ( button == `ok )
 	  {
-	      if      ( UI::QueryWidget( `id(`des), `Value ) )	User::encryptionMethod = "des";
-	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	User::encryptionMethod = "md5";
-	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) User::encryptionMethod = "blowfish";
+	      if      ( UI::QueryWidget( `id(`des), `Value ) )	Users::encryptionMethod = "des";
+	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	Users::encryptionMethod = "md5";
+	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) Users::encryptionMethod = "blowfish";
 
-	      y2milestone( "Password expert options: Changing encryption method to %1", User::encryptionMethod );
+	      y2milestone( "Password expert options: Changing encryption method to %1", Users::encryptionMethod );
 	  }
       } while ( button != `ok && button != `cancel );
 
@@ -128,7 +128,7 @@ As a general rule of thumb, use DES if you are unsure.
 
 
 
-  string rpassword = User::rootPassword;
+  string rpassword = Users::rootPassword;
   boolean this_is_for_real = ! Mode::test;
 
 
@@ -246,7 +246,7 @@ Do not forget this \"root\" password!
 	     UI::MessagePopup(_("The first and the second version\nof the password don't match!\nPlease try again."));
 	     rpassword = "";
 	     // Invalidate any old password
-	     User::rootPassword = rpassword;
+	     Users::rootPassword = rpassword;
 	     continue;
 	  }
 
@@ -261,7 +261,7 @@ Do not forget this \"root\" password!
 		UI::MessagePopup(_("You didn't enter a password\nPlease try again."));
                 rpassword = "";
 		// Invalidate any old password
-		User::rootPassword = rpassword;
+		Users::rootPassword = rpassword;
 		continue;
 	     }
 
@@ -273,7 +273,7 @@ Try again.
 "));
                 rpassword = "";
 		// Invalidate any old password
-		User::rootPassword = rpassword;
+		Users::rootPassword = rpassword;
 		continue;
 	     }
 
@@ -287,71 +287,17 @@ Try again.
 		   UI::MessagePopup(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
                    rpassword = "";
 		   // Invalidate any old password
-		   User::rootPassword = rpassword;
+		   Users::rootPassword = rpassword;
 		   continue;
 		}
 	     }
 
-	     y2milestone( "encrypting with %1", User::encryptionMethod );
-
-	     SCR::Write(.pam.all.password.pam_unix2, "-md5");
-	     SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
-	     /* Remove old config options */
-	     SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
-	     SCR::Write(.pam.login.password.pam_unix, "-md5");
-	     SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
-	     SCR::Write(.pam.passwd.password.pam_unix, "-md5");
-	     SCR::Write(.pam.sshd.password.pam_pwcheck, "-md5");
-	     SCR::Write(.pam.sshd.password.pam_unix, "-md5");
-	     SCR::Write(.pam.rlogin.password.pam_pwcheck, "-md5");
-	     SCR::Write(.pam.rlogin.password.pam_unix, "-md5");
-
-	     SCR::Write(.pam.all.password.pam_unix2, "-blowfish");
-             SCR::Write(.pam.all.password.pam_pwcheck, "-blowfish");
-             /* Remove old config options */
-             SCR::Write(.pam.login.password.pam_pwcheck, "-blowfish");
-             SCR::Write(.pam.login.password.pam_unix, "-blowfish");
-             SCR::Write(.pam.passwd.password.pam_pwcheck, "-blowfish");
-             SCR::Write(.pam.passwd.password.pam_unix, "-blowfish");
-             SCR::Write(.pam.sshd.password.pam_pwcheck, "-blowfish");
-             SCR::Write(.pam.sshd.password.pam_unix, "-blowfish");
-             SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
-             SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
+	     y2milestone( "encrypting with %1", Users::encryptionMethod );
 
 
-
-	     if ( User::encryptionMethod == "md5" )
-	     {
-		 if ( this_is_for_real )
-		 {
-		     SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
-		     SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
-		 }
-
-		 User::rootPassword = cryptmd5 (pw1);
-	     }
-	     else if (User::encryptionMethod == "blowfish" )
-	     {
-		if ( this_is_for_real )
-		{
-                     SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
-                     SCR::Write( .pam.all.password.pam_pwcheck, "+blowhish" );
-		}
-
-		User::rootPassword = cryptblowfish (pw1);
-	     }
-	     else
-	     {
-/*		 if ( this_is_for_real )
-		 {
-		     SCR::Write( .pam.all.password.pam_unix2,   "-md5" );
-		     SCR::Write( .pam.all.password.pam_pwcheck, "-md5" );
-		 }*/
-
-		 User::rootPassword = crypt (pw1);
-	     }
-
-	     if ( this_is_for_real && ! User::SetRootPassword())
+	     Users::removeOldConf();
+	     Users::cryptRootPassword();
+	     if ( this_is_for_real && ! Users::SetRootPassword())
 	     {
 		 // Error msg
 		 Report::Error(_("The root password could not be set.
