@@ -1268,5 +1268,18 @@ sub SetGUI {
     $use_gui 		= $_[0];
 }
 
+# reset the internal cache 
+BEGIN { $TYPEINFO{ResetCache} = ["function", "void"];}
+sub ResetCache {
+
+    %usernames		= ();
+    %homes		= ();
+    %uids		= ();
+    %user_items		= ();
+    %userdns		= ();
+    %groupnames		= ();
+    %gids		= ();
+}
+
 1
 # EOF
