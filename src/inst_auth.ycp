@@ -1,13 +1,14 @@
 /**
  * File:	installation/general/inst_auth.ycp
- * Module:	Installation
- * Summary:	ask for user authentication method
+ * Package:	Users configuration
+ * Summary:	Ask for user authentication method
  * Authors:	Arvin Schnell <arvin@suse.de>
  *
- * Ask for the kind of user authentication.
+ * $Id$
  */
 
 {
+
     textdomain "users";
 
     import "Wizard";
@@ -112,4 +113,6 @@ Here you can choose the authentication method of users on your system.
     } until ( ret == `next || ret == `back );
 
     return ret;
+
+/* EOF */
 }
