@@ -99,11 +99,11 @@ global map SystemUsers = $[
     "Zope" : _("Zope"),
 
     /* User name for user: "radiusd" */
-    "Radius daemon" : _("Radius daemon"),
+    "Radius daemon" : _("Radius Daemon"),
     /* User name for user: "otrs" */
     "OTRS System User" : _("OTRS System User"),
     /* User name for user: "privoxy" */
-    "Daemon user for privoxy" : _("Daemon user for privoxy"),
+    "Daemon user for privoxy" : _("Daemon User for privoxy"),
     /* User name for user: "vdr" */
     "Video Disk Recorder" : _("Video Disk Recorder"),
 

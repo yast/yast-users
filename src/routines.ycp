@@ -664,9 +664,8 @@ global define boolean CheckPasswordMaxLength (string pw, string type) ``{
     if (size(pw) > Users::pass_length [type, "max"]:8)
     {
 	// error popup. %1 is number (typical 8)
-        return (Popup::YesNo (sformat(_("The password is too long for current encryption method.
-Truncate it to %1 characters?
-"), Users::pass_length [type, "max"]:8)));
+        return (Popup::YesNo (sformat(_("The password is too long for the current encryption method.
+Truncate it to %1 characters?\n"), Users::pass_length [type, "max"]:8)));
 
     }
     return true;

@@ -185,7 +185,7 @@ can be changed for non-local users.
     term contents = `VBox(
 	`VSpacing(),
 	// Frame title
-	`Frame( _( "User Data" ), `HVSquash(
+	`Frame( _("User Data"), `HVSquash(
 	    `VBox(
 		`VSpacing( 0.5 ),
 		`HBox( `HSpacing( 2 ),
@@ -1809,7 +1809,7 @@ Please try again."));
                 {
                 // error popup %i are numbers
                 Report::Error(sformat(_("The selected group ID is not allowed.
-Select a valid integer between %1 and %2
+Select a valid integer between %1 and %2.
 "), Users::min_gid[group_type]:0,
 		    Users::max_gid[group_type]:60000));
                 UI::SetFocus(`id(`gid));
@@ -1819,8 +1819,8 @@ Select a valid integer between %1 and %2
                 if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
                 {
                     // error popup
-                    Report::Error(_("The Group ID entered is reserved.
-Select a another Group ID.
+                    Report::Error(_("The group ID entered is reserved.
+Select a another group ID.
 "));
                     UI::SetFocus(`id(`gid));
                     continue;
