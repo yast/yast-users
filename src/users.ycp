@@ -40,13 +40,13 @@
     integer arg		   = 0;
     list    possible_start_dialogs = ["user_add", "group_add", "groups", "users" ];
 
-    while ( arg < size( Args() ) )
+    while ( arg < size( WFM::Args() ) )
     {
 	// TODO .test in Mode
-	string a = Args( arg );
+	string a = WFM::Args( arg );
 	if ( contains( possible_start_dialogs, a))
 	{
-	    start_dialog = Args( arg );
+	    start_dialog = WFM::Args( arg );
 	}
 	arg = arg + 1;
     }

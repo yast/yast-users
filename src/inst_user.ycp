@@ -28,7 +28,7 @@
 	users_mod = add( users_mod, .test );
 
     y2debug( "Starting user management module: %1", users_mod );
-    any ret = CallFunction( users_mod );
+    any ret = WFM::CallFunction( users_mod );
     y2debug( "User management module returned %1", ret );
 
     if ( ret == nil )
@@ -40,7 +40,7 @@
     /* call in user module
     else if ( ret == `abort )
     {
-      if ( CallFunction(`inst_confirm_abort(`incomplete) ) )
+      if ( WFM::CallFunction(`inst_confirm_abort(`incomplete) ) )
 	  return `abort;
       else
 	  return `again;

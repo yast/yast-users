@@ -99,7 +99,7 @@
 	}
 	else
 	{
-	    ret = CallFunction(`inst_confirm_abort(`incomplete));
+	    ret = WFM::CallFunction(`inst_confirm_abort(`incomplete));
 	}
 
 	if( ret ) return `abort;

@@ -1,9 +1,14 @@
 -------------------------------------------------------------------
+Fri Jul 12 15:22:15 CEST 2002 - arvin@suse.de
+
+- use proper namespace for Args and CallFunction (#16776)
+
+-------------------------------------------------------------------
 Wed Jul 10 14:16:54 CEST 2002 - jsrain@suse.cz
 
 - Fixed maintenance of users/group for NIS when using other dir
   than /etc for files (Bug #14817)
-- Addedf possibility to add non-local users to local groups 
+- Addedf possibility to add non-local users to local groups
   (Bug #15013)
 
 -------------------------------------------------------------------
