@@ -421,7 +421,7 @@ define symbol DeleteUserPopup() ``{
 
     string type		= UsersCache::GetUserType ();
     map user		= Users::GetCurrentUser ();
-    string username     = user["username"]:"";
+    string username     = user["uid"]:"";
     string home		= user["org_user","homeDirectory"]:user["org_homeDirectory"]:user["homeDirectory"]:"";
     integer uid		= -1;
     any uid_a		= user["org_user","uidNumber"]:user["org_uidNumber"]:user["uidNumber"]:"-1";
@@ -551,7 +551,7 @@ define symbol DeleteGroupPopup() ``{
             // yes-no popup, %1 si group name
             if (! Popup::YesNo(sformat(_("
 Do you really want to delete the group %1?
-"), group["groupname"]:"")))
+"), group["cn"]:"")))
 	    {
                 return nil;
 	    }

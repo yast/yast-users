@@ -116,17 +116,14 @@ sub Check {
     }
     
     # attribute conversion
-    my $ldap2yast_attrs		= UsersLDAP::GetUserAttrsLDAP2YaST ();
     my @required_attrs		= @{UsersLDAP::GetUserRequiredAttributes ()};
     if ($what eq "group") {
-	$ldap2yast_attrs	= UsersLDAP::GetGroupAttrsLDAP2YaST ();
 	@required_attrs		= @{UsersLDAP::GetGroupRequiredAttributes ()};
     }
 
 # TODO required attributes should be checked against current objectClass
     foreach my $req (@required_attrs) {
-	my $a	= $ldap2yast_attrs->{$req} || $req;
-	my $val	= $data->{$a};
+	my $val	= $data->{$req};
 	if (!defined $val || $val eq "" || 
 	    (ref ($val) eq "ARRAY" && 
 		((@{$val} == 0) || (@{$val} == 1 && $val->[0] eq "")))) {

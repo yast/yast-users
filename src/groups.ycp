@@ -122,7 +122,7 @@ define boolean GroupsShowHandler (map options ) ``{
     string out = "";
     map keys = $[
 	// label shown at command line (user attribute)
-	"groupname"	: _("Group Name:"),
+	"cn"		: _("Group Name:"),
 	// label shown at command line (user attribute)
 	"gidNumber"	: _("GID:"),
 	// label shown at command line (user attribute)

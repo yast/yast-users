@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar 15 11:16:55 CET 2004 - jsuchome@suse.cz
+
+- changed internal key names: "username" -> "uid", "groupname" -> "cn"
+- adapted testsuite
+- 2.9.17
+
+-------------------------------------------------------------------
 Sat Mar 13 19:09:34 CET 2004 - arvin@suse.de
 
 - require yast2-perl-bindings (bug #35914)

@@ -28,7 +28,7 @@
 	    "local": $[
 		"users": $[
 		    500: $[
-			"username":	"hh"
+			"uid":	"hh"
 		    ],
 		    "by_name": $[
 			"hh":	500,
@@ -48,7 +48,7 @@
 		],
 		"groups": $[
 		    100: $[
-			"groupname":	"users",
+			"cn"	:	"users",
 			"gidNumber":	100,
 			"type"	:	"local"
 		    ],
@@ -76,7 +76,7 @@
 		],
 		"groups": $[
 		    0: $[
-			"groupname":	"root",
+			"cn":	"root",
 			"gidNumber":	0,
 			"type"	:	"system"
 		    ],
@@ -131,14 +131,13 @@
 
     DUMP (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
     map<string,any> user = $[
-	"cn":"",
 	"gidNumber":100,
-	"groupname": "users",
+	"cn": "users",
 	"grouplist": $[ "audio" : 1 ],
 	"homeDirectory":"/local/home/aaa",
 	"userPassword":"qqqqq",
 	"uidNumber":501,
-	"username":"aaa",
+	"uid":"aaa",
 	"type":"local",
     ];
 
@@ -151,7 +150,7 @@
     DUMP ("==========================================================");
 
     TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[ "username": "hhh"])), [READ, WRITE, EXEC], 0);
+    TEST (``(Users::AddUser ($[ "uid": "hhh"])), [READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
 
