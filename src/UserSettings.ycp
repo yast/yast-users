@@ -651,7 +651,9 @@
 	    if ( group["todo"]:"" != `delete )
 	    {
 		if( todo == `items  &&
-		    ( view_all_groups || ( ! view_all_groups && (key >  UserDefs::max_system_gid &&
+		    // Group #100 is "users". This is a kludge. Bug #19253.
+		    ( view_all_groups || ( ! view_all_groups && (key == 100 ||
+					       			 key >  UserDefs::max_system_gid &&
 								 group["groupname"]:"" != "nobody" &&
 								 group["groupname"]:"" != "nogroup" ))))
 		{
