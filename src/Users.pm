@@ -2146,7 +2146,7 @@ sub WriteCustomSets {
     );
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
-    SCR::Write (".target.ycp", Directory::vardir()."/users.ycp", \%customs);
+    my $ret = SCR::Write (".target.ycp", Directory::vardir()."/users.ycp", \%customs);
 
     y2milestone ("Custom user information written: ", $ret);
     return $ret;
@@ -3107,5 +3107,106 @@ sub CryptRootPassword {
 	$root_password = CryptPassword ($root_password, "system");
     }
 }
+
+##-------------------------------------------------------------------------
+## -------------------------------------------- nis related routines 
+
+##------------------------------------
+# Check whether host is NIS master
+BEGIN { $TYPEINFO{IsNISMaster} = ["function", "boolean"];}
+sub IsNISMaster {
+    if (SCR::Read (".target.size", "/usr/lib/yp/yphelper") != -1) {
+        return 0;
+    }
+    return (SCR::Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);
+}
+
+# * Checks if set of NIS users is available
+# * @param passwd_source the list of sources (e.g. ["compat", "ldap"])
+#global define boolean IsNISAvailable (list passwd_source) ``{
+#
+#    if (contains (passwd_source, "nis") ||
+#        contains (passwd_source, "compat"))
+#    {
+#        return Service::Enabled ("ypbind");
+#    }
+#    return false;
+#}
+
+#/**
+#  * Ask user for configuration type (standard or NIS)
+#  * @param dir string directory with NIS settings
+#  * @return symbol `passwd or `nis or `abort
+#  */
+#global define symbol getConfigurationType (string dir) ``{
+#    term contents = `VBox (
+#        // label
+#        `Label (_("You have installed an NIS master server.
+#It is configured to use a different database
+#of users and groups than the local system 
+#database in the /etc directory.
+#Select which one to configure.
+#")),
+#        `VSpacing (1),
+#        `RadioButtonGroup (`id (`configtype), `VBox (
+#        // radio button
+#        `RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
+#        `VSpacing (1),
+#        // radio button, %1 is path (eg. /etc)
+#        `RadioButton (`id (`nis), `opt (`hstretch), sformat(_("&NIS (%1 directory)"), dir), false)
+#        )),
+#        `VSpacing (1),
+#        `HBox (
+#        `HStretch (),
+#        `PushButton (`id (`ok), Label::OKButton()),
+#        `HStretch (),
+#        `PushButton (`id (`abort), Label::AbortButton()),
+#        `HStretch ()
+#        )
+#    );
+#    UI::OpenDialog (contents);
+#    symbol ret = nil;
+#    while (ret == nil)
+#    {
+#        ret = (symbol) UI::UserInput ();
+#        if (ret != `cancel && ret != `ok)
+#            continue;
+#    }
+#    if (ret == `ok)
+#        ret = (symbol) UI::QueryWidget (`id (`configtype), `CurrentButton);
+#    UI::CloseDialog ();
+#    return ret;
+#}
+#/**
+# * If we can ask and are a NIS server, ask which set of users
+# * to administer and set UserWriteStack accordingly.
+# * @param basedir the directory, where the data are stored
+# * @return directory
+# */
+#global define string ReadNISConfigurationType (string basedir)``{
+#
+#    string ypdir = (string)SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
+#    while (substring (ypdir, size (ypdir) - 1) == "/")
+#        ypdir = substring (ypdir, 0, size (ypdir) -1);
+#    if ("" == ypdir)
+#        ypdir = "/";
+#    if (ypdir != basedir)
+#    {
+#        symbol type = getConfigurationType (ypdir);
+#        if (type == `abort)
+#        {
+#            return nil;
+#        }
+#        if (type == `nis)
+#        {
+#            // this should never happen, probably only in testsuites
+#            if (ypdir == nil)
+#                ypdir = basedir;
+#        }
+#        else
+#            ypdir = basedir;
+#    }
+#    return ypdir;
+#}
 
 # EOF

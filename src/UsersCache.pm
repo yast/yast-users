@@ -301,7 +301,7 @@ sub UsernameExists {
     foreach my $type (keys %usernames) {
 	if (defined $usernames{$type}{$username}) { $ret = 1; }
     };
-    if ($ret || Mode::config () || Mode::test ()) 
+    if ($ret || Mode::config () || Mode::test ()) {
 	return $ret;
     }
     $ret = UsernameConflicts ($username);
