@@ -52,7 +52,15 @@
 
 		string mod_password = "";
 		if (! u["encrypted"]:false) {
-		    mod_password = crypt( u["user_password"]:"");
+           if( UserDefs::pam )
+            {
+				mod_password = cryptmd5( u["user_password"]:"");
+            }
+            else
+            {
+				mod_password = crypt( u["user_password"]:"");
+            }
+
 		} else {
 		    mod_password = u["user_password"]:"";
 		}
