@@ -108,6 +108,16 @@ sformat (_("
 Bad search filter (probably wrong syntax):
 %1"), (ldap_group_filter != "") ? ldap_group_filter: ldap_default_group_filter),
 
+    // when anonymous is set, bind is OK, but writing not!!!
+    "LDAP_STRONG_AUTH_REQUIRED":
+
+// error message:
+_("
+The server requires authentication
+be performed with a SASL mechanism."),
+
+// FIXME: LDAP_ALREADY_EXISTS -> two users with the different case
+
     "initialize":
 // error message:
 _("
@@ -168,15 +178,12 @@ Server could be down or unreachable."),
  */
 global define void ReadLDAPFilters() ``{
 
-    //FIXME either read as Ldap::{user|group}_filter (->import & Read needed)
-    // or stored in some local configuration file...
-
     import "Ldap";
     Ldap::Read();
 
     // not configurable, default until change in Ldap module
-    ldap_default_user_filter	= "objectClass=person";
-    ldap_default_group_filter	= "objectClass=posixGroup";
+    ldap_default_user_filter	= Ldap::user_filter;
+    ldap_default_group_filter	= Ldap::group_filter;
 
     ldap_filters_read = true;
 }
@@ -189,26 +196,22 @@ global define void ReadLDAPSettings () ``{
     if (!ldap_filters_read)
 	ReadLDAPFilters();
 
-// FIXME: get the values from Ldap
-    ldap_user_base	= GetLDAPBase();// Ldap::GetDomain
-    ldap_group_base	= GetLDAPBase();// FIXME differ! Ldap::group_base
-    ldap_host		= GetLDAPHost();
+    ldap_user_base	= Ldap::user_base;
+    ldap_group_base	= Ldap::group_base;
+    ldap_host		= Ldap::server;
     is_ldap_server	= IsLDAPServer (ldap_host);
-//    ldap_file_server	= Ldap::file_server; TODO: currenty not in Ldap!
+    ldap_file_server	= Ldap::file_server;
     ldap_version	= Ldap::ldap_v2 ? 2 : 3;
-    ldap_encryption	= Ldap::pam_password; // TODO: configure in Ldap
+    ldap_encryption	= Ldap::pam_password;
     ldap_bind_dn	= Ldap::bind_dn;
-    ldap_user_class	= [
-	"person", "posixAccount" ,"top" ,"shadowAccount", "inetOrgPerson" ];
-	// TODO splitstring (Ldap::user_class
-    ldap_group_class	= ["posixGroup" ,"top" ];//splitstring Ldap::group_class
-    ldap_shadow		= $[];//Ldap::GetDefaultShadow();
+    ldap_user_class	= splitstring (Ldap::user_class, ",");
+    ldap_group_class	= splitstring (Ldap::group_class, ",");
+    ldap_shadow		= $[];// FIXME Ldap::GetDefaultShadow();
     ldap_defaults	= $[ "skel": default_skel,
 			     "home": "/local/home/",
 			     "group": "100",
 			     "shell":  default_shell ];//Ldap::GetUserDefaults
     ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
-
 }
 
 /**
@@ -233,13 +236,19 @@ global define string LDAPInit () ``{
 
 /**
  * Tries to bind to LDAP server with current password
+ * @param pass password
  * @return error message or empty string on success
  */
-global define string LDAPBind () ``{
+global define string LDAPBind (string pass) ``{
 
-    if (ldap_bind_pass == nil)
-	return "";
-    string ret = SCR::Execute (.ldap.bind, ldap_bind_pass);
+    string ret = "";
+    if (pass != nil)
+    {
+	if (ldap_anonymous)
+	    ret = SCR::Execute (.ldap.bind);
+	else
+	    ret = SCR::Execute (.ldap.bind, pass);
+    }
     return ret;
 }
 
@@ -297,10 +306,34 @@ global define string GetLDAPPassword() ``{
     any ret = UI::UserInput();
     string pw = "";
     if (ret == `ok)
+    {
         pw = UI::QueryWidget(`id(`pw), `Value);
-    if (ret == `cancel)
+	ldap_anonymous = false;
+    }
+    else if (ret == `cancel)
         pw = nil;
+    else ldap_anonymous = true;
     UI::CloseDialog();
+    return pw;
+}
+
+/**
+ * Asks for LDAP password and tries to bind with it
+ * @return password entered, nil on cancel
+ */
+global define string LDAPAskAndBind () ``{
+
+    string pw = GetLDAPPassword();
+    if (pw != nil)
+    {
+	string ldap_msg = LDAPBind(pw);
+	while (pw != nil && ldap_msg != "")
+	{
+	    LDAPErrorMessage ("bind", ldap_msg);
+	    pw = GetLDAPPassword();
+	    ldap_msg = LDAPBind(pw);
+	}
+    }
     return pw;
 }
 
@@ -395,7 +428,6 @@ global define string WriteLDAPGroups(map ldap_groups)``{
 	if (ldap_ret != "")
 	{
 	    ret = ldap_ret;
-	    //FIXME: this is last error message!
 	}
     });
     return ret;
@@ -411,24 +443,6 @@ global define boolean IsLDAPServer (string host) ``{
     if (host == "localhost" || host == "127.0.0.1")
         return true;
     return false;
-}
-
-/**
- * Reads the LDAP base from /etc/openldap/ldap.conf
- * @return LDAP base
- */
-global define string GetLDAPBase () ``{
-
-    return SCR::Read(.etc.openldap.ldap_conf.base);
-}
-
-/**
- * Reads the LDAP host adress from /etc/openldap/ldap.conf
- * @return host adress
- */
-global define string GetLDAPHost () ``{
-
-    return SCR::Read(.etc.openldap.ldap_conf.host);
 }
 
 /**
