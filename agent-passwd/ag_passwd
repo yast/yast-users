@@ -33,6 +33,12 @@ my $plus_line_group 	= "";
 my $plus_line_passwd	= "";
 my $plus_line_shadow	= "";
 
+# error number
+my $errno		= 0;
+
+#more information about the error
+my $error_info		= "";
+
 # directory where user/group/shadow data should be found
 my $base_directory	 = "/etc";
 
@@ -56,6 +62,8 @@ sub read_shadow {
 	    if (defined $shadow_tmp{$uname})
 	    {
 		y2error ("duplicated username in /etc/shadow! Exiting...");
+		$errno		= 3;
+		$error_info 	= $uname;
 		return 3;
 	    }
 	    $shadow_tmp{$uname} = {
@@ -109,6 +117,8 @@ sub read_group {
 	    if (defined $gids{"local"}{$gid}  || defined $gids{"system"}{$gid})
 	    {
 		y2error ("duplicated gid ($gid) in /etc/group! Exiting...");
+		$errno		= 5;
+		$error_info 	= "$gid";
 		return 5;
 	    }
 	    else
@@ -120,6 +130,8 @@ sub read_group {
 		defined $groupnames{"system"}{$groupname})
             {
 	        y2error ("duplicated groupname in /etc/group! Exiting...");
+		$errno		= 6;
+		$error_info 	= $groupname;
 	        return 6;
             }
 	    else
@@ -232,6 +244,8 @@ sub read_passwd {
 	    if (defined $uids{"local"}{$uid}  || defined $uids{"system"}{$uid})
 	    {
 		y2error ("duplicated UID in /etc/passwd! Exiting...");
+		$errno 		= 1;
+		$error_info 	= "$uid";
 		return 1;
 	    }
             else
@@ -243,6 +257,8 @@ sub read_passwd {
 		defined $usernames{"system"}{$username})
 	    {
 		y2error ("duplicated username in /etc/passwd! Exiting...");
+		$errno = 2;
+		$error_info 	= $username;
 		return 2;
 	    }
 	    else
@@ -271,7 +287,7 @@ sub read_passwd {
 	    };
 
 	    if (! defined $shadow_tmp{$username}) {
-		y2error ("There is no shadow entry for user $username.");
+		y2warning ("There is no shadow entry for user $username.");
 	    }
 	    else {
 		# divide shadow map accoring to user type
@@ -433,26 +449,32 @@ while ( <STDIN> )
 	    my $error = read_all ();
 	    if ($error > 0) {
 		ycp::Return ("false");
-		# TODO: save Error message!
+	    }
+	    else {
+		ycp::Return("true");
 	    }
 	}
 	else {
 	    y2error ("wrong path ($path) or argument type:", ref ($argument));
 	    ycp::Return("false");
 	}
-	ycp::Return("true");
     }
-    elsif ( $command eq "Read" )
-    {
+    elsif ( $command eq "Read" ) {
+
 	# check if initialization was done
-	if (!%users) {
+	if (!%users && $path ne '.error' && $path ne '.error.info') {
 	    my $error = read_all ();
 	    if ($error > 0) {
 		ycp::Return ({});
 	    }
 	}
-
-	if    ( $path eq '.local.users' ) {
+	if ($path eq '.error') {
+	    ycp::Return ($errno);
+	}
+	elsif ($path eq '.error.info') {
+	    ycp::Return ($error_info);
+	}
+	elsif    ( $path eq '.local.users' ) {
 	    ycp::Return (\%{$users{"local"}});
 	}
 	elsif ( $path eq '.system.users' ) {
