@@ -410,12 +410,12 @@ sub GetCurrentFocus {
 
     if ($current_summary eq "users") {
 	if (defined $focusline_user) {
-	    return YaST::YCP::Integer ($focusline_user);
+	    return YaST::YCP::Integer ($focusline_user)->value();
 	}
     }
     else {
 	if (defined $focusline_group) {
-	    return YaST::YCP::Integer ($focusline_group);
+	    return YaST::YCP::Integer ($focusline_group)->value();
 	}
     }
     return undef;
@@ -546,9 +546,9 @@ BEGIN { $TYPEINFO{GetMaxUID} = ["function",
 sub GetMaxUID {
 
     if (defined $max_uid{$_[0]}) {
-	return YaST::YCP::Integer ($max_uid{$_[0]});
+	return $max_uid{$_[0]};
     }
-    return YaST::YCP::Integer (60000);
+    return 60000;
 }
 
 ##------------------------------------
@@ -591,9 +591,9 @@ BEGIN { $TYPEINFO{GetMaxGID} = ["function",
 sub GetMaxGID {
 
     if (defined $max_gid{$_[0]}) {
-	return YaST::YCP::Integer ($max_gid{$_[0]});
+	return $max_gid{$_[0]};
     }
-    return YaST::YCP::Integer (60000);
+    return 60000;
 }
 
 
