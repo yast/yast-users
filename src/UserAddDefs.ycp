@@ -70,6 +70,7 @@
 
       if( UserSettings::GetGroup( def_int ) == $[])
       {
+	  // error popup
 	  Report::Error(sformat(_("The default group with the id %1 does not exist.
 Please change the default group in /etc/default/useradd."), def_int ));
 

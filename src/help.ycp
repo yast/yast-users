@@ -22,7 +22,7 @@
    * @return string
    */
   global define string help_main_start()``{
-
+	// help text 1/1
         return _("<p>
 Linux is a <b>multiuser system</b>. Several different users can be logged in the
 system at the same time.  To avoid confusion, each user must have
@@ -38,7 +38,7 @@ least belongs to one group.
    * @return string
    */
   global define string help_main_end()``{
-
+	// help text 1/1
       return _("<p>
 To save the modified user and group setting to your system push the button
 <b>Finish</b>.
@@ -51,7 +51,7 @@ To save the modified user and group setting to your system push the button
    * @return string
    */
   global define string help_password()``{
-
+	// help text 1/3
       string help_text =  _("<p>
 When entering a password, you must distinguish between uppercase and lowercase. A
 password should have at least 5 characters and, as a rule, not contain any
@@ -59,16 +59,14 @@ special characters (e.g., accented characters).
 </p>
 ");
       
-      
+      // help text 2/3
       help_text = help_text + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
   
-      
-      help_text = help_text +
-
-_("<p>
+      //help text 3/3
+      help_text = help_text + _("<p>
 It's enough to use a password with a length of approximately 8 alpha-numeric
 characters. To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
@@ -106,24 +104,27 @@ button now.
    * @return string
    */
   global define string usersUsersDialogHelp() ``{
-
+	// help text 1/4
       return ( help_main_start() + _("
 <p>
 In this dialog, you can get information about existing <b>users</b>.
 </p>
 ") +
 
+	// help text 2/4
 		_("<p>
 To shift to the group dialog push the radio button <b>Groups administration</b>.
 </p>
 ") +
 
+	// help text 3/4
 		_("
 <p>
 To create a new user, push the button <b>Add</b>.
 </p>
 ") +
 
+	// help text 4/4
 		_("<p>
 To edit or delete an existing user, select one user from the list and
 click <b>Edit</b> or <b>Delete</b>.
@@ -138,22 +139,25 @@ click <b>Edit</b> or <b>Delete</b>.
    * @return string
    */
   global define string usersGroupsDialogHelp()``{
-
+	// help text 1/4
       return ( help_main_start() +  _("
 <p>
 In this dialog, you can get information about existing <b>groups</b>.
 </p>
 ") +
+	// help text 2/4
 		_("<p>
 To shift to the user dialog, push the radio button <b>Users administration</b>.
 </p>
 ") +
 
+	// help text 3/4
 		_("
 <p>
 To create a new group, push the button <b>Add</b>.
 </p>
 ") +
+	// help text 4/4
 		_("<p>
 To edit or delete an existing group, select one group from the list and
 push the button <b>Edit</b> or <b>Delete</b>.
@@ -170,7 +174,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
    * @return string
    */
   global define string usersEditUserHelp() ``{
-
+	// help text 1/4
       return _("<p>
 If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
 user account is created for this name with the <b>password</b> given in
@@ -179,6 +183,7 @@ the corresponding field.
 ") + help_password() +
 
 
+	// help text 2/4
 		_("<p>
 The <b>User login</b> is created from components of the full name and
 presented to you in one of the following dialogs.  If unsure, let YaST2
@@ -188,6 +193,7 @@ User names have stricter restrictions than passwords!
 </p>
 ") +
 
+	// help text 3/4
 		_("<p>
 If you want to work with Linux, you must first enter the <b>User login</b>  and
 the password. This starting procedure is traditionally known as the
@@ -195,6 +201,7 @@ the password. This starting procedure is traditionally known as the
 </p>
 ") +
 
+	// help text 4/4
 		_("<p>
 To see more details like the home directory or the user ID push
 <b>Details</b>
@@ -210,13 +217,14 @@ To see more details like the home directory or the user ID push
    * @return string
    */
   global define string usersEditGroupHelp() ``{
-
+	// help text 1/6
       return _("<p>
 YaST provides an easy means of maintaining user groups on your
 system. Here is what the different entries mean:
 </p>
 ") +
 
+	// help text 2/6
 		_("<p>
 <b>Group name:</b>
 Here the name of the group is entered. Please be careful not to use
@@ -224,6 +232,7 @@ long names. Normal lengths are between one and about 10 characters (the
 shorter the better).
 </p>
 ") +
+	// help text 3/6, %1 is number
 		sformat(_("<p>
 <b>Group ID(gid):</b>
 In addition to its name, a group has to be assigned a numerical ID for its
@@ -232,6 +241,7 @@ internal representation. These values are between 0 and
 warns you if you try to use an already set one.
 </p>
 "), UserDefs::max_gid) +
+	// help text 4/6
 		_("<p>
 <b>Enter a  password:</b>
 If you want the members of the group to identify themselves while
@@ -240,11 +250,13 @@ password to this group. For security reasons, this password is not shown
 here. You don't need to fill out this entry.
 </p>
 ") +
+	// help text 5/6
 		_("<p>
 <b>Repeat password:</b>
 The password has to be entered a second time to avoid typos.
 </p>
 ") +
+	// help text 6/6
 		_("<p>
 <b>Members of this group:</b>
 Select which users should be members of this group.
@@ -261,9 +273,11 @@ Select which users should be members of this group.
    */
   global define string usersEditUserDetailsHelp() ``{
 
+	// help text 1/6
       return _("<p>
 The meaning of the fields are described below:
 </p>") +
+	// help text 2/6, %1 is number
 		sformat(_("<p>
 <b>User ID (uid):</b>
 Each user is known to the system by a unique number,
@@ -272,23 +286,27 @@ a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
 "), UserDefs::max_system_uid ) +
+	// help text 3/6
 		_("<p>
 <b>Default Group:</b>
 The group to which the user belongs. Select one group
 from the list of all groups existing on your system.
 </p>") +
+	// help text 4/6
 		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is
 /home/username.
 </p>
 ") +
+	// help text 5/6
 		_("<p>
 <b>Login shell:</b>
 The login shell (\"command interpreter\") for the user.
 Select one shell from the list of all shells installed
 on your system.
 </p>") +
+	// help text 6/6
 		_("<p>
 <b>Additional group membership:</b>
 All additional memberships in groups for the user.
@@ -302,7 +320,7 @@ All additional memberships in groups for the user.
    * @return string
    */
   global define string usersSaveDialogHelp() ``{
-
+	// help texts 1/1
       return _("<p>
 Save the current user and group settings to system
 </p>");

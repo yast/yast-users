@@ -390,6 +390,7 @@
 
     /**
      * Read all users and groups settings.
+     * @param interactive true if can ask user via popup
      */
     global define void ReadSettingsFromDisk(boolean interactive)``{
 	if (interactive && isNisMaster ())

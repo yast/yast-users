@@ -60,12 +60,15 @@
 		  `RichText( `id(`summary), Users::Summary()),
 		  `VSpacing(0.5),
 		  `HBox(
+			// push button
 			`PushButton(`id(`configure), _("&Configure Users")),
 			`HStretch(),
+			// push button
 			`PushButton(`id(`reset), _("&Reset Configuration"))
 			),
 		  `VSpacing(1)
 		  );
+	// dialog caption
 	Wizard::SetContents(_("Users Configuration"),
 			    contents, "", true, true);
     }

@@ -42,33 +42,38 @@
    **/
   define void expert_dialog() ``{
 
-      // Help text for password expert dialog
+      // Help text for password expert dialog 1/4
       string help_text = _( "<p>
 <b>This is for experts only.</b>
 </p>");
 
+      // Help text for password expert dialog 2/4
       help_text = help_text + _( "<p>
 Choose a password encryption method.
 <b>DES</b>, the Linux default method, works in all network environments, but it
 restricts you to passwords no longer than eight characters.
 </p>");
 
+      // Help text for password expert dialog 3/4
       help_text = help_text + _( "<p>
 <b>MD5</b> allows longer passwords, thus provides more security, but some
 network protocols don't support this, and you may have problems with NIS.
 </p>");
 
+      // Help text for password expert dialog 4/4
       help_text = help_text + _( "<p>
 As a general rule of thumb, use DES if you are unsure.
 </p>");
 
       UI::OpenDialog(
 		     `VBox(
+				// Label
 			   `Heading( _("Password Expert Options" ) ),
 			   `VSpacing( 0.7 ),
 			   `HBox(
 				 `HSpacing( 2 ),
 				 `RadioButtonGroup(
+							// frame
 						   `Frame( _("Password Encryption"),
 							   `VBox(
 								 `VSpacing( 0.5 ),
@@ -157,11 +162,12 @@ As a general rule of thumb, use DES if you are unsure.
 			   )
 		     ),
 	    `VStretch(),
+		// push button
 	    `PushButton(`id(`expert), _( "E&xpert Options..." ) ),
 	    `VStretch()
 	    );
 
-  // help text ( explain what the user "root" is and does )
+  // help text ( explain what the user "root" is and does ) 1/5
   string helptext = UI(_("<p>
 Unlike normal users of the system, who, for instance, write texts, create
 graphics, or browse the Internet, the user \"root\" exists on
@@ -171,7 +177,7 @@ when you need to be the system administrator and only then.
 </p>
 "));
 
-  // help text, continued
+  // help text, continued 2/5
   helptext = helptext + UI(_("<p>
 Because the root user is equipped with extensive permissions, the password
 for \"root\" should be chosen carefully. A combination of letters and numbers
@@ -180,7 +186,7 @@ reenter it in a second field.
 </p>
 "));
 
-  // help text, continued
+  // help text, continued 3/5
   helptext = helptext + UI(_("<p>
 All the rules for user passwords apply to the \"root\" password:
 Distinguish between uppercase and lowercase. A password should have at
@@ -189,13 +195,13 @@ least 5 characters and, as a rule, not contain any special characters
 </p>
 "));
 
-  // help text, continued
+  // help text, continued 4/5
   helptext = helptext + UI(_("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}</tt>.
 </p>"));
 
-  // help text, continued
+  // help text, continued 5/5
   helptext = helptext + UI(_("<p>
 Do not forget this \"root\" password!
 </p>"));

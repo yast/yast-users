@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jul 30 11:32:47 CEST 2002 - jsrain@suse.cz
+
+- fixed comments for translators
+- removed "add user" and "add group" icons from YaST2 conrol center
+- 2.6.14
+
+-------------------------------------------------------------------
 Fri Jul 26 15:22:49 CEST 2002 - jsrain@suse.cz
 
 - yast2-security now not needed for running

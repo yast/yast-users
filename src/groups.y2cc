@@ -10,7 +10,7 @@
 
 [Y2Module users]
 
-; name of the entry, shown in y2cc
+; // name of the entry, shown in y2cc
 Name = _("Edit and create groups")
 
 ; "raw" group name to which this module belongs
@@ -21,7 +21,7 @@ Group = Security
 Icon = sysadmin.png
 
 ; *one* *short* descriptive line for y2cc
-Helptext = _("Edit and create groups")
+Helptext = // _("Edit and create groups")
 
 ; arguments, seperated by space
 Arguments =  groups

@@ -26,9 +26,10 @@ client_DATA = 			\
 
 config_DATA =			\
 	users.y2cc		\
-	groups.y2cc		\
-	add_user.y2cc		\
-	add_group.y2cc
+	groups.y2cc	
+#	\
+#	add_user.y2cc		\
+#	add_group.y2cc
 
 ydata_DATA = accounts.ycp
 

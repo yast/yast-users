@@ -96,6 +96,7 @@
 						      "groupname" : groupname,
 						      "password"  : password,
 						      "what" : `set_group_password,
+							// error popup
 						      "error": _("Cannot set group password")
       ]);
       return true;
@@ -175,6 +176,7 @@
 	    todo = todo + " " + username;
 
 	    //add the todo string to the write stack
+	    // error popup, %1 is username
 	    AddTodo( todo , `add_user,  sformat(_("Can't create the new user %1"), username ), `user, uid);
 
 	    //add a call of useradd.local to the write stack
@@ -182,11 +184,13 @@
 	    {
 		AddTodo( ("/usr/sbin/useradd.local " + username ),
 			      `add_user_local,
+				// error popup
 			      _("Can't execute /usr/sbin/useradd.local"), `user, uid);
 	        if (! (create_home))
 		{
 		    AddTodo (sformat("/bin/chown -R %1:%2 %3", username, UserSettings::GroupIdToName(gid), home),
 				`chown_home,
+				// error popup
 				_("Cannot chown home directory."), `user, uid);
 		}
 	    }
@@ -245,12 +249,14 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 
 		AddTodo( todo,
 			      `edit_user,
+				// error popup, %1 is username
 			      sformat(_("Can't change the settings of the user %1"), username ), `user, uid);
 		string today = lookup (SCR::Execute (.target.bash_output, ("date +\"%Y-%m-%d\"")), "stdout", "");
 		if (change_date)
 		{
 		    today = substring (today, 0, 10);
 		    todo = sformat (chage + " -d %1 %2", today, username);
+				// error popup, %1 is username
 		    AddTodo( todo, `edit_user, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 		}
 	    }
@@ -261,20 +267,26 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    map shadow = lookup (user_in_work, "shadow", $[]);
 	    integer val = lookup (shadow, "min", nil);
 	    if (nil != val)
+				// error popup, %1 is username
 		AddTodo( sformat (chage + " -m %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "max", nil);
             if (nil != val)
+				// error popup, %1 is username
                 AddTodo( sformat (chage + " -M %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "warn", nil);
             if (nil != val)
+				// error popup, %1 is username
                 AddTodo( sformat (chage + " -W %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "inact", nil);
             if (nil != val)
+				// error popup, %1 is username
                 AddTodo( sformat (chage + " -I %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	    string sval = substring (lookup (shadow, "expire", nil), 0, 10);
             if (regexpmatch (sval, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+				// error popup, %1 is username
                 AddTodo( sformat (chage + " -E %1 %2", sval, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	    else
+				// error popup, %1 is username
 		AddTodo( sformat (chage + " -E -1 %1", username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	}
 
@@ -342,6 +354,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	       // create the group
 	       AddTodo( sformat(groupadd + " -g %1 -o %2", gid, new_groupname ),
 			`add_group,
+			// error popup, %1 is group name
 			sformat(_("Can't create new group %1"), new_groupname), `group, gid);
 
 	       // add users to the group
@@ -355,6 +368,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 		       else new_G  = new_groupname;
 		       AddTodo( sformat(usermod + " -G '%1' %2", new_G, user ),
 				`edit_user,
+				// error popup, %1 is username, %2 groupname
 				sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		   });
 	       }
@@ -388,6 +402,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 			   else new_G  = old_groupname;
 			   AddTodo( sformat(usermod + " -G '%1' %2", new_G , user ),
 					 `edit_user,
+					// error popup, %1 is username, %2 groupname
 					 sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		       });
 		   }
@@ -405,6 +420,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
 			   AddTodo( sformat(usermod + " -G '%1' %2", new_new_G, user ),
 					 `edit_user,
+					// error popup, %1 is username, %2 groupname
 					 sformat(_("Can't add user %1 to group %2"), user, new_new_G), `user, uid);
 		       });
 
@@ -419,6 +435,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	       if ( todo != groupmod )
 		   AddTodo( (todo + " " +  old_groupname),
 				 `edit_group,
+					// error popup, %1 is groupname
 				 sformat(_("Can't change the settings of the group %1"), old_groupname), `group, gid);
 
 
@@ -476,7 +493,9 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	{
 	    term contents =   `VBox(
 				    `VSpacing( 2 ),
+					// heading
 				    `Left(`Heading (_("Save modified settings to system."))),
+					// progress bar label
 				    `HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
 				    `VSpacing( 2 )
 				    );
@@ -559,6 +578,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
         {
             boolean ret = MailAliases::SetRootAlias (root_mail);
 	    if (! ret)
+		// error popup
 		Report::Error(_("There was an error while setting forwarding root's mail"));
 	    ok = ok & ret;
         }
@@ -566,6 +586,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 
 	if ( !ok)
 	{
+		// error popup
 	    Report::Error(_("The new user and group are not configured."));
 
 	}
@@ -574,6 +595,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    // normal, running system
 	    if( ! Mode::cont && ! Mode::autoinst && useUI )
 	    {
+		// popup
 		Report::Message(_("The new user and group settings
 are configured and usable"));
 	    }
