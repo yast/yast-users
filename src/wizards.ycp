@@ -203,6 +203,7 @@ global define symbol MainSequence(string start) ``{
             `next:          "groups"],
 //			`save:          "write" ],
     "defaults": $[
+			`abort:         "without_save",
             `next:          "users"],
 	"without_save": $[
             `next  :        `next,
