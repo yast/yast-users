@@ -110,6 +110,7 @@
 		    "USE_DESKTOP_SCHEDULER"	: "no",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "IO_SCHEDULER"		: "",
+		    "UI_MODE"			: "simple",
 		    "EVMS_CONFIG"		: "no"
 		]
 	],
