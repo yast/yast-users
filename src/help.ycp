@@ -205,7 +205,7 @@ assign a password to the group.
 	       
 	       UI(_("<p>
 <b>Members of this group:</b>
-Here the user names of all group members are listed. The single names
+Here the user names of all group members are listed. The single names have to be
 separated by commas. Example:  
 peter,anna,book,news
 </p>")) );  
