@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 24 16:25:11 CET 2004 - jsuchome@suse.cz
+
+- YaPI: UserModify
+- LDAP configuration: new attribute names (with 'suse' prefix)
+
+-------------------------------------------------------------------
 Tue Mar 23 19:47:29 CET 2004 - jsuchome@suse.cz
 
 - YaPI: UserAdd, UserDelete, UserGet, UsersGet
