@@ -297,8 +297,27 @@ Please try again.")));
 		    if( new_grouplist != grouplist  )
 		    {
 			if( nil == findfirstnotof( new_grouplist ,  valid_grouplist_chars ) )
-			{
+			{ 
+			    // remove last,""
 			    list new_groups  = splitstring(new_grouplist, "," );
+			    new_groups   = filter(`k, new_groups, ``( k != ""));
+
+			    //if two entries for one group in new_groups delete one
+			    list tmp_new_groups  = new_groups;
+			    list double_entries = [];
+			    foreach( `new_group, tmp_new_groups , ``{
+			    if ( (size( filter(`k, tmp_new_groups , ``( k == new_group ))) > 1 ) &&
+				 ( ! contains( double_entries, new_group) ))
+			    {
+				double_entries =  add( double_entries ,  new_group );
+				new_groups = filter(`k, new_groups , ``( k != new_group ));
+				new_groups = add( new_groups , new_group );
+				
+				
+			    }
+			});
+			new_grouplist  = mergestring( new_groups ,",");
+			    
 			    boolean input_ok = true;
 			    foreach( `new_group, new_groups , ``{
 				if( input_ok )
@@ -786,7 +805,7 @@ Please press button Details and edit home directory.")));
         //build a shell delete command and save it to user_settings
 	if(! lookup( user_in_work, "exist", true ) )
 	{
-	    UI(`MessagePopup( lookup( user_in_work , "home", "" )));
+	    //UI(`MessagePopup( lookup( user_in_work , "home", "" )));
 	    if( lookup( user_in_work , "home", "" ) != "") 
 		usersAddRmDir( lookup( user_in_work , "home", "" ));
 	}
@@ -819,7 +838,7 @@ Please press button Details and edit home directory.")));
 	    }
 	});
 
-	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	if (test_mode ) SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
 	user_in_work = $[];
 	return `next;
     }
@@ -1101,8 +1120,22 @@ Please try again.")));
 			// remove last ,
 			list new_users = splitstring(new_userlist , "," );
 			new_users   = filter(`k, new_users , ``( k != ""));
+
+			//if two entries for one users in new_users delete one
+			list tmp_new_users  = new_users;
+			list double_entries = [];
+			foreach( `new_user, tmp_new_users , ``{
+			    if ( (size( filter(`k, tmp_new_users , ``( k == new_user ))) > 1 ) &&
+				 ( ! contains( double_entries, new_user) ))
+			    {
+				double_entries =  add( double_entries ,  new_user );
+				new_users = filter(`k, new_users , ``( k != new_user ));
+				new_users  = add( new_users , new_user );
+				
+				
+			    }
+			});
 			new_userlist  = mergestring( new_users ,",");
-			
 			
 			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as valid_userlist_chars
 			{
