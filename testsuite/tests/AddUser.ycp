@@ -14,11 +14,12 @@
  */
 
 {
-    // testedfiles: Users.pm
+    // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm
 
     include "testsuite.ycp";
     import "Users";
     import "UsersCache";
+    import "UsersLDAP";
     import "Mode";
     import "Progress";
     import "Report";
@@ -120,7 +121,8 @@
 	],
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "EVMS_CONFIG"		: "no"
 		]
@@ -216,6 +218,37 @@
 
     DUMP (sformat ("---- check user after add:\n %1", error));
 
+    DUMP ("==================== uid content problems ===================");
+
+    TEST (``(UsersLDAP::SetUserBase ("dc=suse,dc=cz")), [], 0);
+    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    TEST (``(Users::AddUser ($[
+	"uid"		: "iii$",
+	"type"		: "local",
+	"userpassword"	: "qqqqq"
+	])),
+	[READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
+
+    DUMP ("==================== uid for LDAP may contain '$' ==============");
+
+    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    TEST (``(Users::AddUser ($[
+	"uid"		: "iii$",
+	"type"		: "ldap",
+	"homedirectory"	: "/home/ldap/iii",
+	"userpassword"	: "qqqqq"
+	])),
+	[READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
 
     DUMP ("==========================================================");
 }

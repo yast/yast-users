@@ -7,19 +7,16 @@ package Users;
 
 use strict;
 
-use ycp;
-use YaST::YCP qw(Boolean);
+use YaST::YCP qw(:LOGGING);
+use YaPI;
+
+textdomain("users");
 
 # for password encoding:
 use MIME::Base64 qw(encode_base64);
 use Digest::MD5;
 use Digest::SHA1 qw(sha1);
-
-use Locale::gettext;
-use POSIX ();     # Needed for setlocale()
-
-POSIX::setlocale(LC_MESSAGES, "");
-textdomain("users");
+use Data::Dumper;
 
 our %TYPEINFO;
 
@@ -149,9 +146,9 @@ my $cracklib_dictpath		= "";
 my $obscure_checks 		= 1;
 
 # the +/- entries in config files:
-my $plus_passwd			= "";
-my $plus_group			= "";
-my $plus_shadow 		= "";
+my @pluses_passwd		= ();
+my @pluses_group		= ();
+my @pluses_shadow 		= ();
 
 # starting dialog for installation mode
 my $start_dialog		= "summary";
@@ -214,21 +211,22 @@ YaST::YCP::Import ("UsersUI");
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
 
-sub contains { #TODO use grep
-
-    if (!defined $_[0] || ref ($_[0]) ne "ARRAY") {
+sub contains {
+    my ( $list, $key, $ignorecase ) = @_;
+    if (!defined $list || ref ($list) ne "ARRAY" || @{$list} == 0) {
 	return 0;
     }
-    foreach my $key (@{$_[0]}) {
-	if ($key eq $_[1]) { return 1; }
+    if ( $ignorecase ) {
+        if ( grep /^\Q$key\E$/i, @{$list} ) {
+            return 1;
+        }
+    } else {
+        if ( grep /^\Q$key\E$/, @{$list} ) {
+            return 1;
+        }
     }
     return 0;
 }
-
-sub _ {
-    return dgettext ("users", $_[0]);
-}
-
 
 # check the boolean value, return 0 or 1
 sub bool {
@@ -359,9 +357,27 @@ sub GetCurrentUsers {
     return \@current_users;
 }
 
+BEGIN { $TYPEINFO{SetCurrentUsers} = ["function", "void", ["list", "string"]]; }
+sub SetCurrentUsers {
+    my $self	= shift;
+    my $new	= shift;
+    if (ref ($new) eq "ARRAY") {
+	@current_users	= @$new;
+    }
+}
+
 BEGIN { $TYPEINFO{GetCurrentGroups} = ["function", ["list", "string"]]; }
 sub GetCurrentGroups {
     return \@current_groups;
+}
+
+BEGIN { $TYPEINFO{SetCurrentGroups} = ["function", "void", ["list", "string"]];}
+sub SetCurrentGroups {
+    my $self	= shift;
+    my $new	= shift;
+    if (ref ($new) eq "ARRAY") {
+	@current_groups	= @$new;
+    }
 }
 
 ##------------------------------------
@@ -561,7 +577,7 @@ sub CheckHomeMounted {
             return sprintf (
 # Popup text: first and third %s is the directory (e.g. /home),
 # second %s the file name (e.g. /etc/fstab)
-_("In %s, there is a mount point for the directory
+__("In %s, there is a mount point for the directory
 %s, which is used as a default home directory for new
 users, but this directory is not currently mounted.
 If you add new users using the default values,
@@ -795,15 +811,14 @@ sub GetUsers {
     my $ret	= {};
     
     foreach my $uid (keys %{$users{$type}}) {
-	
 	my $user	= $users{$type}{$uid};
-	if (defined $user->{$key}) {
+	if (ref ($user) eq "HASH" && defined $user->{$key}) {
 	    $ret->{$user->{$key}}	= $user;
 	}
     }
     return $ret;
     # error message
-    my $msg = _("There are multiple users satisfying the input conditions.");
+    my $msg = __("There are multiple users satisfying the input conditions.");
 }
 
 ##------------------------------------
@@ -1009,7 +1024,6 @@ sub ReadCustomSets {
 	if ($ldap_available && !Mode->config ()) {
 	    @user_custom_sets	= ("ldap");
 	    @group_custom_sets	= ("ldap");
-#TODO only on SLES?
 	}
     }
     else {
@@ -1041,6 +1055,17 @@ sub ReadCustomSets {
     }
     if (@group_custom_sets == 0) {
 	@group_custom_sets = ("local");
+    }
+    # LDAP is not set in nsswitch, but in customs
+    if (contains (\@user_custom_sets, "ldap") ||
+	contains (\@group_custom_sets, "ldap")) {
+	$ldap_available	= 1;
+        if (!contains (\@available_usersets, "ldap")) {
+	    push @available_usersets, "ldap";
+	}
+        if (!contains (\@available_groupsets, "ldap")) {
+	    push @available_groupsets, "ldap";
+	}
     }
 }
 
@@ -1136,7 +1161,7 @@ sub ReadLoginDefaults {
 
     my $self		= shift;
     foreach my $key (sort keys %useradd_defaults) {
-        my $entry = SCR->Read (".etc.default.useradd.$key");
+        my $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
         if (!$entry) {
 	    $entry = "";
 	}
@@ -1168,10 +1193,10 @@ sub ReadLDAPSet {
     }
 
     # read the LDAP data (users, groups, items)
-    $users{$type}		= \%{SCR->Read (".$type.users")};
-    $users_by_name{$type}	= \%{SCR->Read (".$type.users.by_name")};
-    $groups{$type}		= \%{SCR->Read (".$type.groups")};
-    $groups_by_name{$type}	= \%{SCR->Read(".$type.groups.by_name")};
+    $users{$type}		= \%{SCR->Read (".ldap.users")};
+    $users_by_name{$type}	= \%{SCR->Read (".ldap.users.by_name")};
+    $groups{$type}		= \%{SCR->Read (".ldap.groups")};
+    $groups_by_name{$type}	= \%{SCR->Read (".ldap.groups.by_name")};
     # read the necessary part of LDAP user configuration
     $min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
     $max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
@@ -1202,10 +1227,10 @@ sub ReadNewSet {
 
         $nis_not_read = 0;
 	
-	$users{$type}		= \%{SCR->Read (".$type.users")};
-	$users_by_name{$type}	= \%{SCR->Read (".$type.users.by_name")};
-	$groups{$type}		= \%{SCR->Read (".$type.groups")};
-	$groups_by_name{$type}	= \%{SCR->Read(".$type.groups.by_name")};
+	$users{$type}		= \%{SCR->Read (".nis.users")};
+	$users_by_name{$type}	= \%{SCR->Read (".nis.users.by_name")};
+	$groups{$type}		= \%{SCR->Read (".nis.groups")};
+	$groups_by_name{$type}	= \%{SCR->Read (".nis.groups.by_name")};
 
 	if ($use_gui) {
 	    UsersCache->BuildUserItemList ($type, $users{$type});
@@ -1259,12 +1284,23 @@ sub ReadLocal {
 	$groups_by_name{$type}	= \%{SCR->Read(".passwd.$type.groups.by_name")};
     }
 
-    $plus_passwd	= SCR->Read (".passwd.passwd.plusline");
-    $plus_shadow	= SCR->Read (".passwd.shadow.plusline");
-    $plus_group		= SCR->Read (".passwd.group.plusline");
+    my $pluses		= SCR->Read (".passwd.passwd.pluslines");
+    if (ref ($pluses) eq "ARRAY") {
+	@pluses_passwd	= @{$pluses};
+    }
+    $pluses		= SCR->Read (".passwd.shadow.pluslines");
+    if (ref ($pluses) eq "ARRAY") {
+	@pluses_shadow	= @{$pluses};
+    }
+    $pluses		= SCR->Read (".passwd.group.pluslines");
+    if (ref ($pluses) eq "ARRAY") {
+	@pluses_group	= @{$pluses};
+    }
     return "";
 }
 
+# Initialize cache structures (lists of table items, lists of usernames etc.)
+# for local users and groups
 sub ReadUsersCache {
     
     my $self	= shift;
@@ -1276,15 +1312,6 @@ sub ReadUsersCache {
 
     UsersCache->BuildGroupItemList ("local", $groups{"local"});
     UsersCache->BuildGroupItemList ("system", $groups{"system"});
- 
-    if ((contains (\@user_custom_sets, "ldap") ||
-	 contains (\@group_custom_sets, "ldap")) &&
-	 !defined (Ldap->bind_pass () && !Mode->config ()))
-    {
-	Ldap->SetBindPassword (Ldap->GetLDAPPassword (1));
-    }
-    $self->ChangeCurrentUsers ("custom");
-    $self->ChangeCurrentGroups ("custom");
 }
 
 # initialize list of available plugins
@@ -1336,40 +1363,40 @@ sub Read {
     my $error_msg 	= "";
 
     # progress caption
-    my $caption 	= _("Initializing user and group configuration");
+    my $caption 	= __("Initializing user and group configuration");
     my $no_of_steps 	= 5;
 
     if ($use_gui) {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
-		_("Read the default login settings"),
+		__("Read the default login settings"),
 		# progress stage label
-		_("Read the default system settings"),
+		__("Read the default system settings"),
 		# progress stage label
-		_("Read the configuration type"),
+		__("Read the configuration type"),
 		# progress stage label
-		_("Read the user custom settings"),
+		__("Read the user custom settings"),
 		# progress stage label
-		_("Read users and groups"),
+		__("Read users and groups"),
 		# progress stage label
-		_("Build the cache structures")
+		__("Build the cache structures")
            ],
 	   [
 		# progress step label
-		_("Reading the default login settings..."),
+		__("Reading the default login settings..."),
 		# progress step label
-		 _("Reading the default system setttings..."),
+		 __("Reading the default system setttings..."),
 		# progress step label
-		 _("Reading the configuration type..."),
+		 __("Reading the configuration type..."),
 		# progress step label
-		 _("Reading custom settings..."),
+		 __("Reading custom settings..."),
 		# progress step label
-		 _("Reading users and groups..."),
+		 __("Reading users and groups..."),
 		# progress step label
-		 _("Building the cache structures..."),
+		 __("Building the cache structures..."),
 		# final progress step label
-		 _("Finished")
+		 __("Finished")
 	    ], "" );
     }
 
@@ -1424,6 +1451,18 @@ sub Read {
 	Report->Error ($error_msg);
 	return $error_msg;# problem with reading config files( /etc/passwd etc.)
 	# TODO enable to continue at "users risk"?
+    }
+
+    # read shadow settings during cloning users (#41026)
+    if (Mode->config ()) {
+	foreach my $type ("system", "local") {
+	    foreach my $id (keys %{$users{$type}}) {
+		$self->SelectUser ($id); # SelectUser does LoadShadow
+		my %user		= %user_in_work;
+		undef %user_in_work;
+		$users{$type}{$id}	= \%user;
+	    }
+	}
     }
 
     # Build the cache structures
@@ -1528,15 +1567,10 @@ sub AddUserToGroup {
 # local users have to load shadow settings from global map
 sub LoadShadow {
 
-    if (%user_in_work && $user_in_work{"type"} ne "ldap") {
+    if (%user_in_work && ($user_in_work{"type"} || "") ne "ldap") {
 	my $username	= $user_in_work{"uid"};
 	my $type	= $user_in_work{"type"};
 	foreach my $key (keys %{$shadow{$type}{$username}}) {
-#	    if ($key eq "userpassword" &&
-#		$shadow{$type}{$username}{$key} ne "!") {
-##		next;
-#		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-#	    }
 	    $user_in_work{$key} = $shadow{$type}{$username}{$key};
 	}
     }
@@ -1654,25 +1688,25 @@ sub GetUserPlugins {
 
 ##------------------------------------
 BEGIN { $TYPEINFO{DisableUser} = ["function",
-    ["map", "string", "any" ],
+    "string",
     ["map", "string", "any" ]];
 }
 sub DisableUser {
     
     my $self		= shift;
-    my $user		= $_[0];
-    my $type		= $user->{"type"} || "";
+    my %user		= %{$_[0]};
+    my $type		= $user{"type"} || "";
     my $plugins		= $self->GetUserPlugins ($type);
     my $no_plugin	= 1;
-    
-    if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
-	$plugins	= $user->{"plugins"};
+ 
+    if (defined $user{"plugins"} && ref ($user{"plugins"}) eq "ARRAY") {
+	$plugins	= $user{"plugins"};
     }
     else {
 	my $result = UsersPlugins->Apply ("PluginPresent", {
 	    "what"	=> "user",
 	    "type"	=> $type,
-	}, $user);
+	}, \%user);
 	if (defined ($result) && ref ($result) eq "HASH") {
 	    $plugins = [];
 	    foreach my $plugin (keys %{$result}) {
@@ -1684,56 +1718,68 @@ sub DisableUser {
 	}
     }
 
+    my $plugin_error	= "";
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Disable", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
-	}, $user);
+	}, \%user);
 	# check if plugin has done the 'Disable' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    $user	= $result->{$plugin};
+	    %user	= %{$result->{$plugin}};
 	    $no_plugin	= 0;
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
     }
+    if ($plugin_error) { return $plugin_error; }
 
     if ($no_plugin && ($type eq "local" || $type eq "system")) {
 	# no plugins available: local user
 	# TODO not ready? shadowexpire
-	my $pw			= $user->{"userpassword"} || "";
-	$user->{"userpassword"}	= "!".$pw;
+	my $pw			= $user{"userpassword"} || "";
+	if ($pw eq "x") { $pw	= ""; } # no not allow "!x"
+	$user{"userpassword"}	= "!".$pw;
     }
 
-    if (!defined $user->{"disabled"} || ! bool ($user->{"disabled"})) {
-	$user->{"disabled"}	= YaST::YCP::Boolean (1);
+    if (!defined $user{"disabled"} || ! bool ($user{"disabled"})) {
+	$user{"disabled"}	= YaST::YCP::Boolean (1);
     }
-    if (!defined $user->{"what"}) {
-	$user->{"what"}		= "edit_user";
+    if (!defined $user{"what"}) {
+	$user{"what"}		= "edit_user";
     }
-    return $user;
+    %user_in_work	= %user;
+    return "";
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{EnableUser} = ["function",
-    ["map", "string", "any" ],
+    "string",
     ["map", "string", "any" ]];
 }
 sub EnableUser {
     
     my $self		= shift;
-    my $user		= $_[0];
-    my $type		= $user->{"type"} || "";
+    my %user		= %{$_[0]};
+    my $type		= $user{"type"} || "";
     my $plugins		= $self->GetUserPlugins ($type);
     my $no_plugin	= 1;
     
-    if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
-	$plugins	= $user->{"plugins"};
+    if (defined $user{"plugins"} && ref ($user{"plugins"}) eq "ARRAY") {
+	$plugins	= $user{"plugins"};
     }
     else {
 	my $result = UsersPlugins->Apply ("PluginPresent", {
 	    "what"	=> "user",
 	    "type"	=> $type,
-	}, $user);
+	}, \%user);
 	if (defined ($result) && ref ($result) eq "HASH") {
 	    $plugins = [];
 	    foreach my $plugin (keys %{$result}) {
@@ -1745,34 +1791,69 @@ sub EnableUser {
 	}
     }
 
+    my $plugin_error	= "";
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Enable", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
-	}, $user);
+	}, \%user);
 	# check if plugin has done the 'Enable' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    $user	= $result->{$plugin};
+	    %user	= %{$result->{$plugin}};
 	    $no_plugin	= 0;
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
     }
+    if ($plugin_error) { return $plugin_error; }
 
     if ($no_plugin && ($type eq "local" || $type eq "system")) {
 	# no plugins available: local user
-	my $pw	= $user->{"userpassword"} || "";
+	my $pw	= $user{"userpassword"} || "";
 	$pw	=~ s/^\!//;
-	$user->{"userpassword"}	= $pw;
+	$user{"userpassword"}	= $pw;
     }
 
-    if (!defined $user->{"enabled"} || ! bool ($user->{"enabled"})) {
-	$user->{"enabled"}	= YaST::YCP::Boolean (1);
+    if (!defined $user{"enabled"} || ! bool ($user{"enabled"})) {
+	$user{"enabled"}	= YaST::YCP::Boolean (1);
     }
-    if (!defined $user->{"what"}) {
-	$user->{"what"}		= "edit_user";
+    if (!defined $user{"what"}) {
+	$user{"what"}		= "edit_user";
     }
-	
-    return $user;
+    %user_in_work	= %user;
+    return "";
+}
+
+# read the rest of attributes of LDAP user
+sub ReadLDAPUser {
+
+    my $dn	= $user_in_work{"dn"} || "";
+    my $res 	= SCR->Read (".ldap.search", {
+	"base_dn"       => $dn,
+	"scope"         => YaST::YCP::Integer (0),
+        "single_values" => YaST::YCP::Boolean (1)
+    });
+    my $u	= {};
+    if (defined $res && ref ($res) eq "ARRAY") {
+	$u	= $res->[0];
+    }
+    foreach my $key (keys %$u) {
+	if (!defined $user_in_work{$key}) {
+	    y2internal ("------ new key: $key");
+	    $user_in_work{$key}	= $u->{$key};
+	}
+	if ($key eq "userpassword" && ($user_in_work{$key} || "x") eq "x" &&
+	    $user_in_work{$key} ne $u->{$key}) {
+	    $user_in_work{$key} = $u->{$key};
+	}
+    }
 }
 
 
@@ -1781,12 +1862,12 @@ sub EnableUser {
 #	1. initialization (creates "org_user")	- could be in SelectUser?
 #	2. save changed values into user_in_work
 BEGIN { $TYPEINFO{EditUser} = ["function",
-    "boolean",
+    "string",
     ["map", "string", "any" ]];		# data to change in user_in_work
 }
 sub EditUser {
 
-    if (!%user_in_work) { return 0; }
+    if (!%user_in_work) { return __("There is no such user."); }
     my $self		= shift;
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
@@ -1798,6 +1879,10 @@ sub EditUser {
     # check if user is edited for first time
     if (!defined $user_in_work{"org_user"} &&
 	($user_in_work{"what"} || "") ne "add_user") {
+	# TODO read the rest of LDAP (if necessary???)
+#	if ($type eq "ldap") {
+#	    ReadLDAPUser ();
+#	}
 
 	# password we have read was real -> set "encrypted" flag
 	my $pw	= $user_in_work{"userpassword"} || "";
@@ -1853,7 +1938,9 @@ sub EditUser {
     }
     
     # -------------------------- now call EditBefore function from plugins
+    my $plugin_error	= "";
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("EditBefore", {
 	    "what"		=> "user",
 	    "type"		=> $type,
@@ -1865,6 +1952,16 @@ sub EditUser {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ----------------------------------------------------------------
 
@@ -1948,6 +2045,7 @@ sub EditUser {
     UsersCache->SetUserType ($type);
     # --------------------------------- now call Edit function from plugins
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Edit", {
 	    "what"	=> "user",
 	    "type"	=> $type,
@@ -1958,30 +2056,41 @@ sub EditUser {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %user_in_work= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ---------------------------------------------------------------------
     # now handle possible login disabling
     if (defined $user_in_work{"disabled"} &&
 	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"disabled"}->value) {
-	$self->DisableUser (\%user_in_work);
+	$plugin_error = $self->DisableUser (\%user_in_work);
     }
     if (defined $user_in_work{"enabled"} &&
 	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"enabled"}->value) {
-	$self->EnableUser (\%user_in_work);
+	$plugin_error = $self->EnableUser (\%user_in_work);
     }
-    return 1;
+    return $plugin_error;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{EditGroup} = ["function",
-    "boolean",
+    "string",
     ["map", "string", "any" ]];		# data to change in group_in_work
 }
 sub EditGroup {
 
-    if (!%group_in_work) { return 0; }
+    # error message
+    if (!%group_in_work) { return __("There is no such group."); }
 
     my $self	= shift;
     my %data	= %{$_[0]};
@@ -1994,6 +2103,14 @@ sub EditGroup {
     # check if group is edited for first time
     if (!defined $group_in_work{"org_group"} &&
 	($group_in_work{"what"} || "") ne "add_group") {
+
+	# password we have read was real -> set "encrypted" flag
+	my $pw	= $group_in_work{"userpassword"} || "";
+	if ($pw ne "" && $pw ne "x" &&
+	    (!defined $group_in_work{"encrypted"} ||
+	     bool ($group_in_work{"encrypted"}))) {
+	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	}
 
 	# save first map for later checks of modification (in Commit)
 	my %org_group			= %group_in_work;
@@ -2033,7 +2150,9 @@ sub EditGroup {
     }
     
     # -------------------------- now call EditBefore function from plugins
+    my $plugin_error	= "";
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("EditBefore", {
 	    "what"	=> "group",
 	    "type"	=> $type,
@@ -2045,6 +2164,16 @@ sub EditGroup {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "group",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ----------------------------------------------------------------
 
@@ -2106,6 +2235,7 @@ sub EditGroup {
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
 	    }
 	}
@@ -2115,6 +2245,7 @@ sub EditGroup {
     UsersCache->SetGroupType ($type);
     # --------------------------------- now call Edit function from plugins
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Edit", {
 	    "what"	=> "group",
 	    "type"	=> $type,
@@ -2125,145 +2256,200 @@ sub EditGroup {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %group_in_work= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "group",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ---------------------------------------------------------------------
-    return 1;
+    return "";
 }
 
 ##------------------------------------
 # Adds a plugin to the group
-BEGIN { $TYPEINFO{AddGroupPlugin} = ["function", "boolean", "string"];}
+BEGIN { $TYPEINFO{AddGroupPlugin} = ["function", "string", "string"];}
 sub AddGroupPlugin {
 
     my $self	= shift;
     my $plugin	= shift;
    
-    my $plugins = $group_in_work{"plugins"};
+    # do the work on local copy...
+    my %group	= %group_in_work;
+
+    my $plugins = $group{"plugins"};
+    my @plugins	= ();
     if (!defined $plugins) {
 	$plugins	= [];
     }
-    push @$plugins, $plugin;
-    $group_in_work{"plugins"}	= $plugins;
+    @plugins	= @{$plugins};
 
-    if (($group_in_work{"what"} || "") eq "add_group") {
+    push @plugins, $plugin;
+    $group{"plugins"}	= \@plugins;
 
-	my $result = UsersPlugins->Apply ("AddBefore", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+    my $plugin_error	= "";
+
+    my $args		= {
+	"what"	=> "group",
+	"type"	=> $group{"type"},
+	"plugins"	=> [ $plugin ]
+    };
+
+    if (($group{"what"} || "") eq "add_group") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
 	}
 
-	$result = UsersPlugins->Apply ("Add", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	if ($plugin_error) { return $plugin_error; }
+
+	$result = UsersPlugins->Apply ("Add", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
 	}
     }
     else {
-	y2internal ("edit");
-	my $result = UsersPlugins->Apply ("EditBefore", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	my $result = UsersPlugins->Apply ("EditBefore", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Edit", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	$result = UsersPlugins->Apply ("Edit", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if (!defined $group{"what"}) {
+	    $group{"what"}	= "edit_group";
 	}
     }
-    return 1;
+    if ($plugin_error) { return $plugin_error; }
+    %group_in_work	= %group;
+    return "";
 }
 
 
 ##------------------------------------
 # Adds a plugin to the user
-BEGIN { $TYPEINFO{AddUserPlugin} = ["function", "boolean", "string"];}
+BEGIN { $TYPEINFO{AddUserPlugin} = ["function", "string", "string"];}
 sub AddUserPlugin {
 
     my $self	= shift;
     my $plugin	= shift;
-   
-    my $plugins = $user_in_work{"plugins"};
+
+    # do the work on local copy...
+    my %user	= %user_in_work;
+
+    my $plugins = $user{"plugins"};
+    my @plugins	= ();
     if (!defined $plugins) {
 	$plugins	= [];
     }
-    push @$plugins, $plugin;
-    $user_in_work{"plugins"}	= $plugins;
+    @plugins	= @{$plugins};
+    push @plugins, $plugin;
+    $user{"plugins"}	= \@plugins;
 
-    if (($user_in_work{"what"} || "") eq "add_user") {
+    my $plugin_error	= "";
 
-	my $result = UsersPlugins->Apply ("AddBefore", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+    my $args		= {
+	"what"		=> "user",
+	"type"		=> $user{"type"},
+	"plugins"	=> [ $plugin ]
+    };
+
+    if (($user{"what"} || "") eq "add_user") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Add", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	$result = UsersPlugins->Apply ("Add", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
 	}
     }
     else {
-	y2internal ("edit");
-	my $result = UsersPlugins->Apply ("EditBefore", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	my $result = UsersPlugins->Apply ("EditBefore", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Edit", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	$result = UsersPlugins->Apply ("Edit", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if (!defined $user{"what"}) {
+	    $user{"what"}	= "edit_user";
 	}
     }
-    return 1;
+
+    if ($plugin_error) { return $plugin_error; }
+
+    %user_in_work	= %user;
+    return "";
 }
 
 ##------------------------------------
 # Removes a plugin from the group
-BEGIN { $TYPEINFO{RemoveGroupPlugin} = ["function", "boolean", "string"];}
+BEGIN { $TYPEINFO{RemoveGroupPlugin} = ["function", "string", "string"];}
 sub RemoveGroupPlugin {
 
     my $self	= shift;
     my $plugin	= shift;
-   
-    my $plugins = $group_in_work{"plugins"};
+      
+    # do the work on local copy...
+    my %group	= %group_in_work;
+ 
+    my $plugins = $group{"plugins"};
     if (defined $plugins && contains ($plugins, $plugin)) {
 
 	my @new_plugins	= ();
@@ -2272,72 +2458,91 @@ sub RemoveGroupPlugin {
 		push @new_plugins, $p;
 	    }
 	}
-	$group_in_work{"plugins"}	= \@new_plugins;
+	$group{"plugins"}	= \@new_plugins;
     }
 
-    my $plugins_to_remove = $group_in_work{"plugins_to_remove"};
+    my $plugins_to_remove = $group{"plugins_to_remove"};
     if (!defined $plugins_to_remove) {
 	$plugins_to_remove	= [];
     }
-    push @$plugins_to_remove, $plugin;
-    $group_in_work{"plugins_to_remove"}	= $plugins_to_remove;
+    my @plugins_to_remove	= @{$plugins_to_remove};
+    push @plugins_to_remove, $plugin;
+    $group{"plugins_to_remove"}	= \@plugins_to_remove;
 
-    if (($group_in_work{"what"} || "") eq "add_group") {
+    my $plugin_error	= "";
+	
+    my $args		= {
+	"what"		=> "group",
+	"type"		=> $group{"type"},
+	"plugins"	=> [ $plugin ]
+    };
 
-	my $result = UsersPlugins->Apply ("AddBefore", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+    if (($group{"what"} || "") eq "add_group") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Add", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	$result = UsersPlugins->Apply ("Add", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
 	}
     }
     else {
-	y2internal ("edit");
-	my $result = UsersPlugins->Apply ("EditBefore", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	my $result = UsersPlugins->Apply ("EditBefore", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Edit", {
-	    "what"	=> "group",
-	    "type"	=> $group_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%group_in_work);
+	$result = UsersPlugins->Apply ("Edit", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group_in_work= %{$result->{$plugin}};
+	    %group= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if (!defined $group{"what"}) {
+	    $group{"what"}	= "edit_group";
 	}
     }
-    return 1;
+    if ($plugin_error) { return $plugin_error; }
+    
+    %group_in_work	= %group;
+    return "";
 }
 
 ##------------------------------------
 # Removes a plugin from the user
-BEGIN { $TYPEINFO{RemoveUserPlugin} = ["function", "boolean", "string"];}
+BEGIN { $TYPEINFO{RemoveUserPlugin} = ["function", "string", "string"];}
 sub RemoveUserPlugin {
 
     my $self	= shift;
     my $plugin	= shift;
+
+    # do the work on local copy...
+    my %user	= %user_in_work;
    
-    my $plugins = $user_in_work{"plugins"};
+    my $plugins = $user{"plugins"};
     if (defined $plugins && contains ($plugins, $plugin)) {
 
 	my @new_plugins	= ();
@@ -2346,68 +2551,83 @@ sub RemoveUserPlugin {
 		push @new_plugins, $p;
 	    }
 	}
-	$user_in_work{"plugins"}	= \@new_plugins;
+	$user{"plugins"}	= \@new_plugins;
     }
 
-    my $plugins_to_remove = $user_in_work{"plugins_to_remove"};
+    my $plugins_to_remove = $user{"plugins_to_remove"};
     if (!defined $plugins_to_remove) {
 	$plugins_to_remove	= [];
     }
-    push @$plugins_to_remove, $plugin;
-    $user_in_work{"plugins_to_remove"}	= $plugins_to_remove;
+    my @plugins_to_remove = @{$plugins_to_remove};
+    push @plugins_to_remove, $plugin;
+    $user{"plugins_to_remove"}	= \@plugins_to_remove;
 
-    if (($user_in_work{"what"} || "") eq "add_user") {
+    my $plugin_error	= "";
 
-	my $result = UsersPlugins->Apply ("AddBefore", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+    my $args		= {
+	"what"		=> "user",
+	"type"		=> $user{"type"},
+	"plugins"	=> [ $plugin ]
+    };
+
+    if (($user{"what"} || "") eq "add_user") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Add", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	$result = UsersPlugins->Apply ("Add", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
 	}
     }
     else {
-	y2internal ("edit");
-	my $result = UsersPlugins->Apply ("EditBefore", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	my $result = UsersPlugins->Apply ("EditBefore", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if ($plugin_error) { return $plugin_error; }
 
-	$result = UsersPlugins->Apply ("Edit", {
-	    "what"	=> "user",
-	    "type"	=> $user_in_work{"type"},
-	    "plugins"	=> [ $plugin ]
-	}, \%user_in_work);
+	$result = UsersPlugins->Apply ("Edit", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user_in_work= %{$result->{$plugin}};
+	    %user= %{$result->{$plugin}};
+	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", $args, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+	if (!defined $user{"what"}) {
+	    $user{"what"}	= "edit_user";
 	}
     }
-    return 1;
+    if ($plugin_error) { return $plugin_error; }
+    %user_in_work	= %user;
+    return "";
 }
 
 ##------------------------------------
 # Initializes user_in_work map with default values
 # @param data user initial data (could be an empty map)
 BEGIN { $TYPEINFO{AddUser} = ["function",
-    "boolean",
+    "string",
     ["map", "string", "any" ]];		# data to fill in
 }
 sub AddUser {
@@ -2431,8 +2651,7 @@ sub AddUser {
     if (!defined $type) {
 	$type	= "local";
 	my $i	= @current_users - 1;
-	while ($i >= 0 )
-	{
+	while ($i >= 0 ) {
 	    # nis user cannot be added from client
 	    if ($current_users[$i] ne "nis") {
 		$type = $current_users[$i];
@@ -2449,7 +2668,9 @@ sub AddUser {
     if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
 	$plugins	= $data{"plugins"};
     }
+    my $plugin_error	= "";
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("AddBefore", {
 	    "what"	=> "user",
 	    "type"	=> $type,
@@ -2459,7 +2680,18 @@ sub AddUser {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
     }
+    if ($plugin_error) {
+	return $plugin_error;
+    }
+
     # ----------------------------------------------------------------
 
     # now copy the data to map of current user
@@ -2554,6 +2786,7 @@ sub AddUser {
     }
     # --------------------------------- now call Add function from plugins
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Add", {
 	    "what"	=> "user",
 	    "type"	=> $type,
@@ -2563,22 +2796,32 @@ sub AddUser {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %user_in_work= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "user",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ---------------------------------------------------------------------
 
     # now handle possible login disabling
-    # FIXME should it really be called from Add/Edit functions...?
+    # should it really be called from Add/Edit functions...?
     if (defined $user_in_work{"disabled"} &&
 	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"disabled"}->value) {
-	$self->DisableUser (\%user_in_work);
+	$plugin_error = $self->DisableUser (\%user_in_work);
     }
     if (defined $user_in_work{"enabled"} &&
 	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"enabled"}->value) {
-	$self->EnableUser (\%user_in_work);
+	$plugin_error = $self->EnableUser (\%user_in_work);
     }
-    return 1;
+    return $plugin_error;
 }
 
 ##------------------------------------
@@ -2615,7 +2858,7 @@ sub UpdateGroup {
 # Initializes group_in_work map with default values
 # @param data group initial data (could be an empty map)
 BEGIN { $TYPEINFO{AddGroup} = ["function",
-    "boolean",
+    "string",
     ["map", "string", "any" ]];		# data to fill in
 }
 sub AddGroup {
@@ -2645,6 +2888,7 @@ sub AddGroup {
     }
 
     # ----------------------- now call AddBefore function from plugins
+    my $plugin_error	= "";
     if (!defined $group_in_work{"plugins"}) {
 	$group_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
@@ -2654,6 +2898,7 @@ sub AddGroup {
 	$plugins	= $data{"plugins"};
     }
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("AddBefore", {
 	    "what"	=> "group",
 	    "type"	=> $type,
@@ -2663,19 +2908,30 @@ sub AddGroup {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "group",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ----------------------------------------------------------------
 
     foreach my $key (keys %data) {
-	if ($key eq "userpassword" &&
+	if ($key eq "userpassword" && !bool ($data{"encrypted"}) &&
 	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
+	    
 	    # crypt password only once
-	    if (!defined ($data{"encrypted"}) || !bool ($data{"encrypted"})) {
-		$group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
-		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	    }
+	    $group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
+	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
-	$group_in_work{$key}	= $data{$key};
+	else {
+	    $group_in_work{$key}	= $data{$key};
+	}
     }
 
     $group_in_work{"type"}		= $type;
@@ -2705,6 +2961,7 @@ sub AddGroup {
     }
     # --------------------------------- now call Add function from plugins
     foreach my $plugin (sort @{$plugins}) {
+	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("Add", {
 	    "what"	=> "group",
 	    "type"	=> $type,
@@ -2714,8 +2971,30 @@ sub AddGroup {
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %group_in_work= %{$result->{$plugin}};
 	}
+	else {
+	    $result = UsersPlugins->Apply ("Error", {
+		"what"	=> "group",
+		"type"	=> $type,
+		"plugins"	=> [ $plugin ] }, {});
+	    $plugin_error = $result->{$plugin} || "";
+	}
+    }
+    if ($plugin_error) {
+	return $plugin_error;
     }
     # ---------------------------------------------------------------------
+    return "";
+}
+
+# compares 2 arrays; return 1 if they are equal
+# (from perlfaq)
+sub same_arrays {
+
+    my ($first, $second) = @_;
+    return 0 unless @$first == @$second;
+    for (my $i = 0; $i < @$first; $i++) {
+	return 0 if $first->[$i] ne $second->[$i];
+    }
     return 1;
 }
 
@@ -2769,6 +3048,7 @@ sub UserReallyModified {
 	    }
 	}
 	return $ret;
+#FIXME what if there is a new key? it's not in org_user map...
     }
     # search result, because some attributes were not filled yet
     my @internal_keys	= @{UsersLDAP->GetUserInternal ()};
@@ -2786,11 +3066,17 @@ sub UserReallyModified {
 	}
 	elsif (ref ($value) eq "ARRAY") {
 	    if (ref ($org_user{$key}) ne "ARRAY" ||
-		@{$org_user{$key}} ne @{$value}) {
+		!same_arrays ($org_user{$key}, $value)) {
 		$ret = 1;
 	    }
 	}
         elsif ($org_user{$key} ne $value) {
+	    if ((ref ($value) eq "YaST::YCP::Boolean" && 
+		 ref ($org_user{$key}) eq "YaST::YCP::Boolean") ||
+		(ref ($value) eq "YaST::YCP::Integer" && 
+		 ref ($org_user{$key}) eq "YaST::YCP::Integer")) {
+		if ($user{$key}->value() == $value->value()) { next;}
+	    }
 	    $ret = 1;
 	}
     }
@@ -2835,7 +3121,10 @@ sub CommitUser {
     my $org_username	= $user{"org_uid"} || $username;
     my $groupname	= $user{"groupname"} || $self->GetDefaultGroupname ($type);
     my $home		= $user{"homedirectory"} || "";
-    my %grouplist	= %{$user{"grouplist"}};
+    my %grouplist	= ();
+    if (defined $user{"grouplist"} && ref ($user{"grouplist"}) eq "HASH") {
+	%grouplist	= %{$user{"grouplist"}};
+    }
 
     if (($type eq "local" || $type eq "system") &&
 	!$users_modified && $self->UserReallyModified (\%user)) {
@@ -2845,7 +3134,7 @@ sub CommitUser {
         $ldap_modified = 1;
     }
 
-    y2internal ("commiting user '$username', action is '$what_user', modified: $users_modified, ldap modified: $ldap_modified");
+    y2milestone ("commiting user '$username', action is '$what_user', modified: $users_modified, ldap modified: $ldap_modified");
 
     # --- 1. do the special action
     if ($what_user eq "add_user") {
@@ -3001,7 +3290,6 @@ sub CommitUser {
     # --- 2. and now do the common changes
 
     UsersCache->CommitUser (\%user);
-	
     if ($what_user eq "delete_user") {
         delete $users{$type}{$uid};
         delete $users_by_name{$type}{$username};
@@ -3040,6 +3328,18 @@ sub CommitUser {
     return 1;
 }
 
+# Substitute the values of LDAP atributes,predefined in LDAP group configuration
+BEGIN { $TYPEINFO{SubstituteGroupValues} = ["function", "void"] }
+sub SubstituteGroupValues {
+
+    my $self	= shift;
+    my $substituted = UsersLDAP->SubstituteValues ("group", \%group_in_work);
+    if (defined $substituted && ref ($substituted) eq "HASH") {
+	%group_in_work = %{$substituted};
+    }
+}
+
+
 ##------------------------------------
 # Update the global map of groups using current group
 BEGIN { $TYPEINFO{CommitGroup} = ["function", "boolean"]; }
@@ -3075,7 +3375,7 @@ sub CommitGroup {
     if (defined $group{"userlist"}) {
 	%userlist	= %{$group{"userlist"}};
     }
-    y2internal ("commiting group '$groupname', action is '$what_group'");
+    y2milestone ("commiting group '$groupname', action is '$what_group'");
 
     if ($type eq "system" || $type eq "local") {
 	$groups_modified = 1;
@@ -3239,7 +3539,7 @@ sub WriteLoginDefaults {
 
     foreach my $key (keys %useradd_defaults) {
 	my $value	= $useradd_defaults{$key};
-	$ret = $ret && SCR->Write (".etc.default.useradd.$key", $value);
+	$ret = $ret && SCR->Write (".etc.default.useradd.\"\Q$key\E\"", $value);
     }
 
     if ($ret) {
@@ -3381,7 +3681,27 @@ sub UpdateGroupsAfterWrite {
     }
 }
 
+# internal function: get the error generated by plugin (if any)
+# First parameter is configuration map, 2nd is original result map of call
+# which was done on all plugins.
+sub GetPluginError {
 
+    my $config	= shift;
+    my $result	= shift;
+    my $error	= "";
+
+    if (ref ($result) eq "HASH") {
+	foreach my $plugin (keys %{$result}) {
+	    if ($error) { last; }
+	    if (! bool ($result->{$plugin})) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Error", $config, {});
+		$error	= $res->{$plugin} || "";
+	    }
+	}
+    }
+    return $error;
+}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
@@ -3391,43 +3711,43 @@ sub Write {
     my $ret		= "";
 
     # progress caption
-    my $caption 	= _("Writing user and group configuration...");
+    my $caption 	= __("Writing user and group configuration...");
     my $no_of_steps 	= 8;
 
     if ($use_gui) {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
-		_("Write LDAP users and groups"),
+		__("Write LDAP users and groups"),
 		# progress stage label
-		_("Write groups"),
+		__("Write groups"),
 		# progress stage label
-		_("Check for deleted users"),
+		__("Check for deleted users"),
 		# progress stage label
-		_("Write users"),
+		__("Write users"),
 		# progress stage label
-		_("Write passwords"),
+		__("Write passwords"),
 		# progress stage label
-		_("Write the custom settings"),
+		__("Write the custom settings"),
 		# progress stage label
-		_("Write the default login settings")
+		__("Write the default login settings")
            ], [
 		# progress step label
-		_("Writing LDAP users and groups..."),
+		__("Writing LDAP users and groups..."),
 		# progress step label
-		_("Writing groups..."),
+		__("Writing groups..."),
 		# progress step label
-		_("Checking deleted users..."),
+		__("Checking deleted users..."),
 		# progress step label
-		_("Writing users..."),
+		__("Writing users..."),
 		# progress step label
-		_("Writing passwords..."),
+		__("Writing passwords..."),
 		# progress step label
-		_("Writing the custom settings..."),
+		__("Writing the custom settings..."),
 		# progress step label
-		_("Writing the default login settings..."),
+		__("Writing the default login settings..."),
 		# final progress step label
-		_("Finished")
+		__("Finished")
 	    ], "" );
     } 
 
@@ -3490,10 +3810,12 @@ sub Write {
     # Write groups 
     if ($use_gui) { Progress->NextStage (); }
 
+    my $plugin_error	= "";
+
     if ($groups_modified) {
 	if ($group_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/group");
+            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -3501,17 +3823,21 @@ sub Write {
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
 	    foreach my $gid (keys %{$modified_groups{$type}}) {
-		my $result = UsersPlugins->Apply ("WriteBefore", {
+		if ($plugin_error) { last;}
+		my $args	= {
 	    	    "what"	=> "group",
 		    "type"	=> $type,
 		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
-		}, $modified_groups{$type}{$gid});
+		};
+		my $result = UsersPlugins->Apply ("WriteBefore", $args,
+		    $modified_groups{$type}{$gid});
+		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
 	# -------------------------------------- write /etc/group
-        if (! WriteGroup ()) {
+        if ($plugin_error eq "" && ! WriteGroup ()) {
 	    # error popup (%s is a file name)
-            $ret = sprintf(_("Cannot write %s file."), "$base_directory/group");
+            $ret = sprintf(__("Cannot write %s file."), "$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
         }
@@ -3519,17 +3845,25 @@ sub Write {
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
 	    foreach my $gid (keys %{$modified_groups{$type}}) {
-		my $result = UsersPlugins->Apply ("Write", {
+		if ($plugin_error) { last;}
+		my $args	= {
 	    	    "what"	=> "group",
 		    "type"	=> $type,
 		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
-		}, $modified_groups{$type}{$gid});
+		};
+		my $result = UsersPlugins->Apply ("Write", $args,
+		    $modified_groups{$type}{$gid});
+		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	    # unset the 'modified' flags after write
 	    $self->UpdateGroupsAfterWrite ("local");
 	    $self->UpdateGroupsAfterWrite ("system");
 	    delete $modified_groups{"local"};
 	    delete $modified_groups{"system"};
+	}
+	if ($plugin_error) {
+	    Report->Error ($plugin_error);
+	    return $plugin_error;
 	}
 	if (!$write_only) {
 	    # remove the group cache for nscd (bug 24748)
@@ -3543,7 +3877,7 @@ sub Write {
     if ($users_modified) {
         if (!DeleteUsers ()) {
        	    # error popup
-	    $ret = _("There was an error while removing users.");
+	    $ret = __("There was an error while removing users.");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -3555,7 +3889,7 @@ sub Write {
     if ($users_modified) {
 	if ($passwd_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/passwd");
+            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -3563,17 +3897,21 @@ sub Write {
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
 	    foreach my $uid (keys %{$modified_users{$type}}) {
-		my $result = UsersPlugins->Apply ("WriteBefore", {
+		if ($plugin_error) { last;}
+		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
 		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
-		}, $modified_users{$type}{$uid});
+		};
+		my $result = UsersPlugins->Apply ("WriteBefore", $args,
+		    $modified_users{$type}{$uid});
+		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
 	# -------------------------------------- write /etc/group
-        if (!WritePasswd ()) {
+        if ($plugin_error eq "" && !WritePasswd ()) {
 	    # error popup (%s is a file name)
-            $ret =sprintf(_("Cannot write %s file."), "$base_directory/passwd");
+            $ret =sprintf(__("Cannot write %s file."), "$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -3581,12 +3919,20 @@ sub Write {
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
 	    foreach my $uid (keys %{$modified_users{$type}}) {
-		my $result = UsersPlugins->Apply ("Write", {
+		if ($plugin_error) { last;}
+		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
 		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
-		}, $modified_users{$type}{$uid});
+		};
+		my $result = UsersPlugins->Apply ("Write", $args,
+		    $modified_users{$type}{$uid});
+		$plugin_error	= GetPluginError ($args, $result);
 	    }
+	}
+	if ($plugin_error) {
+	    Report->Error ($plugin_error);
+	    return $plugin_error;
 	}
 	if (!$write_only) {
 	    # remove the passwd cache for nscd (bug 24748)
@@ -3610,9 +3956,7 @@ sub Write {
        
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    my $skel	= $useradd_defaults{"skel"};
-		    if (defined $user{"no_skeleton"} &&
-			ref ($user{"no_skeleton"}) eq "YaST::YCP::Boolean" &&
-			$user{"no_skeleton"}->value) {
+		    if (bool ($user{"no_skeleton"})) {
 			$skel 	= "";
 		    }
 		    if ((bool ($create_home) || $user_mod eq "imported")
@@ -3620,7 +3964,9 @@ sub Write {
 		    {
 			UsersRoutines->CreateHome ($skel, $home);
 		    }
-		    UsersRoutines->ChownHome ($uid, $gid, $home);
+		    if ($home ne "/var/lib/nobody") {
+			UsersRoutines->ChownHome ($uid, $gid, $home);
+		    }
 		    # call the useradd.local
 		    $command = sprintf ("%s %s", $useradd_cmd, $username);
 		    y2milestone ("'$command' return value: ", 
@@ -3630,11 +3976,14 @@ sub Write {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
 		    if ($home ne $org_home) {
 			# move the home directory
-			if ($create_home->value) {
+			if (bool ($create_home)) {
 			    UsersRoutines->MoveHome ($org_home, $home);
 			}
+			# chown only when directory was changed (#39417)
+			if ($home ne "/var/lib/nobody") {
+			    UsersRoutines->ChownHome ($uid, $gid, $home);
+			}
 		    }
-		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
 	    }
 	}
@@ -3652,13 +4001,13 @@ sub Write {
     if ($users_modified) {
 	if ($shadow_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/shadow");
+            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/shadow");
 	    Report->Error ($ret);
 	    return $ret;
  	}
         if (! WriteShadow ()) {
 	    # error popup (%s is a file name)
-            $ret =sprintf(_("Cannot write %s file."), "$base_directory/shadow");
+            $ret =sprintf(__("Cannot write %s file."), "$base_directory/shadow");
 	    Report->Error ($ret);
 	    return $ret;
         }
@@ -3703,7 +4052,7 @@ sub Write {
 	!MailAliases->SetRootAlias ($root_mail)) {
         
 	# error popup
-        $ret =_("There was an error while setting forwarding for root's mail.");
+        $ret =__("There was an error while setting forwarding for root's mail.");
 	Report->Error ($ret);
 	return $ret;
     }
@@ -3720,6 +4069,8 @@ sub Write {
     $users_modified	= 0;
     $groups_modified	= 0;
 
+    sleep (1);
+
     return $ret;
 }
 
@@ -3727,6 +4078,7 @@ sub Write {
 ##----------------- check routines (TODO move outside...) ---------
 
 # "-" means range! -> at the begining or at the end!
+# TODO look to CHARACTER_CLASS in /etc/login.defs
 my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._-";
 
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\[]|]";# the ']' is or-ed...
@@ -3753,7 +4105,7 @@ sub CheckUID {
 
     if (!defined $uid) {
 	# error popup
-	return _("There is no free UID for this type of user.");
+	return __("There is no free UID for this type of user.");
     }
 
     if (("add_user" eq ($user_in_work{"what"} || "")) 	||
@@ -3763,7 +4115,7 @@ sub CheckUID {
 
 	if (UsersCache->UIDExists ($uid)) {
 	    # error popup
-	    return _("The user ID entered is already in use.
+	    return __("The user ID entered is already in use.
 Select another user ID.");
 	}
     }
@@ -3775,6 +4127,11 @@ Select another user ID.");
     if ($type eq "system" && $uid< UsersCache->GetMinUID("system") && $uid >=0){
 	# system id's 0..100 are ok
 	return "";
+    }
+
+    if ($type eq "ldap" && $uid >=0 && $uid <= $max) {
+	# LDAP uid could be from any range (#38556)
+	return ""; # FIXME question in CheckUIDUI
     }
 
     if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
@@ -3790,7 +4147,7 @@ Select another user ID.");
 	)) 
     {
 	# error popup
-	return sprintf (_("The selected user ID is not allowed.
+	return sprintf (__("The selected user ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
     }
     return "";
@@ -3817,7 +4174,7 @@ sub CheckUIDUI {
 	{
 	    $ret{"question_id"}	= "local";
 	    # popup question
-	    $ret{"question"}	= sprintf(_("The selected user ID is a local ID,
+	    $ret{"question"}	= sprintf(__("The selected user ID is a local ID,
 because the ID is greater than %i.
 Really change type of user to 'local'?"), UsersCache->GetMinUID ("local"));
 	    return \%ret;
@@ -3831,7 +4188,7 @@ Really change type of user to 'local'?"), UsersCache->GetMinUID ("local"));
 	{
 	    $ret{"question_id"}	= "system";
 	    # popup question
-	    $ret{"question"}	= sprintf (_("The selected user ID is a system ID,
+	    $ret{"question"}	= sprintf (__("The selected user ID is a system ID,
 because the ID is smaller than %i.
 Really change type of user to 'system'?"), UsersCache->GetMaxUID ("system") + 1);
 	    return \%ret;
@@ -3851,7 +4208,7 @@ sub CheckUsername {
 
     if (!defined $username || $username eq "") {
 	# error popup
-        return _("You didn't enter a user name.
+        return __("You did not enter a user name.
 Try again.");
     }
     my $min		= UsersCache->GetMinLoginLength ();
@@ -3860,17 +4217,23 @@ Try again.");
     if (length ($username) < $min || length ($username) > $max) {
 
 	# error popup
-	return sprintf (_("The user name must be between %i and %i characters in length.
+	return sprintf (__("The user name must be between %i and %i characters in length.
 Try again."), $min, $max);
     }
-	
+
     my $filtered = $username;
     $filtered =~ s/[$valid_logname_chars]//g;
 
+    # Samba users may need to have '$' in username (#40433)
+    if (($user_in_work{"type"} || "") eq "ldap") {
+	$filtered =~ s/\$//g;
+    }
+
+    
     my $first = substr ($username, 0, 1);
     if ($first ne "_" && ($first lt "A" || $first gt "z" ) || $filtered ne "") { 
 	# error popup
-	return _("The user login may contain only
+	return __("The user login may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
 Try again.");
@@ -3883,7 +4246,7 @@ Try again.");
 
 	if (UsersCache->UsernameExists ($username)) {
 	    # error popup
-	    return _("There is a conflict between the entered
+	    return __("There is a conflict between the entered
 user name and an existing user name.
 Try another one.");
 	}
@@ -3900,9 +4263,9 @@ sub CheckFullname {
     my $self		= shift;
     my $fullname	= $_[0];
 
-    if ($fullname =~ m/[:,]/) {
+    if (defined $fullname && $fullname =~ m/[:,]/) {
 	# error popup
-        return _("The full user name cannot contain
+        return __("The full user name cannot contain
 \":\" or \",\" characters.
 Try again.");
     }
@@ -3922,14 +4285,14 @@ sub CheckGECOS {
     }
     if ($gecos =~ m/:/) {
        	# error popup
-	return _("The \"Additional User Information\" entry cannot
+	return __("The \"Additional User Information\" entry cannot
 contain a colon (:).  Try again.");
     }
     
     my @gecos_l = split (/,/, $gecos);
     if (@gecos_l > 3 ) {
 	# error popup
-        return _("The \"Additional User Information\" entry can consist
+        return __("The \"Additional User Information\" entry can consist
 of up to three sections separated by commas.
 Remove the surplus.");
     }
@@ -3955,13 +4318,13 @@ sub CheckPassword {
 
     if (($pw || "") eq "") {
 	# error popup
-	return _("You didn't enter a password.
+	return __("You did not enter a password.
 Try again.");
     }
 
     if (length ($pw) < $min_length) {
 	# error popup
-        return sprintf (_("The password must have between %i and %i characters.
+        return sprintf (__("The password must have between %i and %i characters.
 Try again."), $min_length, $max_length);
     }
 
@@ -3970,7 +4333,7 @@ Try again."), $min_length, $max_length);
 
     if ($filtered ne "") {
 	# error popup
-	return _("The password may only contain the following characters:
+	return __("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
 Try again.");
     }
@@ -4014,7 +4377,7 @@ sub CheckObscurity {
 
     if ($pw =~ m/$username/) {
 	# popup question
-        return _("You have used the user name as a part of the password.
+        return __("You have used the user name as a part of the password.
 This is not good security practice. Are you sure?");
     }
 
@@ -4023,7 +4386,7 @@ This is not good security practice. Are you sure?");
     $filtered 		=~ s/[a-z]//g;
     if ($filtered eq "") {
 	# popup question
-        return _("You have used only lowercase letters for the password.
+        return __("You have used only lowercase letters for the password.
 This is not good security practice. Are you sure?");
     }
 
@@ -4032,7 +4395,7 @@ This is not good security practice. Are you sure?");
     $filtered 		=~ s/[0-9]//g;
     if ($filtered eq "") {
 	# popup question
-        return _("You have used only digits for the password.
+        return __("You have used only digits for the password.
 This is not good security practice. Are you sure?");
     }
     return "";
@@ -4051,7 +4414,7 @@ sub CheckPasswordMaxLength {
 
     if (length ($pw) > $max_length) {
 	# popup question
-        $ret = sprintf (_("The password is too long for the current encryption method.
+        $ret = sprintf (__("The password is too long for the current encryption method.
 Truncate it to %s characters?"), $max_length);
     }
     return $ret;
@@ -4073,7 +4436,7 @@ sub CheckPasswordUI {
 
     if (($ui_map{"empty_pw"} || 0) != 1) {
 	# popup question: user didn't enter password
-	my $error = _("You didn't enter a password.
+	my $error = __("You did not enter a password.
 This user will not be enabled to log in.
 Are you sure?");
 #FIXME do not check when already disabled...
@@ -4093,7 +4456,7 @@ Are you sure?");
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
 	    # popup question
-	    $ret{"question"}	= sprintf (_("Password is too simple:
+	    $ret{"question"}	= sprintf (__("Password is too simple:
 %s
 Really use it?"), $error);
 	    return \%ret;
@@ -4156,7 +4519,13 @@ sub CheckHome {
 
     my $self		= shift;
     my $home		= $_[0];
+
     if (!defined $home || $home eq "") {
+	return "";
+    }
+
+    # /var/lib/nobody could be used for multiple users
+    if ($home eq "/var/lib/nobody") {
 	return "";
     }
 
@@ -4167,20 +4536,21 @@ sub CheckHome {
 
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {
 	# error popup
-        return _("The home directory may only contain the following characters:
+        return __("The home directory may only contain the following characters:
 a..zA..Z0..9_-/
 Try again.");
     }
 
     # check if directory is writable
     if (!Mode->config () && !Mode->test () &&
-	($type ne "ldap" || Ldap->file_server () ))
+	($type ne "ldap" || Ldap->file_server ()))
     {
+#FIXME do not check if not changed?
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = $self->IsDirWritable ($home_path);
         if ($home_path ne "") {
 	    # error popup
-            return sprintf (_("The directory %s is not writable.
+            return sprintf (__("The directory %s is not writable.
 Choose another path for the home directory."), $home_path);
 	}
     }
@@ -4188,7 +4558,7 @@ Choose another path for the home directory."), $home_path);
     if ($home eq $self->GetDefaultHome ($type)) {
 	return "";
     }
-
+    
     if (("add_user" eq ($user_in_work{"what"} || ""))		||
 	($home ne ($user_in_work{"homedirectory"} || "")) 	||
 	(defined $user_in_work{"org_homedirectory"} && 
@@ -4196,7 +4566,7 @@ Choose another path for the home directory."), $home_path);
 
 	if (UsersCache->HomeExists ($home)) {
 	    # error message
-	    return _("The home directory is used from another user.
+	    return __("The home directory is used from another user.
 Please try again.");
 	}
     }
@@ -4222,6 +4592,12 @@ sub CheckHomeUI {
     if ($home eq "" || !bool ($create_home) || Mode->config()) {
 	return \%ret;
     }
+
+    # /var/lib/nobody could be used for multiple users
+    if ($home eq "/var/lib/nobody") {
+	return \%ret;
+    }
+
     if ($type eq "ldap" && !Ldap->file_server ()) {
 	return \%ret;
     }
@@ -4233,7 +4609,7 @@ sub CheckHomeUI {
 
 	$ret{"question_id"}	= "not_dir";
 	# yes/no popup: user seleceted something strange as a home directory
-	$ret{"question"}	= _("The path for the selected home directory already exists,
+	$ret{"question"}	= __("The path for the selected home directory already exists,
 but it is not a directory.
 Are you sure?");
 	return \%ret;
@@ -4244,21 +4620,21 @@ Are you sure?");
         
 	$ret{"question_id"}	= "chown";
 	# yes/no popup
-	$ret{"question"}	= _("The home directory selected already exists.
+	$ret{"question"}	= __("The home directory selected already exists.
 Use it and change its owner?");
 
 	my $dir_uid	= $stat{"uidnumber"} || 0;
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
 	    # yes/no popup
-	    $ret{"question"}	= _("The home directory selected already exists
+	    $ret{"question"}	= __("The home directory selected already exists
 and is owned by the currently edited user.
 Use this directory?");
 	}
 	# maybe it is home of some user marked to delete...
 	elsif (defined $removed_homes{$home}) {
 	    # yes/no popup
-	    $ret{"question"}	= sprintf (_("The home directory selected (%s)
+	    $ret{"question"}	= sprintf (__("The home directory selected (%s)
 already exists as a former home directory of
 a user previously marked for deletion.
 Use this directory?"), $home);
@@ -4286,7 +4662,7 @@ sub CheckShellUI {
 	if (!defined ($all_shells{$shell})) {
 	    $ret{"question_id"}	= "shell";
 	    # popup question
-	    $ret{"question"}	= _("If you select a nonexistent shell, the user may be unable to log in.
+	    $ret{"question"}	= __("If you select a nonexistent shell, the user may be unable to log in.
 Are you sure?");
 	}
     }
@@ -4306,7 +4682,7 @@ sub CheckGID {
 
     if (!defined $gid) {
 	# error popup
-	return _("There is no free GID for this type of group.");
+	return __("There is no free GID for this type of group.");
     }
 
     if (("add_group" eq ($group_in_work{"what"} || "")) ||
@@ -4316,7 +4692,7 @@ sub CheckGID {
 
 	if (UsersCache->GIDExists ($gid)) {
 	    # error popup
-	    return _("The group ID entered is already in use.
+	    return __("The group ID entered is already in use.
 Select another group ID.");
 	}
     }
@@ -4332,6 +4708,11 @@ Select another group ID.");
 	return "";
     }
 
+    if ($type eq "ldap" && $gid >=0 && $gid <= $max) {
+	# LDAP uid could be from any range (#38556)
+	return ""; # FIXME question in CheckGIDUI
+    }
+
     if (($type ne "system" && $type ne "local" && ($gid < $min || $gid > $max))
 	||
 	# allow change of type: "local" <-> "system"
@@ -4345,7 +4726,7 @@ Select another group ID.");
 	)) 
     {
 	# error popup
-	return sprintf (_("The selected group ID is not allowed.
+	return sprintf (__("The selected group ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
     }
     return "";
@@ -4372,7 +4753,7 @@ sub CheckGIDUI {
 	{
 	    $ret{"question_id"}	= "local";
 	    # popup question
-	    $ret{"question"}	= sprintf (_("The selected group ID is a local ID,
+	    $ret{"question"}	= sprintf (__("The selected group ID is a local ID,
 because the ID is greater than %i.
 Really change type of group to 'local'?"), UsersCache->GetMinGID ("local"));
 	    return \%ret;
@@ -4386,7 +4767,7 @@ Really change type of group to 'local'?"), UsersCache->GetMinGID ("local"));
 	{
 	    $ret{"question_id"}	= "system";
 	    # popup question
-	    $ret{"question"}	= sprintf(_("The selected group ID is a system ID,
+	    $ret{"question"}	= sprintf(__("The selected group ID is a system ID,
 because the ID is smaller than %i.
 Really change type of group to 'system'?"), UsersCache->GetMaxGID ("system"));
 	    return \%ret;
@@ -4405,17 +4786,24 @@ sub CheckGroupname {
 
     if (!defined $groupname || $groupname eq "") {
 	# error popup
-        return _("You didn't enter a group name.
+        return __("You did not enter a group name.
 Try again.");
     }
     
     my $min	= UsersCache->GetMinGroupnameLength ();
     my $max	= UsersCache->GetMaxGroupnameLength ();
 
-    if (length ($groupname) < $min || length ($groupname) > $max) {
+    my $groupname_changed = 
+	(("add_group" eq ($group_in_work{"what"} || "")) ||
+	($groupname ne ($group_in_work{"cn"} || "")) 	||
+	(defined $group_in_work{"org_cn"} && 
+		 $group_in_work{"org_cn"} ne $groupname));
+
+    if ($groupname_changed &&
+	(length ($groupname) < $min || length ($groupname) > $max)) {
 
 	# error popup
-	return sprintf (_("The group name must be between %i and %i characters in length.
+	return sprintf (__("The group name must be between %i and %i characters in length.
 Try again."), $min, $max);
     }
 	
@@ -4425,23 +4813,17 @@ Try again."), $min, $max);
     my $first = substr ($groupname, 0, 1);
     if ($first lt "A" || $first gt "z" || $filtered ne "") { 
 	# error popup
-	return _("The group name may contain only
+	return __("The group name may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter.
 Try again.");
     }
     
-    if (("add_group" eq ($group_in_work{"what"} || "")) ||
-	($groupname ne ($group_in_work{"cn"} || "")) 	||
-	(defined $group_in_work{"org_cn"} && 
-		 $group_in_work{"org_cn"} ne $groupname)) {
-
-	if (UsersCache->GroupnameExists ($groupname)) {
-	    # error popup
-	    return _("There is a conflict between the entered
+    if ($groupname_changed && UsersCache->GroupnameExists ($groupname)) {
+	# error popup
+	return __("There is a conflict between the entered
 group name and an existing group name.
 Try another one.");
-	}
     }
     return "";
 }
@@ -4494,14 +4876,13 @@ sub CheckUser {
 	UsersPlugins->Apply ("Check", {
 	    "what" 	=> "user",
 	    "type"	=> $type,
-	    "modified"	=> $user{"modified"} || ""
+	    "modified"	=> $user{"modified"} || "",
+	    "plugins"	=> $user{"plugins"}
 	 }, \%user);
 
     if (ref ($error_map) eq "HASH") {
 	foreach my $plugin (keys %{$error_map}) {
-	    if ($error ne "") {
-		next;
-	    }
+	    if ($error ne "") { last; }
 	    if (defined $error_map->{$plugin} && $error_map->{$plugin} ne ""){
 		$error = $error_map->{$plugin};
 	    }
@@ -4547,7 +4928,8 @@ sub CheckGroup {
 	UsersPlugins->Apply ("Check", {
 	    "what"	=> "group",
 	    "type"	=> $group{"type"} || "",
-	    "modified"	=> $group{"modified"} || ""
+	    "modified"	=> $group{"modified"} || "",
+	    "plugins"	=> $group{"plugins"}
 	}, \%group);
 
     if (ref ($error_map) eq "HASH") {
@@ -4593,14 +4975,14 @@ sub CheckGroupForDelete {
     if (defined $group->{"more_users"} && %{$group->{"more_users"}}) {
 
 	# error message: group cannot be deleted
-        $error = _("You cannot delete this group because
-there are users which use this group
+        $error = __("You cannot delete this group because
+there are users that use this group
 as their default group.");
     }
     elsif ((defined $group->{"userlist"}   && %{$group->{"userlist"}}) ||
 	   (defined $group->{$m_attr}      && %{$group->{$m_attr}})) {
 	# error message: group cannot be deleted
-        $error = _("You cannot delete this group because
+        $error = __("You cannot delete this group because
 there are users in the group.
 Remove these users from the group first.");
     }
@@ -5418,7 +5800,7 @@ sub Summary {
     my $ret 	= "";
 
     # summary label
-    $ret = _("<h3>Users</h3>");
+    $ret = __("<h3>Users</h3>");
     foreach my $type ("local", "system") {
 	if (!defined $users{$type}) { next; }
 	while (my ($uid, $user) = each %{$users{$type}}) {
@@ -5428,7 +5810,7 @@ sub Summary {
 	}
     }
     # summary label
-    $ret .= _("<h3>Groups</h3>");
+    $ret .= __("<h3>Groups</h3>");
     foreach my $type ("local", "system") {
 	if (!defined $groups{$type}) { next; }
 	while (my ($gid, $group) = each %{$groups{$type}}) {
@@ -5478,34 +5860,43 @@ sub SetGUI {
     Report->DisplayErrors ($use_gui, 0);
 }
 
-# --- 
-BEGIN { $TYPEINFO{SetPlusPasswd} = ["function", "void", "string"];}
-sub SetPlusPasswd {
-    my $self	= shift;
-    $plus_passwd = $_[0];
-    if (SCR->Write (".passwd.passwd.plusline", $plus_passwd)) {
-	$users_modified 	= 1;
-#TODO not necessary to write all passwd...
+# ---------------- modification of + lines in /etc/passwd
+BEGIN { $TYPEINFO{AddPlusPasswd} = ["function", "void", "string"];}
+sub AddPlusPasswd {
+    my $self		= shift;
+    my $plusline	= shift;
+
+    if (!contains (\@pluses_passwd, $plusline)) {
+	push @pluses_passwd, $plusline;
+	if (SCR->Write (".passwd.passwd.pluslines", \@pluses_passwd)) {
+	    $users_modified 	= 1;
+	}
     }
 }
 
-# ---
-BEGIN { $TYPEINFO{SetPlusShadow} = ["function", "void", "string"];}
-sub SetPlusShadow {
-    my $self	= shift;
-    $plus_shadow = $_[0];
-    if (SCR->Write (".passwd.shadow.plusline", $plus_shadow)) {
-	$groups_modified	= 1;
+BEGIN { $TYPEINFO{AddPlusShadow} = ["function", "void", "string"];}
+sub AddPlusShadow {
+    my $self		= shift;
+    my $plusline	= shift;
+
+    if (!contains (\@pluses_shadow, $plusline)) {
+	push @pluses_shadow, $plusline;
+	if (SCR->Write (".passwd.shadow.pluslines", \@pluses_shadow)) {
+	    $users_modified 	= 1;
+	}
     }
 }
 
-# --- 
-BEGIN { $TYPEINFO{SetPlusGroup} = ["function", "void", "string"];}
-sub SetPlusGroup {
-    my $self	= shift;
-    $plus_group = $_[0];
-    if (SCR->Write (".passwd.group.plusline", $plus_group)) {
-	$users_modified 	= 1;
+BEGIN { $TYPEINFO{AddPlusGroup} = ["function", "void", "string"];}
+sub AddPlusGroup {
+    my $self		= shift;
+    my $plusline	= shift;
+
+    if (!contains (\@pluses_group, $plusline)) {
+	push @pluses_group, $plusline;
+	if (SCR->Write (".passwd.group.pluslines", \@pluses_group)) {
+	    $groups_modified 	= 1;
+	}
     }
 }
 

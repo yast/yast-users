@@ -1,0 +1,109 @@
+{
+    // testedfiles: Users.pm UsersLDAP.pm
+
+    include "testsuite.ycp";
+    import "Users";
+    import "Mode";
+    import "Directory";
+    import "UsersLDAP";
+
+    map READ = $[
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
+	"ldap" : $[
+	    "schema": $[
+		"oc": $[
+		    "may": [
+			"gidnumber", "gecos", "objectclass", "uid", "uidnumber",
+			"userpassword", "loginshell"
+		    ],
+		],
+	    ],
+	],
+    ];
+    map WRITE = $[];
+    map EXEC = $[];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> user = $[
+	"dn"		: "uid=test2,ou=people,dc=suse,dc=cz",
+	"gidnumber"	: 100,
+	"groupname"	: "users",
+	"encrypted"	: true,
+	"gecos"		: "test",
+	"grouplist"	: $[ "audio" : 1 ],
+	"loginshell"	: "/bin/csh",
+	"modified"	: "edited",
+	"objectclass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
+	"org_uid"	: "test2",
+	"org_uidnumber"	: 11111,
+	"plugins"	: [ "UsersPluginLDAPAll" ],
+	"type"		: "ldap",
+	"uid"		: "test2",
+	"uidnumber"	: 11111,
+	"userpassword"	: "{crypt}IVj2W92x/IuFs",
+	"what"		: "edit_user",
+
+	"org_user"	: $[
+	    "dn"		: "uid=test2,ou=people,dc=suse,dc=cz",
+	    "gidnumber"		: 100,
+	    "groupname"		: "users",
+	    "gecos"		: "test",
+	    "loginshell"	: "/bin/bash",
+	    "grouplist"		: $[ "audio" : 1 ],
+	    "objectclass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
+	    "type"		: "ldap",
+	    "uid"		: "test2",
+	    "uidnumber"		: 11111,
+	    "userpassword"	: "{crypt}IVj2W92x/IuFs",
+	]
+    ];
+
+    DUMP (sformat ("--------- user (loginshell is changed):\n %1", user));
+
+    map<string,any> converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("--------- converted :\n %1", converted));
+
+    DUMP ("==========================================================");
+
+    user["userpassword"]	= "qqqqq";
+
+    DUMP (sformat ("--------- user (new password):\n %1", user));
+
+    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("--------- converted :\n %1", converted));
+
+    DUMP ("==========================================================");
+
+    user["objectclass"]	= [ "inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambasamaccount" ];
+    user["userpassword"]		= converted["userpassword"]:"";
+    user["org_user", "userpassword"]	= converted["userpassword"]:"";
+
+    DUMP (sformat ("--------- user (new object class):\n %1", user));
+
+    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("--------- converted :\n %1", converted));
+
+    DUMP ("==========================================================");
+
+    user	= remove (user, "org_user");
+
+    DUMP (sformat ("--------- user (removed 'org_user' submap):\n %1", user));
+
+    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("--------- converted :\n %1", converted));
+
+}

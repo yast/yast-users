@@ -1,8 +1,113 @@
 -------------------------------------------------------------------
-Wed Apr 21 16:26:26 CEST 2004 - jsuchome@suse.cz
+Wed Jun  9 11:01:19 CEST 2004 - jsuchome@suse.cz
 
-- fixed build (failing testsuites)
+- YaPI: correct initialization of LDAP configuration (#41806, #41850)
+- 2.9.38
+
+-------------------------------------------------------------------
+Thu May 27 17:16:04 CEST 2004 - jsuchome@suse.cz
+
+- read LDAP again when clicked `back during installation (#41299)
+- crypt group passwords (#41300)
+- 2.9.37
+
+-------------------------------------------------------------------
+Wed May 26 15:40:10 CEST 2004 - jsuchome@suse.cz
+
+- LDAP: create correct object classes for groupUniqueOfNames (#41232)
+- 2.9.36
+
+-------------------------------------------------------------------
+Tue May 25 15:32:58 CEST 2004 - jsuchome@suse.cz
+
+- fixed testsuite (typo in ProductFeatures.ycp: #41038)
+
+-------------------------------------------------------------------
+Mon May 24 09:56:03 CEST 2004 - jsuchome@suse.cz
+
+- autoyast: store user password during cloning users (#41026)
+- 2.9.35
+
+-------------------------------------------------------------------
+Thu May 20 17:32:27 CEST 2004 - jsuchome@suse.cz
+
+- fixed quoting in YCP paths (#40867) + adapted testsuite
+
+-------------------------------------------------------------------
+Wed May 19 13:52:22 CEST 2004 - jsuchome@suse.cz
+
+- YaPI: added $VERSION and @CAPABILITIES (#40796)
+- adapted to new +/- lines handling in ag_passwd (#40571)
+- /var/lib/nobody can be used by myltiple users (#40365)
+- do not move home directory if the new one already exists
+- 2.9.34
+
+-------------------------------------------------------------------
+Fri May 14 12:30:05 CEST 2004 - jsuchome@suse.cz
+
+- during deleting LDAP user/group, read the list of its plugins (#40561)
+- 2.9.33
+
+-------------------------------------------------------------------
+Wed May 12 17:23:13 CEST 2004 - jsuchome@suse.cz
+
+- enable '$' as a part of LDAP 'uid' attribute (Samba wants it: #40433)
+- YaPI: enhanced testsuite
+
+-------------------------------------------------------------------
+Tue May 11 09:51:41 CEST 2004 - jsuchome@suse.cz
+
+- fixed calling of gettext from Perl modules (#40160) 
+- 2.9.32
+
+-------------------------------------------------------------------
+Fri May  7 16:25:47 CEST 2004 - jsuchome@suse.cz
+
+- use correct translation function (#39954)
+
+-------------------------------------------------------------------
+Thu May  6 18:28:14 CEST 2004 - jsuchome@suse.cz
+
+- LDAP: do not save unchanged values (#39472)
+
+-------------------------------------------------------------------
+Wed May  5 20:10:09 CEST 2004 - jsuchome@suse.cz
+
+- inst_user: call users after ldap-client if ldap-client uses previously
+  configured server (#39901) 
+- Enable/Disable functions for LDAP user
+- improved logging for Perl modules
+- 2.9.31
+
+-------------------------------------------------------------------
+Tue May  4 09:38:07 CEST 2004 - jsuchome@suse.cz
+
+- merged in proofread text
+
+-------------------------------------------------------------------
+Thu Apr 29 15:45:24 CEST 2004 - jsuchome@suse.cz
+
+- enhanced plugin dialog (enables adding + removing)
+- all YaPI functions should be functional
+
+-------------------------------------------------------------------
+Tue Apr 27 18:18:30 CEST 2004 - jsuchome@suse.cz
+
 - plugins: enable deleting of objectClass (#38984)
+- plugins: error handling (#38983), removing (#38984)
+- create defult base in LDAP tree if it doesn't exist (#39476)
+- 2.9.30
+
+-------------------------------------------------------------------
+Wed Apr 21 13:22:01 CEST 2004 - arvin@suse.de
+
+- added special sles screen for user authentication
+
+-------------------------------------------------------------------
+Tue Apr 20 13:30:47 CEST 2004 - jsuchome@suse.cz
+
+- fixed build
+- 2.9.29
 
 -------------------------------------------------------------------
 Thu Apr 15 10:51:40 CEST 2004 - jsuchome@suse.cz

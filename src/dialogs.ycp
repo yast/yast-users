@@ -138,10 +138,16 @@ define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
+    string error_msg	= "";
 
     if (user == $[])
     {
-	Users::AddUser ($[]);
+	error_msg = Users::AddUser ($[]);
+	if (error_msg != "")
+	{
+	    Popup::Error (error_msg);
+	    return `back;
+	}
 	user = Users::GetCurrentUser ();
     }
     string user_type	= user["type"]:"local";
@@ -158,7 +164,6 @@ define symbol EditUserDialog (string what) ``{
     string org_home	= user["org_homedirectory"]:home;
     string password	= user["userpassword"]:"x";
     string org_username = user["org_uid"]:username;
-    boolean create_home	= user["create_home"]:true;
     integer uid		= GetInt (user, "uidnumber", nil);
     string dn		= user["dn"]:"";
 
@@ -203,11 +208,24 @@ define symbol EditUserDialog (string what) ``{
 
     if (user_type == "ldap")
     {
+	/*
 	name_entries = `VBox(
             // text entry
             `TextEntry(`id(`givenname), _("F&irst Name"), givenname),
             // text entry
             `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
+	*/
+
+	name_entries = `HBox(
+            `HWeight(50,
+		// text entry
+		`TextEntry(`id(`givenname), _("F&irst Name"), givenname)
+	    ),
+	    `HSpacing (0.5),
+            `HWeight(50,
+		// text entry
+		`TextEntry(`id(`sn),  _("&Last Name"),  sn )
+	    ));
     }
 
     term fields = `VBox(
@@ -273,7 +291,7 @@ can be changed for non-local users.
 	if (what == "edit_user" && !do_not_edit)
 	{
 	    // helptext
-	    string enable_help	= _("<p>If you want to disallow this user to
+	    string enable_help	= _("<p>To disallow this user to
 log in, check <b>Disable User Login</b> option.</p>");
 
 	    enable_term = `VBox (
@@ -685,11 +703,17 @@ Please try again."));
 	    }
 	    if ( what == "edit_user" )
             {
-		Users::EditUser (user);
+		error_msg = Users::EditUser (user);
             }
 	    else
 	    {
-		Users::AddUser (user);
+		error_msg = Users::AddUser (user);
+	    }
+	    if (error_msg != "")
+	    {
+		Popup::Error (error_msg);
+		ret = `notnext;
+		continue;
 	    }
 	}
 	if ((ret == `abort || ret == `cancel) && ReallyAbort () != `abort)
@@ -1070,6 +1094,8 @@ can be changed for non-local users.")) : `VSpacing (0),
 		if (!haskey (new_groups, group))
 		    new_groups = add (new_groups, group, 1);
 	    });
+	    if (new_home == "/var/lib/nobody")
+		create_home	= false;
 
             // update Users::user_in_work
 	    map<string,any> user = $[
@@ -1083,13 +1109,20 @@ can be changed for non-local users.")) : `VSpacing (0),
 		"create_home"		: create_home,
 		"addit_data"		: addit_data,
 	    ];
+	    string error_msg = "";
 	    if (what == "add_user")
 	    {
-		Users::AddUser (user);
+		error_msg = Users::AddUser (user);
 	    }
 	    else
 	    {
-		Users::EditUser (user);
+		error_msg = Users::EditUser (user);
+	    }
+	    if (error_msg != "")
+	    {
+		Popup::Error (error_msg);
+		ret = `notnext;
+		continue;
 	    }
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
@@ -1110,6 +1143,7 @@ define symbol EditUserPasswordDialog() ``{
 
     string username	= user["uid"]:"";
     string user_type	= user["type"]:"local";
+    string what		= user["what"]:"back";
     list<string> shadow_symbols =
 	["shadowwarning", "shadowmax", "shadowmin", "shadowinactive"];
 
@@ -1232,18 +1266,22 @@ define symbol EditUserPasswordDialog() ``{
                     }
                 }
             }
+	    string error_msg = "";
+	    if (what == "add_user")
+		error_msg = Users::AddUser (shadow);
+	    else if (what == "edit_user")
+		error_msg = Users::EditUser (shadow);
+	    if (error_msg != "")
+	    {
+		Popup::Error (error_msg);
+		ret = `notnext;
+		continue;
+	    }
         }
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
     if ( ret == `next )
     {
-	string what = user["what"]:"back";
-
-	if (what == "add_user")
-	    Users::AddUser (shadow);
-	else if (what == "edit_user")
-	    Users::EditUser (shadow);
-
 	ret = string_to_symbol (what);
     }
     return (symbol)ret;
@@ -1288,6 +1326,7 @@ define symbol PluginDialog (string what) ``{
 
 	string client		= clients[0]:"";
 	string plugin		= client2plugin[client]:client;
+	string error_msg	= "";
 
 	// dialog caption
 	string caption	= _("Additional User Settings");
@@ -1297,15 +1336,15 @@ define symbol PluginDialog (string what) ``{
 	    caption	= _("Additional Group Settings");
 
 	// helptxt for plugin dialog 1/2
-	string help	= _("<p>Here you can see the list of 'Plug-ins' - the 
-extensions of User and Group configuration.</p>") +
+	string help	= _("<p>Here, see the list of 'Plug-ins' -- the 
+extensions of user and group configuration.</p>") +
 
 	// helptext for plugin dialog 2/3
 	_("The check mark in the left part of the table indicates that plug-in
 is currently in use.") +
 
 	// helptext for plugin dialog 3/3
-	_("<p>You can start the detailed configuration of particular plug-in by pushing the <b>Launch</b> button.</p>");
+	_("<p>Start the detailed configuration of particular plug-in by pushing the <b>Launch</b>.</p>");
 
 	list items = [];
 	foreach (string cl, clients, ``{
@@ -1323,10 +1362,10 @@ is currently in use.") +
 	    `Table (`id(`table), `opt(`notify), `header (
 		" ",
 		// table header
-	        _("Plug-in Description")), items),
+	        _("Plug-In Description")), items),
 	    `HBox (
 		// pushbutton label
-		`PushButton (`id(`change), `opt(`key_F3), _("&Add/Remove Plugin")),
+		`PushButton (`id(`change), `opt(`key_F3), _("&Add or Remove Plug-In")),
 		// pushbutton label
 		`Right (`PushButton(`id(`run), `opt(`key_F6), _("&Launch")))
 	    ),
@@ -1349,17 +1388,18 @@ is currently in use.") +
 	    }
 	    if (ret == `add)
 	    {
-		UI::ChangeWidget (`id(`table), `Item (client,0), UI::Glyph (`CheckMark));
-		if (what == "user")
+		error_msg = (what == "user") ?
+		    Users::AddUserPlugin(plugin): Users::AddGroupPlugin(plugin);
+		if (error_msg != "")
 		{
-		    Users::AddUserPlugin (plugin);
-		    object = Users::GetCurrentUser ();
+		    Popup::Error (error_msg);
+		    ret = `notnext;
+		    continue;
 		}
-		else
-		{
-		    Users::AddGroupPlugin (plugin);
-		    object = Users::GetCurrentGroup ();
-		}
+		object = (what == "user") ?
+		    Users::GetCurrentUser () : Users::GetCurrentGroup ();
+		UI::ChangeWidget (`id(`table), `Item (client,0),
+		    UI::Glyph (`CheckMark));
 	    }
 	    if (ret == `del)
 	    {
@@ -1372,37 +1412,37 @@ is currently in use.") +
 		if (haskey (out, plugin) && ! (out[plugin]:false))
 		{
 		    // popup message
-		    Popup::Message (_("This Plug-in cannot be removed."));
+		    Popup::Message (_("This Plug-In cannot be removed."));
 		    ret = `not_next;
 		    continue;
 		}
+		error_msg = (what == "user") ? Users::RemoveUserPlugin(plugin) :
+		    Users::RemoveGroupPlugin(plugin);
+		if (error_msg != "")
+		{
+		    Popup::Error (error_msg);
+		    ret = `notnext;
+		    continue;
+		}
+		object = (what == "user") ?
+		    Users::GetCurrentUser () : Users::GetCurrentGroup ();
 		UI::ChangeWidget (`id(`table), `Item (client,0), " ");
-		if (what == "user")
-		{
-		    Users::RemoveUserPlugin (plugin);
-		    object = Users::GetCurrentUser ();
-		}
-		else
-		{
-		    Users::RemoveGroupPlugin (plugin);
-		    object = Users::GetCurrentGroup ();
-		}
 	    }
 	    if (ret == `run)
 	    {
 		// first, add the plugin if necessary
 		if (!contains (object["plugins"]:[], plugin))
 		{
-		    if (what == "user")
+		    error_msg = (what == "user") ? Users::AddUserPlugin(plugin):
+			Users::AddGroupPlugin(plugin);
+		    if (error_msg != "")
 		    {
-			Users::AddUserPlugin (plugin);
-			object = Users::GetCurrentUser ();
+			Popup::Error (error_msg);
+			ret = `notnext;
+			continue;
 		    }
-		    else
-		    {
-			Users::AddGroupPlugin (plugin);
-			object = Users::GetCurrentGroup ();
-		    }
+		    object = (what == "user") ?
+			Users::GetCurrentUser () : Users::GetCurrentGroup ();
 		    UI::ChangeWidget (`id(`table), `Item (client,0),
 			UI::Glyph (`CheckMark));
 		}
@@ -1419,6 +1459,8 @@ is currently in use.") +
 	    {
 		if (ReallyAbort() != `abort)
 		    ret = `not_next;
+		else
+		    ret = `abort;
 	    }
 	} until (contains ([`next, `abort, `back], ret));
     }
@@ -1537,7 +1579,7 @@ define symbol EditGroupDialog (string what ) ``{
 
     if( what == "edit_group" )
     {
-        if( !contains (["x","*","!"], password) )
+        if( password != "" && !contains (["x","*","!"], password) )
         {
 	    UI::ChangeWidget(`id(`pw1), `Value, default_pw);
 	    UI::ChangeWidget(`id(`pw2), `Value, default_pw);
@@ -1564,8 +1606,7 @@ define symbol EditGroupDialog (string what ) ``{
     // invalidate any old password and clear password inputfields
     define void clear_password_fields () ``{
 
-	password = "";
-	ret = `notnext;
+	ret	= `notnext;
 	UI::ChangeWidget(`id(`pw1), `Value, "");
 	UI::ChangeWidget(`id(`pw2), `Value, "");
 	UI::SetFocus(`id(`pw1));
@@ -1675,10 +1716,16 @@ Please try again.")) ;
 		group["userlist"]	= new_userlist;
 	    }
 
+	    string error_msg = "";
 	    if (what == "edit_group")
-		Users::EditGroup (group);
+		error_msg = Users::EditGroup (group);
 	    else
-		Users::AddGroup (group);
+		error_msg = Users::AddGroup (group);
+	    if (error_msg != "")
+	    {
+		ret = `notnext;
+		continue;
+	    }
         }
     } until ( contains ([`next, `abort, `back, `ldap, `cancel], ret));
     return ret;
@@ -2155,9 +2202,9 @@ Install it now?
 	{
 	    if (Users::NISAvailable ()) // nis enabled now
 	    {
-		Users::SetPlusPasswd ("+::::::");
-		Users::SetPlusGroup ("+:::");
-		Users::SetPlusShadow ("+");
+		Users::AddPlusPasswd ("+::::::");
+		Users::AddPlusGroup ("+:::");
+		Users::AddPlusShadow ("+");
 	    }
 	}
     }

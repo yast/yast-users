@@ -8,7 +8,7 @@ package UsersRoutines;
 
 use strict;
 
-use ycp;
+use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
 
@@ -42,6 +42,14 @@ sub CreateHome {
 	SCR->Execute (".target.mkdir", $home_path);
     }
 
+    my %stat	= %{SCR->Read (".target.stat", $home)};
+    if (%stat) {
+        if ($home ne "/var/lib/nobody") {
+	    y2error ("$home directory already exists: no mkdir");
+	}
+	return 0;
+    }
+
     # if skeleton does not exist, do not copy it
     if ($skel eq "" || !%{SCR->Read (".target.stat", $skel)}) {
 	if (! SCR->Execute (".target.mkdir", $home)) {
@@ -51,11 +59,6 @@ sub CreateHome {
     }
     # now copy homedir from skeleton
     else {
-	my %stat	= %{SCR->Read (".target.stat", $home)};
-	if (%stat) {
-	    y2error ("some directory already exists at this place: no mkdir");
-	    return 0;
-	}
 	my $command	= "/bin/cp -r $skel $home";
 	my %out		= %{SCR->Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
@@ -125,15 +128,19 @@ sub MoveHome {
     if (!%{SCR->Read (".target.stat", $home_path)}) {
 	SCR->Execute (".target.mkdir", $home_path);
     }
-    my %stat	= %{SCR->Read (".target.stat", $org_home)};
-    if (!($stat{"isdir"} || 0)) {
-	y2warning ("new 'home directory' is not a directory: no moving");
+    my %stat	= %{SCR->Read (".target.stat", $home)};
+    if (%stat) {
+	y2warning ("new home directory ('$home') already exist: do not move '$org_home' here");
 	return 0;
     }
 
     %stat	= %{SCR->Read (".target.stat", $org_home)};
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning ("old home does not exist or is not a directory: no moving");
+	return 0;
+    }
+    if ($org_home eq "/var/lib/nobody") {
+	y2warning ("no, don't move /var/lib/nobody elsewhere...");
 	return 0;
     }
 

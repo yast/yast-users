@@ -1,12 +1,12 @@
 Dump	==========================================================
 Read	.target.tmpdir 0
-Read	.etc.default.useradd.expire 0
-Read	.etc.default.useradd.group 0
-Read	.etc.default.useradd.groups 0
-Read	.etc.default.useradd.home 0
-Read	.etc.default.useradd.inactive 0
-Read	.etc.default.useradd.shell 0
-Read	.etc.default.useradd.skel 0
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 0
+Read	.etc.default.useradd."groups" 0
+Read	.etc.default.useradd."home" 0
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -25,9 +25,9 @@ Read	.passwd.system.users.by_name $[]
 Read	.passwd.system.shadow $[]
 Read	.passwd.system.groups $["by_name":$[], "gids":$[], "groupnames":$[]]
 Read	.passwd.system.groups.by_name $[]
-Read	.passwd.passwd.plusline 0
-Read	.passwd.shadow.plusline 0
-Read	.passwd.group.plusline 0
+Read	.passwd.passwd.pluslines 0
+Read	.passwd.shadow.pluslines 0
+Read	.passwd.group.pluslines 0
 Read	.passwd.local.users.last_uid 500
 Read	.passwd.local.users.homes $["/home/hh":1]
 Read	.passwd.local.users.usernames $["hh":1]

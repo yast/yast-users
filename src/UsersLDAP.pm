@@ -8,14 +8,10 @@ package UsersLDAP;
 
 use strict;
 
-use ycp;
-use YaST::YCP qw(Boolean);
+use YaST::YCP qw(:LOGGING);
+use YaPI;
 
-use Locale::gettext;
-use POSIX ();     # Needed for setlocale()
-
-POSIX::setlocale(LC_MESSAGES, "");
-textdomain("users");
+textdomain ("users");
 
 our %TYPEINFO;
 
@@ -111,7 +107,7 @@ my $max_pass_length		= 8;
 # purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
-     "org_uid", "plugins", "text_userpassword",
+     "org_uid", "plugins", "text_userpassword", "plugins_to_remove",
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
@@ -119,7 +115,7 @@ my @user_internal_keys		=
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
      "dn", "org_dn", "org_groupname", "org_gidnumber", "removed_userlist",
-     "what", "org_cn", "plugins");
+     "what", "org_cn", "plugins", "plugins_to_remove", "org_group");
 
 
 # defualt scope for searching, set it by SetUserScope
@@ -131,6 +127,7 @@ my $group_scope			= YaST::YCP::Integer (2);
 ##------------------- global imports
 
 YaST::YCP::Import ("Ldap");
+YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersPlugins");
@@ -193,7 +190,7 @@ sub Initialize {
     if (!Ldap->anonymous () && !defined (Ldap->bind_pass ())) {
 	y2error ("no password to LDAP - cannot bind!");
 	# error message
-	return _("No password for LDAP was entered");
+	return __("No password for LDAP was entered.");
     }
 
     $ldap_mesg = Ldap->LDAPBind (Ldap->bind_pass ());
@@ -310,9 +307,27 @@ sub ReadSettings {
     # every time take the first value from the list...
     if (defined $user_config{"susedefaultbase"}) {
 	$user_base = $user_config{"susedefaultbase"}[0];
-    }
-    else {
-	$user_base = Ldap->nss_base_passwd ();
+	# ask to create if not present
+	my $base_map	= Ldap->GetLDAPEntry ($user_base);
+	if (ref ($base_map) eq "HASH" && !%$base_map) {
+
+	    my $dn	= $user_base;
+	    $user_base 	= Ldap->GetDomain();
+	    if (!$use_gui || Mode->cont() ||
+		# popup question, %s is string argument
+		Popup->YesNo (sprintf (__("No entry with DN '%s'
+exists on the LDAP server. Create it now?"), $dn)))
+	    {
+		if (Ldap->ParentExists ($dn) && Ldap->WriteLDAP ( {
+		    $dn	=> {
+			"objectclass"	=> [ "top", "organizationalunit"],
+			"modified"	=> "added",
+			"ou"		=> UsersCache->get_first ($dn)
+		    }})) {
+		    $user_base = $dn;
+		}
+	    }
+	}
     }
     if ($user_base eq "") {
 	$user_base = Ldap->GetDomain();
@@ -320,9 +335,26 @@ sub ReadSettings {
 
     if (defined $group_config{"susedefaultbase"}) {
 	$group_base = $group_config{"susedefaultbase"}[0];
-    }
-    else {
-	$group_base = Ldap->nss_base_group ();
+	my $base_map	= Ldap->GetLDAPEntry ($group_base);
+	if (ref ($base_map) eq "HASH" && !%$base_map) {
+	    my $dn	= $group_base;
+#TODO what in the cases there is something different from organizationalunit?
+	    $group_base 	= Ldap->GetDomain();
+	    if (!$use_gui || Mode->cont() ||
+		# popup question, %s is string argument
+		Popup->YesNo (sprintf (__("No entry with DN '%s'
+exists on the LDAP server. Create it now?"), $dn)))
+	    {
+		if (Ldap->ParentExists ($dn) && Ldap->WriteLDAP ( {
+		    $dn	=> {
+			"objectclass"	=> [ "top", "organizationalunit"],
+			"modified"	=> "added",
+			"ou"		=> UsersCache->get_first ($dn)
+		    }})) {
+		    $group_base = $dn;
+		}
+	    }
+	}
     }
     if ($group_base eq "") {
 	$group_base = $user_base;
@@ -453,7 +485,10 @@ sub Read {
     my $group_filter = $group_filter ne ""? $group_filter:$default_group_filter;
 
     my $user_attrs	= \@user_attributes;
-#    my $user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory" ];
+#    if (@$user_attrs < 1) {
+#	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory", "userpassword" ];
+#	y2milestone ("minimal set of user attrs to read: ", @$user_attrs);
+#    }
     my $group_attrs 	= \@group_attributes;
 
     my %args = (
@@ -519,13 +554,13 @@ sub GetDefaultHome {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "string"]; }
+BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer"]; }
 sub GetMinPasswordLength {
     return $min_pass_length;
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "string"]; }
+BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "integer"]; }
 sub GetMaxPasswordLength {
     return $max_pass_length;
 }
@@ -542,7 +577,7 @@ sub SetDefaultShadow {
 	return;
     }
     foreach my $k (keys %$shadow_map) {
-	if ($shadow_map->{$k} ne "") {
+	if (defined ($shadow_map->{$k}) && $shadow_map->{$k} ne "") {
 	    $shadow{$k}	= $shadow_map->{$k};
 	}
     }
@@ -943,22 +978,43 @@ sub SubstituteValues {
     return \%ret;
 }
 
+# compares 2 arrays; return 1 if they are equal
+# (from perlfaq)
+sub same_arrays {
+
+    my ($first, $second) = @_;
+    return 0 unless @$first == @$second;
+    for (my $i = 0; $i < @$first; $i++) {
+	return 0 if $first->[$i] ne $second->[$i];
+    }
+    return 1;
+}
+
 
 ##------------------------------------
 # Convert internal map describing user or group to map that could be passed to
 # ldap-agent (remove internal keys, rename attributes etc.)
 # @param map of user or group
 # @return converted map
+BEGIN { $TYPEINFO{ConvertMap} = ["function",
+    ["map", "string", "any" ],
+    ["map", "string", "any" ]];
+}
 sub ConvertMap {
 
     my $self		= shift;
     my $data		= shift;
+    my $org_object	= undef;
     my $org_ocs		= undef;
-    if (defined $data->{"org_user"}{"objectclass"}) {
-	$org_ocs	= $data->{"org_user"}{"objectclass"};
+
+    if (defined $data->{"org_user"}) {
+	$org_object	= $data->{"org_user"};
     }
-    elsif (defined $data->{"org_group"}{"objectclass"}) {
-	$org_ocs	= $data->{"org_group"}{"objectclass"};
+    if (defined $data->{"org_group"}) {
+	$org_object	= $data->{"org_group"};
+    }
+    if (defined $org_object->{"objectclass"}) {
+	$org_ocs	= $org_object->{"objectclass"};
     }
 
     my %ret		= ();
@@ -985,7 +1041,6 @@ sub ConvertMap {
     if (!defined $data->{"uidnumber"}) {
 	@internal	= @group_internal_keys;
     }
-
     foreach my $key (keys %{$data}) {
 	my $val	= $data->{$key};
 	if (contains (\@internal, $key, 1)) {
@@ -996,8 +1051,8 @@ sub ConvertMap {
 		next;
 	    }
 	    my $enc	= lc ($encryption);
-	    if ($enc ne "clear" && !($val =~ m/^{$enc}/)) {
-		$val = sprintf ("{%s}%s", lc ($encryption), $val);
+	    if ($enc ne "clear" && !($val =~ m/{$enc}/i)) {
+		$val = sprintf ("{%s}%s", $enc, $val);
 	    }
 	}
 	# check if the attributes are allowed by objectclass
@@ -1018,6 +1073,21 @@ sub ConvertMap {
 		push @lval, $u;
 	    }
 	    $val = \@lval;
+	}
+	y2debug ("-------------------- key: $key, value: $val");
+
+	# now remove the keys with the unchanged values...
+	if (defined $org_object && defined $org_object->{$key}) {
+
+	    if (ref ($val) eq "ARRAY" && ref ($org_object->{$key}) eq "ARRAY"
+		 && same_arrays ($val, $org_object->{$key})) {
+		y2debug ("---- unchanged array key: $key, value: ", @$val);
+		next;
+	    }
+	    elsif ($org_object->{$key} eq $val) {
+		y2debug ("---------- unchanged key: $key, value: $val");
+		next;
+	    }
 	}
 	$ret{$key}	= $val;
     }
@@ -1050,6 +1120,19 @@ sub get_base {
 }
 
 
+# read the error message generated by plugin
+# first parameter is plugin name, 2nd one is configuration map
+sub GetPluginError {
+
+    my $plugin	= shift;
+    my $config	= shift;
+
+    my $result = UsersPlugins->Apply ("Error", $config, {});
+    if (defined $result->{$plugin} && $result->{$plugin} ne "") {
+	return $result->{$plugin};
+    }
+    return "";
+}
 
 ##------------------------------------
 # Writing modified LDAP users with
@@ -1088,6 +1171,7 @@ sub WriteUsers {
 	my $disabled	= bool ($user->{"disabled"});
 	my $plugins	= $user->{"plugins"};
 	my $plugins_to_remove	= $user->{"plugins_to_remove"};
+	my $plugin_error	= "";
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
@@ -1105,14 +1189,6 @@ sub WriteUsers {
 	    }
 	}
 	$user->{"objectclass"}	= \@ocs;
-	# now internal attributes are removed from user's map
-	$user			= $self->ConvertMap ($user);
-	my $rdn			= "$dn_attr=".$user->{$dn_attr};
-	my $new_dn		= "$rdn,$user_base";
-	my %arg_map		= (
-	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
-	);
-
 	# ----------- now call the WriteBefore plugin function for this user
 
 	if (!defined $plugins) {
@@ -1132,24 +1208,56 @@ sub WriteUsers {
 	if (defined $plugins_to_remove) {
 	    $config->{"plugins_to_remove"}	= $plugins_to_remove;
 	}
-	    
+	# ---------- for deleted users, get the list of all plugins using the
+	# PluginPresent call (in add/edit cases, plugins were already read in
+	# Users->Edit/Add functions)
+	if ($action eq "deleted") {
+	    my $res = UsersPlugins->Apply ("PluginPresent", $config, $user);
+	    if (defined ($res) && ref ($res) eq "HASH") {
+		$plugins = [];
+		foreach my $plugin (keys %{$res}) {
+		    if (bool ($res->{$plugin}) &&
+			!contains ($plugins, $plugin, 1)) {
+			push @{$plugins}, $plugin;
+		    }
+		}
+	    }
+	}
+
 	foreach my $plugin (sort @{$plugins}) {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
-#FIXME check the return value!
+	    if (!bool ($res->{$plugin})) {
+		$plugin_error = GetPluginError ($plugin, $config);
+		if ($plugin_error) { last; }
+	    }
 	}
 	# now call WriteBefore on plugins which should be removed:
 	# (such call could e.g. remove mail account)
-        if ( defined $plugins_to_remove ) {
+        if (defined $plugins_to_remove && $plugin_error eq "") {
             foreach my $plugin (sort @{$plugins_to_remove}) {
                 $config->{"plugins"}	= [ $plugin ];
                 my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
             }
         }
+	if ($plugin_error) {
+	    $ret{"msg"}	= $plugin_error;
+	    last; # stop processing LDAP write...
+	}
 	# --------------------------------------------------------------------
 	# --------------------------------------------------------------------
+	my $rdn			= "$dn_attr=".$user->{$dn_attr};
+	my $new_dn		= "$rdn,$user_base";
+	my %arg_map		= (
+	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
+	);
+
         if ($action eq "added") {
-	    if (! SCR->Write (".ldap.add", \%arg_map, $user)) {
+	    if (!SCR->Write (".ldap.add",\%arg_map,$self->ConvertMap ($user))) {
 		%ret	= %{Ldap->LDAPErrorMap ()};
 	    }
             # on server, we can modify homes
@@ -1161,7 +1269,9 @@ sub WriteUsers {
 		    if ($create_home) {
 			UsersRoutines->CreateHome ($useradd_defaults{"skel"}, $home);
 		    }
-		    UsersRoutines->ChownHome ($uid, $gid, $home);
+		    if ($home ne "/var/lib/nobody") {
+			UsersRoutines->ChownHome ($uid, $gid, $home);
+		    }
 		}
 	    }
         }
@@ -1188,7 +1298,7 @@ sub WriteUsers {
 		    $arg_map{"newParentDN"}	= $new_base;
 		}
 	    }
-	    if (! SCR->Write (".ldap.modify", \%arg_map, $user)) {
+	    if (!SCR->Write (".ldap.modify", \%arg_map, $self->ConvertMap ($user))) {
 		%ret = %{Ldap->LDAPErrorMap ()};
 	    }
 	    else {
@@ -1199,26 +1309,38 @@ sub WriteUsers {
 		    if ($create_home) {
 			UsersRoutines->MoveHome ($org_home, $home);
 		    }
-		    UsersRoutines->ChownHome ($uid, $gid, $home);
+		    if ($home ne "/var/lib/nobody") {
+			UsersRoutines->ChownHome ($uid, $gid, $home);
+		    }
 		}
             }
         }
+	if (defined $ret{"msg"}) {
+	    last; # error on write
+	}
 	# ----------- now call the "write" plugin function for this user
-	if (!defined $ret{"msg"}) {
-	    foreach my $plugin (sort @{$plugins}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("Write", $config, $user);
+	foreach my $plugin (sort @{$plugins}) {
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("Write", $config, $user);
+	    if (!bool ($res->{$plugin})) {
+		$plugin_error = GetPluginError ($plugin, $config);
+		if ($plugin_error) { last; }
 	    }
 	}
-#FIXME check the return value! (set 'ret')
-	if (!defined $ret{"msg"}) {
-            if ( defined $plugins_to_remove ) {
-	        foreach my $plugin (sort @{$plugins_to_remove}) {
-		    $config->{"plugins"}	= [ $plugin ];
-		    my $res = UsersPlugins->Apply ("Write", $config, $user);
-	        }
+        if (defined $plugins_to_remove && $plugin_error eq "") {
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Write", $config, $user);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
 	    }
         }
+	if ($plugin_error) {
+	    $ret{"msg"}	= $plugin_error;
+	    last;
+	}
 	# --------------------------------------------------------------------
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
@@ -1233,8 +1355,12 @@ sub WriteUsers {
 	    $user_config{"susenextuniqueid"};
         %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
-    if (%ret) {
-	return $ret{"msg"};
+    if (defined $ret{"msg"}) {
+	my $msg 	= $ret{"msg"};
+	if (defined $ret{"server_msg"} &&  $ret{"server_msg"} ne "") {
+	    $msg	= "$msg\n".$ret{"server_msg"};
+	}
+	return $msg;
     }
     return "";
 }
@@ -1268,6 +1394,7 @@ sub WriteGroups {
 	my $org_dn	= $group->{"org_dn"} 	|| $dn;
 	my $plugins	= $group->{"plugins"};
 	my $plugins_to_remove	= $group->{"plugins_to_remove"};
+	my $plugin_error	= "";
 
 	my @obj_classes	= @group_class;
 	if (defined $group->{"objectclass"} &&
@@ -1322,16 +1449,9 @@ sub WriteGroups {
 	    }
 	}
 	$group->{"objectclass"}	= \@ocs;
-	$group			= $self->ConvertMap ($group);
-
-	my $rdn			= "$dn_attr=".$group->{$dn_attr};
-	my $new_dn		= "$rdn,$group_base";
-	my %arg_map		= (
-	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
-	);
 
 	# ----------- now call the WriteBefore plugin function for this group
-
+    
 	if (!defined $plugins) {
 	    $plugins	= \@default_group_plugins;
 	}
@@ -1343,20 +1463,53 @@ sub WriteGroups {
 	if (defined $plugins_to_remove) {
 	    $config->{"plugins_to_remove"}	= $plugins_to_remove;
 	}
+	# ---------- for deleted groups, get the list of all plugins using the
+	# PluginPresent call (in add/edit cases, plugins were already read in
+	# Users->Edit/Add functions)
+	if (($group->{"modified"} || $action) eq "deleted") {
+	    my $res = UsersPlugins->Apply ("PluginPresent", $config, $group);
+	    if (defined ($res) && ref ($res) eq "HASH") {
+		$plugins = [];
+		foreach my $plugin (keys %{$res}) {
+		    if (bool ($res->{$plugin}) &&
+			!contains ($plugins, $plugin, 1)) {
+			push @{$plugins}, $plugin;
+		    }
+		}
+	    }
+	}
 	foreach my $plugin (sort @{$plugins}) {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+	    if (!bool ($res->{$plugin})) {
+		$plugin_error = GetPluginError ($plugin, $config);
+		if ($plugin_error) { last; }
+	    }
 	}
-	if (defined $plugins_to_remove) {
+	if (defined $plugins_to_remove && $plugin_error eq "") {
             foreach my $plugin (sort @{$plugins_to_remove}) {
                 $config->{"plugins"}	= [ $plugin ];
                 my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
             }
         }
+	if ($plugin_error) {
+	    $ret{"msg"}	= $plugin_error;
+	    last; # stop processing LDAP write...
+	}
 	# -------------------------------------------------------------------
+	my $rdn			= "$dn_attr=".$group->{$dn_attr};
+	my $new_dn		= "$rdn,$group_base";
+	my %arg_map		= (
+	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
+	);
+
 
         if ($action eq "added") {
-	    if (!SCR->Write (".ldap.add", \%arg_map, $group)) {
+	    if (!SCR->Write (".ldap.add",\%arg_map,$self->ConvertMap($group))) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
 	    elsif ($gid > $last_id) {
@@ -1377,48 +1530,73 @@ sub WriteGroups {
 		$arg_map{"new_dn"}	= $dn;
 	    }
 
-	    if (!SCR->Write (".ldap.modify", \%arg_map, $group)) {
+	    if (!SCR->Write (".ldap.modify", \%arg_map, $self->ConvertMap($group))) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
 	    elsif ($gid > $last_id) {
 		$last_id	= $gid;
 	    }
         }
+	if (defined $ret{"msg"}) {
+	    last; # error on write
+	}
 	# ----------- now call the Write plugin function for this group
-	if (!defined $ret{"msg"}) {
-	    foreach my $plugin (sort @{$plugins}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("Write", $config, $group);
+	foreach my $plugin (sort @{$plugins}) {
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("Write", $config, $group);
+	    if (!bool ($res->{$plugin})) {
+		$plugin_error = GetPluginError ($plugin, $config);
+		if ($plugin_error) { last; }
 	    }
 	}
-	if (!defined $ret{"msg"}) {
-            if (defined $plugins_to_remove) {
-                foreach my $plugin (sort @{$plugins_to_remove}) {
-                    $config->{"plugins"}	= [ $plugin ];
-                    my $res = UsersPlugins->Apply ("Write", $config, $group);
-                }
+        if (defined $plugins_to_remove && $plugin_error eq "") {
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
+                $config->{"plugins"}	= [ $plugin ];
+                my $res = UsersPlugins->Apply ("Write", $config, $group);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
             }
+	}
+	if ($plugin_error) {
+	    $ret{"msg"}	= $plugin_error;
+	    last; # stop processing LDAP write...
 	}
 	# --------------------------------------------------------------------
 
 	# now add a group whose object class was changed:
-	if (%new_group && !%ret) {
+	if (%new_group) {
 	    $config->{"modified"}	= "added";
 	    foreach my $plugin (sort @{$plugins}) {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
 	    }
-	    if (defined $plugins_to_remove) {
+	    if (defined $plugins_to_remove && $plugin_error eq "") {
                 foreach my $plugin (sort @{$plugins_to_remove}) {
                     $config->{"plugins"}	= [ $plugin ];
                     my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+		    if (!bool ($res->{$plugin})) {
+			$plugin_error = GetPluginError ($plugin, $config);
+			if ($plugin_error) { last; }
+		    }
                 }
             }
+	    if ($plugin_error) {
+		$ret{"msg"}	= $plugin_error;
+		last; # stop processing LDAP write...
+	    }
 	    # now add new group with modified objectclass
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"dn"}	= $dn;
 	    }
 	    $new_group{"objectclass"}	= \@ocs;
+	    # remove the org_group submap, we are adding new group:
+	    delete $new_group{"org_group"};
 	    if (!SCR->Write (".ldap.add", \%arg_map,
 		$self->ConvertMap (\%new_group)))
 	    {
@@ -1427,16 +1605,32 @@ sub WriteGroups {
 	    elsif ($gid > $last_id) {
 		$last_id = $gid;
 	    }
+	    if (defined $ret{"msg"}) {
+		last; # error on write
+	    }
+
 	    foreach my $plugin (sort @{$plugins}) {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
+		if (!bool ($res->{$plugin})) {
+		    $plugin_error = GetPluginError ($plugin, $config);
+		    if ($plugin_error) { last; }
+		}
 	    }
-	    if (defined $plugins_to_remove) {
+	    if (defined $plugins_to_remove && $plugin_error eq "") {
                 foreach my $plugin (sort @{$plugins_to_remove}) {
                     $config->{"plugins"}	= [ $plugin ];
                     my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
+		    if (!bool ($res->{$plugin})) {
+			$plugin_error = GetPluginError ($plugin, $config);
+			if ($plugin_error) { last; }
+		    }
                 }
             }
+	    if ($plugin_error) {
+		$ret{"msg"}	= $plugin_error;
+		last; # stop processing LDAP write...
+	    }
 	}
     }
     if ($last_id != $last_gid && $group_config_dn ne "")  {
@@ -1452,8 +1646,12 @@ sub WriteGroups {
         %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
 
-    if (%ret) {
-	return $ret{"msg"};
+    if (defined $ret{"msg"}) {
+	my $msg 	= $ret{"msg"};
+	if (defined $ret{"server_msg"} &&  $ret{"server_msg"} ne "") {
+	    $msg	= "$msg\n".$ret{"server_msg"};
+	}
+	return $msg;
     }
     return "";
 }

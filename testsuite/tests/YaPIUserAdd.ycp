@@ -107,7 +107,8 @@
 	],
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "EVMS_CONFIG"		: "no"
 		]
@@ -118,6 +119,9 @@
 	"passwd" : $[
 	    "init"	: true
 	],
+	"target": $[
+	    "mkdir"	: true,
+	]
     ];
 
     DUMP ("==========================================================");

@@ -14,7 +14,7 @@
  */
 
 {
-    // testedfiles: Users.pm
+    // testedfiles: Users.pm UsersCache.pm
 
     include "testsuite.ycp";
     import "Users";
@@ -34,6 +34,7 @@
 			"gidnumber"	: 100,
 			"uidnumber"	: 500,
 			"grouplist"	: $[ "grp"	: 1],
+			"type"		: "local"
 		    ],
 		    "by_name": $[
 			"hh":	500,
@@ -50,6 +51,8 @@
 		    ]
 		],
 		"shadow": $[
+		    "hh": $[
+		    ]
 		],
 		"groups": $[
 		    100: $[
@@ -119,7 +122,8 @@
 	],
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "EVMS_CONFIG"		: "no"
 		]
@@ -140,6 +144,8 @@
 
     TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
 
+    DUMP ( sformat ("local users:\n %1", Users::GetUsers ("uid", "local")));
+
     DUMP ( sformat ("local user names:\n %1", UsersCache::GetUsernames ("local")));
     DUMP ( sformat ("local group names:\n %1", UsersCache::GetGroupnames ("local")));
 
@@ -158,6 +164,8 @@
     TEST(``(Users::CommitUser ()), [], 0);
 
     DUMP ( sformat ("local user names:\n %1", UsersCache::GetUsernames ("local")));
+    DUMP ( sformat ("local users:\n %1", Users::GetUsers ("uid", "local")));
+
     Users::SelectGroupByName ("grp");
 
     DUMP (sformat ("---- group 'grp':\n %1", Users::GetCurrentGroup ()));

@@ -14,11 +14,12 @@
 	    "local": $[
 		"users": $[
 		    500: $[
-			"uid":	"hh",
+			"uid"		: "hh",
 			"uidnumber"	: 500,
 			"homedirectory"	: "/home/hh",
 			"sn"		: "HH",
 			"loginshell"	: "/bin/bash",
+			"type"		: "local"
 		    ],
 		    "by_name": $[
 			"hh":	500,
@@ -61,7 +62,8 @@
 		    ],
 		    51:	$[
 			"uid"		: "suser",
-			"uidnumber"	: 51
+			"uidnumber"	: 51,
+			"type"		: "system"
 		    ],
 		    "by_name": $[
 			"root"		: 0,
@@ -116,7 +118,8 @@
 	],
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "EVMS_CONFIG"		: "no"
 		]

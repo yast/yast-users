@@ -35,6 +35,29 @@ define boolean ReallyBack () ``{
     else return true;
 }
 
+/**
+ * Before showing the table for first time,
+ * read LDAP/NIS if they are included in custom set
+ */
+define symbol InitializeTableItems () ``{
+
+    if (UsersCache::CustomizedUsersView () ||
+	UsersCache::CustomizedGroupsView ())
+    {
+	if ((contains (Users::GetUserCustomSets (), "ldap") ||
+	     contains (Users::GetGroupCustomSets (), "ldap")) &&
+	    Ldap::bind_pass == nil)
+	{
+	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+	}
+	if (UsersCache::CustomizedUsersView ())
+	    Users::ChangeCurrentUsers ("custom");
+	if (UsersCache::CustomizedGroupsView ())
+	    Users::ChangeCurrentGroups ("custom");
+    }
+    return `next;
+}
+
 define symbol SummaryDialog() ``{
 
     term contents = `VBox (
@@ -82,6 +105,13 @@ define symbol SummaryDialog() ``{
 	boolean old_gui = Users::GetGUI ();
 	Users::SetGUI (false);
 	Users::Read ();
+	// read also LDAP again: bug #41299
+	list<string> current_users	= Users::GetCurrentUsers();
+	if (contains (current_users, "ldap"))
+	{
+	    Users::SetLDAPNotRead (true);
+	    Users::ChangeCurrentUsers ("ldap");
+	}
 	Users::SetGUI (old_gui);
     }
 
@@ -101,6 +131,7 @@ define symbol SummaryDialog() ``{
 define symbol MainSequence(string start) ``{
 
     map aliases = $[
+	"init_summary"		: [``(InitializeTableItems ()), true ],
 	"summary"		: ``(SummaryDialog ()),
 	"user_add"		: ``(EditUserDialog("add_user")),
 	"user_add_inst"		: ``(EditUserDialog("add_user")),
@@ -124,7 +155,11 @@ define symbol MainSequence(string start) ``{
     ];
 
     map main_sequence = $[
-	"ws_start":             start,
+//	"ws_start":             start,
+	"ws_start"		: "init_summary",
+	"init_summary"		: $[
+	    `next		: start
+	],
 	"summary":$[
 	    `new_user		: "user_add",
 	    `edit_user		: "user_edit",

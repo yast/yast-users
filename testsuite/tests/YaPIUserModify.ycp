@@ -1,0 +1,179 @@
+/**
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm UsersCache.pm USERS.pm
+
+    include "testsuite.ycp";
+
+    import "YaPI::USERS";
+    import "Mode";
+
+    map R = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid"		: "hh",
+			"uidnumber"	: 500,
+			"type"		: "local",
+			"userpassword"	: "x",
+			"sn"		: "HH",
+			"grouplist"	: $[
+			    "users"	: 1
+			],
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local",
+			"userlist"	: $[
+			    "hh":	1
+			],
+		    ],
+		    "by_name": $[
+			"users":	100,
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0,
+			"type"		: "system"
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/tmp/local/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
+    ];
+    map W = $[];
+    map E = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target": $[
+	    "mkdir"	: true,
+	]
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> config_map  = $[
+	"uid"		: "jj",
+    ];
+    map<string,any> data_map    = $[
+	"sn"		: "HH",
+    ];
+
+    DUMP ("============ edit non-existing user 'jj': =====================");
+    TEST (``(YaPI::USERS::UserModify (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ edit done ========================================");
+
+    config_map    = $[
+	"uid"           : "hh",
+    ];
+
+    DUMP ("============ edit existing user 'hh' (not really changed): ====");
+    TEST (``(YaPI::USERS::UserModify (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ edit done ========================================");
+
+    data_map["sn"]	= "HHH";
+
+    DUMP ("============ edit existing user 'hh': (changed sn) ============");
+    TEST (``(YaPI::USERS::UserModify (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ edit done ========================================");
+
+    data_map["uid"]	= "hhh";
+
+    DUMP ("============ edit existing user 'hh': (changed uid) ============");
+    TEST (``(YaPI::USERS::UserModify (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ edit done ========================================");
+
+    data_map["uid"]	= "root";
+
+    DUMP ("============ edit existing user 'hh': (uid conflict) ==========");
+    TEST (``(YaPI::USERS::UserModify (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ edit done ========================================");
+
+}
