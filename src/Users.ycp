@@ -163,6 +163,9 @@ global boolean obscure_checks = false;
 
 global string root_mail = "";
 
+// autologin without showing kdm (value is username)
+global string autologin = "";
+
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];
 
@@ -1021,12 +1024,18 @@ global define symbol Write (block abort, boolean useUI)``{
     if (security_modified)
 	WriteSecurity();// TODO: add progress?
 
-    // mail forward from root
-    if (Mode::cont && root_mail != "")
+    if (Mode::cont)
     {
-        if (! MailAliases::SetRootAlias (root_mail))
+	// mail forward from root
+        if (root_mail != "" && !MailAliases::SetRootAlias (root_mail))
             // error popup
             Report::Error(_("There was an error while setting forwarding for root's mail."));
+
+	// write autologin information
+	SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN,
+	    autologin);
+	SCR::Write(.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
+	    autologin == "" ? "no" : "yes");
     }
 
     // increase the progress to "finish"
