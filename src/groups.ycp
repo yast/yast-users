@@ -147,13 +147,13 @@ define boolean GroupsShowHandler (map options ) ``{
 define boolean UsersRead () ``{
 
     Users::SetGUI (false);
-    return Users::Read ();
+    return Users::Read () == "";
 }
 
 define boolean UsersWrite () ``{
 
     Users::SetGUI (false);
-    return Users::Write ();
+    return Users::Write () == "";
 }
 
 define boolean UsersGUI ()``{

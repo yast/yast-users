@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Mar 23 19:47:29 CET 2004 - jsuchome@suse.cz
+
+- YaPI: UserAdd, UserDelete, UserGet, UsersGet
+- autoyast fix: show empty user password in config mode (#36726)
+- Users::Read and Users::Write now return error message, not boolean
+
+-------------------------------------------------------------------
 Tue Mar 23 10:04:56 CET 2004 - jsuchome@suse.cz
 
 - autoyast fix: do not import groups with gid -1, do not forget to
