@@ -700,11 +700,16 @@ sub SetCurrentUserFilter {
 # add new condition to current user filter
 BEGIN { $TYPEINFO{AddToCurrentUserFilter} = ["function", "void", "string"];}
 sub AddToCurrentUserFilter {
-    my $self = shift;
+    my $self		= shift;
+    my $new_filter	= shift;
+
     if (!defined $user_filter || $user_filter eq "") {
 	$user_filter	= $default_user_filter
     }
-    my $new_filter	= shift;
+    if ($user_filter eq "" || $new_filter eq "") {
+	return;
+    }
+    
     if (substr ($user_filter, 0, 1) ne "(") {
 	$user_filter	= "($user_filter)";
     }
@@ -713,6 +718,39 @@ sub AddToCurrentUserFilter {
     }
     $user_filter	= "(&$user_filter$new_filter)";
 }
+
+
+##------------------------------------
+# add new condition to given filter
+BEGIN { $TYPEINFO{AddToFilter} = ["function", "string",	# filter to return
+    "string",	# filter
+    "string",	# what to add
+    "string"	# connective: and/or
+];}
+sub AddToFilter {
+
+    my $self	= shift;
+    my $filter	= shift;
+    my $new	= shift;
+    my $conn	= shift;
+
+    if ($filter eq "") {
+	return $new;
+    }
+    if ($new eq "") {
+	return $filter;
+    }
+
+    if (substr ($filter, 0, 1) ne "(") {
+	$filter	= "($filter)";
+    }
+    if (substr ($new, 0, 1) ne "(") {
+	$new	= "($new)";
+    }
+    $conn	= (lc ($conn) eq "or") ? "|" : "&";
+    return "($conn$filter$new)";
+}
+
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetUserScope} = ["function", "void", "integer"];}

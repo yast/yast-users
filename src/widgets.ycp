@@ -177,6 +177,193 @@ define boolean LDAPSearchFilterPopup () ``{
 
     boolean ret = false;
 
+    list attributes	= [ "objectclass", "uidnumber" ];
+    list logic		= [
+	`item (`id("and"), _("AND")),
+	`item (`id("or"), _("OR"))
+    ];//TODO not?
+    list equality	= [ "=", "<=", ">=" ];
+
+    string help_text =
+// helptext 1/4 - caption
+_("<p><b>LDAP Search Filter Changes</b></p>") +
+
+// helptext 2/4
+_("<p>Here, extend the search filters for users and groups beyond the default search filters.</p>") +
+
+// helptext 3/5
+_("<p>With <b>From Server</b>, load the filter values from the LDAP server, as entered in the <b>YaST LDAP Client</b> module. If you are not connected yet, you will be asked for password.</p>") +
+
+// helptext 3/4
+_("<p>Only extensions of default filters are allowed, so the values entered here are checked to verify they contain the default values as substrings.</p>") +
+
+// helptext 3/4 (do not translate the value (written as <tt> font))
+_("<p><b>Example:</b>
+<br>With user filter
+<br>
+<tt>(&(objectClass=posixAccount)(uid=u*))</tt>
+<br>
+only obtain users with a user name beginning with 'u'.</p>
+");
+
+    UI::OpenDialog (`opt(`decorated), `HBox(`HSpacing(1.5), `VBox(
+	`HSpacing(70),
+        `VSpacing(0.5),
+//	    `Frame(_("Filter for Searching the LDAP Directory"), `HBox(
+	    `HBox (
+	      `HSpacing (0.5),
+	      `VBox(
+		`VSpacing(0.5),
+		`TextEntry (`id(`userf),
+		    // textentry label
+		    _("Current Search Filter for &Users"), user_f),
+		`VSpacing(0.5),
+		// frame label
+		`Frame (_("Add new condition to current filter"), `HBox (
+		    `HSpacing (0.5), `VBox (
+		    // pushbuttton label
+		    `Left (`ComboBox (`id(`andor), "", logic)),
+		    `HBox (
+			// combobox label
+			`ComboBox (`id(`atrs), _("&Attribute"), attributes),
+			`HSpacing (),
+			`ComboBox (`id(`eq), "", equality),
+			`HSpacing (),
+			// textentry label
+			`TextEntry (`id(`val), _("&Value"), "")
+		    ),
+		    `VSpacing(0.5),
+		    // pushbuttton label
+		    `Right (`PushButton (`id(`addu), _("A&dd to filter")))
+		    ),
+		    `HSpacing (0.5)
+		)),
+		`VSpacing(0.5)
+	      ),
+	      `HSpacing(0.5)
+	    ),//)
+            `VSpacing(0.5),
+	    `HBox (
+		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
+		// Pushbutton label (get data from LDAP server)
+	        `PushButton(`id(`read), `opt(`key_F3), _("De&fault"))
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    symbol button = nil;
+    do
+    {
+	button = (symbol) UI::UserInput();
+
+	if ( button == `help )
+        {
+	    Wizard::ShowHelp( help_text );
+	    continue;
+	}
+	if ( button == `read )
+	{
+	    if (Ldap::bind_pass == nil)
+		Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+	    if (Ldap::bind_pass != nil && UsersLDAP::ReadFilters() == "")
+	    {
+		UI::ChangeWidget(`id (`userf), `Value,
+		    UsersLDAP::GetDefaultUserFilter ());
+	    }
+	    continue;
+	}
+	string curr_user_f = (string) UI::QueryWidget(`id (`userf), `Value);
+	string curr_group_f =	group_f;
+	// (string)UI::QueryWidget(`id (`groupf), `Value);
+	if (button == `addu)
+	{
+	    y2internal ("userf:%1",curr_user_f);
+	    string new_value	= sformat ("%1%2%3",
+		(string) UI::QueryWidget(`id (`atrs),`Value),
+		(string) UI::QueryWidget(`id (`eq),`Value),
+		(string) UI::QueryWidget(`id (`val),`Value));
+
+	    UI::ChangeWidget(`id (`userf), `Value,
+		UsersLDAP::AddToFilter (curr_user_f, new_value, "and"));
+	}
+	if ( button == `ok)
+	{
+	    if (curr_user_f != user_f)
+	    {
+		if (curr_user_f == "")
+		{
+		    // error popup
+		    Popup::Error (_("Enter the value of user filter."));
+		    UI::SetFocus (`id(`userf));
+		    button = `notnext;
+		    continue;
+		}
+		if (!issubstring (tolower (curr_user_f),tolower(default_user_f))
+		    // yes/no popup question
+		    && !Popup::YesNo (_("The new user filter does not contain the default user filter.
+Are you sure?")))
+		{
+		    UI::SetFocus (`id(`userf));
+		    button = `notnext;
+		    continue;
+		}
+		user_f = curr_user_f;
+	    }
+	    if (curr_group_f != group_f)
+	    {
+		if (!issubstring (curr_group_f, default_group_f))
+		{
+		    // yes/no popup question
+		    if (!Popup::YesNo (_("The new group filter does not contain the default group filter.
+Are you sure?")))
+		    {
+			UI::SetFocus (`id(`groupf));
+			button = `notnext;
+			continue;
+		    }
+		}
+		group_f = curr_group_f;
+	    }
+	    // checks are OK, let's update the values now
+	    if (user_f != UsersLDAP::GetCurrentUserFilter ())
+	    {
+		UsersLDAP::SetCurrentUserFilter (user_f);
+		ret = true;
+	    }
+	    if (group_f != UsersLDAP::GetCurrentGroupFilter())
+	    {
+		UsersLDAP::SetCurrentGroupFilter (group_f);
+		ret = true;
+	    }
+	}
+    } while ( button != `ok && button != `cancel );
+
+    UI::CloseDialog();
+    return ret;
+}
+
+/**
+ * Popup for configuration user/group filter for making the LDAP search
+ * @return modified?
+ *
+define boolean OldLDAPSearchFilterPopup () ``{
+
+    string default_user_f	= UsersLDAP::GetDefaultUserFilter ();
+    string default_group_f	= UsersLDAP::GetDefaultGroupFilter ();
+
+    string user_f	= UsersLDAP::GetCurrentUserFilter ();
+    string group_f	= UsersLDAP::GetCurrentGroupFilter ();
+
+    if (user_f == "")
+	user_f = default_user_f;
+    if (group_f == "")
+	group_f = default_group_f;
+
+    boolean ret = false;
+
     string help_text =
 // helptext 1/4 - caption
 _("<p><b>LDAP Search Filter Changes</b></p>") +
@@ -241,7 +428,7 @@ only obtain users with a user name beginning with 'u'.</p>
 	{
 	    if (Ldap::bind_pass == nil)
 		Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-	    if (Ldap::bind_pass != nil && UsersLDAP::ReadFilters() != "")
+	    if (Ldap::bind_pass != nil && UsersLDAP::ReadFilters() == "")
 	    {
 		UI::ChangeWidget(`id (`userf), `Value,
 		    UsersLDAP::GetDefaultUserFilter ());
@@ -257,13 +444,14 @@ only obtain users with a user name beginning with 'u'.</p>
 	    {
 		if (!issubstring (new_user_f, default_user_f))
 		{
-		    // error popup TODO -> YesNo
-		    Popup::Error (_("The new user filter does not contain the default user filter.
-Try again.
-"));
-		    UI::SetFocus (`id(`userf));
-		    button = `notnext;
-		    continue;
+		    // yes/no popup question
+		    if (!Popup::YesNo (_("The new user filter does not contain the default user filter.
+Are you sure?")))
+		    {
+			UI::SetFocus (`id(`userf));
+			button = `notnext;
+			continue;
+		    }
 		}
 		user_f = new_user_f;
 	    }
@@ -271,13 +459,14 @@ Try again.
 	    {
 		if (!issubstring (new_group_f, default_group_f))
 		{
-		    // error popup
-		    Popup::Error (_("The new group filter does not contain the default group filter.
-Try again.
-"));
-		    UI::SetFocus (`id(`groupf));
-		    button = `notnext;
-		    continue;
+		    // yes/no popup question
+		    if (!Popup::YesNo (_("The new group filter does not contain the default group filter.
+Are you sure?")))
+		    {
+			UI::SetFocus (`id(`groupf));
+			button = `notnext;
+			continue;
+		    }
 		}
 		group_f = new_group_f;
 	    }
@@ -298,6 +487,7 @@ Try again.
     UI::CloseDialog();
     return ret;
 }
+*/
 
 
 /**
