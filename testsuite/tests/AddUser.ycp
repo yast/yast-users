@@ -18,6 +18,7 @@
     include "testsuite.ycp";
     import "Users";
     import "Mode";
+    import "Directory";
 
     map READ = $[
 	"passwd": $[
