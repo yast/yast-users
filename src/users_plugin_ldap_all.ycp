@@ -206,8 +206,11 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 		string attr		=
 		    (string) UI::QueryWidget (`id(`table), `CurrentItem);
 		list<string> value	= tmp_data [attr]:data[attr]:[];
-		value			= LdapPopup::EditAttribute (
-		    attr, value, [], Ldap::SingleValued (attr), []);
+		value			= LdapPopup::EditAttribute ($[
+		    "attr"          : attr,
+		    "value"         : value,
+		    "single"        : Ldap::SingleValued (attr)
+		]);
 		if (value == tmp_data [attr]:data[attr]:[])
 		{
 		    ret = `notnext;
