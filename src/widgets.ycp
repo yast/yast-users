@@ -387,7 +387,11 @@ define symbol DeleteUserPopup() ``{
     map user		= Users::GetCurrentUser ();
     string username     = user["username"]:"";
     string home		= user["org_homeDirectory"]:user["homeDirectory"]:"";
-    integer uid		= user["org_uidNumber"]:user["uidNumber"]:-1;
+    integer uid		= -1;
+    any uid_a		= user["org_uidNumber"]:user["uidNumber"]:"-1";
+    if (is (uid_a, string))
+	uid = tointeger (uid_a);
+    else uid = (integer) uid_a;
 
     if (type == "nis")
     {
@@ -489,7 +493,6 @@ define symbol DeleteGroupPopup() ``{
     boolean delete	= true;
     string type		= UsersCache::GetGroupType ();
     map group		= Users::GetCurrentGroup ();
-    integer gid		= group["gid"]:-1;
 
     // if no user is in this group
     if (group["userlist"]:$[] == $[] &&
@@ -775,6 +778,16 @@ you must do it on server.
             return nil;
         }
     }
+    if (ev_id == `next && Users::LDAPModified () && Ldap::anonymous)
+    {
+	// ask for real LDAP password if reading was anonymous
+	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
+    }
+    if (ev_id == `back && !Popup::ReallyAbort (Users::Modified()))
+    {
+	y2error ("do not abort!");//FIXME
+	return nil;
+    }
     return ev_id;
 }
 
@@ -943,7 +956,7 @@ map widgets = $[
 	),
 	"init"			: SummaryTableInit,
 	"handle"		: SummaryTableHandler,
-	"handle_events"		: [ "table", `new, `edit, `delete ],
+	"handle_events"		: ["table", `new, `edit, `delete, `next, `back],
     ],
     "advanced_buttons" : $[
         "widget"		: `custom,
