@@ -479,35 +479,4 @@ You can configure these settings by running appropriate modules. Select the modu
     return help_text;
 }
 
-define string LDAPSettingsDialogHelp (string what) ``{
-
-    // helptext 0/2 ("first sentence")
-    string first = _("Here, see the table of all allowed attributes for the current LDAP user that were not set in previous dialogs.");
-
-    if (what == "group")
-	// alternative helptext 0/2 ("first sentence")
-	first = _("Here, see the table of all allowed attributes for the current LDAP group that were not set in previous dialogs.");
-
-
-    // helptext 1/2 (don't translate objectClass"),
-    // %1 is first sentence (0/2), %2 is list of values
-    string help_text = sformat (_("<p>
-%1
-The list of attributes is given by the value of \"objectClass\"
-(which is, by default,
-%2).
-</p>
-"), first, mergestring (what == "user" ?
-	UsersLDAP::GetUserClass () : UsersLDAP::GetGroupClass (), ","))
- +
-
-    // helptext 2/2
-    _("<p>
-Edit each attribute using <b>Edit</b>. Some attributes 
-could be required, as defined in the user template in the <b>LDAP Client Module</b>.</p>
-");
-
-    return help_text;
-}
-
 }// EOF
