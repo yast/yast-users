@@ -342,15 +342,8 @@ foreach my $user (<PASSWD>)
         print $YCP_PASSWD "\t\t\"password\": \"$password\",\n";
         print $YCP_PASSWD "\t\t\"uid\": $uid,\n";
         print $YCP_PASSWD "\t\t\"gid\": $gid,\n";
-        if ($user_type eq "local")
-        {
-            print $YCP_PASSWD "\t\t\"fullname\": \"$full\",\n";
-        }
-        else
-        {
-            print $YCP_PASSWD
-                "\t\t\"fullname\": SystemUsers[\"$username\"]:\"$full\",\n";
-        }
+            
+        print $YCP_PASSWD "\t\t\"fullname\": \"$full\",\n";
         if ($additional ne "")
         {
             print $YCP_PASSWD "\t\t\"addit_data\": \"$additional\",\n";
@@ -404,7 +397,8 @@ foreach my $user (<PASSWD>)
         else
         {
             print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-                "SystemUsers[\"$username\"]:\"$full\", \"$uid_wide\", ".
+#                "SystemUsers[\"$username\"]:\"$full\", \"$uid_wide\", ".
+                "SystemUsers[\"$full\"]:\"$full\", \"$uid_wide\", ".
                 "\"$all_groups\"),\n";
         } 
     }

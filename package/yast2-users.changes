@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jan 29 11:15:05 CET 2003 - jsuchome@suse.cz
+
+- gathered new system users to passwd.ycp (do not use passwd.sh now)
+- translations of System users indexed by fullname, not by username
+
+-------------------------------------------------------------------
 Mon Jan 27 13:23:39 CET 2003 - jsuchome@suse.cz
 
 - autoinst fix: do not export group with only cache structures changed
