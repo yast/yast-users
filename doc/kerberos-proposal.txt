@@ -33,3 +33,10 @@ shown. These are:
     - realm
     - server adress
 
+--- Future
+
+- use two dialogs: for PAM and client configuration
+
+- PAM: choose the files to modificate, choose the options
+
+- client: more variables
