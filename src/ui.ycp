@@ -1321,7 +1321,7 @@ there are users in the group.
 Delete this users first.")));
 	}
 
-	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	if( test_mode ) SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
 	group_in_work = $[];
 	return `next;
     }

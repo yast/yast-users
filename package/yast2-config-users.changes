@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon May 14 15:30:34 CEST 2001 - jbuch@suse.de
+
+- added if( test_mode) for test output 
+
+-------------------------------------------------------------------
 Thu May 10 16:19:30 MEST 2001 - gs@suse.de
 
 - icons for module Create an user and Create a group added (bug 7234) 
