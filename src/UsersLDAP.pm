@@ -657,6 +657,19 @@ sub SetCurrentGroupFilter {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetFiltersRead} = ["function", "void", "boolean"];}
+sub SetFiltersRead {
+    $filters_read = $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetInitialized} = ["function", "void", "boolean"];}
+sub SetInitialized {
+    $initialized = $_[0];
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetEncryption} = ["function", "string"];}
 sub GetEncryption {
     return $encryption;
