@@ -1303,7 +1303,6 @@ extensions of User and Group configuration.</p>") +
 		`VSpacing (0.5)
 	);
 
-	Wizard::ReplaceHelp (plugin_list);
 	*/
 	term contents = `VBox(
 	    /*
