@@ -183,6 +183,7 @@ sub ProposeUsername {
 
 sub DebugMap {
 
+    if (!defined $_[0]) { return; }
     my %map = %{$_[0]};
     
     y2internal ("--------------------------- start of output");
@@ -194,7 +195,7 @@ sub DebugMap {
 	    y2warning ("$key ---> (list)\n", join ("\n", sort @{$map{$key}}));
 	}
 	else {
-	    y2warning ("$key ---> ", $map{$key});
+	    y2warning ("$key --->", $map{$key}, "--------");
 	}
     }
     y2internal ("--------------------------- end of output");
@@ -981,6 +982,57 @@ sub InitConstants {
     $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"};
 }
 
+##------------------------------------
+# This is used when users are read some other way than using ag-passwd, e.g.
+# for autoinstallation configuration
+BEGIN { $TYPEINFO{BuildUserLists} = ["function",
+    "void",
+    ["map", "integer", [ "map", "string", "any"]] ];
+}
+sub BuildUserLists {
+
+    my $type		= $_[0];
+    my %map_of_users	= %{$_[1]};
+    $uids{$type}	= {};
+    $homes{$type}	= {};
+    $usernames{$type}	= {};
+
+    foreach my $uid (keys %map_of_users) {
+        $uids{$type}{$uid}	= 1;
+	my $username		= $map_of_users{$uid}{"username"};
+	if (defined ($username)) {
+	    $usernames{$type}{$username}	= 1;
+	}
+	my $home	= $map_of_users{$uid}{"homeDirectory"};
+	if (defined ($home)) {
+	    $homes{$type}{$home}	= 1;
+	}
+    }
+}
+
+##------------------------------------
+# This is used when groups are read some other way than using ag-passwd, e.g.
+# for autoinstallation configuration
+BEGIN { $TYPEINFO{BuildGroupLists} = ["function",
+    "void",
+    ["map", "integer", [ "map", "string", "any"]] ];
+}
+sub BuildGroupLists {
+
+    my $type		= $_[0];
+    my %map_of_groups	= %{$_[1]};
+    $gids{$type}	= {};
+    $groupnames{$type}	= {};
+
+    foreach my $gid (keys %map_of_groups) {
+        $gids{$type}{$gid}	= 1;
+	my $groupname		= $map_of_groups{$gid}{"groupname"};
+	if (defined ($groupname)) {
+	    $groupnames{$type}{$groupname}	= 1;
+	}
+    }
+}
+
 
 ##------------------------------------
 sub ReadUsers {
@@ -1001,7 +1053,10 @@ sub ReadUsers {
 	$last_uid{$type}= SCR::Read ("$path.users.last_uid");
     }
 
+y2internal ("type: $type");
+DebugMap ($homes{$type});
     $homes{$type} 	= \%{SCR::Read ("$path.users.homes")};
+DebugMap ($homes{$type});
     $usernames{$type}	= \%{SCR::Read ("$path.users.usernames")};
     $uids{$type}	= \%{SCR::Read ("$path.users.uids")};
 
@@ -1022,7 +1077,6 @@ sub ReadGroups {
     }
     $gids{$type}	= \%{SCR::Read ("$path.groups.gids")};
     $groupnames{$type}	= \%{SCR::Read ("$path.groups.groupnames")};
-#    $group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
 }
 
 
