@@ -602,6 +602,25 @@ sub GetUserAttrsLDAP2YaST {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultUserFilter} = ["function", "string"];}
+sub GetDefaultUserFilter {
+    return $default_user_filter;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetCurrentUserFilter} = ["function", "string"];}
+sub GetCurrentUserFilter {
+    return $user_filter;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetCurrentUserFilter} = ["function", "void", "string"];}
+sub SetCurrentUserFilter {
+    $user_filter = $_[0];
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetGroupClass} = ["function", ["list", "string"]];}
 sub GetGroupClass {
     return @group_class;
@@ -637,6 +656,24 @@ BEGIN { $TYPEINFO{GetGroupAttrsLDAP2YaST} = ["function",
 }
 sub GetGroupAttrsLDAP2YaST {
     return \%ldap2yast_group_attrs;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultGroupFilter} = ["function", "string"];}
+sub GetDefaultGroupFilter {
+    return $default_group_filter;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetCurrentGroupFilter} = ["function", "string"];}
+sub GetCurrentGroupFilter {
+    return $group_filter;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetCurrentGroupFilter} = ["function", "void", "string"];}
+sub SetCurrentGroupFilter {
+    $group_filter = $_[0];
 }
 
 ##------------------------------------
@@ -819,7 +856,8 @@ sub WriteUsers {
 	    $arg_map{"check_attrs"}	= YaST::YCP::Boolean (1);
 
 	    if (lc ($dn) ne lc ($org_dn)) {
-		$arg_map{"rdn"}	= $rdn;
+		$arg_map{"rdn"}		= $rdn;
+		$arg_map{"new_dn"}	= $dn;
 		# TODO enable moving in tree (editing the whole dn)
 	    }
 UsersCache::DebugMap (\%arg_map);
