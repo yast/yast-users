@@ -3376,22 +3376,8 @@ sub CryptPassword {
 	}
 	return _hashPassword ($method, $pw);
     }
-    my %out = ();
-    # FIXME do not use openssl
-    if ($method eq "md5" ) {
-	%out = %{SCR::Execute (".target.bash_output", "/usr/bin/openssl passwd -1 '$pw'")};
-    }
-#    elsif ($method eq "BLOWFISH" ) { TODO
-#	return cryptblowfish (pw);
-#    }
-    else {
-	%out = %{SCR::Execute (".target.bash_output", "/usr/bin/openssl passwd -crypt '$pw'")};
-    }
-    if (defined $out{"stdout"}) {
-        my $crypted = $out{"stdout"};
-	chomp $crypted;
-        return $crypted;
-    }
+    # FIXME crypt using some perl function...
+    return UsersUI::HashPassword ($method, $pw);
 }
 
 
