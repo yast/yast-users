@@ -989,17 +989,7 @@ define map ImportUser (map user) ``{
 			pass = crypt (pass);
 	}
 
-    if (user_shadow != $[])
-    {
-        user_shadow = add (user_shadow, "password", pass);
-    }
-	else {
-        user_shadow = shadow [type, username]:$[];
-        // real password is in shadow
-		user_shadow["password"] =
-            user ["user_password"]:shadow[type,username,"password"]:"x";
-	}
-
+    user_shadow = add (user_shadow, "password", pass);
 
     if (uid == -1)
     {
@@ -1013,7 +1003,7 @@ define map ImportUser (map user) ``{
                 user_shadow = shadow [type, username]:$[];
                 // real password is in shadow
 				user_shadow["password"] =
-                    user ["user_password"]:shadow[type,username,"password"]:"x";
+                    ( pass != "x") ? pass : shadow[type,username,"password"]:"x";
 		    }
 			string finalpw = "";
 			if (pass != "x")

@@ -22,7 +22,6 @@
 {
     textdomain "users";
     import "Mode";
-    Mode::config = true;
     import "Users";
     import "Wizard";
 
