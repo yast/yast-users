@@ -125,17 +125,24 @@ global define symbol ReallyAbort() ``{
  */
 global define symbol UsersDialog() ``{
 
-    //FIXME enable part of expert tools for Mode::config...
     list expert_list = [
-        `item(`id(`defaults), _("De&faults for New Users")),
-        `item(`id(`enc), _("Password &Encryption")),
-        `item(`id(`auth), _("&Authentication and User Sources")),
-        `item(`id(`ldapconf), _("L&DAP Settings"))
+	    // menubutton label
+	    `item(`id(`defaults), _("De&faults for New Users")),
     ];
+    if (!Mode::config)
+    {
+	expert_list = merge (expert_list, [
+	    // menubutton label
+	    `item(`id(`enc), _("Password &Encryption")),
+	    // menubutton label
+	    `item(`id(`auth), _("&Authentication and User Sources")),
+	    // menubutton label
+	    `item(`id(`ldapconf), _("Configure L&DAP Client"))
+	]);
+    }
 
     /*
-    // FIXME: just testing combobox...
-    ymbol current_filter = "local";//FIXME: current users!
+    symbol current_filter = "local";//FIXME: current users!
     list available_filters = [];
     foreach (`type, Users::available_usersets, ``{
 	if (current_filter == type)
@@ -187,8 +194,6 @@ global define symbol UsersDialog() ``{
                 Users::available_usersets_items),
             // PushButon
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
-            // PushButon
-            Mode::config ? `HSpacing(0): //FIXME enable part of expert tools
             // PushButon
             `MenuButton(`id(`expertlist), _("E&xpert options..."),
                 expert_list),
@@ -263,16 +268,18 @@ global define symbol UsersDialog() ``{
 
         if ( ret == `ldapconf )
         {
-	    // TODO run whole LDAP client from here??
-            if (CallFunction(`cpu_configure(false)) == `next)
-                Ldap::WriteCpuSettings();
+	    // TODO run whole LDAP client from here
+//            if (CallFunction(`cpu_configure(false)) == `next)
+y2warning ("ldap: %1",
+            CallFunction("ldap"));
+//                Ldap::WriteCpuSettings();
+//-> ReadLdapSettings
             ret = `not_next;
         }
         if ( ret == `enc)
         {
             ret = `not_next;
             Users::encryptionMethod = EncryptionDialog();
-	    // TODO do this inside EncryptionDialog!
 	    Users::max_length_pas = Security::PasswordMaxLengths [
 		Users::encryptionMethod]:8;
 	    Users::security_modified = true;
@@ -285,7 +292,6 @@ global define symbol UsersDialog() ``{
             if (selected != nil)
             {
                 Users::SelectUser( selected );
-                UsersCache::user_type = Users::user_in_work["type"]:"local";
                 if (ret == `delete)
                     ret = DeleteUserPopup();
             }
@@ -298,13 +304,13 @@ global define symbol UsersDialog() ``{
         }
         if ( ret == `new )
         {
-            Users::user_in_work = $[];
             if (Users::kerberos_auth == "required")// only this ??
             {
                 // error popup
                 Report::Message (_("As you are using only Kerberos for authentication, you cannot add local users."));
                 ret = `not_next;
             }
+            Users::user_in_work = $[];
         }
 
         if ( ret == `next && Mode::cont && !Users::users_modified)
@@ -506,7 +512,7 @@ Please log off the user first."));
         // yes-no popup contents
          _("Do you really want to delete this user?")))
         {
-        delete = false;
+	    delete = false;
         }
     }
     else
@@ -520,7 +526,7 @@ Please log off the user first."));
                 `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
                 `VSpacing(0.5),
                 no_home ? `VSpacing (0) :
-                // checkbox
+                // checkbox label
                 `Left (`CheckBox(`id(`delete_home), sformat(_("delete &home directory
 %1"), home ) )),
                 `VSpacing(1),
@@ -743,7 +749,6 @@ global define term rbUsersGroup(symbol what) ``{
  * @param what symbol
  */
 global define void save_focus(integer table_input, any ret, symbol what) ``{
-//TODO when uid || gid was changed, the focus is invalid !!!
 
     integer l_focusline = 0;
 
@@ -758,7 +763,6 @@ global define void save_focus(integer table_input, any ret, symbol what) ``{
         if( ret == `delete )
             l_focusline = nil;
     }
-//    if( l_focusline == nil || l_focusline < 0 )
     if( l_focusline < 0 )
     {
         l_focusline = nil;

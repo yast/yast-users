@@ -35,6 +35,23 @@ my $last_ldap_uid = 1;		# ---- UID last used
 my $the_answer = 42;		# ---- Definitely: this is the answer. ;-)
 my $max_length_id = 5;		# ---- length of highest UID (used in widgets)
 
+my %shadow_map = (		# ---- mapping from yast to LDAP representation
+    "last_change"	=> "shadowLastChange",
+    "warn"       	=> "shadowWarning",
+    "inact"		=> "shadowInactive",
+    "expire"		=> "shadowExpire",
+    "min"		=> "shadowMin",
+    "max"		=> "shadowMax");
+
+my %optional_map = (		# ---- mapping from yast to LDAP representation
+    "givenName"		=> "givenName",
+    "shell"		=> "loginShell",
+    "mail"		=> "mail",
+    "gecos"		=> "gecos",
+    "homePhone"		=> "homePhone",
+    "telephoneNumber"	=> "telephoneNumber",
+    "roomNumber"	=> "roomNumber");
+
 # --------------------------------------------------------------------
 # ---------- retrieve the error type
 sub LDAPerror {
@@ -64,13 +81,90 @@ sub addBlanks {
 # ---------- form DN from username/groupname
 sub get_dn {
     (my $name, my $type) = @_;
-    my $search = "uid";			# TODO: configurable!!
     if ($type eq "group") {
 	return "cn=$name,$group_base";
     }
     else {
-	return "uid=$name,$user_base";
+	my $search = "uid";			# TODO: configurable!!
+	return "$search=$name,$user_base";
     }
+}
+
+# ---------- form RDN from username/groupname
+sub get_rdn {
+    (my $name, my $type) = @_;
+    if ($type eq "group") {
+	return "cn=$name";
+    }
+    else {
+	my $search = "uid";			# TODO: configurable!!
+	return "$search=$name";
+    }
+}
+
+# ---------- read optional settings of one user entry
+sub read_optional {
+    my ($entry, $uid, $users, %map) = @_;
+    foreach my $key (keys %map) {
+	if (defined $entry->get_value($key)) {
+	    $users->{$uid}{$map{$key}} = $entry->get_value($key);
+	}
+	else {
+	    $users->{$uid}{$map{$key}} = "";
+	}
+    }
+    return %{$users};
+}
+		
+# ---------- read shadow settings of one user entry
+sub read_shadow {
+    my %shadow = ();
+    my ($entry, %map) = @_;
+    foreach my $key (keys %map) {
+	if (defined $entry->get_value($key)) {
+	    $shadow{$map{$key}} = $entry->get_value($key);
+	}
+    }
+    return %shadow;
+}
+	    
+# ---------- write optional settings of one user entry 
+sub write_optional {
+    my ($entry, $data, %map) = @_;
+    foreach my $key (keys %map) {
+	if (defined $data->{$key} && $data->{$key} ne "") {
+	    $entry->add ($map{$key} => $data->{$key})
+	}
+    }
+    return $entry;
+}
+
+
+# ---------- write shadow settings of one user entry 
+sub write_shadow {
+    my ($entry, $user, %map) = @_;
+    my %shadow = %{$user->{"shadow"}};
+    if (! %shadow) {
+	return $entry;
+    }
+    else {
+	return write_optional ($entry, \%shadow, %map);
+    }
+}
+
+# ---------- change values in LDAP user entry
+sub change_values {
+    my ($replace, $data, %map) = @_;
+
+    foreach my $key (keys %map) {
+	if (defined $data->{$key} && $data->{$key} ne "") {
+	    $replace->{$map{$key}} = $data->{$key};
+	}
+	else {
+	    $replace->{$map{$key}} = [];
+	}
+    }
+    return %{$replace};
 }
 
 # --------------------------------------------------------------------
@@ -161,10 +255,6 @@ while ( <STDIN> )
 			push @{ $users_groups{$u}}, $groupname;
 		    }
 		}
-# userPasword is not searched for
-#		if (defined $entry->get_value("userPassword")) {
-#		    $groups{$gid}{"password"} = "x";
-#		}
 	    }
 
 	    # --- get LDAP users
@@ -174,7 +264,11 @@ while ( <STDIN> )
 		filter => $user_filter,
 		attrs => [
 		    "uid", "uidNumber", "gidNumber", "homeDirectory",
-		    "loginShell", "cn", "mail", "sn", "givenName"]);
+		    "loginShell", "cn", "mail", "sn", "givenName",
+		    "shadowLastChange", "shadowWarning", "shadowInactive",
+		    "shadowExpire", "shadowMin", "shadowMax",
+		    "gecos", "homePhone", "telephoneNumber", "roomNumber"
+		    ]);
 	    
 	    if ($mesg->code) {
 		ycp::Return (LDAPerror ($mesg->code));
@@ -218,14 +312,26 @@ while ( <STDIN> )
 		    "type"	=> "ldap"
 		};
 
-		if (defined $entry->get_value("givenName")) {
-		    $users{$uid}{"givenName"} = $entry->get_value("givenName");
-		}
-		if (defined $entry->get_value("mail")) {
-		    $users{$uid}{"mail"} = $entry->get_value("mail");
-		}
-		if (defined $entry->get_value("loginShell")) {
-		    $users{$uid}{"shell"} = $entry->get_value("loginShell");
+		%users = read_optional ($entry, $uid, \%users, (
+		    "givenName"		=> "givenName",
+		    "mail"		=> "mail",
+		    "loginShell"	=> "shell",
+		    "gecos"		=> "gecos",
+		    "homePhone"		=> "homePhone",
+		    "telephoneNumber"	=> "telephoneNumber",
+		    "roomNumber"	=> "roomNumber"
+		));
+
+		my %shadow = read_shadow ($entry, (
+		    "shadowLastChange"	=> "last_change",
+		    "shadowWarning"	=> "warn",
+		    "shadowInactive"	=> "inact",
+		    "shadowExpire"	=> "expire",
+		    "shadowMin"		=> "min",
+		    "shadowMax"		=> "max",
+		    ));
+		if (%shadow) {
+		    $users{$uid}{"shadow"} = \%shadow;
 		}
 
 		$users_by_name{$username} = $uid;
@@ -405,12 +511,19 @@ while ( <STDIN> )
 	    # ---------- modify an existing LDAP group
 
 	    my %group = %{$argument};
-	    my $dn = get_dn($group{"groupname"}, "group");
+	    my $groupname 	= $group{"groupname"};
+	    my $org_groupname	= $groupname;
+	    if (defined $group{"org_groupname"} &&
+		$group{"org_groupname"} ne "")
+	    {
+		$org_groupname = $group{"org_groupname"};
+	    }
+	    my $dn		= get_dn($org_groupname, "group");
 	    
 	    # ---------- modify required parameters
 	    my %replace = (
 		    "gidNumber" => $group{"gid"},
-		    "cn" => $group{"groupname"},
+		    "cn"	=> $groupname,
 	    );
 
 	    # ---------- modify optional parameters
@@ -422,8 +535,13 @@ while ( <STDIN> )
 	    }
 	   
 	    my $res = $ldap->modify ($dn, replace => \%replace);
+	    my $ret = LDAPerror ($res->code);
 	    
-	    ycp::Return(LDAPerror ($res->code));
+	    if ( $ret eq "" && $org_groupname ne $groupname ) {
+		$res = $ldap->moddn($dn,newrdn => get_rdn($groupname, "group"));
+		$ret = LDAPerror ($res->code);
+	    }
+	    ycp::Return($ret);
 	    # ---------------------------------------
 	}
 	elsif ( $path eq '.group.delete' && ref ($argument) eq "HASH" ) {
@@ -443,7 +561,6 @@ while ( <STDIN> )
 	    # ---------- add a new LDAP user
 
 	    my %user = %{$argument};
-y2internal ("user: ", %user);
 	    my $username = $user{"username"};
 	    my $dn = get_dn($username, "user");
 
@@ -459,23 +576,15 @@ y2internal ("user: ", %user);
 		    "sn" => $user{"sn"},
 		    "objectClass" => @user_object_class
 	    );
-	    # ---------- add optional parameters
-	    # TODO: new values
-	    if (defined $user{"givenName"} && $user{"givenName"} ne "") {
-		$entry->add ("givenName" => $user{"givenName"});
-	    }
-	    if (defined $user{"shell"} && $user{"shell"} ne "") {
-		$entry->add ("loginShell" => $user{"shell"});
-	    }
 	    if (defined $user{"password"} && $user{"password"} ne "x") {
 		$entry->add ("userPassword" => "{$hash}".$user{"password"});
 	    }
-	    if (defined $user{"mail"} && $user{"mail"} ne "") {
-		$entry->add ("mail" => $user{"mail"});
-	    }
-	   
+	    # ---------- add optional and shadow parameters
+	    
+	    $entry = write_optional ($entry, \%user, %optional_map);
+	    $entry = write_shadow ($entry, \%user, %shadow_map);
+   
 	    my $res = $ldap->add ($entry);
-
 	    ycp::Return(LDAPerror ($res->code));
 	    # ---------------------------------------
 	}
@@ -486,43 +595,39 @@ y2internal ("user: ", %user);
 	    # ---------- modify an existing LDAP user
 
 	    my %user = %{$argument};
-	    my $dn = get_dn($user{"username"}, "user");
+	    my $username 	= $user{"username"};
+	    my $org_username	= $username;
+	    if (defined $user{"org_username"} && $user{"org_username"} ne "") {
+		$org_username = $user{"org_username"};
+	    }
+	    my $dn		= get_dn($org_username, "user");
 	    
 	    # ---------- modify required parameters
 	    my %replace = (
-		    "uid" => $user{"username"},
-		    "uidNumber" => $user{"uid"},
-		    "gidNumber" => $user{"gid"},
-		    "homeDirectory" => $user{"home"},
-		    "cn" => $user{"fullname"},
-		    "sn" => $user{"sn"},
+		"uid"		=> $username,
+		"uidNumber"	=> $user{"uid"},
+		"gidNumber"	=> $user{"gid"},
+		"homeDirectory" => $user{"home"},
+		"cn"		=> $user{"fullname"},
+		"sn"		=> $user{"sn"},
 	    );
-	    # ---------- modify optional parameters
-	    if (defined $user{"givenName"} && $user{"givenName"} ne "") {
-		$replace{"givenName"} = $user{"givenName"};
-	    }
-	    else {
-		$replace{"givenName"} = [];
-	    }
-	    if (defined $user{"shell"} && $user{"shell"} ne "") {
-		$replace{"loginShell"} = $user{"shell"};
-	    }
-	    else {
-		$replace{"loginShell"} = [];
-	    }
-	    if (defined $user{"mail"} && $user{"mail"} ne "") {
-		$replace{"mail"} = $user{"mail"};
-	    }
-	    else {
-		$replace{"mail"} = [];
-	    }
 	    if (defined $user{"password"} && $user{"password"} ne "x") {
 		$replace{"userPassword"} = "{$hash}".$user{"password"};
 	    }
-	   
-	    my $res = $ldap->modify ($dn, replace => \%replace);
+	    # ---------- modify optional and shadow parameters
 
-	    ycp::Return(LDAPerror ($res->code));
+	    %replace = change_values (\%replace, \%user, %optional_map);
+	    %replace = change_values
+		(\%replace, \%{$user{"shadow"}}, %shadow_map);
+
+	    my $res = $ldap->modify ($dn, replace => \%replace);
+	    my $ret = LDAPerror ($res->code);
+	    
+	    if ( $ret eq "" && $org_username ne $username ) {
+		$res = $ldap->moddn ($dn, newrdn => get_rdn($username, "user"));
+		$ret = LDAPerror ($res->code);
+	    }
+	    ycp::Return($ret);
 	    # ---------------------------------------
 	}
 	elsif ( $path eq '.delete' && ref ($argument) eq "HASH" ) {
