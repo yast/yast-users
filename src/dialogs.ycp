@@ -404,15 +404,15 @@ Please try again.
             }
             }
 
-	    // FIXME: where this constants come from??
-            if  (  ( size( username ) < 2 || size( username ) > 32 ) )
+            if ( size( username ) < UsersCache::min_length_login ||
+		 size( username ) > UsersCache::max_length_login )
             {
 
-                // The username don't have a size between 2 and 32 characters.
-                // error popup
-                Report::Error(_("The username must be between 2 and 32 characters in length.
+                // The username don't have a correct length
+                // error popup, %1 is minimum, %2 maximum
+                Report::Error(sformat(_("The username must be between %1 and %2 characters in length.
 Please try again.
-"));
+"), UsersCache::min_length_login, UsersCache::max_length_login));
                 UI::SetFocus(`id(`username));
                 continue;
             }
