@@ -1763,6 +1763,7 @@ sub EditUser {
 	"type"	=> $type,
     }, \%user_in_work);
     if (defined ($result) && ref ($result) eq "HASH") {
+        $plugins = [];
 	foreach my $plugin (keys %{$result}) {
 	    # check if plugin has done the 'PluginPresent' action
 	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
