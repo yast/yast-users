@@ -61,9 +61,19 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
  */
 define boolean UsersListHandler (map options ) ``{
 
+    list sets = maplist (string type, any val, options, ``(type));
+    if (sets == [])
+	sets = ["local"];
 
-    y2internal ("---------------------------");
-//    Users::ListUsers (options["sets"]:["local"]); TODO
+    foreach (string type, sets, ``{
+	if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+	{
+	    Users::ReadNewSet ("nis");
+	}
+	foreach (string username, UsersCache::GetUsernames (type), ``{
+	    CommandLine::Print (username);
+	});
+    });
 
     return false; // do not call Write...
 }
@@ -75,12 +85,12 @@ define boolean UsersListHandler (map options ) ``{
 define boolean UsersShowHandler (map options ) ``{
 
     map user = $[];
-    integer uid = tointeger (options ["uidNumber"]:-1);
+    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
     if (uid != -1)
     {
-	user = Users::GetUser (uid, "local");
+	user = Users::GetUser (uid, "");
     }
     else if (username != "")
     {
@@ -88,12 +98,33 @@ define boolean UsersShowHandler (map options ) ``{
     }
 
     string out = "";
+    map keys = $[
+	// label shown at command line (user attribute)
+	"cn"		: _("Full Name:"),
+	// label shown at command line (user attribute)
+	"username"	: _("Login Name:"),
+	// label shown at command line (user attribute)
+	"homeDirectory"	: _("Home Directory:"),
+	// label shown at command line (user attribute)
+	"loginShell"	: _("Login Shell:"),
+	// label shown at command line (user attribute)
+	"uidNumber"	: _("UID:"),
+	// label shown at command line (user attribute)
+	"groupname"	: _("Default Group:"),
+	// label shown at command line (user attribute)
+	"grouplist"	: _("List of Groups:"),
+    ];
     foreach (string key, any value, user, ``{
-	out = out + sformat ("%1:\t%2\n", key, value);
+	key = keys[key]:"";
+	if (key == "") return;
+	string svalue = sformat ("%1", value);
+	if (is (value, map))
+	{
+	    svalue = mergestring ((list<string>)
+		maplist (string k, any v, (map) value, ``(k)), ",");
+	}
+	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
     });
-
-    y2internal ("user:\n%1", out);
-    CommandLine::Print (out);
 
     return false; // do not call Write...
 }
@@ -104,23 +135,32 @@ define boolean UsersShowHandler (map options ) ``{
  */
 define boolean UsersAddHandler (map <string, any> options ) ``{
 
+    y2internal ("options: %1", options);
     if (options["username"]:"" == "")
     {
 	y2error ("You must specify username");
 	return false;
     }
 
-    map <string, any> user = options;
-    string pw = user["password"]:"";
-    /* TODO
-    if (pw != "")
-	user["password"] = Users::CryptPassword(pw, user["type"]:"local");
-    */
+    map <string, any> user = $[];
+    map keys = $[
+	"password"	: "userPassword",
+	"home"		: "homeDirectory",
+	"shell"		: "loginShell",
+	"fullname"	: "cn",
+	"gid"		: "gidNumber",
+	"uid"		: "uidNumber",
+	"no_home"	: "create_home"
+    ];
+    foreach (string key, any value, options, ``{
+	if (key == "no_home")
+	    value = false;//FIXME doesn't work yet!
+	user [ keys[key]:key ] = value;
+    });
 
     Users::AddUser (user);
-    Users::CheckUser (user);
+    Users::CheckUser ($[]);
     return Users::CommitUser ();
-
 }
 
 /**
@@ -215,22 +255,28 @@ map cmdline = $[
 	    "help"	: _("Name of selected user"),
 	    "type"	: "string"
 	],
-	"cn"		:$[
+	"cn"		:$[ //TODO enable aliases?
 	    // translators: command line help text for add option
-	    "help"	: _("Full name of new user"),
+	    "help"	: _("Full name of the user"),
 	    "type"	: "string"
+	],
+	"no_home"	:$[
+	    // translators: command line help text for show create_home option
+	    "help"	: _("Do not create home directory for new user."),
 	],
 	"password"		:$[
 	    // translators: command line help text for add option
-	    "help"	: _("Password of new user"),
+	    "help"	: _("Password of the user"),
 	    "type"	: "string"
 	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
 	"show"  : [ "uid", "username"],
-	"add"	: [ "username", "cn", "password" ],
-	"delete": [ "username" ]
+	"add"	: [ "username", "cn", "password", "no_home" ],
+	"delete": [ "username" ],
+//	"read"	: [ "nis", "ldap" ] TODO
+// TODO set the default values
     ]
 ];
 
