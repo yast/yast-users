@@ -17,8 +17,6 @@ my %users		= ();
 my %groups		= ();
 my %shadow_tmp		= ();
 my %shadow		= ();
-my %users_itemlists	= ();
-my %groups_itemlists	= ();
 
 # used for check if values like uid,username are unique:
 my %uids		= ();
@@ -36,20 +34,15 @@ my $plus_line_group 	= "";
 my $plus_line_passwd	= "";
 my $plus_line_shadow	= "";
 
-my $passwd_input	= "/tmp/passwd";
-my $shadow_input	= "/tmp/shadow";
-my $group_input		= "/tmp/group";
-
-my $passwd_output	= "/tmp/output/passwd";
-my $shadow_output	= "/tmp/output/shadow";
-my $group_output    	= "/tmp/output/group";
+# directory where user/group/shadow data should be found
+my $base_directory	 = "/etc";
 
 #---------------------------------------------
 # read /etc/shadow and prepare global 'shadow_tmp' structure
 
 sub read_shadow () {
 
-    open SHADOW, "< $shadow_input";
+    open SHADOW, "< $base_directory/shadow";
 
     foreach my $shadow_entry (<SHADOW>)
     {
@@ -93,7 +86,7 @@ sub read_group () {
 
     %groups	= ();
 
-    open GROUP, "< $group_input";
+    open GROUP, "< $base_directory/group";
 
     foreach my $group (<GROUP>) {
 	
@@ -163,7 +156,7 @@ sub read_group () {
 
 sub read_passwd () {
 
-    open PASSWD, "< $passwd_input";
+    open PASSWD, "< $base_directory/passwd";
 
     %users = ();
 
@@ -287,10 +280,6 @@ sub read_passwd () {
 		}
 	    }
 
-	    # FIXME: we need term, not string!
-	    $users_itemlists{$user_type}{$uid} = 
-	"`item(`id($uid), \"$username\", \"$full\", \"$uid\", \"$all_groups\")";
-
 	    # such map we would like to export from the read script...
 	    $users{$user_type}{$uid} = {
 		"cn"		=> $full,
@@ -366,9 +355,6 @@ sub update_groups () {
 		}
 		$all_users .= "...";
 	    }
-	    $groups_itemlists{$type}{$gid} =
-	"`item(`id($gid), \"".$group{"groupname"}."\", \"$gid\", \"$all_users\")";
-
 	}
     }
 }
@@ -380,7 +366,7 @@ sub write_passwd {
 
     my %users_w	= %{$_[0]};
 
-    open PASSWD, "> $passwd_output";
+    open PASSWD, "> $base_directory/passwd";
 
     foreach my $type (sort {$b cmp $a} keys %users_w ) {
 
@@ -413,7 +399,7 @@ sub write_shadow {
 
     my %shadow_w	= %{$_[0]};
 
-    open SHADOW, "> $shadow_output";
+    open SHADOW, "> $base_directory/shadow";
 
     foreach my $type (sort {$b cmp $a} keys %shadow_w ) {
 
@@ -448,7 +434,7 @@ sub write_group {
 
     my %groups_w = %{$_[0]};
 
-    open GROUP, "> $group_output";
+    open GROUP, "> $base_directory/group";
 
     # sort order: system items go before local ones
     foreach my $type (sort {$b cmp $a} keys %groups_w ) {
@@ -513,6 +499,9 @@ while ( <STDIN> )
 	    if (ref ($argument) eq "HASH") {
 		$max_system_uid	= ${%{$argument}}{"max_system_uid"};
 		$max_system_gid	= ${%{$argument}}{"max_system_gid"};
+		if (defined ($argument->{"base_directory"})) {
+		    $base_directory	= $argument->{"base_directory"};
+		}
 	    }
 	    my $error = read_all ();
 	    if ($error > 0) {
@@ -535,7 +524,6 @@ while ( <STDIN> )
 	    }
 	}
 
-#TODO hashes are unsorted...
 	if    ( $path eq '.local.users' ) {
 	    ycp::Return (\%{$users{"local"}});
 	}
@@ -578,12 +566,6 @@ while ( <STDIN> )
 	elsif ( $path eq '.system.users.homes' ) {
 	    ycp::Return (\%{$homes{"system"}});
 	}
-	elsif ( $path eq '.local.users.items' ) {
-	    ycp::Return (\%{$users_itemlists{"local"}});
-	}
-	elsif ( $path eq '.system.users.items' ) {
-	    ycp::Return (\%{$users_itemlists{"system"}});
-	}
 	elsif ( $path eq '.local.users.last_uid' ) {
 	    ycp::Return ($last_uid{"local"});
 	}
@@ -607,12 +589,6 @@ while ( <STDIN> )
 	}
 	elsif ( $path eq '.system.groups.groupnames' ) {
 	    ycp::Return (\%{$groupnames{"system"}});
-	}
-	elsif ( $path eq '.local.groups.items' ) {
-	    ycp::Return (\%{$groups_itemlists{"local"}});
-	}
-	elsif ( $path eq '.system.groups.items' ) {
-	    ycp::Return (\%{$groups_itemlists{"system"}});
 	}
 	else {
 	    y2error ("wrong path ($path) or argument: ", ref ($argument));
