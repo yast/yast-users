@@ -219,6 +219,7 @@ global boolean is_ldap_server = false; // TODO currently not used
 // if ldap home directiories are on this machine
 global boolean ldap_file_server = false;
 global string ldap_encryption = "crypt";// TODO read from Ldap!
+global integer ldap_version = 3;
 
 // type of pam kerberos authentication: required/optional/sufficient/""
 global string kerberos_auth = "";
@@ -1514,6 +1515,7 @@ global define boolean Edit (string what, map data)``{
 	    {
 		// convert values with wrong type to string
 		user_in_work = CorrectLDAPValues(data);
+		data = eval (user_in_work);
 	    }
 	    // save first map for later checks of modification...
 	    user_in_work["org_user"] = eval (data);
