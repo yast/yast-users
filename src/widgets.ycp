@@ -466,7 +466,7 @@ Please log off the user first."));
     }
     else
     {
-        if (home != "" || no_home)
+        if (home != "" && !no_home)
         {
 	    term contents = `HBox(
 		`HSpacing(3),
