@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 10 15:25:47 CET 2003 - jsuchome@suse.de
+
+- enable uppercase in user/groupnames (#24891)
+- removed text which was missed for translations
+
+-------------------------------------------------------------------
 Wed Mar  5 10:09:27 CET 2003 - jsuchome@suse.de
 
 - fix: cloning users during autoinstallation (#24629) 

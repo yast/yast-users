@@ -391,11 +391,12 @@ Please try again.
 
             string firstchar = substring(username, 0, 1);
 
-            if ((! ((firstchar >= "a" && firstchar <= "z" )
+            if ((! ((firstchar >= "A" && firstchar <= "z" )
                     || firstchar == "_")
                 || nil!=findfirstnotof(username, Users::valid_logname_chars)))
             {
 
+                // TODO: change a popup according to new options (bug 24891)
                 // There is a check whether the information from the UI is
                 // correct and complete.  The login name may contain only
                 // certain characters and must begin with a letter.
@@ -962,6 +963,19 @@ Select a another user ID.
             // check the homedirectory
             if ( home != new_home || what == `add_user )
             {
+                if( (nil != findfirstnotof( new_home, Users::valid_home_chars))
+                 || (0 != findfirstof( new_home, "/"))
+                 || (issubstring( new_home, "/.")))
+                {
+                    // error popup
+                    Report::Error(_("The home directory may only contain the following characters:
+a..zA..Z0..9_-/
+Try again.
+"));
+                    UI::SetFocus(`id(`home));
+                    continue;
+                }
+
                 if (!Mode::config)
                 {
                     string home_path =
@@ -978,17 +992,6 @@ Choose another path for the home directory.
                     }
                 }
 
-            if( (nil != findfirstnotof( new_home, Users::valid_home_chars )) ||
-                (  0 != findfirstof( new_home, "/")   ))
-            {
-                // error popup
-                Report::Error(_("The home directory may only contain the following characters:
-a..zA..Z0..9_-/
-Try again.
-"));
-                UI::SetFocus(`id(`home));
-                continue;
-            }
             y2debug("newhome: %1,  org_home: %2", new_home, org_home);
 
             if ( (what == `edit_user && ( new_home != org_home ))
@@ -1416,9 +1419,10 @@ Please try again.
             }
 
             string firstchar = substring( new_groupname, 0, 1);
-            if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
+            if ( ( ! (firstchar >= "A" && firstchar <= "z") ||
                nil != findfirstnotof(new_groupname, Users::valid_group_chars)))
             {
+                // TODO: change a popup according to new options (bug 24891)
                 // There is a check whether the information from the UI is
                 // correct and complete.  The groupname may contain only
                 // certain characters and must begin with a letter.
@@ -1676,7 +1680,9 @@ global define symbol DefaultsDialog() ``{
         `VBox(
             `VSpacing(0.5),
 			// Frame label
-	        `Frame(("Set the default values for adding new user"),`HBox(
+            // FIXME: gettext _ was missing here!!!
+//	        `Frame(_("Set the default values for adding new user"),`HBox(
+	        `Frame("",`HBox(
               `HSpacing(2), `VBox(
                 `VSpacing(0.5),
                 `ComboBox(`id(`defaultgroup), `opt(`hstretch),
