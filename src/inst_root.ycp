@@ -156,7 +156,7 @@ Do not forget this \"root\" password!
         string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
 
 	if ( pw1 == "" )
-	    UI::SetFocus( pw1 == "" );
+	    UI::SetFocus(`id(`pw1) );
 	else
 	    Wizard::SetFocusToNextButton();
       }
