@@ -188,6 +188,7 @@
     
     WizardSequencer(aliases, main_sequence);
 
+    return UI(`CloseDialog());
     // ===== Write ====================================================
     /*
     if (!test_mode)
