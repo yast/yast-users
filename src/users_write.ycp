@@ -40,5 +40,8 @@
     }
 
     // The write is a simple one so we don't use Progress
-    return Users::Import (Args (0)) && Users::Write ();
+//    return Users::Import (Args (0)) &&
+//           Users::Write ( ``{ return false}, false);
+    Users::Import (Args (0));
+    Users::Write ( ``{ return false;}, false); // returns symbol
 }
