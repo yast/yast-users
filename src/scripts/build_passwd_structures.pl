@@ -355,7 +355,7 @@ foreach my $user (<PASSWD>)
             }
         }
         # recode the fullname to utf
-	if ((defined $enc) && ($enc ne "")) {
+	if ((defined $encod) && ($encod ne "")) {
 	    from_to ($full, $encod, "utf-8"); # this slows a bit...
 	}
     

@@ -12,6 +12,7 @@ Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
 Read	.sysconfig.language.RC_LANG ""
+Execute	.target.bash_output "locale -k charmap" $[]
 Read	.etc.shells ["/bin/ash", "/bin/bash", "/bin/bash1", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]
 Read	.target.size "/bin/ash" 0
 Read	.target.size "/bin/bash" 0
