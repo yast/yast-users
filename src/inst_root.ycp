@@ -243,9 +243,7 @@ Are you sure?")))
 	    y2milestone( "encrypting with %1", encryptionMethod );
 
 	    Users::SetRootPassword (pw1);
-	    Users::CryptRootPassword ();
 	    if (!Users::WriteRootPassword())
-
 	    {
 		// Error msg
 		Report::Error(_("The root password could not be set.

@@ -107,13 +107,12 @@ use ycp;
 # ------------------- imported modules
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
-#YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersLDAP");
 # -------------------------------------
 
 our %TYPEINFO;
 
-# internal function - TODO should go to some other file...
+# internal function - FIXME should go to some other file...
 sub InitializeConfiguration {
 
     my $config = $_[0];
@@ -127,6 +126,10 @@ sub InitializeConfiguration {
     if (defined $config->{"anonymous_bind"}) {
 	Ldap->SetAnonymous ($config->{"anonymous_bind"});
     }
+    if (defined $config->{"member_attribute"}) {
+	Ldap->member_attribute ($config->{"member_attribute"});
+    }
+
     if (defined $config->{"user_attributes"} &&
 	ref ($config->{"user_attributes"}) eq "ARRAY") {
 	UsersLDAP->SetUserAttributes ($config->{"user_attributes"});
@@ -168,6 +171,50 @@ sub InitializeConfiguration {
     }
     # ...
 
+}
+
+# helper function
+# create the minimal set of user attributes we want to read from LDAP
+sub SetNecessaryUserAttributes {
+
+    my $more		= shift;
+    my @necessary	=
+	("uid", "uidnumber", "objectclass", UsersLDAP->GetUserNamingAttr ());
+    my $current		= UsersLDAP->GetUserAttributes ();
+    my %attributes	= ();
+    foreach my $a (@$current) {
+	$attributes{$a}	= 1;
+    }
+    foreach my $a (@necessary) {
+	$attributes{$a}	= 1;
+    }
+    foreach my $a (@$more) {
+	$attributes{$a} = 1;
+    }
+    my @final		= sort keys %attributes;
+    UsersLDAP->SetUserAttributes (\@final);
+}
+
+# helper function
+# create the minimal set of group attributes we want to read from LDAP
+sub SetNecessaryGroupAttributes {
+
+    my $more		= shift;
+    my @necessary	=
+	("cn", "gidnumber", "objectclass", UsersLDAP->GetGroupNamingAttr ());
+    my $current		= UsersLDAP->GetGroupAttributes ();
+    my %attributes	= ();
+    foreach my $a (@$current) {
+	$attributes{$a}	= 1;
+    }
+    foreach my $a (@necessary) {
+	$attributes{$a}	= 1;
+    }
+    foreach my $a (@$more) {
+	$attributes{$a} = 1;
+    }
+    my @final		= sort keys %attributes;
+    UsersLDAP->SetGroupAttributes (\@final);
 }
 
 =item *
@@ -257,8 +304,8 @@ sub UserAdd {
 	# now rewrite default values with given values
 	InitializeConfiguration ($config);
 
+	SetNecessaryUserAttributes (["homedirectory"]);
 	# finally read LDAP tree
-	# TODO not necessary to read everything... (?)
 	$ret	= Users->ReadLDAPSet ();
 	if ($ret ne "") { return $ret; }
     }
@@ -268,7 +315,6 @@ sub UserAdd {
     
     Users->AddUser ($user);
 
-    # FIXME this should be called from Add/EditUser... (?)
     if ($type eq "ldap") {
 	Users->SubstituteUserValues ();
     }
@@ -278,7 +324,6 @@ sub UserAdd {
 	return $ret;
     }
     Users->CommitUser ();
-
     $ret = Users->Write ();
     return $ret;
 }
@@ -355,8 +400,8 @@ sub UserModify {
 	# now rewrite default values with given values
 	InitializeConfiguration ($config);
 
-	# If we want to atributes, that should be unique
-	# (uid/dn/uidnumber/home (TODO?) we must read everything to check
+	# If we want to change atributes, that should be unique
+	# (uid/dn/uidnumber/home we must read everything to check
 	# possible conflicts...
 	my $read_all	= 0;
 	if (defined $data->{"uid"} || defined $data->{"uidnumber"}) {
@@ -370,17 +415,15 @@ sub UserModify {
 	}
 	elsif (!defined $config->{"user_filter"} && $key ne "" && !$read_all) {
 	    my $filter	= "$key=".$config->{$key};
-	    UsersLDAP->SetCurrentUserFilter ($filter);
+	    UsersLDAP->AddToCurrentUserFilter ($filter);
 	}
 	# Let's create the minimal list of neccessary attributes to get
-	my @necessary_user_attributes = ("uid", "uidnumber", "objectclass");
-# FIXME nec. attrs. should be added every time?
-	if (!defined $config->{"user_attributes"}) {
-	    my @attrs	= keys (%{$data});
-	    foreach my $a (@necessary_user_attributes) {
-		if (!defined $data->{$a}) { push @attrs, $a;}
-	    }
-	    UsersLDAP->SetUserAttributes (\@attrs);
+	if (defined $data->{"homedirectory"}) {
+	    # we must check possible directory conflicts...
+	    SetNecessaryUserAttributes (["homedirectory"]);
+	}
+	else {
+	    SetNecessaryUserAttributes ([]);
 	}
 	
 	$error	= Users->ReadLDAPSet ();
@@ -398,7 +441,7 @@ sub UserModify {
     }
 
     # 'dn' has to be passed in $data map so it could be changed
-    # TODO it is currently not possible to move entry deeper in the tree
+    # FIXME it is currently not possible to move entry deeper in the tree
     # -> allow setting 'dn' in data map!
     if ($type eq "ldap" && !defined $data->{"dn"}) {
 	my $user	= Users->GetCurrentUser ();
@@ -412,7 +455,8 @@ sub UserModify {
 	}
     }
     else {
-	$error	= "no such user"; # this text is surely somewhere...
+	# this text is surely somewhere...
+	$error	= _("There is no such user.");
     }
 	
     return $error;
@@ -449,7 +493,8 @@ sub UserFeatureAdd {
     if (!defined $config->{"plugins"} || ref ($config->{"plugins"}) ne "ARRAY"){
 	return "no plugin defined";
     }
-#TODO 'plugins' should be merged with existing list ...
+#FIXME 'plugins' should be merged with existing list ...
+# not working currently...
     return $self->UserModify ($config, { "plugins" => $config->{"plugins"} });
 }
 
@@ -564,14 +609,15 @@ sub UserDelete {
 	}
 	elsif (!defined $config->{"user_filter"} && $key ne "") {
 	    my $filter = "$key=".$config->{$key};
-	    UsersLDAP->SetCurrentUserFilter ($filter);
+	    UsersLDAP->AddToCurrentUserFilter ($filter);
 	}
 	
 	$error	= Users->ReadLDAPSet ();
 	if ($error ne "") { return $error; }
     }
     elsif ($type eq "nis") {
-	Users->ReadNewSet ($type);
+	# error message
+	return _("It is not possible to delete a NIS user.");
     }
 
     if ($key eq "uidnumber") {
@@ -587,6 +633,10 @@ sub UserDelete {
 	if (Users->CommitUser ()) {
 	    $error = Users->Write ();
 	}
+    }
+    else {
+	# error message
+	$error 	= _("There is no such user.");
     }
     return $error;
 }
@@ -729,7 +779,7 @@ sub UserGet {
 	}
 	elsif (!defined $config->{"user_filter"} && $key ne "") {
 	    my $filter = "$key=".$config->{$key};
-	    UsersLDAP->SetCurrentUserFilter ($filter);
+	    UsersLDAP->AddToCurrentUserFilter ($filter);
 	}
 	
 	$error	= Users->ReadLDAPSet ();
@@ -806,7 +856,6 @@ sub UsersGet {
     # config map could contain: user type, plugins to use, ... (?)
     # before we read LDAP, we could find here e.g. bind password
     InitializeConfiguration ($config);
-
     if ($type eq "ldap") {
 	# this initializes LDAP with the default values and read the
 	$error	= UsersLDAP->ReadSettings ();
@@ -878,10 +927,25 @@ sub GroupAdd {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
-    my $group	= {};
     my $ret	= "";
-    # TODO
-    # TODO conver 'member' from list to hash if necessary
+
+    Users->SetGUI (0);
+
+    my $type	= $config->{"type"} || "local";
+
+    # convert 'member' from list to hash if necessary
+    my $member_attr	= UsersLDAP->GetMemberAttribute ();
+    if ($type ne "ldap") {
+	$member_attr	= "userlist";
+    }
+    if (defined $data->{$member_attr} && ref($data->{$member_attr}) eq "ARRAY"){
+	my @userlist		= @{$data->{$member_attr}};
+	$data->{$member_attr}	= ();
+	foreach my $u (@userlist) {
+	    $data->{$member_attr}{$u}	= 1;
+	}
+    }
+#FIXME
     return $ret;
 }
 
@@ -958,6 +1022,18 @@ sub GroupModify {
 	$key	= "gidnumber";
     }
 
+    my $member_attr	= UsersLDAP->GetMemberAttribute ();
+    if ($type ne "ldap") {
+	$member_attr	= "userlist";
+    }
+    if (defined $data->{$member_attr} && ref($data->{$member_attr}) eq "ARRAY"){
+	my @userlist		= @{$data->{$member_attr}};
+	$data->{$member_attr}	= ();
+	foreach my $u (@userlist) {
+	    $data->{$member_attr}{$u}	= 1;
+	}
+    }
+
     if ($type eq "ldap") {
 	# this initializes LDAP with the default values and read the
 	$error	= UsersLDAP->ReadSettings ();
@@ -967,10 +1043,11 @@ sub GroupModify {
 	InitializeConfiguration ($config);
 
 	# If we want to atributes, that should be unique
-	# (uid/dn/uidnumber/home (TODO?) we must read everything to check
+	# (cn/dn/gidnumber/memebr we must read everything to check
 	# possible conflicts...
 	my $read_all	= 0;
-	if (defined $data->{"cn"} || defined $data->{"gidnumber"}) {
+	if (defined $data->{"cn"} || defined $data->{"gidnumber"} ||
+	    defined $data->{$member_attr}) {
 	    $read_all	= 1;
 	}
 
@@ -981,24 +1058,27 @@ sub GroupModify {
 	}
 	elsif (!defined $config->{"group_filter"} && $key ne "" && !$read_all) {
 	    my $filter	= "$key=".$config->{$key};
-	    UsersLDAP->SetCurrentGroupFilter ($filter);
+	    UsersLDAP->AddToCurrentGroupFilter ($filter);
 	}
 	# Let's create the minimal list of neccessary attributes to get
-	my @necessary_group_attributes = ("cn", "gidnumber", "objectclass", "member");
-# FIXME nec. attrs. should be added every time?
-	if (!defined $config->{"group_attributes"}) {
-	    my @attrs	= keys (%{$data});
-	    foreach my $a (@necessary_group_attributes) {
-		if (!defined $data->{$a}) { push @attrs, $a;}
-	    }
-	    UsersLDAP->SetGroupAttributes (\@attrs);
+	SetNecessaryGroupAttributes ([ $member_attr ]);
+	# (if member_attr wouldn't be included, it will be counted as empty...
+
+	# -----------------------------------------------------
+	# let's limit also user data which we need to read
+	# (gidnumber is changed) <-> (user modification necessary)
+	if (!defined $data->{"gidnumber"}) {
+	    # -> so we don't need to read any user now...
+	    UsersLDAP->SetCurrentUserFilter ("0=1");
 	}
+	SetNecessaryUserAttributes (["gidnumber"]);
+	# ----------
 	
 	$error	= Users->ReadLDAPSet ();
 	if ($error ne "") { return $error; }
     }
     elsif ($type eq "nis") {
-	Users->ReadNewSet ($type);
+	Users->ReadNewSet ($type);#FIXME not possible
     }
 
     if ($key eq "gidnumber") {
@@ -1008,7 +1088,7 @@ sub GroupModify {
 	Users->SelectGroupByName ($config->{$key}, $type);
     }
     # 'dn' has to be passed in $data map so it could be changed
-    # TODO it is currently not possible to move entry deeper in the tree
+    # FIXME it is currently not possible to move entry deeper in the tree
     # -> allow setting 'dn' in data map!
     if ($type eq "ldap" && !defined $data->{"dn"}) {
 	my $group	= Users->GetCurrentGroup ();
@@ -1022,9 +1102,9 @@ sub GroupModify {
 	}
     }
     else {
-	$error	= "no such group"; # this text is surely somewhere...
+	# error message
+	$error	= _("There is no such group.");
     }
-	
     return $error;
 }
 
@@ -1059,13 +1139,17 @@ BEGIN{$TYPEINFO{GroupMemberAdd} = ["function",
 sub GroupMemberAdd {
 
     my $self	= shift;
+# FIXME
+# 1. find the user
+# 2. if exists, get his DN and call GroupModify
+# (but 'member' must be merged, not rewritten
     return "";
 }
 
 =item *
 C<$error GroupMemberDelete ($config_hash, $user_hash);>
 
-Deletes a memebr from the group.
+Deletes a member from the group.
 
 Returns an error message if operation failed or empty string otherwise.
 
@@ -1077,18 +1161,148 @@ EXAMPLE:
   my $user	= { "uidnumber"		=> 1000 }
 
   # removes user with given uidnumber from group with given DN
-  my $error	= GroupMemberDelete ($config, $data);
+  my $error	= GroupMemberDelete ($config, $user);
 
 =cut
 
 BEGIN{$TYPEINFO{GroupMemberDelete} = ["function",
     "string",
-    [ "map", "string", "any" ]];
+    [ "map", "string", "any" ],
+    [ "map", "string", "any" ]
+    ];
 }
 sub GroupMemberDelete {
 
     my $self	= shift;
-    return "";
+    my $config	= shift;
+    my $user	= shift;
+    my $error	= "";
+
+    Users->SetGUI (0);
+
+    if (!defined $user || ref ($user) ne "HASH" || ! %$user) {
+	# error message
+	return _("No user specified.");
+#TODO maybe user is specfied by filter...
+    }
+    
+    my $type	= $config->{"type"} || "local";
+
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
+    }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
+
+    # config map could contain: user type, plugins to use, ... (?)
+    # before we read LDAP, we could find here e.g. bind password
+    InitializeConfiguration ($config);
+
+    my $key	= "";
+    if (defined $config->{"dn"} && $type eq "ldap") {
+	$key	= "dn";
+    }
+    elsif (defined $config->{"cn"}) {
+	$key	= "cn";
+    }
+    elsif (defined $config->{"gidnumber"}) {
+	$key	= "gidnumber";
+    }
+
+    if ($type eq "ldap") {
+	# this initializes LDAP with the default values and read the
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+
+	# now rewrite default values with given values
+	InitializeConfiguration ($config);
+
+	# search with proper filter (= one DN/uid/uidnumber)
+	# should be sufficient in this case...
+	    if ($key eq "dn") {
+	    UsersLDAP->SetGroupBase ($config->{$key});
+	}
+	elsif (!defined $config->{"group_filter"} && $key ne "") {
+	    my $filter = "$key=".$config->{$key};
+	    UsersLDAP->AddToCurrentGroupFilter ($filter);
+	}
+	
+	# find the specified user if dn was not given
+	if (defined $user->{"dn"}) {
+	    UsersLDAP->SetCurrentUserFilter ("0=1");
+	}
+	else {
+	    foreach my $u_key (keys %$user) {
+		my $filter	= "$u_key=".$user->{$u_key};
+		UsersLDAP->AddToCurrentUserFilter ($filter);
+	    }
+	}
+
+	$error	= Users->ReadLDAPSet ();
+	if ($error ne "") { return $error; }
+    }
+    elsif ($type eq "nis") {
+	# error message
+	return _("It is not possible to modify a NIS group.");
+    }
+
+    if ($key eq "gidnumber") {
+	Users->SelectGroup ($config->{$key}, $type);
+    }
+    elsif ($key eq "cn") {
+	Users->SelectGroupByName ($config->{$key}, $type);
+    }
+    elsif ($key eq "dn") {
+	Users->SelectGroupByDN ($config->{$key}, $type);
+    }
+    my $group 	= Users->GetCurrentGroup ();
+    if (!defined $group || ! %{$group}) {
+	# error message
+	return _("There is no such group.");
+    }
+    # get the user which should be removed from the group
+    my $user_id 	= $user->{"dn"};
+    if ($type ne "ldap") {
+	$user_id	= $user->{"uid"};
+    }
+    if (!defined $user_id) {
+	my $usermap	= ();
+	if (defined $user->{"uid"}) {
+	    $usermap	= Users->GetUserByName ($user->{"uid"}, $type);
+	}
+	elsif (defined $user->{"uidnumber"}) {
+	    $usermap	= Users->GetUser ($user->{"uidnumber"}, $type);
+	}
+	if ($type eq "ldap") {
+	    $user_id	= $usermap->{"dn"};
+	    # TODO maybe there is ony one user loaded, but not specified by
+	    # uid/uidnumber/dn... ->GetUserByAttribute...
+	}
+	else {
+	    $user_id	= $usermap->{"uid"};
+	}
+    }
+    if (!defined $user_id) {
+	return _("User was not correctly specified.");
+    }
+
+    my $member_attr	= UsersLDAP->GetMemberAttribute ();
+    if ($type ne "ldap") {
+	$member_attr	= "userlist";
+    }
+    my $data	= {
+	$member_attr	=> $group->{$member_attr}
+    };
+    if (defined $data->{$member_attr}{$user_id}) {
+	delete $data->{$member_attr}{$user_id};
+    }
+    if (Users->EditGroup ($data)) {
+	$error = Users->CheckGroup ({});
+	if ($error eq "" && Users->CommitGroup ()) {
+	    $error = Users->Write ();
+	}
+    }
+    return $error;
 }
 
 
@@ -1116,10 +1330,93 @@ sub GroupDelete {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $ret	= "";
+    my $error	= "";
 
-    #TODO
-    return $ret;
+    Users->SetGUI (0);
+
+    my $type	= $config->{"type"} || "local";
+
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
+    }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
+
+    # config map could contain: user type, plugins to use, ... (?)
+    # before we read LDAP, we could find here e.g. bind password
+    InitializeConfiguration ($config);
+
+    my $key	= "";
+    if (defined $config->{"dn"} && $type eq "ldap") {
+	$key	= "dn";
+    }
+    elsif (defined $config->{"cn"}) {
+	$key	= "cn";
+    }
+    elsif (defined $config->{"gidnumber"}) {
+	$key	= "gidnumber";
+    }
+    
+    if ($type eq "ldap") {
+	# this initializes LDAP with the default values and read the
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+
+	# now rewrite default values with given values
+	InitializeConfiguration ($config);
+
+	# search with proper filter (= one DN/uid/uidnumber)
+	# should be sufficient in this case...
+	if ($key eq "dn") {
+	    UsersLDAP->SetGroupBase ($config->{$key});
+	}
+	elsif (!defined $config->{"group_filter"} && $key ne "") {
+	    my $filter = "$key=".$config->{$key};
+	    UsersLDAP->AddToCurrentGroupFilter ($filter);
+	}
+	# we must read users to check if group is not default group for someone
+
+	# read only users 'affected' by our group number
+	if (defined $config->{"gidnumber"}) {
+	    my $filter = "gidnumber=".$config->{"gidnumber"};
+	    UsersLDAP->AddToCurrentUserFilter ($filter);
+	    # TODO read gidnumber by ldapsearch if not given
+	}
+	SetNecessaryUserAttributes (["gidnumber"]);
+
+	$error	= Users->ReadLDAPSet ();
+	if ($error ne "") { return $error; }
+    }
+    elsif ($type eq "nis") {
+	# error message
+	return _("It is not possible to delete a NIS group.");
+    }
+
+    if ($key eq "gidnumber") {
+	Users->SelectGroup ($config->{$key}, $type);
+    }
+    elsif ($key eq "cn") {
+	Users->SelectGroupByName ($config->{$key}, $type);
+    }
+    elsif ($key eq "dn") {
+	Users->SelectGroupByDN ($config->{$key}, $type);
+    }
+
+    # do not delete non-empty group!
+    # (TODO we could enable it with some 'force_delete' flag?)
+    $error	= Users->CheckGroupForDelete ({});
+    if ($error ne "") { return $error; }
+
+    if (Users->DeleteGroup ()) {
+	if (Users->CommitGroup ()) {
+	    $error = Users->Write ();
+	}
+    }
+    else {
+	# error message
+	$error 	= _("There is no such group.");
+    }
+    return $error;
 }
 
 =item *
@@ -1148,7 +1445,91 @@ sub GroupGet {
     my $self	= shift;
     my $config	= $_[0];
     my $ret	= {};
+    my $error	= "";
 
+    Users->SetGUI (0);
+
+    my $type	= $config->{"type"} || "local";
+
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
+    }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
+
+    # config map could contain: user type, plugins to use, ... (?)
+    # before we read LDAP, we could find here e.g. bind password
+    InitializeConfiguration ($config);
+
+    my $key	= "";
+    if (defined $config->{"dn"} && $type eq "ldap") {
+	$key	= "dn";
+    }
+    elsif (defined $config->{"cn"}) {
+	$key	= "cn";
+    }
+    elsif (defined $config->{"gidnumber"}) {
+	$key	= "gidnumber";
+    }
+
+    if ($type eq "ldap") {
+	# this initializes LDAP with the default values and read the
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $ret; }
+
+	# now rewrite default values with given values
+	InitializeConfiguration ($config);
+
+	# search with proper filter (= one DN/uid/uidnumber)
+	# should be sufficient in this case...
+	if ($key eq "dn") {
+	    UsersLDAP->SetGroupBase ($config->{$key});
+	}
+	elsif (!defined $config->{"group_filter"} && $key ne "") {
+	    my $filter = "$key=".$config->{$key};
+	    UsersLDAP->AddToCurrentGroupFilter ($filter);
+	}
+	# read only users 'affected' by our group number
+	if (defined $config->{"gidnumber"}) {
+	    my $filter = "gidnumber=".$config->{"gidnumber"};
+	    UsersLDAP->AddToCurrentUserFilter ($filter);
+	    # TODO read gidnumber by ldapsearch if not given
+	}
+	else {
+	    # we don't need any users -> fake filter for faster searching
+	    UsersLDAP->SetCurrentUserFilter ("0=1");
+	}
+	SetNecessaryUserAttributes (["gidnumber"]);
+
+	$error	= Users->ReadLDAPSet ();
+	if ($error ne "") { return $ret; }
+    }
+    elsif ($type eq "nis") {
+	Users->ReadNewSet ($type);
+    }
+
+    if ($key eq "gidnumber") {
+	$ret	= Users->GetGroup ($config->{$key}, $type);
+    }
+    elsif ($key eq "cn") {
+	$ret	= Users->GetGroupByName ($config->{$key}, $type);
+    }
+    elsif ($key eq "dn") {
+	$ret	= Users->GetGroupByDN ($config->{$key}, $type);
+    }
+    elsif ($type eq "ldap") {
+	# only for LDAP, when filter was given, but no key...
+	my $groups	= Users->GetGroups ("dn", $type);
+	if (ref ($groups) eq "HASH" && %{$groups}) {
+	    my @groups	= sort values (%{$groups});
+	    if (@groups > 1) {
+		y2warning ("There are more groups satisfying the input conditions");
+	    }
+	    if (@groups > 0 && ref ($groups[0]) eq "HASH") {
+		$ret = $groups[0];
+	    }
+	}
+    }
     return $ret;
 }
 

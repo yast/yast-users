@@ -123,8 +123,8 @@ my @group_internal_keys		=
 
 
 # defualt scope for searching, set it by SetUserScope
-my $user_scope			= 2;
-my $group_scope			= 2;
+my $user_scope			= YaST::YCP::Integer (2);
+my $group_scope			= YaST::YCP::Integer (2);
 
  
 ##------------------------------------
@@ -345,13 +345,10 @@ sub ReadSettings {
 	%group_defaults = %{$group_template{"default_values"}};
     }
 
-    # default shadow (for new LDAP users)
+    # default shadow for new LDAP users
     foreach my $key ("shadowwarning", "shadowinactive", "shadowexpire", "shadowmin", "shadowmax", "shadowflag") {
 	if (defined $user_defaults{$key}) {
 	    $shadow{$key}	= $user_defaults{$key};
-	}
-	else {
-	    $shadow{$key}	= "";
 	}
     }
 	
@@ -455,9 +452,6 @@ sub Read {
     my $user_filter = $user_filter ne "" ? $user_filter: $default_user_filter;
     my $group_filter = $group_filter ne ""? $group_filter:$default_group_filter;
 
-    # TODO use allowed/required attrs from config?
-    # (if yes, objectclass must be in required!)
-    # For now, we get all:
     my $user_attrs	= \@user_attributes;
 #    my $user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory" ];
     my $group_attrs 	= \@group_attributes;
@@ -467,9 +461,8 @@ sub Read {
 	"group_base"		=> $group_base,
 	"user_filter"		=> $user_filter,
 	"group_filter"		=> $group_filter,
-	"user_scope"		=> YaST::YCP::Integer ($user_scope),
-	# 2 = sub - TODO configurable?
-	"group_scope"		=> YaST::YCP::Integer ($group_scope),
+	"user_scope"		=> $user_scope,
+	"group_scope"		=> $group_scope,
 	"user_attrs"		=> $user_attrs,
 	"group_attrs"		=> $group_attrs,
 	"member_attribute"	=> $member_attribute
@@ -531,6 +524,24 @@ sub GetMaxPasswordLength {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetDefaultShadow} = ["function", "void",
+    [ "map", "string", "string"]];
+}
+sub SetDefaultShadow {
+    my $self		= shift;
+    my $shadow_map	= shift;
+
+    if (ref ($shadow_map) ne "HASH") {
+	return;
+    }
+    foreach my $k (keys %$shadow_map) {
+	if ($shadow_map->{$k} ne "") {
+	    $shadow{$k}	= $shadow_map->{$k};
+	}
+    }
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
     [ "map", "string", "string"]];
 }
@@ -554,12 +565,24 @@ sub SetUserPlugins {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetUserAttributes} = ["function", ["list", "string"]];}
+sub GetUserAttributes {
+    return \@user_attributes;
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{SetUserAttributes} = ["function", "void",["list", "string"]];}
 sub SetUserAttributes {
     my $self	= shift;
     if (ref ($_[0]) eq "ARRAY") {
 	@user_attributes	= @{$_[0]};
     }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupAttributes} = ["function", ["list", "string"]];}
+sub GetGroupAttributes {
+    return \@group_attributes;
 }
 
 ##------------------------------------
@@ -632,10 +655,31 @@ sub SetCurrentUserFilter {
 }
 
 ##------------------------------------
+# add new condition to current user filter
+BEGIN { $TYPEINFO{AddToCurrentUserFilter} = ["function", "void", "string"];}
+sub AddToCurrentUserFilter {
+    my $self = shift;
+    if (!defined $user_filter || $user_filter eq "") {
+	$user_filter	= $default_user_filter
+    }
+    my $new_filter	= shift;
+    if (substr ($user_filter, 0, 1) ne "(") {
+	$user_filter	= "($user_filter)";
+    }
+    if (substr ($new_filter, 0, 1) ne "(") {
+	$new_filter	= "($new_filter)";
+    }
+    $user_filter	= "(&$user_filter$new_filter)";
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{SetUserScope} = ["function", "void", "integer"];}
 sub SetUserScope {
     my $self = shift;
     $user_scope = $_[0];
+    if (ref ($user_scope) ne "YaST::YCP::Integer") {
+	$user_scope	= YaST::YCP::Integer ($user_scope);
+    }
 }
 
 
@@ -714,10 +758,31 @@ sub SetCurrentGroupFilter {
 }
 
 ##------------------------------------
+# add new condition to current group filter
+BEGIN { $TYPEINFO{AddToCurrentGroupFilter} = ["function", "void", "string"];}
+sub AddToCurrentGroupFilter {
+    my $self = shift;
+    if (!defined $group_filter || $group_filter eq "") {
+	$group_filter	= $default_group_filter
+    }
+    my $new_filter	= shift;
+    if (substr ($group_filter, 0, 1) ne "(") {
+	$group_filter	= "($group_filter)";
+    }
+    if (substr ($new_filter, 0, 1) ne "(") {
+	$new_filter	= "($new_filter)";
+    }
+    $group_filter	= "(&$group_filter$new_filter)";
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{SetGroupScope} = ["function", "void", "integer"];}
 sub SetGroupScope {
     my $self = shift;
     $group_scope = $_[0];
+    if (ref ($group_scope) ne "YaST::YCP::Integer") {
+	$group_scope	= YaST::YCP::Integer ($group_scope);
+    }
 }
 
 ##------------------------------------
@@ -1158,9 +1223,8 @@ sub WriteGroups {
 	}
 	my %o_classes	= ();
 	foreach my $oc (@obj_classes) {
-	    $o_classes{$oc}	= 1;
+	    $o_classes{lc($oc)}	= 1;
 	}
-
 	my $group_oc	= "groupofnames";
 	my $other_oc	= "groupofuniquenames";
 	if (lc($member_attribute) eq "uniquemember") {
@@ -1193,10 +1257,7 @@ sub WriteGroups {
 	    # ... and create new one with altered objectclass
 	    delete $o_classes{"namedobject"};
 	    $o_classes{$group_oc}	= 1;
-	    if (contains (\@obj_classes, $other_oc, 1)) {
-		foreach my $o (keys %o_classes) {
-		    if (lc ($o) eq $other_oc) { $other_oc = $o; }
-		}
+	    if (defined $o_classes{$other_oc}) {
 		delete $o_classes{$other_oc};
 	    }
 	    %new_group			= %{$group};
@@ -1234,7 +1295,7 @@ sub WriteGroups {
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
 	}
 	# -------------------------------------------------------------------
-	
+
         if ($action eq "added") {
 	    if (!SCR->Write (".ldap.add", \%arg_map, $group)) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
