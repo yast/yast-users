@@ -7,11 +7,8 @@ package UsersCache;
 
 use strict;
 
-# temporary for in-place development FIXME
-#use lib '../../src';
-use lib '/usr/lib/perl5/vendor_perl/5.8.1/i586-linux-thread-multi/YaST';
-use YCP; #FIXME "redefinition"
 use ycp;
+use YaST::YCP;
 
 our %TYPEINFO;
 
@@ -22,6 +19,7 @@ my %usernames		= (); #TODO used by phone-services, mail, inetd...
 my %homes		= ();
 my %uids		= ();
 my %user_items		= ();
+my @current_user_items	= ();
 my %userdns		= ();
 
 my %groupnames		= ();
@@ -66,22 +64,10 @@ my %last_gid		= (
     "system"		=> 100,
 );
 
-our %min_pass_length	= (
-    "local"		=> 5,
-    "ldap"		=> 5,
-    "system"		=> 5
-);
-
-our %max_pass_length	= (
-    "local"		=> 8,
-    "ldap"		=> 8,
-    "system"		=> 8
-);
-
 our $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
 our $min_length_login 	= 2;
 
-our $max_length_groupname 	= 8; # TODO:reason?
+our $max_length_groupname 	= 8; # TODO:why only 8?
 our $min_length_groupname	= 2;
 
 # UI-related variables:
@@ -94,10 +80,15 @@ my @proposed_usernames	= ();
 # number of clicks of "Propose" (-1 means: generate new list)
 my $proposal_count	= -1;
 
+# which sets of users are in 'custom' view
+my @user_custom_sets	= ();
+
 ##------------------------------------
 ##------------------- global imports
 
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("Security");
+YaST::YCP::Import ("Progress");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -146,7 +137,7 @@ sub ProposeUsername {
 	# 2nd: check existence
 	foreach my $name (@tested_usernames) {
 	    my $name_count = 0;
-	    while (UsernameExists ($name) eq "true") {
+	    while (UsernameExists ($name)) {
 		$name .= "$name_count";
 		$name_count ++;
 	    }
@@ -157,7 +148,7 @@ sub ProposeUsername {
 	    push @proposed_usernames, $name;
 	};
 
-	if (UsernameExists ("42") eq "false" && @proposed_usernames > 11) {
+	if (!UsernameExists ("42") && @proposed_usernames > 11) {
 	    push @proposed_usernames, "42";
 	}
 	$proposal_count = 0;
@@ -197,27 +188,27 @@ sub DebugMap {
 sub UIDConflicts {
 
     my $ret = SCR::Read (".uid.uid", $_[0]);
-    return $ret ? "false" : "true";
+    return !$ret;
 }
  
 ##------------------------------------
 BEGIN { $TYPEINFO{UIDExists} = ["function", "boolean", "integer"]; }
 sub UIDExists {
 
-    my $ret	= "false";
+    my $ret	= 0;
     my $uid	= $_[0];
 
     foreach my $type (keys %uids) {
-	if (defined $uids{$type}{$uid}) { $ret = "true"; }
+	if (defined $uids{$type}{$uid}) { $ret = 1; }
     };
     # for autoyast, check only loaded sets
-#    if (Mode::config || $ret eq "true") TODO
-    if ($ret eq "true") {
+#    if (Mode::config || $ret) TODO
+    if ($ret) {
 	return $ret;
     }
     # not found -> check all sets via agent...
     $ret = UIDConflicts ($uid);
-    if ($ret eq "true") {
+    if ($ret) {
 	# check if uid wasn't just deleted...
 	my @sets_to_check = ("local", "system");
 	# LDAP: do not allow change uid of one user and use old one by
@@ -227,7 +218,7 @@ sub UIDExists {
 	    push @sets_to_check, "ldap";
 	}
 	foreach my $type (@sets_to_check) {
-	    if (defined $removed_uids{$type}{$uid}) { $ret = "false"; }
+	    if (defined $removed_uids{$type}{$uid}) { $ret = 0; }
 	};
     }
     return $ret;
@@ -236,32 +227,32 @@ sub UIDExists {
 sub UsernameConflicts {
 
     my $ret = SCR::Read (".uid.username", $_[0]);
-    return $ret ? "false" : "true";
+    return !$ret;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{UsernameExists} = ["function", "boolean", "string"]; }
 sub UsernameExists {
 
-    my $ret		= "false";
+    my $ret		= 0;
     my $username	= $_[0];
 
     foreach my $type (keys %usernames) {
-	if (defined $usernames{$type}{$username}) { $ret = "true"; }
+	if (defined $usernames{$type}{$username}) { $ret = 1; }
     };
 #    if (Mode::config || ret) 
-    if ($ret eq "true") {
+    if ($ret) {
 	return $ret;
     }
     $ret = UsernameConflicts ($username);
-    if ($ret eq "true") {
+    if ($ret) {
 	my @sets_to_check = ("local", "system");
 	if ($user_type ne "ldap") {
 	    push @sets_to_check, "ldap";
 	}
 	foreach my $type (@sets_to_check) {
 	    if (defined $removed_usernames{$type}{$username}) {
-		$ret = "false";
+		$ret = 0;
 	    }
 	};
     }
@@ -283,7 +274,7 @@ sub GIDExists {
 	$ret = (defined $gids{"local"}{$gid} &&
 		defined $gids{"system"}{$gid});
     }
-    return $ret ? "true" : "false";
+    return $ret;
 }
 
 ##------------------------------------
@@ -300,7 +291,7 @@ sub GroupnameExists {
 	$ret = (defined $groupnames{"local"}{$groupname} &&
 		defined $groupnames{"system"}{$groupname});
     }
-    return $ret ? "true" : "false";
+    return $ret;
 }
 
 ##------------------------------------
@@ -312,7 +303,7 @@ BEGIN { $TYPEINFO{HomeExists} = ["function", "boolean", "string"]; }
 sub HomeExists {
 
     my $home		= $_[0];
-    my $ret		= "false";
+    my $ret		= 0;
     my @sets_to_check	= ("local", "system");
 
 #    if (ldap_file_server) { FIXME
@@ -325,7 +316,7 @@ sub HomeExists {
 
     foreach my $type (@sets_to_check) {
         if (defined $homes{$type}{$home}) {
-	    $ret = "true";
+	    $ret = 1;
 	}
     };
     return $ret;
@@ -393,7 +384,19 @@ sub GetUserItems {
 
     # FIXME: should return current itemlist
 
-    return values %{$user_items{"local"}};
+#    return values %{$user_items{"local"}};
+#    return sort values %current_user_items;
+# [ pointer to local hash, pointer to system hash, ...]
+
+    my @items;
+    foreach my $itemref (@current_user_items) {
+#y2internal ("ref: $itemref");
+	foreach my $id (sort keys %{$itemref}) {
+#y2internal ("id: $id");
+	    push @items, $itemref->{$id};
+	}
+    }
+    return @items;
 }
 
 ##------------------------------------
@@ -457,7 +460,7 @@ sub NextFreeUID {
     my $uid	= $last_uid{$user_type};
 
     do {
-        if (UIDExists ($uid) eq "true") {
+        if (UIDExists ($uid)) {
             $uid++;
 	}
         else {
@@ -502,7 +505,7 @@ sub NextFreeGID {
     my $max	= GetMaxGID ($group_type);
     my $gid	= 500;
     do {
-        if (GIDExists ($gid) eq "true") {
+        if (GIDExists ($gid)) {
             $gid++;
 	}
         else {
@@ -777,7 +780,29 @@ sub CommitGroup {
 
 ##-------------------------------------------------------------------------
 ##----------------- read routines -----------------------------------------
+    
+##------------------------------------
+# initialize constants with the values from Security module
+BEGIN { $TYPEINFO{InitConstants} = ["function",
+    "void",
+    ["map", "string", "string" ]];
+}
+sub InitConstants {
 
+    my $security = $_[0];
+
+    $min_uid{"local"}	= $security->{"UID_MIN"};
+    $max_uid{"local"}	= $security->{"UID_MAX"};
+
+    $min_uid{"system"}	= $security->{"SYSTEM_UID_MIN"};
+    $max_uid{"system"}	= $security->{"SYSTEM_UID_MAX"};
+
+    $min_gid{"system"}	= $security->{"SYSTEM_GID_MIN"};
+    $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"};
+}
+
+
+##------------------------------------
 sub ReadUsers {
 
 #use only for "special cases", not read by default: ldap and nis
@@ -801,9 +826,10 @@ sub ReadUsers {
     $user_items{$type}	= \%{SCR::Read ("$path.users.items")};
 
 #TODO NIS
-    return "true";
+    return 1;
 }
 
+##------------------------------------
 sub ReadGroups {
 
     my $type	= $_[0];
@@ -817,7 +843,22 @@ sub ReadGroups {
     $group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
 }
 
+##------------------------------------
+# Merge the users's item lists of types included in "custom view" to one list
+# @return new table itemlist
+sub MergeUserTableItems {
 
+    my @items	= ();
+    foreach my $type (@user_custom_sets) {
+# add only pointer to list? TODO check the performance!
+	push @items, $user_items{$type};
+    };
+    return @items;
+}
+
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{Read} = ["function", "void" ];}
 sub Read {
 
@@ -826,8 +867,13 @@ sub Read {
     ReadUsers ("system");
    # FIXME translate system names: SystemUsers in passwd.ycp
 
-#    users_itemlists [ "custom" ] = MergeUserTableItems(); TODO
-#    user_itemlist = users_itemlists [ "custom" ]:[];
+    @user_custom_sets	= ( "local", "system" );#TODO get as parameter
+
+#    $user_items{"custom"}	= MergeUserTableItems ();#list, not hashref!
+#    $current_user_items		= $users_items{"custom"};
+#    @current_user_items		= @{$user_items{"custom"}};
+#    @current_user_items		= [ $user_items{"local"} ];
+    @current_user_items		= MergeUserTableItems ();
 
     ReadGroups ("local");
     ReadGroups ("system");
@@ -836,6 +882,8 @@ sub Read {
 #    group_itemlist = groups_itemlists [ "custom" ]:[];
 
 #    current_users = user_custom_sets;
+
+   
 }
 
 # EOF
