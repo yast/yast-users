@@ -2410,7 +2410,7 @@ sub CommitUser {
     my $username	= $user{"uid"};
     my $org_username	= $user{"org_uid"} || $username;
     my $groupname	= $user{"groupname"} || $self->GetDefaultGroupname ($type);
-    my $home		= $user{"homedirectory"};
+    my $home		= $user{"homedirectory"} || "";
     my %grouplist	= %{$user{"grouplist"}};
 
     if (($type eq "local" || $type eq "system") &&
@@ -2602,7 +2602,9 @@ sub CommitUser {
 
         $user{"org_uidnumber"}			= $uid;
         $user{"org_uid"}			= $username;
-        $user{"org_homedirectory"}		= $home;
+	if ($home ne "") {
+	    $user{"org_homedirectory"}		= $home;
+	}
         $users{$type}{$uid}			= \%user;
         $users_by_name{$type}{$username}	= $uid;
 
@@ -3618,7 +3620,7 @@ sub CheckHome {
 
     my $self		= shift;
     my $home		= $_[0];
-    if ($home eq "") {
+    if (!defined $home || $home eq "") {
 	return "";
     }
 
