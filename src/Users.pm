@@ -138,6 +138,7 @@ my $group_not_read 		= 1;
 my $useradd_cmd 		= "";
 my $userdel_precmd 		= "";
 my $userdel_postcmd 		= "";
+my $groupadd_cmd 		= "";
 
 my $pass_warn_age		= "7";
 my $pass_min_days		= "0";
@@ -207,6 +208,7 @@ my @local_plugins		= ();
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Directory");
+YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Message");
@@ -588,7 +590,7 @@ sub CheckHomeMounted {
 	}
     }
 
-    if (SCR->Read (".target.size", "/etc/cryptotab") != -1) {
+    if (FileUtils->Exists ("/etc/cryptotab")) {
         my $cryptotab = SCR->Read (".etc.cryptotab");
 	if (defined $cryptotab && ref ($cryptotab) eq "ARRAY") {
 	    foreach my $line (@{$cryptotab}) {
@@ -1057,7 +1059,7 @@ sub GetGroupCustomSets {
 sub ReadCustomSets {
 
     my $file = Directory->vardir()."/users.ycp";
-    if (SCR->Read (".target.size", $file) == -1) {
+    if (! FileUtils->Exists ($file)) {
 	my %customs	= ();
 	SCR->Write (".target.ycp", $file, \%customs);
 	$customs_modified	= 1;
@@ -1132,7 +1134,7 @@ sub ReadAllShells {
 	if ($shell_entry eq "" || $shell_entry =~ m/^passwd|bash1$/) {
 	    next;
 	}
-	if (SCR->Read (".target.size", $shell_entry) != -1) {
+	if (FileUtils->Exists ($shell_entry)) {
 	    $all_shells{$shell_entry} = 1;
 	}
     };
@@ -1182,10 +1184,13 @@ sub ReadSystemDefaults {
     $pass_min_days	= $security{"PASS_MIN_DAYS"}	|| $pass_min_days;
     $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
 
-    # command running before/after adding/deleting user
+    # command to call before/after adding/deleting user
     $useradd_cmd 	= $security{"USERADD_CMD"};
     $userdel_precmd 	= $security{"USERDEL_PRECMD"};
     $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
+
+    # command to call after adding group
+    $groupadd_cmd 	= SCR->Read (".etc.login_defs.GROUPADD_CMD") || "";
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     $group_encryption_method
@@ -1198,7 +1203,7 @@ sub ReadSystemDefaults {
     $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
     $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
 
-    $character_class 	= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
+    $character_class 	= SCR->Read (".etc.login_defs.CHARACTER_CLASS") || "";
 
     $umask		= SCR->Read (".etc.login_defs.UMASK");
 
@@ -3694,9 +3699,13 @@ sub WriteShadow {
 sub PreDeleteUsers {
 
     my $ret = 1;
-
+    
+    if ($userdel_precmd eq "" || !FileUtils->Exists ($userdel_precmd)) {
+	return $ret;
+    }
+    
     foreach my $type ("system", "local") {
-	if (!defined $removed_users{$type} || $userdel_precmd eq "") {
+	if (!defined $removed_users{$type}) {
 	    next;
 	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
@@ -3720,8 +3729,12 @@ sub PostDeleteUsers {
 	$ret = $ret && UsersRoutines->DeleteHome ($home);
     };
 
+    if ($userdel_postcmd eq "" || !FileUtils->Exists($userdel_postcmd)) {
+	return $ret;
+    }
+
     foreach my $type ("system", "local") {
-	if (!defined $removed_users{$type} || $userdel_postcmd eq "") {
+	if (!defined $removed_users{$type}) {
 	    next;
 	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
@@ -3815,6 +3828,7 @@ sub Write {
     my $nscd_passwd	= 0;
     my $nscd_group	= 0;
     my @useradd_postcommands	= ();
+    my @groupadd_postcommands	= ();
 
     # progress caption
     my $caption 	= __("Writing user and group configuration...");
@@ -3963,6 +3977,17 @@ sub Write {
 		my $result = UsersPlugins->Apply ("Write", $args,
 		    $modified_groups{$type}{$gid});
 		$plugin_error	= GetPluginError ($args, $result);
+
+		# store commands for calling groupadd_cmd script
+		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
+		    my $group	= $modified_groups{$type}{$gid};
+		    my $mod 	= $group->{"modified"} || "no";
+		    if ($mod eq "imported" || $mod eq "added") {
+			my $groupname    	= $group->{"cn"};
+			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
+			push @groupadd_postcommands, $cmd;
+		    }
+		}
 	    }
 	    # unset the 'modified' flags after write
 	    $self->UpdateGroupsAfterWrite ("local");
@@ -4073,9 +4098,11 @@ sub Write {
 		    if ($home ne "/var/lib/nobody") {
 			UsersRoutines->ChownHome ($uid, $gid, $home);
 		    }
-		    # call the useradd.local
-		    $command = sprintf ("%s %s", $useradd_cmd, $username);
-		    push @useradd_postcommands, $command;
+		    if ($useradd_cmd ne "" && FileUtils->Exists ($useradd_cmd))
+		    {
+			$command = sprintf ("%s %s", $useradd_cmd, $username);
+			push @useradd_postcommands, $command;
+		    }
 		}
 		elsif ($user_mod eq "edited") {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
@@ -4135,6 +4162,14 @@ sub Write {
         if (!defined ($out{"exit"}) || $out{"exit"} != 0) {
             y2error ("Cannot make NIS database: ", %out);
         }
+    }
+
+    # complete adding groups
+    if ($groups_modified && @groupadd_postcommands > 0) {
+	foreach my $command (@groupadd_postcommands) {
+	    y2milestone ("'$command' returns: ", 
+		SCR->Execute (".target.bash", $command));
+	}
     }
 
     # complete adding users
@@ -4492,7 +4527,7 @@ sub CrackPassword {
 	return $ret;
     }
     if (!defined $cracklib_dictpath || $cracklib_dictpath eq "" ||
-	SCR->Read (".target.size", "$cracklib_dictpath.pwd") == -1) {
+	!FileUtils->Exists ("$cracklib_dictpath.pwd")) {
 	$ret = SCR->Execute (".crack", $pw);
     }
     else {
@@ -5309,7 +5344,7 @@ sub GetRootPassword {
 # Check whether host is NIS master
 BEGIN { $TYPEINFO{ReadNISMaster} = ["function", "boolean"];}
 sub ReadNISMaster {
-    if (SCR->Read (".target.size", "/usr/lib/yp/yphelper") == -1) {
+    if (! FileUtils->Exists ("/usr/lib/yp/yphelper")) {
         return 0;
     }
     return (SCR->Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);
@@ -5714,8 +5749,7 @@ sub Import {
 
 	# there could be conflicts when adding new uses
 	if (!Mode->config () && @without_uid > 0) {
-	    y2internal ("new users!");
-
+	    y2milestone ("users imported: updating cache");
 	    UsersCache->ReadUsers ("system");
 	    UsersCache->ReadUsers ("local");
 	}
@@ -5773,8 +5807,7 @@ sub Import {
 	}
 
 	if (!Mode->config () && @without_gid > 0) {
-	    y2internal ("new groups!");
-
+	    y2milestone ("groups imported: updating cache");
 	    UsersCache->ReadGroups ("system");
 	    UsersCache->ReadGroups ("local");
 	}

@@ -700,6 +700,8 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    `Frame ("", `ReplacePoint(`id(`tabContents), get_edit_term ()))
 	);
     }
+    if (complex_layout)
+	dialog_contents	= get_edit_term ();
 
     Wizard::SetContentsButtons (
         dialog_labels [ what, user_type ]:"",
