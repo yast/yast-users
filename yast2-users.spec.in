@@ -26,6 +26,7 @@ Summary:	Configuration of users
 %dir @yncludedir@/users
 @clientdir@/*.ycp
 @configdir@/*.y2cc
+@desktopdir@/*.desktop
 @moduledir@/*.ycp
 @yncludedir@/users/*
 @ybindir@/*.pl
