@@ -239,6 +239,8 @@ only obtain users with a user name beginning with 'u'.</p>
 	}
 	if ( button == `read )
 	{
+	    if (Ldap::bind_pass == nil)
+		Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
 	    if (UsersLDAP::ReadFilters())
 	    {
 		UI::ChangeWidget(`id (`userf), `Value,
@@ -700,17 +702,6 @@ define list GetExpertList () ``{
 	        // menubutton label
 		`item(`id(`autologinconf), _("&Login Settings")));
 	}
-	/*
-	if (Users::LDAPAvailable () && !Users::LDAPModified ())
-	{
-	    expert_list = add (expert_list,
-		// menubutton label
-		`item(`id(`ldapfilter), _("LDAP &Search Filter")));
-	    expert_list = add (expert_list,
-		// menubutton label
-		`item(`id(`ldapconf),_("L&DAP Users and Groups Configuraton")));
-	}
-	*/
 	expert_list = add (expert_list,
 	    // menubutton label
 	    `item(`id(`save), _("&Write Changes Now")));
@@ -955,7 +946,7 @@ you must do it on server.
             return nil;
         }
     }
-    /*
+    /* TODO -- good to set here: what idf user cancels the password popup?
     if (ev_id == `next && Users::LDAPModified () && Ldap::anonymous)
     {
 	// ask for real LDAP password if reading was anonymous
@@ -1209,6 +1200,7 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	Wizard::CreateDialog ();
         Wizard::SetDesktopIcon("users");
 	any ret = WriteDialog (true);
+	Wizard::CloseDialog ();
 	if (ret == `next)
 	{
 	    y2internal ("write ret: %1", ret);
@@ -1219,7 +1211,8 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	    y2internal ("write ret: %1", ret);
 	    // TODO if write of LDAP fails, should it be read again?
 	}
-	Wizard::CloseDialog ();
+	// LDAP expert options could be available again
+	AdvancedButtonsInit ("advanced_buttons");
 	return nil;
     }
     return ev_id;
