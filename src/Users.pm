@@ -180,6 +180,9 @@ my @group_custom_sets		= ("local");
 # helper structures, filled from UsersLDAP
 my %ldap2yast_user_attrs	= ();
 my %ldap2yast_group_attrs	= ();
+
+# list of available plugin clients with features, enhabcing users module
+my @available_plugins		= ();
  
 ##------------------------------------
 ##------------------- global imports
@@ -320,6 +323,17 @@ sub GetAvailableUserSets {
 BEGIN { $TYPEINFO{GetAvailableGroupSets} = ["function", ["list", "string"]]; }
 sub GetAvailableGroupSets {
     return @available_groupsets;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetAvailablePlugins} = ["function", ["list", "string"]]; }
+sub GetAvailablePlugins {
+    return @available_plugins;
+}
+
+BEGIN { $TYPEINFO{GetCurrentPlugin} = ["function", "string"]; }
+sub GetCurrentPlugin {
+    return $available_plugins[0] || "";
 }
     
 ##------------------------------------
@@ -1143,6 +1157,24 @@ sub ReadUsersCache {
 #    y2warning ("ReadUsersCache finish");
 }
 
+sub ReadAvailablePlugins {
+
+    if (Mode::test ()) { return; }
+
+    my $find = "/usr/bin/find ".Directory::clientdir();
+    $find .= " -name users_plugin_*.ycp"; #TODO use some variable for the name
+    my $out	= SCR::Execute (".target.bash_output", $find);
+    my $clients = $out->{"stdout"} || "";
+    foreach my $client (split (/\n/, $clients)) {
+	my @cl = split (/\//, $client);
+	my $cl = $cl[-1] || "";
+	$cl =~ s/\.ycp$//g;
+	if ($cl ne "") {
+	    push @available_plugins, $cl;
+	}
+    }
+}
+
 ##------------------------------------
 BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
@@ -1245,6 +1277,8 @@ sub Read {
     if (Mode::cont () ) {
 	Autologin::Use (YaST::YCP::Boolean (1));
     }
+
+    ReadAvailablePlugins ();
 
     return 1;
 }

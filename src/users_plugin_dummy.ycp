@@ -1,0 +1,96 @@
+/**
+ * File:
+ *   users_auto.ycp
+ *
+ * Package:
+ *   Configuration of Users
+ *
+ * Summary: TODO
+ *
+ * $Id$
+ *
+ */
+
+
+{
+    textdomain "users";
+    import "Users";
+    import "Label";
+    import "Wizard";
+
+    any ret = nil;
+    string func = "";
+    map<string,any> param = $[];
+    /* Check arguments */
+    if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
+	func = (string) WFM::Args(0);
+	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
+	    param = (map<string,any>)WFM::Args(1);
+    }
+    y2milestone("----------------------------------------");
+    y2milestone("users dummy plugin started");
+
+    y2internal ("func=%1", func);
+    y2internal ("param=%1", param);
+
+    if (func == "Summary") {
+	// plugin name
+	ret = _("Dummy plugin");
+    }
+    else if (func == "Interface") {
+	// return list of available functions
+	ret = [ "Summary", "Dialog", "Interface", "Write" ];
+    }
+    else if (func == "Dialog") {
+	// show dialog for user/group with additional setting
+	// update the current user/group map according to user action
+
+	string caption	= _("Dummy plugin");
+	string help	= "";
+	string what	= param["what"]:"user";
+
+	term contents = `VBox(
+	    `HVCenter (
+		`Label (_("Plugins..."))
+	    )
+	);
+
+	// dialog caption
+	Wizard::SetContentsButtons(caption, contents, help,
+	    Label::BackButton(), Label::NextButton());
+
+	repeat
+	{
+	    ret = UI::UserInput();
+	} until (contains ([`next, `abort, `back, `cancel], ret));
+
+	return ret;
+    }
+    else if (func == "Edit") {
+	// TODO
+	// take map of user/group as parameter and update its settings
+	// - use e.g. in cmd-line interface
+	ret = false;
+    }
+    else if (func == "BeforeWrite") {
+	// TODO
+	// do the additional actions before user/group is written
+	ret = false;
+    }
+    else if (func == "Write") {
+	// TODO
+	// do the additional actions after user/group is written (into LDAP)
+	ret = false;
+    }
+    /* unknown function */
+    else {
+	y2error("unknown function: %1", func);
+	ret = false;
+    }
+
+    y2internal ("ret=%1", ret);
+    y2milestone("users plugin finished");
+    y2milestone("----------------------------------------");
+
+    return ret;
+}

@@ -31,7 +31,7 @@ import "CWM";
 include "users/widgets.ycp";
 
 define boolean ReallyBack () ``{
-    if (!Mode::cont)
+    if (!Mode::cont && Users::Modified())
 	return Popup::ReallyAbort (Users::Modified());
     else return true;
 }
@@ -90,24 +90,26 @@ define symbol SummaryDialog() ``{
 define symbol MainSequence(string start) ``{
 
     map aliases = $[
-	"summary":		``(SummaryDialog ()),
-	"user_add":         ``(EditUserDialog("add_user")),
-	"user_add_inst":    ``(EditUserDialog("add_user")),
-	"user_inst_start":  [``(usersInstStart ()), true],
-	"user_edit":        ``(EditUserDialog("edit_user")),
-	"user_details":     ``(EditUserDetailsDialog()),
-	"user_password":    ``(EditUserPasswordDialog()),
-	"user_ldap":		``(LDAPSettingsDialog("user")),
-	"user_save":        [``(UserSave()), true],
+	"summary"		: ``(SummaryDialog ()),
+	"user_add"		: ``(EditUserDialog("add_user")),
+	"user_add_inst"		: ``(EditUserDialog("add_user")),
+	"user_inst_start"	: [``(usersInstStart ()), true],
+	"user_edit"		: ``(EditUserDialog("edit_user")),
+	"user_details"		: ``(EditUserDetailsDialog()),
+	"user_password"		: ``(EditUserPasswordDialog()),
+	"user_ldap"		: ``(LDAPSettingsDialog("user")),
+	"user_plugin"		: ``(PluginDialog("user")),
+	"user_save"		: [``(UserSave()), true],
 
-	"group_add":        ``(EditGroupDialog("add_group")),
-	"group_edit":       ``(EditGroupDialog("edit_group")),
-	"group_ldap":		``(LDAPSettingsDialog("group")),
-	"group_save":       [``(GroupSave()), true],
+	"group_add"		: ``(EditGroupDialog("add_group")),
+	"group_edit"		: ``(EditGroupDialog("edit_group")),
+	"group_ldap"		: ``(LDAPSettingsDialog("group")),
+	"group_plugin"		: ``(PluginDialog("group")),
+	"group_save"		: [``(GroupSave()), true],
 
-	"defaults":         ``(DefaultsDialog()),
-	"auth":			``(AuthentizationDialog()),
-	"without_save":     ``(ReallyAbort()),
+	"defaults"		: ``(DefaultsDialog()),
+	"auth"			: ``(AuthentizationDialog()),
+	"without_save"		: ``(ReallyAbort()),
     ];
 
     map main_sequence = $[
@@ -135,7 +137,6 @@ define symbol MainSequence(string start) ``{
 	    `next		: "user_save",  // -> Commit
 	    `details		: "user_details",
 	    `passwordsettings	: "user_password",
-	    `ldap		: "user_ldap",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
@@ -153,7 +154,6 @@ define symbol MainSequence(string start) ``{
             `next:		"user_save",
 	    `details:		"user_details",
 	    `passwordsettings:	"user_password",
-	    `ldap:		"user_ldap",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
@@ -177,6 +177,14 @@ define symbol MainSequence(string start) ``{
 	"user_ldap": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
+//	    `add_user:		"user_add",
+//	    `edit_user:		"user_edit"
+	    // here could be plugin dialog...
+	    `next:		"user_plugin"
+	],
+	"user_plugin": $[
+            `abort:		"without_save",
+	    `cancel:		"without_save",
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit"
 	],
@@ -198,6 +206,12 @@ define symbol MainSequence(string start) ``{
 	    `cancel		: `abort,
 	],
         "group_ldap": $[
+	    `next:		"group_plugin",
+//	    `next:		"group_save",
+	    `cancel:		"without_save",
+	    `abort:		"without_save"
+	],
+	"group_plugin": $[
 	    `next:		"group_save",
 	    `abort:		"without_save"
 	],
