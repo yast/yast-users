@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Aug 26 16:55:33 CEST 2002 - jsrain@suse.cz
+
+- fixed informations shown during installation (Bug #18331)
+- fixed ncurses buttons size (Bug #18251)
+- 2.6.22
+
+-------------------------------------------------------------------
 Fri Aug 23 17:55:40 CEST 2002 - jsrain@suse.cz
 
 - fixed help for password encryption selection

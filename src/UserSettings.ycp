@@ -694,6 +694,9 @@
       * patch list of groups for each user to it's structure
       */
     global define void patchUsers () ``{
+	foreach (`k, `v, current_users, ``{
+	    current_users = add (current_users, k, add (v, "more groups", ""));
+	});
 	map mapping = UsersByName ();
 	foreach (`k, `v, current_groups, ``{
 	    list members = splitstring (lookup (v, "userlist", ""), ",");

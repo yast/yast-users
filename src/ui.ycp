@@ -1046,7 +1046,8 @@ can be changed for non-local users.
 	UI::ChangeWidget (`id (`username), `ValidChars, UserDefs::valid_logname_chars);
 	// Modify the dialog
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
-	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	if( what == `add_user &&( ! Mode::cont) ) Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+//UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
 
 
 	if( what == `add_user ) UI::SetFocus(`id(`forename));
@@ -1702,7 +1703,8 @@ Do you really want to delete the user %1?
 
 	//if( what == `clone_group )       UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
 	// psuh button
-	if( what == `add_group && ! Mode::cont)  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	if( what == `add_group && ! Mode::cont) Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+// UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
 	//else   if( what == `edit_group)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 
 	if( what == `add_group ) UI::SetFocus(`id(`groupname));
