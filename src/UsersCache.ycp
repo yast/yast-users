@@ -21,6 +21,10 @@ include "users/passwd.ycp";
 global map homelists = $[];
 // map of list of usernames
 global map usernamelists = $[];
+
+//list of all but system usernames
+global list usernamelist = [];
+
 // list of user DN's (LDAP only)
 global list userdnlist	= [];
 /**
@@ -199,6 +203,7 @@ global define boolean ReadUsers (string type, string dir) ``{
 	uidlists [type] = SCR::Read (.ldap.users.uids);
 	// last_uid is set in ReadLDAPSettings (ldap_routines.ycp)
 
+	usernamelist = union (usernamelist, sort (usernamelists [type]:[]));
 	return true;
     }
     homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +type+ ".ycp");
@@ -217,6 +222,8 @@ global define boolean ReadUsers (string type, string dir) ``{
 	if (last_uid [type]:0 < min_uid [type]:0)
 	    last_uid [type] = min_uid [type]:0;
     }
+    if (type != "system")
+	usernamelist = union (usernamelist, sort (usernamelists [type]:[]));
 
     return true; // TODO: test for errors while reading
 }

@@ -270,11 +270,11 @@ global define symbol UsersDialog() ``{
             ret = `not_next;
         }
 
+	/*
         if ( ret == `ldapconf )
         {
 	    // run LDAP client now
-	    // FIXME use CallFunction...
-            if (`next == CallModule("ldap", []))
+            if (`next == CallFunction("ldap", []))
 	    {
 // FIXME: `next is returned also when writing to LDAP failed...
 		if (!Users::ldap_not_read && !Users::ldap_modified &&
@@ -290,6 +290,7 @@ global define symbol UsersDialog() ``{
 	    }
             ret = `not_next;
         }
+	*/
 	if ( ret == `ldapfilter )
 	{
 	    // change of search filter (only when LDAP was not modified yet)
@@ -900,12 +901,7 @@ global define boolean AutologinPopup() ``{
     boolean pw_less	= Autologin::pw_less;
     boolean auto_used	= (user != "");
 
-    list auto_users = union (union (
-	sort (UsersCache::usernamelists ["local"]:[]),
-	sort (UsersCache::usernamelists ["nis"]:[]) ),
-	sort (UsersCache::usernamelists ["ldap"]:[]) );
-    // + nis/ldap! - TODO check if nis/ldap users were read...
-    // FIXME sort+union is done each time again!
+    // TODO check if nis/ldap users were read?
 
     UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
         `VBox(
@@ -924,7 +920,7 @@ global define boolean AutologinPopup() ``{
 			`HSpacing (4), // move text under the checkbox
 			`Left(`ComboBox (`id(`autouser),
 			    // textentry label
-			    _("&User logged in"), auto_users))
+			    _("&User logged in"), UsersCache::usernamelist))
 		    ),
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`pw_less),
