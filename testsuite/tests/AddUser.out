@@ -1,5 +1,5 @@
 Dump	==========================================================
-Read	.target.tmpdir 0
+Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd.expire 0
 Read	.etc.default.useradd.group 100
 Read	.etc.default.useradd.groups "audio,video"
@@ -49,10 +49,6 @@ Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1
 Return	true
 Dump	---- current user (after rich add):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/local/home/aaa", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"aaa", "uidnumber":"501", "userpassword":"crypted_qqqqq", "what":"add_user"]
-Read	.target.stat "/local/home" $[]
-Read	.target.stat "/local" $[]
-Read	.target.size "/tmpfile" -1
-Execute	.target.bash_output "/bin/touch /tmpfile" $[]
 Return	
 Dump	---- current group (before user commit):
 Dump	 $["cn":"users", "gidnumber":"100", "type":"local"]

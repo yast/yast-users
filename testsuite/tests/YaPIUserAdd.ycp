@@ -1,0 +1,140 @@
+/**
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm UsersCache.pm USERS.pm
+
+    include "testsuite.ycp";
+
+    import "YaPI::USERS";
+    import "Mode";
+
+    map R = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid":	"hh"
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local"
+		    ],
+		    "by_name": $[
+			"users":	100,
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/tmp/local/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	]
+    ];
+    map W = $[];
+    map E = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> config_map  = $[];
+    map<string,any> data_map    = $[
+	"uid"           : "jj",
+	"userpassword"  : "q",
+    ];
+
+    DUMP ("============ add new user 'jj': ==========================");
+    TEST (``(YaPI::USERS::UserAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ add new user 'jj' - done ====================");
+
+    DUMP ("============ add new user 'hh': ==========================");
+    data_map    = $[
+	"uid"           : "hh",
+	"userpassword"  : "q",
+    ];
+    string error = (string)
+	TEST (``(YaPI::USERS::UserAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP (sformat ("------------ UserAdd return value:\n%1", error));
+    DUMP ("============ add new user 'hh' - done ====================");
+    DUMP ("==========================================================");
+}
