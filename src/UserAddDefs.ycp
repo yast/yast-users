@@ -5,19 +5,20 @@
  *
  * Purpose:		Handle all settings from the files
  *			/etc/defaults/useradd and
- * 			/etc/shells
- *                      
+ *			/etc/shells
+ *
  * $Id$
  */
 {
-  
+
   module "UserAddDefs";
+  textdomain "users";
 
   import "Mode";
   import "Report";
   import "UserSettings";
-  
-     
+
+
   /**
    *  keys in useradd_defaults:
    * "group"
@@ -29,13 +30,13 @@
    **/
   map useradd_defaults  = $[];
 
-  /*	
+  /*
    * The number of days after a password expires until the account is permanently disabled. A value of 0 disables the
-   * account as soon as the password has expired, and a value of -1 disables the feature.  The default value is -1.      
+   * account as soon as the password has expired, and a value of -1 disables the feature.  The default value is -1.
    */
   global integer pass_inact_days = -1;
 
-  
+
   /*
    * The date on which the user account will be disabled.  The date is specified in the format YYYY-MM-DD.
    */
@@ -47,23 +48,23 @@
 	y2error ("UA: %1", useradd_defaults);
       if( useradd_defaults == $[] || useradd_defaults == nil )
 	  return false;
-      
+
       pass_inact_days  = tointeger( useradd_defaults["inactive"]:"-1" );
       pass_expire_date = useradd_defaults["expired"]:"";
-      
+
       return true;
   }
 
 
-  
+
   /**
-   * Return the default group id for a new user. 
+   * Return the default group id for a new user.
    */
   global define integer GetDefaultGid()``{
-	
+
       string def_gid  = useradd_defaults["group"]:"100";
       integer def_int = tointeger(def_gid);
-	
+
       if( UserSettings::GetGroup( def_int ) == $[])
       {
 	  Report::Error(sformat(_("The default group with the id %1 does not exist.
@@ -72,7 +73,7 @@ Please change the default group in /etc/default/useradd."), def_int ));
 	  /* TODO If group 100 does not exists ? */
 	  return 100;
       }
-	
+
       return def_int;
   }
 
@@ -87,9 +88,9 @@ Please change the default group in /etc/default/useradd."), def_int ));
       if ( (findlastof( def_home, "/") +1) != size(def_home ) )
       {
 	  def_home = def_home + "/";
-      }	
+      }
       return def_home;
-	
+
   }
 
   /**
@@ -98,22 +99,22 @@ Please change the default group in /etc/default/useradd."), def_int ));
   global define string GetDefaultShell()``{
       return useradd_defaults["shell"]:"/bin/bash";
   }
-    
-    
+
+
   /**
    * Read the /etc/shells file and return a item list or a string shell list.
-   * @param todo `items or `stringlist 
+   * @param todo `items or `stringlist
    * @return list
    */
   global define list GetAllShells(symbol todo ) ``{
 
 	list available_shells =  [];
 	list shells_read = SCR::Read(.etc.shells);
-	
+
 	foreach( `shell_entry, shells_read, ``{
-	    
+
 	    if( is( shell_entry, string ))
-	    { 
+	    {
 		if( (! issubstring( shell_entry, "passwd")) &&
 		    (! issubstring( shell_entry, "bash1")) )
 		{
@@ -123,7 +124,7 @@ Please change the default group in /etc/default/useradd."), def_int ));
 			if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);
 		    }
 		}
-		    
+
 	    }
 	});
 
@@ -131,15 +132,15 @@ Please change the default group in /etc/default/useradd."), def_int ));
     }
 
 
-  
+
   global define void Test()``{
-      
+
       y2milestone(" useradd_defaults %1",   useradd_defaults);
       y2milestone(" getGroup : %1",	    getDefaultGid());
       y2milestone(" getDefaultHome ; %1",   getDefaultHome());
       y2milestone(" getDefaultShell : %1",  getDefaultShell());
-  }	
-    
+  }
+
 
 
 }

@@ -15,7 +15,8 @@ module_DATA =			\
 
 ynclude_DATA =			\
 	ui.ycp			\
-	help.ycp
+	help.ycp		\
+	passwd.ycp
 
 client_DATA = 			\
 	users.ycp		\
@@ -24,11 +25,15 @@ client_DATA = 			\
 	inst_root.ycp		\
 	inst_user.ycp
 
-config_DATA = users.y2cc	\
-	groups.y2cc	\
-	add_user.y2cc	\
+config_DATA =			\
+	users.y2cc		\
+	groups.y2cc		\
+	add_user.y2cc		\
 	add_group.y2cc
 
 ydata_DATA = accounts.ycp
+
+passwd.ycp: passwd.sh /etc/passwd
+	./passwd.sh > passwd.ycp
 
 EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(ydata_DATA)

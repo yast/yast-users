@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Jul  9 21:31:58 CEST 2002 - msvec@suse.cz
+
+- added missing textdomains
+- unified textdomains to users
+- added translation of system accounts
+- 2.6.5
+
+-------------------------------------------------------------------
 Thu Jul 04 20:48:38 CEST 2002 - arvin@suse.de
 
 - moved non binary file to /usr/share/YaST2

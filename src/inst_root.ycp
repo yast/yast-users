@@ -2,7 +2,7 @@
  *
  * $Id$
  *
- * Module: 		inst_root.ycp
+ * Module:		inst_root.ycp
  *
  * Author:		Klaus Kämpf <kkaempf@suse.de>
  *
@@ -23,7 +23,8 @@
  */
 
 {
-  textdomain "user";
+
+  textdomain "users";
 
   import "Wizard";
   import "User";
@@ -288,7 +289,7 @@ Try again.
 	     }
 
 	     y2milestone( "encrypting with %1", User::encryptionMethod );
-	     
+
 	     if ( User::encryptionMethod == "md5" )
 	     {
 		 if ( this_is_for_real )
@@ -306,7 +307,7 @@ Try again.
 		     SCR::Write( .pam.all.password.pam_unix2,   "-md5" );
 		     SCR::Write( .pam.all.password.pam_pwcheck, "-md5" );
 		 }
-		 
+
 		 User::rootPassword = crypt (pw1);
 	     }
 

@@ -1,16 +1,17 @@
 /**
- * Module: 		inst_user.ycp
+ * Module:		inst_user.ycp
  *
- * Authors: 		Klaus Kaempf <kkaempf@suse.de>
+ * Authors:		Klaus Kaempf <kkaempf@suse.de>
  *			Stefan Hundhammer <sh@suse.de>
  *
- * Purpose: 		Start user management module from within installation workflow
+ * Purpose:		Start user management module from within installation workflow
  *
  * $Id$
  */
 {
-    textdomain "user";
-  
+
+    textdomain "users";
+
     import "Wizard";
     import "Mode";
     import "Product";
@@ -45,6 +46,6 @@
 	  return `again;
     }
     */
-    
+
     return ret;
 }
