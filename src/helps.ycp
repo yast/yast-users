@@ -12,6 +12,8 @@
 {
   textdomain "users";
   import "Mode";
+  import "Users";
+  import "Label";
 
   /**
    * First part of the help text.
@@ -35,7 +37,7 @@ least belongs to one group.
    */
   global define string help_main_end()``{
     string button = deletechars (
-        Mode::cont ? NextButtonLabel(): FinishButtonLabel(), "&");
+        Mode::cont ? Label::NextButton(): Label::FinishButton(), "&");
 	// help text 1/2
       return _("<p>
 Users and groups are arranged in various sets. Change the set currently shown in the table with the <b>Set Filter</b> button.
@@ -622,7 +624,7 @@ global define string LDAPSearchFilterPopupHelp() ``{
     _("<p><b>Example:</b>
 <br>With user filter
 <br>
-<tt>(&(objectClass=person)(uid=u*))</tt>
+<tt>(&(objectClass=posixAccount)(uid=u*))</tt>
 <br>
 you get only users with username begining with 'u'.</p>");
 

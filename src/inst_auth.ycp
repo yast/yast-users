@@ -16,6 +16,7 @@ import "Wizard";
 import "Users";
 import "Lan";
 import "Internet";
+import "DSL";
 import "Require";
 
 /* Check if lan is configured */

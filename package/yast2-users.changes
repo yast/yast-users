@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Jun 20 14:04:56 CEST 2003 - jsuchome@suse.de
+
+- adapted to new agent-ldap (using c++ API)
+- added missing imports
+- adapted testsuite
+- adapted to Label/Popup modules
+- 2.8.4
+
+-------------------------------------------------------------------
 Fri Jun 20 13:56:02 CEST 2003 - mvidner@suse.cz
 
 - Requires yast2-mail-aliases, which has been split off yast2.rpm

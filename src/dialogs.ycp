@@ -15,13 +15,15 @@ textdomain "users";
 import "Wizard";
 import "Mode";
 import "Report";
+import "Progress";
+import "Summary";
+import "Require";
 
 import "Users";
 import "UsersCache";
-import "Summary";
 
-include "ui/common_messages.ycp";
-include "ui/common_popups.ycp";
+import "Label";
+import "Popup";
 include "ui/file_popups.ycp";
 
 include "users/helps.ycp";
@@ -180,7 +182,7 @@ can be changed for non-local users.
             contents,
             EditUserDialogHelp (Mode::cont && Users::start_dialog == "user_add",
 		user_type, what),
-            UI::BackButtonLabel(), UI::NextButtonLabel());
+            Label::BackButton(), Label::NextButton());
 
     // TODO edit values for NIS users
     if (do_not_edit)
@@ -203,7 +205,7 @@ can be changed for non-local users.
                 `opt(`key_F10, `default), _("&Create")));
         else
             Wizard::ReplaceNextButton (`PushButton (`id (`next), `opt(`default),
-                UI::NextButtonLabel()));
+                Label::NextButton()));
     }
 
     if ( what == "add_user" )
@@ -283,7 +285,8 @@ Try again.
 		UsersCache::proposal_count = -1;
 		tmp_fullname = fullname;
 	    }
-	    username = UsersCache::ProposeUsername( fullname );
+	    username = UsersCache::ProposeUsername(
+		filterchars (fullname, Users::valid_logname_chars + " "));
             UI::ChangeWidget(`id(`username), `Value, username);
         }
 
@@ -308,7 +311,7 @@ Try again.
 		// The user login field is empty, this is allowed if the
 		// system is part of a network with (e.g.) NIS user management.
                 // yes-no popup headline
-                if (  UI::YesNoHeadlinePopup(_("Empty user login"),
+                if (  Popup::YesNoHeadline(_("Empty user login"),
                 // yes-no popup contents
                  _("Leaving the user name empty only makes sense
 in a network environment with an authentication server.
@@ -431,10 +434,11 @@ Please try again."));
             if (Users::use_cracklib)
             {
                 string out = CrackPassword (username, pw1);
-                if (out != "" && out != "OK")
+                // question; %1 is error message of cracklib
+                if (out != "" && out != "OK" && !Popup::YesNo (sformat(_("Password is too simple:
+%1
+Are you sure to use it?"), out)))
                 {
-                    // error message of cracklib
-                    Report::Error(out);
 		    clear_password_fields ();
                     continue;
                 }
@@ -442,7 +446,7 @@ Please try again."));
             if (Users::obscure_checks && !details)
             {
                 string obs = CheckObscurity (username, pw1);
-                if (obs != "OK" && !UI::YesNoPopup (obs))
+                if (obs != "OK" && !Popup::YesNo (obs))
                 {
 		    clear_password_fields ();
                     continue;
@@ -499,7 +503,7 @@ already exists as a former home directory of
 some user currently marked for deletion.
 Use this directory?"), home);
 
-                    if (! UI::YesNoPopup(question))
+                    if (! Popup::YesNo(question))
                     {
                         home = Users::GetDefaultHome (true, user_type);
                         continue;
@@ -531,7 +535,7 @@ Press Details and edit the home directory."), home_path));
 		 Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
             {
                 // The login name contains uppercase
-		if (!UI::YesNoPopup (_("You have used uppercase letters in the user login entry.
+		if (!Popup::YesNo (_("You have used uppercase letters in the user login entry.
 
 This could cause the problem with delivering the mail 
 to this user, because mail systems generally don't
@@ -561,6 +565,9 @@ Are you sure to use the entered value?
                 shadow["last_change"] = Users::LastChangeIsNow();
 		Users::user_in_work["password"]	= password;
 		Users::user_in_work["shadow"]	= shadow;
+		if (user_type == "ldap")
+		    Users::user_in_work["shadowLastChange"] = shadow["last_change"]:"";
+
             }
 
 	    // save only what could have changed:
@@ -764,8 +771,8 @@ can be changed for non-local users.")) : `VSpacing (0),
     Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
                     contents,
                     EditUserDetailsDialogHelp(user_type),
-                    UI::BackButtonLabel(),
-                    UI::NextButtonLabel());
+                    Label::BackButton(),
+                    Label::NextButton());
 
     if (do_not_edit)
     {
@@ -894,7 +901,7 @@ Select a another user ID.
 because the ID is smaller than %1. 
 Really create a new system user?
 "),  Users::max_system_uid );
-                if( ! UI::YesNoPopup( error ))
+                if( ! Popup::YesNo( error ))
                 {
                 UI::SetFocus(`id(`uid));
                 continue;
@@ -981,7 +988,7 @@ already exists as a former home directory of
 some user currently marked for deletion.
 Use this directory?"), home);
 
-                    if (! UI::YesNoPopup(question))
+                    if (! Popup::YesNo(question))
                     {
                         UI::SetFocus(`id(`home));
                         continue;
@@ -994,7 +1001,7 @@ Use this directory?"), home);
             if ((!contains(Users::all_shells, new_shell))&&(new_shell != shell))
             {
                 // Yes-No popup
-                if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
+                if (! Popup::YesNo (_("If you select a nonexistent shell, the user
 may be unable to log in. Continue?
 ")))
                     continue;
@@ -1071,9 +1078,18 @@ Please try again."));
  */
 global define symbol EditUserPasswordDialog() ``{
 
-    string username  = Users::user_in_work["username"]:"";
-    map shadow       = Users::user_in_work["shadow"]:$[];
-    list auto_shadow_symbols = ["warn", "max", "min"];
+    map user		= Users::user_in_work;
+    string username	= user["username"]:"";
+    map shadow		= user["shadow"]:$[
+	// workaround for LDAP users
+	"last_change":	user["shadowLastChange"]:"0",
+	"expire":	user["shadowExpire"]:"0",
+	"inact":	user["shadowInactive"]:"",
+	"max":		user["shadowMax"]:"",
+	"min":		user["shadowMin"]:"",
+	"warn":		user["shadowWarning"]:""
+    ];
+    list shadow_symbols = ["warn", "max", "min"];
 
     string last_change = shadow["last_change"]:"0";
     string expires = shadow["expire"]:"0";
@@ -1143,8 +1159,8 @@ global define symbol EditUserPasswordDialog() ``{
     Wizard::SetContentsButtons(_("Password settings for user ") + username +":",
                     contents,
                     EditUserPasswordDialogHelp(),
-                    UI::BackButtonLabel(),
-                    UI::NextButtonLabel());
+                    Label::BackButton(),
+                    Label::NextButton());
 
     // user input
     any ret = `next;
@@ -1159,16 +1175,16 @@ global define symbol EditUserPasswordDialog() ``{
             {
             // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
             // The date must stay in this format
-            UI::MessagePopup(_("Expiration date must be in format YYYY-MM-DD"));
+            Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
             UI::SetFocus(`id("expire"));
             continue;
             }
             // update the values in shadow map
-            foreach(`autosymbol, auto_shadow_symbols, ``{
-                if ( shadow[autosymbol]:-2 != UI::QueryWidget (
-                        `id(autosymbol), `Value))
-                    shadow[autosymbol] = sformat ("%1",
-                        UI::QueryWidget(`id(autosymbol), `Value));
+            foreach(`shadowsymbol, shadow_symbols, ``{
+                if ( shadow[shadowsymbol]:-2 != UI::QueryWidget (
+                        `id(shadowsymbol), `Value))
+                    shadow[shadowsymbol] = sformat ("%1",
+                        UI::QueryWidget(`id(shadowsymbol), `Value));
             });
             integer new_inact = UI::QueryWidget(`id("inact"), `Value);
             if (new_inact != inact)
@@ -1179,7 +1195,7 @@ global define symbol EditUserPasswordDialog() ``{
             if (new_exp_date != exp_date)
             {
                 if (new_exp_date == "")
-                    shadow["expire"] = 0;
+                    shadow["expire"] = user["type"]:"local"=="ldap"? "": "0";
                 else
                 {
                     map out = SCR::Execute(.target.bash_output,
@@ -1201,8 +1217,16 @@ global define symbol EditUserPasswordDialog() ``{
     if ( ret == `next )
     {
 	ret = string_to_symbol (Users::user_in_work["what"]:"back");
+
+	if (user["type"]:"local" != "ldap")
+	    Users::user_in_work["shadow"] = eval (shadow);
+	else
+	{
+	    foreach (`key, `value, shadow, ``{
+		Users::user_in_work [Users::ldap_param_conv[key]:key] = value;
+	    });
+	}
     }
-    Users::user_in_work["shadow"] = shadow;
 
     return ret;
 }
@@ -1240,7 +1264,7 @@ global define symbol LDAPUserSettingsDialog() ``{
     Wizard::SetContentsButtons(_("Additional LDAP Settings"),
         contents,
         LDAPUserSettingsDialogHelp(),
-        UI::BackButtonLabel(), UI::NextButtonLabel());
+        Label::BackButton(), Label::NextButton());
 
     // user input
     any ret = `next;
@@ -1257,7 +1281,7 @@ global define symbol LDAPUserSettingsDialog() ``{
                  (findfirstof (".", mail) < 0)))
             {
                 // warning message
-                UI::ErrorPopup (_("Enter a valid e-mail address"));
+                Popup::Error (_("Enter a valid e-mail address"));
                 UI::SetFocus(`id(`mail));
                 continue;
             }
@@ -1372,7 +1396,7 @@ global define symbol EditGroupDialog(string what ) ``{
         dialog_labels [ what, group_type ]:"",
 	contents,
         EditGroupDialogHelp(more),
-        UI::BackButtonLabel(), UI::NextButtonLabel());
+        Label::BackButton(), Label::NextButton());
 
     if( what == "add_group" && ! Mode::cont)
         Wizard::ReplaceNextButton (`PushButton (`id (`next),
@@ -1383,7 +1407,7 @@ global define symbol EditGroupDialog(string what ) ``{
 
     if( what == "edit_group" )
     {
-        if( password != "x"  )
+        if( !contains (["x","*","!"], password) )
         {
 	    UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
 	    UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
@@ -1454,10 +1478,10 @@ Please try again.
             {
                 // The entered groupname conflicts with some existing groupname
                 // error popup
-                UI(`ErrorPopup(_("There is a conflict between the entered
+                Popup::Error(_("There is a conflict between the entered
 groupname and some existing groupname.
 Please try another one.
-")));
+"));
                 UI::SetFocus(`id(`groupname)) ;
                 continue;
             }
@@ -1511,7 +1535,7 @@ Please try again."));
             password = Users::CryptPassword (pw1, group_type);
             }
 
-            // need for update /etc/gshadow --- ???
+            // need for update /etc/gshadow --- ??? FIXME
             if( pw1 == "" ) password = "*";
 
 	    // --------------------------------- gid checks
@@ -1583,16 +1607,15 @@ Please try again."));
                                 (userlist  != new_userlist  )))
                  || (what == "add_group" ))
             {
-                //save the current group in group_in_work
-                Users::group_in_work = $[
-                      "what"            : what,
-                      "groupname"       : new_groupname,
-                      "password"        : password,
-                      "userlist"        : new_userlist,
-                      "more_users"      : more_users,
-                      "gid"             : new_i_gid,
-                      "type"            : group_type
-                ];
+                // save the current group changes in group_in_work
+                Users::group_in_work["what"]		= what;
+                Users::group_in_work["groupname"]	= new_groupname;
+                Users::group_in_work["password"]	= password;
+                Users::group_in_work["userlist"]	= new_userlist;
+                Users::group_in_work["more_users"]	= more_users;
+                Users::group_in_work["gid"]		= new_i_gid;
+                Users::group_in_work["type"]		= group_type;
+
                 if (what == "edit_group")
                 {
                     if (gid != new_i_gid)
@@ -1711,8 +1734,8 @@ global define symbol DefaultsDialog() ``{
             _("New User Defaults"),
             contents,
             DefaultsDialogHelp(),
-            BackButtonLabel(),
-            NextButtonLabel());
+            Label::BackButton(),
+            Label::NextButton());
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
 
@@ -1776,7 +1799,7 @@ Try again.
 		    }
 		    else
 		    {
-			if (UI::YesNoPopup (_("Selected directory doesn't exist.
+			if (Popup::YesNo (_("Selected directory doesn't exist.
 Create it now?
 ")))
 			{
@@ -1803,7 +1826,7 @@ Create it now?
                 if (! contains (Users::all_shells, new_shell))
                 {
                     // Yes-No popup
-                    if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
+                    if (! Popup::YesNo (_("If you select a nonexistent shell, the user
 may be unable to log in. Continue?
 ")))
                         continue;
@@ -1831,7 +1854,7 @@ Try again.
                 {
                     // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
                     // The date must stay in this format
-                    UI::MessagePopup(_("Expiration date must be in format YYYY-MM-DD"));
+                    Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
                     UI::SetFocus(`id(`exp));
                     continue;
                 }
@@ -1952,7 +1975,7 @@ global define symbol AuthentizationDialog() ``{
 	    string server = Ldap::server;
 	    string domain = Ldap::GetDomain();
 	    ret = additional_info ( [
-		_("Server:"),
+		_("Servers:"),
 		_("Domain:") ], [ server, domain ],  Ldap::start);
 	}
 	else if (client == "nis")
@@ -2025,7 +2048,7 @@ global define symbol AuthentizationDialog() ``{
     string title = _("Authentication and User Sources");
 
     Wizard::SetContentsButtons (title, contents, AuthentizationDialogHelp(),
-        UI::BackButtonLabel(), UI::NextButtonLabel());
+        Label::BackButton(), Label::NextButton());
 
     reload_config();
 
@@ -2043,7 +2066,7 @@ global define symbol AuthentizationDialog() ``{
 		    // popup label (%1 is package to install)
 		    sformat (_("Package %1 is not installed.
 Install it now?
-"), package), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+"), package), Label::OKButton(), Label::CancelButton()))
 		{
 		    installed = add (installed, button);
 		}

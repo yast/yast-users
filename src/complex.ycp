@@ -15,12 +15,13 @@ textdomain "users";
 import "Wizard";
 import "Mode";
 import "Report";
+import "Security";
 
 import "Users";
 import "UsersCache";
 
-include "ui/common_popups.ycp";
-include "ui/common_messages.ycp";
+import "Popup";
+import "Label";
 
 include "users/helps.ycp";
 
@@ -67,7 +68,7 @@ global define symbol WriteDialog (boolean useUI ) ``{
     // A callback function for abort
     block abort = ``{
         // popup text
-        if (UI::PollInput () == `abort && UI::YesNoPopup (_("Really abort the writing process?")))
+        if (UI::PollInput () == `abort && Popup::YesNo (_("Really abort the writing process?")))
             return true;
         return false;
     };
@@ -105,7 +106,7 @@ global define symbol ReallyAbort() ``{
     if ( ! Mode::cont )
     {
         if (Modified())
-            ret = UI::ReallyAbortPopup (true);
+            ret = Popup::ReallyAbort (true);
     }
     else
     {
@@ -181,9 +182,9 @@ global define symbol UsersDialog() ``{
             // table header
              _("Groups")), [] ), // do not read until the dialog is displayed
         `HBox (
-            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
-            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
-            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
+            `PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
+            `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
+            `PushButton(`id(`delete), `opt(`key_F5), Label::DeleteButton ()),
             `HStretch()),
 	/*
 	`VSquash(
@@ -211,16 +212,16 @@ global define symbol UsersDialog() ``{
 	)
     );
 
-    string lastbutton =  UI::FinishButtonLabel() ;
+    string lastbutton =  Label::FinishButton() ;
     if( Mode::cont )
-        lastbutton =  UI::NextButtonLabel() ;
+        lastbutton =  Label::NextButton() ;
 
     Wizard::SetContentsButtons(
                     // dialog caption
                     _("User and Group administration"),
                     contents,
                     UsersDialogHelp(),
-                    UI::BackButtonLabel(),
+                    Label::BackButton(),
                     lastbutton );
 
     UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
@@ -274,6 +275,7 @@ global define symbol UsersDialog() ``{
             if ( CustomizePopup ("user") && UsersCache::customized_usersview)
                 UI::ChangeWidget(`id(`user_table), `Items,
                     UsersCache::user_itemlist);
+            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
             ret = `not_next;
         }
 
@@ -283,6 +285,7 @@ global define symbol UsersDialog() ``{
             if (`next == CallModule("ldap", []))
 	    {
 		Users::ReadLDAPSettings();
+		// FIXME: re-read also filters?
 	    }
             ret = `not_next;
         }
@@ -357,7 +360,7 @@ global define symbol UsersDialog() ``{
         if ( ret == `next && Mode::cont && !Users::users_modified)
         {
             // yes-no popup contents
-            if ( !UI::YesNoPopup( _("You have not added any user. This only makes sense
+            if ( !Popup::YesNo( _("You have not added any user. This only makes sense
 in a network environment with an authentication server.
 
 Are you sure?")))
@@ -402,9 +405,9 @@ global define symbol GroupsDialog() ``{
             _("Group members")),
             []),// defer the reading until the dialog is displayed
         `HBox (
-            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
-            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
-            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
+            `PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
+            `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
+            `PushButton(`id(`delete), `opt(`key_F5), Label::DeleteButton ()),
             `HStretch()),
         `HBox(
             // MenuButton label
@@ -415,15 +418,15 @@ global define symbol GroupsDialog() ``{
             `HStretch())
     );
 
-    string lastbutton = UI::FinishButtonLabel();
+    string lastbutton = Label::FinishButton();
     if( Mode::cont )
-        lastbutton =  UI::NextButtonLabel();
+        lastbutton =  Label::NextButton();
 
     // dialog caption
     Wizard::SetContentsButtons(_("User and Group administration"),
                         contents,
                         GroupsDialogHelp(),
-                        UI::BackButtonLabel(),
+                        Label::BackButton(),
                         lastbutton );
 
     UI::ChangeWidget (`id (`group_table), `Items, UsersCache::group_itemlist);
@@ -461,6 +464,7 @@ global define symbol GroupsDialog() ``{
             if ( CustomizePopup ("group") && UsersCache::customized_groupsview)
                 UI::ChangeWidget(`id(`group_table), `Items,
                     UsersCache::group_itemlist);
+            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
             ret = `not_next;
         }
 
@@ -552,7 +556,7 @@ Please log off the user first."));
     if ( UsersCache::user_type == "system" )
     {
         // yes-no popup headline
-        if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."),
+        if(! Popup::YesNoHeadline(_("The marked user is a system user."),
         // yes-no popup contents
          _("Do you really want to delete this user?")))
         {
@@ -576,9 +580,9 @@ Please log off the user first."));
                 `VSpacing(1),
                 `HBox(
                     `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
-                        YesButtonLabel()  )),
+                        Label::YesButton()  )),
                     `Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
-                        NoButtonLabel()))
+                        Label::NoButton()))
                 )
             ),
             `HSpacing(3));
@@ -597,7 +601,7 @@ Please log off the user first."));
         else
         {
             // yes-no popup. %1 is username
-            if( ! UI::YesNoPopup(sformat(_("
+            if( ! Popup::YesNo(sformat(_("
 Do you really want to delete the user %1?
 "), username )))
         {
@@ -633,7 +637,7 @@ global define symbol DeleteGroupPopup() ``{
         if ( UsersCache::group_type == "system" )
         {
             // yes-no popup headline
-            if(!UI::YesNoHeadlinePopup(_("The marked group is a system group."),
+            if(!Popup::YesNoHeadline(_("The marked group is a system group."),
             /// yes-no popup contents
             _("Really delete this group?")))
 
@@ -642,7 +646,7 @@ global define symbol DeleteGroupPopup() ``{
         else
         {
             // yes-no popup, %1 si group name
-            if (! UI::YesNoPopup(sformat(_("
+            if (! Popup::YesNo(sformat(_("
 Do you really want to delete the group %1?
 "), Users::group_in_work["groupname"]:"")))
 
@@ -652,7 +656,7 @@ Do you really want to delete the group %1?
     else
     {
         // warning popup
-        UI::WarningPopup(_("You cannot delete this group because
+        Popup::Warning(_("You cannot delete this group because
 there are users in the group.
 Remove these users from the group first.
 "));
@@ -706,9 +710,9 @@ global define boolean LDAPSearchFilterPopup () ``{
 		)),
             `VSpacing(0.5),
 	    `HBox(
-		`PushButton(`id(`ok), `opt(`default,`key_F10), OKButtonLabel()),
-	        `PushButton(`id(`cancel), `opt(`key_F9), CancelButtonLabel()),
-	        `PushButton(`id(`help), `opt(`key_F2), HelpButtonLabel())
+		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
 	    ),
             `VSpacing(0.5)),
         `HSpacing(1.5)
@@ -732,7 +736,7 @@ global define boolean LDAPSearchFilterPopup () ``{
 		if (!issubstring (new_user_f, default_user_f))
 		{
 		    // error popup
-		    UI::ErrorPopup (_("New user filter doesn't contain the default user filter.
+		    Popup::Error (_("New user filter doesn't contain the default user filter.
 Please try again."));
 		    UI::SetFocus (`id(`userf));
 		    continue;
@@ -744,7 +748,7 @@ Please try again."));
 		if (!issubstring (new_group_f, default_group_f))
 		{
 		    // error popup
-		    UI::ErrorPopup (_("New group filter doesn't contain the default group filter.
+		    Popup::Error (_("New group filter doesn't contain the default group filter.
 Please try again."));
 		    UI::SetFocus (`id(`groupf));
 		    continue;
@@ -818,8 +822,8 @@ global define boolean CustomizePopup(string what) ``{
 	        `Frame(label, view),
             `VSpacing(0.5),
 	    `HBox(
-	        `PushButton(`id(`ok), `opt(`default,`key_F10), OKButtonLabel()),
-		`PushButton(`id(`cancel), `opt(`key_F9), CancelButtonLabel())
+	        `PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
 	    ),
             `VSpacing(0.5)),
         `HSpacing(1.5)

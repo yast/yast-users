@@ -31,7 +31,8 @@ import "Users";
 import "Security";
 import "Mode";
 import "Progress";
-include "ui/common_messages.ycp";
+import "Report";
+import "Label";
 
 include "users/routines.ycp";   // for EncryptionDialog()
 
@@ -162,7 +163,7 @@ Do not forget this \"root\" password!
       if (this_is_for_real && pw1 != pw2 )
       {
          // report misspellings of the password
-         UI::MessagePopup(_("The first and the second version\nof the password don't match!\nPlease try again."));
+         Popup::Message(_("The first and the second version\nof the password don't match!\nPlease try again."));
          // Invalidate any old password
          Users::rootPassword = "";
          continue;
@@ -178,7 +179,7 @@ Do not forget this \"root\" password!
          if (pw1 == "")
          {
             // report if user forgot to enter a password
-            UI::MessagePopup(_("You didn't enter a password.
+            Popup::Message(_("You didn't enter a password.
 Please try again."));
             // Invalidate any old password
             Users::rootPassword = "";
@@ -188,7 +189,7 @@ Please try again."));
          if (size (pw1) < 5)
          {
             // yes/no popup text
-            if (!UI::YesNoPopup(_("The password should have at least five characters.
+            if (!Popup::YesNo(_("The password should have at least five characters.
 Are you sure?")))
             {
                 // Invalidate any old password
@@ -201,7 +202,7 @@ Are you sure?")))
             // There is a check whether the information from the UI is
             // correct and complete
             // The root password may contain only certain characters
-            UI::MessagePopup(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
+            Popup::Message(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
             // Invalidate any old password
             Users::rootPassword = "";
             continue;

@@ -8,10 +8,13 @@
  * $Id$
  *
  * Important! It is supposed that this file is included from Users.ycp,
- * some variables are used from here...
+ * some variables are used from here... FIXME: check which ones...
  */
 {
 include "users/passwd.ycp";
+import "Wizard";
+import "Label";
+import "Users";
 
 /**
  * Reads prebuilded gshadow data
@@ -241,17 +244,23 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     string conf_path = basedir + "/group";
     list modified_list = [];
     list list_to_save = maplist (`gid, `group, system_groups, ``{
+	string pass = group["password"]:"x";
+	if (!contains (["x", "!", "*"], pass))
+	    pass = "x";// FIXME what is the default value?
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            "x",//group["password"]:"",// TODO what if there should be * or !
+            pass,
             group["gid"]:max_gid,
             group["userlist"]:"");
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
+	string pass = group["password"]:"x";
+	if (!contains (["x", "!", "*"], pass))
+	    pass = "x";// FIXME what is the default value?
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            "x",//group["password"]:"",
+            pass,
             group["gid"]:max_gid,
             group["userlist"]:"");
         return to_save;
@@ -620,13 +629,13 @@ As a general rule of thumb, use DES if you are unsure.
 	  `HBox(
 		`HStretch(),
 		`HWeight(1, `PushButton(`id(`ok), `opt(`default, `key_F10),
-		    UI::OKButtonLabel() )),
+		    Label::OKButton() )),
 		`HStretch(),
 		`HWeight(1, `PushButton(`id(`cancel), `opt (`key_F9),
-		    UI::CancelButtonLabel())),
+		    Label::CancelButton())),
 		`HStretch(),
 		`HWeight(1, `PushButton(`id(`help), `opt (`key_F2),
-		    UI::HelpButtonLabel() ) ),
+		    Label::HelpButton() ) ),
 		`HStretch()
 	  )
 	));
@@ -664,7 +673,7 @@ global define boolean CheckPasswordMaxLength (string pw) ``{
     if (size(pw) > Users::max_length_pas)
     {
 	// error popup. %1 is number (typical 8)
-        return (UI::YesNoPopup (sformat(_("The password is too long for current encryption method.
+        return (Popup::YesNo (sformat(_("The password is too long for current encryption method.
 It will be truncated to %1 characters."), Users::max_length_pas)));
 
     }

@@ -12,6 +12,8 @@
 
 {
 
+import "Label";
+
 textdomain "users";
 
 /**
@@ -51,139 +53,24 @@ global define map ReadLDAPGroupsByName()``{
 }
 
 /**
- * Error popup for errors detected during LDAP operation
- * @param type error type: binding/reading/writing
- * @param error name of error (constant from perl-ldap)
- */
-global define void LDAPErrorMessage (string type, string error) ``{
-
-    map ldap_error = $[
-// error message:
-    "LDAP_INAPPROPRIATE_AUTH": _("
-The server requires the client which had
-attempted to bind anonymously or without
-supplying credentials to provide some form
-of credentials"),
-
-    "LDAP_INVALID_CREDENTIALS":
-// error message:
-_("
-Wrong password was entered."),
-
-    "LDAP_INVALID_SYNTAX":
-// error message:
-_("
-Some part of the request contained an invalid
-syntax. It could be a search with an invalid
-filter or a request to modify the schema
-and the given schema has a bad syntax."),
-
-    "LDAP_PARAM_ERROR":
-// error message:
-_("
-An invalid parameter was specified.
-Maybe search filter has invalid syntax?"),
-
-    "LDAP_NO_SUCH_ATTRIBUTE":
-// error message:
-_("
-The request referenced an attribute
-that does not exist."),
-
-    "LDAP_NO_SUCH_OBJECT":
-// error message:
-_("
-The server cannot find an object
-specified in the request."),
-
-    "BAD_FILTER_USER":
-// error message, %1 is string with "filter":
-sformat (_("
-Bad search filter (probably wrong syntax):
-%1"), (ldap_user_filter != "") ? ldap_user_filter: ldap_default_user_filter),
-
-    "BAD_FILTER_GROUP":
-// error message, %1 is string with "filter":
-sformat (_("
-Bad search filter (probably wrong syntax):
-%1"), (ldap_group_filter != "") ? ldap_group_filter: ldap_default_group_filter),
-
-    // when anonymous is set, bind is OK, but writing not!!!
-    "LDAP_STRONG_AUTH_REQUIRED":
-
-// error message:
-_("
-The server requires authentication
-be performed with a SASL mechanism."),
-
-// FIXME: LDAP_ALREADY_EXISTS -> two users with the different case
-
-    "initialize":
-// error message:
-_("
-Server could be down or unreachable."),
-    ];
-
-    map error_type = $[
-        // error message, more specific description follows
-	"init": _("Connection to LDAP server can not be established."),
-        // error message, more specific description follows
-	"bind": _("Problem with connecting to the LDAP server."),
-        // error message, more specific description follows
-	"read": _("Problem with reading data from the LDAP server."),
-        // error message, more specific description follows
-	"users": _("There was a problem with writing LDAP users."),
-        // error message, more specific description follows
-	"groups": _("There was a problem with writing LDAP groups.")
-    ];
-
-    if (error == nil) error = "YaST error?";
-
-    UI::OpenDialog (`HBox(`HSpacing (0.5),
-	`VBox(
-	    `VSpacing (0.5),
-	    // label
-	    `Left(`Heading (_("Error"))),
-	    `Label (error_type[type]:_("Unknown LDAP error")),
-	    `ReplacePoint (`id(`rp), `Empty()),
-	    `VSpacing (0.5),
-	    // checkbox label
-	    `Left(`CheckBox (`id(`details), `opt (`notify),_("&Show Details"), false)),
-	    `PushButton (`id(`ok), `opt(`key_F10,`default), UI::OKButtonLabel())
-	),
-	`HSpacing(0.5))
-    );
-    any ret = nil;
-    do
-    {
-	ret = UI::UserInput();
-	if (ret == `details)
-	{
-	    if (UI::QueryWidget (`id(`details), `Value))
-		UI::ReplaceWidget (`id(`rp), `VBox (
-		    `Label (ldap_error[error]:error)));
-		    // TODO: richtext instead of Label?
-	    else
-		UI::ReplaceWidget (`id(`rp), `Empty());
-	}
-    }
-    while (ret != `ok && ret != `cancel);
-
-    UI::CloseDialog();
-}
-
-/**
  * Read user and group filter for LDAP search
  * (must be done before selecting LDAP users/groups to load)
  */
 global define void ReadLDAPFilters() ``{
 
+// TODO - read config maps with some ReadConfig,ReadTemplate...
+// FIXME: read filters from server on demand...
+
     import "Ldap";
     Ldap::Read();
+    /*
+    map ldap_config_modules = Ldap::ReadConfigModules ();
+    map ldap_templates = Ldap::ReadTemplates ();
+    */
 
     // not configurable, default until change in Ldap module
-    ldap_default_user_filter	= Ldap::user_filter;
-    ldap_default_group_filter	= Ldap::group_filter;
+    ldap_default_user_filter	= "objectClass=posixAccount";//TODO: check maps
+    ldap_default_group_filter	= "objectClass=posixGroup";
 
     ldap_filters_read = true;
 }
@@ -196,24 +83,37 @@ global define void ReadLDAPSettings () ``{
     if (!ldap_filters_read)
 	ReadLDAPFilters();
 
+// TODO - read config maps with some ReadConfig,ReadTemplate...
     ldap_user_base	= Ldap::user_base;
     ldap_group_base	= Ldap::group_base;
-    ldap_host		= Ldap::server;
+    ldap_host		= Ldap::GetFirstServer (Ldap::server);
     is_ldap_server	= IsLDAPServer (ldap_host);
     ldap_file_server	= Ldap::file_server;
     ldap_version	= Ldap::ldap_v2 ? 2 : 3;
-    ldap_encryption	= Ldap::pam_password;
+    ldap_encryption	= Ldap::pam_password;//FIXME only crypt works?
     ldap_bind_dn	= Ldap::bind_dn;
-    ldap_user_class	= splitstring (Ldap::user_class, ",");
-    ldap_group_class	= splitstring (Ldap::group_class, ",");
+    ldap_user_class	= ["top", "posixAccount", "inetOrgPerson" ];
+    ldap_group_class	= [ "top", "posixGroup" ]; //TODO check maps from LDAP
     ldap_shadow		= $[];// FIXME Ldap::GetDefaultShadow();
     ldap_defaults	= $[ "skel": default_skel,
 			     "home": "/local/home/",
 			     "group": "100",
 			     "shell":  default_shell ];//Ldap::GetUserDefaults
     ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
-//    ldap_port		= Ldap::port;// FIXME not present
+    ldap_port		= Ldap::GetFirstPort (Ldap::server);
 }
+
+global define string LDAPError () ``{
+
+    map err_map = LDAPErrorMap ();
+    return err_map["msg"]:"";
+}
+
+global define map LDAPErrorMap () ``{
+
+    return SCR::Read(.ldap.error);
+}
+
 
 /**
  * Initializes the LDAP settings
@@ -221,24 +121,18 @@ global define void ReadLDAPSettings () ``{
  */
 global define string LDAPInit () ``{
 
+    string ret = "";
     map ldap = $[
-	"host":		ldap_host,
-	"port":		ldap_port
+	"hostname":	ldap_host,
+	"port":		ldap_port,
+	"version":	ldap_version
     ];
-    string ret = SCR::Execute (.ldap.init, ldap);
-    ldap = $[
-        "user_base":	ldap_user_base,
-        "group_base":	ldap_group_base,
-	"user_class":	ldap_user_class,
-	"group_class":	ldap_group_class,
-	"version":	ldap_version,
-	"bind_dn":	ldap_bind_dn,
-	"pw_hash":	toupper (ldap_encryption) // TODO is toupper needed?
-    ];
-    SCR::Execute (.ldap.users.init, ldap);
+    if (!SCR::Execute (.ldap, ldap))
+	ret = LDAPError();
     return ret;
 }
 
+// TODO: use Ldap:: functions?
 
 /**
  * Tries to bind to LDAP server with current password
@@ -250,10 +144,11 @@ global define string LDAPBind (string pass) ``{
     string ret = "";
     if (pass != nil)
     {
-	if (ldap_anonymous)
-	    ret = SCR::Execute (.ldap.bind);
-	else
-	    ret = SCR::Execute (.ldap.bind, pass);
+	map args = $[];
+	if (!ldap_anonymous)
+	    args = $[ "bind_dn": ldap_bind_dn, "bind_pw": pass];
+	if (!SCR::Execute (.ldap.bind, args))
+	    ret = LDAPError();
     }
     return ret;
 }
@@ -264,24 +159,39 @@ global define string LDAPBind (string pass) ``{
  */
 global define string ReadLDAP () ``{
 
-    string ret = "error";
+    string ret = "";
 
     string user_filter = (ldap_user_filter != "") ?
 	    ldap_user_filter: ldap_default_user_filter;
     string group_filter = (ldap_group_filter != "") ?
 	    ldap_group_filter: ldap_default_group_filter;
 
-    ret = SCR::Read(.ldap.filter.check, user_filter);
-    if (ret != "") return ret+"_USER";
+    // TODO where to get attributes?
+    list ldap_user_attrs = [
+	// posixaccount
+	"uid", "uidNumber", "gidNumber", "homeDirectory",
+	"loginShell", "cn",
+	// inetorgperson:
+	 "mail", "sn", "givenName", "gecos",
+	 "homePhone", "telephoneNumber", "roomNumber",
+	 // shadowaccount
+	"shadowLastChange", "shadowWarning", "shadowInactive",
+	"shadowExpire", "shadowMin", "shadowMax"];
+    list ldap_group_attrs = [ "cn", "gidNumber", "memberUid" ];
 
-    ret = SCR::Read(.ldap.filter.check, group_filter);
-    if (ret != "") return ret+"_GROUP";
+    if (!SCR::Execute (.ldap.users.search, $[
+	"user_base"	: ldap_user_base,
+	"group_base"	: ldap_group_base,
+	"user_filter"	: user_filter,
+	"group_filter"	: group_filter,
+	"user_scope"	: 2,// TODO Ldap::user_scope,
+	"group_scope"	: 2, //Ldap::group_scope,
+	"user_attrs"	: ldap_user_attrs,
+	"group_attrs"	: ldap_group_attrs,
+	"itemlists"	: true
+	 ]))
+	ret = LDAPError();
 
-    ret = SCR::Execute (.ldap.users.search, $[
-	"output_dir":	tmpdir,
-	"user_filter":	user_filter,
-	"group_filter":	group_filter
-    ]);
     return ret;
 }
 
@@ -297,18 +207,16 @@ global define string GetLDAPPassword() ``{
             `HSpacing(40),
             // password entering label
             `Password(`id(`pw), _("&Enter the Password for LDAP Server:")),
-            `CheckBox (`id(`anon), `opt(`notify),
-                // checkbox label
-                _("Use &Anonymous Access")),
             `HBox(
-              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel()),
-              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel())
+              `PushButton (`id(`ok),`opt(`key_F10, `default),
+		Label::OKButton()),
               // button label
-            //  `PushButton (`id(`anon), _("&Anonymous Access")),
-
+	      `PushButton (`id(`anon), `opt(`key_F6), _("&Anonymous Access")),
+              `PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
             )
-            )
+        )
     );
+    UI::SetFocus (`id(`pw));
     any ret = UI::UserInput();
     string pw = "";
     if (ret == `ok)
@@ -335,7 +243,7 @@ global define string LDAPAskAndBind () ``{
 	string ldap_msg = LDAPBind(pw);
 	while (pw != nil && ldap_msg != "")
 	{
-	    LDAPErrorMessage ("bind", ldap_msg);
+	    Ldap::LDAPErrorMessage ("bind", ldap_msg);
 	    pw = GetLDAPPassword();
 	    ldap_msg = LDAPBind(pw);
 	}
@@ -343,60 +251,134 @@ global define string LDAPAskAndBind () ``{
     return pw;
 }
 
+global define map ConvertUserToLDAP (map user) ``{
+
+    map ret = $[];
+    foreach (`key, `value, user, ``{
+	any val = value;
+	if (contains (user_internal_keys, key))
+	    return;
+	if (is (value, string) && value == "")
+	    return;
+	if (key == "password")
+	{
+	    if  (contains (["x","*","!"], value))
+		return;
+	    val = sformat ("{%1}%2", ldap_encryption, value);
+	}
+
+	if (is (value, integer))
+	    val = sformat ("%1", value);
+	if (is (value, map))
+	{
+	    foreach (`k, `v, ConvertUserToLDAP (value), ``{
+		ret = add (ret, k, v);
+	    });
+	}
+	else
+	    ret = add (ret, ldap_param_conv[key]:key, val);
+    });
+    return ret;
+}
+
+global define map ConvertGroupToLDAP (map group) ``{
+
+    map ret = $[];
+    list to_list = [ "userlist" ];
+
+    foreach (`key, `value, group, ``{
+	any val = value;
+	if (contains (group_internal_keys, key))
+	    return;
+	if (is (value, string) && value == "")
+	    return;
+	if (key == "password")
+	{
+	    if (contains (["x","*","!"], value))
+		return;
+	    val = sformat ("{%1}%2", ldap_encryption, value);
+	}
+	if (is (value, integer))
+	    val = sformat ("%1", value);
+	if (contains (to_list, key))
+	    val = splitstring (value, ",");
+	ret = add (ret, ldap_param_conv[key]:key, val);
+    });
+    return ret;
+}
+
 /**
  * Writing modified LDAP users with
  * @param ldap_users map of all ldap users
  * @param server true if this machine is file for LDAP
- * @return empty string on success, error message otherwise
+ * @return empty map on success, map with error message and code otherwise
  */
-global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
+global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
 
-    string ret = "";
+    map ret = $[];
+    string dn_attr = "uid"; // TODO naming_attribute
 
     foreach (`uid, `user, ldap_users, ``{
 
         string  action      = user["modified"]:"no";
-        if (action == "no") // TODO || ret != ""
+        if (action == "no" || ret != $[])
             return;
 
         string home		= user["home"]:"";
         string org_home		= user["org_home"]:home;
         integer gid		= user["gid"]:default_gid;
-	string ldap_ret = "";
+	boolean create_home	= user["create_home"]:false;
+	boolean delete_home	= user["delete_home"]:false;
+
+	// old DN stored from ldap-search (removed in Convert)
+	string dn	= user["dn"]:"";
+	user		= ConvertUserToLDAP (user);
+	string rdn	= sformat ("%1=%2", dn_attr, user[dn_attr]:"");
+	// TODO is it OK to create dn?
+	string new_dn	= sformat ("%1,%2", rdn, ldap_user_base);
+	map arg_map	= $[ "dn": (dn != "")? dn: new_dn ];
+	if (user["objectClass"]:[] == [])
+	    user	= add (user, "objectClass", ldap_user_class);
 
         if (action == "added")
         {
-	    ldap_ret = SCR::Write (.ldap.user.add, user);
+	    if (! SCR::Write (.ldap.add, arg_map, user))
+		ret = LDAPErrorMap();
             // on server, we can modify homes
-            if (server && ldap_ret == "")
+            else if (server)
             {
-		if (user["create_home"]:false)
+		if (create_home)
 		    CreateHome (ldap_defaults["skel"]:default_skel, home);
 		ChownHome (uid, gid, home);
             }
         }
         else if (action == "deleted")
         {
-	    ldap_ret = SCR::Write (.ldap.user.delete, user);
-            if (server && user["delete_home"]:false && ldap_ret == "")
+	    if (! SCR::Write (.ldap.delete, arg_map))
+		ret = LDAPErrorMap();
+            else if (server && delete_home)
             {
                 DeleteHome (home);
             }
         }
         else if (action == "edited")
         {
-	    ldap_ret = SCR::Write (.ldap.user.modify, user);
-            if (server && home != org_home && ldap_ret == "")
+	    if (dn != new_dn)
+{
+y2internal ("dn: %1, new_dn: %2", dn, new_dn);
+		arg_map = add (arg_map, "rdn", rdn);
+		// TODO enable moving in tree (editing the rest of dn)
+}
+	    if (! SCR::Write (.ldap.modify, arg_map, user))
+		ret = LDAPErrorMap();
+            else if (server && home != org_home)
             {
-		if (user["create_home"]:false)
+		if (create_home)
 		    MoveHome (org_home, home);
 		ChownHome (uid, gid, home);
             }
         }
-	if (ldap_ret != "")
-	{
-	    ret = ldap_ret;
-	}
+	// TODO: cummulate error messages?
     });
     return ret;
 }
@@ -404,37 +386,46 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
 /**
  * Writing modified LDAP groups
  * @param ldap_groups map of all ldap groups
- * @return empty string on success, error message otherwise
+ * @return empty map on success, map with error message and code otherwise
  */
-global define string WriteLDAPGroups(map ldap_groups)``{
+global define map WriteLDAPGroups(map ldap_groups)``{
 
-    string ret = "";
+    map ret = $[];
+    string dn_attr = "cn"; //Ldap::group_naming_attribute
 
     foreach (`gid, `group, ldap_groups, ``{
 
         string action = group["modified"]:"no";
-        if (action == "no")
+        if (action == "no" || ret != $[])
 	{
             return;
 	}
-	string ldap_ret = "";
+	string dn	= group["dn"]:"";
+	// old DN stored from ldap-search (removed in Convert)
+	group		= ConvertGroupToLDAP (group);
+	string rdn	= sformat ("%1=%2", dn_attr, group[dn_attr]:"");
+	string new_dn	= sformat ("%1,%2", rdn, ldap_group_base);
+	map arg_map	= $[ "dn": (dn != "")? dn: new_dn ];
+	if (group["objectClass"]:[] == [])
+	    group	= add (group, "objectClass", ldap_group_class);
 
         if (action == "added")
         {
-	    ldap_ret = SCR::Write (.ldap.group.add, group);
+	    if (! SCR::Write (.ldap.add, arg_map, group))
+		ret = LDAPError();
         }
         else if (action == "deleted")
         {
-	    ldap_ret = SCR::Write (.ldap.group.delete, group);
+	    if (! SCR::Write (.ldap.delete, arg_map))
+		ret = LDAPError();
         }
         else if (action == "edited")
         {
-	    ldap_ret = SCR::Write (.ldap.group.modify, group);
+	    if (dn != new_dn)
+		arg_map = add (arg_map, "rdn", rdn);
+	    if (! SCR::Write (.ldap.modify, arg_map, group))
+		ret = LDAPError();
         }
-	if (ldap_ret != "")
-	{
-	    ret = ldap_ret;
-	}
     });
     return ret;
 }

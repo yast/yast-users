@@ -10,6 +10,7 @@
 {
 textdomain "users";
 import "Runlevel";
+import "Label";
 
 /**
  * Reads the prepared map of NIS users
@@ -135,9 +136,9 @@ Select which one to configure.
         `VSpacing (1),
         `HBox (
         `HStretch (),
-        `PushButton (`id (`ok), UI::OKButtonLabel()),
+        `PushButton (`id (`ok), Label::OKButton()),
         `HStretch (),
-        `PushButton (`id (`abort), UI::AbortButtonLabel()),
+        `PushButton (`id (`abort), Label::AbortButton()),
         `HStretch ()
         )
     );
