@@ -1039,8 +1039,8 @@ can be changed for non-local users.")) : `VSpacing (0),
 
             if ( defaultgroup != new_defaultgroup )
             {
-                gid = lookup (Users::GetGroupByName (new_defaultgroup,new_type),
-		    "gidnumber", gid);
+		map g	= Users::GetGroupByName (new_defaultgroup,new_type);
+                gid	= g["gidnumber"]:gid;
             }
 
             // check the homedirectory
@@ -1182,9 +1182,9 @@ define symbol EditUserPasswordDialog() ``{
     string exp_date = "";
     if (expires != "0" && expires != "-1" && expires != "")
     {
-        exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
+        map out	= (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"");
         // remove \n from the end
-        exp_date = deletechars (exp_date, "\n");
+        exp_date = deletechars (out["stdout"]:"", "\n");
     }
     term contents = `HBox (
         `HSpacing (3),
@@ -1801,10 +1801,10 @@ define symbol DefaultsDialog() ``{
 
     if (expire != "0" && expire != "")
     {
-        exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat (
+	map out	= (map) SCR::Execute (.target.bash_output, sformat (
 		"date --date='1970-01-01 00:00:01 %1 days' ", expire) +
-		"+\"%Y-%m-%d\"")), "stdout", "");
-        exp_date = deletechars (exp_date, "\n");
+		"+\"%Y-%m-%d\"");
+        exp_date = deletechars (out["stdout"]:"", "\n");
     }
 
     term contents = `HBox(`HSpacing(1.5),
@@ -2043,12 +2043,12 @@ Try again.
     }
     if (modified)
     {
+	map g	= Users::GetGroupByName (new_defgroup, "local");
         map<string,string> new_defaults = $[
             "home": new_home,
             "shell": new_shell,
             "skel": new_skel,
-            "group": sformat ("%1", lookup (
-                Users::GetGroupByName (new_defgroup, "local"),"gidnumber",gid)),
+            "group": sformat ("%1", g["gidnumber"]:gid),
             "inactive": sformat("%1", new_inact),
             "expire": new_expire,
 	    "groups": new_grouplist
@@ -2208,7 +2208,7 @@ Install it now?
 		}
 	    }
             if (WFM::CallFunction (
-		(string)lookup (call_module,button,button), []) == `next)
+		(string)call_module[button]:button, []) == `next)
 	    {
 		changed = true;
 		reload_config ();
