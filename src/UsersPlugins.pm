@@ -47,6 +47,7 @@ sub Read {
     }
     
     foreach my $module (@available_plugins) {
+	y2milestone ("Available plugin: $module");
 	YaST::YCP::Import ($module); # we could use 'eval (use $module)'
 	my $func        = $module."::Interface";
 	my $list 	= &$func ($module, {}, {});
