@@ -145,10 +145,10 @@ Do not forget this \"root\" password!
 
       if ( ret == `abort )
       {
-	  if ( CallFunction(`inst_confirm_abort(`incomplete) ) )
-	    return `abort;
+	  if ( Popup::ConfirmAbort (`incomplete) )
+	      return `abort;
 	  else
-	    continue;
+	      continue;
       }
 
       if (ret == `cancel)

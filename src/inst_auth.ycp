@@ -13,6 +13,7 @@
 textdomain "users";
 
 import "Wizard";
+import "Popup";
 import "Users";
 import "Lan";
 import "Internet";
@@ -139,7 +140,7 @@ repeat {
 
     if (ret == `abort)
     {
-	if ( WFM::CallFunction (`inst_confirm_abort(`incomplete) ) )
+	if ( Popup::ConfirmAbort (`incomplete) )
 	    break;
     }
     else if (ret == `local || ret == `network)
