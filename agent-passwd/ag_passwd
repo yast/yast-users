@@ -1,0 +1,650 @@
+#!/usr/bin/perl -w
+
+use lib "/usr/lib/YaST2/agents_non_y2";
+use ycp;
+use strict;
+
+my $max_system_uid	= 499;
+my $max_system_gid	= 499;
+my $the_answer		= 42;
+
+my %last_uid		= (
+    "local"	=> $max_system_uid + 1,
+    "system"	=> 0
+);
+
+my %users		= ();
+my %groups		= ();
+my %shadow_tmp		= ();
+my %shadow		= ();
+my %users_itemlists	= ();
+my %groups_itemlists	= ();
+
+# used for check if values like uid,username are unique:
+my %uids		= ();
+my %usernames		= ();
+my %homes		= (); 
+my %gids		= ();
+my %groupnames		= ();
+
+my %users_groups	= ();
+
+my %users_by_name	= ();
+my %groups_by_name	= ();
+
+my $plus_line_group 	= "";
+my $plus_line_passwd	= "";
+my $plus_line_shadow	= "";
+
+my $passwd_input	= "/tmp/passwd";
+my $shadow_input	= "/tmp/shadow";
+my $group_input		= "/tmp/group";
+
+my $passwd_output	= "/tmp/output/passwd";
+my $shadow_output	= "/tmp/output/shadow";
+my $group_output    	= "/tmp/output/group";
+
+#---------------------------------------------
+# read /etc/shadow and prepare global 'shadow_tmp' structure
+
+sub read_shadow () {
+
+    open SHADOW, "< $shadow_input";
+
+    foreach my $shadow_entry (<SHADOW>)
+    {
+	chomp $shadow_entry;
+
+	my ($uname,$pass,$last_change,$min, $max, $warn, $inact, $expire, $flag)
+	    = split(/:/,$shadow_entry);  
+        my $first = substr ($uname, 0, 1);
+
+	if ( $first ne "+" && $first ne "-" )
+	{
+	    if (defined $shadow_tmp{$uname})
+	    {
+		y2error ("duplicated username in /etc/shadow! Exiting...");
+		return 3;
+	    }
+	    $shadow_tmp{$uname} = {
+		"shadowLastChange"	=> $last_change,
+		"shadowWarning"		=> $warn,
+		"shadowInactive"	=> $inact,
+		"shadowExpire"		=> $expire,
+		"shadowMin"		=> $min,
+		"shadowMax"		=> $max,
+		"shadowFlag"		=> $flag,
+		"userPassword"		=> $pass
+	    };
+	}
+	else # plus line in /etc/shadow
+	{
+	    $plus_line_shadow = $shadow_entry;
+	}
+    }
+    close SHADOW;
+    return 0;
+}
+
+#---------------------------------------------
+# read /etc/group and prepar global 'users_groups' structure
+
+sub read_group () {
+
+    %groups	= ();
+
+    open GROUP, "< $group_input";
+
+    foreach my $group (<GROUP>) {
+	
+	chomp $group;
+        my ($groupname, $pass, $gid, $users) = split (/:/,$group);
+	my $first = substr ($groupname, 0, 1);
+
+        if ( $first ne "+" && $first ne "-" ) {
+	    
+	    my $group_type = "local";
+	    if (($gid <= $max_system_gid || $groupname eq "nobody" ||
+		 $groupname eq "nogroup") &&
+		($groupname ne "users"))
+	    {
+		$group_type = "system";
+	    }
+
+            # check for duplicates...
+	    if (defined $gids{"local"}{$gid}  || defined $gids{"system"}{$gid})
+	    {
+		y2error ("duplicated gid in /etc/group! Exiting...");
+		return 5;
+	    }
+	    else
+            {
+	        $gids{$group_type}{$gid} = 1;
+	    }
+
+            if (defined $groupnames{"local"}{$groupname} ||
+		defined $groupnames{"system"}{$groupname})
+            {
+	        y2error ("duplicated groupname in /etc/group! Exiting...");
+	        return 6;
+            }
+	    else
+	    {
+		$groupnames{$group_type}{$groupname} = 1;
+            }
+            # for each user generate list of groups, where the user is contained
+	    my @userlist	= split(/,/,$users);
+	    my %userlist	= ();
+	    foreach my $u (@userlist) {
+		$userlist{$u}			= 1;
+		$users_groups{$u}{$groupname}	= 1;
+	    }
+	    $groups{$group_type}{$gid} = {
+		"groupname"	=> $groupname,
+		"gidNumber" 	=> $gid,
+		"userlist"	=> \%userlist,
+		"type"		=> $group_type,
+		"more_users"	=> {}
+	    };
+
+	    $groups_by_name{$group_type}{$groupname} = $gid;
+	}
+	else # save the possible "+"/"-" entries
+        {
+	    $plus_line_group = $group;
+        }
+    }
+    close GROUP;
+    return 0;
+}
+
+# --------------------------------------------------------------------
+# read /etc/passwd
+
+sub read_passwd () {
+
+    open PASSWD, "< $passwd_input";
+
+    %users = ();
+
+    foreach my $user (<PASSWD>) {
+
+	chomp $user;
+	my ($username, $password, $uid, $gid, $full, $home, $shell)
+	    = split(/:/,$user);
+        my $first = substr ($username, 0, 1);
+
+	if ( $first ne "+" && $first ne "-" ) {
+
+            my $user_type	= "local";
+	    my $group_type	= "";
+	    my $groupname	= "";
+	    my %grouplist	= ();
+
+	    if (defined $groups{"system"}{$gid})
+	    {
+		$group_type = "system";
+	    }
+	    if (defined $groups{"local"}{$gid})
+	    {
+		$group_type = "local";
+	    }
+	    if ($group_type ne "")
+	    {
+		$groupname = $groups{$group_type}{$gid}{"groupname"};
+	    
+		# modify default group's more_users entry
+		$groups{$group_type}{$gid}{"more_users"}{$username}	= 1;
+	    }
+
+	    # add the grouplist
+	    if (defined $users_groups{$username}) {
+		%grouplist = %{$users_groups{$username}};
+	    }
+
+	    if (($uid <= $max_system_uid) || ($username eq "nobody")) {
+		$user_type = "system";
+		if ($last_uid{"system"} < $uid  && $username ne "nobody") {
+		    $last_uid{"system"} = $uid;
+		}
+	    }
+	    else {
+		if ($last_uid{"local"} < $uid) {
+		    $last_uid{"local"} = $uid;
+		}
+	    }
+	    # recode the fullname to utf-8 FIXME (and back during write)
+	    # use I18N::Langinfo qw(langinfo ABDAY_1 YESSTR NOSTR CODESET);
+	    # my $encoding = langinfo CODESET;
+	    my $encoding = "";
+	    if ($encoding ne "") {
+		from_to ($full, $encoding, "utf-8");
+	    }
+    
+	    my $colon = index ($full, ",");
+	    my $additional = "";
+	    if ( $colon > -1)
+	    {
+		$additional = $full;
+		$full = substr ($additional, 0, $colon);
+		$additional = substr ($additional, $colon + 1,
+		    length ($additional));
+	    }
+
+            # check for duplicates in /etc/passwd:
+	    if (defined $uids{"local"}{$uid}  || defined $uids{"system"}{$uid})
+	    {
+		y2error ("duplicated UID in /etc/passwd! Exiting...");
+		return 1;
+	    }
+            else
+	    {
+	        $uids{$user_type}{$uid} = 1;
+            }
+	    
+	    if (defined $usernames{"local"}{$username} ||
+		defined $usernames{"system"}{$username})
+	    {
+		y2error ("duplicated username in /etc/passwd! Exiting...");
+		return 2;
+	    }
+	    else
+	    {
+		$usernames{$user_type}{$username} = 1;
+	    }
+	    if ($home ne "")
+	    {
+		$homes{$user_type}{$home} = 1;
+	    }
+    
+	    my @grouplist	= keys (%grouplist);
+	    my $all_groups	= $groupname;
+
+	    if ( $groupname ne "" ) {
+		if (@grouplist > 0) {
+		    
+		    $all_groups .= ",";
+		    if (@grouplist + 1 <= $the_answer) {
+			$all_groups .= join (",", @grouplist);
+		    }
+		    else {
+			for (my $i=0; $i < $the_answer - 1 ; $i++) {
+			    $all_groups .= "$grouplist[$i],";
+			}
+			$all_groups .= "...";
+		    }
+		}
+	    }
+	    else {
+		if (@grouplist <= $the_answer) {
+		    $all_groups = join (",", @grouplist);
+		}
+		else {
+		    for (my $i=0; $i < $the_answer ; $i++) {
+			$all_groups .= "$grouplist[$i],";
+		    }
+		    $all_groups .= "...";
+		}
+	    }
+
+	    # FIXME: we need term, not string!
+	    $users_itemlists{$user_type}{$uid} = 
+	"`item(`id($uid), \"$username\", \"$full\", \"$uid\", \"$all_groups\")";
+
+	    # such map we would like to export from the read script...
+	    $users{$user_type}{$uid} = {
+		"cn"		=> $full,
+		"homeDirectory"	=> $home,
+		"username"	=> $username,
+		"uidNumber"	=> $uid,
+		"gidNumber"	=> $gid,
+		"loginShell"	=> $shell,
+		"groupname"	=> $groupname,
+		"grouplist"	=> \%grouplist,
+		"userPassword"	=> "x",
+		"type"		=> $user_type
+	    };
+
+	    if (! defined $shadow_tmp{$username}) {
+		y2error ("There is no shadow entry for user $username.");
+	    }
+	    else {
+		# divide shadow map accoring to user type
+		$shadow{$user_type}{$username} = $shadow_tmp{$username};
+	    }
+
+	    $users_by_name{$user_type}{$username} = $uid;
+	}
+	else # the "+" entry in passwd
+	{
+	    $plus_line_passwd = $user;
+	}
+    }
+    close PASSWD;
+    return 0;
+}
+
+#---------------------------------------------
+# update map of groups (there is a new list of "more users"), generate items
+
+sub update_groups () {
+    
+    foreach my $type ( keys %groups ) {
+
+        foreach my $gid (keys %{$groups{$type}})
+	{
+	    my %group		= %{$groups{$type}{$gid}};
+            my @userlist	= keys %{$group{"userlist"}};
+	    my @more_users	= keys %{$group{"more_users"}};
+
+	    my $ul_no		= @userlist;
+	    my $m_no		= @more_users;
+
+	    my $all_users = "";
+	    if ($ul_no <= $the_answer) {
+		
+		$all_users = join (",", @userlist);
+		if ($m_no + $ul_no <= $the_answer) {
+		    if ($ul_no > 0 && $m_no > 0) {
+			$all_users .= ",";
+		    }
+		    $all_users .= join (",", @more_users);
+		}
+		else {
+		    if ($ul_no > 0 && $m_no > 0) {
+			$all_users .= ",";
+		    }
+		    for (my $i=0; $i < $the_answer - $ul_no ; $i++) {
+			$all_users .= "$more_users[$i],";
+		    }
+		    $all_users .= "...";
+		}
+	    }
+	    else {
+		for (my $i=0; $i < $the_answer; $i++) {
+		    $all_users .= "$userlist[$i],";
+		}
+		$all_users .= "...";
+	    }
+	    $groups_itemlists{$type}{$gid} =
+	"`item(`id($gid), ".$group{"groupname"}.", \"$gid\", \"$all_users\")";
+
+	}
+    }
+}
+
+#---------------------------------------------
+# write map of users to the file
+
+sub write_passwd {
+
+    my %users_w	= %{$_[0]};
+
+    open PASSWD, "> $passwd_output";
+
+    foreach my $type (sort {$b cmp $a} keys %users_w ) {
+
+	foreach my $uid (sort {$a <=> $b} keys %{$users_w{$type}}) {
+
+	    my %user	= %{$users_w{$type}{$uid}};
+	    my $pass	= "x"; #TODO: always "x"?
+	    my $userline	= join (":", (
+		$user{"username"},
+		$pass,
+		$uid,
+		$user{"gidNumber"},
+		$user{"cn"},
+		$user{"homeDirectory"},
+		$user{"loginShell"},
+	    ));
+	    print PASSWD "$userline\n";
+	}
+    }
+    if ($plus_line_passwd ne "") {
+	print PASSWD "$plus_line_passwd\n";
+    }
+    close PASSWD;
+}
+
+#---------------------------------------------
+# write map of shadow info to the file
+
+sub write_shadow {
+
+    my %shadow_w	= %{$_[0]};
+
+    open SHADOW, "> $shadow_output";
+
+    foreach my $type (sort {$b cmp $a} keys %shadow_w ) {
+
+        foreach my $uname (sort keys %{$shadow_w{$type}}) {
+
+	    my %shadow_entry	= %{$shadow_w{$type}{$uname}};
+	    my $shadowline	= join (":", (
+		$uname,
+		$shadow_entry{"userPassword"},
+		$shadow_entry{"shadowLastChange"},
+		$shadow_entry{"shadowMin"},
+		$shadow_entry{"shadowMax"},
+		$shadow_entry{"shadowWarning"},
+		$shadow_entry{"shadowInactive"},
+		$shadow_entry{"shadowExpire"},
+		$shadow_entry{"shadowFlag"}
+	    ));
+	    print SHADOW "$shadowline\n";
+	}
+    }
+    if ($plus_line_shadow ne "") {
+	print SHADOW "$plus_line_shadow\n";
+    }
+    close SHADOW;
+}
+
+
+#---------------------------------------------
+# write map of groups to the file
+
+sub write_group {
+
+    my %groups_w = %{$_[0]};
+
+    open GROUP, "> $group_output";
+
+    # sort order: system items go before local ones
+    foreach my $type (sort {$b cmp $a} keys %groups_w ) {
+
+	# sort order: id
+        foreach my $gid (sort {$a <=> $b} keys %{$groups_w{$type}}) {
+
+	    my %group	= %{$groups_w{$type}{$gid}};
+	    my $pass	= "x";
+	    if (defined $group{"userPassword"}) {
+		$pass 	= $group{"userPassword"};
+	    }
+	    my @group_entry	= (
+		$group{"groupname"},
+		$pass,
+		$group{"gidNumber"},
+		join (",", sort keys %{$group{"userlist"}})
+	    );
+	    my $groupline	= join (":", @group_entry);
+
+	    print GROUP "$groupline\n";
+	}
+    }
+    if ($plus_line_group ne "") {
+	print GROUP "$plus_line_group\n";
+    }
+    close GROUP;
+}
+
+
+
+sub read_all () {
+
+    my $error = 0;
+
+    $error = read_shadow ();
+    
+    if ($error == 0) {
+	$error = read_group ();
+    }
+    if ($error == 0) {
+	$error = read_passwd ();
+    }
+    if ($error == 0) {
+	$error = update_groups ();
+    }
+    return $error;
+}
+
+
+# --------------------------------------- main -----------------------------
+while ( <STDIN> )
+{
+
+    my ($command, $path, $argument) = ycp::ParseCommand ($_);
+
+    y2debug ("command: $command, path: $path");
+    
+    if ( $command eq "Execute" ) {
+    
+	if ( $path eq '.init' ) {
+	    if (ref ($argument) eq "HASH") {
+		$max_system_uid	= ${%{$argument}}{"max_system_uid"};
+		$max_system_gid	= ${%{$argument}}{"max_system_gid"};
+	    }
+	    my $error = read_all ();
+	    if ($error > 0) {
+		ycp::Return("false");
+	    }
+	}
+	else {
+	    y2error ("wrong path ($path) or argument type:", ref ($argument));
+	    ycp::Return("false");
+	}
+	ycp::Return("true");
+    }
+    elsif ( $command eq "Read" )
+    {
+	# check if initialization was done
+	if (!%users) {
+	    my $error = read_all ();
+	    if ($error > 0) {
+		ycp::Return ({});
+	    }
+	}
+
+#TODO hashes are unsorted...
+	if    ( $path eq '.local.users' ) {
+	    ycp::Return (\%{$users{"local"}});
+	}
+	elsif ( $path eq '.system.users' ) {
+	    ycp::Return (\%{$users{"system"}});
+	}
+	elsif ( $path eq '.local.shadow' ) {
+	    ycp::Return (\%{$shadow{"local"}});
+	}
+	elsif ( $path eq '.system.shadow' ) {
+	    ycp::Return (\%{$shadow{"system"}});
+	}
+	elsif ( $path eq '.local.groups' ) {
+	    ycp::Return (\%{$groups{"local"}});
+	}
+	elsif ( $path eq '.system.groups' ) {
+	    ycp::Return (\%{$groups{"system"}});
+	}
+	elsif ( $path eq '.local.users.by_name' ) {
+	    ycp::Return (\%{$users_by_name{"local"}});
+	}
+	elsif ( $path eq '.system.users.by_name' ) {
+	    ycp::Return (\%{$users_by_name{"system"}});
+	}
+	elsif ( $path eq '.local.users.uids' ) {
+	    ycp::Return (\%{$uids{"local"}});
+	}
+	elsif ( $path eq '.system.users.uids' ) {
+	    ycp::Return (\%{$uids{"system"}});
+	}
+	elsif ( $path eq '.local.users.usernames' ) {
+	    ycp::Return (\%{$usernames{"local"}});
+	}
+	elsif ( $path eq '.system.users.usernames' ) {
+	    ycp::Return (\%{$usernames{"system"}});
+	}
+	elsif ( $path eq '.local.users.homes' ) {
+	    ycp::Return (\%{$homes{"local"}});
+	}
+	elsif ( $path eq '.system.users.homes' ) {
+	    ycp::Return (\%{$homes{"system"}});
+	}
+	elsif ( $path eq '.local.users.items' ) {
+	    ycp::Return (\%{$users_itemlists{"local"}});
+	}
+	elsif ( $path eq '.system.users.items' ) {
+	    ycp::Return (\%{$users_itemlists{"system"}});
+	}
+	elsif ( $path eq '.local.users.last_uid' ) {
+	    ycp::Return ($last_uid{"local"});
+	}
+	elsif ( $path eq '.system.users.last_uid' ) {
+	    ycp::Return ($last_uid{"system"});
+	}
+	elsif ( $path eq '.local.groups.by_name' ) {
+	    ycp::Return (\%{$groups_by_name{"local"}});
+	}
+	elsif ( $path eq '.system.groups.by_name' ) {
+	    ycp::Return (\%{$groups_by_name{"system"}});
+	}
+	elsif ( $path eq '.local.groups.gids' ) {
+	    ycp::Return (\%{$gids{"local"}});
+	}
+	elsif ( $path eq '.system.groups.gids' ) {
+	    ycp::Return (\%{$gids{"system"}});
+	}
+	elsif ( $path eq '.local.groups.groupnames' ) {
+	    ycp::Return (\%{$groupnames{"local"}});
+	}
+	elsif ( $path eq '.system.groups.groupnames' ) {
+	    ycp::Return (\%{$groupnames{"system"}});
+	}
+	elsif ( $path eq '.local.groups.items' ) {
+	    ycp::Return (\%{$groups_itemlists{"local"}});
+	}
+	elsif ( $path eq '.system.groups.items' ) {
+	    ycp::Return (\%{$groups_itemlists{"system"}});
+	}
+	else {
+	    y2error ("wrong path ($path) or argument: ", ref ($argument));
+	    ycp::Return("false");
+	}
+    }
+    elsif ( $command eq "Write" )
+    {
+	if ( $path eq '.users' && ref ($argument) eq "HASH" ) {
+	    write_passwd ($argument);
+	}
+	elsif ( $path eq '.shadow' && ref ($argument) eq "HASH" ) {
+	    write_shadow ($argument);
+	}
+	elsif ( $path eq '.groups' && ref ($argument) eq "HASH" ) {
+	    write_group ($argument);
+	}
+	else {
+	    y2error ("wrong path ($path) or argument type: ",  ref ($argument));
+	    ycp::Return("false");
+	}
+	ycp::Return ("true");
+    }
+    elsif ( $command eq "result")
+    {
+	exit;
+    }
+    else
+    {
+	y2error ("wrong command: $command");
+	ycp::Return("wrong command ($command)");
+    }
+}
+
+# end
