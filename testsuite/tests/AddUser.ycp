@@ -14,6 +14,7 @@
  */
 
 {
+    // testedfiles: Users.pm
 
     include "testsuite.ycp";
     import "Users";
@@ -49,7 +50,7 @@
 		"groups": $[
 		    100: $[
 			"cn"	:	"users",
-			"gidNumber":	100,
+			"gidnumber":	100,
 			"type"	:	"local"
 		    ],
 		    "by_name": $[
@@ -65,19 +66,29 @@
 	    ],
 	    "system": $[
 		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
 		    "by_name": $[
+			"root"		: 0
 		    ],
 		    "last_uid": 0,
-		    "homes":	$[],
-		    "usernames": $[],
-		    "uids": $[],
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
 		],
 		"shadow": $[
 		],
 		"groups": $[
 		    0: $[
 			"cn":	"root",
-			"gidNumber":	0,
+			"gidnumber":	0,
 			"type"	:	"system"
 		    ],
 		    "by_name": $[
@@ -103,6 +114,10 @@
 		]
 	    ],
 	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0
+	]
     ];
     map WRITE = $[];
     map EXEC = $[
@@ -110,12 +125,8 @@
 	    "init"	: true
 	],
 	"target" : $[
-	    "bash"	: 0,
-	    /*
-	    "bash_output" : $[
-		"stdout": "$1$T8$yEI1SH.1b0jqeqDq6bHha1"
-	    ],
-	    */
+	    "bash"		: 0,
+	    "bash_output"	: $[]
 	],
     ];
 
@@ -131,28 +142,76 @@
 
     DUMP (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
     map<string,any> user = $[
-	"gidnumber":100,
-	"cn": "users",
-	"grouplist": $[ "audio" : 1 ],
-	"homedirectory":"/local/home/aaa",
-	"userpassword":"qqqqq",
-	"uidnumber":501,
-	"uid":"aaa",
-	"type":"local",
+	"uidnumber"	: 501,
+	"uid"		:"aaa",
+	"gidnumber"	: 100,
+	"groupname"	: "users",
+	"grouplist"	: $[ "audio" : 1 ],
+	"homedirectory"	:"/local/home/aaa",
+	"userpassword"	:"qqqqq",
+	"type"		:"local",
     ];
 
     TEST (``(Users::AddUser (user)), [READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
 
+    // this is because of Users->IsDirWritable
+    READ ["target", "size"] = -1;
+
+    string error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    Users::SelectGroup (100);
+    DUMP (sformat ("---- current group (before user commit):\n %1",
+	Users::GetCurrentGroup ()));
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
+
+    DUMP ("---- commit user:");
+
     TEST (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
 
-    DUMP ("==========================================================");
+    Users::SelectGroup (100);
+    DUMP (sformat ("---- current group (afer user commit):\n %1",
+	Users::GetCurrentGroup ()));
+
+    DUMP ("=================== no password ==========================");
 
     TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
     TEST (``(Users::AddUser ($[ "uid": "hhh"])), [READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
+
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
+
+    DUMP ("==================== uid conflict ========================");
+
+    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    TEST (``(Users::AddUser ($[ "uid": "root", "userpassword": "qqqqq"])),
+	[READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
+
+    DUMP ("==================== uidnumber problems ===================");
+
+    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    TEST (``(Users::AddUser ($[
+	"uid"		: "rrr",
+	"uidnumber"	: 5,
+	"type"		: "local",
+	"userpassword"	: "qqqqq"
+	])),
+	[READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    DUMP (sformat ("---- check user after add:\n %1", error));
+
 
     DUMP ("==========================================================");
 }

@@ -1907,6 +1907,8 @@ sub EditUser {
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
 		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+		$user_in_work{"text_userpassword"} = $data{$key};
+		$data{"text_userpassword"} 	= $data{$key};
 		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
 	    }
@@ -4455,6 +4457,10 @@ sub RemoveDiskUsersFromGroups {
 # Converts autoyast's user's map for users module usage
 # @param user map with user data provided by users_auto client
 # @return map with user data as defined in Users module
+BEGIN { $TYPEINFO{ImportUser} = ["function",
+    [ "map", "string", "any" ],
+    [ "map", "string", "any" ]];
+}
 sub ImportUser {
 
     my $self	= shift;
@@ -4874,6 +4880,10 @@ sub Import {
 # Converts user's map for autoyast usage
 # @param user map with user data as defined in Users module
 # @return map with user data in format used by autoyast
+BEGIN { $TYPEINFO{ExportUser} = ["function",
+    [ "map", "string", "any" ],
+    [ "map", "string", "any" ]];
+}
 sub ExportUser {
 
     my $self		= shift;
@@ -4943,12 +4953,12 @@ sub ExportUser {
 	}
     }
     
-    my $encrypted	= $exported_user{"encrypted"};
+    my $encrypted	= bool ($exported_user{"encrypted"});
     if (!defined $encrypted) {
-	$encrypted	= YaST::YCP::Boolean (1);
+	$encrypted	= 1;
     }
     if (defined $ret{"user_password"}) {
-	$ret{"encrypted"}		= $encrypted;
+	$ret{"encrypted"}		= YaST::YCP::Boolean ($encrypted);
     }
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;

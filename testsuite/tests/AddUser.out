@@ -18,12 +18,12 @@ Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_sys
 Read	.passwd.local.users $[500:$["uid":"hh"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
 Read	.passwd.local.users.by_name $["hh":500]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["cn":"users", "gidNumber":100, "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
+Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
 Read	.passwd.local.groups.by_name $["users":100]
-Read	.passwd.system.users $["by_name":$[], "homes":$[], "last_uid":0, "uids":$[], "usernames":$[]]
-Read	.passwd.system.users.by_name $[]
+Read	.passwd.system.users $[0:$["uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_name $["root":0]
 Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $[0:$["cn":"root", "gidNumber":0, "type":"system"], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
+Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
 Read	.passwd.system.groups.by_name $["root":0]
 Read	.passwd.passwd.plusline 0
 Read	.passwd.shadow.plusline 0
@@ -34,13 +34,12 @@ Read	.passwd.local.users.usernames $["hh":1]
 Read	.passwd.local.users.uids $[500:1]
 Read	.passwd.system.users.last_uid 0
 Read	.passwd.system.users.homes $[]
-Read	.passwd.system.users.usernames $[]
-Read	.passwd.system.users.uids $[]
+Read	.passwd.system.users.usernames $["root":1]
+Read	.passwd.system.users.uids $[0:1]
 Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Read	.sysconfig.displaymanager.DISPLAYMANAGER 0
 Return	
 Dump	---- current user:
 Dump	 $[]
@@ -49,11 +48,46 @@ Dump	---- current user (empty add):
 Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
 Return	true
 Dump	---- current user (after rich add):
-Dump	 $["cn":"users", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/local/home/aaa", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"aaa", "uidnumber":"501", "userpassword":"crypted_qqqqq", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/local/home/aaa", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"aaa", "uidnumber":"501", "userpassword":"crypted_qqqqq", "what":"add_user"]
+Read	.target.stat "/local/home" $[]
+Read	.target.stat "/local" $[]
+Read	.target.size "/tmpfile" -1
+Execute	.target.bash_output "/bin/touch /tmpfile" $[]
+Return	
+Dump	---- current group (before user commit):
+Dump	 $["cn":"users", "gidnumber":"100", "type":"local"]
+Dump	---- check user after add:
+Dump	 
+Dump	---- commit user:
 Return	true
-Dump	==========================================================
+Dump	---- current group (afer user commit):
+Dump	 $["cn":"users", "gidnumber":"100", "more_users":$["aaa":"1"], "org_cn":"users", "org_gidnumber":"100", "type":"local", "what":"user_change_default"]
+Dump	=================== no password ==========================
 Return	true
 Return	true
 Dump	---- current user (minimal add, used default values):
 Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/hhh", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hhh", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
+Return	You didn't enter a password.
+Dump	---- check user after add:
+Dump	 You didn't enter a password.
+Dump	Try again.
+Dump	==================== uid conflict ========================
+Return	true
+Return	true
+Dump	---- current user (just added):
+Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/root", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"root", "uidnumber":"1000", "userpassword":"crypted_qqqqq", "what":"add_user"]
+Return	There is a conflict between the entered
+Dump	---- check user after add:
+Dump	 There is a conflict between the entered
+Dump	user name and an existing user name.
+Dump	Try another one.
+Dump	==================== uidnumber problems ===================
+Return	true
+Return	true
+Dump	---- current user (just added):
+Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/rrr", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"rrr", "uidnumber":"5", "userpassword":"crypted_qqqqq", "what":"add_user"]
+Return	The selected user ID is not allowed.
+Dump	---- check user after add:
+Dump	 The selected user ID is not allowed.
+Dump	Select a valid integer between 1000 and 60000.
 Dump	==========================================================
