@@ -39,7 +39,7 @@ my $base_directory	 = "/etc";
 #---------------------------------------------
 # read /etc/shadow and prepare global 'shadow_tmp' structure
 
-sub read_shadow () {
+sub read_shadow {
 
     open SHADOW, "< $base_directory/shadow";
 
@@ -65,8 +65,8 @@ sub read_shadow () {
 		"shadowExpire"		=> $expire,
 		"shadowMin"		=> $min,
 		"shadowMax"		=> $max,
-		"shadowFlag"		=> $flag
-#		"userPassword"		=> $pass
+		"shadowFlag"		=> $flag,
+		"userPassword"		=> $pass
 	    };
 	}
 	else # plus line in /etc/shadow
@@ -81,7 +81,7 @@ sub read_shadow () {
 #---------------------------------------------
 # read /etc/group and prepar global 'users_groups' structure
 
-sub read_group () {
+sub read_group {
 
     %groups	= ();
 
@@ -153,7 +153,7 @@ sub read_group () {
 # --------------------------------------------------------------------
 # read /etc/passwd
 
-sub read_passwd () {
+sub read_passwd {
 
     open PASSWD, "< $base_directory/passwd";
 
@@ -303,7 +303,7 @@ sub write_passwd {
 		$user{"username"} || "",
 		$pass,
 		$uid,
-		$user{"gidNumber"} || "",
+		$user{"gidNumber"} || 0,
 		$user{"cn"} || "",
 		$user{"homeDirectory"} || "",
 		$user{"loginShell"} || "",
@@ -334,13 +334,13 @@ sub write_shadow {
 	    my $shadowline	= join (":", (
 		$uname,
 		$shadow_entry{"userPassword"} || "",
-		$shadow_entry{"shadowLastChange"} || "",
-		$shadow_entry{"shadowMin"} || "",
-		$shadow_entry{"shadowMax"} || "",
-		$shadow_entry{"shadowWarning"} || "",
-		$shadow_entry{"shadowInactive"} || "",
-		$shadow_entry{"shadowExpire"} || "",
-		$shadow_entry{"shadowFlag"} || ""
+		$shadow_entry{"shadowLastChange"} || 0,
+		$shadow_entry{"shadowMin"} || 0,
+		$shadow_entry{"shadowMax"} || 0,
+		$shadow_entry{"shadowWarning"},
+		$shadow_entry{"shadowInactive"},
+		$shadow_entry{"shadowExpire"},
+		$shadow_entry{"shadowFlag"}
 	    ));
 	    print SHADOW "$shadowline\n";
 	}
@@ -375,7 +375,7 @@ sub write_group {
 	    my @group_entry	= (
 		$group{"groupname"},
 		$pass,
-		$group{"gidNumber"},
+		$gid,
 		join (",", sort keys %{$group{"userlist"}})
 	    );
 	    my $groupline	= join (":", @group_entry);
@@ -513,6 +513,15 @@ while ( <STDIN> )
 	elsif ( $path eq '.system.groups.groupnames' ) {
 	    ycp::Return (\%{$groupnames{"system"}});
 	}
+	elsif ( $path eq '.passwd.plusline' ) {
+	    ycp::Return ($plus_line_passwd);
+	}
+	elsif ( $path eq '.shadow.plusline' ) {
+	    ycp::Return ($plus_line_shadow);
+	}
+	elsif ( $path eq '.group.plusline' ) {
+	    ycp::Return ($plus_line_group);
+	}
 	else {
 	    y2error ("wrong path ($path) or argument: ", ref ($argument));
 	    ycp::Return("false");
@@ -528,6 +537,30 @@ while ( <STDIN> )
 	}
 	elsif ( $path eq '.groups' && ref ($argument) eq "HASH" ) {
 	    write_group ($argument);
+	}
+	elsif ( $path eq '.passwd.plusline' ) {
+	    if ($argument eq $plus_line_passwd) {
+		ycp::Return ("false");
+	    }
+	    else {
+		$plus_line_passwd = $argument;
+	    }
+	}
+	elsif ( $path eq '.group.plusline' ) {
+	    if ($argument eq $plus_line_group) {
+		ycp::Return ("false");
+	    }
+	    else {
+		$plus_line_group = $argument;
+	    }
+	}
+	elsif ( $path eq '.shadow.plusline' ) {
+	    if ($argument eq $plus_line_shadow) {
+		ycp::Return ("false");
+	    }
+	    else {
+		$plus_line_shadow = $argument;
+	    }
 	}
 	else {
 	    y2error ("wrong path ($path) or argument type: ",  ref ($argument));
