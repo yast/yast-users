@@ -1189,7 +1189,7 @@ global define symbol EditUserPasswordDialog() ``{
     {
         exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
-        exp_date = substring(exp_date,0,size(exp_date)-1);
+        exp_date = deletechars (exp_date, "\n");
     }
     term contents = `HBox (
         `HSpacing (3),
@@ -1261,14 +1261,11 @@ global define symbol EditUserPasswordDialog() ``{
                 else
                 {
                     map out = SCR::Execute(.target.bash_output,
-                        sformat("date --date='%1' ", new_exp_date) + "+%s");
-                    string days_s = out["stdout"]:"0\n";
-                    if (days_s != "")
+                        sformat("date --date='%1 UTC' ", new_exp_date) + "+%s");
+		    string seconds_s = deletechars(out["stdout"]:"0","\n");
+                    if (seconds_s != "")
                     {
-                        days_s = substring(days_s, 0, size(days_s)-1);
-                        // +3600 ... this looks like a bug??
-                        // "date --date='1970-01-01' +%s" gives "-3600"
-                        integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+			integer days = (tointeger(seconds_s))/ (60*60*24);
                         shadow["expire"] = sformat("%1", days);
                     }
                 }
@@ -1457,7 +1454,7 @@ Are you sure?"), req)))
  */
 global define symbol EditGroupDialog(string what ) ``{
 
-y2internal ("----------- group: %1", Users::group_in_work);
+//y2internal ("----------- group: %1", Users::group_in_work);
 
     map dialog_labels = $[
         "add_group": $[
@@ -1862,7 +1859,7 @@ global define symbol DefaultsDialog() ``{
 		"date --date='1970-01-01 00:00:01 %1 days' ", expire) +
 		"+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
-        exp_date = substring(exp_date,0,size(exp_date)-1);
+        exp_date = deletechars (exp_date, "\n");
     }
 
     term contents = `HBox(`HSpacing(1.5),
@@ -2074,12 +2071,11 @@ Try again.
                 else
                 {
                     map out = SCR::Execute(.target.bash_output,
-                        sformat("date --date='%1' ", new_exp_date) + "+%s");
-                    string days_s = out["stdout"]:"0\n";
-                    if (days_s != "")
+                        sformat("date --date='%1 UTC' ", new_exp_date) + "+%s");
+                    string seconds_s = deletechars (out["stdout"]:"0", "\n");
+                    if (seconds_s != "")
                     {
-                        days_s = substring(days_s, 0, size(days_s)-1);
-                        integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+                        integer days = (tointeger(seconds_s))/ (60*60*24);
                         new_expire = sformat("%1", days);
                     }
                 }
