@@ -877,8 +877,11 @@ to new home directory %2")), old_home, home));
 		    (! issubstring( shell_entry, "passwd")) &&
 		    (! issubstring( shell_entry, "bash1")) )
 		{
-		    if ( todo == `items      )  available_shells = add( available_shells, `item(shell_entry ));
-		    if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);
+		    if( fileexist( shell_entry ) )
+		    {
+			if ( todo == `items      )  available_shells = add( available_shells, `item(shell_entry ));
+			if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);
+		    }
 		}
 		    
 	    }

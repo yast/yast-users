@@ -35,7 +35,10 @@
     }
     else
     {
-	start_dialog =  Args(0);
+	if( size (Args ()) > 0 )
+	{
+	    start_dialog =  Args(0);
+	}
     }
     
     // ===== Definitions ==============================================
