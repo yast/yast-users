@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug 29 14:45:15 CEST 2002 - jsrain@suse.cz
+
+- fixed building
+- 2.6.23
+
+-------------------------------------------------------------------
 Mon Aug 26 16:55:33 CEST 2002 - jsrain@suse.cz
 
 - fixed informations shown during installation (Bug #18331)

@@ -23,6 +23,7 @@
     global define UI::Recode (string s1, string s2, string s) ``{return s;}
 
     include "testsuite.ycp";
+    import "Pkg";
     import "UserAddDefs";
 
     map READ = $[ "etc" : $["shells" : ["/bin/ash", "/bin/bash", "/bin/bash1", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]]];
