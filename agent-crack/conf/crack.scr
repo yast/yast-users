@@ -20,5 +20,5 @@
 .crack
 
 `ag_crack(
-  CrackAgent()
+  `CrackAgent()
 )
