@@ -590,7 +590,7 @@ Please try again."));
                 }
             }
             */
-            if (Users::obscure_checks)
+            if (Users::obscure_checks && !details)
             {
                 string obs = Users::CheckObscurity (username, pw1);
                 if (obs != "OK")
