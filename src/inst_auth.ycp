@@ -16,6 +16,18 @@
     // caption for dialog "User Authentication Method"
     string caption = _("User Authentication Method");
 
+    // help text for dialog "User Authentication Method" 1/3
+    string help = _("<p>
+<b>Authentication</b><br>
+Here you can choose the authentication method of users on your system.
+</p>") +
+
+    // helptext 2/3
+    _("<p>Select <b>Stand alone machine</b> if you want to authenticate users only by using local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
+
+    // helptext 3/3
+    _("<p>If you are using NIS, NIS+ or LDAP server to store user data, select <b>Network  client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
+
 
     term net_buttons =
 	`RadioButtonGroup (`VBox (
@@ -62,9 +74,6 @@
 				  ),
 			   `VStretch()
 			   );
-
-    // help text for dialog "User Authentication Method"
-    string help = _("FIXME");
 
     Wizard::SetContentsButtons (caption, contents, help,
 				BackButtonLabel(), NextButtonLabel());
