@@ -20,6 +20,7 @@ import "Users";
 import "UsersCache";
 import "UsersLDAP";
 
+include "users/complex.ycp";
 
 textdomain "users";
 
