@@ -21,35 +21,20 @@
 
 {
     textdomain "users";
-
+    
+    import "Mode";
+    Mode::config = true;
     import "Users";
     import "Wizard";
+
     include "users/wizards.ycp";
     include "wizard/sequencer.ycp";
 
-    list args = Args ();
-    /*
-    if ( size (args) <= 0 )
-    {
-        y2error ("Did not get the settings, probably some mistake...");
-        return false;
-    }
-    if ( !is ( Args (0), list ) )
-    {
-    y2error ("Bad argument for users_auto: %1", Args (0));
-    return false;
-    }
-    */
-    list settings = [];
-
-    integer i = 0;
-    while (i < size (Args()))
-    {
-        if (is (Args (i), list) && nil != Args (i)) settings = Args (i);
-        i = i + 1;
-    }
+    string func = WFM::Args(0);
+    list param = WFM::Args(1);
 
 
+    
     // settings form /etc/default/useradd:
     // can be set the new ones here:
     map useradd_defaults  = $[
@@ -87,64 +72,36 @@
      `local: $[
         "somegr":$["disposer":"root", "password":"*", "userlist":"ab"]]];
 
-//    settings = [ users, groups, shadow, gshadow, useradd_defaults ];
-    settings = [ $[], $[], $[], $[], $[] ];
+    // settings = [ users, groups, shadow, gshadow, useradd_defaults ];
+    // settings = [ $[], $[], $[], $[], $[] ];
 
-    Users::Import ( settings );
-//    y2milestone("Imported: (%1)", settings);
+ 
 
-    /**
-      * set contents of main Users dialog for autoinstallation
-      */
-    define void set_contents()
-    ``{
-    term contents =
-        `VBox(
-          `VSpacing(1),
-          `RichText( `id(`summary), Users::Summary()),
-          `VSpacing(0.5),
-          `HBox(
-            // push button
-            `PushButton(`id(`configure), _("&Configure users and groups")),
-            `HStretch(),
-            // push button
-            `PushButton(`id(`reset), _("R&eset Configuration"))
-            ),
-          `VSpacing(1)
-          );
-    // dialog caption
-    Wizard::SetContents(_("Users Configuration"),
-                contents, "", true, true);
+    /* create a  summary*/
+    if (func == "Summary") {
+	Users::Import(param);
+	return ( Users::Summary());
+    }
+    else if (func == "Reset") {
+	Users::Import([]);	
+	return ([]);
+    }	
+    else if (func == "Change") {
+	Users::Import(param);	
+	string start_dialog = "users"; //look to users.ycp for possible values
+	Wizard::CreateDialog();
+	any res = AutoSequence(start_dialog);
+	Wizard::CloseDialog();
+	return res;
+    }
+    else if (func == "Result") {
+	return(Users::Export());
+    }
+    /* unknown function */
+    else {
+	y2error("unknown function: %1", func);
+	return false;
     }
 
 
-    Wizard::CreateDialog(); // just a hack, only for testing
-    set_contents();
-    any result = nil;
-    any ret = nil;
-    string start_dialog = "users"; //look to users.ycp for possible values
-    repeat {
-    ret = UI::UserInput();
-    if (ret == `configure)
-    {
-        Wizard::CreateDialog();
-        result = AutoSequence(start_dialog);
-        Wizard::CloseDialog();
-        if (result == `next || result == `finish)
-        {
-            settings = Users::Export ();
-            y2milestone ("settings from Export: %1", settings);
-        }
-//        Users::Set(settings); // why it is here ??
-        set_contents();
-    }
-    else if ( ret == `reset)
-    {
-        settings= [];
-        Users::Set(settings);
-        set_contents();
-    }
-    } until (ret == `back || ret == `next || ret ==`key);
-
-    return [ret, settings];
 }
