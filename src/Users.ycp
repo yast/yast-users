@@ -93,7 +93,7 @@
 	else if (encryptionMethod == "blowfish" )
 	{
 	    SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowhish" );
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowfish" );
 	    rootPassword = cryptblowfish (pw1);
 	}
 	else

@@ -1,0 +1,21 @@
+/**
+ * Author:	Martin Vidner <mvidner@suse.cz>
+ * Summary:	make test data for UserSettings testing
+ * $Id$
+ */
+{
+    import "UserSettings";
+    import "UserDefs";
+    import "UserSettings";
+
+    UserDefs::encoding = Console::encoding;
+    y2milestone ("%1 %2", UserDefs::encoding, Console::encoding);
+    UserSettings::base_dir = ".";
+    UserSettings::ReadPasswdFromDisk ();
+    UserSettings::ReadGroupFromDisk ();
+    // *.raw: replace ", " by ",\n" and rename to *.out
+    SCR::Write (.target.ycp, "./tests/users.ycp.raw",
+		UserSettings::current_users);
+    SCR::Write (.target.ycp, "./tests/groups.ycp.raw",
+		UserSettings::current_groups);
+}

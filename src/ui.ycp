@@ -192,7 +192,6 @@ Select which one to configure.
 	    return UI::PollInput () == `abort;
 	};
 
-	boolean read_aborted = false;
 	// progress caption
 	string caption = _("Initializing user and group configuration");
 	integer no_of_steps = 5;
@@ -229,10 +228,9 @@ Select which one to configure.
 	if ( useUI )
 	{
 	    Progress::NextStage ();
-	    read_aborted = eval (abort);
-	    if (read_aborted)
+	    if (eval (abort))
 	    {
-		return !read_aborted;
+		return `abort;
 	    }
 	}
 
@@ -247,10 +245,9 @@ Select which one to configure.
 	if ( useUI )
 	{
 	    Progress::NextStage ();
-	    read_aborted = eval (abort);
-	    if (read_aborted)
+	    if (eval (abort))
 	    {
-		return !read_aborted;
+		return `abort;
 	    }
 	}
 
@@ -266,18 +263,47 @@ Select which one to configure.
 	if( useUI )
 	{
 	    Progress::NextStage ();
-
-	    read_aborted = eval (abort);
-	    if (read_aborted)
+	    if (eval (abort))
 	    {
-		return !read_aborted;
+		return `abort;
 	    }
 	}
-	boolean settings = UserSettings::ReadSettingsFromDisk(true);
+
+	boolean settings = UserSettings::ReadConfigurationType (true) &&
+	    UserSettings::ReadPasswdFromDisk ();
 	if ( (! settings) && UserSettings::aborted)
 	{
 	    return `abort;
 	}
+
+	// read group settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+	settings = UserSettings::ReadGroupFromDisk () && settings;
+
+	// read password settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+	settings = UserSettings::ReadGshadowFromDisk ()
+	    && UserSettings::ReadShadowFromDisk ()
+	    && settings;
+
+	// increase the progress to "finish"
+	if( useUI ) Progress::NextStage ();
 
 	if ( ! settings )
 	{
@@ -285,32 +311,7 @@ Select which one to configure.
 	    Report::Error (_("Cannot read the user settings."));
 	}
 
-	// read group settings
-	if( useUI )
-	{
-	    Progress::NextStep ();
-	    read_aborted = eval (abort);
-	    if (read_aborted)
-	    {
-		return !read_aborted;
-	    }
-	}
-
-	// read password settings
-	if( useUI )
-	{
-	    Progress::NextStep ();
-	    read_aborted = eval (abort);
-	    if (read_aborted)
-	    {
-		return !read_aborted;
-	    }
-	}
-
-	// increase the progress to "finish"
-	if( useUI ) Progress::NextStage ();
-
-	return ( !read_aborted? `next : `abort );
+	return `next;
     }
 
 
@@ -324,7 +325,6 @@ Select which one to configure.
     global define symbol usersUsersDialog() ``{
 	start_dialog              ="users";
 	user_in_work = $[];
-	list usersList = UserSettings::UsersRead(`items ,view_all_users );
 
 	term contents =
 	    `VBox(rbUsersGroup(`users),
@@ -335,7 +335,7 @@ Select which one to configure.
 			// table header
 			 _("UID"),
 			// table header
-			 _("Groups")), usersList ),//UserSettings::UsersRead(`items ,view_all_users )),
+			 _("Groups")), [] ), // defer the reading until the dialog is displayed
 		  // not only sysem user
 		  // checkbox
 		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system users"), view_all_users )),
@@ -360,6 +360,8 @@ Select which one to configure.
 			             UI::BackButtonLabel(),
 				     lastbutton );
 
+	list usersList = UserSettings::UsersRead (`items ,view_all_users );
+	UI::ChangeWidget (`id (`user_table), `Items, usersList);
 
 	if( focusline_user != 0)
 	    UI::ChangeWidget(`id(`user_table), `CurrentItem, focusline_user );
@@ -1578,7 +1580,7 @@ Do you really want to delete the user %1?
 			 _("Group ID"),
 			// table header
 			 _("Group members")),
-		         UserSettings::GroupsRead(`items, view_all_groups) ),
+			 []),// defer the reading until the dialog is displayed
 			// check box
 		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system groups"), view_all_groups )),
 
@@ -1606,6 +1608,8 @@ Do you really want to delete the user %1?
 			             UI::BackButtonLabel(),
 				     lastbutton );
 
+	UI::ChangeWidget (`id (`group_table), `Items,
+			  UserSettings::GroupsRead(`items, view_all_groups));
 	if( focusline_group != 0 )
 	    UI::ChangeWidget(`id(`group_table), `CurrentItem, focusline_group );
 
@@ -1744,8 +1748,8 @@ Do you really want to delete the user %1?
 		    string pw2            = UI::QueryWidget(`id(`pw2),       `Value);
 		    string new_groupname  = UI::QueryWidget(`id(`groupname), `Value);
 		    string new_gid        = UI::QueryWidget(`id(`gid),       `Value);
-		    list_userlist         = UI::QueryWidget(`id(`userlist),  `SelectedItems );
-		    string new_userlist   = mergestring( list_userlist, "," );
+		    list(string) new_users= UI::QueryWidget(`id(`userlist),  `SelectedItems );
+		    string new_userlist   = mergestring( new_users, "," );
 
 
 
@@ -1906,96 +1910,50 @@ Please try again."));
 		    // need for update /etc/gshadow
 		    if( pw1 == "" ) password = "*";
 
+		    /*
+		      There was a lot of code here to check that `userlist
+		      is valid input. Most of it is now obsolete because
+		      it is now a multi-selection box, not a text-entry box.
+		      We also assume that the input to this routine was valid.
+		    */
 
-		    if ( userlist != new_userlist )
-		    {
-			// remove last ,
-			list new_users = splitstring(new_userlist , "," );
-			new_users   = filter(`k, new_users , ``( k != ""));
+		    // Find out which users were added and deleted:
+		    // added users will have a +1, deleted ones a -1,
+		    // unchanged ones a 0
+		    list old_users = splitstring (userlist, ",");
+		    map diff_users = listmap (string u, old_users, ``([u, -1]));
+		    foreach (string u, new_users, ``{
+			diff_users[u] = diff_users[u]:0 + 1;
+		    });
 
-			//if two entries for one users in new_users delete one
-			list tmp_new_users  = new_users;
-			list double_entries = [];
-			foreach( `new_user, tmp_new_users , ``{
-			    if ( (size( filter(`k, tmp_new_users , ``( k == new_user ))) > 1 ) &&
-				 ( ! contains( double_entries, new_user) ))
-			    {
-				double_entries =  add( double_entries ,  new_user );
-				new_users = filter(`k, new_users , ``( k != new_user ));
-				new_users  = add( new_users , new_user );
-
-
-			    }
-			});
-			new_userlist  = mergestring( new_users ,",");
-
-			if( nil == findfirstnotof( new_userlist ,  UserDefs::valid_grouplist_chars ) ) // the same as valid_userlist_chars
+		    boolean all_ok = true;
+		    string more_users = lookup (UserSettings::GetGroup (gid),
+						"userlist", "");
+		    foreach (string user, integer action, diff_users, ``{
+			if (action < 0)
 			{
-
-			    boolean all_found = true;
-
-			    foreach( `new_user, new_users , ``{
-
-				boolean found = false;
-				foreach(`key, `exist_user, UserSettings::current_users, ``{
-
-				    if( lookup( exist_user, "username", "") == new_user )
-				    {
-					found = true;
-				    }
-				});
-				if ( found == false )
-				{
-				    if ( new_user != "")
-				    {
-					// error popup
-					Report::Error(_("You can only assign the group
-users that really exists.
-Please try again."));
-					UI::SetFocus(`id(`userlist));
-					all_found = false;
-				    }
-				}
-
-
-
-			    });
-			    if (!all_found) continue;
-
-			    // delete something
-			    if( size( userlist ) > size( new_userlist) )
+			    // The substring comparison is not entirely
+			    // correct but this whole thing
+			    // is too broken anyway.
+			    if (!issubstring (more_users, user))
 			    {
-				list old_users = splitstring( userlist, "," );
-				foreach(`old_user, old_users, ``{
-
-				    if( ! issubstring( new_userlist, old_user ) )
-				    {
-					// some user was deleted by the user
-					if(   issubstring( UserSettings::FindUsersBelongGroup( gid, `string ), old_user ) &&
-					      ( !issubstring(lookup( UserSettings::GetGroup( gid ),  "userlist", ""), old_user )))
-					{
-						// error popup
-					    string error_text = sformat(_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group"), old_user );
-					    Report::Error(error_text );
-					    UI::ChangeWidget(`id(`userlist), `Value, userlist);
-					    UI::SetFocus(`id(`userlist));
-					    all_found = false;
-					}
-				    }
-				});
-			    }
-			    if (!all_found) continue;
-			}
-			else
-			{
 				// error popup
-			    Report::Error(_("Syntax in Members of this group is not ok.
-Please try again."));
-			    UI::SetFocus(`id(`userlist));
-			    continue;
+				string error_text = sformat (_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), user );
+				Report::Error (error_text);
+				// wrong (it is a multiselbox)
+				// and useless (better let the user back out)
+				//UI::ChangeWidget(`id(`userlist), `Value, userlist);
+				UI::SetFocus (`id (`userlist));
+				all_ok = false;
+			    }
 			}
+		    });
+		    if (!all_ok)
+		    {
+			continue;
 		    }
+
 
 		    // check the uid
 		    if( new_gid != sformat("%1", gid) )

@@ -364,10 +364,12 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	       // add users to the group
 	       if ( userlist != "" )
 	       {
+		   map ubn = UserSettings::UsersByName ();
+		   map gbu = UserSettings::SortGroupsByUsers ();
 		   list split_userlist = splitstring( userlist , "," );
 		   foreach ( `user, split_userlist, ``{
-		       integer uid = UserSettings::GetUid (user);
-		       string new_G = UserSettings::FindGroupsBelongUser(user);
+		       integer uid = ubn[user]:UserDefs::max_uid;
+		       string new_G = UserSettings::FindGroupsBelongUserHint (user, gbu);
 		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
 		       else new_G  = new_groupname;
 		       AddTodo( sformat(usermod + " -G '%1' %2", new_G, user ),
@@ -382,53 +384,54 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	       // modify a existing group
 	       string old_groupname = UserSettings::GetGroupname( old_gid );
 
-	       if ( UserSettings::GetUserlist( old_gid ) != userlist )
+	       // it was compared against userlist, bug 20360
+	       if ( UserSettings::GetUserlist( old_gid ) != new_userlist )
 	       {
 
 		   string old_userlist       = UserSettings::GetUserlist( old_gid );
 		   list   old_split_userlist = splitstring( old_userlist, ",");
-		   list       split_userlist = splitstring(     userlist, ",");
-		   symbol add_or_delete      = `add;
-		   list  work_userlist       = [];
+		   list       split_userlist = splitstring( new_userlist, ",");
 
+		   // Fix bug 20363:
+		   // Find out which users to add and delete:
+		   // added users will have a +1, deleted ones a -1,
+		   // unchanged ones a 0
+		   map diff_users = listmap (string u, old_split_userlist, ``(
+						 [ u, -1 ]
+						 ));
+		   foreach (string u, split_userlist, ``{
+		       diff_users[u] = diff_users[u]:0 + 1;
+		   });
 
-		   if ( size ( old_userlist ) < size( userlist ) )
-		   {
+		   map ubn = UserSettings::UsersByName ();
+		   map gbu = UserSettings::SortGroupsByUsers ();
+
+		   foreach (string user, integer action, diff_users, ``{
+		       if (action > 0)
 		       //add users to group
-		       foreach(`user, split_userlist ,``{
-			   if( !contains( old_split_userlist, user) ) work_userlist = add( work_userlist, user );
-		       });
-
-		       foreach( `user, work_userlist, ``{
-			    integer uid = UserSettings::GetUid (user);
-			   string new_G = UserSettings::FindGroupsBelongUser(user);
+		       {
+			   integer uid = ubn[user]:UserDefs::max_uid;
+			   string new_G = UserSettings::FindGroupsBelongUserHint (user, gbu);
 			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
 			   else new_G  = old_groupname;
 			   AddTodo( sformat(usermod + " -G '%1' %2", new_G , user ),
 					 `edit_user,
 					// error popup, %1 is username, %2 groupname
 					 sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
-		       });
-		   }
-		   else
-		   {
+		       }
+		       else if (action < 0)
 		       //delete users from group
-		       add_or_delete = `delete;
-		       foreach(`user, old_split_userlist ,``{
-			   if( !contains( split_userlist, user) ) work_userlist = add( work_userlist, user );
-		       });
-		       foreach( `user, work_userlist, ``{
-			    integer uid = UserSettings::GetUid (user);
-			   string new_G      = UserSettings::FindGroupsBelongUser(user );
+		       {
+			   integer uid = ubn[user]:UserDefs::max_uid;
+			   string new_G = UserSettings::FindGroupsBelongUserHint (user, gbu);
 			   list   new_G_list = splitstring( new_G , "," );
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
 			   AddTodo( sformat(usermod + " -G '%1' %2", new_new_G, user ),
 					 `edit_user,
 					// error popup, %1 is username, %2 groupname
 					 sformat(_("Can't add user %1 to group %2"), user, new_new_G), `user, uid);
-		       });
-
-		   }
+		       }
+		   });
 	       }
 
 	       if ( old_groupname != new_groupname )

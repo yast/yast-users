@@ -1,0 +1,23 @@
+/**
+ * Author:	Martin Vidner <mvidner@suse.cz>
+ * Summary:	test UserSettings::SortUsersByPrimaryGroup
+ * $Id$
+ */
+{
+    include "testsuite.ycp";
+    import "UserSettings";
+
+    UserSettings::current_users = SCR::Read (.target.ycp, "./tests/users.ycp.out");
+    UserSettings::current_groups = SCR::Read (.target.ycp, "./tests/groups.ycp.out");
+
+    TEST (``( UserSettings::SortUsersByPrimaryGroup () ), [], nil);
+
+    map group = UserSettings::current_groups[100]:$[]; // users
+    map prim = UserSettings::SortUsersByPrimaryGroup ();
+    TEST (``( UserSettings::FindUsersBelongGroupHint (group, prim) ), [], nil);
+
+    TEST (``( UserSettings::SortGroupsByUsers () ), [], nil);
+
+    map gbu = UserSettings::SortGroupsByUsers ();
+    TEST (``( UserSettings::FindGroupsBelongUserHint ("root", gbu) ), [], nil);
+}

@@ -1,4 +1,37 @@
 -------------------------------------------------------------------
+Wed Oct  2 14:25:28 CEST 2002 - mvidner@suse.cz
+
+- Improved the terrible performance for large numbers of users (#20072).
+- Fixed #20360 - an error popped up for each NIS user when renaming a group.
+- Fixed #20363 - could not add and remove users in a group at the same time.
+- Better progress reporting (verbose for 'yast2 users progress_enabled').
+- 2.6.30
+
+-------------------------------------------------------------------
+Tue Oct  1 11:30:23 CEST 2002 - jsrain@suse.cz
+
+- fixed sorting of users by UID (#17650)
+
+-------------------------------------------------------------------
+Tue Sep 17 16:02:06 CEST 2002 - lslezak@suse.de
+
+- fixed typo - write "blowfish" instead of "blowhish" to file
+  /etc/security/pam_pwcheck.conf (#19741)
+- version 2.6.29
+
+-------------------------------------------------------------------
+Tue Sep 17 14:49:42 CEST 2002 - mvidner@suse.de
+
+- Fixed untranslated help text in the control center (#19753).
+- 2.6.28
+
+-------------------------------------------------------------------
+Wed Sep 11 10:21:43 CEST 2002 - mvidner@suse.cz
+
+- When displaying only non-system groups, display also "users" (#19253).
+- 2.6.27
+
+-------------------------------------------------------------------
 Fri Sep  6 16:28:47 CEST 2002 - jsrain@suse.cz
 
 - fixed provides/obsoletes

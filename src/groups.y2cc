@@ -21,7 +21,7 @@ Group = Security
 Icon = sysadmin.png
 
 ; *one* *short* descriptive line for y2cc
-Helptext = // _("Edit and create groups")
+Helptext = _("Edit and create groups")
 
 ; arguments, seperated by space
 Arguments =  groups

@@ -87,17 +87,6 @@
     }
 
 
-    // ===== Open UI ==================================================
-    if( ! Mode::cont )
-    {
-	Wizard::CreateDialog();
-    }
-
-    // ===== Read all system settings =================================
-    if ( ReadDialog(! Mode::cont ) == `abort ) return `abort;
-
-
-
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
 	"users":         ``(usersUsersDialog()),
@@ -211,10 +200,24 @@
     ];
 
 
+    // ===== Open UI ==================================================
+    if( ! Mode::cont )
+    {
+	Wizard::CreateDialog();
+    }
 
 
+    symbol ret = nil;
+    // ===== Read all system settings =================================
+    if ( ReadDialog(! Mode::cont ) == `abort )
+    {
+	ret = `abort;
+    }
+    else
+    {
     // ===== Start the sequence =======================================
-    any ret = WizardSequencer(aliases, main_sequence);
+	ret = WizardSequencer(aliases, main_sequence);
+    }
 
     if( ! Mode::cont )
 	UI::CloseDialog();
