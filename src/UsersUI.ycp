@@ -225,10 +225,8 @@ global define map ChooseTemplates (list<string> user_templates, list<string> gro
 	    `VSpacing (0.5),
 	    group_templates == [] ? `Empty() : rb_groups,
             `HBox(
-              `PushButton (`id(`ok),`opt(`key_F10, `default),
-		Label::OKButton()),
-              // button label
-              `PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
+              `PushButton (`id(`ok),`opt(`default), Label::OKButton()),
+              `PushButton (`id(`cancel), Label::CancelButton())
             )),
 	`HSpacing (1))
 	);
