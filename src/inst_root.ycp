@@ -174,7 +174,7 @@ As a general rule of thumb, use DES if you are unsure.
                     _("Reenter the password for &verification:"), ""))
                )
              ),
-        `VSpacing(2),
+        `VSpacing(3),
         // push button
         `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
         `VStretch()
@@ -219,10 +219,10 @@ Valid password characters are letters, digits, blanks, and
 Do not forget this \"root\" password!
 </p>"));
 
- Wizard::CreateDialog(); // just a hack, only for testing
+// Wizard::CreateDialog(); // just a hack, only for testing
 
-// Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
- Wizard::SetContents(title, contents, helptext, true, true);
+ Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+// Wizard::SetContents(title, contents, helptext, true, true);
 
   if ("" == UI::QueryWidget(`id(`pw1), `Value))
     UI::SetFocus (`id (`pw1));
@@ -252,7 +252,6 @@ Do not forget this \"root\" password!
       if (ret == `expert)
       {
           expert_dialog();
-//          CallFunction(`expert_login());
 
           string pw1 = UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
