@@ -1905,7 +1905,7 @@ global define string ProposeUsername( string forename, string surname ) ``{
         else
         {
             string firstchar = substring(username, 0, 1);
-            if (firstchar < "a" || firstchar > "z")
+            if (firstchar < "A" || firstchar > "z")
                 username = default_login_name;
         }
     }
