@@ -13,6 +13,7 @@
   textdomain "users";
   import "Mode";
   import "Users";
+  import "UsersCache";
   import "Label";
 
   /**
@@ -70,7 +71,8 @@ To save the modified user and group setting to your system, press
 	// encryption type
 	"blowfish" : _("Blowfish")
     ];
-    string method = Users::encryptionMethod;
+    string method = Users::EncryptionMethod ();
+    /* TODO
     if (type == "ldap")
 	method = Users::ldap_encryption;
 
@@ -99,7 +101,8 @@ To ensure that the password was entered correctly,
 repeat it exactly in a second field. Do not forget your password.
 </p>
 ");
-    return help_text;
+    */
+    return "FIXME";
 
   }
 
@@ -405,7 +408,7 @@ internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
 warns you if you try to use an already set one.
 </p>
-"), Users::max_gid ["local"]:60000) +
+"), UsersCache::GetMaxGID ("local")) +
 	// help text 4/6
 		_("<p>
 <b>Enter a Password:</b>
@@ -456,7 +459,7 @@ the \"User ID\". For normal users, you should use
 a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
-"), Users::max_uid ["system"]:500 ) +
+"), UsersCache::GetMaxUID ("system") ) +
 
 	// help text 3/8
  _("<p>
@@ -612,8 +615,10 @@ The list of attributes is given by the value of \"objectClass\"
 (which is, by default,
 %2).
 </p>
-"), first, mergestring (what == "user" ?
-	Users::ldap_user_class : Users::ldap_group_class, ",")) +
+"), first, "FIXME" )
+// mergestring (what == "user" ?
+//	Users::ldap_user_class : Users::ldap_group_class, ","))
+ +
 
     // helptext 2/2
     _("<p>
