@@ -21,6 +21,9 @@ my $use_gui                     = 1;
 # if LDAP user/group management is initialized
 my $initialized 		= 0;
 
+# if settings from Ldap module were already read
+my $ldap_read 			= 0;
+
 # DN saying where the user (group) configuration (defaults etc.) is stored
 my $user_config_dn 		= "";
 my $group_config_dn 		= "";
@@ -175,12 +178,22 @@ sub ReadAvailable {
     return 0;
 }
 
+# read all necessary settings from Ldap module
+BEGIN { $TYPEINFO{ReadLdap} =  ["function", "boolean"];}
+sub ReadLdap {
+
+    $ldap_read = Ldap->Read();
+    return $ldap_read;
+}
+
 ##------------------------------------
 # Initializes LDAP connection and reads users and groups configuration
 # return value is error message
 sub Initialize {
 
-    Ldap->Read();
+    if (!$ldap_read) {
+	ReadLdap ();
+    }
     Ldap->SetGUI ($use_gui);
 
     my $ldap_mesg = Ldap->LDAPInit ();
@@ -1706,6 +1719,13 @@ sub SetGUI {
     my $self 		= shift;
     $use_gui 		= $_[0];
 }
+
+BEGIN { $TYPEINFO{SetLdapRead} = ["function", "void", "boolean"];}
+sub SetLdapRead {
+    my $self		= shift;
+    $ldap_read		= $_[0];
+}
+
 
 1
 # EOF
