@@ -536,7 +536,7 @@ is_nis_master = true;
 	    }
 
 	    if (ret && is_nis_master)
-		ret = (0 == SCR::Execute(.target.bash, "make -C /var/yp"));
+		ret = (0 == SCR::Execute(.target.bash, "/usr/bin/make -C /var/yp"));
 
 	    if( ret == true )
 	    {
