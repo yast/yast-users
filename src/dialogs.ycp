@@ -109,7 +109,7 @@ global define symbol EditUserDialog(string what) ``{
 
     term name_entries =
         // text entry
-	`TextEntry (`id(`fullname), _("Full User Name"), fullname);
+	`TextEntry (`id(`fullname), _("&Full User Name"), fullname);
     if (user_type == "ldap")
     {
 	name_entries = `VBox(
@@ -558,16 +558,18 @@ Press Details and edit the home directory."), home_path));
 		 Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
             {
 		// FIXME
-                // The login name contains uppercase
+                // The login name contains uppercase 1/3
 		string text = _("<p>
-You have used uppercase letters in the user login entry.</p>
-<p>
-This could cause the problem with delivering the mail
+You have used uppercase letters in the user login entry.</p>") +
+
+                // The login name contains uppercase 2/3
+_("<p>This could cause the problem with delivering the mail
 to this user, because mail systems generally don't
 support case sensitive names.<br>
-You could solve this problem by editing the alias table.</p>
-<p>
-Are you sure to use the entered value?</p>");
+You could solve this problem by editing the alias table.</p>") +
+
+                // The login name contains uppercase 3/3
+_("<p>Are you sure to use the entered value?</p>");
 
 		UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
 		    `VBox(
@@ -575,7 +577,7 @@ Are you sure to use the entered value?</p>");
 		    `RichText (`id(`rt), text),
 		    `CheckBox (`id(`ch), `opt(`notify),
 		    // checkbox label
-		    _("Don't show this message again")),
+		    _("Don't show this message &again")),
 		    `HBox(
 		    `PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
 		    `PushButton (`id(`no),`opt(`key_F9), Label::NoButton())

@@ -344,7 +344,7 @@ The mail for root will be forwarded to this user if you check the option \"Recei
 ") +
 
 	    // help text 5/7
-        _("Use <b>Additional users/groups</b> button to add more users or groups to your system.");
+        _("<p>Use <b>Additional users/groups</b> button to add more users or groups to your system.</p>");
     }
 
 	// help text 6/7
@@ -356,7 +356,7 @@ To see more details, such as the home directory or the user ID, click
 
 	// help text 6/6
     _("<p>
-When you want to edit various password settings of this user (e.g. expiration date) click on <b>Password settings</b> button.
+When you want to edit various password settings of this user (e.g. expiration date) click on <b>Password settings</b> button.</p>
 ");
     return help;
   }
@@ -564,7 +564,7 @@ Leave empty if this account never expires.</P>
 global define string AuthentizationDialogHelp() ``{
 
     // FIXME
-    string help_text = _("<b>FIXME!</b>") +
+    string help_text = _("FIXME!") +
 
     _("<p>
 <b>User Sources</b><br>
@@ -615,10 +615,10 @@ global define string LDAPSearchFilterPopupHelp() ``{
 
     return
     // helptext 1/4 - caption
-    _("<b>LDAP Search Filter Changes</b>") +
+    _("<p><b>LDAP Search Filter Changes</b></p>") +
 
     // helptext 2/4
-    _("<p>Here you can extend the search filters for users and groups in addition to the default search filters.") +
+    _("<p>Here you can extend the search filters for users and groups in addition to the default search filters.</p>") +
 
     // helptext 3/5
     _("<p>With the <b>From Server</b> button, you will load the filter values from LDAP Server, as they were entered in <b>YaST Ldap-client</b> module. If you are not connected yet, you will be asked for password.</p>") +
