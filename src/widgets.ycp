@@ -578,7 +578,6 @@ define void SummaryTableInit (string widget_id) ``{
 
 define any SummaryTableHandler (string widget_id, map event) ``{
 
-    y2internal ("---------- handle table, event: %1 ----", event);
     any ev_id = event["ID"]:nil;
 
     if (ev_id == "table")
@@ -618,7 +617,6 @@ define any SummaryTableHandler (string widget_id, map event) ``{
 	    else
             {
                 Users::SelectGroup (selected);
-		Users::EditGroup ($[]);
                 if (UsersCache::GetGroupType () == "nis")
                 {
                     // error popup
@@ -631,6 +629,10 @@ you must do it on server.
                 if (ev_id == `delete)
 		{
                     ev_id = DeleteGroupPopup();
+		}
+		else
+		{
+		    Users::EditGroup ($[]);
 		}
             }
         }
@@ -686,7 +688,7 @@ define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
 	UI::QueryWidget (`id (UsersCache::GetCurrentSummary ()),`Value))
     {
 	UsersCache::ChangeCurrentSummary ();
-	SummaryTableInit ("table");//FIXME is it OK to call it from here?
+	SummaryTableInit ("table");
 
 	UI::ReplaceWidget (`id(`rpfilter), `HBox(
             // MenuButton label
@@ -708,7 +710,6 @@ define void AdvancedButtonsInit (string widget_id) ``{
 
 define any AdvancedButtonsHandler (string widget_id, map event) ``{
 
-    y2internal ("---------- handle advanced, event: %1 ----", event);
     any ev_id			= event["ID"]:nil;
     string current_summary	= UsersCache::GetCurrentSummary ();
     if (current_summary == "users" &&
