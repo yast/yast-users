@@ -1296,13 +1296,14 @@ define map ExportUser (map user) ``{
     symbol type = user["type"]:`local;
     string full = user["fullname"]:"";
     string username = user["username"]:"";
-    map user_shadow = user ["shadow"]:$[];
+    map user_shadow = user ["shadow"]:shadow[type, username]:$[];
+    string pass = user_shadow["password"]:user ["password"]:"x";
     if (user_shadow != $[])
         user_shadow = remove (user_shadow, "password");
 
     return $[
         "encrypted":        user ["encrypted"]:true,
-        "user_password":    user ["password"]:"x",
+        "user_password":    pass,
         "username":         username,
         "forename":         SplitFullName (`forename, full, type),
         "surname":          SplitFullName (`surname, full, type),
