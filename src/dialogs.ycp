@@ -1644,13 +1644,26 @@ global define symbol DefaultsDialog() ``{
                     // combobox label
                     _("Default &Login Shell"), available_shells),
                 `VSpacing(0.5),
-                // text entry
-                `TextEntry( `id(`home), _("Path Prefix for &Home Directory"),
-                    home),
-                `VSpacing(0.5),
-                // text entry
-                `TextEntry( `id(`skel), _("&Skeleton for Home Directory"),skel),
-                `VSpacing(0.5),
+		`HBox(
+		    // text entry
+		    `TextEntry(`id(`home), _("Path Prefix for &Home Directory"),
+			home),
+		    `VBox(
+			`Label (""),
+			`PushButton(`id(`brow_h),`opt(`key_F6), _("Bro&wse..."))
+		    )
+		),
+		`VSpacing(0.5),
+		`HBox(
+		    // text entry
+		    `TextEntry(`id(`skel), _("&Skeleton for Home Directory"),
+			skel),
+		    `VBox(
+			`Label (""),
+			`PushButton(`id(`brow_s),`opt(`key_F7), _("Bro&wse..."))
+		    )
+		),
+		`VSpacing(0.5),
                 // text entry
                 `TextEntry( `id(`exp), _("Default E&xpiration Date"), exp_date),
                 `VSpacing(0.5),
@@ -1687,6 +1700,28 @@ global define symbol DefaultsDialog() ``{
         modified = false;
         ret = UI::UserInput();
         if (ret == `back || ret == `abort || ret == `cancel) break;
+	if ( ret == `brow_h)
+	{
+	    string dir = UI::QueryWidget(`id(`home),  `Value);
+	    if (SCR::Read(.target.size, dir ) == -1)
+		dir = home;
+	    dir = PopupDir (dir);
+	    if (dir != "")
+	    {
+		UI::ChangeWidget (`id(`home), `Value, dir);
+	    }
+	}
+	if ( ret == `brow_s)
+	{
+	    string dir = UI::QueryWidget(`id(`skel),  `Value);
+	    if (SCR::Read(.target.size, dir ) == -1)
+		dir = skel;
+	    dir = PopupDir (dir);
+	    if (dir != "")
+	    {
+		UI::ChangeWidget (`id(`skel), `Value, dir);
+	    }
+	}
         if (ret == `next)
         {
             new_home  = UI::QueryWidget(`id(`home),  `Value);
@@ -1700,11 +1735,34 @@ global define symbol DefaultsDialog() ``{
             {
                 if (SCR::Read(.target.dir, new_home ) == nil)
                 {
-                    Report::Error(_("The entered path prefix for home is not a directory.
+		    if (SCR::Read(.target.size, new_home ) != -1)
+		    {
+			Report::Error(_("The entered path prefix for home is not a directory.
 Try again.
 "));
-                    UI::SetFocus(`id(`home));
-                    continue;
+			UI::SetFocus(`id(`home));
+			continue;
+		    }
+		    else
+		    {
+			if (UI::YesNoPopup (_("Selected directory doesn't exist.
+Create it now?
+")))
+			{
+			    if (! SCR::Execute (.target.mkdir, new_home))
+			    {
+		                // error popup message
+				Report::Error (sformat (_("Unable to create directory '%1'."), new_home));
+				UI::SetFocus (`id(`home));
+				continue;
+			    }
+			}
+			else
+			{
+			    UI::SetFocus (`id(`home));
+			    continue;
+			}
+		    }
                 }
                 modified = true;
             }
