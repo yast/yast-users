@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb 11 00:49:18 CET 2003 - nashif@suse.de
+
+- Update shadow settings with new password when importing
+
+-------------------------------------------------------------------
 Mon Feb 10 17:09:33 CET 2003 - jsuchome@suse.de
 
 - check for Lan in inst_auth

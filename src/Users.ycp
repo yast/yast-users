@@ -969,8 +969,10 @@ define map ImportUser (map user) ``{
         {
             type = existing ["type"]:`system; // these should be system
             // change only imported values...
-            if (!haskey (user,"password_settings"))
+            if (!haskey (user,"password_settings")) {
                 user_shadow = shadow [type, username]:$[];
+				user_shadow["password"] = user ["user_password"]:existing["password"]:"x";
+		    }
             if (!haskey (user,"forename") && !haskey (user, "surname"))
                 fullname = existing["fullname"]:"";
             map ret = $[
