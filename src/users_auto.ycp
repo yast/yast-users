@@ -23,10 +23,7 @@
     textdomain "users";
 
     import "Users";
-//    import "./UsersCache";
     import "Wizard";
-//    include "users/ui.ycp";
-//    include "users/io.ycp";
     include "users/wizards.ycp";
     include "wizard/sequencer.ycp";
 
@@ -44,45 +41,63 @@
     }
     */
     list settings = [];
-    {
+
     integer i = 0;
     while (i < size (Args()))
     {
         if (is (Args (i), list) && nil != Args (i)) settings = Args (i);
         i = i + 1;
     }
-    }
+
+
+    // settings form /etc/default/useradd:
+    // can be set the new ones here:
+    map useradd_defaults  = $[
+        "group": "100",
+        "home": "/local_home",
+        "inactive": "-1",
+        "expire": "",
+        "shell": "/bin/bash",
+        "skel": "/etc/skel"
+    ];
+    // and passed to Import, or give empty map to Import and deafults
+    // will be read from the system
+
+
+    // Q: as parameter for Import, there should be always only local
+    // users/groups, or optionaly the system ones?
 
     map users = $[
-     `system: $[
-        0: $["fullname":"root", "gid":0, "grouplist":"mistni", "groupname":"root", "home":"/root", "org_home":"/root", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"11960", "max":"10000", "min":"0", "password":"Ncih21hF1IXI2", "warn":""], "shell":"/bin/bash", "uid":0, "username":"root"]
-        ],
      `local: $[
+        501:$["fullname":"A", "gid":100, "grouplist":"", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
+    ];
+    /*
+    map users = $[
         501:$["fullname":"A", "gid":100, "grouplist":"", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]
-        ]];
+    ];
+    */
 
     map shadow = $[
         "ab":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"],
-        "root":$["expire":"", "flag":"", "inact":"", "last_change":"11960", "max":"10000", "min":"0", "password":"Ncih21hF1IXI2", "warn":""]];
+    ];
 
     map groups = $[
-     `system: $[
-        0: $["gid":0, "groupname":"root", "more_users":"root", "password":"x", "userlist":""]
-        ],
      `local: $[
-        100:$["gid":100, "groupname":"users", "more_users":"ab", "password":"x", "userlist":""]
+        500:$["gid":500, "groupname":"some_group", "more_users":"", "password":"x", "userlist":"ab"]
         ]];
+    /*
+    map groups = $[
+        500:$["gid":500, "groupname":"some_group", "more_users":"", "password":"x", "userlist":"ab"]
+    ];
+    */
 
     map gshadow = $[
-        "root":$["disposer":"root", "password":"*", "userlist":""],
-        "users":$["disposer":"root", "password":"*", "userlist":""]];
+        "some_group":$["disposer":"root", "password":"*", "userlist":"ab"]];
 
-    settings = [ users, groups, shadow, gshadow ];
+    settings = [ users, groups, shadow, gshadow, useradd_defaults ];
 
     Users::Import ( settings );
-    y2milestone("Imported: (%1)", settings);
-
-    Users::ReadUsersCache(); // used for UI and helper structures
+//    y2milestone("Imported: (%1)", settings);
 
     /**
       * set contents of main Users dialog for autoinstallation
@@ -96,10 +111,10 @@
           `VSpacing(0.5),
           `HBox(
             // push button
-            `PushButton(`id(`configure), _("&Configure Users")),
+            `PushButton(`id(`configure), _("&Configure users and groups")),
             `HStretch(),
             // push button
-            `PushButton(`id(`reset), _("&Reset Configuration"))
+            `PushButton(`id(`reset), _("R&eset Configuration"))
             ),
           `VSpacing(1)
           );
@@ -109,16 +124,7 @@
     }
 
 
-    /* -- they are now in Users
-    string default_pw           = "******";
-    integer focusline_group = 0;
-    integer focusline_user  = 0;
-    boolean view_all_users  = false;
-    boolean view_all_groups = false;
-    */
-
-
-    Wizard::CreateDialog(); // just a hack, only for testing
+//    Wizard::CreateDialog(); // just a hack, only for testing
     set_contents();
     any result = nil;
     any ret = nil;
@@ -135,7 +141,7 @@
             settings = Users::Export ();
             y2milestone ("settings from Export: %1", settings);
         }
-        Users::Set(settings); // what is this for ?? something like Import??
+        Users::Set(settings); // why it is here ??
         set_contents();
     }
     else if ( ret == `reset)

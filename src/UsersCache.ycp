@@ -64,6 +64,7 @@ global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g)
     // this variables should be changed only when necessary
     user_custom_sets = cust_u;
     current_users = cust_u;
+
     foreach (`type, `usersmap, usermap, ``{
         if (homelists [type]:nil == nil)
             homelists = add (homelists, type, BuildHomeList(usersmap));

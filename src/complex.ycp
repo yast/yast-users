@@ -516,7 +516,8 @@ global define symbol DeleteUserPopup() ``{
     string org_home = Users::user_in_work["home"]:home;
     integer uid = Users::user_in_work["uid"]:Users::max_uid;
 
-    if (UsersCache::user_type == `nis)
+    // -- deleting ldap user should be possible...
+    if (UsersCache::user_type == `nis || UsersCache::user_type == `ldap)
     {
         // error popup
         Report::Message (sformat (_("Can't delete the user %1"), username));

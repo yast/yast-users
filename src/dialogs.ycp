@@ -1098,7 +1098,7 @@ global define symbol EditGroupDialog(symbol what ) ``{
     symbol  group_type  = Users::group_in_work["type"]:nil;
     list list_userlist = splitstring (userlist, ",");
     list list_more_users = splitstring (more_users, ",");
-//    list additional_users = [];
+    list additional_users = [];
     list removed = [];
 
     if (group_type == nil)
@@ -1121,7 +1121,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
         }
     }
 
-    /*
     // -- this could be also pre-builded, then changed via ChangeWidget ??
     foreach ( `type, `userset, UsersCache::usernamelists, ``{// not all sets??
         foreach ( `username, userset, ``{
@@ -1134,7 +1133,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
                     `item( `id(username), username, false));
         });
     });
-    */
 
     // make dialog
     term contents = `HBox(
@@ -1162,7 +1160,8 @@ global define symbol EditGroupDialog(symbol what ) ``{
             `VSpacing(1),
             // selection box label
             `MultiSelectionBox( `id(`userlist), _("&Members of this group"),
-                UsersCache::additional_users),
+                additional_users),
+//                UsersCache::additional_users),
             `VSpacing(1)
         ));
 
@@ -1172,9 +1171,10 @@ global define symbol EditGroupDialog(symbol what ) ``{
                         UI::BackButtonLabel(),
                         UI::NextButtonLabel());
 
-    // dfds
+    /*
     UI::ChangeWidget(`id(`userlist), `SelectedItems,
         union (list_more_users, list_userlist));
+    */
 
     if( what == `add_group && ! Mode::cont)
         // push button

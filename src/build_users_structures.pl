@@ -37,10 +37,10 @@ $uidlist_file       = $output_dir."/uidlist.ycp";
 $groupnamelist_file  = $output_dir."/groupnamelist.ycp";
 $gidlist_file       = $output_dir."/gidlist.ycp";
 
-$last_passwd_file = $output_dir."/last_passwd.ycp";
-$last_group_file = $output_dir."/last_group.ycp";
-$last_shadow_file = $output_dir."/last_shadow.ycp";
-$last_gshadow_file = $output_dir."/last_gshadow.ycp";
+$plus_passwd_file = $output_dir."/plus_passwd.ycp";
+$plus_group_file = $output_dir."/plus_group.ycp";
+$plus_shadow_file = $output_dir."/plus_shadow.ycp";
+$plus_gshadow_file = $output_dir."/plus_gshadow.ycp";
 
 # hash with the form: user => group1,group2
 %users_groups = ();
@@ -54,10 +54,10 @@ $last_gshadow_file = $output_dir."/last_gshadow.ycp";
 %groupnamelists = ();
 %homelists = ();
 
-$last_passwd = "";
-$last_group = "";
-$last_shadow = "";
-$last_gshadow = "";
+$plus_passwd = "";
+$plus_group = "";
+$plus_shadow = "";
+$plus_gshadow = "";
 
 #############################################
 # reading shadow, writing it as a YCP map and prepatin shadowmap structure
@@ -91,7 +91,7 @@ foreach (<SHADOW>)
     }
     else
     {
-        $last_shadow = $_;
+        $plus_shadow = $_;
     }
 }
 print YCP_SHADOW "]\n";
@@ -124,7 +124,7 @@ foreach (<GSHADOW>)
     }
     else
     {
-        $last_gshadow = $_;
+        $plus_gshadow = $_;
     }
 }
 print YCP_GSHADOW "]\n";
@@ -164,7 +164,7 @@ foreach (<GROUP>)
     else
     {
         chop $_; # remove additional ":"
-        $last_group = $_;
+        $plus_group = $_;
     }
 }
 
@@ -315,7 +315,7 @@ foreach $user (<PASSWD>)
     }
     else # the "+" entry
     {
-        $last_passwd = $user;
+        $plus_passwd = $user;
     }
 }
 
@@ -688,22 +688,22 @@ close YCP_GROUPNAMES;
 #############################################
 # save the possible "+" entries
 
-open LAST_GROUP, "> $last_group_file";
+open PLUS_GROUP, "> $plus_group_file";
 # print map or string ?? and what about the additional ":"?
-print LAST_GROUP "\"$last_group\"\n";
-close LAST_GROUP;
+print PLUS_GROUP "\"$plus_group\"\n";
+close PLUS_GROUP;
 
-open LAST_PASSWD, "> $last_passwd_file";
+open PLUS_PASSWD, "> $plus_passwd_file";
 # print map or string ?? and what about the additional ":"?
-print LAST_PASSWD "\"$last_passwd\"\n";
-close LAST_PASSWD;
+print PLUS_PASSWD "\"$plus_passwd\"\n";
+close PLUS_PASSWD;
 
-open LAST_SHADOW, "> $last_shadow_file";
+open PLUS_SHADOW, "> $plus_shadow_file";
 # print map or string ?? and what about the additional ":"?
-print LAST_SHADOW "\"$last_shadow\"\n";
-close LAST_SHADOW;
+print PLUS_SHADOW "\"$plus_shadow\"\n";
+close PLUS_SHADOW;
 
-open LAST_GSHADOW, "> $last_gshadow_file";
+open PLUS_GSHADOW, "> $plus_gshadow_file";
 # print map or string ?? and what about the additional ":"?
-print LAST_GSHADOW "\"$last_gshadow\"\n";
-close LAST_GSHADOW;
+print PLUS_GSHADOW "\"$plus_gshadow\"\n";
+close PLUS_GSHADOW;

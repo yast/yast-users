@@ -116,6 +116,18 @@ global define string Summary() ``{
 
     string ret = "Summary of users and groups:<br>";
 
+    // do not show system users/groups ??
+    ret = ret + "<p><i>Users:</i><p>";
+    foreach (`uid, `user, users [`local]:$[], ``{
+            ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
+                user["fullname"]:"" );
+    });
+    ret = ret + "<p><i>Groups:</i><p>";
+    foreach (`gid, `group, groups [`local]:$[], ``{
+            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
+    });
+
+    /*
     ret = ret + "<p><i>Users:</i><p>";
     foreach (`type, `usersmap, users, ``{
         foreach (`uid, `user, usersmap, ``{
@@ -128,6 +140,7 @@ global define string Summary() ``{
             ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
         });
     });
+    */
     return ret;
 }
 
@@ -137,7 +150,7 @@ global define string Summary() ``{
      * the list can't be  empty.
      * @param settings	A list of users to be added to the system
      * @return	success
-     */
+     *
 
     global define boolean ImportOld (list settings) ``{
 	foreach(`u , settings, ``{
@@ -187,20 +200,89 @@ global define string Summary() ``{
 	    }
 	});
 	return true;
-    }
+    }*/
 
 global define boolean Import (list settings) ``{
 
+    // in settings, only the local users/groups are assumed to be (??)
+y2milestone("importing: %1", settings);
+
     users = settings[0]:users;
     groups = settings[1]:groups;
-    shadow = settings[2]:shadow;
-    gshadow = settings[3]:gshadow;
 
+    if (settings[4]:$[] == $[])
+        ReadLoginDefaults();
+    else
+        useradd_defaults = settings[4]:$[];
+
+    ReadSystemDefaults();
+    RunPrepare(); // creates the files with data structures in tmpdir
+
+    // read the system users from /etc/passwd
+    if (users [`system]:nil == nil || users [`system]:nil == $[])
+    {
+        map passwd_users = ReadPasswd (tmpdir);
+        users [`system] = passwd_users [`system]:$[];
+        map passwd_users_by_name = ReadPasswdByName (tmpdir);
+        users_by_name [`system] = passwd_users_by_name[`system]:$[];
+    }
+    users_by_name [`local] = UsersByName (users [`local]:$[]);
+    plus_passwd = ReadPlusPasswd (tmpdir);
+
+    if (groups [`system]:nil == nil || groups [`system]:nil == $[])
+    {
+        map all_groups = ReadGroups (tmpdir);
+        groups [`system] = all_groups[`system]:$[];
+        groups_by_name = ReadGroupsByName (tmpdir);
+    }
+    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
+    plus_group = ReadPlusGroup(tmpdir);
+
+    shadow = union (ReadShadow (tmpdir), settings[2]:$[]);
+    plus_shadow = ReadPlusShadow(tmpdir);
+
+    gshadow = union (ReadGshadow (tmpdir), settings[3]:$[]);
+    plus_gshadow = ReadPlusGshadow(tmpdir);
+
+    // maybe the `system users/groups shouldn't be available??
+    available_usersets = [`local];
+    available_groupsets = [`local];
+    /*
+    available_usersets = add ( available_usersets, `custom);
+    available_groupsets = add ( available_groupsets, `custom);
+    */
+
+    ReadAllShells();
+    ReadDefaultGroup(false);
+
+    ReadUsersCache(false);
+
+    return true;
+}
+
+// this should reset the configuration?
+global define Set (list settings) ``{
+
+    users [`local] = settings[0, `local]:$[]; //set or union?
+    users_by_name [`local] = UsersByName (users [`local]:$[]);
+
+    groups [`local] = settings[1, `local]:$[];
+    groups_by_name = union (ReadGroupsByName (tmpdir),
+        GroupsByName (groups [`local]:$[]));
+
+    shadow = union (ReadShadow (tmpdir), settings[2]:$[]);
+    gshadow = union (ReadGshadow (tmpdir), settings[3]:$[]);
+
+    if (settings[4]:$[] != $[])
+        useradd_defaults = settings[4]:$[];
+
+    ReadUsersCache(false);
 }
 
 global define map Export() ``{
 
-    return [ users, groups, shadow, gshadow ];
+    return [ users, groups, shadow, gshadow, useradd_defaults ];
+// return only values for local users/groups ??
 }
 
 
@@ -334,10 +416,10 @@ global define map Export() ``{
     global list available_groupsets = [ `system, `local];
     global list available_groupsets_items = [];
 
-    string last_passwd = "";
-    string last_group = "";
-    string last_shadow = "";
-    string last_gshadow = "";
+    string plus_passwd = "";
+    string plus_group = "";
+    string plus_shadow = "";
+    string plus_gshadow = "";
 
     global map userset_to_string = $[
         `system:    "&System users",
@@ -501,9 +583,8 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
     gshadow = ReadGshadow(tmpdir);
 
     shadow = ReadShadow (tmpdir);
-//y2milestone("shadow:%1", shadow);
-    last_shadow = ReadLastShadow(tmpdir);
-    last_gshadow = ReadLastGshadow(tmpdir);
+    plus_shadow = ReadPlusShadow(tmpdir);
+    plus_gshadow = ReadPlusGshadow(tmpdir);
 
 	if ( (gshadow == nil) || (shadow == nil) )
     {
@@ -524,7 +605,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 
     groups = ReadGroups(tmpdir);
     groups_by_name = ReadGroupsByName(tmpdir);
-    last_group = ReadLastGroup(tmpdir);
+    plus_group = ReadPlusGroup(tmpdir);
 
 	if ( groups [`local]:nil == nil )
     {
@@ -555,7 +636,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
 
 SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 
-    last_passwd = ReadLastPasswd (tmpdir);
+    plus_passwd = ReadPlusPasswd (tmpdir);
     users_by_name = ReadPasswdByName (tmpdir);
 
 	if (users [`local]:nil == nil )
@@ -607,7 +688,8 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
     group_custom_sets = ReadGroupCustomSets();
 
     // There is no progress for this !!!
-    ReadOtherDefaults();
+    ReadAllShells();
+    ReadDefaultGroup(useUI);
 
 SCR::Execute(.target.bash, "touch /tmp/touch/5before_cache_read");
 	// build the cache
@@ -619,7 +701,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/5before_cache_read");
 		return `abort;
 	    }
 	}
-    ReadUsersCache();
+    ReadUsersCache(true);
 SCR::Execute(.target.bash, "touch /tmp/touch/6after_cache_read");
 
 	// increase the progress to "finish"
@@ -633,7 +715,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/7end_read");
 /**
   * Return map for mapping user names to UIDs
   * @return map mapping
-  *
+  */
 global define map UsersByName (map usermap) ``{
 	map res = mapmap (`k, `v, usermap, ``{
 	    return [ lookup (v, "username", ""), k ]; // only uid !!
@@ -643,13 +725,13 @@ global define map UsersByName (map usermap) ``{
 
 /**
   * @return map mapping
-  *
+  */
 global define map GroupsByName (map groupsmap) ``{
 	map res = mapmap (`k, `v, groupsmap, ``{
-	    return [ lookup (v, "groupname", ""), v ]; // only gid??
+	    return [ lookup (v, "groupname", ""), v ]; // whole map??
 	});
 	return res;
-}*/
+}
 
 /**
   * Patch list of groups for each user to it's structure
@@ -734,13 +816,17 @@ global define boolean WriteLoginDefaults()``{
     return ret;
 }
 
-// -- some better name
-define boolean ReadOtherDefaults()``{
+define boolean ReadAllShells()``{
 
     all_shells = GetAllShells (`stringlist);
     all_shells_items = GetAllShells (`items);
 
-    default_gid = GetDefaultGid();
+    return true;
+}
+
+define boolean ReadDefaultGroup(boolean useUI)``{
+
+    default_gid = GetDefaultGid(useUI);
     default_groupname = lookup (GetGroupFromAll(default_gid), "groupname","");
 
     return true;
@@ -899,12 +985,16 @@ global define symbol Write (block abort, boolean useUI)``{
 	}
     // add the edited or new users to modified_users
     modified_users = WritePasswd (write_dir, users [`system]:$[],
-        users[`local]:$[], last_passwd);
+        users[`local]:$[], plus_passwd);
 
     if (modified_users == nil)
     {
-		// error popup
-	    Report::Error (_("Cannot write passwd file."));
+        if ( useUI)
+            // error popup
+	        Report::Error (_("Cannot write passwd file."));
+        else
+            y2error ("Cannot write passwd file.");
+        modified_users = [];
     }
 
     // check for homedir changes
@@ -968,8 +1058,13 @@ global define symbol Write (block abort, boolean useUI)``{
     if (is_ldap_present)
     {
         if (! WriteLDAPUsers(users [`ldap]:$[]))
-            // error popup
-	        Report::Error (_("Cannot write ldap users."));
+        {
+            if (useUI)
+                // error popup
+	            Report::Error (_("Cannot write ldap users."));
+            else
+                y2error ("Cannot write ldap users.");
+        }
     }
 
     // shadow, gshadow
@@ -979,13 +1074,23 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    if (! WriteShadow(write_dir, shadow, last_shadow))
-        // error popup
-	    Report::Error (_("Cannot write shadow file."));
+    if (! WriteShadow(write_dir, shadow, plus_shadow))
+    {
+        if (useUI)
+            // error popup
+	        Report::Error (_("Cannot write shadow file."));
+        else
+            y2error ("Cannot write shadow file.");
+    }
 
-    if (! WriteGshadow(write_dir, gshadow, last_gshadow))
-        // error popup
-	    Report::Error (_("Cannot write gshadow file."));
+    if (! WriteGshadow(write_dir, gshadow, plus_gshadow))
+    {
+        if (useUI)
+            // error popup
+	        Report::Error (_("Cannot write gshadow file."));
+        else
+            y2error ("Cannot write gshadow file.");
+    }
 
     // group
 	if ( useUI )
@@ -995,12 +1100,17 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
     if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
-         last_group))
-        // error popup
-	    Report::Error (_("Cannot write group file."));
+         plus_group))
+    {
+        if (useUI)
+            // error popup
+	        Report::Error (_("Cannot write group file."));
+        else
+            y2error("Cannot write group file.");
+    }
     /*
     modified_groups = WriteGroup (write_dir, groups [`system]:$[],
-        groups[`local]:$[], last_group);
+        groups[`local]:$[], plus_group);
     foreach (`group, modified_groups, ``{
         // only the passwor change/set should be done here??
         // -no, in write Gshadow, don't need modified at all
@@ -1082,7 +1192,7 @@ global define string GetDefaultHome()``{
  * Return the default group id for a new user.
  * @return integer gid
  */
-global define integer GetDefaultGid()``{
+global define integer GetDefaultGid(boolean useUI)``{
 
     string def_gid  = useradd_defaults["group"]:"100";
     integer def_int = tointeger(def_gid);
@@ -1091,9 +1201,11 @@ global define integer GetDefaultGid()``{
     group = GetGroupFromAll (def_int);
     if( group == $[])
     {
-	    // error popup
-	    Report::Error(sformat(_("The default group with the id %1 does not exist.
+        if (useUI)
+	        // error popup
+	        Report::Error(sformat(_("The default group with the id %1 does not exist.
 Please change the default group in /etc/default/useradd."), def_int ));
+
 
 	    // TODO If group 100 does not exists ?
 	    return 100;
@@ -1369,6 +1481,9 @@ y2milestone("user : %1", user_in_work );
         list l_userlist = splitstring (userlist, ",");
 y2milestone("group: %1", group_in_work);
 
+        if (org_groupname == "")
+            org_groupname = groupname;
+
         if ( what_group == `add_group )
         {
             group_in_work ["modified"] = `added;
@@ -1508,7 +1623,7 @@ global define list ReadGroupCustomSets() ``{
     return [`local, `system];//, `nis];
 }
 
-global define boolean ReadUsersCache() ``{
+global define boolean ReadUsersCache(boolean read_prebuilded) ``{
 
     // this is ugly!! -- move it to Consts module !!
     UsersCache::max_uid         =    max_uid;
@@ -1534,17 +1649,33 @@ global define boolean ReadUsersCache() ``{
     current_groups = eval (group_custom_sets);
 
     // use the pre-builded structures also for cache
-    UsersCache::homelists = SCR::Read(.target.ycp, tmpdir + "/homelist.ycp");
-    UsersCache::usernamelists = SCR::Read(.target.ycp, tmpdir +
-        "/usernamelist.ycp");
-    UsersCache::uidlist = SCR::Read(.target.ycp, tmpdir + "/uidlist.ycp");
+    if (read_prebuilded)
+    {
+        UsersCache::homelists = SCR::Read(.target.ycp, tmpdir +
+            "/homelist.ycp");
+        UsersCache::usernamelists = SCR::Read(.target.ycp, tmpdir +
+            "/usernamelist.ycp");
+        UsersCache::uidlist = SCR::Read(.target.ycp, tmpdir + "/uidlist.ycp");
 
-    UsersCache::groupnamelists = SCR::Read(.target.ycp, tmpdir +
-        "/groupnamelist.ycp");
-    UsersCache::gidlist = SCR::Read(.target.ycp, tmpdir + "/gidlist.ycp");
+        UsersCache::groupnamelists = SCR::Read(.target.ycp, tmpdir +
+            "/groupnamelist.ycp");
+        UsersCache::gidlist = SCR::Read(.target.ycp, tmpdir + "/gidlist.ycp");
 
-    UsersCache::additional_users = SCR::Read(.target.ycp, tmpdir +
-         "/additional_users.ycp");
+        // is it better ??
+        /*
+        UsersCache::additional_users = SCR::Read(.target.ycp, tmpdir +
+             "/additional_users.ycp");
+        */
+    }
+    else // build the structures in UsersCache module
+    {
+        UsersCache::homelists = $[];
+        UsersCache::usernamelists = $[];
+        UsersCache::uidlist = [];
+        UsersCache::groupnamelists = $[];
+        UsersCache::gidlist = [];
+
+    }
 
     UsersCache::Read (users, groups, current_users, current_groups);
 
