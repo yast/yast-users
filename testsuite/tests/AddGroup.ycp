@@ -14,9 +14,10 @@
  */
 
 {
+    include "testsuite.ycp";
+
     // testedfiles: Users.pm
 
-    include "testsuite.ycp";
     import "Users";
     import "UsersCache";
     import "Mode";
@@ -25,6 +26,13 @@
     import "Report";
 
     map READ = $[
+	"product": $[
+		"features": $[
+		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
 	"passwd": $[
 	    "local": $[
 		"users": $[

@@ -85,7 +85,14 @@
 	"etc" : $[
 	    "fstab": [],
 	    "cryptotab": [],
-	]
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
     ];
     map WRITE = $[];
     map EXEC = $[
