@@ -3250,10 +3250,13 @@ sub CommitUser {
         if (!defined $user{"modified"}) {
             $user{"modified"}	= "edited";
 	}
+	my $group_type	= $type;
+	if ($type eq "nis") {
+	    $group_type	= "system";
+	}
         # check the change of additional group membership
         foreach my $group (keys %grouplist) {
-
-            %group_in_work = %{$self->GetGroupByName ($group, $type)};
+            %group_in_work = %{$self->GetGroupByName ($group, $group_type)};
             if (%group_in_work) {
 	        # username changed - remove org_username
 	        if ($org_username ne $username) {
