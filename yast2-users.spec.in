@@ -2,7 +2,7 @@
 # neededforbuild yast2-devel-packages yast2-country yast2-installation
 
 @HEADER@
-Requires:	yast2 yast2-country yast2-pam
+Requires:	yast2 yast2-country yast2-pam yast2-security
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 
