@@ -14,9 +14,11 @@ textdomain "users";
 
 import "Wizard";
 import "Mode";
-
 import "Popup";
 import "Label";
+
+import "UsersCache";
+
 include "wizard/sequencer.ycp";
 
 include "users/complex.ycp";
@@ -29,7 +31,7 @@ import "CWM";
 include "users/widgets.ycp";
 
 
-global define symbol UsersDialog() ``{
+global define symbol SummaryDialog() ``{
 
     term contents = `VBox (
 	`HBox (`Left ("rb_users_groups")),
@@ -46,6 +48,24 @@ global define symbol UsersDialog() ``{
 	$[]
     );
     y2internal ("Summary ret: -%1-", ret);
+    if (ret != nil && contains ([`new, `edit, `delete], ret))
+    {
+	map update_symbol = $[
+	    `new: $[
+		"users" : `new_user,
+		"groups": `new_group
+	    ],
+	    `edit: $[
+		"users" : `edit_user,
+		"groups": `edit_group
+	    ],
+	    `delete: $[
+		"users" : `delete_user,
+		"groups": `delete_group
+	    ]
+	];
+	ret = update_symbol [ret, UsersCache::GetCurrentSummary ()]:`back;
+    }
 
     return (symbol) ret;
 }
@@ -141,7 +161,8 @@ global define symbol CWMEditUserDialog (string what) ``{
 global define symbol MainSequence(string start) ``{
 
     map aliases = $[
-	"users":            ``(UsersDialog()),
+	"summary":		``(SummaryDialog ()),
+//	"users":            ``(UsersDialog()),
 	"user_add":         ``(EditUserDialog("add_user")),
 	"user_add_inst":    ``(EditUserDialog("add_user")),
 	"user_inst_start":  [``(usersInstStart ()), true],
@@ -152,7 +173,7 @@ global define symbol MainSequence(string start) ``{
 	"user_save":        [``(UserSave()), true],
 	"user_setup":	    [ ``(userSetup ()), true],
 
-	"groups":           ``(GroupsDialog()),
+//	"groups":           ``(GroupsDialog()),
 	"group_add":        ``(EditGroupDialog("add_group")),
 	"group_edit":       ``(EditGroupDialog("edit_group")),
 	"group_ldap":		``(LDAPSettingsDialog("group")),
@@ -165,6 +186,22 @@ global define symbol MainSequence(string start) ``{
 
     map main_sequence = $[
     "ws_start":             start,
+    "summary":$[
+	    `new_user		: "user_add",
+	    `edit_user		: "user_edit",
+	    `delete_user	: "user_save",
+	    `new_group		: "group_add",
+	    `edit		: "group_edit",
+            `delete		: "group_save",
+            `defaults		: "defaults",
+	    `auth		: "auth",
+	    `abort		: "without_save",
+	    `cancel		: "without_save",
+	    `next		: `next,
+            `nosave		: `nosave,
+	    `exit		: `abort
+    ],
+    /*
     "users":$[
             `switch_groups:	"groups",
             `users:		"users",
@@ -178,9 +215,11 @@ global define symbol MainSequence(string start) ``{
 	    `cancel:		"without_save",
             `nosave:		`nosave,
 	    `exit:		`abort ],
+    */
     "user_add": $[
             `nextmodule:	`next,
-	    `nosave:		"users",
+	    `nosave		: "summary",
+//	    `nosave:		"users",
 	    `additional:	"user_setup", // only install
 	    `next:		"user_save",  // -> Commit
 	    `details:		"user_details",
@@ -188,17 +227,20 @@ global define symbol MainSequence(string start) ``{
 	    `ldap:		"user_ldap",
 	    `abort:		"without_save",
 	    `cancel:		"without_save",
-	    `back:		"users" ],
+//	    `back:		"users"
+    ],
     "user_add_inst": $[
             `nextmodule:    `next, // no user and next pressed (install)
-            `nosave:        "users", // no "first user" was added (install)
+            `nosave		: "summary",//no "first user" was added(install)
+//            `nosave:        "users", // no "first user" was added (install)
             `additional:    "user_setup",
             `next:          "user_save",
             `details:       "user_details",
             `passwordsettings:  "user_password",
             `abort:         "without_save",
             `cancel:        "without_save",
-            `back:          "users" ], // is it OK ??
+//            `back:          "users"
+    ], // is it OK ??
     "user_edit": $[
             `next:		"user_save",
 	    `details:		"user_details",
@@ -229,8 +271,11 @@ global define symbol MainSequence(string start) ``{
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit"],
     "user_save": $[
-            `next:	        "users",
-	    `save:          `next], // this should be write - during install ??
+//            `next:	        "users",
+            `next		: "summary",
+	    `save		: `next//this should be write - during install??
+    ],
+    /*
     "groups": $[
             `switch_users:  "users",
 	    `new:           "group_add",
@@ -241,13 +286,16 @@ global define symbol MainSequence(string start) ``{
 	    `cancel:        "without_save",
             `nosave:        `nosave,
 	    `exit:          `abort ],
+    */
     "group_add": $[
-	    `nosave:		"groups",
+	    `nosave		: "summary",
+//	    `nosave:		"groups",
             `next:		"group_save",
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `ldap:		"group_ldap",
-	    `back:		"groups" ],
+//	    `back:		"groups"
+    ],
     "group_edit": $[
             `next:		"group_save",
             `cancel:		"without_save",
@@ -257,17 +305,24 @@ global define symbol MainSequence(string start) ``{
 	    `next:		"group_save",
 	    `abort:		"without_save" ],
     "group_save"  : $[
-            `next:		"groups"],
-	"defaults": $[
-	    `abort:         "without_save",
-            `next:          "users"],
-        "auth": $[
-	    `abort:         "without_save",
-            `next:          "users"],
-	"without_save": $[
-            `next  :        `next,
-	    `abort :        `abort,
-	    `back  :        `back   ],
+//            `next		: "groups"
+            `next		: "summary"
+    ],
+    "defaults": $[
+	    `abort		: "without_save",
+//            `next:          "users"
+            `next		: "summary"
+    ],
+    "auth": $[
+	    `abort		: "without_save",
+//            `next:          "users"
+            `next		: "summary"
+    ],
+    "without_save": $[
+            `next		: `next,
+	    `abort		: `abort,
+	    `back		: `back
+    ],
     ];
 
     return WizardSequencer(aliases, main_sequence);

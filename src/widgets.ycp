@@ -25,7 +25,7 @@ global define symbol DeleteUserPopup() ``{
     {
         // error popup
         Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
-        return `not_next;
+        return nil;
     }
 
     // if the user has log on system
@@ -36,7 +36,7 @@ global define symbol DeleteUserPopup() ``{
         Report::Error(_("You can not delete this user, because the user is present.
 Please log off the user first."));
         delete = false;
-        return `not_next;
+        return nil;
     }
 
     boolean no_home = false;
@@ -87,8 +87,9 @@ Please log off the user first."));
 
             UI::OpenDialog(`opt( `decorated ), contents );
             any ret  = UI::UserInput();
-            delete_home = (ret == `ok) &&
-		(boolean) UI::QueryWidget (`id(`delete_home), `Value);
+	    if (ret != `ok)
+		delete = false;
+            delete_home = (boolean) UI::QueryWidget (`id(`delete_home), `Value);
 
             UI::CloseDialog();
         }
@@ -108,30 +109,72 @@ Do you really want to delete the user %1?
 	Users::DeleteUser (delete_home);
         return `delete;
     }
-    return `not_next;
+    return nil;
 }
 
+/**
+ * Popup for deleting group
+ * @return symbol for sequencer
+ */
+global define symbol DeleteGroupPopup() ``{
+
+    boolean delete	= true;
+    string type		= UsersCache::GetGroupType ();
+    map group		= Users::GetCurrentGroup ();
+    integer gid		= group["gid"]:-1;
+
+    // if no user is in this group
+    if (group["userlist"]:$[] == $[] &&
+        group["more_users"]:$[] == $[] &&
+        group["uniqueMember"]:$[] == $[])
+    {
+        //if the group is a system group ask the user ..
+        if (type == "system")
+        {
+            // yes-no popup headline
+            if(!Popup::YesNoHeadline(_("The marked group is a system group."),
+		/// yes-no popup contents
+		_("Really delete this group?")))
+	    {
+                return nil;
+	    }
+        }
+        else
+        {
+            // yes-no popup, %1 si group name
+            if (! Popup::YesNo(sformat(_("
+Do you really want to delete the group %1?
+"), group["groupname"]:"")))
+	    {
+                return nil;
+	    }
+        }
+    }
+    else
+    {
+        // warning popup
+        Popup::Warning(_("You cannot delete this group because
+there are users in the group.
+Remove these users from the group first.
+"));
+        return nil;
+    }
+
+    Users::DeleteGroup ();
+    return `delete;
+}
 
 //================================================================
 
 
-global define void RadioButtonsUsersGroupsInit (string widget_id) ``{
-
-    y2internal ("---------- init rb ---- (%1)", widget_id);
-
-    UI::ChangeWidget (`id (UsersCache::GetCurrentSummary ()), `Value, true);
-
-}
-
-global define void RadioButtonsUsersGroupsHandler (string widget_id) ``{
-
-    y2internal ("---------- handle rb ----");
-}
-
 global define void SummaryTableInit (string widget_id) ``{
 
     y2internal ("---------- init table ----");
-    list items = maplist (string s_item, UsersCache::GetUserItems (), ``{
+    list items			= [];
+    string current_summary	= UsersCache::GetCurrentSummary ();
+    if (current_summary == "users")
+    {
+	items = maplist (string s_item, UsersCache::GetUserItems (), ``{
 	list l_item = splitstring (s_item, "\"");
 	term t_item = `item (
 	    `id (tointeger ((string)(l_item[5]:"0"))),
@@ -140,9 +183,51 @@ global define void SummaryTableInit (string widget_id) ``{
 	    l_item[5]:"",
 	    l_item[7]:"");
 	return t_item;
-    });
+	});
+	UI::ReplaceWidget (`id(`rptable),
+	    `Table (`id("table"), `opt(`notify), `header(
+		// table header
+		_("Login"),
+		// table header
+		_("Name"),
+		// table header
+		_("UID"),
+		// table header
+		_("Groups")), [] )
+	);
+    }
+    else
+    {
+	items = maplist (string s_item, UsersCache::GetGroupItems (), ``{
+y2internal ("s_item: %1", s_item);
+	list l_item = splitstring (s_item, "\"");
+y2internal ("l_item: %1", l_item);
+	term t_item = `item (
+	    `id (tointeger ((string)(l_item[3]:"0"))),
+	    l_item[1]:"",
+	    l_item[3]:"",
+	    l_item[5]:"");
+	return t_item;
+	});
+	UI::ReplaceWidget (`id(`rptable),
+	    `Table (`id("table"), `opt(`notify), `header(
+		// table header
+		_("Group name"),
+		// table header
+		_("Group ID"),
+		// table header
+		_("Group members")), [] )
+	);
+    }
     UI::ChangeWidget (`id(widget_id), `Items, items);
-
+    if (size (items) > 0)
+    {
+	UI::SetFocus (`id(widget_id));
+	integer focusline = UsersCache::GetCurrentFocus ();
+	if (focusline != nil)
+	    UI::ChangeWidget (`id(widget_id), `CurrentItem, focusline);
+	// FIXME not called after Add/Edit?
+    }
 }
 
 global define any SummaryTableHandler (string widget_id, map event) ``{
@@ -156,24 +241,56 @@ global define any SummaryTableHandler (string widget_id, map event) ``{
     }
     if (ev_id == `new)
     {
-//	Users::ResetCurrentUser ();
-	Users::AddUser ($[]);
-//	Users::CheckUID () existence TODO
+	if (UsersCache::GetCurrentSummary () == "users")
+	{
+//		Users::ResetCurrentUser ();
+	    Users::AddUser ($[]);
+//		Users::CheckUID () existence TODO
+	}
+	else
+	{
+	    Users::AddGroup ($[]);
+	}
     }
     if (ev_id == `edit || ev_id == `delete)
     {
         any selected = UI::QueryWidget (`id("table"), `CurrentItem);
         if (selected != nil)
         {
-            Users::SelectUser ((integer)selected);
-            if (ev_id == `delete)
+	    if (UsersCache::GetCurrentSummary () == "users")
 	    {
-		ev_id = DeleteUserPopup ();
+		Users::SelectUser ((integer)selected);
+		if (ev_id == `delete)
+		{
+		    ev_id = DeleteUserPopup ();
+		}
+		else
+		{
+		    Users::EditUser ($[]);
+		}
 	    }
 	    else
-	    {
-		Users::EditUser ($[]);
-	    }
+            {
+                Users::SelectGroup ((integer)selected);
+		/* TODO check NIS groups
+                UsersCache::group_type = Users::group_in_work["type"]:"local";
+                if (UsersCache::group_type == "nis")
+                {
+                    // error popup
+                    Report::Message (_("To edit or delete a NIS group,
+you must do it on server.
+"));
+                    ret = `not_next;
+                }
+		*/
+
+                if (ev_id == `delete)
+		{
+                    ev_id = DeleteGroupPopup();
+		}
+		else
+		    Users::EditGroup ($[]);
+            }
         }
         else
         {
@@ -184,6 +301,23 @@ global define any SummaryTableHandler (string widget_id, map event) ``{
     }
     return ev_id;
 }
+
+global define void RadioButtonsUsersGroupsInit (string widget_id) ``{
+
+    UI::ChangeWidget (`id (UsersCache::GetCurrentSummary ()), `Value, true);
+}
+
+global define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
+
+    y2internal ("---------- handle rb ----");
+    if (!(boolean)
+	UI::QueryWidget (`id (UsersCache::GetCurrentSummary ()),`Value))
+    {
+	UsersCache::ChangeCurrentSummary ();
+	SummaryTableInit ("table");//FIXME is this OK?
+    }
+}
+
 
 map widgets = $[
     "rb_users_groups" : $[
@@ -203,6 +337,8 @@ map widgets = $[
         "widget"		: `custom,
         "help"			: _("help for table"),
 	"custom_widget"		: `VBox (
+	    `ReplacePoint (`id(`rptable), `VBox ()),
+	    /*
 	    `Table (`id("table"), `opt(`notify), `header(
 		// table header
 		_("Login"),
@@ -211,7 +347,8 @@ map widgets = $[
 		// table header
 		_("UID"),
 		// table header
-		_("Groups")), [] ),
+		_("Groups")), [] )),
+	    */
 	    `HBox (
 		`PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
 		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),

@@ -331,10 +331,42 @@ sub HomeExists {
 ##-------------------------------------------------------------------------
 ##----------------- get routines ------------------------------------------
 
+#------------------------------------
+BEGIN { $TYPEINFO{GetCurrentFocus} = ["function", "integer"]; }
+sub GetCurrentFocus {
+
+    if ($current_summary eq "users") {
+	return $focusline_user;
+    }
+    else {
+	return $focusline_group;
+    }
+}
+
+#------------------------------------
 BEGIN { $TYPEINFO{GetCurrentSummary} = ["function", "string"]; }
 sub GetCurrentSummary {
     return $current_summary;
 }
+
+#------------------------------------
+BEGIN { $TYPEINFO{SetCurrentSummary} = ["function", "void", "string"]; }
+sub SetCurrentSummary {
+    $current_summary = $_[0];
+}
+
+#------------------------------------
+BEGIN { $TYPEINFO{ChangeCurrentSummary} = ["function", "void"]; }
+sub ChangeCurrentSummary {
+    
+    if ($current_summary eq "users") {
+	$current_summary = "groups";
+    }
+    else {
+	$current_summary = "users";
+    }
+}
+
 
 #------------------------------------ for User Details...
 BEGIN { $TYPEINFO{GetGroupnames} = ["function",
@@ -361,7 +393,14 @@ sub GetUserItems {
     return values %{$user_items{"local"}};
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupItems} = ["function", ["list", "string"]];}
+sub GetGroupItems {
 
+    # FIXME: should return current itemlist
+
+    return values %{$group_items{"local"}};
+}
 ##------------------------------------
 BEGIN { $TYPEINFO{GetUserType} = ["function", "string"]; }
 sub GetUserType {
@@ -563,7 +602,8 @@ sub BuildGroupItem {
     my $gid		= $group{"gidNumber"};
     my $groupname	= $group{"groupname"} || "";
 
-    my $all_users	= "";#TODO
+    my $all_users	= join (",", keys %{$group{"userlist"}});
+#TODO merge with more_users
 
     return
     "`item(`id($gid), ".$group{"groupname"}.", \"$gid\", \"$all_users\")";
@@ -714,12 +754,14 @@ sub CommitGroup {
     if ($what eq "edit_group" || $what eq "user_change" ||
         $what eq "user_change_default") {
 
+DebugMap (\%{$group_items{$org_type}});
 	delete $group_items{$org_type}{$org_gid};
 	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
-	if ($org_type eq $type) {
+	if ($org_type ne $type) {
 	    UpdateGroupItemlist ($org_type);
 	    undef $focusline_group;
 	}
+DebugMap (\%{$group_items{$type}});
         UpdateGroupItemlist ($type);
     }
     if ($what eq "delete_group") {
