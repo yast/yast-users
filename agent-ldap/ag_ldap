@@ -7,6 +7,7 @@ use Net::LDAP;
 use Net::LDAP::Entry;
 use Net::LDAP::Util qw( ldap_error_name ldap_error_text);# LDAP error messages
 #use Net::LDAP::Schema;
+use Net::LDAP::Filter;
 
 #use open ':utf8'; # TODO not needed?
 
@@ -220,6 +221,11 @@ while ( <STDIN> )
 	    # ------------------------------
 	    # ---------- read users and groups from server
 
+	    %users = ();
+	    %users_by_name = ();
+	    %groups = ();
+	    %groups_by_name = ();
+
 	    my $user_filter = $argument->{"user_filter"};
 	    my $group_filter = $argument->{"group_filter"};
 	    my $output_dir = $argument->{"output_dir"};
@@ -258,7 +264,6 @@ while ( <STDIN> )
 	    }
 
 	    # --- get LDAP users
-
 	    $mesg = $ldap->search(
 		base => $user_base,
 		filter => $user_filter,
@@ -289,9 +294,9 @@ while ( <STDIN> )
 		my $username = $entry->get_value("uid");
 		my $fullname = $entry->get_value("cn");
 		my $gid = $entry->get_value("gidNumber");
-		my $groupname = $groups{$gid}{"groupname"};
-		if (! defined ($groupname)) {
-		    $groupname = "";
+		my $groupname = "";
+		if(defined $groups{$gid} && defined $groups{$gid}{"groupname"}){
+		    $groupname = $groups{$gid}{"groupname"};
 		}
 
 		my $grouplist = "";
@@ -387,7 +392,6 @@ while ( <STDIN> )
 		    $more_users = $more_usersmap{$gid};
 		    $groups{$gid}{"more_users"} = $more_users;
 		}
- 
 		$groups_by_name{$groupname} = $groups{$gid};
 
 		push @groupnames, $groupname;
@@ -428,7 +432,21 @@ while ( <STDIN> )
     }
     elsif ( $command eq "Read")
     {
-	if ( $path eq '.users' ) {
+	if ( $path eq '.filter_check' )
+	{
+	    my $filter = $argument;
+	    my $f = Net::LDAP::Filter->new($filter);
+
+	    if (! defined $f) {
+	        y2error ("Bad filter: $filter");
+	        ycp::Return ("BAD_FILTER");
+	    }
+	    else {
+		y2milestone ("search filter:", $f->as_string());
+		ycp::Return ("");
+	    }
+	}
+	elsif ( $path eq '.users' ) {
 
 	    ycp::Return (\%users);
 	}

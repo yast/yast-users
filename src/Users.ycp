@@ -225,14 +225,14 @@ global integer ldap_version = 3;
 global string kerberos_auth = "";
 
 /**
- * users like ldap/nis are not read by default, but could be read on demand:
+ * nis users are not read by default, but could be read on demand:
  */
 boolean nis_not_read = true;
 
 /**
- * users like ldap/nis are not read by default, but could be read on demand:
+ * ldap users are not read by default, but could be read on demand:
  */
-boolean ldap_not_read = true;
+global boolean ldap_not_read = true;
 
 /**
  * which sets of users are available to work with:
@@ -265,8 +265,18 @@ global string ldap_host = "";
 global string ldap_user_base = "";
 global string ldap_group_base = "";
 global string ldap_bind_dn = "";
+// default filters (read from Ldap module):
+global string ldap_default_user_filter = "";
+global string ldap_default_group_filter = "";
+// current filters (must be empty on start):
 global string ldap_user_filter = "";
 global string ldap_group_filter = "";
+
+// filters could be read alone
+global boolean ldap_filters_read = false;
+global boolean ldap_initialized = false;
+
+// TODO comment
 map ldap_shadow = $[];
 map ldap_defaults = $[];
 global string ldap_default_groupname = "users";
@@ -275,10 +285,11 @@ global string ldap_default_groupname = "users";
 global list ldap_user_class = [];
 global list ldap_group_class = [];
 // password to LDAP server
-string ldap_bind_pass = "";
+string ldap_bind_pass = nil;
 
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
+// starting dialog for installation mode
 global string start_dialog = "users";
 global boolean use_next_time = false;
 
@@ -335,13 +346,13 @@ global map groupset_to_string = $[
  */
 global define symbol Read (block abort, boolean useUI) ``{
 
-	// progress caption
-	string caption = _("Initializing user and group configuration");
-	integer no_of_steps = 9;
+    // progress caption
+    string caption = _("Initializing user and group configuration");
+    integer no_of_steps = 9;
 
-	// We do not set help text here, because it was set outside
-	if( useUI )
-	    Progress::New (caption, " ", no_of_steps,
+    // We do not set help text here, because it was set outside
+    if( useUI )
+	Progress::New (caption, " ", no_of_steps,
 			// progress stage label
 		       [ _("Read the default login settings"),
 			// progress stage label
@@ -383,22 +394,21 @@ global define symbol Read (block abort, boolean useUI) ``{
 			 _("Finished") ],
 			    "" );
 
-	// read default login settings
-	if ( useUI )
+    // read default login settings
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
-    UsersCache::PrintDate ("begin");
+    }
 
-	if ( ! ReadLoginDefaults(useUI) )
-	{
-		// warning popup
-	    Report::Warning (_("Cannot read the default login settings."));
-	}
+    if ( ! ReadLoginDefaults(useUI) )
+    {
+	// warning popup
+	Report::Warning (_("Cannot read the default login settings."));
+    }
 
     if ( !CheckHomeMounted())
     {
@@ -408,32 +418,31 @@ global define symbol Read (block abort, boolean useUI) ``{
             return `back;
     }
 
-	// read default system settings
-	if ( useUI )
+    // read default system settings
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
 
-	if ( ! ReadSystemDefaults() )
-	{
-		// error popup
-	    Report::Error (_("Cannot read the default systems settings."));
-	}
+    if ( ! ReadSystemDefaults() )
+    {
+	// error popup
+	Report::Error (_("Cannot read the default systems settings."));
+    }
 
-	// read configuration type
-	if ( useUI )
+    // read configuration type
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
-    UsersCache::PrintDate ("before sources");
+    }
 
     ReadSourcesSettings();
 
@@ -446,18 +455,17 @@ global define symbol Read (block abort, boolean useUI) ``{
             base_dir = dir;
     }
 
-	// run script for pre-building structures
-	if( useUI )
+    // run script for pre-building structures
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
 
     tmpdir = SCR::Read(.target.tmpdir);
-    UsersCache::PrintDate ("bef run prepare");
 
     map prepare = RunPrepare("passwd");
     if ( prepare["exit"]:0 != 0 )
@@ -466,127 +474,113 @@ global define symbol Read (block abort, boolean useUI) ``{
         return `abort;
     }
 
-    UsersCache::PrintDate ("after run prepare");
-
-	// read password settings
-	if( useUI )
+    // read password settings
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
-
-    UsersCache::PrintDate ("before read");
+    }
 
     gshadow = ReadGshadow(tmpdir);
-
-    UsersCache::PrintDate ("gshadow");
-
     shadow = ReadShadow (tmpdir);
-    UsersCache::PrintDate ("shadow");
 
     plus_shadow = ReadPlusShadow(tmpdir);
     plus_gshadow = ReadPlusGshadow(tmpdir);
 
-	if ( (gshadow == nil) || (shadow == nil) )
+    if ( (gshadow == nil) || (shadow == nil) )
     {
-		// error popup
-	    Report::Error (_("Cannot read the password settings."));
-	    return `abort;
+	// error popup
+	Report::Error (_("Cannot read the password settings."));
+	return `abort;
     }
 
-	// read group settings
-	if( useUI )
+    // read group settings
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
 
     groups = ReadGroups(tmpdir);
-    UsersCache::PrintDate ("groups");
     groups_by_name = ReadGroupsByName(tmpdir);
-    UsersCache::PrintDate ("groups_by_name");
     plus_group = ReadPlusGroup(tmpdir);
 
-	if ( groups ["local"]:nil == nil )
+    if ( groups ["local"]:nil == nil )
     {
-		// error popup (settings of local groups)
-	    Report::Error (_("Cannot read the local group settings."));
+	// error popup (settings of local groups)
+	Report::Error (_("Cannot read the local group settings."));
         groups ["local"] = $[];
     }
     if ( groups ["system"]:nil == nil)
     {
-		// error popup (settings of system groups)
-	    Report::Error (_("Cannot read the system group settings."));
+	// error popup (settings of system groups)
+	Report::Error (_("Cannot read the system group settings."));
         groups ["system"] = $[];
     }
 
-	// read user settings
-	if( useUI )
+    // read user settings
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
 
     users = ReadPasswd (tmpdir);
-    UsersCache::PrintDate ("users");
-
     plus_passwd = ReadPlusPasswd (tmpdir);
     users_by_name = ReadPasswdByName (tmpdir);
-    UsersCache::PrintDate ("users_by_name");
 
-	if (users ["local"]:nil == nil )
+    if (users ["local"]:nil == nil )
     {
-		// error popup
-	    Report::Error (_("Cannot read the local user settings."));
+	// error popup
+	Report::Error (_("Cannot read the local user settings."));
         users ["local"] = $[];
     }
     if ( users ["system"]:nil == nil )
     {
-		// error popup
-	    Report::Error (_("Cannot read the system user settings."));
+	// error popup
+	Report::Error (_("Cannot read the system user settings."));
         users ["system"] = $[];
     }
 
-	// read customs
-	if( useUI )
+    // read customs
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
     ReadCustomSets();
 
     // There is no progress for this !!!
     ReadAllShells();
     ReadDefaultGroup(useUI);
 
-	// build the cache
-	if( useUI )
+    // build the cache
+    if( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
 	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-	    {
-		return `abort;
-	    }
+	    return `abort;
 	}
+    }
     ReadUsersCache(true);
-    UsersCache::PrintDate ("cache");
 
-	// increase the progress to "finish"
-	if( useUI ) Progress::NextStage ();
+    // increase the progress to "finish"
+    if( useUI ) Progress::NextStage ();
 
-	return `next;
+    return `next;
 }
 
 /**
@@ -599,12 +593,12 @@ global define symbol Write (block abort, boolean useUI)``{
 
     string write_dir = base_dir;//"/tmp"; // -- just for testing
 
-	// progress caption
-	string caption = _("Writing user and group configuration...");
-	integer no_of_steps = 8;
+    // progress caption
+    string caption = _("Writing user and group configuration...");
+    integer no_of_steps = 8;
 
-	// We do not set help text here, because it was set outside
-	if( useUI )
+    // We do not set help text here, because it was set outside
+    if( useUI )
 	    Progress::New (caption, " ", no_of_steps, [
 		// progress stage label
 		_("Back up the configuration files"),
@@ -805,7 +799,7 @@ global define symbol Write (block abort, boolean useUI)``{
     {
 	string error = "";
 
-        if (ldap_bind_pass == "" && useUI)
+        if ((ldap_bind_pass == "" || ldap_bind_pass == nil) && useUI)
 	{
             ldap_bind_pass = GetLDAPPassword();
 	    if (ldap_bind_pass != nil)
@@ -1568,7 +1562,11 @@ global define boolean UserReallyModified () ``{
 
     // grouplist can be ignered, it is a modification of groups
     foreach (`key, `value, user_in_work["org_user"]:$[], ``{
-        if (key != "grouplist" && user_in_work[key]:nil != value) ret = true;
+        if (key != "grouplist" && user_in_work[key]:nil != value)
+	{
+	    ret = true;
+	    y2debug ("old value:%1, changed to:%2",value,user_in_work[key]:nil);
+	}
     });
     return ret;
 }
@@ -2682,26 +2680,35 @@ Install it now?"),
 
 	// read all needed LDAP settings now:
 	ReadLDAPSettings ();
+	string ldap_mesg = "";
 
-        ldap_bind_pass = GetLDAPPassword();
-        if (ldap_bind_pass == nil) // cancel button
-        {
-            return false;
-        }
-
-	string ldap_mesg = LDAPInit ();
-        if ( ldap_mesg != "")
+	if (!ldap_initialized)
 	{
-            LDAPErrorMessage("init", ldap_mesg);
-	    return false;
+	    ldap_mesg = LDAPInit ();
+	    if ( ldap_mesg != "")
+	    {
+		LDAPErrorMessage("init", ldap_mesg);
+		return false;
+	    }
+	    ldap_initialized = true;
 	}
 
-	ldap_mesg = LDAPBind ();
-	if (ldap_mesg != "")
-        {
-            LDAPErrorMessage("bind", ldap_mesg);
-            return false;
+        if (ldap_bind_pass == nil)
+	{
+            ldap_bind_pass = GetLDAPPassword();
+	    if (ldap_bind_pass != nil)
+	    {
+		ldap_mesg = LDAPBind();
+		while (ldap_bind_pass != nil && ldap_mesg != "")
+		{
+		    LDAPErrorMessage ("bind", ldap_mesg);
+		    ldap_bind_pass = GetLDAPPassword();
+		    ldap_bind = LDAPBind();
+		}
+	    }
         }
+        if (ldap_bind_pass == nil)
+	    return false;
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
@@ -2716,10 +2723,10 @@ Install it now?"),
         }
         ldap_not_read = false;
         // read the LDAP users and groups now
-        users ["ldap" ] = ReadLDAPUsers (tmpdir);
-        users_by_name ["ldap" ] = ReadLDAPUsersByName (tmpdir);
-        groups ["ldap"] = ReadLDAPGroups (tmpdir);
-        groups_by_name ["ldap"] = ReadLDAPGroupsByName (tmpdir);
+        users ["ldap" ]		= ReadLDAPUsers ();
+        users_by_name ["ldap" ] = ReadLDAPUsersByName ();
+        groups ["ldap"]		= ReadLDAPGroups ();
+        groups_by_name ["ldap"] = ReadLDAPGroupsByName ();
     }
     UsersCache::ReadUsers (type, tmpdir);
     UsersCache::ReadGroups (type, tmpdir);
@@ -2759,18 +2766,22 @@ global define boolean ChangeCurrentUsers(string new) ``{
         current_users = [ new ];
 
     if (contains (current_users, "ldap") && ldap_not_read)
+    {
         if (!ReadNewSet ("ldap"))
         {
             current_users = current;
             return false;
         }
+    }
 
     if (contains (current_users, "nis") && nis_not_read)
+    {
         if (!ReadNewSet ("nis"))
         {
             current_users = current;
             return false;
         }
+    }
 
     // correct also possible change in custom itemlist
     if (new == "custom")

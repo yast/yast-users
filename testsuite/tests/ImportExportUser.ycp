@@ -18,6 +18,10 @@
     include "testsuite.ycp";
     import "Users";
 
+    map EX = $[
+        "target": $[ "bash_output": $[] ]
+    ];
+
     map importing = $[
 	"encrypted": true,
 	"forename":"aa",
@@ -41,7 +45,7 @@
 
     DUMP ("==== processing ImportUser... ============================");
 
-    map user = TEST(``(Users::ImportUser (importing)), [], 0);
+    map user = TEST(``(Users::ImportUser (importing)), [ [], [], EX ], 0);
 
     DUMP ("==== processing ExportUser... ============================");
 

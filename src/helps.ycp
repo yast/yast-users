@@ -605,4 +605,31 @@ global define string LDAPUserSettingsDialogHelp() ``{
     return "FIXME";
 }
 
+/**
+ * Help for changing the LDAP search filter
+ * @return string help text
+ */
+global define string LDAPSearchFilterPopupHelp() ``{
+
+    return
+    // helptext 1/4 - caption
+    _("<b>LDAP Search Filter Changes</b>") +
+
+    // helptext 2/4
+    _("<p>Here you can extend the search filters for users and groups in addition to the filters defined in <b>YaST Ldap-client</b> module.</p>") +
+
+    // helptext 3/4
+    _("<p>Only extension of default filters are allowed, thus the values entered here are checked if they contain the default values as substrings.</p>") +
+
+    // helptext 3/4 (do not translate the value (written as <tt> font))
+    _("<p><b>Example:</b>
+<br>With user filter
+<br>
+<tt>&(objectClass=person)(uid=u*)</tt>
+<br>
+you get only users with username begining with 'u'.</p>");
+
+
+}
+
 }// EOF
