@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar 16 20:53:18 CET 2004 - jsuchome@suse.cz
+
+- plugins: call AddBefore, EditBefore also from GUI client
+
+-------------------------------------------------------------------
 Tue Mar 16 11:06:37 CET 2004 - jsuchome@suse.cz
 
 - autoinstall fixes: do not lost gid, check if password should be crypted

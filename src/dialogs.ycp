@@ -1321,8 +1321,6 @@ extensions of User and Group configuration.</p>") +
 	    if (ret == `run || ret == `table)
 	    {
 		client	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
-// FIXME if this plugin wasn't present in default, someone has to call
-// BeforeAdd/BeforeEdit e.g. to get object class!
 		plugin	= client2plugin[client]:client;
 		any plugin_ret = WFM::CallFunction (client, ["Dialog", $[
 		    "what"	: what ], object ]);
