@@ -38,12 +38,12 @@ least belongs to one group.
 	// help text 1/2
       return _("<p>
 Users and groups are arranged in various sets. Change the set currently shown in the table with the <b>Set Filter</b> button.
-Also customize your view filter after clicking <b>Customize Filter</b>.</p>
+You can customize your view filter after clicking <b>Customize Filter</b>.</p>
 ")
 
 	// help text 1/2, %1 is translated button label
          + sformat(_("<p>
-To save the modified user and group setting to your system push the button
+To save the modified user and group setting to your system, push the button
 <b>%1</b>.
 </p>"), button);
   }
@@ -53,7 +53,7 @@ To save the modified user and group setting to your system push the button
    * Password help text.
    * @return string help text
    */
-  global define string help_password()``{
+  global define string help_password(string type)``{
     string password_length = "";
     map enc_to_string = $[
 	// encryption type
@@ -63,6 +63,9 @@ To save the modified user and group setting to your system push the button
 	// encryption type
 	"blowfish" : _("Blowfish")
     ];
+    string method = Users::encryptionMethod;
+    if (type == "ldap")
+	method = ""; //FIXME: for Ldap users check another variable!!!
 
 	// help text 1/4
     string help_text =  _("<p>
@@ -75,7 +78,7 @@ special characters (e.g., accented characters).
     // help text 2/4
     help_text = help_text + sformat(_("<p>
 With the current password encryption (%1), the maximum password length is %2 characters.
-</p>"), enc_to_string[Users::encryptionMethod]:"", Users::max_length_pas);
+</p>"), enc_to_string[method]:"", Users::max_length_pas);
 
     // help text 3/4
     help_text = help_text + _("<p>
@@ -206,14 +209,18 @@ click <b>Edit</b> or <b>Delete</b>.
 </p>
 ") +
 
+/*		_("<p>
 	// help text 5/6
-		_("<p>
 To change the default settings used for new users, select the <b>Set Defaults</b> button.</p>
 ") +
+*/
 
 	// help text 6/6
-    _("<p>
-To change password encryption or user authentication, click <b>Expert Options...</b>.</p>
+_("<p>
+Click <b>Expert Options</b> if you want to edit various expert settings:
+password encryption type, user authentication method, default values for new
+users or LDAP client configuration.
+</p>
 ") +
 
      help_main_end() );
@@ -259,31 +266,64 @@ push the button <b>Edit</b> or <b>Delete</b>.
   /**
    * Help for EditUserDialog.
    * @param mail if checkbox for mail forwarding should be included
+   * @param type type of user created
    * @return string help text
    */
-  global define string EditUserDialogHelp(boolean mail) ``{
+  global define string EditUserDialogHelp(boolean mail, string type, string what) ``{
+
+    string help = "";
+    if (type == "ldap")
+    {
 	// help text 1/7
-    string help = _("<p>
-If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
-user account is created for this name with the <b>password</b> given in
+	help = _("<p>
+If you fill out the fields (<b>First Name</b>, <b>Last Name</b> and
+<b>User Login</b>), a new user account is created with the
+<b>password</b> given in the corresponding field.
+</p>
+");
+    }
+    else
+    {
+	// alternative help text 1/7
+	help = _("<p>
+If you fill out the fields <b>Full User Name</b> and <b>User Login</b>, a new
+user account is created with the <b>password</b> given in
 the corresponding field.
 </p>
-") + help_password() +
+");
+    }
 
+    help = help + help_password(type);
 
+    if (what == "add_user")
+    {
+	help = help +
 	// help text 2/7
 	_("<p>
-The <b>User login</b> is created from components of the full name and
-presented to you in one of the following dialogs.  If unsure, let YaST2
-<b>suggest</b> a user name.  You're allowed to modify it, but only use
-<em>lowercase</em> letters (no accented characters), digits, and <tt>._-</tt>
+The <b>User Login</b> could be created from components of the full name after
+clicking <b>Suggestion</b> button. You're allowed to modify it, but only use
+letters (no accented characters), digits, and <tt>._-</tt>
 User names have stricter restrictions than passwords!
 </p>
-") +
+");
+    }
+    else
+    {
+	help = help +
+	// alternative help text 2/7
+	_("<p>
+When you modify the <b>User Login</b>, use only
+letters (no accented characters), digits, and <tt>._-</tt>
+User names have stricter restrictions than passwords!
+</p>
+");
+    }
+
+    help = help +
 
 	// help text 3/7
 	_("<p>
-If you want to work with Linux, you must first enter the <b>User login</b>  and
+If you want to work with Linux, you must first enter the <b>User Login</b> and
 the password. This starting procedure is traditionally known as the
 <b>login</b>.
 </p>
@@ -332,15 +372,14 @@ system. Here is what the different entries mean:
 
 	// help text 2/6
 		_("<p>
-<b>Group name:</b>
+<b>Group Name:</b>
 Here the name of the group is entered. Please be careful not to use
-long names. Normal lengths are between one and about 10 characters (the
-shorter the better).
+long names. Normal lengths are between 2 and 8 characters.
 </p>
 ") +
 	// help text 3/6, %1 is number
 		sformat(_("<p>
-<b>Group ID(gid):</b>
+<b>Group ID (gid):</b>
 In addition to its name, a group has to be assigned a numerical ID for its
 internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
@@ -349,23 +388,23 @@ warns you if you try to use an already set one.
 "), Users::max_gid) +
 	// help text 4/6
 		_("<p>
-<b>Enter a  password:</b>
+<b>Enter a Password:</b>
 If you want the members of the group to identify themselves while
-switching to this new group (see man page of newgrp), you can assign a
+switching to this new group (see man page of <tt>newgrp</tt>), you can assign a
 password to this group. For security reasons, this password is not shown
 here. You don't need to fill out this entry.
 </p>
 ") +
 	// help text 5/6
 		_("<p>
-<b>Repeat password:</b>
+<b>Repeat Password:</b>
 The password has to be entered a second time to avoid typos.
 </p>
 ") +
 	// help text 6/6
 		_("<p>
 <b>Members of this group:</b>
-Select which users should be members of this group.
+Here you can select which users should be members of this group.
 </p>
 ");
 
@@ -404,10 +443,10 @@ by the system for special purposes and pseudo logins.
 If you change the UID of an existing user, the rights of the files
 this user owns must be changed. This will be done automatically
 for the files in the user's home directory, but not for the files 
-located other places.</p>
+located on the other places.</p>
 ") +
 
-	// help text 4/8
+	// help text 4/8 FIXME Browse
 		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is

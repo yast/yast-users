@@ -522,42 +522,36 @@ global define boolean DeleteHome (string home) ``{
     return true;
 }
 
-
-/**
+/** TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
  * Split fullname in forename and surname.
  * @param what `surname or `forename
  * @param fullname fullname
  * @param type user type
  * @return string selected part of user name
  */
-global define string SplitFullName(symbol what,string fullname, string type) ``{
+global define string SplitFullName(symbol what,string fullname) ``{
 
     if( fullname == nil )
         fullname = "";
 
     list    strs    = splitstring(fullname , " ");
     integer i       = 1;
-    string surname  = "";
-    string forename = "";
-
-    if (type == "system")
-    {
-        if ( what == `surname  ) return fullname;
-        if ( what == `forename ) return "";
-    }
+    string sn  = "";
+    string givenName = "";
 
     foreach( `str, strs, ``{
         if ( i < size( strs) )
         {
-        if( forename == "" ) forename = str;
-        else forename = forename + " " + str;
+        if( givenName == "" ) givenName = str;
+        else givenName = givenName + " " + str;
         }
-        else  surname = str;
+        else  sn = str;
         i = i + 1;
     });
-    if ( what == `surname  ) return surname;
-    if ( what == `forename ) return forename;
+    if ( what == `sn  ) return sn;
+    if ( what == `givenName ) return givenName;
 }
+
 
 /** TODO: move to ui_routines.ycp?
  * Let user choose the encryption method.

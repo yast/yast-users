@@ -22,9 +22,11 @@ import "Summary"; // only for AuthDialog? TODO
 
 include "ui/common_messages.ycp";
 include "ui/common_popups.ycp";
+include "ui/file_popups.ycp";
 
 include "users/helps.ycp";
 include "users/routines.ycp";
+
 
 /**
  * Function that adds or edits a user.
@@ -33,6 +35,7 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(string what) ``{
 
+y2internal ("----------- user: %1", Users::user_in_work);
     /**
      * Invalidate any old password
      * Clear password inputfields
@@ -45,18 +48,17 @@ global define symbol EditUserDialog(string what) ``{
         UI::SetFocus(`id(`pw1));
     }
 
-    y2internal ("user: %1", Users::user_in_work);
     map org_user = Users::user_in_work["org_user"]:eval(Users::user_in_work);
 
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
         Users::user_in_work = Users::saved_user;
         Users::use_next_time = false;
-        // TODO:change what to "edit_user"?
     }
     boolean create_home = Users::user_in_work["create_home"]:true;
     string  username    = Users::user_in_work["username"]:"";
     string  fullname    = Users::user_in_work["fullname"]:"";
+    string tmp_fullname = fullname; // for login proposing
     integer gid         = Users::user_in_work["gid"]:Users::default_gid;
     string  groupname   = Users::user_in_work["groupname"]:nil;
 
@@ -72,7 +74,6 @@ global define symbol EditUserDialog(string what) ``{
         }
     }
     string  org_groupname   = Users::user_in_work["org_groupname"]:groupname;
-    string  mail	= Users::user_in_work["mail"]:"";
     string  home        = Users::user_in_work["home"]:Users::default_home;
     string  org_home    = Users::user_in_work["org_home"]:home;
     string  shell       = Users::user_in_work["shell"]:Users::default_shell;
@@ -81,43 +82,53 @@ global define symbol EditUserDialog(string what) ``{
     string  user_type   = Users::user_in_work["type"]:nil;
     list removed_grouplist = Users::user_in_work["removed_grouplist"]:[];
     string org_username = Users::user_in_work["org_username"]:username;
-    string addit_data   = Users::user_in_work["addit_data"]:"";
+    string addit_data	= Users::user_in_work["addit_data"]:"";
     string modified_flag = Users::user_in_work["modified"]:"no";
 
     if (user_type == nil)
     {
         user_type = "local";
         // nis user cannot be added from client
-        if ((what == "add_user") && (size (Users::current_users) == 1) &&
-            (Users::current_users[0]:"local" != "nis" )) // what abbout LDAP ??
-            user_type = Users::current_users[0]:"local";
-        UsersCache::user_type = user_type; //??
+        if (what == "add_user")
+	{
+	    integer i = size (Users::current_users) - 1;
+	    while (i >= 0 )
+	    {
+		if (Users::current_users[i]:"local" != "nis")
+		    user_type = Users::current_users[i]:"local";
+		i = i - 1;
+	    }
+	}
+        UsersCache::user_type = user_type;
     }
-    string  surname     = Users::user_in_work["surname"]:
-        SplitFullName(`surname, fullname, user_type);
-    string  forename    = Users::user_in_work["forename"]:
-        SplitFullName(`forename, fullname, user_type);
-
-// TODO for LDAP: create fullname when forename and surname are provided
+    string  mail	= Users::user_in_work["mail"]:"";
+    string givenName = "";
+    string sn = "";
+    if (user_type == "ldap")
+    {
+	givenName = Users::user_in_work["givenName"]:
+	    SplitFullName(`givenName, fullname);
+	sn = Users::user_in_work["sn"]:SplitFullName(`sn, fullname);
+    }
 
     map dialog_labels = $[
         "add_user": $[
             // dialog caption:
-            "local":     _("Add a New Local User"),
+            "local":    _("Add a New Local User"),
             // dialog caption:
-            "system":     _("Add a New System User"),
+            "system":	_("Add a New System User"),
             // dialog caption:
             "ldap":     _("Add a New LDAP User")
         ],
         "edit_user": $[
             // dialog caption:
-            "local":     _("Edit an Existing Local User"),
+            "local":    _("Edit an Existing Local User"),
             // dialog caption:
-            "system":     _("Edit an Existing System User"),
+            "system":	_("Edit an Existing System User"),
             // dialog caption:
-            "ldap":     _("Edit an Existing LDAP User"),
+            "ldap":	_("Edit an Existing LDAP User"),
             // dialog caption:
-            "nis":     _("Edit an Existing NIS User")
+            "nis":	_("Edit an Existing NIS User")
         ]
     ];
 
@@ -139,7 +150,7 @@ global define symbol EditUserDialog(string what) ``{
             grouplist = "";
     }
 
-    integer uid         = Users::user_in_work["uid"]:nil;
+    integer uid = Users::user_in_work["uid"]:nil;
     if ( uid ==  nil )
     {
         uid = UsersCache::NextFreeUid(); // this uses user_type
@@ -150,7 +161,7 @@ global define symbol EditUserDialog(string what) ``{
             return `nosave;
         }
     }
-    integer org_uid         = Users::user_in_work["org_uid"]:uid;
+    integer org_uid = Users::user_in_work["org_uid"]:uid;
 
     map shadow = Users::user_in_work["shadow"]:$[];
     if (shadow == $[] && what == "add_user" )
@@ -163,20 +174,17 @@ global define symbol EditUserDialog(string what) ``{
     }
     Users::user_in_work["what"] = what; // is it necessary here ??
 
-    // FIXME: adapt helptext!
-    /*
     term name_entries =
         // text entry
-	`TextEntry (`id(`fullname), _("User name"), fullname);
+	`TextEntry (`id(`fullname), _("Full User Name"), fullname);
     if (user_type == "ldap")
     {
-	*/
-term	name_entries = `VBox(
+	name_entries = `VBox(
             // text entry
-            `TextEntry(`id(`forename), _("F&irst Name"), forename),
+            `TextEntry(`id(`givenName), _("F&irst Name"), givenName),
             // text entry
-            `TextEntry(`id(`surname),  _("&Last Name"),  surname ));
-//    }
+            `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
+    }
 
     term detailsmorebox =
         `HBox(
@@ -184,8 +192,8 @@ term	name_entries = `VBox(
             `PushButton(`id(`details),`opt(`key_F2), _("&Details...")),
             `VStretch(),
             `PushButton(`id(`passwordsettings),`opt(`key_F7),
-                // push button label
-                 _("&Password settings")),
+		// push button label
+                _("&Password settings")),
             `VStretch());
 
     if( Mode::cont && Users::start_dialog == "user_add" )
@@ -193,7 +201,7 @@ term	name_entries = `VBox(
         detailsmorebox = add(detailsmorebox,
             `PushButton(`id(`additional), `opt(`key_F3),
                 // push button
-                _("Additional users/&groups")));
+                _("Additional Users/&Groups")));
         detailsmorebox = `VBox (
             // checkbox label
             `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
@@ -218,52 +226,37 @@ can be changed for non-local users.
             `VSquash(
             `HBox(
                 // input field for login name
-                `Bottom(`TextEntry(`id(`username), _("&User login"),username)),
-                do_not_edit ? `HSpacing (0)
+                `Bottom(`TextEntry(`id(`username), _("&User Login"), username)),
+                (what != "add_user") ? `HSpacing (0)
                     // push button to generate login from first and last name
                     : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
             )),
-            // first version of user password, both versions must match
-            `Password(`id(`pw1), _("&Enter a password"), ""),
+            // first version of user password
+            `Password(`id(`pw1), _("&Enter a Password"), ""),
             // second version of user password, retyped to avoid typos
             // please use newline if it is longer than 48 characters
-            `Password(`id(`pw2), _("Re-enter the password for &verification"), ""),
+            `Password(`id(`pw2), _("Re-enter the Password for &Verification"), ""),
             `VStretch(),
             detailsmorebox ));
 
     Wizard::SetContentsButtons(
             dialog_labels [ what, user_type ]:"",
             contents,
-            EditUserDialogHelp(Mode::cont && Users::start_dialog == "user_add"),
+            EditUserDialogHelp(Mode::cont && Users::start_dialog == "user_add",
+		user_type, what),
             UI::BackButtonLabel(),
             UI::NextButtonLabel());
 
     // TODO edit values for NIS users
     if (do_not_edit)
     {
-        UI::ChangeWidget (`id(`forename), `Enabled, false);
-        UI::ChangeWidget (`id(`surname), `Enabled, false);
+        UI::ChangeWidget (`id(`fullname), `Enabled, false);
         UI::ChangeWidget (`id(`username), `Enabled, false);
         UI::ChangeWidget (`id(`pw1), `Enabled, false);
         UI::ChangeWidget (`id(`pw2), `Enabled, false);
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
     //TODO: kerberos passwords editing: Users::kerberos_auth != "required")
-
-    /*
-    // TODO ldap passwords should be editable some time...
-    // enable password changing for local users only (not in Kerbers DB)... ??
-    if (user_type == "ldap")
-    {
-        UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
-        if (what == "edit_user")
-        {
-            UI::ChangeWidget (`id(`pw1), `Enabled, false);
-            UI::ChangeWidget (`id(`pw2), `Enabled, false);
-            password = "x"; //the pasword value is ignored when editing LDAP
-        }
-    }
-    */
 
     UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
 
@@ -278,13 +271,19 @@ can be changed for non-local users.
                 UI::NextButtonLabel()));
     }
 
-    if( what == "add_user" ) UI::SetFocus(`id(`forename));
+    if ( what == "add_user" )
+    {
+	if (user_type == "ldap")
+	    UI::SetFocus(`id(`givenName));
+	else
+	    UI::SetFocus(`id(`fullname));
+    }
 
     if (user_type == "system")
     {
         UI::ChangeWidget(`id(`propose), `Enabled, false );
-        UI::ChangeWidget(`id(`forename),`Enabled, false );
     }
+
     if( password != "")
     {
         UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
@@ -296,13 +295,62 @@ can be changed for non-local users.
     {
         ret = UI::UserInput();
 
+        username	= UI::QueryWidget(`id(`username), `Value);
+
+	if (! contains ([`back, `cancel, `abort], ret))
+	{
+	    if (user_type == "ldap")
+	    {
+		// Form the fullname for LDAP user
+		// sn (surname) and cn (fullname) are required attributes,
+		// they cannot be empty
+		givenName	= UI::QueryWidget(`id(`givenName), `Value);
+		sn		= UI::QueryWidget(`id(`sn ), `Value);
+
+		if (sn == "")
+		{
+		    if (givenName == "")
+		    {
+			sn = username;
+		    }
+		    else
+		    {
+			sn = givenName;
+			givenName = "";
+		    }
+		}
+		fullname = givenName + ((givenName != "") ? " " : "") + sn;
+		UI::ChangeWidget(`id(`givenName), `Value, givenName);
+		UI::ChangeWidget(`id(`sn), `Value, sn);
+	    }
+	    else
+	    {
+		fullname	= UI::QueryWidget(`id(`fullname), `Value);
+		if (findfirstof(fullname, Users::invalid_gecos_chars) != nil)
+		{
+		    // error message
+		    Report::Error(_("
+The full user name cannot contain
+: or , characters.
+Try again.
+"));
+		    UI::SetFocus(`id(`fullname));
+		    continue;
+		}
+	    }
+	}
+
         // generate a login name from first and last name
-        if (ret == `propose  && what == "add_user")
+        if (ret == `propose) // hide propose for editing  && what == "add_user")
         {
-            string forename = UI::QueryWidget(`id(`forename), `Value);
-            string surname  = UI::QueryWidget(`id(`surname), `Value);
-            string username = ProposeUsername( forename, surname );
+	    if (tmp_fullname != fullname)
+	    {
+		UsersCache::proposal_count = -1;
+		tmp_fullname = fullname;
+	    }
+	    username = UsersCache::ProposeUsername( fullname );
             UI::ChangeWidget(`id(`username), `Value, username);
+	    UI::SetFocus (`id(`username));
         }
 
         // only in continue mode
@@ -311,8 +359,7 @@ can be changed for non-local users.
             if (UI::QueryWidget(`id(`pw1), `Value) == "" &&
                 UI::QueryWidget(`id(`pw2),`Value) == ""  &&
                 UI::QueryWidget(`id(`username), `Value) == "" &&
-                UI::QueryWidget(`id(`forename), `Value) == "" &&
-                UI::QueryWidget(`id(`surname ), `Value) == "")
+                UI::QueryWidget(`id(`fullname), `Value) == "")
             ret = `nosave;
         }
 
@@ -320,69 +367,14 @@ can be changed for non-local users.
 
         if (( ret == `next || ret == `additional || details ) && !do_not_edit)
         {
-
             // check the settings
-            string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
-            string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
-            username     = UI::QueryWidget(`id(`username), `Value);
-            forename     = UI::QueryWidget(`id(`forename), `Value);
-            surname      = UI::QueryWidget(`id(`surname ), `Value);
-
-            if (findfirstof(forename, Users::invalid_gecos_chars) != nil)
-            {
-                // error message
-                Report::Error(_("
-The first name cannot contain
-: or , characters.
-Try again.
-"));
-                UI::SetFocus(`id(`forename));
-                continue;
-            }
-            if (findfirstof(surname, Users::invalid_gecos_chars) != nil)
-            {
-                // error message
-                Report::Error(_("The last name cannot contain
-:  or , characters.
-Try again.
-"));
-                UI::SetFocus(`id(`surname));
-                continue;
-            }
-
-            if( forename != "" )
-            {
-                if( surname != "")
-                {
-                    fullname = forename + " " + surname;
-                }
-                else
-                {
-                    fullname = forename;
-		    if (user_type == "ldap") // TODO: sn,cn cannot be empty!
-		    {
-			surname = forename;
-			forename = "";
-		    }
-                }
-            }
-            else
-	    {
-		// TODO: sn,cn cannot be empty!
-		if (user_type == "ldap" && surname == "")
-		{
-		    surname = username;
-		}
-		fullname = surname;
-	    }
+            string pw1   = UI::QueryWidget(`id(`pw1), `Value);
+            string pw2   = UI::QueryWidget(`id(`pw2), `Value);
 
             if ( username == "")
             {
             // The user login field is empty, this is allowed if the
-            // system is part of a network with NIS user management.
-            // Ask the user about this in a Yes/No popup
-            // The first string is the title of the popup.
-
+            // system is part of a network with (e.g.) NIS user management.
             if (Mode::cont && ret == `next && Users::start_dialog == "user_add")
             {
                 // yes-no popup headline
@@ -402,8 +394,7 @@ Are you sure?
             }
             else
             {
-                // There is a check whether the information from the UI is
-                // correct and complete. The username is empty (no user input).
+                // The username is empty (no user input).
                 // error popup
                 Report::Error(_("You didn't enter a username.
 Please try again.
@@ -413,12 +404,11 @@ Please try again.
             }
             }
 
+	    // FIXME: where this constants come from??
             if  (  ( size( username ) < 2 || size( username ) > 32 ) )
             {
 
-                // There is a check whether the information from the UI is
-                // correct and complete.  The username must have a size
-                // between 2 and 32 characters.
+                // The username don't have a size between 2 and 32 characters.
                 // error popup
                 Report::Error(_("The username must be between 2 and 32 characters in length.
 Please try again.
@@ -434,13 +424,10 @@ Please try again.
                 || nil!=findfirstnotof(username, Users::valid_logname_chars)))
             {
 
-                // TODO: change a popup according to new options (bug 24891)
-                // There is a check whether the information from the UI is
-                // correct and complete.  The login name may contain only
-                // certain characters and must begin with a letter.
+                // The login name contains invalid characters
                 // error popup
                 Report::Error(_("The user login may contain only
-lower case letters, digits, \"-\" and \"_\"
+letters, digits, \"-\", \".\" and \"_\"
 and must begin with a letter or \"_\".
 Please try again.
 "));
@@ -453,11 +440,10 @@ Please try again.
                  && UsersCache::UsernameExists(username))
             {
 
-                // Tell the user that the login he entered conflicts with
-                // predefined logins in the passwd file.
+                // Entered login name conflicts with some existing login
                 // error popup
                 Report::Error(_("There is a conflict between the entered
-login name and a predefined username.
+login name and some existing username.
 
 Please try another one.
 "));
@@ -465,7 +451,7 @@ Please try another one.
                 continue;
             }
 
-            // build default home dir - when could be home empty string??
+            // build default home dir
             if ( home == Users::default_home || home == "")
             {
                 home = home + username;
@@ -538,9 +524,7 @@ Press Details and edit the home directory."), home_path));
 
             if ( pw1 != pw2 )
             {
-                // There is a check whether the information from the UI is
-                // correct and complete.  The two user password information
-                // do not match
+                // The two user password information do not match
                 // error popup
                 Report::Error(_("The first and the second version
 of the password are different.
@@ -551,13 +535,11 @@ Please try again."));
 
             // Use the old password (if any) if no passwords were entered.
             // only check pw1 here, its identical with pw2 as checked before
-            if ( (pw1 !=  Users::default_pw) && (pw2 != Users::default_pw ))
+            if ( pw1 !=  Users::default_pw )
             {
-            if ( pw1 == "" && !details)
+            if ( pw1 == "" && !details )
             {
-                // There is a check whether the information from the
-                // UI is correct and complete.  The first user password
-                // information is empty (no user input)
+		// No password was entered
                 // error popup
                 Report::Error(_("You didn't enter a password.\nPlease try again."));
 		clear_password_fields ();
@@ -565,15 +547,10 @@ Please try again."));
             }
             if (size (pw1) < Users::min_length_pas && pw1 != "")
             {
-
-                // There is a check whether the information from the
-                // UI is correct and complete.  The user password
-                // information must have a minimal size - 5 characters.
+                // Password is too short
                 // error popup. %1 and %2 are numbers (typical 5 and 8)
                 Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
-                    Users::min_length_pas,
-                    Users::max_length_pas));
-
+                    Users::min_length_pas, Users::max_length_pas));
 		clear_password_fields ();
                 continue;
             }
@@ -582,9 +559,7 @@ Please try again."));
                 if ( nil != findfirstnotof( pw1, Users::valid_password_chars ))
                 {
 
-                // There is a check whether the information from the
-                // UI is correct and complete.  The user password may
-                // contain only certain characters
+                // The user password contains restricted characters
                 // error popup
                 Report::Error(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
@@ -593,11 +568,11 @@ Please try again."));
                 continue;
                 }
             }
-            /* cracklib password check TODO */
+            /* password check against cracklib FIXME */
             if (Users::use_cracklib)
             {
-                string crack_out = CrackPassword (username, pw1);
-                if (crack_out != "" && crack_out != "OK")
+                string out = CrackPassword (username, pw1);
+                if (out != "" && out != "OK")
                 {
                     // error message of cracklib
                     Report::Error(out);
@@ -608,13 +583,10 @@ Please try again."));
             if (Users::obscure_checks && !details)
             {
                 string obs = CheckObscurity (username, pw1);
-                if (obs != "OK")
+                if (obs != "OK" && !UI::YesNoPopup (obs))
                 {
-                    if (!UI::YesNoPopup (obs))
-                    {
-			clear_password_fields ();
-                        continue;
-                    }
+		    clear_password_fields ();
+                    continue;
                 }
             }
 	    if (!CheckPasswordMaxLength (pw1))
@@ -646,8 +618,6 @@ Please try again."));
                      "uid"         :  uid,
                      "username"    :  username,
                      "grouplist"   :  grouplist,
-                     "forename"    :  forename,
-                     "surname"     :  surname,
                      "shadow"      :  shadow,
                      "create_home" :  create_home,
                      "type"        :  user_type,
@@ -671,15 +641,19 @@ Please try again."));
                 if ( removed_grouplist != [] )
                     Users::user_in_work["removed_grouplist"]=removed_grouplist;
                 // save original map (for check if something has realy changed)
-                if ( user_type != "nis")
+                if ( ! do_not_edit )
                     Users::user_in_work ["org_user"] = org_user;
             }
-            if ( mail != "")
-                Users::user_in_work ["mail"] = mail;
-            if ( addit_data != "")
-                Users::user_in_work ["addit_data"] = addit_data;
             if (modified_flag != "no")
                 Users::user_in_work ["modified"] = modified_flag;
+	    if ( user_type == "ldap" )
+	    {
+		Users::user_in_work ["givenName"] = givenName;
+		Users::user_in_work ["sn"] = sn;
+                Users::user_in_work ["mail"] = mail;
+	    }
+            else if ( addit_data != "")
+                Users::user_in_work ["addit_data"] = addit_data;
 
             y2debug ("edited user: %1", Users::user_in_work );
         }
@@ -701,8 +675,6 @@ Please try again."));
         // (to show it when clicking `back from Summary dialog)
         Users::saved_user = Users::user_in_work;
     }
-//    y2warning ("user: %1", Users::user_in_work);
-    y2warning ("ret : %1", ret);
     return ret;
 }
 
@@ -726,13 +698,11 @@ global define symbol EditUserDetailsDialog( ) ``{
     integer gid           = Users::user_in_work["gid"]:Users::max_gid;
     string user_type      = Users::user_in_work["type"]:"local";
     string defaultgroup   = Users::user_in_work["groupname"]:"";
-    fullname              = username + ", " + fullname; // for show in dialog
-    integer old_uid       = 0;
     // for LDAP only:
     string mail          = Users::user_in_work["mail"]:"";
 
-    // additional parts of GECOS (used by finger, see bug 18270) (passwd only)
-    string addit_data = Users::user_in_work["addit_data"]:"";
+    // additional parts of GECOS (shown by `finger <username>`) (passwd only)
+    string addit_data	= Users::user_in_work["addit_data"]:"";
 
     list available_shells = Users::all_shells_items;
     list available_groups = [];
@@ -740,9 +710,6 @@ global define symbol EditUserDetailsDialog( ) ``{
     list additional_ldap_groups = [];
     list list_grouplist = splitstring (grouplist, ",");
     list removed = [];
-
-// TODO: set additional membership for LDAP!
-// TODO: show group types?
 
     /* fill the list available_groups and set the user default group true */
     foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
@@ -801,6 +768,7 @@ global define symbol EditUserDetailsDialog( ) ``{
 	}
     });
 
+    boolean do_not_edit = (user_type == "nis");
     term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch),
         // combobox label
         _("Default &group"), available_groups );
@@ -808,7 +776,7 @@ global define symbol EditUserDetailsDialog( ) ``{
         // combobox label
         _("Login &shell"), available_shells );
 
-    term additional_data = nil;
+    term additional_data = `Empty();
     if (user_type == "ldap")
         additional_data =
             // textentry label
@@ -821,7 +789,14 @@ global define symbol EditUserDetailsDialog( ) ``{
             `Top(`TextEntry(`id(`addd), _("&Additional User Information:"),
                 addit_data));
 
-    boolean do_not_edit = (user_type == "nis");
+    term browse = `Empty();
+    if (!do_not_edit && (user_type != "ldap" || Users::ldap_file_server))
+        browse =
+            // button label
+	    `VBox(
+	    `Label (""),
+            `PushButton( `id(`browse), `opt(`key_F6), _("Bro&wse...")));
+
     term contents =
         `HBox(
           `HSpacing(1),
@@ -831,17 +806,21 @@ global define symbol EditUserDetailsDialog( ) ``{
            do_not_edit ? `Label(_("Only additional group memberships 
 can be changed for non-local users.")) : `VSpacing (0),
            do_not_edit ? `VSpacing (1) : `VSpacing (0),
-           // User account information, forename or first name
-           // textentry label
-           `TextEntry(`id(`fullname),_("&Detailed Profile for User:"),fullname),
+           // frame label, user name follows
            `VSpacing(0.5),
+           `Frame(sformat(_("Detailed Profile for User \"%1\""),
+		username),
            `HBox(
+		`HSpacing (0.5),
                 `VBox(
+		    `VSpacing (0.5),
                     // textentry label
                     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
                         sformat("%1",uid ))),
-                    // textentry label
-                    `Top(`TextEntry( `id(`home), _("&Home directory"), home )),
+                    `Top(`HBox (
+			// textentry label
+			`TextEntry( `id(`home), _("&Home Directory"), home ),
+			browse)),
                     additional_data,
                     `Top(edit_shell),
                     `Top(edit_defaultgroup),
@@ -849,17 +828,19 @@ can be changed for non-local users.")) : `VSpacing (0),
                 ),
                 `HSpacing(2),
 		`VBox(
-                `Top(`MultiSelectionBox( `id(`grouplist),
-                    // selection box label
-                    _("Additional group &membership"), additional_groups)),
-		(user_type == "ldap") ?
-		    `MultiSelectionBox( `id(`ldapgrouplist),
-                    // selection box label
-                    _("Additional &LDAP groups"), additional_ldap_groups)
+		    `VSpacing (0.5),
+		    `Top(`MultiSelectionBox( `id(`grouplist),
+			// selection box label
+			_("Additional Group &Membership"), additional_groups)),
+		    (user_type == "ldap")
+		    ? `MultiSelectionBox( `id(`ldapgrouplist),
+			// selection box label
+			_("Additional &LDAP Groups"), additional_ldap_groups)
 		    : `Empty()
-		    )
-            ),
-            `VSpacing(1)
+		    ),
+		`HSpacing (0.5)
+            )),
+            `VSpacing(0.5)
            ),
            `HSpacing(1)
         );
@@ -884,8 +865,6 @@ can be changed for non-local users.")) : `VSpacing (0),
             UI::ChangeWidget (`id (`home), `Enabled, false);
     }
 
-    //Modify the dialog
-    UI::ChangeWidget(`id(`fullname), `Enabled, false );
     UI::ChangeWidget(`id(`shell),    `Value,   shell );
 
     // user input
@@ -893,9 +872,25 @@ can be changed for non-local users.")) : `VSpacing (0),
     repeat
     {
         ret = UI::UserInput();
+	if ( ret == `browse)
+	{
+	    string dir = home;
+	    if (SCR::Read(.target.size, home ) == -1)
+		dir = Users::default_home;
+	    dir = PopupDir (dir);
+	    if (dir != "")
+	    {
+		if ( (findlastof( dir, "/") + 1) == size(dir) )
+		    dir = substring (dir, 0, size(dir)-1);
+		UI::ChangeWidget (`id(`home), `Value, dir);
+	    }
+	    // TODO: add directory checks here...
+	}
         if ( ret == `next )
         {
             string  new_home  = UI::QueryWidget(`id(`home),  `Value);
+	    if ( (findlastof( new_home, "/") + 1) == size(new_home) )
+		new_home = substring (new_home, 0, size(new_home)-1);
             string  new_shell = UI::QueryWidget(`id(`shell), `Value);
             string  new_uid   = UI::QueryWidget(`id(`uid),   `Value);
             string  new_defaultgroup = UI::QueryWidget(`id(`defaultgroup),`Value);
@@ -947,7 +942,6 @@ Remove the surplus.
                     UI::SetFocus(`id(`addd));
                     continue;
                 }
-
             }
 
             list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
@@ -1004,7 +998,7 @@ Really create a new system user?
             if ( defaultgroup != new_defaultgroup )
             {
                 gid = lookup (Users::GetGroupByName (new_defaultgroup, user_type), "gid", gid);
-                // change groupname
+                // TODO change groupname?
             }
 
             // check the homedirectory
@@ -1150,7 +1144,7 @@ Please try again."));
                 Users::user_in_work ["mail"] = mail;
             if ( addit_data != "" )
                 Users::user_in_work ["addit_data"] = addit_data;
-            if ( new_home != org_home && org_home == "")//only after 1st change
+            if ( new_home != org_home && org_home == "")//TODO only after 1st change
                 Users::user_in_work ["org_home"] = home;
 
         } // ret = `next
@@ -1404,16 +1398,16 @@ global define symbol EditGroupDialog(string what ) ``{
         `Left(`VBox(
             `VSpacing(1),
             // textentry label
-            `Top(`TextEntry( `id(`groupname), _("&Group name"), groupname )),
+            `Top(`TextEntry( `id(`groupname), _("&Group Name"), groupname )),
             // textentry label
-            `Top(`TextEntry( `id(`gid), _("Group &id (gid)"),
+            `Top(`TextEntry( `id(`gid), _("Group &ID (gid)"),
                 sformat("%1", gid) )),
             `VSpacing(1),
             // User account information, first version of group password
-            `Bottom(`Password(`id(`pw1), _("&Enter a password"), "")),
+            `Bottom(`Password(`id(`pw1), _("&Enter a Password"), "")),
             // User account information, second version of group password,
             // please use newline if it is longer than 48 characters
-            `Bottom(`Password(`id(`pw2), _("Re-enter the &password"),  "")),
+            `Bottom(`Password(`id(`pw2), _("Re-enter the &Password"),  "")),
             `VSpacing(1)
         )),
         `HSpacing(2),
@@ -1421,7 +1415,7 @@ global define symbol EditGroupDialog(string what ) ``{
         `VBox(
             `VSpacing(1),
             // selection box label
-            `MultiSelectionBox( `id(`userlist), _("&Members of this group"),
+            `MultiSelectionBox( `id(`userlist), _("&Members of this Group"),
                 additional_users [`ulist]:[]),
             more ? `VSpacing(1) : `VSpacing (0),
             // selection box label
@@ -1637,7 +1631,7 @@ Please try again."));
                      nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
                 {
                 // error popup %1 is number
-                Report::Error(sformat(_("The selected Group Id is not allowed.
+                Report::Error(sformat(_("The selected Group ID is not allowed.
 Please select a valid integer between 0 and %1"),  Users::max_gid));
                 UI::SetFocus(`id(`gid));
                 continue;
@@ -1647,8 +1641,8 @@ Please select a valid integer between 0 and %1"),  Users::max_gid));
                 if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
                 {
                     // error popup
-                    Report::Error(_("The inputted Group Id is reserved.
-Please select a another Group Id"));
+                    Report::Error(_("The inputted Group ID is reserved.
+Please select a another Group ID"));
                     UI::SetFocus(`id(`gid));
                     continue;
                 }
@@ -1658,7 +1652,7 @@ Please select a another Group Id"));
                      ( group_type == "local" ) )
                 {
                     // error popup
-                    Report::Error(_("The inputted Group Id is a system Id.
+                    Report::Error(_("The inputted Group ID is a system ID.
 Please try again."));
                     UI::SetFocus(`id(`gid));
                     continue;
@@ -1669,7 +1663,7 @@ Please try again."));
                      ( group_type == "system" ))
                 {
                     // error popup
-                    Report::Error(_("The inputted Group Id is not a system Id.
+                    Report::Error(_("The inputted Group ID is not a system ID.
 Please try again."));
                     UI::SetFocus(`id(`gid));
                     continue;
@@ -2138,80 +2132,6 @@ global define symbol GroupSave() ``{
 
     return `next;
 }
-
-
-/**
- * Propose a username.
- * @param forename forename
- * @param surname surname
- * @return string proposed login name
- */
-global define string ProposeUsername( string forename, string surname ) ``{
-// TODO: do not use two text entries...
-
-    string  username            = "";
-    string  default_login_name  = "lxuser";
-    integer default_login_count = 0;
-    integer part_len            = 3;
-    integer login_len           = part_len * 2;
-    string  test_login_name     = default_login_name;
-
-    while (true)
-    {
-        if (  UsersCache::UsernameExists( test_login_name ) )
-        {
-            default_login_count = default_login_count + 1;
-            test_login_name  = default_login_name +
-                sformat("%1",default_login_count);
-        }
-        else
-        {
-            default_login_name = test_login_name;
-            break;
-        }
-    }
-    string f_name = filterchars(tolower(forename), Users::valid_logname_chars);
-    integer f_len = size( f_name );
-
-    string s_name = filterchars(tolower(surname), Users::valid_logname_chars);
-    integer s_len = size( s_name );
-
-    if ( f_len == 0 && s_len == 0 )         // both are missing
-    {
-        username = default_login_name;      // default login
-    }
-    else                                    // at least one is given
-    {
-        if ( f_len >= part_len )
-        {
-            if ( s_len >= part_len )        // forename and surname long enough
-            {
-                f_len = part_len;           // take part_len chars from each
-                s_len = part_len;
-            }
-            else                            // surname shorter than 3 chars
-            {
-                f_len = login_len - s_len;  // fill up with forename
-            }
-        }
-        else                                // forename shorter than 3 chars
-        {
-            s_len = login_len - f_len;      // fill up with surname
-        }
-
-        // build login name
-        username = substring(f_name, 0, f_len) + substring( s_name, 0, s_len );
-        if (size (username) < 2) username = default_login_name;
-        else
-        {
-            string firstchar = substring(username, 0, 1);
-            if (firstchar < "A" || firstchar > "z")
-                username = default_login_name;
-        }
-    }
-    return username;
-}
-
 
 /* EOF */
 }

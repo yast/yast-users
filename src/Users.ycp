@@ -931,18 +931,21 @@ define map ImportUser (map user) ``{
     map currentUser = eval(user);
     string forename = currentUser["forename"]:"";
     string surname = currentUser["surname"]:"";
-    string fullname = "";
+    string fullname = currentUser["fullname"]:"";
     string username = currentUser["username"]:"";
     y2debug("Username=%1", username);
 
     integer uid = currentUser["uid"]:-1 ;
 
-    if( forename != "" )
+    if (fullname == "")
     {
-        if( surname != "") fullname = forename + " " + surname;
-        else fullname = forename;
+	if( forename != "" )
+	{
+	    if( surname != "") fullname = forename + " " + surname;
+	    else fullname = forename;
+	}
+	else fullname = surname;
     }
-    else fullname = surname;
 
     string type = "local";
     if ((uid <= max_system_uid || username == "nobody") && uid != -1)
@@ -988,15 +991,16 @@ define map ImportUser (map user) ``{
 	    else
 		finalpw = existing["password"]:"x";
 
-	    if (!haskey (user,"forename") && !haskey (user, "surname"))
+	    if (!haskey (user,"forename") && !haskey (user, "surname") &&
+		fullname == "")
 		fullname = existing["fullname"]:"";
 
 	    map ret = $[
 		"encrypted":    user ["encrypted"]:existing["encrypted"]:true,
 		"password":     finalpw,
 		"username":     username,
-		"forename":     currentUser["forename"]:existing["forename"]:"",
-		"surname":      currentUser["surname"]:existing["surname"]:"",
+//		"forename":     currentUser["forename"]:existing["forename"]:"",
+//		"surname":      currentUser["surname"]:existing["surname"]:"",
 		"fullname":     fullname,
 		"shell": currentUser ["shell"]:existing["shell"]:default_shell,
 		"uid":          existing["uid"]:-1,
@@ -1016,8 +1020,8 @@ define map ImportUser (map user) ``{
         //can be distinct (uncrypted) from pass (which is always crypted)
         "password":         pass,
         "username":         username,
-        "forename":         forename,
-        "surname":          surname,
+//        "forename":         forename,
+//        "surname":          surname,
         "fullname":         fullname,
         "shell":            currentUser ["shell"]:default_shell,
         "uid":              uid,
@@ -1122,7 +1126,6 @@ global define boolean Import (map settings) ``{
     });
 
     // these are _ugly hacks_ to import users without UIDs...
-    // TODO: use User::Add & Commit for them
     if (size (without_uid) > 0)
     {
         list uids = UsersCache::BuildUIDList (users["local"]:$[]);
@@ -1263,8 +1266,10 @@ define map ExportUser (map user) ``{
         "encrypted":        user ["encrypted"]:true,
         "user_password":    pass,
         "username":         username,
-        "forename":         SplitFullName (`forename, full, type),
-        "surname":          SplitFullName (`surname, full, type),
+	// TODO: are fore/surname needed for autoast? -> ask Anas
+        "forename":         SplitFullName (`givenName, full),
+        "surname":          SplitFullName (`sn, full),
+	"fullname":		full,
         "shell":            user ["shell"]:default_shell,
         "uid":              user ["uid"]:-1,
         "gid":              user ["gid"]:default_gid,

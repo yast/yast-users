@@ -461,7 +461,6 @@ foreach my $user (<PASSWD>)
         else
         {
             print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-#                "SystemUsers[\"$username\"]:\"$full\", \"$uid_wide\", ".
                 "SystemUsers[\"$full\"]:\"$full\", \"$uid_wide\", ".
                 "\"$all_groups\"),\n";
         } 

@@ -12,7 +12,7 @@
  *
  *   - password must be given
  *   - first and second entry must match
- *   - length of password >= 5
+ *   - length of password >= 5, and <= maximum for current encryption
  *   - only certain characters allowed
  *
  * After all the password is crypted and written into the user_settings.
