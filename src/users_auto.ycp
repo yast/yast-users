@@ -98,6 +98,7 @@
     }
     else if (func == "Write") {
 	import "Progress";
+	Users::write_only = true;
 	Progress::off();
 	ret = Users::Write ( ``{ return false;}, false);
 	Progress::on();

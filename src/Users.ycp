@@ -49,6 +49,10 @@ global string rootPassword = "";
 // Export all settings, not only modified
 global boolean ExportAll = false;
 
+
+// Write only, keep progress turned off
+global boolean write_only = false;
+
 /**
  *  keys from /etc/defaults/useradd:
  **/
@@ -2484,7 +2488,8 @@ global define boolean WriteSecurity () ``{
 	Security::Settings["PASSWD_ENCRYPTION"] = encryptionMethod;
 	Progress::off();
 	ret = Security::Write();
-	Progress::on();
+	if (!write_only)
+	    Progress::on();
     }
     return ret;
 }

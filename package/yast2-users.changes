@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Sat Sep 13 19:00:22 CEST 2003 - nashif@suse.de
+
+- Turn off progress during autoinstallation
+
+-------------------------------------------------------------------
 Thu Sep 11 13:03:52 CEST 2003 - jsuchome@suse.cz
 
 - layout of first dialog (#29389) 
