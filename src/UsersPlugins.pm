@@ -49,10 +49,10 @@ sub Read {
     foreach my $module (@available_plugins) {
 	YaST::YCP::Import ($module); # we could use 'eval (use $module)'
 	my $func        = $module."::Interface";
-	my @list 	= &$func ({}, {});
-	if (@list) {
+	my $list 	= &$func ({}, {});
+	if (defined $list && ref ($list) eq "ARRAY") {
 	    # save the plugins interface
-	    foreach my $action (@list) {
+	    foreach my $action (@{$list}) {
 		$plugins{$module}{$action}	= 1;
 		# save the plugin restrictions
 		if ($action eq "Restriction") {

@@ -594,18 +594,18 @@ BEGIN { $TYPEINFO{GetUserRequiredAttributes} = ["function", ["list","string"]];}
 sub GetUserRequiredAttributes {
 
     if (defined ($user_template{"requiredAttribute"})) {
-	return @{$user_template{"requiredAttribute"}};
+	return $user_template{"requiredAttribute"};
     }
-    return ();
+    return \();
 }
 
 # return list of attributesm required for LDAP group
 BEGIN {$TYPEINFO{GetGroupRequiredAttributes} = ["function", ["list","string"]];}
 sub GetGroupRequiredAttributes {
     if (defined ($group_template{"requiredAttribute"})) {
-	return @{$group_template{"requiredAttribute"}};
+	return $group_template{"requiredAttribute"};
     }
-    return ();
+    return \();
 }
 
 ##------------------------------------
@@ -619,7 +619,7 @@ sub GetDefaultShadow {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetUserClass} = ["function", ["list", "string"]];}
 sub GetUserClass {
-    return @user_class;
+    return \@user_class;
 }
 
 ##------------------------------------
@@ -643,7 +643,7 @@ sub GetUserBase {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetUserInternal} = ["function", ["list", "string"]];}
 sub GetUserInternal {
-    return @user_internal_keys;
+    return \@user_internal_keys;
 }
 
 ##------------------------------------
@@ -676,7 +676,7 @@ sub SetCurrentUserFilter {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetGroupClass} = ["function", ["list", "string"]];}
 sub GetGroupClass {
-    return @group_class;
+    return \@group_class;
 }
 
 ##------------------------------------
@@ -700,7 +700,7 @@ sub GetGroupBase {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetGroupInternal} = ["function", ["list", "string"]];}
 sub GetGroupInternal {
-    return @group_internal_keys;
+    return \@group_internal_keys;
 }
 
 ##------------------------------------

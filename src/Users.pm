@@ -324,29 +324,23 @@ sub SetUseNextTime {
 
 BEGIN { $TYPEINFO{GetAvailableUserSets} = ["function", ["list", "string"]]; }
 sub GetAvailableUserSets {
-    return @available_usersets;
+    return \@available_usersets;
 }
 
 BEGIN { $TYPEINFO{GetAvailableGroupSets} = ["function", ["list", "string"]]; }
 sub GetAvailableGroupSets {
-    return @available_groupsets;
+    return \@available_groupsets;
 }
-
-##------------------------------------
-#BEGIN { $TYPEINFO{GetAvailablePlugins} = ["function", ["list", "string"]]; }
-#sub GetAvailablePlugins {
-#    return @available_plugins;
-#}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
 sub GetCurrentUsers {
-    return @current_users;
+    return \@current_users;
 }
 
 BEGIN { $TYPEINFO{GetCurrentGroups} = ["function", ["list", "string"]]; }
 sub GetCurrentGroups {
-    return @current_groups;
+    return \@current_groups;
 }
 
 ##------------------------------------
@@ -459,7 +453,8 @@ sub ChangeCustoms {
 
 BEGIN { $TYPEINFO{AllShells} = ["function", ["list", "string"]];}
 sub AllShells {
-    return sort keys %all_shells;
+    my @shells = sort keys %all_shells;
+    return \@shells;
 }
 
 BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
@@ -502,31 +497,37 @@ sub CheckHomeMounted {
 	chop $home;
     }
 
-    my @fstab = SCR::Read (".etc.fstab");
-    foreach my $line (@fstab) {
-	my %line	= %{$line};
-        if ($line{"file"} eq $home) {
-            $mountpoint_in = "/etc/fstab";
+    my $fstab = SCR::Read (".etc.fstab");
+    if (defined $fstab && ref ($fstab) eq "ARRAY") {
+	foreach my $line (@{$fstab}) {
+	    my %line	= %{$line};
+	    if ($line{"file"} eq $home) {
+		$mountpoint_in = "/etc/fstab";
+	    }
 	}
     }
 
     if (SCR::Read (".target.size", "/etc/cryptotab") != -1) {
-        my @cryptotab = SCR::Read (".etc.cryptotab");
-	foreach my $line (@cryptotab) {
-	    my %line	= %{$line};
-            if ($line{"mount"} eq $home) {
-		$mountpoint_in = "/etc/cryptotab";
+        my $cryptotab = SCR::Read (".etc.cryptotab");
+	if (defined $cryptotab && ref ($cryptotab) eq "ARRAY") {
+	    foreach my $line (@{$cryptotab}) {
+		my %line	= %{$line};
+		if ($line{"mount"} eq $home) {
+		    $mountpoint_in = "/etc/cryptotab";
+		}
 	    }
-        }
+	}
     }
 
     if ($mountpoint_in ne "") {
         my $mounted	= 0;
-        my @mtab	= SCR::Read (".etc.mtab");
-	foreach my $line (@mtab) {
-	    my %line	= %{$line};
-	    if ($line{"file"} eq $home) {
-                $mounted = 1;
+        my $mtab	= SCR::Read (".etc.mtab");
+	if (defined $mtab && ref ($mtab) eq "ARRAY") {
+	    foreach my $line (@{$mtab}) {
+		my %line	= %{$line};
+		if ($line{"file"} eq $home) {
+		    $mounted = 1;
+		}
 	    }
         }
 
@@ -900,12 +901,12 @@ sub FindGroupsBelongUser {
 
 BEGIN { $TYPEINFO{GetUserCustomSets} = [ "function", ["list", "string"]]; }
 sub GetUserCustomSets {
-    return @user_custom_sets;
+    return \@user_custom_sets;
 }
 
 BEGIN { $TYPEINFO{GetGroupCustomSets} = [ "function", ["list", "string"]]; }
 sub GetGroupCustomSets {
-    return @group_custom_sets;
+    return \@group_custom_sets;
 }
 
 ##------------------------------------
@@ -1760,7 +1761,7 @@ sub AddUser {
     if ($type eq "ldap") {
 	# add default object classes
 	if (!defined $user_in_work{"objectClass"}) {
-	    my @classes = UsersLDAP::GetUserClass();
+	    my @classes = @{UsersLDAP::GetUserClass()};
 	    $user_in_work{"objectClass"} = \@classes;
 	}
         # add other default values
@@ -1778,7 +1779,6 @@ sub AddUser {
 	    }
 	}
     }
-DebugMap (\%user_in_work);
     return 1;
 }
 
@@ -1876,7 +1876,7 @@ sub AddGroup {
     if ($type eq "ldap") {
 	# add default object classes
 	if (!defined $group_in_work{"objectClass"}) {
-	    my @classes = UsersLDAP::GetGroupClass();
+	    my @classes = @{UsersLDAP::GetGroupClass()};
 	    $group_in_work{"objectClass"} = \@classes;
 	}
         # add other default values
@@ -1927,7 +1927,7 @@ sub UserReallyModified {
 	return $ret;
     }
     # search result, because some attributes were not filled yet
-    my @internal_keys	= UsersLDAP::GetUserInternal ();
+    my @internal_keys	= @{UsersLDAP::GetUserInternal ()};
     foreach my $key (keys %user) {
 
 	my $value = $user{$key};

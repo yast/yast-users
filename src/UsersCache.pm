@@ -472,7 +472,8 @@ sub GetAllGroupnames {
 BEGIN { $TYPEINFO{GetGroupnames} = ["function", ["list", "string"], "string"];}
 sub GetGroupnames {
 
-    return sort keys %{$groupnames{$_[0]}};
+    my @ret = sort keys %{$groupnames{$_[0]}};
+    return \@ret;
 }
 
 
@@ -480,7 +481,8 @@ sub GetGroupnames {
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
-    return sort keys %{$usernames{$_[0]}};
+    my @ret = sort keys %{$usernames{$_[0]}};
+    return \@ret;
 }
 
 ##------------------------------------
@@ -495,7 +497,7 @@ sub GetUserItems {
 	    push @items, $itemref->{$id};
 	}
     }
-    return @items;
+    return \@items;
 }
 
 ##------------------------------------
@@ -508,7 +510,7 @@ sub GetGroupItems {
 	    push @items, $itemref->{$id};
 	}
     }
-    return @items;
+    return \@items;
 }
 
 ##------------------------------------
@@ -1151,7 +1153,7 @@ sub BuildAdditional {
     foreach my $key (sort keys %additional) {
 	push @additional, $additional{$key};
     }
-    return @additional;
+    return \@additional;
 }
 
 1
