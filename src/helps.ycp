@@ -54,6 +54,7 @@ To save the modified user and group setting to your system, push the button
 
   /**
    * Password help text.
+   * @param type user type
    * @return string help text
    */
   global define string help_password(string type)``{
@@ -62,26 +63,28 @@ To save the modified user and group setting to your system, push the button
 	// encryption type
 	"des" :	_("DES"),
 	// encryption type
+	"crypt" :_("DES"),
+	// encryption type
 	"md5" :	_("MD5"),
 	// encryption type
 	"blowfish" : _("Blowfish")
     ];
     string method = Users::encryptionMethod;
     if (type == "ldap")
-	method = ""; Users::ldap_encryption;
+	method = Users::ldap_encryption;
 
 	// help text 1/4
     string help_text =  _("<p>
-When entering a password, you must distinguish between uppercase and lowercase. A
-password should have at least 5 characters and, as a rule, not contain any
-special characters (e.g., accented characters).
+When entering a password, you must distinguish between uppercase and lowercase. It should not contain any special characters (e.g. accented characters).
 </p>
 ");
 
-    // help text 2/4
+    // help text 2/4 %1 is encryption type, %2,%3 numbers
     help_text = help_text + sformat(_("<p>
-With the current password encryption (%1), the maximum password length is %2 characters.
-</p>"), enc_to_string[method]:"", Users::max_length_pas);
+With the current password encryption (%1), the password length should be between
+ %2 and %3 characters.
+</p>"), enc_to_string[method]:"",
+	Users::pass_length [type, "min"]:5, Users::pass_length [type, "max"]:8);
 
     // help text 3/4
     help_text = help_text + _("<p>
@@ -91,8 +94,7 @@ Valid password characters are letters, digits, blanks, and
 
     //help text 4/4
     help_text = help_text + _("<p>
-It's enough to use a password with a length of approximately 8 alpha-numeric
-characters. To ensure that the password was entered correctly, you are asked to
+To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
 </p>
 ");
@@ -104,6 +106,7 @@ repeat it exactly in a second field. Make sure you don't forget your password!
      * @return string The help text.
      */
     global define string DefaultsDialogHelp () ``{
+	// FIXME grouplist!
 // Help text 0/6
       return _("<p>
 Here you can set default values which will be used when creating new <b>local</b> or <b>system</b> user.
@@ -389,7 +392,7 @@ internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
 warns you if you try to use an already set one.
 </p>
-"), Users::max_gid) +
+"), Users::max_gid ["local"]:60000) +
 	// help text 4/6
 		_("<p>
 <b>Enter a Password:</b>
@@ -440,7 +443,7 @@ the \"User ID\". For normal users, you should use
 a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
-"), Users::max_system_uid ) +
+"), Users::max_uid ["system"]:500 ) +
 
 	// help text 3/8
  _("<p>
@@ -599,9 +602,9 @@ You can configure these settings by running appropriate modules. Select the modu
     return help_text;
 }
 
-global define string LDAPUserSettingsDialogHelp() ``{
+global define string LDAPSettingsDialogHelp(string what) ``{
 
-    return "FIXME";
+    return "FIXME: " + what;
 }
 
 /**

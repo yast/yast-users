@@ -245,22 +245,17 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     list modified_list = [];
     list list_to_save = maplist (`gid, `group, system_groups, ``{
 	string pass = group["password"]:"x";
-	if (!contains (["x", "!", "*"], pass))
-	    pass = "x";// FIXME what is the default value?
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            pass,
+            "x",
             group["gid"]:max_gid,
             group["userlist"]:"");
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
-	string pass = group["password"]:"x";
-	if (!contains (["x", "!", "*"], pass))
-	    pass = "x";// FIXME what is the default value?
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            pass,
+            "x",
             group["gid"]:max_gid,
             group["userlist"]:"");
         return to_save;
@@ -294,7 +289,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
         gecos = UI::Recode ("UTF-8", encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
-            "x",//user["password"]:"",// write x !!
+            "x",
             uid,
             user["gid"]:max_gid,
             gecos,
@@ -311,7 +306,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
         gecos = UI::Recode ("UTF-8", encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
-            "x",//user["password"]:"",// write x !!
+            "x",
             uid,
             user["gid"]:max_gid,
             gecos,
@@ -579,7 +574,7 @@ global define string EncryptionDialog() ``{
 
       // Help text for password expert dialog 2/5
       help_text = help_text + _("<p>
-Choose a password encryption method.
+Choose a password encryption method for local and system users.
 <b>DES</b>, the Linux default method, works in all network environments, but it
 restricts you to passwords no longer than eight characters.
 </p>");
@@ -663,18 +658,22 @@ As a general rule of thumb, use DES if you are unsure.
       return method;
   };
 
-/** TODO: move to some ui_routines?
+/**
  * Checks if password is not too long
- * @param pw
+ * @param pw password
+ * @param type user type ("local", "ldap"...)
  * @return true when it is OK (or user accepts truncation)
  **/
-global define boolean CheckPasswordMaxLength (string pw) ``{
+global define boolean CheckPasswordMaxLength (string pw, string type) ``{
 
-    if (size(pw) > Users::max_length_pas)
+    if (type != "ldap")
+	type = "local";
+
+    if (size(pw) > Users::pass_length [type, "max"]:8)
     {
 	// error popup. %1 is number (typical 8)
         return (Popup::YesNo (sformat(_("The password is too long for current encryption method.
-It will be truncated to %1 characters."), Users::max_length_pas)));
+Should it be truncated to %1 characters?"), Users::pass_length [type, "max"]:8)));
 
     }
     return true;

@@ -1,6 +1,7 @@
 Dump	first group with this name:
 Return	$["groupname":"users", "more_users":"u1,u2", "type":"ldap", "userlist":""]
 Dump	non-existent group:
+Log	Group video doesn't exist!
 Return	$[]
 Dump	type specified:
 Return	$["groupname":"users", "more_users":"hh", "type":"local", "userlist":""]

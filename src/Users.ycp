@@ -57,8 +57,14 @@ map useradd_defaults  = $[
     "inactive": "",
     "expire": "",
     "shell": "",
-    "skel": ""
+    "skel": "",
+    "groups": "",
 ];
+
+/**
+ *  If user should be warned when using uppercase letters
+ */
+global boolean not_ask_uppercase = false;
 
 // default values for new local/system users (shotcuts from useradd_defaults):
 global string default_shell = "/bin/bash";
@@ -94,14 +100,42 @@ global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEF
 global string valid_id_chars       = "0123456789";
 global string invalid_gecos_chars = ",:";
 
-global integer max_uid	  = 60000;
-global integer max_gid	  = 60000;
-global integer max_system_uid = 500 - 1;
-global integer max_system_gid = 100 - 1; // TODO change to 500 with new version
-global integer max_length_uid = 5;// size(sformat("%1", max_uid));
+global integer max_length_uid = 5;
 global integer max_length_gid = 5;
-global integer max_length_pas = 8;
-global integer min_length_pas = 5;
+/**
+ * map of maximum uid values (defined for various user types)
+ */
+global map max_uid = $[
+    "local"	: 60000,
+    "system"	: 500-1,
+    "ldap"	: 60000
+];
+global map min_uid = $[
+    "local"	: 500,
+    "system"	: 0,
+    "ldap"	: 500
+];
+/**
+ * map of maximum gid values (defined for various group types)
+ */
+global map max_gid = $[
+    "local"	: 60000,
+    "system"	: 100-1, // TODO change to 500 with new version
+    "ldap"	: 60000
+];
+global map min_gid = $[
+    "local"	: 100, // TODO change to 500 with new version
+    "system"	: 0,
+    "ldap"	: 500
+];
+
+/**
+ * map of allowed password length (defined for various user types)
+ */
+global map pass_length = $[
+    "local": $[ "max": 8, "min":5 ],
+    "ldap" : $[ "max": 8, "min":5 ],
+];
 
 // Maximum number of days a password may be used:
 global integer pass_max_days = 99999;
@@ -135,7 +169,7 @@ list user_sources = [];
  * The main map of users
  * example:
  * users = $[
- *  `local:$[
+ *  "local":$[
  *	500 :$[
  *	    "fullname":"Hans H", "gid":100, "home":"/local/hh",
  *	    "password":"x","shell":"/bin/bash",
@@ -277,6 +311,11 @@ global map ldap_user_config = $[];
 global map ldap_group_config = $[];
 global map ldap_user_template = $[];
 global map ldap_group_template = $[];
+global map ldap_user_defaults = $[];
+global map ldap_group_defaults = $[];
+
+global string ldap_user_config_dn = "";
+global string ldap_group_config_dn = "";
 
 // filters could be read alone
 global boolean ldap_filters_read = false;
@@ -287,14 +326,20 @@ global map ldap_shadow = $[];
 // other default settings (home, shell, etc.) for LDAP users
 global map ldap_defaults = $[];
 
-global string ldap_default_groupname = "users";//TODO strange?
+global string ldap_default_groupname = "";
 global string ldap_default_grouplist = "";
 
 // default object classes of LDAP users (read from Ldap module)
 global list ldap_user_class = ["top","posixAccount","shadowAccount",
     "inetOrgPerson"];
 // default object classes of LDAP groups (read from Ldap module)
-global list ldap_group_class = [ "top", "posixGroup", "groupOfNames"];
+global list ldap_group_class = [ "top", "posixGroup", "groupOfUniqueNames"];
+
+global string ldap_user_naming_attr = "uid";
+global string ldap_group_naming_attr = "cn";
+// last uid/gid used
+global integer ldap_last_uid = 0;
+global integer ldap_last_gid = 0;
 
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
@@ -346,16 +391,17 @@ global map groupset_to_string = $[
 ];
 
 // keys in user's map which are not saved anywhere (internal use only :-))
-list user_internal_keys = [ "create_home", "grouplist","groupname", "modified",
-    "org_username", "org_uid", "org_home","org_user", "org_groupname",
-    "type", "what", "dn", "removed_grouplist" ];
+global list user_internal_keys = [ "create_home", "grouplist","groupname",
+    "modified", "org_username", "org_uid", "org_home","org_user", "type",
+    "org_groupname", "what", "dn", "org_dn", "removed_grouplist", "delete_home"
+];
 
-list group_internal_keys = [ "modified", "type", "what", "more_users", "dn",
-    "org_groupname", "org_gid", "removed_userlist" ];
+global list group_internal_keys = [ "modified", "type", "what", "more_users",
+    "dn", "org_dn", "org_groupname", "org_gid", "removed_userlist" ];
 
 // conversion table of parameter names used in yast (passwd-style) and
 // in LDAP schema
-global map ldap_param_conv = $[
+global map ldap_attrs_conversion = $[
     // user:
     "username":		"uid",
     "uid":		"uidNumber",
@@ -372,8 +418,27 @@ global map ldap_param_conv = $[
     "min":		"shadowMin",
     "max":		"shadowMax",
     // group:
-    "userlist":		"memberUid",
+//    "userlist":		"memberUid",
+    "userlist":		"uniqueMember",
     "groupname":	"cn"
+];
+
+// conversion table from parameter names used in LDAP to ones used in
+// yast (passwd-style)
+global map ldap2yast_user_attrs = $[
+    "uid":		"username",
+    "uidNumber":	"uid",
+    "cn":		"fullname",
+    "homeDirectory":	"home",
+    "loginShell":	"shell",
+    "gidNumber":	"gid",
+    "userPassword":	"password",
+];
+global map ldap2yast_group_attrs = $[
+    "gidNumber":	"gid",
+    "userPassword":	"password",
+    "cn":		"groupname",
+    "uniqueMember":	"userlist"
 ];
 
 
@@ -842,7 +907,6 @@ global define symbol Write (block abort, boolean useUI)``{
     {
 	map error = $[];
 
-	// TODO do not ask again when anonymous was set?
         if ((Ldap::anonymous || Ldap::bind_pass == nil) && useUI)
 	{
 	    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
@@ -1025,7 +1089,7 @@ define map ImportUser (map user) ``{
     }
 
     string type = "local";
-    if ((uid <= max_system_uid || username == "nobody") && uid != -1)
+    if ((uid <= max_uid ["system"]:500 || username == "nobody") && uid != -1)
         type = "system";
 
     // if empty, set to default, might be changed later..
@@ -1120,7 +1184,7 @@ define map ImportGroup (map group) ``{
 
     string groupname = group["groupname"]:"";
     string type = "local";
-    if ((group["gid"]:-1 <= max_system_gid ||
+    if ((group["gid"]:-1 <= max_gid ["system"]:100 ||
         groupname == "nobody" ||
         groupname == "nogroup") &&
         groupname != "users")
@@ -1206,7 +1270,7 @@ global define boolean Import (map settings) ``{
     if (size (without_uid) > 0)
     {
         list uids = UsersCache::BuildUIDList (users["local"]:$[]);
-        integer last = uids [ size(uids)-1 ]:max_system_uid;
+        integer last = uids [ size(uids)-1 ]:max_uid ["system"]:500;
         foreach (`user, without_uid, ``{
             // new local user -> generate new uid (use Commit?)
             integer uid = last + 1;
@@ -1296,7 +1360,7 @@ global define boolean Import (map settings) ``{
 
         foreach (`uid, `user, users [type]:$[], ``{
             string username = user["username"]:":";
-            user ["grouplist"] = FindGroupsBelongUser (username);
+            user ["grouplist"] = FindGroupsBelongUser (username, "");
             integer gid = user["gid"]:default_gid;
             // hack: change of default group's gid - is it correct?
             if (gid == 100 && default_gid != 100)
@@ -1473,6 +1537,85 @@ global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
 }
 
 /**
+ * Take the object (user or group) and substitute the values of arguments with
+ * default values (marked in object template). Translates attribute names from
+ * LDAP types to internal yast-names.
+ * @param what "user" or "group"
+ * @param data map of already gathered keys and values
+ * @example map of default values contains pair "homeDirectory": "/home/%uid"
+ * -> value of "home" is set to "/home" + username
+ * @return new data map with substituted values
+ */
+global define map SubstituteValues (string what, map data) ``{
+
+    map ret = data;
+    list internal = (what == "user") ? user_internal_keys: group_internal_keys;
+    map defaults = (what == "user") ? ldap_user_defaults : ldap_group_defaults;
+    // 'value' of 'attr' should be changed
+    foreach (`attr,`value, data, ``{
+
+	string svalue = "";
+	if (!is (value, string) && !is(value, list))
+	    return;
+	if (is (value, list))
+	{
+	    if (size (value)>1)
+		return;
+	    svalue = value[0]:"";
+	}
+	else
+	    svalue = value;
+	// substitute only when current value is empty or contains "%"
+	if (contains (internal, attr) ||
+	    (svalue != "" && !issubstring (svalue, "%")))
+	    return;
+
+	// translate attribute names from LDAP to yast-type
+	string ldap_attr = ldap_attrs_conversion [attr]:attr;
+	string val = defaults [ldap_attr]:nil;
+
+	if (val != nil && issubstring (val, "%"))
+	{
+	    list parts = splitstring (val, "%");
+	    string result = parts [0]:"";
+	    integer i = 1;
+	    while (i < size (parts))
+	    {
+		string part = parts[i]:"";
+		boolean replaced = false;
+		// find a contens of substitution (filled in current user/group)
+		foreach (`at, `v, data, ``{
+		    if (contains (internal, at) || replaced)
+			return;
+		    if (!is (v, list) && !is(v,string) && !is(v,integer))
+			return;
+		    string sv = "";
+		    if (is (v, list))		sv = v[0]:"";
+		    else if (is(v,integer))	sv = sformat ("%1",v);
+		    else sv = v;
+		    string a = ldap_attrs_conversion [at]:at;
+		    if (substring (part, 0, size (a)) == a)
+		    {
+			result = result + sv + substring (part, size (a));
+			replaced = true;
+		    }
+		});
+		if (!replaced)
+		    result = result + "%" + part;
+		i = i + 1;
+	    }
+	    if (result != svalue)
+	    {
+		y2milestone ("attribute '%1' changed from '%2' to '%3'",
+		    attr, svalue, result);
+		ret [attr] = result;
+	    }
+	}
+    });
+    return ret;
+}
+
+/**
  * Initializes (user|group)_in_work map with default values
  * @param what "user" or "group"
  * @param data user/group initial data (could be an empty map)
@@ -1480,16 +1623,13 @@ global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
  */
 global define boolean Add (string what, map data)``{
 
-    // FIXME ldap: substitute default values (like %cn)
-
     string type = data["type"]:nil;
     if (what == "user")
     {
 	// what could be in "data":
-	// - something from saved_user...
-	// - calling Add User->Details->Next
-	// - base values, like username/uid/fullname???
-	// TODO really here? - check all for cmd-line usage...
+	// - something from saved_user (during installation sequence)
+	// - calling Add User->Details->Next = one more Add call
+	// - TODO base values, like username/uid/fullname(in cmd-line interface)
         user_in_work = eval (data);
 	// create some default values
 	if (type == nil)
@@ -1504,12 +1644,13 @@ global define boolean Add (string what, map data)``{
 		i = i - 1;
 	    }
 	}
+
 	UsersCache::user_type	= type;
 	user_in_work["type"]	= type;
 	user_in_work["uid"]	= data["uid"]:NextFreeUid();
 	if ( user_in_work["uid"]:nil ==  nil )
 	{
-	    // error label - TODO: solve for command-line mode!
+	    // error label
 	    Report::Error(_("There is no free UID for this type of user."));
 	    return false;
 	}
@@ -1519,8 +1660,9 @@ global define boolean Add (string what, map data)``{
 	user_in_work["groupname"] = data["groupname"]:GetDefaultGroupname(type);
 	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
 
-	// Do not use default value (["default"]:GetDefault()), bacause it is
-	// evaluated always and warning could be shown when not necessary...
+	// Do not use default value as function (["value"]:GetDefault()),
+	// bacause it is evaluated always and warning could be shown when
+	// not necessary...
 	user_in_work["home"]	= data["home"]:nil;
 	if (user_in_work ["home"]:nil == nil)
 	    user_in_work ["home"] = GetDefaultHome (true, type) + username;
@@ -1530,14 +1672,25 @@ global define boolean Add (string what, map data)``{
 	    user_in_work ["gid"] = GetDefaultGid (true, type);
 
 	user_in_work["shell"]	= data["shell"]:GetDefaultShell(type);
-	map user_shadow		= data["shadow"]:GetDefaultShadow(type);
-	if (type == "ldap")
-	    user_in_work = union (user_in_work, user_shadow);
-	else
-	    user_in_work["shadow"] = user_shadow;
 	user_in_work["password"] = data["password"]:"";
 	user_in_work["create_home"] = data["create_home"]:true;
 	user_in_work["what"] = "add_user";
+	map user_shadow		= data["shadow"]:GetDefaultShadow(type);
+	if (type == "ldap")
+	{
+	    user_in_work = union (user_in_work, user_shadow);
+	    // add default object classes
+	    user_in_work["objectClass"] = data["objectClass"]:ldap_user_class;
+	    // add other default values
+	    foreach (`attr, `val, ldap_user_defaults, ``{
+		string a = ldap2yast_user_attrs [attr]:attr;
+		if (!haskey (user_in_work, a) || user_in_work[a]:"" == "")
+		    user_in_work [a] = val;
+	    });
+	    user_in_work ["dn"] = data["dn"]:CreateUserDN (data);
+	}
+	else
+	    user_in_work["shadow"] = user_shadow;
     }
     else
     {
@@ -1565,6 +1718,18 @@ global define boolean Add (string what, map data)``{
 	    return false;
 	}
 	group_in_work["what"] = "add_group";
+	if (type == "ldap")
+	{
+	    // add default object classes
+	    group_in_work["objectClass"] = data["objectClass"]:ldap_group_class;
+	    // add other default values
+	    foreach (`attr, `val, ldap_group_defaults, ``{
+		string a = ldap2yast_group_attrs [attr]:attr;
+		if (!haskey (group_in_work, a) || group_in_work[a]:"" == "")
+		    group_in_work [a] = val;
+	    });
+	    group_in_work ["dn"] = data["dn"]:CreateGroupDN (data);
+	}
     }
     return true;
 }
@@ -1586,12 +1751,11 @@ global define boolean Edit (string what, map data)``{
     {
 	string username = data["username"]:"";
 	// user is edited for first time
-	if (!haskey (data, "org_user"))
+	if (!haskey (data, "org_user") && data["what"]:"" != "add_user")
 	{
 	    if (type == "ldap")
 	    {
 		// convert values with wrong type to string
-//		user_in_work = CorrectLDAPValues(data);TODO not needed any more?
 		data = eval (user_in_work);
 	    }
 	    // local users have to load shadow settings from global map
@@ -1605,7 +1769,8 @@ global define boolean Edit (string what, map data)``{
 	    // grouplist wasnt fully generated while reading nis & ldap users
 	    if (type == "nis" || type == "ldap")
 	    {
-		user_in_work["grouplist"] = FindGroupsBelongUser (username);
+		user_in_work["grouplist"] = FindGroupsBelongUser (username,
+		    data["dn"]:"");
 	    }
 	}
 	user_in_work["what"] = "edit_user";
@@ -1621,6 +1786,16 @@ global define boolean Edit (string what, map data)``{
     {
 	group_in_work["what"] = "edit_group";
 	UsersCache::group_type = type;
+	/*
+	// group is edited for first time
+	if (!haskey (data, "org_group") && data["what"]:"" != "add_group" &&
+	    type == "ldap")
+	{
+	    // save first map for later checks of modification...
+	    group_in_work["org_group"] = eval (data);
+	}
+	*/
+
     }
     return true;
 }
@@ -1662,6 +1837,11 @@ global define boolean UserReallyModified () ``{
 
 	if (contains (user_internal_keys, key) || is (value, map))
 	    return;
+	// single values are returned as string from agent, not as list
+	// TODO use lists every time
+        if (is (value, list) && is (user_in_work["org_user",key]:"", string)
+	    && user_in_work["org_user",key]:"" == value[0]:"")
+	    return;
         if (user_in_work["org_user",key]:"" != value)
 	{
 	    ret = true;
@@ -1669,9 +1849,73 @@ global define boolean UserReallyModified () ``{
 		user_in_work["org_user",key]:"", value);
 	}
     });
-    // FIXME Ldap users are saved although not really modified!
     return ret;
 }
+
+/**
+ * Remove user from the list of members of current group
+ */
+define boolean RemoveUserFromGroup (string user) ``{
+
+    boolean ret		= false;
+    string group_type	= group_in_work ["type"]:"local";
+    string userlist	= group_in_work ["userlist"]:"";
+    list l_userlist	= splitstring (userlist, ",");
+    if (group_type == "ldap")
+    {
+	l_userlist	= group_in_work ["uniqueMember"]:[];
+	user		= user_in_work ["org_dn"]:user_in_work["dn"]:"";
+    }
+    if (contains (l_userlist, user))
+    {
+	ret = true;
+	group_in_work ["what"] = "user_change";
+	l_userlist = filter (`u, l_userlist, ``(u != user));
+	if (group_type != "ldap")
+	{
+	    userlist = mergestring (l_userlist, ",");
+	    group_in_work ["userlist"] = userlist;
+	}
+	else
+	{
+	    group_in_work ["uniqueMember"] = l_userlist;
+	}
+    }
+    return ret;
+}
+
+/**
+ * Make user the new member of current group
+ */
+define boolean AddUserToGroup (string user) ``{
+
+    boolean ret = false;
+    string group_type	= group_in_work ["type"]:"local";
+    string userlist	= group_in_work ["userlist"]:"";
+    list l_userlist	= splitstring (userlist, ",");
+    if (group_type == "ldap")
+    {
+	l_userlist	= group_in_work ["uniqueMember"]:[];
+	user		= user_in_work ["dn"]:"";
+    }
+
+    if (!contains (l_userlist, user))
+    {
+	ret = true;
+	group_in_work ["what"] = "user_change";
+	if (group_type == "ldap")
+	{
+	    group_in_work["uniqueMember"] = add (l_userlist, user);
+	}
+	else
+	{
+	    if (userlist != "") userlist = userlist + ",";
+	    group_in_work ["userlist"] = userlist + user;
+	}
+    }
+    return ret;
+}
+
 /**
  * Update the global user and/or group map with current
  * user_in work or group_in_work
@@ -1683,10 +1927,14 @@ global define boolean Commit (string object, boolean cache)``{
 
     if (object == "user")
     {
-        integer uid = user_in_work ["uid"]:max_uid;
-        integer org_uid = user_in_work ["org_uid"]:uid;
         string what_user = user_in_work ["what"]:"no";
         string type = user_in_work ["type"]:"local";
+	if (type == "ldap" && what_user == "add_user")
+	{
+	    user_in_work = SubstituteValues (object, user_in_work);
+	}
+        integer uid = user_in_work ["uid"]:max_uid[type]:60000;
+        integer org_uid = user_in_work ["org_uid"]:uid;
         string username = user_in_work ["username"]:"";
         string org_username = user_in_work ["org_username"]:username;
         string grouplist = user_in_work ["grouplist"]:"";
@@ -1710,22 +1958,8 @@ global define boolean Commit (string object, boolean cache)``{
             // update the affected groups
             foreach (`group, group_list, ``{
                 group_in_work = GetGroupByName (group, type);
-                if (group_in_work == $[])
-                {
-                    y2error("Group %1 doesn't exist!", group);
-                }
-                else
-                {
-                    group_in_work ["what"] = "user_change";
-                    string userlist = group_in_work ["userlist"]:"";
-                    list userlist_l = splitstring (userlist, ",");
-                    if (!contains(userlist_l, username))
-                    {
-                        if (userlist != "") userlist = userlist + ",";
-                        group_in_work ["userlist"] = userlist + username;
-                        Commit ("group", cache);
-                    }
-                }
+                if (group_in_work != $[] && AddUserToGroup (username))
+                    Commit ("group", cache);
             });
 	    // check if home directory for this user doesn't already exist
 	    if (!user_in_work["create_home"]:true &&
@@ -1735,11 +1969,7 @@ global define boolean Commit (string object, boolean cache)``{
 	    }
             // add user to his default group -- updating only cache variables
             group_in_work = GetGroupByName (defgroup, type);
-            if (group_in_work == $[])
-            {
-                y2error("Group %1 doesn't exist!", defgroup);
-            }
-            else
+            if (group_in_work != $[])
             {
                 group_in_work ["what"] = "user_change_default";
                 string more_users = group_in_work ["more_users"]:"";
@@ -1757,46 +1987,24 @@ global define boolean Commit (string object, boolean cache)``{
                 user_in_work ["modified"] = "edited";
             // check the change of additional group membership
             foreach (`group, group_list, ``{
+//y2internal ("group: %1", group);
                 group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[]) return;
-                string userlist = group_in_work ["userlist"]:"";
-                list l_userlist = splitstring (userlist, ",");
-                // username changed
-                if ((org_username != username) &&
-                    (contains (l_userlist, org_username)))
+                // username changed - remove org_username
+                if (org_username != username)
                 {
-                    group_in_work ["what"] = "user_change";
-                    l_userlist = filter (`u, l_userlist, ``(u != org_username));
-                    userlist = mergestring (l_userlist, ",");
-                    if (userlist != "") userlist = userlist + ",";
-                    group_in_work ["userlist"] = userlist + username;
+		    RemoveUserFromGroup (org_username);
+		}
+		if (AddUserToGroup (username))
                     Commit ("group", cache);
-                }
-                // user was added to the new group
-                else if (!contains (l_userlist, org_username))
-                {
-                    group_in_work ["what"] = "user_change";
-                    if (userlist != "") userlist = userlist + ",";
-                    // username can be changed here
-                    group_in_work ["userlist"] = userlist + username;
-                    Commit ("group", cache);
-                }
             });
             // check the removing user from some additional group
             list removed_group_list = user_in_work ["removed_grouplist"]:[];
             foreach (`group, removed_group_list, ``{
                 group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[]) return;
-                string userlist = group_in_work ["userlist"]:"";
-                list l_userlist = splitstring (userlist, ",");
-                if (contains (l_userlist, org_username)) // always true?
-                {
-                    group_in_work ["what"] = "user_change";
-                    l_userlist = filter (`u, l_userlist, ``(u != org_username));
-                    userlist = mergestring (l_userlist, ",");
-                    group_in_work ["userlist"] = userlist;
+		if (RemoveUserFromGroup (org_username))
                     Commit ("group", cache);
-                }
             });
             // check the change in default group
             string org_defgroup = user_in_work ["org_groupname"]:defgroup;
@@ -1864,19 +2072,8 @@ global define boolean Commit (string object, boolean cache)``{
             // check the change of group membership
             foreach (`group, group_list, ``{
                 group_in_work = GetGroupByName (group, type);
-                if (group_in_work != $[])
-                {
-                    string userlist = group_in_work ["userlist"]:"";
-                    list l_userlist = splitstring (userlist, ",");
-                    if (contains (l_userlist, username)) // always true?
-                    {
-                        group_in_work ["what"] = "user_change";
-                        l_userlist = filter (`u, l_userlist, ``(u != username));
-                        userlist = mergestring (l_userlist, ",");
-                        group_in_work ["userlist"] = userlist;
-                        Commit ("group", cache);
-                    }
-                }
+                if (group_in_work != $[] && RemoveUserFromGroup (org_username))
+                    Commit ("group", cache);
             });
             // remove user from his default group -- only cache structures
             group_in_work = GetGroupByName (defgroup, type);
@@ -1929,29 +2126,33 @@ global define boolean Commit (string object, boolean cache)``{
             }
 	    if (username != org_username)
 	    {
-                users_by_name [type] = remove (users_by_name [type]:$[], org_username);
+                users_by_name [type] = remove (users_by_name [type]:$[],
+		    org_username);
 	    }
             users [ type, uid ] = eval (user_in_work);
             users_by_name [ type, username ] = uid;
 
-            // this has to be done due to multiple changes of username -- ??
-            // and what about the home and others?? TODO
-            if (type != "ldap") // for changing ldap username old one is needed
-                users [type, uid, "org_username"] = username;
+            users [type, uid, "org_username"] = username;
         }
     }
     else if ( object == "group" )
     {
 //y2internal ("group: %1", group_in_work);
-        integer gid = group_in_work ["gid"]:max_gid;
-        integer org_gid = group_in_work ["org_gid"]:gid;
-        string what_group = group_in_work ["what"]:"no";
-        string type = group_in_work ["type"]:"local";
-        string groupname = group_in_work ["groupname"]:"";
-        string password = group_in_work ["password"]:"*";
-        string org_groupname = group_in_work ["org_groupname"]:groupname;
-        string userlist = group_in_work ["userlist"]:"";
-        list l_userlist = splitstring (userlist, ",");
+        string type		= group_in_work ["type"]:"local";
+        string what_group	= group_in_work ["what"]:"no";
+	if (type == "ldap" && what_group == "add_group")
+	{
+	    group_in_work = SubstituteValues (object, group_in_work);
+	}
+        integer gid		= group_in_work ["gid"]:max_gid [type]:60000;
+        integer org_gid		= group_in_work ["org_gid"]:gid;
+        string groupname	= group_in_work ["groupname"]:"";
+        string password		= group_in_work ["password"]:"*";
+        string org_groupname	= group_in_work ["org_groupname"]:groupname;
+        string userlist		= group_in_work ["userlist"]:"";
+        list l_userlist		= splitstring (userlist, ",");
+	if (type == "ldap")
+	    l_userlist		= group_in_work ["uniqueMember"]:[];
 
         if (org_groupname == "")
             org_groupname = groupname;
@@ -1959,7 +2160,7 @@ global define boolean Commit (string object, boolean cache)``{
         if (type == "system" || type == "local")
             groups_modified = true;
 
-        if (type == "ldap")
+        if (type == "ldap" && what_group != "no")
             ldap_modified = true;
 
         if ( what_group == "add_group" )
@@ -1967,7 +2168,6 @@ global define boolean Commit (string object, boolean cache)``{
             group_in_work ["modified"] = "added";
             // update users's grouplists (only local structures)
             foreach (`user, l_userlist, ``{
-                // -- what if user doesn't exist??
                 user_in_work = GetUserByName (user);
                 string grouplist = user_in_work ["grouplist"]:"";
                 if (grouplist != "")
@@ -2117,9 +2317,8 @@ global define boolean Commit (string object, boolean cache)``{
             if (haskey (gshadow [type]:$[], groupname))
                 gshadow [type, groupname, "userlist"] = userlist;
 
-            // this has to be done due to multiple changes of groupname ??
-            if (type != "ldap")
-                groups [type, gid, "org_groupname"] = groupname;
+            // this has to be done due to multiple changes of groupname
+            groups [type, gid, "org_groupname"] = groupname;
         }
     }
     return true;
@@ -2209,7 +2408,7 @@ global define boolean ReadLoginDefaults(boolean useUI)``{
     });
 
     if( useradd_defaults == $[] || useradd_defaults == nil )
-	    return false;
+	return false;
 
     SetDefaultValues(useUI);
     return true;
@@ -2298,38 +2497,35 @@ define boolean ReadDefaultGroup(boolean useUI)``{
  */
 global define boolean ReadSystemDefaults()``{
 
-	// TODO: read all settings from Security module...
+    // TODO: read all settings from Security module...
 
-	// pam stuff
-	map pam_unix_map = $[];
-	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
-	if(pam_list != [] && pam_list != nil)
-	    pam_unix_map = select(pam_list,0,$[]);
+    // pam stuff
+    map pam_unix_map = $[];
+    list pam_list = SCR::Read(.pam.all.password.pam_unix2);
+    if(pam_list != [] && pam_list != nil)
+	pam_unix_map = select(pam_list,0,$[]);
 
-	map pam_check_map = $[];
-	pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
-	if(pam_list != [] && pam_list != nil)
-	    pam_check_map = select(pam_list,0,$[]);
+    map pam_check_map = $[];
+    pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
+    if(pam_list != [] && pam_list != nil)
+        pam_check_map = select(pam_list,0,$[]);
 
-	// set defaults
-	max_uid = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
-	if (nil == max_uid)
-	    max_uid = 60000;
-    max_gid = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
-    if (nil == max_gid)
-        max_gid = 60000;
-	max_system_uid = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
-    if (nil == max_system_uid)
-        max_uid = 499;
-    max_system_gid = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
-    if (nil == max_system_gid)
-        max_system_gid = 99;
-    max_length_uid = size(sformat("%1", max_uid));
-    max_length_gid = size(sformat("%1", max_gid));
+    // set defaults
+    max_uid ["local"] = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
+    if (nil == max_uid ["local"]:nil)
+        max_uid ["local"] = 60000;
+    max_gid ["local"] = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
+    if (nil == max_gid ["local"]:nil)
+	max_gid ["local"] = 60000;
+    max_uid ["system"] = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
+    if (nil == max_uid ["system"]:nil)
+        max_uid ["system"] = 499;
+    max_gid ["system"] = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
+    if (nil == max_gid ["system"]:nil)
+        max_gid ["system"] = 99;
+    max_length_uid = size(sformat("%1", max_uid ["local"]:60000));
+    max_length_gid = size(sformat("%1", max_gid ["local"]:60000));
 
-    min_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
-    if (nil ==  min_length_pas)
-        min_length_pas = 5;
     pass_max_days = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
     if (nil ==  pass_max_days)
         pass_max_days = 99999;
@@ -2340,7 +2536,12 @@ global define boolean ReadSystemDefaults()``{
     if (nil == pass_warn_age)
         pass_warn_age = 7;
 
-    // TODO add a progress for this?  ReadSecurity
+    pass_length ["local", "min"] =
+	tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
+    if (nil ==  pass_length ["local", "min"]:nil)
+	pass_length ["local", "min"] = 5;
+
+    // TODO add a progress for ReadSecurity
     Progress::off();
     Security::Read();
     Progress::on();
@@ -2354,7 +2555,9 @@ global define boolean ReadSystemDefaults()``{
 
     cracklib_dictpath = SCR::Read(.etc.login_defs.CRACKLIB_DICTPATH);
 
-    max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
+//    max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
+    pass_length ["local", "max"] =
+	Security::PasswordMaxLengths [encryptionMethod]:8;
     y2debug ("encryption: %1", encryptionMethod);
 
     encoding = Console::encoding;
@@ -2398,7 +2601,11 @@ global define string GetDefaultHome(boolean useUI, string type)``{
     if (type == "ldap")
     {
 	def_home = ldap_defaults["home"]:def_home;
+	// it is not on this machine, so we cannot check it now...
 	if (!ldap_file_server)
+	    return def_home;
+	// there should be some substitution, so we cannot check it now...
+	if (issubstring (def_home, "%"))
 	    return def_home;
     }
 
@@ -2447,10 +2654,12 @@ global define integer GetDefaultGid(boolean useUI, string type)``{
 	def_gid = ldap_defaults["group"]:def_gid;
     }
     integer def_int = tointeger(def_gid);
-    map group = $[];
+    // first, try the same type as user's
+    map group = groups [type, def_int]:$[];
 
-    group = GetGroupFromAll (def_int);
-    if( group == $[])
+    if (group == $[])
+	group = GetGroupFromAll (def_int);
+    if (group == $[])
     {
         if (useUI)
 	{
@@ -2466,6 +2675,42 @@ global define integer GetDefaultGid(boolean useUI, string type)``{
         return default_gid;
     }
     return def_int;
+}
+
+/**
+ * The default grouplist for new user
+ * @param type type of new user ("local", "system", "nis", "ldap")
+ * @return the grouplist
+ */
+global define string GetDefaultGrouplist (string type) ``{
+
+    // check for existence of groups !!
+    if (type == "local")
+	return useradd_defaults ["groups"]:"";
+    else if (type == "ldap")
+	return ldap_default_grouplist;
+    else
+        return "";
+}
+
+/**
+ * The name of default group
+ * @param type type of new user ("local", "system", "nis", "ldap")
+ * @return the groupname
+ */
+global define string GetDefaultGroupname (string type) ``{
+
+    if (type != "ldap")
+        return default_groupname;
+    else
+    {
+	if (ldap_default_groupname == "")
+	{
+	    ldap_default_groupname = groups["ldap", GetDefaultGid (false, type),
+		"groupname"]:default_groupname;
+	}
+        return ldap_default_groupname;
+    }
 }
 
 /**
@@ -2494,42 +2739,50 @@ global define list GetAllShells(symbol todo ) ``{
 			available_shells = add( available_shells, shell_entry);
 		}
 	    }
-
 	}
     });
     return available_shells;
 }
 
 /**
- * Reads the set of values in "Custom" filter from disk
+ * Reads the set of values in "Custom" filter from disk and other internal
+ * variables ("not_ask")
  */
 global define void ReadCustomSets() ``{
 
-    string file = Directory::vardir + "/users_customs.ycp";
+    string file = Directory::vardir + "/users.ycp";
     SCR::Execute (.target.bash, sformat ("/bin/touch %1", file));
-    map customs = SCR::Read (.target.ycp, file);
+    any customs = SCR::Read (.target.ycp, file);
 
-    user_custom_sets = customs ["users"]:[];
-    if (user_custom_sets == [])
-        user_custom_sets = ["local"];
+    if (is (customs, map))
+    {
+	user_custom_sets = customs ["custom_users"]:[];
+	if (user_custom_sets == [])
+	    user_custom_sets = ["local"];
 
-    group_custom_sets = customs ["groups"]:[];
-    if (group_custom_sets == [])
-        group_custom_sets = ["local"];
+	group_custom_sets = customs ["custom_groups"]:[];
+	if (group_custom_sets == [])
+	    group_custom_sets = ["local"];
+
+	if (customs["dont_warn_when_uppercase"]:false == true)
+	    not_ask_uppercase = true;
+    }
+
 }
 
 /**
- * Writes the set of values in "Custom" filter to disk
+ * Writes the set of values in "Custom" filter and other internal varianbles
  * @return writing success
  */
 global define boolean WriteCustomSets() ``{
 
     map customs = $[
-        "users": user_custom_sets,
-        "groups": group_custom_sets
+        "custom_users": user_custom_sets,
+        "custom_groups": group_custom_sets,
+        "dont_warn_when_uppercase": not_ask_uppercase,
     ];
     return
-    SCR::Write (.target.ycp, Directory::vardir + "/users_customs.ycp", customs);
+    SCR::Write (.target.ycp, Directory::vardir + "/users.ycp", customs);
 }
 
 /**
@@ -2562,14 +2815,14 @@ global define void ReadUsersCache(boolean read_prebuilded) ``{
     // this is ugly -- move it to some Consts module ?
     UsersCache::max_uid         =    max_uid;
     UsersCache::max_gid         =    max_gid;
-    UsersCache::max_system_uid  =    max_system_uid;
-    UsersCache::max_system_gid  =    max_system_gid;
+    UsersCache::min_uid         =    min_uid;
+    UsersCache::min_gid         =    min_gid;
     UsersCache::max_length_uid  =    max_length_uid;
     UsersCache::max_length_gid  =    max_length_gid;
 
     UsersCache::encoding        =   encoding;
 
-    UsersCache::ldap_file_server = ldap_file_server;//TODO:can be changed during work?
+    UsersCache::ldap_file_server = ldap_file_server;
 
     // build the users MenuButton items
     BuildMenuButtonItems ();
@@ -2583,7 +2836,7 @@ global define void ReadUsersCache(boolean read_prebuilded) ``{
     // use the pre-builded structures also for cache
     if (read_prebuilded)
     {
-        ChangeCurrentUsers ("custom"); // TODO: move to UsersCache??
+        ChangeCurrentUsers ("custom");
         ChangeCurrentGroups ("custom");
         UsersCache::ReadFromFiles (tmpdir);
     }
@@ -2593,11 +2846,14 @@ global define void ReadUsersCache(boolean read_prebuilded) ``{
 
 /**
  * Returns the map of users specified by its name
- * @param name user's name
+ * @param name user's identification (username or DN)
  * @return the desired user's map
  */
-global define map GetUserByName ( string name )``{
+global define map GetUserByName ( string user)``{
     map ret = $[];
+    string name = user;
+    if (issubstring (name, "="))
+	name = get_first (name);
     integer uid = -1;
     foreach (`type, `usernames, users_by_name, ``{
         if (ret == $[])
@@ -2629,6 +2885,8 @@ global define map GetGroupByName (string name, string usertype)``{
             ret = groupmap [name]:$[];
         }
     });
+    if (ret == $[])
+	y2warning("Group %1 doesn't exist!", name);
     return ret;
 }
 
@@ -2692,15 +2950,22 @@ global define map GetGroupFromAll( integer gid )``{
 /**
  * This define returns the groups of a user.
  * @param username the name of the user
+ * @param dn DN of LDAP user (for LDAP groups only)
  * @return string group comma separated list
  */
-global define string FindGroupsBelongUser( string username ) ``{
+global define string FindGroupsBelongUser( string username, string dn ) ``{
 
     string grouplist = "";
     foreach (`type, `groupset, groups, ``{
         foreach (`gid, `group, groupset, ``{
             list userlist = splitstring (group["userlist"]:"", ",");
-            if (contains (userlist, username))
+	    string user = username;
+	    if (type == "ldap")
+	    {
+		userlist = group["uniqueMember"]:[];
+		user = dn;
+	    }
+            if (contains (userlist, user))
             {
                 if (grouplist == "")
                     grouplist = group["groupname"]:"";
@@ -2795,34 +3060,14 @@ Install it now?"),
 
 
 	// read all needed LDAP settings now:
-	ReadLDAPSettings ();
-	string ldap_mesg = "";
-
-	/* TODO not necessary?
-	if (!ldap_initialized)
-	{
-	    ldap_mesg = Ldap::LDAPInit ();
-	    if ( ldap_mesg != "")
-	    {
-		Ldap::LDAPErrorMessage("init", ldap_mesg);
-		return false;
-	    }
-	    ldap_initialized = true;
-	}
-
-        if (Ldap::bind_pass == nil && !Ldap::anonymous)
-	{
-	    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
-        }
-        if (Ldap::bind_pass == nil)
+	if (!ReadLDAPSettings ())
 	    return false;
-	*/
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
             `Label(_("Reading sets of users and groups. Please wait...")));
 
-	ldap_mesg = ReadLDAP();
+	string ldap_mesg = ReadLDAP();
 	if (ldap_mesg != "")
 	{
             Ldap::LDAPErrorMessage("read", ldap_mesg);
@@ -2841,22 +3086,6 @@ Install it now?"),
 
     UI::CloseDialog(); // the wait popup
     return true;
-}
-
-/**
- * Check local groups for presence of non-local users, which was read now
- * and correct that users's grouplists
- * @param type type of users
- */
-global define void CorrectUsers(string type) ``{
-
-    list new_users = UsersCache::usernamelists [type]:[];
-
-    /* TODO 2 possible solutions:
-    1. walk through set of new users and call FindGroupsBelongUser -> too slow
-    2. walk through all groups (maybe except "users") and check the correctness
-        of its userlist entry -> bit strange
-    */
 }
 
 /**
@@ -3008,7 +3237,7 @@ global define map RunPrepare(string type) ``{
     {
         ret = SCR::Execute(.target.bash_output, sformat(
         "%1/build_passwd_structures.pl %2 %3 %4 %5 %6", Directory::bindir,
-        base_dir, tmpdir, max_system_uid, max_system_gid, encoding));
+        base_dir, tmpdir, max_uid ["system"]:500, max_gid["system"]:100, encoding));
     }
     else if (type == "nis")
     {
@@ -3019,34 +3248,6 @@ global define map RunPrepare(string type) ``{
     return ret;
 }
 
-/**
- * The default grouplist for new user
- * @param type type of new user ("local", "system", "nis", "ldap")
- * @return the grouplist
- */
-global define string GetDefaultGrouplist (string type) ``{
-
-    // check for existence of groups !!
-    if (type == "local")
-        return "dialout,uucp,video,audio";
-    else if (type == "ldap")
-	return ldap_default_grouplist;
-    else
-        return "";
-}
-
-/**
- * The name of default group
- * @param type type of new user ("local", "system", "nis", "ldap")
- * @return the groupname
- */
-global define string GetDefaultGroupname (string type) ``{
-
-    if (type != "ldap")
-        return default_groupname;
-    else
-        return ldap_default_groupname;
-}
 
 /**
  * Gets the source of user lists from /etc/nsswitch.conf
@@ -3089,6 +3290,24 @@ global define map BuildAdditional (string userlist, string more_users) ``{
         ];
 }
 
+global define map BuildAdditionalLDAP (list members, string more_users) ``{
+
+    SCR::Write(.target.ycp, tmpdir + "/additional_userlist", members);
+    SCR::Write(.target.string, tmpdir + "/additional_moreusers", more_users);
+
+    SCR::Write(.target.ycp,tmpdir+"/additional_userdns",UsersCache::userdnlist);
+
+    if (0 != SCR::Execute(.target.bash, sformat(
+        "%1/build_additional_users.pl %2 ldap", Directory::bindir, tmpdir)))
+        return $[];
+    else
+        return $[
+            `ulist: SCR::Read(.target.ycp, tmpdir + "/additional_ulist.ycp"),
+            `more:  SCR::Read(.target.ycp, tmpdir + "/additional_more.ycp")
+        ];
+}
+
+
 /**
  * Re-read the settings, when back was pushed during installation
  * @return true
@@ -3100,7 +3319,7 @@ global define boolean StartAgain() ``{
     return true;
 }
 
-/** TODO: is this really needed?
+/**
  * Remove old config options - is used from inst_root.ycp
  */
 global define void removeOldConf() ``{
@@ -3142,9 +3361,11 @@ global define string CryptPassword (string pw, string type) ``{
     string method = encryptionMethod;
     if (type == "ldap")
     {
-	method = ldap_encryption;// TODO crypt with slappasswd?
+	method = ldap_encryption;
     }
-    if (method == "md5" )
+    if (method == "clear")
+        return pw;// no crypting
+    else if (method == "md5" )
 	return cryptmd5 (pw);
     else if (method == "blowfish" )
 	return cryptblowfish (pw);
@@ -3264,26 +3485,47 @@ after you mount correctly. Continue user configuration?
 }
 
 /**
- * Converts the map of LDAP user to the map using right types
- * (ldap-agent returns numbers as integers type, but YaST expects string)
- * @param data map to convert
- * @return converted map
+ * Creates DN of user. It is supposed there are yast (not LDAP)
+ * keys in parameter map
  */
-global define map CorrectLDAPValues (map data) ``{
-// FIXME is not needed with c++ agent?
-    map ret = eval (data);
-    foreach (`key, `val, data, ``{
-	// when we want to leave integer or boolean
-	if (contains (["uid", "gid", "grouplist_read", "create_home" ], key))
-	    return;
-	// recursion (for shadow map in user map)
-	if (is (val, map))
-	    ret [key] = CorrectLDAPValues (val);
-	// otherwise convert to string:
-	else if (!is (val, string))
-	    ret [key] = sformat ("%1", data[key]:0);
-    });
-    return ret;
+global define string CreateUserDN (map user) ``{
+
+    string dn_attr = ldap_user_naming_attr;
+    string user_attr = ldap2yast_user_attrs [dn_attr]:dn_attr;
+    return sformat ("%1=%2,%3", dn_attr, user[user_attr]:"", ldap_user_base);
+}
+
+/**
+ * Creates DN of group. It is supposed there are yast (not LDAP)
+ * keys in parameter map
+ */
+global define string CreateGroupDN (map group) ``{
+
+    string dn_attr = ldap_group_naming_attr;
+    string group_attr = ldap2yast_group_attrs [dn_attr]:dn_attr;
+    return sformat ("%1=%2,%3", dn_attr, group[group_attr]:"", ldap_group_base);
+}
+
+
+global define void debug (any object) ``{
+
+    y2milestone ("==========================");
+    if (is (object, map))
+    {
+	foreach (`k,`v,object, ``{
+	    y2internal ("key: %1", k);
+	    y2warning ("val: %1", v);
+	    y2milestone ("--------------");
+	});
+    }
+    else if (is (object, list))
+	foreach (`v,object, ``{
+	    y2warning ("val: %1", v);
+	    y2milestone ("--------------");
+	});
+    else
+	y2warning ("val: %1", object);
+    y2milestone ("==========================");
 }
 
 }// EOF

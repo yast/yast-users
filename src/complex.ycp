@@ -177,23 +177,6 @@ global define symbol UsersDialog() ``{
 	}
     }
 
-    /*
-    symbol current_filter = "local";//current users!
-    list available_filters = [];
-    foreach (`type, Users::available_usersets, ``{
-	if (current_filter == type)
-	    available_filters = add (available_filters, `item(`id(type),
-		deletechars (Users::userset_to_string[type]:"", "&"), true));
-	else
-	    available_filters = add (available_filters,	`item(`id(type),
-		deletechars (Users::userset_to_string[type]:"", "&"), false));
-    });
-
-    available_filters = add (available_filters,
-        // PushButon
-	`item (`id(`customize), _("Customize Filter..."), false));
-    */
-
     Users::start_dialog = "users";
     term contents = `VBox(
         `ReplacePoint (`id(`rp), rbUsersGroup(`users)),
@@ -211,19 +194,6 @@ global define symbol UsersDialog() ``{
             `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
             `PushButton(`id(`delete), `opt(`key_F5), Label::DeleteButton ()),
             `HStretch()),
-	/*
-	`VSquash(
-	`HBox(
-	    `ComboBox(`id(`usersets), `opt(`notify, `key_F2), _("Filter"),
-		    available_filters),
-	    `VBox (`VStretch(),
-                // PushButon
-	        `MenuButton(`id(`expertlist), _("E&xpert options..."),
-	            expert_list)
-	    ),
-            `HStretch()
-	))
-	*/
         `HBox(
             // MenuButton label
             `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
@@ -262,19 +232,6 @@ global define symbol UsersDialog() ``{
     {
         ret = UI::UserInput();
 
-	// FIXME combobox:
-	/*
-	if (ret == `usersets)
-	{
-	    ret = `not_next;
-	    if (current_filter != UI::QueryWidget (`id(`usersets), `Value))
-	    {
-		y2internal ("new value: %1", UI::QueryWidget (`id(`usersets), `Value));
-		current_filter = UI::QueryWidget (`id(`usersets), `Value);
-		ret = current_filter;
-	    }
-	}
-	*/
         if ( contains (Users::available_usersets, ret) )
         {
             if (Users::ChangeCurrentUsers (ret))
@@ -309,8 +266,9 @@ global define symbol UsersDialog() ``{
 	    // run LDAP client now
             if (`next == CallModule("ldap", []))
 	    {
-		// yes/no popup
-		if (!Users::ldap_modified && Popup::YesNo (_("Re-read all data from LDAP server?")))
+		if (!Users::ldap_not_read && !Users::ldap_modified &&
+		    // yes/no popup
+		    Popup::YesNo (_("Re-read all data from LDAP server?")))
 		{
 		    Users::ldap_not_read = true;
 		    Users::ldap_filters_read = false;
@@ -338,8 +296,8 @@ global define symbol UsersDialog() ``{
 	    if (enc != Users::encryptionMethod)
 	    {
 		Users::encryptionMethod = enc;
-		Users::max_length_pas = Security::PasswordMaxLengths [
-		    Users::encryptionMethod]:8;
+		Users::pass_length ["local", "max"] =
+		    Security::PasswordMaxLengths [Users::encryptionMethod]:8;
 		Users::security_modified = true;
 	    }
         }
@@ -393,7 +351,7 @@ Are you sure?")))
         }
         Users::use_next_time = true;
     }
-    save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
+    UsersCache::focusline_user = UI::QueryWidget(`id(`user_table),`CurrentItem);
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
@@ -471,8 +429,8 @@ global define symbol GroupsDialog() ``{
                 else
                     UsersCache::customized_groupsview = false;
                 UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
-                ret = `not_next;
             }
+            ret = `not_next;
         }
         if( ret == `customize)
         {
@@ -523,7 +481,7 @@ you must do it on server.
         }
     } until ( ret != `not_next  );
 
-    save_focus( UI::QueryWidget(`id(`group_table), `CurrentItem), ret, `group);
+    UsersCache::focusline_group=UI::QueryWidget(`id(`group_table),`CurrentItem);
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
@@ -537,13 +495,14 @@ you must do it on server.
  */
 global define symbol DeleteUserPopup() ``{
 
-    boolean delete        = true;
-    boolean delete_home   = false;
+    boolean delete      = true;
+    boolean delete_home = false;
+    string type		= UsersCache::user_type;
     string username       = Users::user_in_work["username"]:"";
     string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
-    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid;
+    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid[type]:60000;
 
-    if (UsersCache::user_type == "nis")
+    if (type == "nis")
     {
         // error popup
         Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
@@ -562,13 +521,13 @@ Please log off the user first."));
     }
 
     boolean no_home = false;
-    if ((UsersCache::user_type == "ldap" && !Users::ldap_file_server) ||
+    if ((type == "ldap" && !Users::ldap_file_server) ||
         // check if dir exists with this owner
         (lookup (SCR::Read(.target.stat, home), "uid", -1) != uid) )
         no_home = true;
 
     // if the user want to delete a system user
-    if ( UsersCache::user_type == "system" )
+    if ( type == "system" )
     {
         // yes-no popup headline
         if(! Popup::YesNoHeadline(_("The marked user is a system user."),
@@ -646,7 +605,8 @@ global define symbol DeleteGroupPopup() ``{
 
     // if no user is in this group
     if (Users::group_in_work["userlist"]:"" == "" &&
-        Users::group_in_work["more_users"]:"" == "")
+        Users::group_in_work["more_users"]:"" == "" &&
+        Users::group_in_work["uniqueMember"]:[] == [])
     {
         //if the group is a system group ask the user ..
         if ( UsersCache::group_type == "system" )
@@ -904,46 +864,13 @@ global define term rbUsersGroup(symbol what) ``{
         `Left(`RadioButtonGroup(`HBox(
             `RadioButton(`id(`switch_users), `opt(`notify),
                 // pushbutton
-                _("&Users Administration"), what == `users),
+                _("&Users"), what == `users),
             `RadioButton(`id(`switch_groups), `opt(`notify),
                 // pushbutton
-                _("&Groups Administration"), what == `groups)
-//	))));
+                _("&Groups"), what == `groups)
         ))),
         `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
         );
-}
-
-/**
- * Save focus of main dialog's table
- * @param table_input integer
- * @param ret any
- * @param what symbol
- */
-global define void save_focus(integer table_input, any ret, symbol what) ``{
-
-    integer l_focusline = 0;
-
-    if ( what == `group )
-        l_focusline = UsersCache::focusline_group;
-    if ( what == `user )
-        l_focusline = UsersCache::focusline_user;
-
-    if ( is ( table_input, integer ))
-    {
-        l_focusline = table_input;
-        if( ret == `delete )
-            l_focusline = nil;
-    }
-    if( l_focusline < 0 )
-    {
-        l_focusline = nil;
-    }
-
-    if ( what == `group )
-        UsersCache::focusline_group = l_focusline;
-    if ( what == `user )
-        UsersCache::focusline_user = l_focusline;
 }
 
 /* EOF */

@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Thu Jul 10 11:37:46 CEST 2003 - jsuchome@suse.de
+
+- secondary groups for new users saved in /etc/default/useradd
+- LDAP users and groups management:
+    password length checks (length defined in LDAP configuration)
+    saving last used Id to LDAP config object
+    solved LDAP groups (groupOfUniqueNames cannot be empty)
+- adapted testsuite
+- 2.8.6
+
+-------------------------------------------------------------------
 Fri Jun 27 15:13:05 CEST 2003 - jsuchome@suse.de
 
 - ldap defaults read from config modules stored in LDAP directory

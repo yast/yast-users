@@ -110,13 +110,14 @@ global define symbol MainSequence(string start) ``{
 	"user_edit":        ``(EditUserDialog("edit_user")),
 	"user_details":     ``(EditUserDetailsDialog()),
 	"user_password":    ``(EditUserPasswordDialog()),
-	"user_ldap":		``(LDAPUserSettingsDialog()),
+	"user_ldap":		``(LDAPSettingsDialog("user")),
 	"user_save":        [``(UserSave()), true],
 	"user_setup":	    [ ``(userSetup ()), true],
 
 	"groups":           ``(GroupsDialog()),
 	"group_add":        ``(EditGroupDialog("add_group")),
 	"group_edit":       ``(EditGroupDialog("edit_group")),
+	"group_ldap":		``(LDAPSettingsDialog("group")),
 	"group_save":       [``(GroupSave()), true],
 
 	"defaults":         ``(DefaultsDialog()),
@@ -176,7 +177,9 @@ global define symbol MainSequence(string start) ``{
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
-	    `edit_user:		"user_edit"],
+	    `edit_user:		"user_edit",
+	    `ldap:		"user_ldap",
+	    ],
     "user_password": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
@@ -200,19 +203,23 @@ global define symbol MainSequence(string start) ``{
 	    `cancel:        "without_save",
             `nosave:        `nosave,
 	    `exit:          `abort ],
-	"group_add": $[
+    "group_add": $[
 	    `nosave:		"groups",
-            `next:          "group_save",
-            `abort:         "without_save",
-	    `cancel:        "without_save",
-	    `back:          "groups" ],
-	"group_edit": $[
-            `next:          "group_save",
-            `cancel:        "without_save",
-	        `abort:         "without_save" ],
-	"group_save"  : $[
-            `next:          "groups"],
-//			`save:          "write" ],
+            `next:		"group_save",
+            `abort:		"without_save",
+	    `cancel:		"without_save",
+	    `ldap:		"group_ldap",
+	    `back:		"groups" ],
+    "group_edit": $[
+            `next:		"group_save",
+            `cancel:		"without_save",
+	    `ldap:		"group_ldap",
+	    `abort:		"without_save" ],
+    "group_ldap": $[
+	    `next:		"group_save",
+	    `abort:		"without_save" ],
+    "group_save"  : $[
+            `next:		"groups"],
 	"defaults": $[
 	    `abort:         "without_save",
             `next:          "users"],

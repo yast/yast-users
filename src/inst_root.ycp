@@ -50,7 +50,8 @@ include "users/routines.ycp";   // for EncryptionDialog()
 
   string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
   Users::encryptionMethod = encryptionMethod;
-  Users::max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
+  Users::pass_length ["local", "max"] =
+	Security::PasswordMaxLengths [encryptionMethod]:8;
 
   // Title for root-password dialogue
   string title = _("Password for \"root\", the system administrator");
@@ -175,7 +176,8 @@ Do not forget this \"root\" password!
       if ( this_is_for_real )
       {
 	Users::encryptionMethod = encryptionMethod;
-	Users::max_length_pas =Security::PasswordMaxLengths[encryptionMethod]:8;
+	Users::pass_length ["local", "max"] =
+	    Security::PasswordMaxLengths [encryptionMethod]:8;
          if (pw1 == "")
          {
             // report if user forgot to enter a password
