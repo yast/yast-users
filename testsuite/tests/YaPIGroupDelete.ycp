@@ -1,0 +1,175 @@
+/**
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm UsersCache.pm USERS.pm
+
+    include "testsuite.ycp";
+
+    import "YaPI::USERS";
+    import "Mode";
+
+    map R = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid"		: "hh",
+			"gidnumber"	: 100
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local",
+			"more_users":	$[
+			    "hh":	1,
+			]
+		    ],
+		    1000: $[
+			"cn"	:	"gg",
+			"gidnumber":	1000,
+			"type"	:	"local",
+			"userlist":	$[
+			    "hh":	1
+			]
+		    ],
+		    1001: $[
+			"cn"	:	"gr",
+			"gidnumber":	1001,
+			"type"	:	"local",
+		    ],
+		    "by_name": $[
+			"users":	100,
+			"gg"	:	1000,
+			"gr"	:	1001
+		    ],
+		    "gids": $[
+			100:		1,
+			1000:		1,
+			1001:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+			"gg":		1,
+			"gr":		1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/tmp/local/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	]
+    ];
+    map W = $[];
+    map E = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> config_map  = $[];
+
+    DUMP ("============ delete non-existent group: ==================");
+    config_map["cn"]	= "ggg";
+    string error = (string)
+	TEST (``(YaPI::USERS::GroupDelete (config_map)), [R,W,E], 0);
+
+    DUMP ("==========================================================");
+    DUMP ("============ delete groups with members: =================");
+    config_map["cn"]	= "gg";
+    error = (string)
+	TEST (``(YaPI::USERS::GroupDelete (config_map)), [R,W,E], 0);
+    DUMP (sformat ("========== returned: %1", error));
+
+    DUMP ("==========================================================");
+    DUMP ("============ delete groups with more_users: ==============");
+    config_map["cn"]	= "users";
+    error = (string)
+	TEST (``(YaPI::USERS::GroupDelete (config_map)), [R,W,E], 0);
+    DUMP (sformat ("========== returned: %1", error));
+
+    DUMP ("============ delete group by name: =======================");
+
+    config_map["cn"]	= "gr";
+    TEST (``(YaPI::USERS::GroupDelete (config_map)), [R,W,E], 0);
+
+    DUMP ("============ delete group by gid: =======================");
+
+    config_map	= $[
+	"gidnumber"	: "1001"
+    ];
+    TEST (``(YaPI::USERS::GroupDelete (config_map)), [R,W,E], 0);
+}

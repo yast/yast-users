@@ -20,7 +20,6 @@
     import "Users";
     import "UsersCache";
     import "Mode";
-    import "Directory";
     import "Progress";
     import "Report";
 
@@ -116,7 +115,8 @@
 	],
 	"target": $[
 	    "stat"	: $[],
-	    "size"	: 0
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
 	]
     ];
     map WRITE = $[];
@@ -155,9 +155,6 @@
     TEST (``(Users::AddUser (user)), [READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
-
-    // this is because of Users->IsDirWritable
-    READ ["target", "size"] = -1;
 
     string error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
     Users::SelectGroup (100);
