@@ -1684,7 +1684,7 @@ sub EnableUser {
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
 	}, $user);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'Enable' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    $user	= $result->{$plugin};
 	    $no_plugin	= 0;
@@ -1751,24 +1751,48 @@ sub EditUser {
 	    $user_in_work{"userpassword"} = "";
 	}
     }
-
-    # -------------------------- now call EditBefore function from plugins
+    # ------------------------- initialize list of current user plugins
     if (!defined $user_in_work{"plugins"}) {
 	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
     my $plugins		= $user_in_work{"plugins"};
     
+    # --------- call PluginPresent: check which plugins are in use for this user
+    my $result = UsersPlugins->Apply ("PluginPresent", {
+	"what"	=> "user",
+	"type"	=> $type,
+    }, \%user_in_work);
+    if (defined ($result) && ref ($result) eq "HASH") {
+	foreach my $plugin (keys %{$result}) {
+	    # check if plugin has done the 'PluginPresent' action
+	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
+		push @{$plugins}, $plugin;
+	    }
+	}
+	$user_in_work{"plugins"}	= $plugins;
+    }
+
+    # We must use new list of plugins if provided
     if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
 	$plugins	= $data{"plugins"};
     }
+
+    # plugin has to know if it should be removed...
+    my $plugins_to_remove	= [];
+    if (defined $data{"plugins_to_remove"}) {
+	$plugins_to_remove	= $data{"plugins_to_remove"};
+    }
+    
+    # -------------------------- now call EditBefore function from plugins
     foreach my $plugin (sort @{$plugins}) {
 	my $result = UsersPlugins->Apply ("EditBefore", {
-	    "what"	=> "user",
-	    "type"	=> $type,
-	    "org_data"	=> \%user_in_work,
-	    "plugins"	=> [ $plugin ]
+	    "what"		=> "user",
+	    "type"		=> $type,
+	    "org_data"		=> \%user_in_work,
+	    "plugins"		=> [ $plugin ],
+	    "plugins_to_remove"	=> $plugins_to_remove
 	}, \%data);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
@@ -1856,9 +1880,10 @@ sub EditUser {
 	my $result = UsersPlugins->Apply ("Edit", {
 	    "what"	=> "user",
 	    "type"	=> $type,
-	    "plugins"	=> [ $plugin ]
+	    "plugins"	=> [ $plugin ],
+	    "plugins_to_remove"	=> $plugins_to_remove
 	}, \%user_in_work);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'Edit' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %user_in_work= %{$result->{$plugin}};
 	}
@@ -1903,23 +1928,48 @@ sub EditGroup {
 	my %org_group			= %group_in_work;
 	$group_in_work{"org_group"}	= \%org_group;
     }
-    # -------------------------- now call EditBefore function from plugins
+
+    # ------------------------- initialize list of current user plugins
     if (!defined $group_in_work{"plugins"}) {
 	$group_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
     my $plugins		= $group_in_work{"plugins"};
-    
+
+    # --------- call PluginPresent: check which plugins are in use for this user
+    my $result = UsersPlugins->Apply ("PluginPresent", {
+	"what"	=> "group",
+	"type"	=> $type,
+    }, \%group_in_work);
+    if (defined ($result) && ref ($result) eq "HASH") {
+	foreach my $plugin (keys %{$result}) {
+	    # check if plugin has done the 'PluginPresent' action
+	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
+		push @{$plugins}, $plugin;
+	    }
+	}
+	$group_in_work{"plugins"}	= $plugins;
+    }
+ 
     if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
 	$plugins	= $data{"plugins"};
     }
+
+    # plugin has to know if it should be removed...
+    my $plugins_to_remove	= [];
+    if (defined $data{"plugins_to_remove"}) {
+	$plugins_to_remove	= $data{"plugins_to_remove"};
+    }
+    
+    # -------------------------- now call EditBefore function from plugins
     foreach my $plugin (sort @{$plugins}) {
 	my $result = UsersPlugins->Apply ("EditBefore", {
 	    "what"	=> "group",
 	    "type"	=> $type,
 	    "org_data"	=> \%group_in_work,
-	    "plugins"	=> [ $plugin ]
+	    "plugins"	=> [ $plugin ],
+	    "plugins_to_remove"	=> $plugins_to_remove,
 	}, \%data);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
@@ -1996,9 +2046,10 @@ sub EditGroup {
 	my $result = UsersPlugins->Apply ("Edit", {
 	    "what"	=> "group",
 	    "type"	=> $type,
-	    "plugins"	=> [ $plugin ]
+	    "plugins"	=> [ $plugin ],
+	    "plugins_to_remove"	=> $plugins_to_remove,
 	}, \%group_in_work);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'Edit' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %group_in_work= %{$result->{$plugin}};
 	}
@@ -2061,7 +2112,7 @@ sub AddUser {
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
 	}, \%data);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
@@ -2165,7 +2216,7 @@ sub AddUser {
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
 	}, \%user_in_work);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %user_in_work= %{$result->{$plugin}};
 	}
@@ -2265,7 +2316,7 @@ sub AddGroup {
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
 	}, \%data);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %data	= %{$result->{$plugin}};
 	}
@@ -2316,7 +2367,7 @@ sub AddGroup {
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
 	}, \%group_in_work);
-	# check if plugin has done the 'Disable' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    %group_in_work= %{$result->{$plugin}};
 	}
@@ -3049,12 +3100,35 @@ sub Write {
 	    Report->Error ($ret);
 	    return $ret;
 	}
+	# -------------------------------------- call WriteBefore on plugins
+        foreach my $type (keys %modified_groups)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $gid (keys %{$modified_groups{$type}}) {
+		my $result = UsersPlugins->Apply ("WriteBefore", {
+	    	    "what"	=> "group",
+		    "type"	=> $type,
+		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
+		}, $modified_groups{$type}{$gid});
+	    }
+	}
+	# -------------------------------------- write /etc/group
         if (! WriteGroup ()) {
 	    # error popup (%s is a file name)
             $ret = sprintf(_("Cannot write %s file."), "$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
         }
+	# -------------------------------------- call Write on plugins
+        foreach my $type (keys %modified_groups)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $gid (keys %{$modified_groups{$type}}) {
+		my $result = UsersPlugins->Apply ("Write", {
+	    	    "what"	=> "group",
+		    "type"	=> $type,
+		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
+		}, $modified_groups{$type}{$gid});
+	    }
+	}
 	if (!$write_only) {
 	    # remove the group cache for nscd (bug 24748)
 	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
@@ -3083,11 +3157,34 @@ sub Write {
 	    Report->Error ($ret);
 	    return $ret;
 	}
+	# -------------------------------------- call WriteBefore on plugins
+        foreach my $type (keys %modified_users)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $uid (keys %{$modified_users{$type}}) {
+		my $result = UsersPlugins->Apply ("WriteBefore", {
+	    	    "what"	=> "user",
+		    "type"	=> $type,
+		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+		}, $modified_users{$type}{$uid});
+	    }
+	}
+	# -------------------------------------- write /etc/group
         if (!WritePasswd ()) {
 	    # error popup (%s is a file name)
             $ret =sprintf(_("Cannot write %s file."), "$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
+	}
+	# -------------------------------------- call Write on plugins
+        foreach my $type (keys %modified_users)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $uid (keys %{$modified_users{$type}}) {
+		my $result = UsersPlugins->Apply ("Write", {
+	    	    "what"	=> "user",
+		    "type"	=> $type,
+		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+		}, $modified_users{$type}{$uid});
+	    }
 	}
 	if (!$write_only) {
 	    # remove the passwd cache for nscd (bug 24748)
@@ -3137,7 +3234,6 @@ sub Write {
 		    }
 		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
-# TODO check if shadowlastchange exist!
 	    }
 	}
     }

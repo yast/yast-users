@@ -986,6 +986,7 @@ sub WriteUsers {
 	my $enabled	= bool ($user->{"enabled"});
 	my $disabled	= bool ($user->{"disabled"});
 	my $plugins	= $user->{"plugins"};
+	my $plugins_to_remove	= $user->{"plugins_to_remove"};
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
@@ -1003,6 +1004,7 @@ sub WriteUsers {
 	    }
 	}
 	$user->{"objectclass"}	= \@ocs;
+	# now internal attributes are removed from user's map
 	$user			= $self->ConvertMap ($user);
 	my $rdn			= "$dn_attr=".$user->{$dn_attr};
 	my $new_dn		= "$rdn,$user_base";
@@ -1026,6 +1028,10 @@ sub WriteUsers {
 	if ($enabled) {
 	    $config->{"enabled"}	= $disabled;
 	}
+	if (defined $plugins_to_remove) {
+	    $config->{"plugins_to_remove"}	= $plugins_to_remove;
+	}
+	    
 	foreach my $plugin (sort @{$plugins}) {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
@@ -1140,9 +1146,10 @@ sub WriteGroups {
             next; 
 	}
 	my %new_group	= ();
-	my $plugins	= $group->{"plugins"};
 	my $dn		= $group->{"dn"}	|| "";
 	my $org_dn	= $group->{"org_dn"} 	|| $dn;
+	my $plugins	= $group->{"plugins"};
+	my $plugins_to_remove	= $group->{"plugins_to_remove"};
 
 	my @obj_classes	= @group_class;
 	if (defined $group->{"objectclass"} &&
@@ -1212,6 +1219,9 @@ sub WriteGroups {
 	    "type"	=> "ldap",
 	    "modified"	=> $action
 	};
+	if (defined $plugins_to_remove) {
+	    $config->{"plugins_to_remove"}	= $plugins_to_remove;
+	}
 	foreach my $plugin (sort @{$plugins}) {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
