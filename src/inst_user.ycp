@@ -23,16 +23,16 @@
         return `auto;
 
     // what to call after inst_auth dialog
-    if (Users::after_auth != "users")
+    if (Users::AfterAuth() != "users")
     {
-        string package = sformat("yast2-%1-client", Users::after_auth);
+        string package = sformat("yast2-%1-client", Users::AfterAuth());
 	if (Require::RequireAndConflictButtons ( [package], [],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
 Install it now?
 "), package), Label::OKButton(), Label::CancelButton()))
         {
-            return (symbol) WFM::CallFunction (Users::after_auth, WFM::Args ());
+            return (symbol)WFM::CallFunction (Users::AfterAuth(), WFM::Args ());
         }
         else
             return `back;

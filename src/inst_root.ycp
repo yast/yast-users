@@ -20,15 +20,17 @@
 textdomain "users";
 
 import "Wizard";
-import "Users";
-import "Security";
 import "Mode";
-import "Progress";
 import "Report";
 import "Label";
 import "Popup";
 
-include "users/routines.ycp";   // for EncryptionDialog()
+import "Users";
+import "UsersCache";
+
+include "users/dialogs.ycp";   // for EncryptionDialog()
+
+string valid_password_chars = "-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*() ,;:._+/|?{}=[]";
 
     if (Mode::cont && ! Mode::usessh)
     {
@@ -38,14 +40,8 @@ include "users/routines.ycp";   // for EncryptionDialog()
 
     boolean this_is_for_real = ! Mode::test;
 
-    Progress::off();
-    Security::Read();
-    Progress::on();
-
-    string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
-    Users::encryptionMethod = encryptionMethod;
-    Users::pass_length ["local", "max"] =
-	Security::PasswordMaxLengths [encryptionMethod]:8;
+    Users::ReadSystemDefaults ();
+    string encryptionMethod = Users::EncryptionMethod ();
 
     // Title for root-password dialogue
     string title = _("Password for \"root\", the system administrator");
@@ -116,7 +112,8 @@ Do not forget this \"root\" password!
 </p>");
 
     Wizard::SetContents (title, contents, helptext,
-			 (boolean) WFM::Args(0), (boolean) WFM::Args(1));
+	(boolean) WFM::Args(0),
+	(boolean) WFM::Args(1));
 
     if ("" == (string) UI::QueryWidget(`id(`pw1), `Value))
 	UI::SetFocus (`id (`pw1));
@@ -129,10 +126,10 @@ Do not forget this \"root\" password!
     {
       if ( ret != `expert && ret != `abort)
       {
-        // Clear password fields on every round
-          UI::ChangeWidget(`id(`pw1), `Value, "");
-          UI::ChangeWidget(`id(`pw2), `Value, "");
-          UI::SetFocus( `id(`pw1) );
+	// Clear password fields on every round
+        UI::ChangeWidget(`id(`pw1), `Value, "");
+        UI::ChangeWidget(`id(`pw2), `Value, "");
+        UI::SetFocus ( `id(`pw1) );
       }
       ret = (symbol) Wizard::UserInput();
 
@@ -152,96 +149,103 @@ Do not forget this \"root\" password!
 
       if (ret == `expert)
       {
-	    encryptionMethod = EncryptionDialog();
+	encryptionMethod = EncryptionDialog();
 
-          string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
-          UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
+        string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
+        UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
       }
       else if (ret != `back && ret != `notnext)
       {
-          string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
-          string pw2 = (string) UI::QueryWidget(`id(`pw2), `Value);
+        string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
+        string pw2 = (string) UI::QueryWidget(`id(`pw2), `Value);
 
-      if (this_is_for_real && pw1 != pw2 )
-      {
-         // report misspellings of the password
-         Popup::Message(_("The first and the second version\nof the password don't match!\nPlease try again."));
-         // Invalidate any old password
-         Users::rootPassword = "";
-	 ret = `notnext;
-         continue;
-      }
-
-      // TODO: Use the old password (if any) if no passwords were entered.
-      // only check pw1 here, it is identical with pw2 (as checked before).
-
-      if ( this_is_for_real )
-      {
-	Users::encryptionMethod = encryptionMethod;
-	Users::pass_length ["local", "max"] =
-	    Security::PasswordMaxLengths [encryptionMethod]:8;
-         if (pw1 == "")
-         {
-            // report if user forgot to enter a password
-            Popup::Message(_("You didn't enter a password.
-Please try again."));
-            // Invalidate any old password
-            Users::rootPassword = "";
-	    ret = `notnext;
-            continue;
-         }
-
-         if (size (pw1) < 5)
-         {
-            // yes/no popup text
-            if (!Popup::YesNo(_("The password should have at least five characters.
-Are you sure?")))
-            {
-                // Invalidate any old password
-                Users::rootPassword = "";
-		ret = `notnext;
-                continue;
-            }
-         }
-         if ( findfirstnotof (pw1, Users::valid_password_chars ) != nil )
-         {
-            // There is a check whether the information from the UI is
-            // correct and complete
-            // The root password may contain only certain characters
-            Popup::Message(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
-            // Invalidate any old password
-            Users::rootPassword = "";
-	    ret = `notnext;
-            continue;
-         }
-	 if (!CheckPasswordMaxLength(pw1, "local"))
-	 {
-            // Invalidate any old password
-            Users::rootPassword = "";
-	    ret = `notnext;
-            continue;
-	 }
-
-        if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
-        {
-            Security::modified = true;
-            Security::Settings["PASSWD_ENCRYPTION"] = encryptionMethod;
-            Progress::off();
-            Security::Write();
-            Progress::on();
-        }
-
-        y2milestone( "encrypting with %1", Users::encryptionMethod );
-
-        Users::cryptRootPassword(pw1);
-        if ( ! Users::SetRootPassword())
-
+	if (this_is_for_real && pw1 != pw2 )
 	{
-             // Error msg
-             Report::Error(_("The root password could not be set.
+	    // report misspellings of the password
+	    Popup::Message(_("The first and the second version\nof the password don't match!\nPlease try again."));
+	    // Invalidate any old password
+	    Users::SetRootPassword ("");
+	    ret = `notnext;
+	    continue;
+	}
+
+	if ( this_is_for_real )
+	{
+	    UsersCache::SetUserType ("system");
+	    Users::SetEncryptionMethod (encryptionMethod);
+	    if (pw1 == "")
+	    {
+		// report if user forgot to enter a password
+		Popup::Message(_("You didn't enter a password.
+Please try again."));
+		// Invalidate any old password
+		Users::SetRootPassword ("");
+		ret = `notnext;
+		continue;
+	    }
+
+	    if (size (pw1) < 5)
+	    {
+		// yes/no popup text
+		if (!Popup::YesNo(_("The password should have at least five characters.
+Are you sure?")))
+		{
+		    // Invalidate any old password
+		    Users::SetRootPassword ("");
+		    ret = `notnext;
+		    continue;
+		}
+	    }
+	    if ( findfirstnotof (pw1, valid_password_chars ) != nil )
+	    {
+		// popup text: invalid characters in root password
+		Popup::Message(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
+		// Invalidate any old password
+		Users::SetRootPassword ("");
+		ret = `notnext;
+		continue;
+	    }
+	    // map returned from Check*UI functions
+	    map error_map		= $[];
+	    // map with id's of confirmed questions
+	    map<string,string> ui_map	= $[];
+	    boolean failed		= false;
+	    do
+	    {
+		error_map = Users::CheckPasswordUI ("root", pw1, ui_map);
+		if (error_map != $[])
+		{
+		    if (!Popup::YesNo (error_map ["question"]:""))
+		    {
+			failed = true;
+		    }
+		    else
+			ui_map[ error_map["question_id"]:"" ] = 1;
+		}
+	    } while (error_map != $[] && !failed);
+
+	    if (failed)
+	    {
+		Users::SetRootPassword ("");
+		ret = `notnext;
+		continue;
+	    }
+
+	    Users::WriteSecurity ();
+
+	    y2milestone( "encrypting with %1", encryptionMethod );
+
+	    Users::SetRootPassword (pw1);
+	    Users::CryptRootPassword ();
+	    if (!Users::WriteRootPassword())
+
+	    {
+		// Error msg
+		Report::Error(_("The root password could not be set.
 You will not be able to log in.\n"));
-        }
-      }
+//		continue; -> YesNo?
+	    }
+	}
       }
     } until ( ret == `next || ret == `back || ret == `cancel );
 
