@@ -583,6 +583,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
     {
         is_ldap_server = IsLDAPServer ();
         users [`ldap ] = ReadLDAPUsers (tmpdir);
+        users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
         if (users [`ldap ]:nil != nil)
         {
             available_usersets = add ( available_usersets, `ldap);
@@ -729,7 +730,7 @@ global define boolean WriteLoginDefaults()``{
         ret = ret && SCR::Write( add(useradd, key), value);
     });
 
-    y2milestone ("Succesfully writing useradd defaults... %1", ret);
+    y2milestone ("Succesfully written useradd defaults: %1", ret);
     return ret;
 }
 
@@ -816,7 +817,7 @@ global define symbol Write (block abort, boolean useUI)``{
 
 // -- check the return values of write functions !!
 
-    string write_dir = "/tmp"; // -- just for testing
+    string write_dir = base_dir;//"/tmp"; // -- just for testing
 
 	// progress caption
 	string caption = _("Writing user and group configuration");
@@ -864,8 +865,9 @@ global define symbol Write (block abort, boolean useUI)``{
 	    Progress::NextStage ();
 	    if (eval (abort))
 		    return `abort;
+//		    return Aborted();
 	}
-    BackupConfFiles();
+    BackupConfFiles(base_dir);
 
     // in modified_users are only deleted users now
     // currently I count only with system/local users
@@ -898,6 +900,12 @@ global define symbol Write (block abort, boolean useUI)``{
     // add the edited or new users to modified_users
     modified_users = WritePasswd (write_dir, users [`system]:$[],
         users[`local]:$[], last_passwd);
+
+    if (modified_users == nil)
+    {
+		// error popup
+	    Report::Error (_("Cannot write passwd file."));
+    }
 
     // check for homedir changes
     foreach (`user, modified_users, ``{
@@ -950,6 +958,19 @@ global define symbol Write (block abort, boolean useUI)``{
             }
         }
     });
+    /* ldap
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+		    return `abort;
+	}*/
+    if (is_ldap_present)
+    {
+        if (! WriteLDAPUsers(users [`ldap]:$[]))
+            // error popup
+	        Report::Error (_("Cannot write ldap users."));
+    }
 
     // shadow, gshadow
 	if ( useUI )
@@ -958,8 +979,13 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    WriteShadow(write_dir, shadow, last_shadow);
-    WriteGshadow(write_dir, gshadow, last_gshadow);
+    if (! WriteShadow(write_dir, shadow, last_shadow))
+        // error popup
+	    Report::Error (_("Cannot write shadow file."));
+
+    if (! WriteGshadow(write_dir, gshadow, last_gshadow))
+        // error popup
+	    Report::Error (_("Cannot write gshadow file."));
 
     // group
 	if ( useUI )
@@ -968,12 +994,17 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
+    if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
+         last_group))
+        // error popup
+	    Report::Error (_("Cannot write group file."));
+    /*
     modified_groups = WriteGroup (write_dir, groups [`system]:$[],
         groups[`local]:$[], last_group);
     foreach (`group, modified_groups, ``{
         // only the passwor change/set should be done here??
         // -no, in write Gshadow, don't need modified at all
-    });
+    });*/
 
 
     // customs
@@ -1002,9 +1033,8 @@ global define symbol Write (block abort, boolean useUI)``{
             Report::Error(_("There was an error while setting forwarding for root's mail."));
     }
 
-    // remove tmpdir -- only when abort or back was pushed
-//  if (tmpdir != "/tmp")
-//    SCR::Execute(.target.bash, "/bin/rm -rf " + tmpdir);
+    // call only after `back or `abort
+    //    RemoveTmp (tmpdir);
 
 	// increase the progress to "finish"
 	if( useUI ) Progress::NextStage ();
@@ -1133,17 +1163,17 @@ global define boolean Commit (string object, boolean cache)``{
     {
 y2milestone("user : %1", user_in_work );
         integer uid = user_in_work ["uid"]:max_uid;
-        symbol what = user_in_work ["what"]:`nothing;
+        symbol what_user = user_in_work ["what"]:`nothing;
         symbol type = user_in_work ["type"]:`local;
         string username = user_in_work ["username"]:"";
         string org_username = user_in_work ["org_username"]:username;
         string grouplist = user_in_work ["grouplist"]:"";
-        string groupname = user_in_work ["groupname"]:default_groupname;
+        string defgroup = user_in_work ["groupname"]:default_groupname;
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
         // the action
-        if ( what == `add_user )
+        if ( what_user == `add_user )
         {
             // when writing the new user, the new home has to be created
             user_in_work ["modified"] = `added;
@@ -1152,7 +1182,7 @@ y2milestone("user : %1", user_in_work );
                 group_in_work = eval (groups_by_name [group]:$[]);
                 if (group_in_work == $[])
                 {
-                    y2error("Group %1 doesn't exest!", groupname);
+                    y2error("Group %1 doesn't exist!", group);
                 }
                 else
                 {
@@ -1166,10 +1196,10 @@ y2milestone("user : %1", user_in_work );
             // modify global shadow map:
             shadow [ username ] = user_in_work["shadow"]:$[];
             // add user to his default group -- updating only cache variables
-            group_in_work = eval (groups_by_name [groupname]:$[]);
+            group_in_work = eval (groups_by_name [defgroup]:$[]);
             if (group_in_work == $[])
             {
-                y2error("Group %1 doesn't exest!", groupname);
+                y2error("Group %1 doesn't exist!", defgroup);
             }
             else
             {
@@ -1180,7 +1210,7 @@ y2milestone("user : %1", user_in_work );
                 Commit ("group", cache);
             }
         }
-        else if ( what == `edit_user )
+        else if ( what_user == `edit_user )
         {
             if (user_in_work ["modified"]:`nothing != `added)
                 user_in_work ["modified"] = `edited;
@@ -1226,11 +1256,11 @@ y2milestone("user : %1", user_in_work );
                 }
             });
             // check the change in default group
-            string org_groupname = user_in_work ["org_groupname"]:groupname;
-            if ((username != org_username) && (groupname == org_groupname))
+            string org_defgroup = user_in_work ["org_groupname"]:defgroup;
+            if ((username != org_username) && (defgroup == org_defgroup))
             {
                 // change the user's name in current default group
-                group_in_work = eval (groups_by_name [groupname]:$[]);
+                group_in_work = eval (groups_by_name [defgroup]:$[]);
                 group_in_work ["what"] = `user_change;
                 string more_users = group_in_work ["more_users"]:"";
                 list l_more_users = splitstring (more_users, ",");
@@ -1240,11 +1270,11 @@ y2milestone("user : %1", user_in_work );
                 group_in_work ["more_users"] = more_users + username;
                 Commit ("group", cache);
             }
-            else if (groupname != org_groupname)
+            else if (defgroup != org_defgroup)
             {
                 // note: username could be also changed!
                 // remove the name from original group ...
-                group_in_work = eval (groups_by_name [org_groupname]:$[]);
+                group_in_work = eval (groups_by_name [org_defgroup]:$[]);
                 group_in_work ["what"] = `user_change;
                 string more_users = group_in_work ["more_users"]:"";
                 list l_more_users = splitstring (more_users, ",");
@@ -1253,7 +1283,7 @@ y2milestone("user : %1", user_in_work );
                 group_in_work ["more_users"] = more_users;
                 Commit ("group", cache);
                 // and add it to the new one;
-                group_in_work = eval (groups_by_name [groupname]:$[]);
+                group_in_work = eval (groups_by_name [defgroup]:$[]);
                 group_in_work ["what"] = `user_change;
                 more_users = group_in_work ["more_users"]:"";
                 if (more_users != "") more_users = more_users + ",";
@@ -1268,24 +1298,27 @@ y2milestone("user : %1", user_in_work );
                 shadow [ username ] = user_in_work["shadow"]:$[];
             }
         }
-        else if ( what == `delete_user )
+        else if ( what_user == `delete_user )
         {
             // check the change of group membership
             foreach (`group, group_list, ``{
                 group_in_work = eval (groups_by_name [group]:$[]);
-                string userlist = group_in_work ["userlist"]:"";
-                list l_userlist = splitstring (userlist, ",");
-                if (contains (l_userlist, username)) // always true?
+                if (group_in_work != $[])
                 {
-                    group_in_work ["what"] = `user_change;
-                    l_userlist = filter (`u, l_userlist, ``(u != username));
-                    userlist = mergestring (l_userlist, ",");
-                    group_in_work ["userlist"] = userlist;
-                    Commit ("group", cache);
+                    string userlist = group_in_work ["userlist"]:"";
+                    list l_userlist = splitstring (userlist, ",");
+                    if (contains (l_userlist, username)) // always true?
+                    {
+                        group_in_work ["what"] = `user_change;
+                        l_userlist = filter (`u, l_userlist, ``(u != username));
+                        userlist = mergestring (l_userlist, ",");
+                        group_in_work ["userlist"] = userlist;
+                        Commit ("group", cache);
+                    }
                 }
             });
             // remove user from his default group -- only cache structures
-            group_in_work = eval (groups_by_name [groupname]:$[]);
+            group_in_work = eval (groups_by_name [defgroup]:$[]);
             group_in_work ["what"] = `user_change;
             string more_users = group_in_work ["more_users"]:"";
             list l_more_users = splitstring (more_users, ",");
@@ -1303,10 +1336,10 @@ y2milestone("user : %1", user_in_work );
         }
         // change the cache variables
         if (cache)
-            UsersCache::ChangeUser(what, user_in_work);
+            UsersCache::ChangeUser(what_user, user_in_work);
 
         // the main action: update users -- what if uid is changed?
-        if (what == `delete_user)
+        if (what_user == `delete_user)
         {
             users [type] = remove (users[type]:$[], uid);
             users_by_name [type] = remove (users_by_name[type]:[], username);
@@ -1327,7 +1360,7 @@ y2milestone("user : %1", user_in_work );
     {
         integer gid = group_in_work ["gid"]:max_gid;
         integer org_gid = group_in_work ["org_gid"]:gid;
-        symbol what = group_in_work ["what"]:`nothing;
+        symbol what_group = group_in_work ["what"]:`nothing;
         symbol type = group_in_work ["type"]:`local;
         string groupname = group_in_work ["groupname"]:"";
         string password = group_in_work ["password"]:"*";
@@ -1336,11 +1369,12 @@ y2milestone("user : %1", user_in_work );
         list l_userlist = splitstring (userlist, ",");
 y2milestone("group: %1", group_in_work);
 
-        if ( what == `add_group )
+        if ( what_group == `add_group )
         {
             group_in_work ["modified"] = `added;
             // update users's grouplists (only local structures)
             foreach (`user, l_userlist, ``{
+                // -- what if user doesn't exist??
                 user_in_work = GetUserByName (user);
                 string grouplist = user_in_work ["grouplist"]:"";
                 user_in_work["grouplist"] = grouplist + "," + groupname;
@@ -1353,7 +1387,7 @@ y2milestone("group: %1", group_in_work);
                "disposer": "root", // default??
                "userlist": ""]; // will be updated at the end
         }
-        else if (what == `edit_group )
+        else if (what_group == `edit_group )
         {
             if (group_in_work ["modified"]:`nothing != `added)
                 group_in_work ["modified"] = `edited;
@@ -1421,7 +1455,7 @@ y2milestone("group: %1", group_in_work);
             if (password != "x" && password != "*")
                 gshadow [ groupname, "password" ] = password;
         }
-        else if (what == `delete_group )
+        else if (what_group == `delete_group )
         {
             // deleted group had no members
             group_in_work ["modified"] = `deleted;
@@ -1429,15 +1463,15 @@ y2milestone("group: %1", group_in_work);
             groups_by_name = remove (groups_by_name, org_groupname);
             gshadow = remove (gshadow, org_groupname);
         }
-        else if ( what == `add_user ) // do not call Commit again
+        else if ( what_group == `add_user ) // do not call Commit again
         {
 
         }
         // change the cache variables
         if (cache)
-            UsersCache::ChangeGroup(what, group_in_work);
+            UsersCache::ChangeGroup(what_group, group_in_work);
 
-        if (what != `delete_group) // also for `change_user!
+        if (what_group != `delete_group) // also for `change_user!
         {
             // the main action: update groups
             if (gid != org_gid)
@@ -1504,24 +1538,30 @@ global define boolean ReadUsersCache() ``{
     UsersCache::usernamelists = SCR::Read(.target.ycp, tmpdir +
         "/usernamelist.ycp");
     UsersCache::uidlist = SCR::Read(.target.ycp, tmpdir + "/uidlist.ycp");
-    // -- missing: grouplists
+
+    UsersCache::groupnamelists = SCR::Read(.target.ycp, tmpdir +
+        "/groupnamelist.ycp");
+    UsersCache::gidlist = SCR::Read(.target.ycp, tmpdir + "/gidlist.ycp");
+
+    UsersCache::additional_users = SCR::Read(.target.ycp, tmpdir +
+         "/additional_users.ycp");
 
     UsersCache::Read (users, groups, current_users, current_groups);
 
 }
 
 global define map GetUserByName ( string name )``{
-    map user = $[];
+    map ret = $[];
     integer uid = -1;
     foreach (`type, `usernames, users_by_name, ``{
-        if (user == $[])
+        if (ret == $[])
         {
             uid = usernames [name]:-1;
             if (uid != -1)
-                user = users [type, uid]:$[];
+                ret = users [type, uid]:$[];
         }
     });
-    return user;
+    return ret;
 }
 
 /**
@@ -1673,17 +1713,18 @@ global define boolean RunPrepare() ``{
     return (ret == 0);
 }
 
-/**
-  * Backup /etc/passwd, shadow, group and gshadow files
-  */
-global define void BackupConfFiles()``{
+// remove tmpdir -- only when abort or back was pushed -- is it safe ??
+/* do not set as global
+define void RemoveTmp (string dir) ``{
 
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/shadow %1/shadow.YaST2save", base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/passwd %1/passwd.YaST2save", base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/gshadow %1/gshadow.YaST2save", base_dir));
-    SCR::Execute(.target.bash, sformat ("/bin/cp %1/group %1/group.YaST2save",
-        base_dir));
+    if (issubstring(dir, "/tmp/"))
+        SCR::Execute(.target.bash, "/bin/rm -rf " + dir);
 }
 
+global define symbol Aborted () ``{
+
+    RemoveTmp (tmpdir);
+    return `abort;
+}*/
 
 }// EOF

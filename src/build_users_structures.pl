@@ -29,10 +29,13 @@ $passwd_system_byname_output    = $output_dir."/passwd_system_byname.ycp";
 $passwd_local_byname_output     = $output_dir."/passwd_local_byname.ycp";
 #$passwd_system_itemlist         = $output_dir."/passwd_system_itemlist.ycp";
 #$passwd_local_itemlist          = $output_dir."/passwd_local_itemlist.ycp";
+$additional_users               = $output_dir."/additional_users.ycp";
         
 $usernamelist_file  = $output_dir."/usernamelist.ycp";
 $homelist_file      = $output_dir."/homelist.ycp";
 $uidlist_file       = $output_dir."/uidlist.ycp";
+$groupnamelist_file  = $output_dir."/groupnamelist.ycp";
+$gidlist_file       = $output_dir."/gidlist.ycp";
 
 $last_passwd_file = $output_dir."/last_passwd.ycp";
 $last_group_file = $output_dir."/last_group.ycp";
@@ -48,6 +51,7 @@ $last_gshadow_file = $output_dir."/last_gshadow.ycp";
 %gpasswords = ();
 
 %usernamelists = ();
+%groupnamelists = ();
 %homelists = ();
 
 $last_passwd = "";
@@ -177,6 +181,12 @@ open YCP_PASSWD_SYSTEM_BYNAME, "> $passwd_system_byname_output";
 open YCP_PASSWD_LOCAL, "> $passwd_local_output";
 open YCP_PASSWD_LOCAL_BYNAME, "> $passwd_local_byname_output";
 
+open YCP_UIDLIST, "> $uidlist_file";
+print YCP_UIDLIST "[\n";
+
+open YCP_ADDITIONAL_USERS, "> $additional_users";
+print YCP_ADDITIONAL_USERS "[\n";
+
 #print YCP_PASSWD_ITEMLIST_SYSTEM "\$[\n";
 print YCP_PASSWD_SYSTEM "\$[\n";
 print YCP_PASSWD_SYSTEM_BYNAME "\$[\n";
@@ -192,6 +202,7 @@ foreach $user (<PASSWD>)
     $first = substr ($username, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
+        print YCP_UIDLIST " $uid,";
 
         my $default_group = $groupmap{$gid};
         my @default_group_as_list = split (/:/,$default_group);
@@ -243,7 +254,9 @@ foreach $user (<PASSWD>)
             $usernamelists{$user_type} = "\"$username\"";
             $homelists{$user_type} = "\"$home\"";
         }
-
+        
+        print YCP_ADDITIONAL_USERS "\t`item(`id(\"$username\"), \"$username\"),\n";
+        
         # YCP maps are generated...
         print $YCP_PASSWD "\t$uid : \$[\n";
         print $YCP_PASSWD "\t\t\"username\": \"$username\",\n";
@@ -328,7 +341,6 @@ close PASSWD;
 open YCP_NIS, "> $nis_output";
 open YCP_NIS_BYNAME, "> $nis_byname_output";
 #open YCP_NIS_ITEMLIST, "> $nis_itemlist";
-open YCP_UIDLIST, "> $uidlist_file";
 
 print YCP_NIS "\$[\n";
 print YCP_NIS_BYNAME "\$[\n";
@@ -344,6 +356,8 @@ foreach $user (@ypcat)
 
 #    if (!defined $passwdmap{$uid}) -- not needed wit ypcat
 #    {
+        print YCP_UIDLIST " $uid,";
+
         my $groupname = "";
         if (defined $groupmap{$gid})
         {
@@ -382,6 +396,7 @@ foreach $user (@ypcat)
             $usernamelists{"nis"} = "\"$username\"";
             $homelists{"nis"} = "\"$home\"";
         }
+        print YCP_ADDITIONAL_USERS "\t`item(`id(\"$username\"), \"$username\"),\n";
 
         # YCP map is generated...
         print YCP_NIS "\t$uid : \$[\n";
@@ -438,21 +453,23 @@ close YCP_NIS_BYNAME;
 
 open YCP_GETENT, "> $getent_output";
 open YCP_GETENT_BYNAME, "> $getent_byname_output";
-open YCP_UIDLIST, "> $uidlist_file";   # not all users are here !! (LDAP+NIS)
 
 print YCP_GETENT "\$[\n";
 print YCP_GETENT_BYNAME "\$[\n";
-print YCP_UIDLIST "[\n";
 
 foreach $user (@getent)
 {
     ($username, $password, $uid, $gid, $full, $home, $shell) = split(/:/,$user);
     chomp $shell;
 
-    print YCP_UIDLIST " $uid,";
+    $first = substr ($username, 0, 1);
 
-    if (!defined $passwdmap{$uid})
+#   it is possible that users from differnt bases have same uid...
+#    if ( $first ne "+" && $first ne "-" && !defined $passwdmap{$uid})
+    if ( $first ne "+" && $first ne "-" && $passwdmap{$uid} ne $username)
     {
+        print YCP_UIDLIST " $uid,";
+    
         my $groupname = "";
         if (defined $groupmap{$gid})
         {
@@ -479,19 +496,20 @@ foreach $user (@getent)
             $grouplist = $users_groups{$username};
         }
 
-        if (defined  $usernamelists{"getent"})
+        if (defined  $usernamelists{"ldap"})
         {
-            $usernamelists{"getent"} .= ", \"$username\"";
+            $usernamelists{"ldap"} .= ", \"$username\"";
             if ($home ne "") # and can be??
             {
-                 $homelists{"getent"} .= ", \"$home\"";
+                 $homelists{"ldap"} .= ", \"$home\"";
             }
         }
         else
         {
-            $usernamelists{"getent"} = "\"$username\"";
-            $homelists{"getent"} = "\"$home\"";
+            $usernamelists{"ldap"} = "\"$username\"";
+            $homelists{"ldap"} = "\"$home\"";
         }
+        print YCP_ADDITIONAL_USERS "\t`item(`id(\"$username\"), \"$username\"),\n";
 
         # YCP map is generated...
         print YCP_GETENT "\t$uid : \$[\n";
@@ -505,7 +523,7 @@ foreach $user (@getent)
         print YCP_GETENT "\t\t\"shell\": \"$shell\",\n";
         print YCP_GETENT "\t\t\"groupname\": \"$groupname\",\n";
         print YCP_GETENT "\t\t\"grouplist\": \"$grouplist\",\n";
-        print YCP_GETENT "\t\t\"type\": `getent\n";
+        print YCP_GETENT "\t\t\"type\": `ldap\n";
         print YCP_GETENT "\t],\n";
 
         print YCP_GETENT_BYNAME "\t\"$username\" : $uid,\n";
@@ -534,30 +552,13 @@ foreach $user (@getent)
 print YCP_GETENT "]\n";
 print YCP_GETENT_BYNAME "]\n";
 print YCP_UIDLIST "\n]";
+        
+print YCP_ADDITIONAL_USERS "]\n";
+close YCP_ADDITIONAL_USERS;
 
 close YCP_GETENT;
 close YCP_GETENT_BYNAME;
 close YCP_UIDLIST;
-
-
-#############################################
-open YCP_USERNAMES, "> $usernamelist_file";
-print YCP_USERNAMES "\$[\n";
-print YCP_USERNAMES "\t`system: [ ".$usernamelists{"system"}." ],\n";
-print YCP_USERNAMES "\t`local: [ ".$usernamelists{"local"}." ],\n";
-print YCP_USERNAMES "\t`nis: [ ".$usernamelists{"nis"}." ],\n";
-print YCP_USERNAMES "\t`getent: [ ".$usernamelists{"getent"}." ]\n";
-print YCP_USERNAMES "]\n";
-close YCP_USERNAMES;
-    
-open YCP_HOMES, "> $homelist_file";
-print YCP_HOMES "\$[\n";
-print YCP_HOMES "\t`system: [ ".$homelists{"system"}." ],\n";
-print YCP_HOMES "\t`local: [ ".$homelists{"local"}." ],\n";
-print YCP_HOMES "\t`nis: [ ".$homelists{"nis"}." ],\n";
-print YCP_HOMES "\t`getent: [ ".$homelists{"getent"}." ]\n";
-print YCP_HOMES "]\n";
-close YCP_HOMES;
 
 #############################################
 # save the modified map of groups
@@ -567,6 +568,9 @@ open YCP_GROUP_SYSTEM, "> $group_system_output";
 open YCP_GROUP_BYNAME, "> $group_byname_output";
 #open YCP_GROUP_ITEMLIST_SYSTEM, "> $group_system_itemlist";
 #open YCP_GROUP_ITEMLIST_LOCAL, "> $group_local_itemlist";
+
+open YCP_GIDLIST, "> $gidlist_file";
+print YCP_GIDLIST "[\n";
 
 print YCP_GROUP_LOCAL "\$[\n";
 print YCP_GROUP_SYSTEM "\$[\n";
@@ -617,14 +621,23 @@ foreach (values %groupmap)
     print YCP_GROUP_BYNAME "\t\t\"type\": `$group_type\n";
     print YCP_GROUP_BYNAME "\t],\n";
 
-
-    $all_users = $userlist;
-    if ($userlist ne "" && $more_users ne "")
+    if (defined  $groupnamelists{$group_type})
     {
-       $all_users .= ",";
+        $groupnamelists{$group_type} .= ", \"$groupname\"";
     }
-    $all_users .= $more_users;  
+    else
+    {
+        $groupnamelists{$group_type} = "\"$groupname\"";
+    }
+    
+    print YCP_GIDLIST " $gid,";
 
+#    $all_users = $userlist;
+#    if ($userlist ne "" && $more_users ne "")
+#    {
+#       $all_users .= ",";
+#    }
+#    $all_users .= $more_users;  
 #    print $YCP_GROUP_ITEMLIST "\t`item(`id($gid), \"$groupname\", ".
 #            "\"$gid\", \"$all_users\"),\n";
 }
@@ -635,12 +648,42 @@ print YCP_GROUP_BYNAME "]\n";
 #print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
 #print YCP_GROUP_ITEMLIST_LOCAL "[\n";
 
+print YCP_GIDLIST "]\n";
+close YCP_GIDLIST;
+
 close YCP_GROUP_LOCAL;
 close YCP_GROUP_SYSTEM;
 close YCP_GROUP_BYNAME;
 #close YCP_GROUP_ITEMLIST_SYSTEM;
 #close YCP_GROUP_ITEMLIST_LOCAL;
 
+
+#############################################
+open YCP_USERNAMES, "> $usernamelist_file";
+print YCP_USERNAMES "\$[\n";
+print YCP_USERNAMES "\t`system: [ ".$usernamelists{"system"}." ],\n";
+print YCP_USERNAMES "\t`local: [ ".$usernamelists{"local"}." ],\n";
+print YCP_USERNAMES "\t`nis: [ ".$usernamelists{"nis"}." ],\n";
+print YCP_USERNAMES "\t`ldap: [ ".$usernamelists{"ldap"}." ]\n";
+print YCP_USERNAMES "]\n";
+close YCP_USERNAMES;
+    
+open YCP_HOMES, "> $homelist_file";
+print YCP_HOMES "\$[\n";
+print YCP_HOMES "\t`system: [ ".$homelists{"system"}." ],\n";
+print YCP_HOMES "\t`local: [ ".$homelists{"local"}." ],\n";
+print YCP_HOMES "\t`nis: [ ".$homelists{"nis"}." ],\n";
+print YCP_HOMES "\t`ldap: [ ".$homelists{"ldap"}." ]\n";
+print YCP_HOMES "]\n";
+close YCP_HOMES;
+
+open YCP_GROUPNAMES, "> $groupnamelist_file";
+print YCP_GROUPNAMES "\$[\n";
+print YCP_GROUPNAMES "\t`system: [ ".$groupnamelists{"system"}." ],\n";
+print YCP_GROUPNAMES "\t`local: [ ".$groupnamelists{"local"}." ],\n";
+print YCP_GROUPNAMES "]\n";
+close YCP_GROUPNAMES;
+ 
 
 #############################################
 # save the possible "+" entries

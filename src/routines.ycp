@@ -79,15 +79,43 @@ global define string ReadLastPasswd(string dir)``{
 }
 
 /**
+ * Returns a map with users retrieved from `getent passwd` and
+ * not contained in other set (passwd and nis).
+ * Currently is it supposed that they are the LDAP users
  */
 global define map ReadLDAPUsers(string dir) ``{
 
     return (SCR::Read(.target.ycp, dir + "/getent.ycp"));
 }
 
+global define map ReadLDAPUsersByName(string dir) ``{
+
+    return (SCR::Read(.target.ycp, dir + "/getent_byname.ycp"));
+}
+
 /**
  */
+global define boolean WriteLDAPUsers(map ldap_users) ``{
+
+    if (ldap_users != $[])
+
+    foreach (`uid, `user, ldap_users, ``{
+
+        if (user["modified"]:`nothing != `nothing)
+        {
+            y2milestone ("There is a change of LDAP user with id %1, but it is not possible to save it yet...", uid);
+        }
+
+    });
+
+    return true;
+}
+
+/** Does it make sense?
+ */
 global define boolean ReadLDAPGroups() ``{
+
+    return (SCR::Read(.target.ycp, dir + "/getent_group.ycp"));
 }
 
 /**
@@ -120,7 +148,8 @@ global define boolean IsLDAPPresent () ``{
 
 /**  -- using target.string
  */
-global define list WriteGroup(string basedir, map system_groups, map local_groups, string last) ``{
+//global define list WriteGroup(string basedir, map system_groups, map local_groups, string last) ``{
+global define boolean WriteGroup(string basedir, map system_groups, map local_groups, string last) ``{
 
     string conf_path = basedir + "/group";
     list modified = [];
@@ -147,9 +176,10 @@ global define list WriteGroup(string basedir, map system_groups, map local_group
     string string_to_save = mergestring (list_to_save, "\n");
     if (last != "" && last != nil)
         string_to_save = string_to_save + "\n" + last;
-    y2milestone("Succesfuly written %1: %2", conf_path,
-        SCR::Write(.target.string, conf_path, string_to_save));
-    return modified;
+    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
+    y2milestone("Succesfuly written %1: %2", conf_path, ret);
+    return ret;
+//    return modified;
 }
 
 
@@ -188,10 +218,42 @@ global define list WritePasswd(string basedir, map system_users, map local_users
     string string_to_save = mergestring (list_to_save, "\n");
     if (last != "" && last != nil)
         string_to_save = string_to_save + "\n" + last;
-    y2milestone("Succesfuly written %1: %2", conf_path,
-        SCR::Write(.target.string, conf_path, string_to_save));
-    return modified;
+    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
+    y2milestone("Succesfuly written %1: %2", conf_path, ret);
+
+    if (ret)
+        return modified;
+    else
+        return nil;
 }
+
+/**  -- using target.string
+ */
+global define boolean WriteShadow(string basedir, map shadow, string last) ``{
+
+    string conf_path = basedir + "/shadow";
+
+    list list_to_save = maplist (`username, `entry, shadow, ``{
+        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
+            username,
+            entry["password"]:"",
+            entry["last_change"]:"",
+            entry["min"]:"",
+            entry["max"]:"",
+            entry["warn"]:"",
+            entry["inact"]:"",
+            entry["expire"]:"",
+            entry["flag"]:"");
+        return to_save;
+    });
+    string string_to_save = mergestring (list_to_save, "\n");
+    if (last != "" && last != nil)
+        string_to_save = string_to_save + "\n" + last;
+    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
+    y2milestone("Succesfuly written %1: %2", conf_path, ret);
+    return ret;
+}
+
 
 /**  -- using target.string
  */
@@ -282,6 +344,21 @@ global define boolean WritePasswd(map passwd_users) ``{
     });
     return SCR::Write( passwd_path, list_to_save);
 }*/
+
+/**
+  * Backup /etc/passwd, shadow, group and gshadow files
+  */
+global define void BackupConfFiles(string dir)``{
+
+    SCR::Execute(.target.bash,
+        sformat ("/bin/cp %1/shadow %1/shadow.YaST2save", dir));
+    SCR::Execute(.target.bash,
+        sformat ("/bin/cp %1/passwd %1/passwd.YaST2save", dir));
+    SCR::Execute(.target.bash,
+        sformat ("/bin/cp %1/gshadow %1/gshadow.YaST2save", dir));
+    SCR::Execute(.target.bash,
+        sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
+}
 
 
 
