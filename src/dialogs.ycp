@@ -286,11 +286,10 @@ can be changed for non-local users.
 
         boolean details = ( ret == `details || ret == `passwordsettings );
 
-        // check the settings
-        if (((!Mode::cont && ( ret == `next || details )) // why after details?
-         || ( Mode::cont && ( details || ret == `additional || ret == `next )))
-            && !do_not_edit) // no need to check
+        if (( ret == `next || ret == `additional || details ) && !do_not_edit)
         {
+
+            // check the settings
             string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
             string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
             username     = UI::QueryWidget(`id(`username), `Value);
@@ -332,14 +331,15 @@ Try again.
             }
             else fullname = surname;
 
-            if ( username == "" )
+            if ( username == "")
             {
             // The user login field is empty, this is allowed if the
             // system is part of a network with NIS user management.
             // Ask the user about this in a Yes/No popup
             // The first string is the title of the popup.
 
-            if( Mode::cont && ret == `next && Users::start_dialog == "user_add" )
+            if (Mode::cont && ret == `next && Users::start_dialog == "user_add")
+//            if( Mode::cont && Users::start_dialog == "user_add" )
             {
                 // yes-no popup headline
                 if (  UI::YesNoHeadlinePopup(_("Empty user login"),
@@ -421,17 +421,19 @@ Please try another one.
                 continue;
             }
 
-            // bild default home dir - when could be home empty string??
+            // build default home dir - when could be home empty string??
             // TODO Fixme
             if ( home == Users::default_home || home == "")
             {
                 home = home + username;
             }
 
+            if (!details)
+            {
             if ( home != org_home )
             {
                 // new popup for existing dir
-                if( (UsersCache::HomeExists(home)) && !details )
+                if (UsersCache::HomeExists(home))
                 {
                     // error popup
                     Report::Error(_("The default home directory is used from another user.
@@ -441,7 +443,7 @@ Please press button Details and edit home directory."));
                 }
                 // do not check in autoinstal config and for ldap client
                 if ((user_type != `ldap || Users::is_ldap_server) &&
-                    !Mode::config &&
+                    !Mode::config && create_home &&
                     SCR::Read(.target.size, home ) != -1)
                 {
                     // yes-no popup
@@ -454,24 +456,28 @@ Use it and change its owner?
                     }
                     create_home = false;
                 }
-
-                if (what == `add_user  && user_type != `ldap && !details &&
-                    !Mode::config)
+                // do not check in autoinstal config and for ldap client
+                if ((user_type != `ldap || Users::is_ldap_server) &&
+                    !Mode::config && what == `add_user)
                 {
-                    string home_root = "/" +
-                        select(splitstring (home, "/"), 1, "");
-                    if (!Users::IsDirWritable (home_root))
+                    string home_path =
+                        substring (home,0, findlastof(home,"/"));
+                    home_path = Users::IsDirWritable (home_path);
+                    if (home_path != "")
                     {
                         // error popup (%1 is part of home path, e.g. "/home")
                         Report::Error(sformat (_("The directory %1 is not writable.
-Please press button Details and edit home directory."), home_root));
+Please press button Details and edit home directory."), home_path));
                         home = Users::default_home;
                         continue;
                     }
                 }
             }
+            }
 
-            if (  pw1 != pw2 )
+            if (!details) //password check not necessary now
+            {
+            if ( pw1 != pw2 )
             {
                 // There is a check whether the information from the UI is
                 // correct and complete.  The two user password information
@@ -608,6 +614,7 @@ Please try again."));
                 shadow["password"] = password;
                 shadow["last_change"] = Users::LastChangeIsNow();
             }
+            } //end of pw checks
 
             // use Users::Add/Edit?
             Users::user_in_work = $[
@@ -654,6 +661,7 @@ Please try again."));
 
             y2debug ("edited user: %1", Users::user_in_work );
         }
+
     } until ( ret == `next || details || ret == `abort  || ret == `back ||
               ret == `cancel || ret == `additional || ret == `nosave );
 
@@ -685,6 +693,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     string fullname       = Users::user_in_work["fullname"]:"";
     string home           = Users::user_in_work["home"]:"";
     string org_home       = Users::user_in_work["org_home"]:"";
+    boolean create_home   = Users::user_in_work["create_home"]:true;
     string shell          = Users::user_in_work["shell"]:"";
     string grouplist      = Users::user_in_work["grouplist"]:"";
     integer uid           = Users::user_in_work["uid"]:Users::max_uid;
@@ -946,13 +955,14 @@ Please select a another User Id"));
             {
                 if (!Mode::config)
                 {
-                    string home_root = "/" +
-                        select(splitstring (new_home, "/"), 1, "");
-                    if (!Users::IsDirWritable (home_root))
+                    string home_path =
+                        substring (new_home,0, findlastof(new_home,"/"));
+                    home_path = Users::IsDirWritable (home_path);
+                    if (home_path != "")
                     {
                         // error popup (%1 is part of home path, e.g. "/home")
                         Report::Error(sformat (_("The directory %1 is not writable.
-Choose another path to home directory."), home_root));
+Choose another path to home directory."), home_path));
                         UI::SetFocus(`id(`home));
                         continue;
                     }
@@ -974,6 +984,7 @@ Try again.
             if ( (what == `edit_user && ( new_home != org_home ))
                  || what == `add_user )
             {
+                create_home = Users::user_in_work["create_home"]:true;
                 if( UsersCache::HomeExists(new_home) )
                 {
                     // error popup
@@ -983,7 +994,7 @@ Please try again."));
                     continue;
                 }
                 // do not check local directories in autoinst config
-                if (SCR::Read(.target.size, home ) != -1 && !Mode::config)
+                if (SCR::Read(.target.size, new_home ) != -1 && !Mode::config)
                 {
                     // yes-no popup
                     if (! UI::YesNoPopup(_("The home directory selected already exists.
@@ -993,8 +1004,7 @@ Use it and change its owner?
                         UI::SetFocus(`id(`home));
                         continue;
                     }
-
-                    // use chown?
+                    create_home = false;
                 }
             }
             }
@@ -1042,20 +1052,20 @@ Please try again."));
             Users::user_in_work ["org_groupname"] = defaultgroup;
             Users::user_in_work ["removed_grouplist"] = removed;
 
+            if ( create_home != Users::user_in_work ["create_home"]:true )
+                Users::user_in_work ["create_home"] = create_home;
             if ( new_i_uid != uid )
                 Users::user_in_work ["org_uid"] = uid;
             if ( email != "")
                 Users::user_in_work ["email"] = email;
             if ( addit_data != "" )
-            {
                 Users::user_in_work ["addit_data"] = addit_data;
-            }
+            if ( new_home != org_home && org_home == "")//only after 1st change
+                Users::user_in_work ["org_home"] = home;
 
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
-//  if (Mode::cont && Users::start_dialog == "user_add" && ret == `next)
-//      ret =
     if ( ret == `next ) ret = what;
 
     return ret;
