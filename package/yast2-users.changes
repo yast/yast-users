@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Mon May  5 13:00:51 CEST 2003 - jsuchome@suse.de
+
+- popup for setting LDAP search filters
+- agent-ldap: check if filter is correct
+
+-------------------------------------------------------------------
+Wed Apr 30 09:23:42 CEST 2003 - jsuchome@suse.cz
+
+- browse buttons for default home and skeleton directories
+- popup for LDAP search filter
+
+-------------------------------------------------------------------
 Wed Apr 23 15:30:50 CEST 2003 - jsuchome@suse.cz
 
 - LDAP users: edit shadow setting, "more settings" dialog

@@ -135,10 +135,20 @@ global define symbol UsersDialog() ``{
 	    // menubutton label
 	    `item(`id(`enc), _("Password &Encryption")),
 	    // menubutton label
-	    `item(`id(`auth), _("&Authentication and User Sources")),
-	    // menubutton label
-	    `item(`id(`ldapconf), _("Configure L&DAP Client"))
+	    `item(`id(`auth), _("&Authentication and User Sources"))
 	]);
+	if (Users::is_ldap_available)
+	{
+	    expert_list = add (expert_list,
+		// menubutton label
+		`item(`id(`ldapconf), _("Configure L&DAP Client")));
+	    if (!Users::ldap_modified)
+	    {
+		expert_list = add (expert_list,
+		    // menubutton label
+		    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
+	    }
+	}
     }
 
     /*
@@ -215,8 +225,6 @@ global define symbol UsersDialog() ``{
 
     UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
 
-    UsersCache::PrintDate("table shown");
-
     if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
 
@@ -268,21 +276,51 @@ global define symbol UsersDialog() ``{
 
         if ( ret == `ldapconf )
         {
-	    // TODO run whole LDAP client from here
-//            if (CallFunction(`cpu_configure(false)) == `next)
-y2warning ("ldap: %1",
-            CallFunction("ldap"));
-//                Ldap::WriteCpuSettings();
-//-> ReadLdapSettings
+	    // run LDAP client now
+            if (`next == CallModule("ldap", []))
+	    {
+		Users::ReadLDAPSettings();
+	    }
             ret = `not_next;
         }
+	if ( ret == `ldapfilter )
+	{
+	    // change of search filter (only when LDAP was not modified yet)
+	    if (LDAPSearchFilterPopup())
+	    {
+		Users::ldap_not_read = true;
+		// re-read the list when LDAP are shown
+		if (contains (UsersCache::current_users, "ldap"))
+		{
+		    string set = (size(UsersCache::current_users) == 1) ?
+			"ldap":"custom";
+		    Users::ChangeCurrentUsers (set);
+		    UsersCache::user_itemlist = UsersCache::users_itemlists[set]:[];
+		    UI::ChangeWidget(`id(`user_table), `Items,
+			UsersCache::user_itemlist);
+		}
+		// modify the list of groups also!
+		if (contains (UsersCache::current_groups, "ldap"))
+		{
+		    string set = (size(UsersCache::current_groups) == 1) ?
+			"ldap":"custom";
+		    Users::ChangeCurrentGroups (set);
+		    UsersCache::group_itemlist = UsersCache::groups_itemlists[set]:[];
+		}
+	    }
+            ret = `not_next;
+	}
         if ( ret == `enc)
         {
             ret = `not_next;
-            Users::encryptionMethod = EncryptionDialog();
-	    Users::max_length_pas = Security::PasswordMaxLengths [
-		Users::encryptionMethod]:8;
-	    Users::security_modified = true;
+	    string enc = EncryptionDialog();
+	    if (enc != Users::encryptionMethod)
+	    {
+		Users::encryptionMethod = enc;
+		Users::max_length_pas = Security::PasswordMaxLengths [
+		    Users::encryptionMethod]:8;
+		Users::security_modified = true;
+	    }
         }
         if ( ret == `user_table )
             ret = `edit;
@@ -581,7 +619,6 @@ global define symbol DeleteGroupPopup() ``{
     boolean delete = true;
     integer gid = Users::group_in_work["gid"]:-1;
 
-
     // if no user is in this group
     if (Users::group_in_work["userlist"]:"" == "" &&
         Users::group_in_work["more_users"]:"" == "")
@@ -621,6 +658,113 @@ Remove these users from the group first.
 }
 
 /**
+ * Popup for configuration user/group filter for making the LDAP search
+ * @return modified?
+ */
+global define boolean LDAPSearchFilterPopup () ``{
+
+    if (!Users::ldap_filters_read)
+	Users::ReadLDAPFilters();
+
+    string default_user_f = Users::ldap_default_user_filter;
+    string default_group_f = Users::ldap_default_group_filter;
+
+    string user_f = Users::ldap_user_filter;
+    string group_f = Users::ldap_group_filter;
+
+    if (user_f == "")
+	user_f = default_user_f;
+    if (group_f == "")
+	group_f = default_group_f;
+
+    boolean ret = false;
+
+    string help_text = LDAPSearchFilterPopupHelp();
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(45),
+            `VSpacing(0.5),
+	        `Frame(_("Filter for Searching the LDAP Database"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`userf), _("&User Filter"), user_f),
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`groupf), _("&Group Filter"), group_f),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok), `opt(`default,`key_F10), OKButtonLabel()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), CancelButtonLabel()),
+	        `PushButton(`id(`help), `opt(`key_F2), HelpButtonLabel())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    symbol button = nil;
+    do
+    {
+	button = UI::UserInput();
+
+	if ( button == `help )
+        {
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `ok)
+	{
+	    string new_user_f = UI::QueryWidget(`id (`userf), `Value);
+	    string new_group_f = UI::QueryWidget(`id (`groupf), `Value);
+	    if (new_user_f != user_f)
+	    {
+		if (!issubstring (new_user_f, default_user_f))
+		{
+		    // error popup
+		    UI::ErrorPopup (_("New user filter doesn't contain the default user filter.
+Please try again."));
+		    UI::SetFocus (`id(`userf));
+		    continue;
+		}
+		user_f = new_user_f;
+	    }
+	    if (new_group_f != group_f)
+	    {
+		if (!issubstring (new_group_f, default_group_f))
+		{
+		    // error popup
+		    UI::ErrorPopup (_("New group filter doesn't contain the default group filter.
+Please try again."));
+		    UI::SetFocus (`id(`groupf));
+		    continue;
+		}
+		group_f = new_group_f;
+	    }
+	    // checks are OK, let's update the values now
+	    if (user_f != Users::ldap_user_filter)
+	    {
+		Users::ldap_user_filter = user_f;
+		ret = true;
+	    }
+	    if (group_f != Users::ldap_group_filter)
+	    {
+		Users::ldap_group_filter = group_f;
+		ret = true;
+	    }
+	}
+    } while ( button != `ok && button != `cancel );
+
+    UI::CloseDialog();
+    return ret;
+}
+
+
+/**
  * Dialog for definition of customized view
  * @param what "user" or "group"
  * @return true if customs were modified
@@ -653,30 +797,25 @@ global define boolean CustomizePopup(string what) ``{
     foreach (`set, sets, ``{
         view = add (view, `VSpacing(0.5));
         if ( contains (custom_sets, set) )
-            view = add (view, `Left(`CheckBox(`id(set),
-                set_to_string [set]:"", true)));
+	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
+		true)));
         else
-            view = add (view, `Left(`CheckBox(`id(set),
-                set_to_string [set]:"", false)));
-
+	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
+		false)));
     });
     view = add (view, `VSpacing(0.5));
 
     UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
         `VBox(
             `HSpacing(40),
-            `VSpacing(1),
+            `VSpacing(0.5),
 	        `Frame(label, view),
-            `VSpacing(1),
-	        `HBox(
-	            `HSpacing(1),
-	            `Right(`PushButton(`id(`ok), `opt(`default, `key_F10),
-                    OKButtonLabel())),
-	            `Left(`PushButton(`id(`cancel), `opt(`key_F9),
-                    CancelButtonLabel())),
-	            `HSpacing(1)
-	            ),
-            `VSpacing(1)),
+            `VSpacing(0.5),
+	    `HBox(
+	        `PushButton(`id(`ok), `opt(`default,`key_F10), OKButtonLabel()),
+		`PushButton(`id(`cancel), `opt(`key_F9), CancelButtonLabel())
+	    ),
+            `VSpacing(0.5)),
         `HSpacing(1.5)
     ));
     any ret = UI::UserInput();

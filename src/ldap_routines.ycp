@@ -16,40 +16,36 @@ textdomain "users";
 
 /**
  * Returns a map of LDAP users
- * @param dir directory, where prebuilded map is stored as a file
  * @return map of users
  */
-global define map ReadLDAPUsers(string dir) ``{
+global define map ReadLDAPUsers() ``{
 
-    return (SCR::Read(.ldap.users));
+    return SCR::Read(.ldap.users);
 }
 
 /**
  * Returns a map of LDAP users
- * @param dir directory, where prebuilded map is stored as a file
  * @return map of users
  */
-global define map ReadLDAPUsersByName(string dir) ``{
+global define map ReadLDAPUsersByName() ``{
 
     return (SCR::Read(.ldap.users.by_name));
 }
 
 /**
  * Returns a map of LDAP groups
- * @param dir directory, where prebuilded map is stored as a file
  * @return map of groups
  */
-global define map ReadLDAPGroups(string dir)``{
+global define map ReadLDAPGroups()``{
 
     return (SCR::Read(.ldap.groups));
 }
 
 /**
  * Returns a map of LDAP groups
- * @param dir directory, where prebuilded map is stored as a file
  * @return map of groups
  */
-global define map ReadLDAPGroupsByName(string dir)``{
+global define map ReadLDAPGroupsByName()``{
 
     return (SCR::Read(.ldap.groups.by_name));
 }
@@ -62,41 +58,60 @@ global define map ReadLDAPGroupsByName(string dir)``{
 global define void LDAPErrorMessage (string type, string error) ``{
 
     map ldap_error = $[
-    "LDAP_INAPPROPRIATE_AUTH":
 // error message:
-_("The server requires the client which had
+    "LDAP_INAPPROPRIATE_AUTH": _("
+The server requires the client which had
 attempted to bind anonymously or without
 supplying credentials to provide some form
 of credentials"),
 
     "LDAP_INVALID_CREDENTIALS":
 // error message:
-_("Wrong password was entered."),
+_("
+Wrong password was entered."),
 
     "LDAP_INVALID_SYNTAX":
 // error message:
-_("Some part of the request contained an invalid
+_("
+Some part of the request contained an invalid
 syntax. It could be a search with an invalid
 filter or a request to modify the schema
 and the given schema has a bad syntax."),
 
     "LDAP_PARAM_ERROR":
 // error message:
-_("An invalid parameter was specified."),
+_("
+An invalid parameter was specified.
+Maybe search filter has invalid syntax?"),
 
     "LDAP_NO_SUCH_ATTRIBUTE":
 // error message:
-_("The request referenced an attribute
+_("
+The request referenced an attribute
 that does not exist."),
 
     "LDAP_NO_SUCH_OBJECT":
 // error message:
-_("The server cannot find an object
+_("
+The server cannot find an object
 specified in the request."),
+
+    "BAD_FILTER_USER":
+// error message, %1 is string with "filter":
+sformat (_("
+Bad search filter (probably wrong syntax):
+%1"), (ldap_user_filter != "") ? ldap_user_filter: ldap_default_user_filter),
+
+    "BAD_FILTER_GROUP":
+// error message, %1 is string with "filter":
+sformat (_("
+Bad search filter (probably wrong syntax):
+%1"), (ldap_group_filter != "") ? ldap_group_filter: ldap_default_group_filter),
 
     "initialize":
 // error message:
-_("Server could be down or unreachable."),
+_("
+Server could be down or unreachable."),
     ];
 
     map error_type = $[
@@ -111,6 +126,8 @@ _("Server could be down or unreachable."),
         // error message, more specific description follows
 	"groups": _("There was a problem with writing LDAP groups.")
     ];
+
+    if (error == nil) error = "YaST error?";
 
     UI::OpenDialog (`HBox(`HSpacing (0.5),
 	`VBox(
@@ -146,14 +163,33 @@ _("Server could be down or unreachable."),
 }
 
 /**
+ * Read user and group filter for LDAP search
+ * (must be done before selecting LDAP users/groups to load)
+ */
+global define void ReadLDAPFilters() ``{
+
+    //FIXME either read as Ldap::{user|group}_filter (->import & Read needed)
+    // or stored in some local configuration file...
+
+    import "Ldap";
+    Ldap::Read();
+
+    // not configurable, default until change in Ldap module
+    ldap_default_user_filter	= "objectClass=person";
+    ldap_default_group_filter	= "objectClass=posixGroup";
+
+    ldap_filters_read = true;
+}
+
+/**
  * Read basic settings about LDAP
  */
 global define void ReadLDAPSettings () ``{
 
-// FIXME: get the values from Ldap
-    import "Ldap";
-    Ldap::Read();
+    if (!ldap_filters_read)
+	ReadLDAPFilters();
 
+// FIXME: get the values from Ldap
     ldap_user_base	= GetLDAPBase();// Ldap::GetDomain
     ldap_group_base	= GetLDAPBase();// FIXME differ! Ldap::group_base
     ldap_host		= GetLDAPHost();
@@ -166,17 +202,14 @@ global define void ReadLDAPSettings () ``{
 	"person", "posixAccount" ,"top" ,"shadowAccount", "inetOrgPerson" ];
 	// TODO splitstring (Ldap::user_class
     ldap_group_class	= ["posixGroup" ,"top" ];//splitstring Ldap::group_class
-    ldap_user_filter	= "objectClass=person"; // FIXME configure, Ldap::
-    ldap_group_filter	= "objectClass=posixGroup"; // FIXME configure, Ldap::
     ldap_shadow		= $[];//Ldap::GetDefaultShadow();
     ldap_defaults	= $[ "skel": default_skel,
 			     "home": "/local/home/",
 			     "group": "100",
 			     "shell":  default_shell ];//Ldap::GetUserDefaults
     ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
+
 }
-
-
 
 /**
  * Initializes the LDAP settings
@@ -212,6 +245,33 @@ global define string LDAPBind () ``{
 
 
 /**
+ * do the LDAP search command; check the search filters before
+ */
+global define string ReadLDAP () ``{
+
+    string ret = "error";
+
+    string user_filter = (ldap_user_filter != "") ?
+	    ldap_user_filter: ldap_default_user_filter;
+    string group_filter = (ldap_group_filter != "") ?
+	    ldap_group_filter: ldap_default_group_filter;
+
+    ret = SCR::Read(.ldap.filter_check, user_filter);
+    if (ret != "") return ret+"_USER";
+
+    ret = SCR::Read(.ldap.filter_check, group_filter);
+    if (ret != "") return ret+"_GROUP";
+
+    ret = SCR::Execute (.ldap.search, $[
+	"output_dir":	tmpdir,
+	"user_filter":	user_filter,
+	"group_filter":	group_filter
+    ]);
+    return ret;
+}
+
+
+/**
  * Gets the bind password to LDAP database
  * @return password
  */
@@ -221,10 +281,10 @@ global define string GetLDAPPassword() ``{
         `VBox(
             `HSpacing(40),
             // password entering label
-            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
+            `Password(`id(`pw), _("&Enter the Password for LDAP Server:")),
             `CheckBox (`id(`anon), `opt(`notify),
                 // checkbox label
-                _("Use &anonymous Access")),
+                _("Use &Anonymous Access")),
             `HBox(
               `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel()),
               `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel())
@@ -242,19 +302,6 @@ global define string GetLDAPPassword() ``{
         pw = nil;
     UI::CloseDialog();
     return pw;
-}
-
-
-/**
- * read ldap users and groups...
- */
-global define string ReadLDAP () ``{
-
-    return SCR::Execute (.ldap.search, $[
-	"output_dir":	tmpdir,
-	"user_filter":	ldap_user_filter,
-	"group_filter":	ldap_group_filter
-    ]);
 }
 
 /**
