@@ -6,15 +6,16 @@ NIS:
     - problem: all tools are interactive
 
 LDAP:
-- show users without need of anonymous access
+- show users without need of anonymous access [done]
 - edit password
     - problem: doesn't work with cpu
 
 - adding users to LDAP groups
 
-- propose configuration of /etc/cpu.cfg
+- propose configuration of /etc/cpu.cfg       [done]
 
 - dialog for definition query filter
+- "reconnect to server" button (with new password/query)
 
 Kerberos:
 
