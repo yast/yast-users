@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 31 15:16:27 CEST 2004 - jsuchome@suse.cz
+
+- fix: build table items during installation (#37670)
+
+-------------------------------------------------------------------
 Tue Mar 30 21:23:39 CEST 2004 - jsuchome@suse.cz
 
 - fix: update plugin list after PluginPresent (rhafer)

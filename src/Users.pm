@@ -1265,14 +1265,12 @@ sub ReadUsersCache {
     
     UsersCache->Read ();
 
-    if ($use_gui) {
-	UsersCache->BuildUserItemList ("local", $users{"local"});
-	UsersCache->BuildUserItemList ("system", $users{"system"});
+    UsersCache->BuildUserItemList ("local", $users{"local"});
+    UsersCache->BuildUserItemList ("system", $users{"system"});
 
-	UsersCache->BuildGroupItemList ("local", $groups{"local"});
-	UsersCache->BuildGroupItemList ("system", $groups{"system"});
-    }
-
+    UsersCache->BuildGroupItemList ("local", $groups{"local"});
+    UsersCache->BuildGroupItemList ("system", $groups{"system"});
+ 
     UsersCache->SetCurrentUsers (\@user_custom_sets);
     UsersCache->SetCurrentGroups (\@group_custom_sets);
 }
