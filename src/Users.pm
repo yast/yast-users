@@ -141,6 +141,7 @@ my $pass_max_days		= "99999";
 
 # password encryption method
 my $encryption_method		= "des";
+my $group_encryption_method	= "des";
 my $use_cracklib 		= 1;
 my $cracklib_dictpath		= "";
 my $obscure_checks 		= 1;
@@ -198,6 +199,7 @@ YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("MailAliases");
+YaST::YCP::Import ("Message");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
@@ -1143,6 +1145,8 @@ sub ReadSystemDefaults {
     $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
+    $group_encryption_method
+	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
     $cracklib_dictpath	= $security{"CRACKLIB_DICTPATH"};
     $use_cracklib 	= ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
     $obscure_checks 	= ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
@@ -2242,7 +2246,8 @@ sub EditGroup {
 	    && $data{$key} ne "!") {
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
-		$group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
+		$group_in_work{$key}		=
+		    $self->CryptPassword ($data{$key}, $type, "group");
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
@@ -2934,7 +2939,8 @@ sub AddGroup {
 	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
 	    
 	    # crypt password only once
-	    $group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
+	    $group_in_work{$key}	=
+		$self->CryptPassword ($data{$key}, $type, "group");
 	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
 	else {
@@ -3850,8 +3856,7 @@ sub Write {
 	}
 	# -------------------------------------- write /etc/group
         if ($plugin_error eq "" && ! WriteGroup ()) {
-	    # error popup (%s is a file name)
-            $ret = sprintf(__("Cannot write %s file."), "$base_directory/group");
+            $ret = Message::ErrorWritingFile ("$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
         }
@@ -3923,8 +3928,7 @@ sub Write {
 	}
 	# -------------------------------------- write /etc/group
         if ($plugin_error eq "" && !WritePasswd ()) {
-	    # error popup (%s is a file name)
-            $ret =sprintf(__("Cannot write %s file."), "$base_directory/passwd");
+            $ret = Message::ErrorWritingFile ("$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4019,8 +4023,7 @@ sub Write {
 	    return $ret;
  	}
         if (! WriteShadow ()) {
-	    # error popup (%s is a file name)
-            $ret =sprintf(__("Cannot write %s file."), "$base_directory/shadow");
+            $ret = Message->ErrorWritingFile ("$base_directory/shadow");
 	    Report->Error ($ret);
 	    return $ret;
         }
@@ -5121,15 +5124,21 @@ sub _hashPassword {
 }
 
 ##------------------------------------
+# crypt given password; parameters: 1.password 2.type (local etc.) 3.user/group
 BEGIN { $TYPEINFO{CryptPassword} = ["function",
     "string",
-    "string", "string"];}
+    "string", "string", "string"];
+}
 sub CryptPassword {
 
     my $self	= shift;
-    my $pw	= $_[0];
-    my $type	= $_[1];
+    my $pw	= shift;
+    my $type	= shift;
+    my $what	= shift;
     my $method	= lc ($encryption_method);
+    if (defined $what && $what eq "group") {
+	$method = lc ($group_encryption_method);
+    }
     
     if (!defined $pw || $pw eq "") {
 	return $pw;

@@ -12,10 +12,12 @@
 
 textdomain "users";
 
-import "Users";
-import "UsersLDAP";
 import "CommandLine";
 import "Ldap";
+import "Users";
+import "UsersCache";
+import "UsersLDAP";
+import "Report";
 
 // --------------------------------------------------------------------------
 // --------------------------------- helper functions -----------------------

@@ -22,9 +22,10 @@ textdomain "users";
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
+import "CommandLine";
+import "Mode";
 import "Users";
 import "UsersCache";
-import "CommandLine";
 
 include "users/wizards.ycp";
 include "users/cmdline.ycp";

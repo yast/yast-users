@@ -12,22 +12,22 @@
 
 textdomain "users";
 
-import "Mode";
+import "CWM";
 import "Label";
+import "Ldap";
+import "Mode";
+import "Popup";
 import "Sequencer";
-import "Wizard";
-
 import "UsersCache";
 import "Users";
+import "Wizard";
 
 include "users/complex.ycp";
 include "users/dialogs.ycp";
-
-// ------------------ test CWM ----------------------------------------------
-// --------------------------------------------------------------------------
-
-import "CWM";
 include "users/widgets.ycp";
+
+// ------------------ CWM ---------------------------------------------------
+// --------------------------------------------------------------------------
 
 define boolean ReallyBack () ``{
     if (!Mode::cont && Users::Modified())

@@ -1,6 +1,6 @@
 /**
  * File:
- *	users_plugin_ldap_all.ycp
+ *	include/users/users_plugin_ldap_all.ycp
  *
  * Package:
  *	Configuration of Users
@@ -8,6 +8,9 @@
  * Summary:
  *	This is part GUI of UsersPluginLDAPAll - plugin for editing all LDAP
  *	user/group attributes.
+ *
+ * Authors:
+ *	Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  */

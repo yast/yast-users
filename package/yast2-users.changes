@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Jul 26 16:31:35 CEST 2004 - jsuchome@suse.cz
+
+- use Message module for common messages
+- use Package module instead of Require
+- crypt group passwords using GROUP_CRYPT from /etc/default/passwd
+- 2.10.2
+
+-------------------------------------------------------------------
 Tue Jul 20 15:04:22 CEST 2004 - jsuchome@suse.cz
 
 - change owner of home directory of user with modified UID number (#43132)
