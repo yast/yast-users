@@ -1088,7 +1088,6 @@ global define symbol Write (block abort, boolean useUI)``{
         saved_user = $[];
         user_in_work = $[];
     }
-y2warning ("written");
     return `next;
 }
 
@@ -1628,7 +1627,7 @@ global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
  * @param what "user" or "group"
  * @param data map of already gathered keys and values
  * @example map of default values contains pair "homeDirectory": "/home/%uid"
- * -> value of "home" is set to "/home" + username
+ * -> value of "home" is set to "/home/" + username
  * @return new data map with substituted values
  */
 global define map SubstituteValues (string what, map data) ``{

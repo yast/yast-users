@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 18 14:31:51 CET 2003 - jsuchome@suse.cz
+
+- used UI:: builtins for file selection widgets
+- migrated to doxygen
+- 2.9.2
+
+-------------------------------------------------------------------
 Mon Oct  6 17:41:27 CEST 2003 - jsuchome@suse.cz
 
 - basic command-line interface
