@@ -657,13 +657,17 @@ sub SetMinGID {
 ##------------------------------------
 BEGIN { $TYPEINFO{SetLastUID} = ["function", "void", "integer", "string"]; }
 sub SetLastUID {
-    $last_uid{$_[1]}	= $_[0];
+    if ($_[0] >= $min_uid{$_[1]} && $_[0] <= $max_uid{$_[1]}) {
+	$last_uid{$_[1]}	= $_[0];
+    }
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetLastGID} = ["function", "void", "integer", "string"]; }
 sub SetLastGID {
-    $last_gid{$_[1]}	= $_[0];
+    if ($_[0] >= $min_gid{$_[1]} && $_[0] <= $max_gid{$_[1]}) {
+	$last_gid{$_[1]}	= $_[0];
+    }
 }
 
 ##------------------------------------
@@ -1063,7 +1067,7 @@ sub ReadUsers {
 	$path		= ".nis";
     }
     else { # only local/system
-	$last_uid{$type}= SCR::Read ("$path.users.last_uid");
+	SetLastUID (SCR::Read ("$path.users.last_uid"), $type);
     }
 
     $homes{$type} 	= \%{SCR::Read ("$path.users.homes")};
