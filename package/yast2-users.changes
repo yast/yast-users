@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Mar  4 14:04:14 CET 2005 - jsuchome@suse.cz
+
+- autoyast: do not import groups that already exist as new
+
+-------------------------------------------------------------------
 Fri Feb 25 16:13:58 CET 2005 - jsuchome@suse.cz
 
 - fixed buttons hiding/showing during installation (#66589)  
