@@ -101,7 +101,7 @@ my $customized_groupsview	= 1;
 my $the_answer			= 42;
 
 # which attribute have groups for list of members
-my $ldap_member_attribute	= "uniqueMember";
+my $ldap_member_attribute	= "member";
 
 ##------------------------------------
 ##------------------- global imports

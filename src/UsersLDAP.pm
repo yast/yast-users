@@ -40,7 +40,7 @@ my $default_user_filter		= "objectClass=posixAccount";
 my $default_group_filter	= "objectClass=posixGroup";
 
 # which attribute have groups for list of members
-my $member_attribute		= "uniqueMember";
+my $member_attribute		= "member";
 
 # current filters (must be empty on start):
 my $user_filter 		= "";
@@ -69,7 +69,7 @@ my @user_class 			=
 
 # default object classes of LDAP groups (read from Ldap module)
 my @group_class 		=
-    ( "top", "posixGroup", "groupOfUniqueNames");
+    ( "top", "posixGroup", "groupOfNames");
 
 # naming attrributes (to be used when creating DN)
 my $user_naming_attr 		= "uid";
@@ -340,11 +340,11 @@ sub ReadSettings {
 
     if (defined $group_template{"defaultObjectClass"}) {
 	@group_class = @{$group_template{"defaultObjectClass"}};
-	if (contains (\@group_class, "groupOfNames")) {
-	    $member_attribute	= "member";
+	if (contains (\@group_class, "groupOfUniqueNames")) {
+	    $member_attribute	= "uniqueMember";
 	}
 	else {
-	    $member_attribute	= "uniqueMember";
+	    $member_attribute	= "member";
 	}
 	UsersCache::SetLDAPMemberAttribute ($member_attribute);
 	# FIXME what about only posixGroup or anything else???
@@ -1092,9 +1092,9 @@ sub WriteGroups {
 	    $o_classes{$oc}	= 1;
 	}
 
-	my $group_oc	= "groupOfUniqueNames";
-	if ($member_attribute eq "Member") {
-	    $group_oc	= "groupOfNames";
+	my $group_oc	= "groupOfNames";
+	if (lc($member_attribute) eq "uniquemember") {
+	    $group_oc	= "groupOfUniqueNames";
 	}
 
 	# if there is no member of the group, group must be changed
@@ -1114,7 +1114,7 @@ sub WriteGroups {
 	    }
 	}
 	# we are adding users to empty group (=namedObject):
-	# group must be changed to groupOfUniqueNames
+	# group must be changed to groupOfUniqueNames/groupOfNames
 	elsif (%{$group->{$member_attribute}} && $action eq "edited" &&
 	       !defined $o_classes{$group_oc})
 	{
