@@ -14,34 +14,32 @@ textdomain "users";
 
 import "Wizard";
 import "Popup";
-import "Users";
-/*
-import "Lan";
-import "Internet";
-import "DSL";*/
 import "Require";
+import "Users";
+import "NetworkDevices";
+import "Internet";
+import "DSL";
 
-/* Check if lan is configured *
-list lan_devices = Lan::GetDevices("all");
-y2debug("lan_devices: %1", lan_devices);
+// Check if lan is configured
+list net_devices = NetworkDevices::GetDevices("all");
+y2debug("net_devices: %1", net_devices);
 
-if(size(lan_devices) == 0) {
-    Users::after_auth = "users";
+if(size(net_devices) == 0) {
+    Users::SetAfterAuth ("users");
     return `auto;
 }
 
 boolean found = false;
-maplist(string dev, lan_devices, ``{
+maplist(string dev, net_devices, ``{
     if(!DSL::UsesDevice(dev))
 	found = true;
 });
 y2debug("found=%1", found);
 
 if(!found) {
-    Users::after_auth = "users";
+    Users::SetAfterAuth ("users");
     return `auto;
 }
-*/
 
 // caption for dialog "User Authentication Method"
 string caption = _("User Authentication Method");
@@ -174,7 +172,7 @@ else
     Users::SetAfterAuth ("users");
 }
 
-return ret;
+return (symbol) ret;
 
 /* EOF */
 }
