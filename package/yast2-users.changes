@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jul 14 18:57:10 CEST 2003 - jsuchome@suse.de
+
+- fix on inst_user dialog (#27859)
+- fix: proper saving of "Expiration date" (#27863)
+
+-------------------------------------------------------------------
 Thu Jul 10 11:37:46 CEST 2003 - jsuchome@suse.de
 
 - secondary groups for new users saved in /etc/default/useradd

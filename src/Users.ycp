@@ -3221,8 +3221,8 @@ global define void SetDefaults (map new_defaults, string groupname)``{
  */
 global define string LastChangeIsNow () ``{
     map out = SCR::Execute(.target.bash_output, "date +%s");
-    string days_s = deletechars (out["stdout"]:"0", "\n");
-    integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+    string seconds_s = deletechars (out["stdout"]:"0", "\n");
+    integer days = (tointeger(seconds_s))/ (60*60*24);
     return sformat("%1", days);
 }
 
