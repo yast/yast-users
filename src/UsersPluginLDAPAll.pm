@@ -62,7 +62,8 @@ my @group_object_class                 =
 BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"], "any", "any"];}
 sub Interface {
 
-    my @interface = (
+    my $self		= shift;
+    my @interface 	= (
 	    "GUIClient",
 	    "Check",
 	    "Name",
@@ -84,6 +85,7 @@ sub Interface {
 BEGIN { $TYPEINFO{Name} = ["function", "string", "any", "any"];}
 sub Name {
 
+    my $self		= shift;
     # plugin name
     return _("LDAP Attributes");
 }
@@ -92,6 +94,7 @@ sub Name {
 BEGIN { $TYPEINFO{Summary} = ["function", "string", "any", "any"];}
 sub Summary {
 
+    my $self	= shift;
     my $what	= "user";
     # summary
     my $ret 	= _("Edit remaining attributes of LDAP user");
@@ -107,6 +110,7 @@ sub Summary {
 BEGIN { $TYPEINFO{GUIClient} = ["function", "string", "any", "any"];}
 sub GUIClient {
 
+    my $self	= shift;
     return "users_plugin_ldap_all";
 }
 
@@ -117,6 +121,7 @@ BEGIN { $TYPEINFO{Restriction} = ["function",
     ["map", "string", "any"], "any", "any"];}
 sub Restriction {
 
+    my $self	= shift;
     # this plugin applies only for LDAP users and groups
     return { "ldap"	=> 1 };
 }
@@ -133,6 +138,7 @@ BEGIN { $TYPEINFO{Check} = ["function",
 }
 sub Check {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
     
@@ -145,7 +151,7 @@ sub Check {
 
     # get the attributes required for entry's object classes
     foreach my $class (@object_classes) {
-	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
+	my $object_class = SCR->Read (".ldap.schema.oc", {"name"=> $class});
 	if (!defined $object_class || ref ($object_class) ne "HASH" ||
 	    ! %{$object_class}) { next; }
 	
@@ -178,6 +184,7 @@ BEGIN { $TYPEINFO{Disable} = ["function",
 }
 sub Disable {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -231,6 +238,7 @@ BEGIN { $TYPEINFO{AddBefore} = ["function",
 }
 sub AddBefore {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -247,6 +255,7 @@ sub AddBefore {
 BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
 sub Add {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -261,6 +270,7 @@ BEGIN { $TYPEINFO{EditBefore} = ["function",
 }
 sub EditBefore {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -277,6 +287,7 @@ BEGIN { $TYPEINFO{Edit} = ["function",
 }
 sub Edit {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -290,6 +301,7 @@ sub Edit {
 BEGIN { $TYPEINFO{WriteBefore} = ["function", "boolean", "any", "any"];}
 sub WriteBefore {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 
@@ -304,6 +316,7 @@ sub WriteBefore {
 BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
 

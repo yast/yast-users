@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 18 18:24:25 CET 2004 - jsuchome@suse.cz
+
+- adapted for the new perl bindings
+- 2.9.19
+
+-------------------------------------------------------------------
 Tue Mar 16 20:53:18 CET 2004 - jsuchome@suse.cz
 
 - plugins: call AddBefore, EditBefore also from GUI client

@@ -158,8 +158,9 @@ sub contains {
 BEGIN { $TYPEINFO{ReadAvailable} = ["function", "boolean"];}
 sub ReadAvailable {
 
-    my $compat	= 0;
-    my $passwd_source = SCR::Read (".etc.nsswitch_conf.passwd");
+    my $self 		= shift;
+    my $compat		= 0;
+    my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
     if (defined $passwd_source) {
 	foreach my $source (split (/ /, $passwd_source)) {
 	    if ($source eq "ldap") { return 1; }
@@ -167,7 +168,7 @@ sub ReadAvailable {
 	}
     }
     if ($compat) {
-	$passwd_source = SCR::Read (".etc.nsswitch_conf.passwd_compat");
+	$passwd_source = SCR->Read (".etc.nsswitch_conf.passwd_compat");
 	if (defined $passwd_source) {
 	    foreach my $source (split (/ /, $passwd_source)) {
 		if ($source eq "ldap") { return 1; }
@@ -178,48 +179,40 @@ sub ReadAvailable {
 }
 
 ##------------------------------------
-# Checks if ldap server is set to localhost
-# @param host adress of LDAP server
-sub ReadServer {
-
-    return ($_[0] eq "localhost" || $_[0] eq "127.0.0.1");
-}
-
-##------------------------------------
 # Initializes LDAP connection and reads users and groups configuration
 sub Initialize {
 
-    Ldap::Read();
-    Ldap::SetGUI ($use_gui);
+    Ldap->Read();
+    Ldap->SetGUI ($use_gui);
 
-    my $ldap_mesg = Ldap::LDAPInit ();
+    my $ldap_mesg = Ldap->LDAPInit ();
     if ($ldap_mesg ne "") {
-	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
+	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
 	return 0;
     }
-    if (!Ldap::anonymous () && !defined (Ldap::bind_pass ())) {
+    if (!Ldap->anonymous () && !defined (Ldap->bind_pass ())) {
 	y2error ("no password to LDAP - cannot bind!");
 	return 0;
     }
 
-    $ldap_mesg = Ldap::LDAPBind (Ldap::bind_pass ());
+    $ldap_mesg = Ldap->LDAPBind (Ldap->bind_pass ());
     if ($ldap_mesg ne "") {
-	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
+	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
 	return 0;
     }
-    $ldap_mesg = Ldap::InitSchema ();
+    $ldap_mesg = Ldap->InitSchema ();
     if ($ldap_mesg ne "") {
-	Ldap::LDAPErrorMessage ("schema", $ldap_mesg);
-	return 0;
-    }
-
-    $ldap_mesg = Ldap::ReadConfigModules ();
-    if ($ldap_mesg ne "") {
-	Ldap::LDAPErrorMessage ("read", $ldap_mesg);
+	Ldap->LDAPErrorMessage ("schema", $ldap_mesg);
 	return 0;
     }
 
-    my %modules = %{Ldap::GetConfigModules ()};
+    $ldap_mesg = Ldap->ReadConfigModules ();
+    if ($ldap_mesg ne "") {
+	Ldap->LDAPErrorMessage ("read", $ldap_mesg);
+	return 0;
+    }
+
+    my %modules = %{Ldap->GetConfigModules ()};
     while ( my ($dn, $config_module) = each %modules) {
 
 	if (!defined $config_module->{"objectClass"}) {
@@ -250,16 +243,16 @@ sub Initialize {
     # read only one default template
     if ((@user_templates > 1 || @group_templates > 1) && $use_gui) {
 	my %templ =
-	    %{UsersUI::ChooseTemplates (\@user_templates, \@group_templates)};
+	    %{UsersUI->ChooseTemplates (\@user_templates, \@group_templates)};
 	if (%templ) {
 	    $user_template_dn	= $templ{"user"} || $user_template_dn;
 	    $group_template_dn	= $templ{"group"} || $group_template_dn;
 	}
     }
-    %user_template = %{Ldap::ConvertDefaultValues (
-	Ldap::GetLDAPEntry ($user_template_dn))};
-    %group_template = %{Ldap::ConvertDefaultValues (
-	Ldap::GetLDAPEntry ($group_template_dn))};
+    %user_template = %{Ldap->ConvertDefaultValues (
+	Ldap->GetLDAPEntry ($user_template_dn))};
+    %group_template = %{Ldap->ConvertDefaultValues (
+	Ldap->GetLDAPEntry ($group_template_dn))};
 
     $initialized = 1;
     return 1;
@@ -272,6 +265,7 @@ sub Initialize {
 BEGIN { $TYPEINFO{ReadFilters} = ["function", "boolean"];}
 sub ReadFilters {
 
+    my $self	= shift;
     my $init	= 1;
 
     if (!$initialized) {
@@ -295,12 +289,14 @@ sub ReadFilters {
 ##------------------------------------
 # Read settings from LDAP users and groups configuration
 # ("config modules", configurable by ldap-client)
+BEGIN { $TYPEINFO{ReadSettings} = ["function", "boolean"];}
 sub ReadSettings {
 
+    my $self	= shift;
     my $init	= 1;
 
     if (!$filters_read) {
-	$init = ReadFilters();
+	$init = $self->ReadFilters();
     }
     if (!$init) { return 0; }
 
@@ -314,23 +310,23 @@ sub ReadSettings {
 	$user_base = $user_config{"defaultBase"}[0];
     }
     else {
-	$user_base = Ldap::nss_base_passwd ();
+	$user_base = Ldap->nss_base_passwd ();
     }
     if ($user_base eq "") {
-	$user_base = Ldap::GetDomain();
+	$user_base = Ldap->GetDomain();
     }
 
     if (defined $group_config{"defaultBase"}) {
 	$group_base = $group_config{"defaultBase"}[0];
     }
     else {
-	$group_base = Ldap::nss_base_group ();
+	$group_base = Ldap->nss_base_group ();
     }
     if ($group_base eq "") {
 	$group_base = $user_base;
     }
 
-    $member_attribute	= Ldap::member_attribute ();
+    $member_attribute	= Ldap->member_attribute ();
 
     if (defined $user_template{"plugin"}) {
 	@default_user_plugins = @{$user_template{"plugin"}};
@@ -376,7 +372,7 @@ sub ReadSettings {
     if (defined ($user_template{"secondaryGroup"})) {
 	my @grouplist	= ();
 	foreach my $dn (@{$user_template{"secondaryGroup"}}) {
-	    push @grouplist, UsersCache::get_first ($dn);
+	    push @grouplist, UsersCache->get_first ($dn);
 	}
 	$useradd_defaults{"groups"}	= join (",", @grouplist);
     };
@@ -394,17 +390,17 @@ sub ReadSettings {
 	$last_uid = $user_config{"nextUniqueId"}[0];
     }
     else {
-	$last_uid = UsersCache::last_uid{"local"};
+	$last_uid = UsersCache->GetLastUID ("local");
     }
-    UsersCache::SetLastUID ($last_uid, "ldap");
+    UsersCache->SetLastUID ($last_uid, "ldap");
 
     if (defined ($group_config{"nextUniqueId"})) {
 	$last_gid = $group_config{"nextUniqueId"}[0];
     }
     else {
-	$last_gid = UsersCache::last_gid{"local"};
+	$last_gid = UsersCache->GetLastGID ("local");
     }
-    UsersCache::SetLastGID ($last_gid, "ldap");
+    UsersCache->SetLastGID ($last_gid, "ldap");
 
     # naming attributes
     if (defined ($user_template{"namingAttribute"})) {
@@ -421,8 +417,8 @@ sub ReadSettings {
     if (defined ($group_config{"maxUniqueId"})) {
 	$max_gid	= $group_config{"maxUniqueId"}[0];
     }
-    UsersCache::SetMaxUID ($max_uid, "ldap");
-    UsersCache::SetMaxGID ($max_gid, "ldap");
+    UsersCache->SetMaxUID ($max_uid, "ldap");
+    UsersCache->SetMaxGID ($max_gid, "ldap");
 
     # min id
     if (defined ($user_config{"minUniqueId"})) {
@@ -431,14 +427,14 @@ sub ReadSettings {
     if (defined ($group_config{"minUniqueId"})) {
 	$min_gid	= $group_config{"minUniqueId"}[0];
     }
-    UsersCache::SetMinUID ($min_uid, "ldap");
-    UsersCache::SetMinGID ($min_gid, "ldap");
+    UsersCache->SetMinUID ($min_uid, "ldap");
+    UsersCache->SetMinGID ($min_gid, "ldap");
 
     if (defined ($user_config{"passwordHash"})) {
 	$encryption 	= $user_config{"passwordHash"}[0];
     }
     else {
-	$encryption	= Ldap::pam_password ();
+	$encryption	= Ldap->pam_password ();
     }
     if ($encryption eq "") {
 	$encryption	= "crypt"; # same as "des"
@@ -450,9 +446,11 @@ sub ReadSettings {
 ##------------------------------------
 # do the LDAP search command for users and groups;
 # check the search filters before
+BEGIN { $TYPEINFO{Read} = ["function", "string"];}
 sub Read {
 
-    my $ret = "";
+    my $self 	= shift;
+    my $ret	= "";
 
     my $user_filter = $user_filter ne "" ? $user_filter: $default_user_filter;
     my $group_filter = $group_filter ne ""? $group_filter:$default_group_filter;
@@ -476,8 +474,8 @@ sub Read {
 	"itemlists"		=> YaST::YCP::Boolean (1),
 	"member_attribute"	=> $member_attribute
     );
-    if (!SCR::Execute (".ldap.users.search", \%args)) {
-	$ret = Ldap::LDAPError();
+    if (!SCR->Execute (".ldap.users.search", \%args)) {
+	$ret = Ldap->LDAPError();
     }
     return $ret;
 }
@@ -489,7 +487,10 @@ BEGIN { $TYPEINFO{InitConstants} = ["function",
     ["map", "string", "string" ]];
 }
 sub InitConstants {
-    %useradd_defaults	= %{$_[0]};
+    my $self 		= shift;
+    if (defined $_[0] && ref ($_[0]) eq "HASH") {
+	%useradd_defaults	= %{$_[0]};
+    }
 }
 
 
@@ -591,12 +592,14 @@ sub GetCurrentUserFilter {
 ##------------------------------------
 BEGIN { $TYPEINFO{SetCurrentUserFilter} = ["function", "void", "string"];}
 sub SetCurrentUserFilter {
+    my $self = shift;
     $user_filter = $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetUserScope} = ["function", "void", "integer"];}
 sub SetUserScope {
+    my $self = shift;
     $user_scope = $_[0];
 }
 
@@ -655,24 +658,28 @@ sub GetCurrentGroupFilter {
 ##------------------------------------
 BEGIN { $TYPEINFO{SetCurrentGroupFilter} = ["function", "void", "string"];}
 sub SetCurrentGroupFilter {
+    my $self = shift;
     $group_filter = $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetGroupScope} = ["function", "void", "integer"];}
 sub SetGroupScope {
+    my $self = shift;
     $group_scope = $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetFiltersRead} = ["function", "void", "boolean"];}
 sub SetFiltersRead {
+    my $self = shift;
     $filters_read = $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetInitialized} = ["function", "void", "boolean"];}
 sub SetInitialized {
+    my $self = shift;
     $initialized = $_[0];
 }
 
@@ -695,6 +702,7 @@ BEGIN { $TYPEINFO{CreateUserDN} = ["function",
 }
 sub CreateUserDN {
 
+    my $self		= shift;
     my $user		= $_[0];
     my $dn_attr		= $user_naming_attr;
     my $user_attr	= $dn_attr;
@@ -711,6 +719,7 @@ BEGIN { $TYPEINFO{CreateGroupDN} = ["function",
 }
 sub CreateGroupDN {
 
+    my $self 		= shift;
     my $group		= $_[0];
     my $dn_attr		= $group_naming_attr;
     my $group_attr	= $dn_attr;
@@ -735,6 +744,7 @@ BEGIN { $TYPEINFO{SubstituteValues} = ["function",
 }
 sub SubstituteValues {
     
+    my $self 	= shift;
     my $what	= $_[0];
     my $data	= $_[1];
     my %ret	= %{$data};
@@ -817,10 +827,11 @@ sub SubstituteValues {
 # @return converted map
 sub ConvertMap {
 
+    my $self		= shift;
     my $data		= $_[0];
     my %ret		= ();
     my @attributes	= ();
-    my $attributes	= Ldap::GetObjectAttributes ($data->{"objectClass"});
+    my $attributes	= Ldap->GetObjectAttributes ($data->{"objectClass"});
     if (defined $attributes && ref ($attributes) eq "ARRAY") {
 	@attributes	= @{$attributes};
     }
@@ -871,13 +882,14 @@ BEGIN { $TYPEINFO{WriteUsers} = ["function",
 }
 sub WriteUsers {
 
+    my $self 		= shift;
     my %ret		= ();
     my $dn_attr 	= $user_naming_attr;
     my $last_id 	= $last_uid;
     my $users		= $_[0];
     
     # if ldap home directiories are on this machine
-    my $server		= Ldap::file_server ();
+    my $server		= Ldap->file_server ();
 
     foreach my $uid (keys %{$users}) {
 
@@ -905,12 +917,12 @@ sub WriteUsers {
 	# check allowed object classes
 	my @ocs		= ();
 	foreach my $oc (@obj_classes) {
-	    if (Ldap::ObjectClassExists ($oc)) {
+	    if (Ldap->ObjectClassExists ($oc)) {
 		push @ocs, $oc;
 	    }
 	}
 	$user->{"objectClass"}	= \@ocs;
-	$user			= ConvertMap ($user);
+	$user			= $self->ConvertMap ($user);
 	my $rdn			= "$dn_attr=".$user->{$dn_attr};
 	my $new_dn		= "$rdn,$user_base";
 	my %arg_map		= (
@@ -924,7 +936,7 @@ sub WriteUsers {
 	}
     
 	foreach my $plugin (sort @{$plugins}) {
-	    my $result = UsersPlugins::Apply ("WriteBefore", {
+	    my $result = UsersPlugins->Apply ("WriteBefore", {
 		"what"		=> "user",
 		"type"		=> "ldap",
 		"plugins"	=> [ $plugin ],
@@ -936,8 +948,8 @@ sub WriteUsers {
 
 	# --------------------------------------------------------------------
         if ($action eq "added") {
-	    if (! SCR::Write (".ldap.add", \%arg_map, $user)) {
-		%ret	= %{Ldap::LDAPErrorMap ()};
+	    if (! SCR->Write (".ldap.add", \%arg_map, $user)) {
+		%ret	= %{Ldap->LDAPErrorMap ()};
 	    }
             # on server, we can modify homes
             else {
@@ -946,18 +958,18 @@ sub WriteUsers {
 		}
 		if ($server) {
 		    if ($create_home->value) {
-			UsersRoutines::CreateHome ($useradd_defaults{"skel"}, $home);
+			UsersRoutines->CreateHome ($useradd_defaults{"skel"}, $home);
 		    }
-		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
 	    }
         }
         elsif ($action eq "deleted") {
-	    if (! SCR::Write (".ldap.delete", \%arg_map)) {
-		%ret = %{Ldap::LDAPErrorMap ()};
+	    if (! SCR->Write (".ldap.delete", \%arg_map)) {
+		%ret = %{Ldap->LDAPErrorMap ()};
 	    }
             elsif ($server && $delete_home->value) {
-                UsersRoutines::DeleteHome ($home);
+                UsersRoutines->DeleteHome ($home);
             }
         }
         elsif ($action eq "edited") {
@@ -971,8 +983,8 @@ sub WriteUsers {
 		$arg_map{"rdn"}		= $rdn;
 		$arg_map{"new_dn"}	= $dn;
 	    }
-	    if (! SCR::Write (".ldap.modify", \%arg_map, $user)) {
-		%ret = %{Ldap::LDAPErrorMap ()};
+	    if (! SCR->Write (".ldap.modify", \%arg_map, $user)) {
+		%ret = %{Ldap->LDAPErrorMap ()};
 	    }
 	    else {
 		if ($uid > $last_id) {
@@ -980,15 +992,15 @@ sub WriteUsers {
 		}
 		if ($server && $home ne $org_home) {
 		    if ($create_home->value) {
-			UsersRoutines::MoveHome ($org_home, $home);
+			UsersRoutines->MoveHome ($org_home, $home);
 		    }
-		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
             }
         }
 	# ----------- now call the "write" plugin function for this user
 	if (!defined $ret{"msg"}) {
-	    my $result = UsersPlugins::Apply ("Write", {
+	    my $result = UsersPlugins->Apply ("Write", {
 		"what"		=> "user",
 		"type"		=> "ldap",
 		"plugins"	=> $plugins,
@@ -1008,7 +1020,7 @@ sub WriteUsers {
 	    }
 	);
 	$modules{$user_config_dn}{"nextUniqueId"} =$user_config{"nextUniqueId"};
-        %ret = %{Ldap::WriteToLDAP (\%modules)};
+        %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
     if (%ret) {
 	return $ret{"msg"};
@@ -1026,6 +1038,7 @@ BEGIN { $TYPEINFO{WriteGroups} = ["function",
 }
 sub WriteGroups {
 
+    my $self 		= shift;
     my %ret		= ();
     my $dn_attr 	= $group_naming_attr;
     my $last_id 	= $last_gid;
@@ -1086,12 +1099,12 @@ sub WriteGroups {
 	}
 	my @ocs		= ();
 	foreach my $oc (keys %o_classes) {
-	    if (Ldap::ObjectClassExists ($oc)) {
+	    if (Ldap->ObjectClassExists ($oc)) {
 		push @ocs, $oc;
 	    }
 	}
 	$group->{"objectClass"}	= \@ocs;
-	$group			= ConvertMap ($group);
+	$group			= $self->ConvertMap ($group);
 
 	my $rdn			= "$dn_attr=".$group->{$dn_attr};
 	my $new_dn		= "$rdn,$group_base";
@@ -1100,16 +1113,16 @@ sub WriteGroups {
 	);
 
         if ($action eq "added") {
-	    if (!SCR::Write (".ldap.add", \%arg_map, $group)) {
-		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    if (!SCR->Write (".ldap.add", \%arg_map, $group)) {
+		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
 	    elsif ($gid > $last_id) {
 		$last_id	= $gid;
 	    }
         }
         elsif ($action eq "deleted") {
-	    if (!SCR::Write (".ldap.delete", \%arg_map)) {
-		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    if (!SCR->Write (".ldap.delete", \%arg_map)) {
+		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
         }
         elsif ($action eq "edited") {
@@ -1121,8 +1134,8 @@ sub WriteGroups {
 		$arg_map{"new_dn"}	= $dn;
 	    }
 
-	    if (!SCR::Write (".ldap.modify", \%arg_map, $group)) {
-		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    if (!SCR->Write (".ldap.modify", \%arg_map, $group)) {
+		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
 	    elsif ($gid > $last_id) {
 		$last_id	= $gid;
@@ -1134,8 +1147,10 @@ sub WriteGroups {
 		$arg_map{"dn"}	= $dn;
 	    }
 	    $new_group{"objectClass"}	= \@ocs;
-	    if (!SCR::Write (".ldap.add", \%arg_map, ConvertMap (\%new_group))){
-		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    if (!SCR->Write (".ldap.add", \%arg_map,
+		$self->ConvertMap (\%new_group)))
+	    {
+		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
 	    elsif ($gid > $last_id) {
 		$last_id = $gid;
@@ -1151,7 +1166,7 @@ sub WriteGroups {
 	    }
 	);
 	$modules{$group_config_dn}{"nextUniqueId"} = $group_config{"nextUniqueId"};
-        %ret = %{Ldap::WriteToLDAP (\%modules)};
+        %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
 
     if (%ret) {
@@ -1162,7 +1177,8 @@ sub WriteGroups {
 
 BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
 sub SetGUI {
-    $use_gui = $_[0];
+    my $self 		= shift;
+    $use_gui 		= $_[0];
 }
 
 1
