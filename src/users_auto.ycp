@@ -83,7 +83,7 @@
 //y2warning ("all export: %1", ex);
 //y2warning ("local users: %1", ex[0,`local]:$[]);
     }
-    else if (func == "Result") {
+    else if (func == "Export") {
 	ret = Users::Export();
     }
     else if (func == "Write") {
