@@ -346,9 +346,8 @@ can be changed for non-local users.
 
     if (what == "add_user" && !Mode::cont)
     {
-        Wizard::ReplaceNextButton (`PushButton (`id (`next),
-	    // change of button label
-            `opt(`key_F10, `default), _("&Create")));
+	// change of button label
+	Wizard::SetNextButton(`next, _("&Create") );
     }
 
     if ( what == "add_user" )
