@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug 21 14:34:33 CEST 2001 - jbuch@suse.de
+
+- add yast2-agent-pam to spec file
+  replaced fileexist 
+
+-------------------------------------------------------------------
 Thu Aug  9 11:02:45 CEST 2001 - jbuch@suse.de
 
 - add crypt md5 password 
