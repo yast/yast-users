@@ -70,7 +70,7 @@ YCPValue CrackAgent::Execute(const YCPPath &path, const YCPValue& value,
 	return YCPString (out);
     }
     else {
-	return YCPString ("OK");
+	return YCPString ("");
     }
 }
 
