@@ -173,10 +173,13 @@ define symbol EditUserDialog (string what) ``{
     else
 	sn	= user["sn"]:SplitFullName(`sn, cn);
     string givenname		= "";
-    if (is (user["givenname"]:nil, list))
-	givenname	= user["givenname",0]:SplitFullName(`givenname, cn);
-    else if (is (user["givenname"]:nil, string))
-	givenname	= user["givenname"]:SplitFullName(`givenname, cn);
+    if (haskey (user, "givenname"))
+    {
+	if (is (user["givenname"]:nil, list))
+	    givenname	= user["givenname",0]:SplitFullName(`givenname, cn);
+	else if (is (user["givenname"]:nil, string))
+	    givenname	= user["givenname"]:SplitFullName(`givenname, cn);
+    }
 
     boolean do_not_edit = (user_type == "nis");
 
