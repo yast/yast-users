@@ -24,13 +24,13 @@
   include "users/help.ycp";
 
 
-  map write_to_system_stack = $[];
+  list write_to_system_stack = [];
 
   /**
    * Delete stack data.
    */
   global define void Reset()``{
-      write_to_system_stack = $[];
+      write_to_system_stack = [];
   }
 
   /**
@@ -38,15 +38,7 @@
    * @return boolean
    */
   global define boolean IsEmpty()``{
-      return write_to_system_stack == $[];
-  }
-
-  /**
-   * Return the next stack position.
-   * @return integer
-   */
-  define integer findNextTodoPos() ``{
-      return  ( size( write_to_system_stack) + 1);
+      return write_to_system_stack == [];
   }
 
   /**
@@ -65,15 +57,20 @@
    *  `del_user
    *  `del_group
    * @param error error message
+   * @param type symbol `user of `group
+   * @param id integer uid or gid depending on type
    * @return boolean
    */
-  global define boolean AddTodo( string todo, symbol what, string error ) ``{
-
-      write_to_system_stack[ findNextTodoPos()] =   $[ "todo" : todo,
-						       "what" : what,
-						       "error": error ];
-      return true;
-  }
+    global define boolean AddTodo( string todo, symbol what, string error, symbol type, integer id ) ``{
+	write_to_system_stack = add (write_to_system_stack, $[
+	    "todo" : todo,
+	    "what" : what,
+	    "error": error,
+	    "type" : type,
+	    "id" : id
+	]);
+	return true;
+    }
 
 
   /**
@@ -84,12 +81,12 @@
    */
   define boolean addSetGroupPassword( string groupname, string password ) ``{
 
-      write_to_system_stack[ findNextTodoPos() ] =  $[
+      write_to_system_stack = add (write_to_system_stack, $[
 						      "groupname" : groupname,
 						      "password"  : password,
 						      "what" : `set_group_password,
 						      "error": _("Can' set group password" )
-      ];
+      ]);
       return true;
   }
 
@@ -170,19 +167,19 @@
 	    todo = todo + " " + username;
 
 	    //add the todo string to the write stack
-	    AddTodo( todo , `add_user,  sformat(_("Can't create the new user %1"), username ));
+	    AddTodo( todo , `add_user,  sformat(_("Can't create the new user %1"), username ), `user, uid);
 
 	    //add a call of useradd.local to the write stack
 	    if(  SCR::Read(.target.size, "/usr/sbin/useradd.local" ) != -1  )
 	    {
 		AddTodo( ("/usr/sbin/useradd.local " + username ),
 			      `add_user_local,
-			      _("Can't execute /usr/sbin/useradd.local"));
+			      _("Can't execute /usr/sbin/useradd.local"), `user, uid);
 	        if (! (create_home))
 		{
 		    AddTodo (sformat("/bin/chown -R %1:%2 %3", username, UserSettings::GroupIdToName(gid), home),
 				`chown_home,
-				_("Can't chown home directory"));
+				_("Can't chown home directory"), `user, uid);
 		}
 	    }
 	}
@@ -226,7 +223,7 @@
 
 		AddTodo( todo,
 			      `edit_user,
-			      sformat(_("Can't change the settings of the user %1"), username ));
+			      sformat(_("Can't change the settings of the user %1"), username ), `user, uid);
 	    }
 	}
 
@@ -295,19 +292,20 @@
 	       // create the group
 	       AddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname ),
 			`add_group,
-			sformat(_("Can't create new group %1"), new_groupname));
+			sformat(_("Can't create new group %1"), new_groupname), `group, gid);
 
 	       // add users to the group
 	       if ( userlist != "" )
 	       {
 		   list split_userlist = splitstring( userlist , "," );
 		   foreach ( `user, split_userlist, ``{
+			integer uid = UserSettings::GetUid (user);
 		       string new_G = UserSettings::FindGroupsBelongUser(user);
 		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
 		       else new_G  = new_groupname;
 		       AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ),
 				`edit_user,
-				sformat(_("Can't add user %1 to group %2"), user, new_G));
+				sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		   });
 	       }
 	   }
@@ -334,12 +332,13 @@
 		       });
 
 		       foreach( `user, work_userlist, ``{
+			    integer uid = UserSettings::GetUid (user);
 			   string new_G = UserSettings::FindGroupsBelongUser(user);
 			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
 			   else new_G  = old_groupname;
 			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ),
 					 `edit_user,
-					 sformat(_("Can't add user %1 to group %2"), user, new_G));
+					 sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		       });
 		   }
 		   else
@@ -350,12 +349,13 @@
 			   if( !contains( split_userlist, user) ) work_userlist = add( work_userlist, user );
 		       });
 		       foreach( `user, work_userlist, ``{
+			    integer uid = UserSettings::GetUid (user);
 			   string new_G      = UserSettings::FindGroupsBelongUser(user );
 			   list   new_G_list = splitstring( new_G , "," );
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
 			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
 					 `edit_user,
-					 sformat(_("Can't add user %1 to group %2"), user, new_new_G));
+					 sformat(_("Can't add user %1 to group %2"), user, new_new_G), `user, uid);
 		       });
 
 		   }
@@ -369,7 +369,7 @@
 	       if ( todo != "/usr/sbin/groupmod" )
 		   AddTodo( (todo + " " +  old_groupname),
 				 `edit_group,
-				 sformat(_("Can't change the settings of the group %1"), old_groupname) );
+				 sformat(_("Can't change the settings of the group %1"), old_groupname), `group, gid);
 
 
 	   }
@@ -447,7 +447,7 @@
 	integer value = 0;
 	boolean ok    = true;
 
-	foreach( `key, `todomap, write_to_system_stack, ``{
+	foreach( `todomap, write_to_system_stack, ``{
 
 	    symbol what  = lookup ( todomap , "what" , `error );
 	    boolean ret = true;

@@ -151,11 +151,11 @@
 	      work = entry["min"]:sformat("%1", UserDefs::pass_min_days );
 	      if( work == "") work = "0";
 	      new_entry["min"]   = tointeger( work );
-	      
+
 	      work = entry["warn"]:sformat("%1", UserDefs::pass_warn_age );
 	      if( work == "") work = "0";
 	      new_entry["warn"]  = tointeger( work );
-	      
+
 	      current_shadow[ username ] = new_entry;
 	  });
 
@@ -163,28 +163,28 @@
 	  foreach(`key, `user, current_users, ``{
 	      string username = user["username"]:"";
 	      user["shadow"] = current_shadow[username ]:$[];
-	      
+
 	  });
       }
-	
+
       return true;
     }
 
-
-    
     /**
      * Read all users and groups settings.
      */
     global define void ReadSettingsFromDisk()``{
 
-	return (   ReadPasswdFromDisk() 
+	return (   ReadPasswdFromDisk()
 		 && ReadGroupFromDisk()
 		 && ReadGshadowFromDisk()
 		 && ReadShadowFromDisk() );
     }
-
-
-    
+    /**
+      * Get group id
+      * @paramstring  group name
+      * @return integer gid
+      */
     global define integer GetGid( string groupname )``{
 
 	integer gid = UserDefs::max_gid;
@@ -196,7 +196,23 @@
 	});
 	return gid;
     }
-    
+    /**
+      * Get iser id
+      * @paramstring user name
+      * @return integer uid
+      */
+    global define integer GetUid( string username )``{
+
+        integer gid = UserDefs::max_gid;
+        foreach ( `key, `user,  current_users, ``{
+            if( lookup( user, "username", "") == username )
+            {
+                uid = lookup(user, "uid", UserDefs::max_uid  );
+            }
+        });
+        return uid;
+    }
+
     /**
      * Delete the group with groupname from current_gshadow.
      * @param groupname name of the group
@@ -213,7 +229,7 @@
      */
     global define map GetGroupFromShadow( string groupname ) ``{
 	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname","") == groupname ) );
-	if ( size ( password_group_list ) == 0 ) return $[]; 
+	if ( size ( password_group_list ) == 0 ) return $[];
 	return select(password_group_list, 0,$[]);
     }
 

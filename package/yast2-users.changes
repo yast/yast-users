@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jul  2 13:47:57 CEST 2002 - jsrain@suse.cz
+
+- added the installation files
+
+-------------------------------------------------------------------
 Fri Jun 28 17:18:30 CEST 2002 - arvin@suse.de
 
 - renamed package from yast2-config-users to yast2-users

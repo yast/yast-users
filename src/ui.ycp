@@ -1222,10 +1222,9 @@ Do you want to use it and change it's owner?.")))
 
 	boolean delete        = true;
 	boolean delete_home   = false;
-	boolean delete_empty_home = false;
 	string username       = lookup( user_in_work, "username", "");
 	string home           = lookup( user_in_work, "home", "");
-	
+	integer uid = lookup (user_in_work, "uid", UserDefs::max_uid);
 	
 	// if the user has log on system
 	list proc  = SCR::Read(.run.procfiles);
@@ -1239,11 +1238,9 @@ Please log off the user first."));
 	    delete = false;
 	}
 	
-	
-	
 	// if the user want to delete a system user
 	if ( lookup(user_in_work , "uid", nil) <=  UserDefs::max_system_uid )
-	{	
+	{
 	    if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user?")))
 	    {
 		delete = false;
@@ -1251,7 +1248,7 @@ Please log off the user first."));
 	}
 	else
 	{
-	    if( lookup( user_in_work, "exist", true ) && home != "" && SCR::Read(.target.size, home ) !=-1)
+	    if( lookup( user_in_work, "exist", true ) && home != "")
 	    {
 		term contents = `HBox(
 				      `HSpacing(3),
@@ -1268,7 +1265,7 @@ Please log off the user first."));
 					    ),
 					    `HSpacing(3)
 				      );
-				  
+
 		UI::OpenDialog(`opt( `decorated ), contents );
 		symbol ret  = UI::UserInput();
 		delete_home = UI::QueryWidget(`id(`delete_home), `Value);
@@ -1276,7 +1273,7 @@ Please log off the user first."));
 		UI::CloseDialog();
 	    
 		if( ret == `cancel )
-		{ 
+		{
 		    delete = false;
 		}
 	    }
@@ -1287,10 +1284,6 @@ Do you really want to delete the user %1?
 "), username )))
 		{
 		    delete = false;
-		}
-		else
-		{
-		    delete_empty_home = true;
 		}
 	    }
 	}
@@ -1306,32 +1299,31 @@ Do you really want to delete the user %1?
 	// delete the user from the map current_users
 	UserSettings::DelUser( user_in_work["uid"]:nil );
 
-
 	if (  SCR::Read(.target.size,"/usr/sbin/userdel.local") != -1 )
 	{
 	    UserWriteStack::AddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
-			 _("Can't execute /usr/sbin/userdel.local"));
+			 _("Can't execute /usr/sbin/userdel.local"), `user, uid);
 	}
 
 	UserWriteStack::AddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
-		     sformat(_("Can't delete the user %1"), username) );
+		     sformat(_("Can't delete the user %1"), username), `user, uid);
 
         //build a shell delete command and save it to write_to_system_stack
 	if(! lookup( user_in_work, "exist", true ))
 	{
 	    if( lookup( user_in_work , "home", "" ) != "")
 		UserWriteStack::AddTodo(sformat ("/bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
-			sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")));
+			sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
 //		usersAddRmDir( lookup( user_in_work , "home", "" ));
 	}
 	else
 	{
-	  if( delete_home || delete_empty_home )
+	  if( delete_home )
 	  {
 		UserWriteStack::AddTodo(sformat ("test -d %1 && /bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
-                        sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")));
+                        sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
 //	      usersAddRmDir( lookup( user_in_work, "home", "" ));
 	      if( Mode::test ) y2milestone("delete home");
 	  }
@@ -1830,6 +1822,7 @@ Please try again."));
     global define usersDeleteGroup() ``{
 
 	boolean delete = true;
+	integer gid = lookup (group_in_work , "gid", -1 );
 	//if no  user in this group
 	if ( (size ( filter(`k, `v, UserSettings::current_users , ``(lookup(v,"gid", -1) == lookup(group_in_work , "gid", -1)))) == 0) &&
 	     (lookup( group_in_work , "userlist", "") == "" ) )
@@ -1866,7 +1859,7 @@ Do you really want to delete the group %1?
 	    //add a shell delete command to write_to_system_stack
 	    UserWriteStack::AddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
 			 `del_group,
-			 sformat(_("Can't delete group %1 "),lookup( group_in_work, "groupname", "")));
+			 sformat(_("Can't delete group %1 "),lookup( group_in_work, "groupname", "")), `group, gid);
 	  
 	}
 	else

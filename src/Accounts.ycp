@@ -1,0 +1,22 @@
+/**
+ * File:
+ *	Accounts.ycp
+ *
+ * Module:
+ *	Accounts
+ *
+ * Summary:
+ *	Handles root and user accounts
+ *
+ * Authors:
+ *	Klaus Kaempf (kkaempf@suse.de)
+ *
+ * $Id$
+ */
+{
+    module "Accounts";
+
+    import "Mode";
+
+    // To be done ...
+}

@@ -9,7 +9,9 @@ module_DATA =			\
 	UserDefs.ycp		\
 	UserSettings.ycp	\
 	UserWriteStack.ycp	\
-	UserAddDefs.ycp
+	UserAddDefs.ycp		\
+	User.ycp		\
+	Accounts.ycp
 
 ynclude_DATA =			\
 	ui.ycp			\
@@ -18,11 +20,15 @@ ynclude_DATA =			\
 client_DATA = 			\
 	users.ycp		\
 	users_auto.ycp		\
-	users_write.ycp
+	users_write.ycp		\
+	inst_root.ycp		\
+	inst_user.ycp
 
 config_DATA = users.y2cc	\
 	groups.y2cc	\
 	add_user.y2cc	\
 	add_group.y2cc
 
-EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA)
+ydata_DATA = accounts.ycp
+
+EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(ydata_DATA)

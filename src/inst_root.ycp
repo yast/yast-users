@@ -1,0 +1,318 @@
+/**
+ *
+ * $Id$
+ *
+ * Module: 		inst_root.ycp
+ *
+ * Author:		Klaus Kämpf <kkaempf@suse.de>
+ *
+ * Purpose:
+ * Displays two input fields to get the root password from the user.
+ * Plausibility checks executed:
+ *
+ *   - password must be given
+ *   - first and second entry must match
+ *   - length of password >= 5
+ *   - only certain characters allowed
+ *
+ * After all the password is crypted and written into the user_settings.
+ *
+ *
+ * SCR:		Write( .pam.all.password.pam_unix2   )
+ *		Write( .pam.all.password.pam_pwcheck )
+ */
+
+{
+  textdomain "user";
+
+  import "Wizard";
+  import "User";
+  import "Mode";
+  include "ui/common_messages.ycp";
+
+    if (Mode::cont)
+    {
+	SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
+    }
+
+  /**
+   * "Expert" dialog for root password:
+   * Let user choose the encryption method.
+   **/
+  define void expert_dialog() ``{
+
+      // Help text for password expert dialog
+      string help_text = _( "<p>
+<b>This is for experts only.</b>
+</p>");
+
+      help_text = help_text + _( "<p>
+Choose a password encryption method.
+<b>DES</b>, the Linux default method, works in all network environments, but it
+restricts you to passwords no longer than eight characters.
+</p>");
+
+      help_text = help_text + _( "<p>
+<b>MD5</b> allows longer passwords, thus provides more security, but some
+network protocols don't support this, and you may have problems with NIS.
+</p>");
+
+      help_text = help_text + _( "<p>
+As a general rule of thumb, use DES if you are unsure.
+</p>");
+
+      UI::OpenDialog(
+		     `VBox(
+			   `Heading( _("Password Expert Options" ) ),
+			   `VSpacing( 0.7 ),
+			   `HBox(
+				 `HSpacing( 2 ),
+				 `RadioButtonGroup(
+						   `Frame( _("Password Encryption"),
+							   `VBox(
+								 `VSpacing( 0.5 ),
+
+								 // Radio buttons for password encryption: DES-crypt
+								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)" ),
+										    User::encryptionMethod == "des" ) ),
+
+								 // Radio buttons for password encryption: MD5-crypt
+								 `Left(`RadioButton(`id(`md5), _("&MD5" ),
+										    User::encryptionMethod == "md5" ) )
+								 )
+							   )
+						   ),
+				 `HSpacing( 2 )
+				 ),
+			   `VSpacing( 0.5 ),
+			   `HBox(
+				 `HStretch(),
+				 `HWeight( 1, `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
+				 `HStretch(),
+				 `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
+				 `HStretch(),
+				 `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
+				 `HStretch()
+				 )
+			   )
+		     );
+
+      symbol button = nil;
+
+      do
+      {
+	  button = UI::UserInput();
+
+	  if ( button == `help )
+	  {
+	      Wizard::ShowHelp( help_text );
+	  }
+	  else if ( button == `ok )
+	  {
+	      if      ( UI::QueryWidget( `id(`des), `Value ) )	User::encryptionMethod = "des";
+	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	User::encryptionMethod = "md5";
+
+	      y2milestone( "Password expert options: Changing encryption method to %1", User::encryptionMethod );
+	  }
+      } while ( button != `ok && button != `cancel );
+
+
+      UI::CloseDialog();
+  }; // expert_dialog()
+
+
+
+
+  string rpassword = User::rootPassword;
+  boolean this_is_for_real = ! Mode::test;
+
+
+  // Title for root-password dialogue
+  string title = _("Password for \"root\", the system administrator");
+
+  term contents =
+      `VBox(
+	    `VStretch(),
+	    `HSquash(
+		     `VBox(
+			   // advise user to remember his new password
+			   `Label(_("Do not forget what you enter here.")),
+			   `VSpacing(),
+
+			   `Left(`Password(`id(`pw1),
+					   // Label: get password for user root
+					   // Please use newline if label is longer than 40 characters
+					   _("&Enter a password for the root user:"), "")),
+			   `VSpacing(0.5),
+
+			   `Left(`Password(`id(`pw2),
+					   // Label: get same password again for verification
+					   // Please use newline if label is longer than 40 characters
+					   _("Reenter the password for &verification:"), ""))
+			   )
+		     ),
+	    `VStretch(),
+	    `PushButton(`id(`expert), _( "E&xpert Options..." ) ),
+	    `VStretch()
+	    );
+
+  // help text ( explain what the user "root" is and does )
+  string helptext = UI(_("<p>
+Unlike normal users of the system, who, for instance, write texts, create
+graphics, or browse the Internet, the user \"root\" exists on
+every system and is called into action whenever
+administrative tasks need to be performed. Log in as root
+when you need to be the system administrator and only then.
+</p>
+"));
+
+  // help text, continued
+  helptext = helptext + UI(_("<p>
+Because the root user is equipped with extensive permissions, the password
+for \"root\" should be chosen carefully. A combination of letters and numbers
+is recommended. To ensure that the password was entered correctly,
+reenter it in a second field.
+</p>
+"));
+
+  // help text, continued
+  helptext = helptext + UI(_("<p>
+All the rules for user passwords apply to the \"root\" password:
+Distinguish between uppercase and lowercase. A password should have at
+least 5 characters and, as a rule, not contain any special characters
+(e.g., accented letters or umlauts).
+</p>
+"));
+
+  // help text, continued
+  helptext = helptext + UI(_("<p>
+Valid password characters are letters, digits, blanks, and
+<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}</tt>.
+</p>"));
+
+  // help text, continued
+  helptext = helptext + UI(_("<p>
+Do not forget this \"root\" password!
+</p>"));
+
+
+  Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+  any ret = nil;
+
+  repeat
+  {
+      if ( ret != `expert )
+      {
+	  // Clear password fields on every round
+	  UI::ChangeWidget(`id(`pw1), `Value, "");
+	  UI::ChangeWidget(`id(`pw2), `Value, "");
+	  UI::SetFocus( `id(`pw1) );
+      }
+
+      ret = Wizard::UserInput();
+
+      if ( ret == `abort && CallFunction(`inst_confirm_abort(`incomplete) ) )
+	  return `abort;
+
+      if (ret == `cancel)
+	  break;
+
+      if (ret == `expert)
+      {
+	  expert_dialog();
+
+	  string pw1 = UI::QueryWidget(`id(`pw1), `Value);
+	  UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
+      }
+      else if (ret != `back)
+      {
+	  string pw1 = UI::QueryWidget(`id(`pw1), `Value);
+	  string pw2 = UI::QueryWidget(`id(`pw2), `Value);
+
+	  if (this_is_for_real && pw1 != pw2 )
+	  {
+	     // report misspellings of the password
+	     UI::MessagePopup(_("The first and the second version\nof the password don't match!\nPlease try again."));
+	     rpassword = "";
+	     // Invalidate any old password
+	     User::rootPassword = rpassword;
+	     continue;
+	  }
+
+	  // Use the old password (if any) if no passwords were entered.
+	  // only check pw1 here, it is identical with pw2 (as checked before).
+
+	  if ( this_is_for_real && ( (pw1 != "") || (rpassword == "") ) )
+	  {
+	     if (pw1 == "")
+	     {
+		// report if user forgot to enter a password
+		UI::MessagePopup(_("You didn't enter a password\nPlease try again."));
+                rpassword = "";
+		// Invalidate any old password
+		User::rootPassword = rpassword;
+		continue;
+	     }
+
+	     if (size (pw1) < 5)
+	     {
+		// explain how a password has to be formed
+		UI::MessagePopup(_("The password must have at least 5 characters.
+Try again.
+"));
+                rpassword = "";
+		// Invalidate any old password
+		User::rootPassword = rpassword;
+		continue;
+	     }
+
+	     if ( size(pw1) >= 5 )
+	     {
+		any ret2 = findfirstnotof( pw1, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}" );
+
+		if ( ret2 != nil ) {
+		   // There is a check whether the information from the UI is correct and complete
+		   // The root password may contain only certain characters
+		   UI::MessagePopup(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
+                   rpassword = "";
+		   // Invalidate any old password
+		   User::rootPassword = rpassword;
+		   continue;
+		}
+	     }
+
+	     y2milestone( "encrypting with %1", User::encryptionMethod );
+	     
+	     if ( User::encryptionMethod == "md5" )
+	     {
+		 if ( this_is_for_real )
+		 {
+		     SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
+		     SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
+		 }
+
+		 User::rootPassword = cryptmd5 (pw1);
+	     }
+	     else
+	     {
+		 if ( this_is_for_real )
+		 {
+		     SCR::Write( .pam.all.password.pam_unix2,   "-md5" );
+		     SCR::Write( .pam.all.password.pam_pwcheck, "-md5" );
+		 }
+		 
+		 User::rootPassword = crypt (pw1);
+	     }
+
+	     if ( this_is_for_real && ! User::SetRootPassword())
+	     {
+		 // Error msg
+		 Report::Error(_("The root password could not be set.
+You will not be able to log in.\n"));
+	     }
+	  }
+      }
+  } until ( ret == `next || ret == `back || ret == `cancel );
+
+  return ret;
+}
