@@ -76,9 +76,9 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
  * List groups
  * @return boolean false
  */
-define boolean GroupsListHandler (map options ) ``{
+define boolean GroupsListHandler (map<string,string> options ) ``{
 
-    list sets = maplist (string type, any val, options, ``(type));
+    list<string> sets = maplist (string type, string val, options, ``(type));
     if (sets == [])
 	sets = ["local"];
 
@@ -100,7 +100,7 @@ define boolean GroupsListHandler (map options ) ``{
  */
 define boolean GroupsShowHandler (map options ) ``{
 
-    map group = $[];
+    map<string,any> group = $[];
     integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
     string groupname = options ["groupname"]:"";
 
@@ -135,7 +135,7 @@ define boolean GroupsShowHandler (map options ) ``{
 	if (is (value, map))
 	{
 	    svalue = mergestring ((list<string>)
-		maplist (string k, any v, (map) value, ``(k)), ",");
+		maplist (string k, any v, (map<string,any>) value, ``(k)), ",");
 	}
 	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
     });

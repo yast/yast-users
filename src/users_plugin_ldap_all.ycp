@@ -148,7 +148,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    UsersLDAP::GetGroupAttrsLDAP2YaST();
 
 	foreach (string class, data["objectClass"]:[], ``{
-	    foreach (string at, Ldap::GetAllAttributes (class), ``{
+	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
 		if (!haskey (data, ldap2yast [at]:at) &&
 		    !contains (do_not_show_keys, ldap2yast [at]:at))
@@ -239,7 +239,9 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 		    Users::AddGroup (tmp_data);
 		}
 	    }
-	} until (contains ([`next, `abort, `back, `cancel], ret));
+	} until (is(ret,symbol) &&
+	    contains ([`next, `abort, `back, `cancel], (symbol) ret));
+
 	Wizard::CloseDialog ();
     }
     /* unknown function */
