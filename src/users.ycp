@@ -160,7 +160,8 @@
 	"group_save"  :  $[ `next:           "groups",
 			    `save:           "save_to_system" ],
 	"without_save":  $[ `next :          `abort,
-	                    `back :          `back   ]
+			    `back :          `back   ],
+	"save_to_system": $[ `next: 	     `abort ]
 	
     ];
 

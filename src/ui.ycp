@@ -109,7 +109,7 @@
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
 		    any user_table_input = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
-		    if( !isnil( user_table_input )) user_in_work = lookup( current_users , user_table_input );
+		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input );
 		    else
 		    {
 			UI(`MessagePopup(_("Please select an entry in the user table")));
@@ -614,10 +614,11 @@ Please try again.
 			UI(`SetFocus(`id(`username)));
 			continue;
 		    }
+
 		    
 		    // check login against passwd contents
 		    if ( (username != lookup( user_in_work , "username", "")) &&
-			 contains( usersUsersRead(`usernamelist), username )    )
+			 contains( usersUsersRead(`usernamelist), username ) )
 		    {
 			// Tell the user that the login he entered conflicts with
 			// predefined logins in the passwd file.
@@ -849,7 +850,7 @@ Please try again.")));
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
 		    any group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
-		    if( !isnil( group_table_input )) group_in_work = lookup( current_groups , group_table_input );
+		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input );
 		    else
 		    {
 			UI(`ErrorPopup(_("Please select an entry in the group table")));
@@ -1171,7 +1172,7 @@ Please try again.")));
 		    {
 			integer new_i_gid = tointeger(new_gid);
 			
-			if( !( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && !isnil(new_i_gid) )
+			if( !( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil ) )
 			{
 			    UI(`ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
 Please select a valid integer between 0 and %1")), max_gid)));
@@ -1297,7 +1298,7 @@ Delete this users first.")));
      */
     global define usersSaveDialog() ``{
 	
-	if ( size ( user_settings ) == 0 ) return true;
+	if ( size ( user_settings ) == 0 ) return `next;
 
 	
 	term contents =   `VBox(
@@ -1358,7 +1359,7 @@ are configured and usable")));
 	    }
 	}
 	
-	return true;
+	return `next;
     }
 
 

@@ -41,7 +41,7 @@
 	    }
 	});
 	
-	if( ! isnil( grouplist) ) return grouplist;
+	if( grouplist != nil ) return grouplist;
 	else return "";
     }
 
@@ -63,7 +63,7 @@
 	      else userlist = userlist + "," + lookup( user, "username", "");
 	  }
       });
-      if ( ! isnil(  userlist ))  return userlist;
+      if (   userlist != nil )  return userlist;
       else return "";
   }
   
@@ -717,7 +717,7 @@ to new home directory %2")), old_home, home));
 	});
 		  
 	if( todo == `items                               ) return items;
-	else if( todo == `todo_list || todo == `homelist ) return todo_list;
+	else if( todo == `usernamelist || todo == `homelist ) return todo_list;
 	
     }	
 
@@ -812,7 +812,7 @@ to new home directory %2")), old_home, home));
 	include "font_defines.ycp";
 	any ret = findfirstof( fullname , "\"" );
 	
-	if( !isnil( ret ))
+	if(  ret != nil )
 	{
 	    string split_list = splitstring( fullname, "\"");
 	    fullname = "";
@@ -826,7 +826,7 @@ to new home directory %2")), old_home, home));
 	      
 	map    settings = $[];
 	string language = UI( `GetLanguage() );
-	settings        = SelectConsoleFont(settings, language);
+	settings        = SelectConsoleFont( language);
 	string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
 	string comment  = UI(`Recode ("utf-8", encoding, sformat("\"%1\"", fullname )));
 
