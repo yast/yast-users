@@ -64,6 +64,8 @@ global integer max_system_uid = 500-1;
 global integer max_system_gid = 100-1;//TODO will be changed to 500...
 global integer max_length_uid = 5;
 global integer max_length_gid = 5;
+global integer max_length_login = 32; // see for example man utmp, UT_NAMESIZE
+global integer min_length_login = 2;
 global boolean ldap_file_server = false;
 
 // if currrent view is "customized"
@@ -941,7 +943,7 @@ global define string ProposeUsername( string fullname ) ``{
 		name = name + sformat ("%1", name_count);
 		name_count = name_count + 1;
 	    }
-	    if (size (name) < 2 || size (name) > 32)
+	    if (size (name)< min_length_login || size (name) > max_length_login)
 		return;
 	    proposed_usernames = add (proposed_usernames, name);
 	});
