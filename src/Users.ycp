@@ -165,6 +165,7 @@ global string root_mail = "";
 
 // autologin without showing kdm (value is username)
 global string autologin = "";
+global boolean autologin_used = true;
 
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];

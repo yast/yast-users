@@ -167,7 +167,8 @@ can be changed for non-local users.
 		Users::root_mail != "") ),
 	    `VSpacing (0.5),
 	    // checkbox label
-	    `Left( `CheckBox (`id (`autologin),_("A&uto Login"), true) )
+	    `Left( `CheckBox (`id (`autologin),_("A&uto Login"),
+		Users::autologin_used) )
 	);
 	optionbox = `HBox(
 			  `HStretch(),
@@ -768,6 +769,7 @@ _("<p>Really use the entered value?</p>");
             ? username : "";
         Users::autologin = UI::QueryWidget (`id (`autologin), `Value)
             ? username : "";
+	Users::autologin_used = UI::QueryWidget (`id (`autologin), `Value);
     }
     if( ret == `additional ||  ret == `nosave )
     {
