@@ -30,17 +30,28 @@
     boolean test_mode = false;
 
     string  start_dialog = "users";
-    if (size (Args ()) > 0 && Args (0) == .test)
+
     {
-	test_mode = true;
-    }
-    else
-    {
-	if( size (Args ()) > 0 )
+	integer arg = 0;
+
+	while ( arg < size( Args() ) )
 	{
-	    start_dialog =  Args(0);
+	    y2debug( "arg #%1: %2", arg, Args( arg ) );
+		
+	    if ( Args( arg ) == .test )
+	    {
+		test_mode = true;
+	    }
+	    else
+	    {
+		start_dialog = Args( arg );
+	    }
+
+	    arg = arg + 1;
 	}
     }
+
+    y2debug( "Starting with %1 - test mode: %2", start_dialog, test_mode );
     
     // ===== Definitions ==============================================
     
@@ -225,22 +236,21 @@
 			    `abort:          "without_save" ],
 	"group_save"  :  $[ `next:           "groups",
 			    `save:           "save_to_system" ],
-	"without_save":  $[ `next :          `abort,
+	"without_save":  $[ `next :          `next,
 			    `back :          `back   ],
-	"save_to_system": $[ `next: 	     `abort ]
+	"save_to_system": $[ `next: 	     `next ]
 	
     ];
 
    
     
-
-    // ===== Read the current /etc/passwd and /etc/group ==============
 	
     // ===== Start the sequence =======================================
     
-    WizardSequencer(aliases, main_sequence);
+    any ret = WizardSequencer(aliases, main_sequence);
+    UI::CloseDialog();
 
-    return UI::CloseDialog();
-    // ===== Write ====================================================
-   
+    y2milestone( "Returning with %1", ret );
+    return ret;
+    
 } // End

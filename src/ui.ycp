@@ -137,7 +137,12 @@
 		   
 		}
 	    } until ( ret != `not_next  );
-	if ( ret == `back) ret = `exit;
+	
+	// if ( ret == `back) ret = `exit;
+	//
+	// Holy rule: DO NOT change any of the predefined IDs!
+	// Somebody calling this might need to rely on them - in their USUAL usage!
+	// sh 2001-01-09
 
 	save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
@@ -966,7 +971,7 @@ Do you really want to delete the user %1?
 	if( focusline_group != 0 )
 	    UI::ChangeWidget(`id(`group_table), `CurrentItem, focusline_group );
 	
-	// save marked tabelentry to group_in_work
+	// save marked table entry to group_in_work
 	symbol ret = `next;
 	repeat
 	    {
