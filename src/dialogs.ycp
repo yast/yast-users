@@ -373,18 +373,6 @@ can be changed for non-local users.
     boolean details	= false;
     symbol ret		= `next;
 
-    /**
-     * Helper function for user dialog:
-     * invalidate any old password and clear password inputfields
-     */
-    define void clear_password_fields () ``{
-	password = "";
-	ret = `notnext;
-	UI::ChangeWidget(`id(`pw1), `Value, "");
-	UI::ChangeWidget(`id(`pw2), `Value, "");
-	UI::SetFocus(`id(`pw1));
-    }
-
     repeat
     {
         ret = (symbol) UI::UserInput();
@@ -561,7 +549,8 @@ Are you sure?")))
                 Report::Error(_("The first and the second version
 of the password are different.
 Please try again."));
-		clear_password_fields ();
+		ret = `notnext;
+		UI::SetFocus (`id(`pw1));
                 continue;
             }
             if (pw1 != "x" && (pw1 != "" || !details) && pw1 != default_pw)
@@ -570,7 +559,8 @@ Please try again."));
 		if (error != "")
 		{
 		    Report::Error (error);
-		    clear_password_fields ();
+		    ret = `notnext;
+		    UI::SetFocus (`id(`pw1));
 		    continue;
 		}
 		boolean failed			= false;
@@ -590,7 +580,8 @@ Please try again."));
 
 		if (failed)
 		{
-		    clear_password_fields ();
+		    ret = `notnext;
+		    UI::SetFocus (`id(`pw1));
 		    continue;
 		}
 		// if "encryted" flag is present, password won't be encrypted
@@ -1603,16 +1594,6 @@ define symbol EditGroupDialog (string what ) ``{
 
     symbol ret = `next;
 
-    // Helper function for group dialog:
-    // invalidate any old password and clear password inputfields
-    define void clear_password_fields () ``{
-
-	ret	= `notnext;
-	UI::ChangeWidget(`id(`pw1), `Value, "");
-	UI::ChangeWidget(`id(`pw2), `Value, "");
-	UI::SetFocus(`id(`pw1));
-    }
-
     repeat
     {
         ret = (symbol) UI::UserInput();
@@ -1653,7 +1634,8 @@ define symbol EditGroupDialog (string what ) ``{
 of the password are different.
 Please try again.")) ;
 
-		clear_password_fields();
+		ret	= `notnext;
+		UI::SetFocus(`id(`pw1));
                 continue;
             }
             if ( pw1 != "" && pw1 != default_pw )
@@ -1662,7 +1644,8 @@ Please try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
-		    clear_password_fields ();
+		    ret	= `notnext;
+		    UI::SetFocus(`id(`pw1));
 		    continue;
 		}
 		boolean failed			= false;
@@ -1681,7 +1664,8 @@ Please try again.")) ;
 		} while (error_map != $[] && !failed);
 		if (failed)
 		{
-		    clear_password_fields ();
+		    ret	= `notnext;
+		    UI::SetFocus(`id(`pw1));
 		    continue;
 		}
 		password = pw1;
