@@ -194,14 +194,17 @@ sub Disable {
 
 
 sub contains {
-
-    my $list = $_[0];
-    my $item = $_[1];
-
-    if (!defined $list || ref ($list) ne "ARRAY") {
-	return 0;
+    my ( $list, $key, $ignorecase ) = @_;
+    if ( $ignorecase ) {
+        if ( grep /^$key$/i, @{$list} ) {
+            return 1;
+        }
+    } else {
+        if ( grep /^$key$/, @{$list} ) {
+            return 1;
+        }
     }
-    return grep (/^$item$/, @{$list} );
+    return 0;
 }
 
 sub update_object_classes {
@@ -220,7 +223,7 @@ sub update_object_classes {
 	@ocs			= @group_object_class;
     }
     foreach my $oc (@ocs) {
-	if (!contains (\@orig_object_class, $oc)) {
+	if (!contains (\@orig_object_class, $oc, 1)) {
 	    push @orig_object_class, $oc;
 	}
     }

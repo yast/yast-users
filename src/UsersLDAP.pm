@@ -140,9 +140,15 @@ YaST::YCP::Import ("UsersUI");
 ##------------------------------------
 
 sub contains {
-
-    foreach my $key (@{$_[0]}) {
-	if ($key eq $_[1]) { return 1; }
+    my ( $list, $key, $ignorecase ) = @_;
+    if ( $ignorecase ) {
+        if ( grep /^$key$/i, @{$list} ) {
+            return 1;
+        }
+    } else {
+        if ( grep /^$key$/, @{$list} ) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -215,25 +221,23 @@ sub Initialize {
 	    next;
 	}
 	my $oc = $config_module->{"objectclass"};
-	if (contains ($oc, "userconfiguration") || 
-	    contains ($oc, "userConfiguration")) {
+	if (contains ($oc, "suseuserconfiguration", 1) ) {
 	    $user_config_dn	= $dn;
 	    %user_config 	= %{$config_module};
 	}
-	if (contains ($oc, "groupconfiguration") ||
-	    contains ($oc, "groupConfiguration")) {
+	if (contains ($oc, "susegroupconfiguration", 1) ) {
 	    $group_config_dn	= $dn;
 	    %group_config 	= %{$config_module};
 	}
     };
 
     my @user_templates		= ();
-    if (defined $user_config{"defaulttemplate"}) {
-	@user_templates 	= @{$user_config{"defaulttemplate"}};
+    if (defined $user_config{"susedefaulttemplate"}) {
+	@user_templates 	= @{$user_config{"susedefaulttemplate"}};
     }
     my @group_templates		= ();
-    if (defined $group_config{"defaulttemplate"}) {
-	@group_templates 	= @{$group_config{"defaulttemplate"}};
+    if (defined $group_config{"susedefaulttemplate"}) {
+	@group_templates 	= @{$group_config{"susedefaulttemplate"}};
     }
     my $user_template_dn	= $user_templates[0] || "";
     my $group_template_dn	= $group_templates[0] || "";
@@ -273,11 +277,11 @@ sub ReadFilters {
     if ($init ne "") { return $init; }
 
     # get the default filters from config modules (already read)
-    if (defined $user_config{"searchfilter"}) {
-        $default_user_filter = @{$user_config{"searchfilter"}}[0];
+    if (defined $user_config{"susesearchfilter"}) {
+        $default_user_filter = @{$user_config{"susesearchfilter"}}[0];
     }
-    if (defined $group_config{"searchfilter"}) {
-        $default_group_filter = @{$group_config{"searchfilter"}}[0];
+    if (defined $group_config{"susesearchfilter"}) {
+        $default_group_filter = @{$group_config{"susesearchfilter"}}[0];
     }
 
     $filters_read = 1;
@@ -304,8 +308,8 @@ sub ReadSettings {
     my %tmp_group_template	= %group_template;
 
     # every time take the first value from the list...
-    if (defined $user_config{"defaultbase"}) {
-	$user_base = $user_config{"defaultbase"}[0];
+    if (defined $user_config{"susedefaultbase"}) {
+	$user_base = $user_config{"susedefaultbase"}[0];
     }
     else {
 	$user_base = Ldap->nss_base_passwd ();
@@ -314,8 +318,8 @@ sub ReadSettings {
 	$user_base = Ldap->GetDomain();
     }
 
-    if (defined $group_config{"defaultbase"}) {
-	$group_base = $group_config{"defaultbase"}[0];
+    if (defined $group_config{"susedefaultbase"}) {
+	$group_base = $group_config{"susedefaultbase"}[0];
     }
     else {
 	$group_base = Ldap->nss_base_group ();
@@ -325,13 +329,12 @@ sub ReadSettings {
     }
 
     $member_attribute	= Ldap->member_attribute ();
-
-    if (defined $user_template{"plugin"}) {
-	@default_user_plugins = @{$user_template{"plugin"}};
+    if (defined $user_template{"suseplugin"}) {
+	@default_user_plugins = @{$user_template{"suseplugin"}};
     }
 
-    if (defined $group_template{"plugin"}) {
-	@default_group_plugins = @{$group_template{"plugin"}};
+    if (defined $group_template{"suseplugin"}) {
+	@default_group_plugins = @{$group_template{"suseplugin"}};
     }
 
     if (defined $user_template{"default_values"}) {
@@ -361,38 +364,38 @@ sub ReadSettings {
     if (defined $user_defaults{"loginshell"}) {
 	$useradd_defaults{"shell"}	= $user_defaults{"loginshell"};
     }
-    if (defined $user_config{"skeldir"}) {
-	$useradd_defaults{"skel"}	= $user_config{"skeldir"}[0];
+    if (defined $user_config{"suseskeldir"}) {
+	$useradd_defaults{"skel"}	= $user_config{"suseskeldir"}[0];
     }
     # set default secondary groups
     # Warning: there are DN's, but we want (?) only names...
-    if (defined ($user_template{"secondarygroup"})) {
+    if (defined ($user_template{"susesecondarygroup"})) {
 	my @grouplist	= ();
-	foreach my $dn (@{$user_template{"secondarygroup"}}) {
+	foreach my $dn (@{$user_template{"susesecondarygroup"}}) {
 	    push @grouplist, UsersCache->get_first ($dn);
 	}
 	$useradd_defaults{"groups"}	= join (",", @grouplist);
     };
 
     # password length (there is no check if it is correct for current hash)
-    if (defined ($user_config{"minpasswordlength"})) {
-	$min_pass_length	= $user_config{"minpasswordlength"}[0];
+    if (defined ($user_config{"suseminpasswordlength"})) {
+	$min_pass_length	= $user_config{"suseminpasswordlength"}[0];
     }
-    if (defined ($user_config{"maxpasswordlength"})) {
-	$max_pass_length	= $user_config{"maxpasswordlength"}[0];
+    if (defined ($user_config{"susemaxpasswordlength"})) {
+	$max_pass_length	= $user_config{"susemaxpasswordlength"}[0];
     }
 
     # last used Id
-    if (defined ($user_config{"nextuniqueid"})) {
-	$last_uid = $user_config{"nextuniqueid"}[0];
+    if (defined ($user_config{"susenextuniqueid"})) {
+	$last_uid = $user_config{"susenextuniqueid"}[0];
     }
     else {
 	$last_uid = UsersCache->GetLastUID ("local");
     }
     UsersCache->SetLastUID ($last_uid, "ldap");
 
-    if (defined ($group_config{"nextuniqueid"})) {
-	$last_gid = $group_config{"nextuniqueid"}[0];
+    if (defined ($group_config{"susenextuniqueid"})) {
+	$last_gid = $group_config{"susenextuniqueid"}[0];
     }
     else {
 	$last_gid = UsersCache->GetLastGID ("local");
@@ -400,35 +403,35 @@ sub ReadSettings {
     UsersCache->SetLastGID ($last_gid, "ldap");
 
     # naming attributes
-    if (defined ($user_template{"namingattribute"})) {
-        $user_naming_attr = $user_template{"namingattribute"}[0];
+    if (defined ($user_template{"susenamingattribute"})) {
+        $user_naming_attr = $user_template{"susenamingattribute"}[0];
     }
-    if (defined ($group_template{"namingattribute"})) {
-        $group_naming_attr = $group_template{"namingattribute"}[0];
+    if (defined ($group_template{"susenamingattribute"})) {
+        $group_naming_attr = $group_template{"susenamingattribute"}[0];
     }
 
     # max id
-    if (defined ($user_config{"maxuniqueid"})) {
-	$max_uid	= $user_config{"maxuniqueid"}[0];
+    if (defined ($user_config{"susemaxuniqueid"})) {
+	$max_uid	= $user_config{"susemaxuniqueid"}[0];
     }
-    if (defined ($group_config{"maxuniqueid"})) {
-	$max_gid	= $group_config{"maxuniqueid"}[0];
+    if (defined ($group_config{"susemaxuniqueid"})) {
+	$max_gid	= $group_config{"susemaxuniqueid"}[0];
     }
     UsersCache->SetMaxUID ($max_uid, "ldap");
     UsersCache->SetMaxGID ($max_gid, "ldap");
 
     # min id
-    if (defined ($user_config{"minuniqueid"})) {
-	$min_uid	= $user_config{"minuniqueid"}[0];
+    if (defined ($user_config{"suseminuniqueid"})) {
+	$min_uid	= $user_config{"suseminuniqueid"}[0];
     }
-    if (defined ($group_config{"minuniqueid"})) {
-	$min_gid	= $group_config{"minuniqueid"}[0];
+    if (defined ($group_config{"suseminuniqueid"})) {
+	$min_gid	= $group_config{"suseminuniqueid"}[0];
     }
     UsersCache->SetMinUID ($min_uid, "ldap");
     UsersCache->SetMinGID ($min_gid, "ldap");
 
-    if (defined ($user_config{"passwordhash"})) {
-	$encryption 	= $user_config{"passwordhash"}[0];
+    if (defined ($user_config{"susepasswordhash"})) {
+	$encryption 	= $user_config{"susepasswordhash"}[0];
     }
     else {
 	$encryption	= Ldap->pam_password ();
@@ -803,7 +806,7 @@ sub SubstituteValues {
 	}
 	# substitute only when current value is empty or contains "%"
 	if (!defined $svalue ||
-	    contains (\@internal, $lattr) ||
+	    contains (\@internal, $lattr, 1) ||
 	    ($svalue ne "" && !($svalue =~ m/%/))) {
 	    next;
 	}
@@ -822,7 +825,7 @@ sub SubstituteValues {
 		foreach my $at (sort keys %{$data}) {
 		    my $a = lc ($at);
 		    my $v = $data->{$a};
-		    if (!defined $v || contains (\@internal, $a) || $replaced){
+		    if (!defined $v || contains (\@internal, $a, 1) || $replaced){
 			next;
 		    }
 		    if (ref ($v) eq "HASH") {
@@ -874,7 +877,7 @@ sub ConvertMap {
 
     foreach my $key (keys %{$data}) {
 	my $val	= $data->{$key};
-	if (contains (\@internal, $key)) {
+	if (contains (\@internal, $key, 1)) {
 	    next;
 	}
 	if ($key eq "userpassword") {
@@ -887,7 +890,7 @@ sub ConvertMap {
 	    }
 	}
 	# check if the attributes are allowed by objectclass
-	if (!contains (\@attributes, $key)) {
+	if (!contains (\@attributes, $key, 1)) {
 	    y2warning ("Attribute '$key' is not allowed by schema");
 	    next;
 	}
@@ -1079,13 +1082,14 @@ sub WriteUsers {
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
 	# set nextuniqueid in user config module
-	$user_config{"nextuniqueid"}	= [ $last_id ];
+	$user_config{"susenextuniqueid"}	= [ $last_id ];
 	my %modules	= (
 	    $user_config_dn => {
 		"modified"	=> "edited"
 	    }
 	);
-	$modules{$user_config_dn}{"nextuniqueid"} =$user_config{"nextuniqueid"};
+	$modules{$user_config_dn}{"susenextuniqueid"} =
+	    $user_config{"susenextuniqueid"};
         %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
     if (%ret) {
@@ -1263,13 +1267,14 @@ sub WriteGroups {
     }
     if ($last_id != $last_gid && $group_config_dn ne "")  {
 	# set nextuniqueid in group config module
-	$group_config{"nextuniqueid"}	= [ $last_id ];
+	$group_config{"susenextuniqueid"}	= [ $last_id ];
 	my %modules	= (
 	    $group_config_dn => {
 		"modified"	=> "edited"
 	    }
 	);
-	$modules{$group_config_dn}{"nextuniqueid"} = $group_config{"nextuniqueid"};
+	$modules{$group_config_dn}{"susenextuniqueid"} =
+	    $group_config{"susenextuniqueid"};
         %ret = %{Ldap->WriteToLDAP (\%modules)};
     }
 
