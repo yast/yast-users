@@ -3391,8 +3391,13 @@ sub CommitUser {
         if ($org_type ne $type) {
             delete $shadow{$org_type}{$org_username};
         }
-        if ($uid != $org_uid && defined ($users{$org_type}{$org_uid})) {
-            delete $users{$org_type}{$org_uid};
+        if ($uid != $org_uid) {
+	    if (defined ($users{$org_type}{$org_uid})) {
+		delete $users{$org_type}{$org_uid};
+	    }
+	    if (defined $modified_users{$org_type}{$org_uid}) {
+		delete $modified_users{$org_type}{$org_uid};
+	    }
         }
         if ($username ne $org_username || $org_type ne $type) {
             delete $users_by_name{$org_type}{$org_username};
@@ -3570,6 +3575,9 @@ sub CommitGroup {
 	if ($gid != $org_gid) {
 	    if (defined ($groups{$org_type}{$org_gid})) {
 	        delete $groups{$org_type}{$org_gid};
+	    }
+	    if (defined $modified_groups{$org_type}{$org_gid}) {
+		delete $modified_groups{$org_type}{$org_gid};
 	    }
 	    # type was changed, but groupname didn't
 	    if ($type ne $org_type && $groupname eq $org_groupname) {
