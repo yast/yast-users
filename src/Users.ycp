@@ -1943,12 +1943,17 @@ Do you want to install them now?")))
             if (SCR::Execute(.target.bash, "rpm -q perl-ldap") !=0)
                 return;
         }
+        ldap_not_read = false;
         // run preparation script:
-        RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base));
+        if (!RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base)))
+        {
+            // Popup text (required application):
+            UI::WarningPopup(_("There was some problem with connecting to LDAP server."));
+            return;
+        }
         // read the LDAP users now
         users [`ldap ] = ReadLDAPUsers (tmpdir);
         users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
-        ldap_not_read = false;
         UsersCache::BuildUsers (users [`ldap]:$[], `ldap, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
@@ -1958,12 +1963,12 @@ Do you want to install them now?")))
     }
     if (contains (current_users, `nis) && nis_not_read)
     {
+        nis_not_read = false;
         // first: run preparation script:
         RunPrepare ("nis");
         // read NIS users now
         users [`nis] = ReadNISUsers (tmpdir);
         users_by_name [`nis] = ReadNISUsersByName (tmpdir);
-        nis_not_read = false;
         UsersCache::BuildUsers (users [`nis]:$[], `nis, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
@@ -2075,7 +2080,6 @@ global define boolean RunPrepare(string type) ``{
     }
     else if ( issubstring (type, "ldap") )// ldap has some additional parameters
     {
-        // check for perl-ldap here !!
         ret = SCR::Execute(.target.bash, sformat(
         "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
         tmpdir, encoding, type));

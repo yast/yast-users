@@ -64,26 +64,9 @@ $last_ldap_uid = 1;
 
 $the_answer = 42; # ;-)
 
-open YCP_LDAP, "> $ldap_output";
-open YCP_LDAP_BYNAME, "> $ldap_byname_output";
-open YCP_LDAP_UIDLIST, "> $uidlist_ldap";
-
-open YCP_LDAP_USERNAMES, "> $usernamelist_ldap";
-print YCP_LDAP_USERNAMES "[\n";
-
-open YCP_LDAP_HOMES, "> $homelist_ldap";
-print YCP_LDAP_HOMES "[\n";
-
-open YCP_LDAP_ITEMLIST, "> $ldap_itemlist";
-print YCP_LDAP_ITEMLIST "[\n";
-
-print YCP_LDAP "\$[\n";
-print YCP_LDAP_BYNAME "\$[\n";
-print YCP_LDAP_UIDLIST "[\n";
-
 %corrected_groups = ();
 
-$ldap = Net::LDAP->new($host);
+$ldap = Net::LDAP->new($host) or die;
 
 $ldap->bind ; # database must allow anonymous binds...
 
@@ -105,6 +88,24 @@ $mesg = $ldap->search(
      filter => "objectclass=posixAccount",
      attrs => [ "uid", "uidNumber", "gidNumber", "homeDirectory",
                 "loginShell", "cn" ]);
+
+open YCP_LDAP, "> $ldap_output";
+open YCP_LDAP_BYNAME, "> $ldap_byname_output";
+open YCP_LDAP_UIDLIST, "> $uidlist_ldap";
+
+open YCP_LDAP_USERNAMES, "> $usernamelist_ldap";
+print YCP_LDAP_USERNAMES "[\n";
+
+open YCP_LDAP_HOMES, "> $homelist_ldap";
+print YCP_LDAP_HOMES "[\n";
+
+open YCP_LDAP_ITEMLIST, "> $ldap_itemlist";
+print YCP_LDAP_ITEMLIST "[\n";
+
+print YCP_LDAP "\$[\n";
+print YCP_LDAP_BYNAME "\$[\n";
+print YCP_LDAP_UIDLIST "[\n";
+
  
 foreach $entry ($mesg->all_entries)
 { 
