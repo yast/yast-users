@@ -1,0 +1,151 @@
+{
+    // testedfiles: Users.pm
+
+    include "testsuite.ycp";
+    import "Users";
+    import "UsersCache";
+    import "Mode";
+    import "Directory";
+    import "Progress";
+    import "Report";
+
+    map READ = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid":	"hh",
+			"uidnumber"	: 500,
+			"homedirectory"	: "/home/hh",
+			"sn"		: "HH",
+			"loginshell"	: "/bin/bash",
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local"
+		    ],
+		    "by_name": $[
+			"users":	100,
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    51:	$[
+			"uid"		: "suser",
+			"uidnumber"	: 51
+		    ],
+		    "by_name": $[
+			"root"		: 0,
+			"suser"		: 51
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+			"suser"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1,
+			51		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0
+	]
+    ];
+    map WRITE = $[];
+    map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target" : $[
+	    "bash"		: 0,
+	    "bash_output"	: $[]
+	],
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+
+    TEST(``(Users::SelectUser (500)), [], 0);
+
+    DUMP (sformat ("selected user with id 500:\n %1", Users::GetCurrentUser()));
+
+    DUMP ("==========================================================");
+
+    TEST(``(Users::SelectUser (51)), [], 0);
+
+    DUMP (sformat ("selected user with id 51:\n %1",Users::GetCurrentUser ()) );
+
+    DUMP ("==========================================================");
+
+    TEST(``(Users::SelectUser (5001)), [], 0);
+
+    DUMP (sformat("selected user with id 5001:\n %1",Users::GetCurrentUser ()));
+
+}
