@@ -213,7 +213,7 @@ global define symbol UsersDialog() ``{
 
     Wizard::SetContentsButtons(
                     // dialog caption
-                    _("User and Group administration"),
+                    _("User and Group Administration"),
                     contents,
                     UsersDialogHelp(),
                     Label::BackButton(),
@@ -268,7 +268,7 @@ global define symbol UsersDialog() ``{
 	    {
 		if (!Users::ldap_not_read && !Users::ldap_modified &&
 		    // yes/no popup
-		    Popup::YesNo (_("Re-read all data from LDAP server?")))
+		    Popup::YesNo (_("Reread all data from LDAP server?")))
 		{
 		    Users::ldap_not_read = true;
 		    Users::ldap_filters_read = false;
@@ -333,10 +333,11 @@ global define symbol UsersDialog() ``{
         if ( ret == `next && Mode::cont && !Users::users_modified)
         {
             // yes-no popup contents
-            if ( !Popup::YesNo( _("You have not added any user. This only makes sense
+            if ( !Popup::YesNo( _("You have not added any users. This only makes sense
 in a network environment with an authentication server.
 
-Are you sure?")))
+Are you sure?
+")))
                 ret = `not_next;
         }
 
@@ -396,7 +397,7 @@ global define symbol GroupsDialog() ``{
         lastbutton =  Label::NextButton();
 
     // dialog caption
-    Wizard::SetContentsButtons(_("User and Group administration"),
+    Wizard::SetContentsButtons(_("User and Group Administration"),
                         contents,
                         GroupsDialogHelp(),
                         Label::BackButton(),
@@ -719,8 +720,9 @@ global define boolean LDAPSearchFilterPopup () ``{
 		if (!issubstring (new_user_f, default_user_f))
 		{
 		    // error popup
-		    Popup::Error (_("New user filter doesn't contain the default user filter.
-Please try again."));
+		    Popup::Error (_("The new user filter does not contain the default user filter.
+Try again.
+"));
 		    UI::SetFocus (`id(`userf));
 		    continue;
 		}
@@ -731,8 +733,9 @@ Please try again."));
 		if (!issubstring (new_group_f, default_group_f))
 		{
 		    // error popup
-		    Popup::Error (_("New group filter doesn't contain the default group filter.
-Please try again."));
+		    Popup::Error (_("The new group filter does not contain the default group filter.
+Try again.
+"));
 		    UI::SetFocus (`id(`groupf));
 		    continue;
 		}

@@ -179,7 +179,7 @@ global define string GetErrorMessage (map returned) ``{
     string stdout = returned["stdout"]:"";
     string last =
 // error message 2/2 (= next sentence)
-_("Correct them manualy before running YaST2 users module again.");
+_("Correct them manually before running the YaST2 users module again.");
 
     map read_error = $[
 
@@ -579,8 +579,9 @@ global define string EncryptionDialog() ``{
       help_text = help_text + _("<p>
 Choose a password encryption method for local and system users.
 <b>DES</b>, the Linux default method, works in all network environments, but it
-restricts you to passwords no longer than eight characters.
-</p>");
+restricts passwords to eight characters or less.
+</p>
+");
 
       // Help text for password expert dialog 3/5
       help_text = help_text + _("<p>
@@ -676,7 +677,8 @@ global define boolean CheckPasswordMaxLength (string pw, string type) ``{
     {
 	// error popup. %1 is number (typical 8)
         return (Popup::YesNo (sformat(_("The password is too long for current encryption method.
-Should it be truncated to %1 characters?"), Users::pass_length [type, "max"]:8)));
+Truncate it to %1 characters?
+"), Users::pass_length [type, "max"]:8)));
 
     }
     return true;

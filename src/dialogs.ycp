@@ -134,7 +134,7 @@ global define symbol EditUserDialog(string what) ``{
         detailsmorebox = add(detailsmorebox,
             `PushButton(`id(`additional), `opt(`key_F3),
                 // push button
-                _("Additional Users/&Groups")));
+                _("Additional Users and &Groups")));
         detailsmorebox = `VBox (
             // checkbox label
             `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
@@ -165,7 +165,7 @@ can be changed for non-local users.
             `Password(`id(`pw1), _("&Enter a Password"), ""),
             // second version of user password, retyped to avoid typos
             // please use newline if it is longer than 48 characters
-            `Password(`id(`pw2), _("Re-enter the Password for &Verification"), ""),
+            `Password(`id(`pw2), _("Reenter the Password for &Verification"), ""),
             `VStretch(),
             detailsmorebox ));
 
@@ -307,8 +307,9 @@ Try again.
 	    !contains (user["objectClass"]:[], "shadowAccount"))
 	{
 		// error, do not translate 'shadowAccount'
-		Popup::Error (_("User has not 'shadowAccount' as the Object Class,
-so the password settings cannot be edited."));
+		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
+so the password settings cannot be edited.
+"));
 		continue;
 	}
 
@@ -351,8 +352,8 @@ Please try again.
             {
                 // The username don't have a correct length
                 // error popup, %1 is minimum, %2 maximum
-                Report::Error(sformat(_("The username must be between %1 and %2 characters in length.
-Please try again.
+                Report::Error(sformat(_("The user name must be between %1 and %2 characters in length.
+Try again.
 "), UsersCache::min_length_login, UsersCache::max_length_login));
                 UI::SetFocus(`id(`username));
                 continue;
@@ -367,9 +368,9 @@ Please try again.
                 // The login name contains invalid characters
                 // error popup
                 Report::Error(_("The user login may contain only
-letters, digits, \"-\", \".\" and \"_\"
+letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
-Please try again.
+Try again.
 "));
                 UI::SetFocus(`id(`username));
                 continue;
@@ -383,9 +384,9 @@ Please try again.
                 // Entered login name conflicts with some existing login
                 // error popup
                 Report::Error(_("There is a conflict between the entered
-login name and some existing username.
+login name and an existing user name.
 
-Please try another one.
+Try another one.
 "));
                 UI::SetFocus(`id(`username));
                 continue;
@@ -450,7 +451,8 @@ Please try again."));
                 // question; %1 is error message of cracklib
                 if (out != "" && out != "OK" && !Popup::YesNo (sformat(_("Password is too simple:
 %1
-Are you sure to use it?"), out)))
+Really use it?
+"), out)))
                 {
 		    clear_password_fields ();
                     continue;
@@ -511,8 +513,9 @@ Use it and change its owner?"), home);
                         question = sformat(
 // yes-no popup
 _("The home directory selected (%1)
-already exists and is owned by currently edited user.
-Use this directory?"), home);
+already exists and is owned by the currently edited user.
+Use this directory?
+"), home);
 
 		    // maybe it is home of some user marked to delete...
 		    else if (contains (Users::removed_homes, home))
@@ -520,8 +523,9 @@ Use this directory?"), home);
 // yes-no popup
 _("The home directory selected (%1)
 already exists as a former home directory of
-some user currently marked for deletion.
-Use this directory?"), home);
+a user currently marked for deletion.
+Use this directory?
+"), home);
 
                     if (! Popup::YesNo(question))
                     {
@@ -562,13 +566,14 @@ Press Details and edit the home directory."), home_path));
 You have used uppercase letters in the user login entry.</p>") +
 
                 // The login name contains uppercase 2/3
-_("<p>This could cause the problem with delivering the mail
-to this user, because mail systems generally don't
-support case sensitive names.<br>
-You could solve this problem by editing the alias table.</p>") +
+_("<p>This could cause problems with delivering the mail
+to this user, because mail systems generally do not
+support case-sensitive names.<br>
+You could solve this problem by editing the alias table.</p>
+") +
 
                 // The login name contains uppercase 3/3
-_("<p>Are you sure to use the entered value?</p>");
+_("<p>Really use the entered value?</p>");
 
 		UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
 		    `VBox(
@@ -576,7 +581,7 @@ _("<p>Are you sure to use the entered value?</p>");
 		    `RichText (`id(`rt), text),
 		    `CheckBox (`id(`ch), `opt(`notify),
 		    // checkbox label
-		    _("Don't show this message &again")),
+		    _("Do Not Show This Message &Again")),
 		    `HBox(
 		    `PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
 		    `PushButton (`id(`no),`opt(`key_F9), Label::NoButton())
@@ -934,7 +939,7 @@ Remove the surplus.
 		 nil != findfirstnotof( new_uid , Users::valid_id_chars ))
             {
                 // error popup, %1, %2 are integers
-                string error = sformat(_("The selected User ID is not allowed.
+                string error = sformat(_("The selected user ID is not allowed.
 Select a valid integer between %1 and %2.
 "),  Users::min_uid [user_type]:0, Users::max_uid[user_type]:60000 );
                 Report::Error( error );
@@ -945,7 +950,7 @@ Select a valid integer between %1 and %2.
             {
                 // error popup
                 Report::Error(_("The user ID entered is reserved.
-Select a another user ID.
+Select another user ID.
 "));
                 UI::SetFocus(`id(`uid));
                 continue;
@@ -1034,16 +1039,18 @@ Use it and change its owner?");
                         question =
 // yes-no popup
 _("The home directory selected already exists
-and is owned by currently edited user.
-Use this directory?");
+and is owned by the currently edited user.
+Use this directory?
+");
 		    // maybe it is home of some user marked to delete...
 		    else if (contains (Users::removed_homes, home))
 			question = sformat(
 // yes-no popup
 _("The home directory selected (%1)
 already exists as a former home directory of
-some user currently marked for deletion.
-Use this directory?"), home);
+a user currently marked for deletion.
+Use this directory?
+"), home);
 
                     if (! Popup::YesNo(question))
                     {
@@ -1199,10 +1206,10 @@ global define symbol EditUserPasswordDialog() ``{
                 `VSpacing (1),
                 `HSquash(`VBox(
                     // intfield
-                    `IntField (`id ("warn"), _("Issue &warning how many days before password expiration"), -1, 99999, warn),
+                    `IntField (`id ("warn"), _("Days before Password Expiration to Issue &Warning"), -1, 99999, warn),
                     `VSpacing (0.5),
                     // intfield
-                    `IntField (`id ("inact"), _("How many days &after password expires is the login usable"), -1, 99999, inact),
+                    `IntField (`id ("inact"), _("Days &after Password Expires with Usable Login"), -1, 99999, inact),
                     `VSpacing (0.5),
                     // intfield
                     `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999, max),
@@ -1525,7 +1532,7 @@ global define symbol EditGroupDialog(string what ) ``{
             `Bottom(`Password(`id(`pw1), _("&Enter a Password"), "")),
             // User account information, second version of group password,
             // please use newline if it is longer than 48 characters
-            `Bottom(`Password(`id(`pw2), _("Re-enter the &Password"),  "")),
+            `Bottom(`Password(`id(`pw2), _("Reenter the &Password"),  "")),
             `VSpacing(1)
         )),
         `HSpacing(2),
@@ -1595,8 +1602,8 @@ Please try again.
             {
                 // The groupname has incorrect length
                 // error popup, %1 is minimum, %2 is maximum
-                Report::Error(sformat(_("The groupname must be between %1 and %2 characters in length.
-Please try again.
+                Report::Error(sformat(_("The group name must be between %1 and %2 characters in length.
+Try again.
 "),UsersCache::min_length_groupname, UsersCache::max_length_groupname)) ;
                 UI::SetFocus(`id(`groupname)) ;
                 continue;
@@ -1608,10 +1615,10 @@ Please try again.
             {
                 // The groupname contains restricted characters
                 // error popup
-                Report::Error(_("The groupname may contain only
-letters, digits, \"-\", \".\" and \"_\"
+                Report::Error(_("The group name may contain only
+letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter.
-Please try again.
+Try again.
 ")) ;
                 UI::SetFocus(`id(`groupname)) ;
                 continue;
@@ -1624,8 +1631,8 @@ Please try again.
                 // The entered groupname conflicts with some existing groupname
                 // error popup
                 Popup::Error(_("There is a conflict between the entered
-groupname and some existing groupname.
-Please try another one.
+group name and an existing group name.
+Try another one.
 "));
                 UI::SetFocus(`id(`groupname)) ;
                 continue;
@@ -1693,8 +1700,9 @@ Please try again."));
                      nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
                 {
                 // error popup %i are numbers
-                Report::Error(sformat(_("The selected Group ID is not allowed.
-Please select a valid integer between %1 and %2"), Users::min_gid[group_type]:0,
+                Report::Error(sformat(_("The selected group ID is not allowed.
+Select a valid integer between %1 and %2
+"), Users::min_gid[group_type]:0,
 		    Users::max_gid[group_type]:60000));
                 UI::SetFocus(`id(`gid));
                 continue;
@@ -1703,8 +1711,9 @@ Please select a valid integer between %1 and %2"), Users::min_gid[group_type]:0,
                 if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
                 {
                     // error popup
-                    Report::Error(_("The inputted Group ID is reserved.
-Please select a another Group ID"));
+                    Report::Error(_("The Group ID entered is reserved.
+Select a another Group ID.
+"));
                     UI::SetFocus(`id(`gid));
                     continue;
                 }
@@ -1865,7 +1874,7 @@ global define symbol DefaultsDialog() ``{
         `VBox(
             `VSpacing(0.2),
 		// Frame label
-	        `Frame(_("Set the default values for adding new user"),`HBox(
+	        `Frame(_("Set the Default Values for Adding New User"),`HBox(
 		`HSpacing(2), `VBox(
                 `ComboBox(`id(`defaultgroup), `opt(`hstretch),
                     // combobox label
@@ -2006,7 +2015,7 @@ Try again.
 		    else
 		    {
 			// yes/no popup
-			if (Popup::YesNo (_("Selected directory doesn't exist.
+			if (Popup::YesNo (_("The selected directory does not exist.
 Create it now?
 ")))
 			{
