@@ -30,3 +30,6 @@ Kerberos:
 - edit fields (password only)
 
 Auth dialog during installation
+    - initial version, enables running LDAP and NIS configuration
+- todo: kerberos
+- todo: other values for pam/nsswitch
