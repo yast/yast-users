@@ -975,19 +975,28 @@ define map ImportUser (map user) ``{
     if ((uid <= max_system_uid || username == "nobody") && uid != -1)
         type = `system;
 
-    map user_shadow = user ["password_settings"]:$[];
+    map user_shadow = $[];
+    // if empty, set to default, might be changed later..
+    if ( user ["password_settings"]:$[] == $[] )
+    {
+	user_shadow = GetDefaultShadow();
+    }
+    else
+    {
+	user_shadow = user ["password_settings"]:$[];
+    }
     string pass = user ["user_password"]:"x";
 
-	if (!user["encrypted"]:true && pass != "x" && !Mode::config)
-	{
-		// encrypt password for shadow
-		if (encryptionMethod == "md5")
-			pass = cryptmd5 (pass);
-		else if (encryptionMethod == "blowfish")
-			pass = cryptblowfish (pass);
-		else
-			pass = crypt (pass);
-	}
+    if (!user["encrypted"]:true && pass != "x" && !Mode::config)
+    {
+	// encrypt password for shadow
+	if (encryptionMethod == "md5")
+	    pass = cryptmd5 (pass);
+	else if (encryptionMethod == "blowfish")
+	    pass = cryptblowfish (pass);
+	else
+	    pass = crypt (pass);
+    }
 
     user_shadow = add (user_shadow, "password", pass);
 
@@ -999,41 +1008,43 @@ define map ImportUser (map user) ``{
         {
             type = existing ["type"]:`system; // these should be system
             // change only imported values...
-            if (!haskey (user,"password_settings")) {
+            if (!haskey (user,"password_settings"))
+	    {
                 user_shadow = shadow [type, username]:$[];
                 // real password is in shadow
-				user_shadow["password"] =
+		user_shadow["password"] =
                     ( pass != "x") ? pass : shadow[type,username,"password"]:"x";
-		    }
-			string finalpw = "";
-			if (pass != "x")
-				finalpw = pass;
-			else
-				finalpw = existing["password"]:"x";
+	    }
+	    string finalpw = "";
+	    if (pass != "x")
+		finalpw = pass;
+	    else
+		finalpw = existing["password"]:"x";
 
             if (!haskey (user,"forename") && !haskey (user, "surname"))
                 fullname = existing["fullname"]:"";
+
             map ret = $[
-                "encrypted":    user ["encrypted"]:existing["encrypted"]:true,
-                "password":     finalpw,
-                "username":     username,
-                "forename":     user["forename"]:existing["forename"]:"",
-                "surname":      user["surname"]:existing["surname"]:"",
-                "fullname":     fullname,
-                "shell":        user ["shell"]:existing["shell"]:default_shell,
-                "uid":          existing["uid"]:-1,
-                "gid":          user ["gid"]:existing["gid"]:default_gid,
-                "grouplist":    user ["grouplist"]:"",
-                "home":         user ["home"]:existing["home"]:"",
-                "type":         type,
-                "modified":     `imported,
-                "shadow":       user_shadow
+			"encrypted":    user ["encrypted"]:existing["encrypted"]:true,
+			"password":     finalpw,
+			"username":     username,
+			"forename":     user["forename"]:existing["forename"]:"",
+			"surname":      user["surname"]:existing["surname"]:"",
+			"fullname":     fullname,
+			"shell":        user ["shell"]:existing["shell"]:default_shell,
+			"uid":          existing["uid"]:-1,
+			"gid":          user ["gid"]:existing["gid"]:default_gid,
+			"grouplist":    user ["grouplist"]:"",
+			"home":         user ["home"]:existing["home"]:"",
+			"type":         type,
+			"modified":     `imported,
+			"shadow":       user_shadow
             ];
 
             return ret;
         }
     }
-
+    string home = default_home + username;
     return $[
         "encrypted":        user ["encrypted"]:true,
         //can be distinct (uncrypted) from pass (which is always crypted)
@@ -1046,7 +1057,7 @@ define map ImportUser (map user) ``{
         "uid":              uid,
         "gid":              user ["gid"]:default_gid,
         "grouplist":        user ["grouplist"]:"",
-        "home":             user ["home"]:"",
+        "home":             user ["home"]:home,
         "type":             type,
         "modified":         `imported,
         "shadow":           user_shadow
@@ -1158,6 +1169,7 @@ global define boolean Import (map settings) ``{
             users [`local] = add (users[`local]:$[], uid, user);
             users_by_name [`local] = add (users_by_name[`local]:$[],
                 user["username"]:"", uid);
+	    shadow[`local] = add (shadow[`local]:$[], user["username"]:"", user["shadow"]:$[]);
         });
     }
 
@@ -1293,6 +1305,7 @@ global define void Set (list settings) ``{
  */
 define map ExportUser (map user) ``{
 
+	y2milestone("USER: %1", user);
     symbol type = user["type"]:`local;
     string full = user["fullname"]:"";
     string username = user["username"]:"";
