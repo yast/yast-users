@@ -62,7 +62,7 @@
 	ret = Users::Import(param);
     }
     /* create a  summary*/
-    if (func == "Summary") {
+    else if (func == "Summary") {
 	ret =  Users::Summary();
     }
     else if (func == "Reset") {
