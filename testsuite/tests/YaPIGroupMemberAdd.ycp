@@ -140,6 +140,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output": $[],
 	],
     ];
 
@@ -157,6 +158,7 @@
     map<string,any> user_map  = $[
 	"uid"		: "hh"
     ];
+    E ["target", "bash_output", "stdout"] = "some_group";
 
     DUMP ("================ (add user) =======================");
     TEST (``(YaPI::USERS::GroupMemberAdd (config_map, user_map)), [R,W,E],0);

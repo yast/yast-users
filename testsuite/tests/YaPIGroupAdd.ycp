@@ -121,6 +121,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output": $[],
 	]
     ];
 
@@ -132,6 +133,7 @@
     map<string,any> data_map    = $[
 	"cn"	: "gg",
     ];
+    E ["target", "bash_output", "stdout"] = "gg";
 
     DUMP ("============ add new group 'gg': ==========================");
     TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
@@ -159,6 +161,7 @@
     data_map	= $[
 	"cn"	: "root"
     ];
+    E ["target", "bash_output", "stdout"] = "root";
 
     string error = (string)
 	TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);

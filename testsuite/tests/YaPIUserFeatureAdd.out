@@ -41,5 +41,6 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
+Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["stdout":"hh"]
 Return	
 Dump	============ edit done ========================================

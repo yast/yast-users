@@ -1,0 +1,87 @@
+Dump	==========================================================
+Read	.target.tmpdir "/tmp/YaST"
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 100
+Read	.etc.default.useradd."groups" "audio,video"
+Read	.etc.default.useradd."home" "/home"
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
+Read	.target.string "/etc/shells" 0
+Read	.target.size "0" 0
+Read	.etc.nsswitch_conf.passwd 0
+Read	.target.size "/usr/lib/yp/yphelper" 0
+Read	.etc.nsswitch_conf.passwd 0
+Read	.target.size "/var/lib/YaST2/users.ycp" 0
+Read	.target.ycp "/var/lib/YaST2/users.ycp" 0
+Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
+Read	.passwd.local.users $[500:$["grouplist":$["users":1], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
+Read	.passwd.local.users.by_name $["hh":500]
+Read	.passwd.local.shadow $[]
+Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "type":"local", "userlist":$["hh":1]], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
+Read	.passwd.local.groups.by_name $["users":100]
+Read	.passwd.system.users $[0:$["uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_name $["root":0]
+Read	.passwd.system.shadow $[]
+Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system", "uidnumber":0], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
+Read	.passwd.system.groups.by_name $["root":0]
+Read	.passwd.passwd.pluslines 0
+Read	.passwd.shadow.pluslines 0
+Read	.passwd.group.pluslines 0
+Read	.passwd.local.users.last_uid 500
+Read	.passwd.local.users.homes $["/home/hh":1]
+Read	.passwd.local.users.usernames $["hh":1]
+Read	.passwd.local.users.uids $[500:1]
+Read	.passwd.system.users.last_uid 0
+Read	.passwd.system.users.homes $[]
+Read	.passwd.system.users.usernames $["root":1]
+Read	.passwd.system.users.uids $[0:1]
+Read	.passwd.local.groups.gids $[100:1]
+Read	.passwd.local.groups.groupnames $["users":1]
+Read	.passwd.system.groups.gids $[0:1]
+Read	.passwd.system.groups.groupnames $["root":1]
+Return	
+Dump	---- user 'hh':
+Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"]
+Return	
+Dump	---- user 'hh':
+Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_uidnumber":"500", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["stdout":"hh"]
+Return	
+Dump	---- check user after edit:
+Dump	 
+Dump	---- commit user:
+Return	true
+Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
+Write	.passwd.users $["local":$["501":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "modified":"edited", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Read	.target.stat "/home/hh" $["isdir":true]
+Execute	.target.bash_output "/bin/chown -R 501: /home/hh" $["stdout":"hh"]
+Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
+Write	.passwd.shadow $["local":$["hh":$["userpassword":"x"]], "system":$[]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Return	
+Dump	---- user 500:
+Dump	 $[]
+Dump	---- user 501:
+Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Return	
+Dump	---- user 'hh':
+Dump	 $["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["stdout":"hh"]
+Return	
+Dump	---- check user after edit:
+Dump	 
+Dump	---- commit user:
+Return	true
+Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
+Write	.passwd.users $["":$[], "local":$["501":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "modified":"edited", "org_homedirectory":"/new/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Read	.target.stat "/new/home" $[]
+Execute	.target.mkdir "/new/home" 0
+Read	.target.stat "/new/home/hh" $[]
+Read	.target.stat "/home/hh" $[]
+Read	.target.stat "/new/home/hh" $[]
+Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
+Write	.passwd.shadow $["local":$["hh":$["userpassword":"x"]], "system":$[]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Return	
+Dump	==========================================================

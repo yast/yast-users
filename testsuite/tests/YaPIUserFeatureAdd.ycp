@@ -132,6 +132,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output"	: $[]
 	]
     ];
 
@@ -143,6 +144,7 @@
 	"uid"		: "hh",
 	"plugins"	: [ "UserPluginLDAPAll" ],
     ];
+    E ["target", "bash_output", "stdout"] = "hh";
 
     DUMP ("============ edit user 'hh': ==================================");
     TEST (``(YaPI::USERS::UserFeatureAdd (config_map)), [R,W,E], 0);

@@ -138,6 +138,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output": $[],
 	]
     ];
 
@@ -151,6 +152,7 @@
     map<string,any> data_map    = $[
 	"cn"	: "ggg",
     ];
+    E ["target", "bash_output", "stdout"] = "ggg";
 
     DUMP ("============ edit non-existing group 'gg': =====================");
     TEST (``(YaPI::USERS::GroupModify (config_map, data_map)), [R,W,E], 0);
@@ -170,6 +172,7 @@
     data_map	= $[
 	"gidnumber"	: 777
     ];
+    E ["target", "bash_output", "stdout"] = "users";
 
     DUMP ("============ edit group 'users' (change gid): ==================");
     TEST (``(YaPI::USERS::GroupModify (config_map, data_map)), [R,W,E], 0);
@@ -178,6 +181,7 @@
     data_map	= $[
 	"gidnumber"	: 17
     ];
+    E ["target", "bash_output", "stdout"] = "audio";
 
     DUMP ("============ edit group 'users' (gid conflict): ===============");
     TEST (``(YaPI::USERS::GroupModify (config_map, data_map)), [R,W,E], 0);

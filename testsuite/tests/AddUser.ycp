@@ -165,7 +165,10 @@
 
     DUMP (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
 
+    EXEC ["target", "bash_output", "stdout"] = "aaa";
+
     string error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
     Users::SelectGroup (100);
     DUMP (sformat ("---- current group (before user commit):\n %1",
 	Users::GetCurrentGroup ()));
@@ -187,6 +190,8 @@
 
     DUMP (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
 
+    EXEC ["target", "bash_output", "stdout"] = "hhh";
+
     error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     DUMP (sformat ("---- check user after add:\n %1", error));
@@ -198,6 +203,8 @@
 	[READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    EXEC ["target", "bash_output", "stdout"] = "root";
+
     error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     DUMP (sformat ("---- check user after add:\n %1", error));
@@ -214,6 +221,8 @@
 	[READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    EXEC ["target", "bash_output", "stdout"] = "rrr";
+
     error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     DUMP (sformat ("---- check user after add:\n %1", error));
@@ -230,6 +239,8 @@
 	[READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    EXEC ["target", "bash_output", "stdout"] = "";
+
     error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     DUMP (sformat ("---- check user after add:\n %1", error));
@@ -246,6 +257,8 @@
 	[READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    EXEC ["target", "bash_output", "stdout"] = "iii";
+
     error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     DUMP (sformat ("---- check user after add:\n %1", error));
