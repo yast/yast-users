@@ -306,7 +306,7 @@ Correct the file manually before running the YaST2 users module again."),
 _("There is a strange line in the file %1.
 Perhaps the number of colons is wrong or some line entry is missing.
 Correct the file manually before running the YaST2 users module again."),
-"/etc/shadow", more),
+"/etc/shadow"),
 
 
 ];

@@ -4462,15 +4462,21 @@ sub CrackPassword {
 
 ##------------------------------------
 # Just some simple checks for password contens
-# @param username user name
+# @param username user or group name
 # @param pw password
 # @return error message (password too simple) or empty string (OK)
 sub CheckObscurity {
 
-    my $username	= $_[0];
+    my $name		= $_[0];
     my $pw 		= $_[1];
+    my $current_summary	= UsersCache->GetCurrentSummary ();
 
-    if ($pw =~ m/$username/) {
+    if ($pw =~ m/$name/) {
+	if ($current_summary eq "groups") {
+	    # popup question
+	    return __("You have used the group name as a part of the password.
+This is not good security practice. Are you sure?");
+	}
 	# popup question
         return __("You have used the user name as a part of the password.
 This is not good security practice. Are you sure?");
@@ -4524,7 +4530,7 @@ BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
 sub CheckPasswordUI {
 
     my $self		= shift;
-    my $username	= $_[0];
+    my $name		= $_[0];
     my $pw 		= $_[1];
     my %ui_map		= %{$_[2]};
     my $type		= UsersCache->GetUserType ();
@@ -4548,7 +4554,7 @@ Really use it?"), $error);
     }
     
     if ($obscure_checks && (($ui_map{"obscure"} || 0) != 1)) {
-	my $error = CheckObscurity ($username, $pw);
+	my $error = CheckObscurity ($name, $pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "obscure";
 	    $ret{"question"}	= $error;

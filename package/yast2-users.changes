@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Nov  4 13:43:41 CET 2004 - jsuchome@suse.cz
+
+- lookup's and select's replaced by brackets
+- fixed wrong message during group password checking (#45268)
+- 2.11.1
+
+-------------------------------------------------------------------
 Fri Oct 29 10:07:20 CEST 2004 - jsuchome@suse.cz
 
 - adapted for new Mode:: interface
