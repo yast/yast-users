@@ -1,12 +1,7 @@
 /**
- *
- * $Id$
- *
- * Module:      inst_root.ycp
- *
- * Author:      Klaus Kämpf <kkaempf@suse.de>
- *
- * Purpose:
+ * File:	clients/inst_root.ycp
+ * Package:	Configuration of users and groups
+ * Summary:
  * Displays two input fields to get the root password from the user.
  * Plausibility checks executed:
  *
@@ -17,13 +12,11 @@
  *
  * After all the password is crypted and written into the user_settings.
  *
+ * Authors:     Klaus Kämpf <kkaempf@suse.de>
  *
- * SCR:     Write( .pam.all.password.pam_unix2   )
- *      Write( .pam.all.password.pam_pwcheck )
+ * $Id$
  */
-
 {
-
 textdomain "users";
 
 import "Wizard";

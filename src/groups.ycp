@@ -12,14 +12,10 @@
  *
  * $Id$
  *
- * Main file of yast2-users package. Calls all other modules.
+ * Just a shortcut to invoke groups management
  */
 
 {
-
-/***
- * <h3>Configuration of users and groups</h3>
- */
 
 textdomain "users";
 
