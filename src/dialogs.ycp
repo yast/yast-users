@@ -1613,36 +1613,36 @@ global define symbol DefaultsDialog() ``{
 
     term contents = `HBox(`HSpacing(1.5),
         `VBox(
-            `VSpacing(1),
+            `VSpacing(0.5),
 			// Frame label
 	        `Frame(("Set the default values for adding new user"),`HBox(
               `HSpacing(2), `VBox(
-                `VSpacing(1),
+                `VSpacing(0.5),
                 `ComboBox(`id(`defaultgroup), `opt(`hstretch),
                     // combobox label
                     _("D&efault Group"), available_groups ),
-                `VSpacing(1),
+                `VSpacing(0.5),
                 // text entry
                 `ComboBox(`id(`shell), `opt(`hstretch, `editable),
                     // combobox label
                     _("Default &Login Shell"), available_shells),
-                `VSpacing(1),
+                `VSpacing(0.5),
                 // text entry
                 `TextEntry( `id(`home), _("Path Prefix for &Home Directory"),
                     home),
-                `VSpacing(1),
+                `VSpacing(0.5),
                 // text entry
                 `TextEntry( `id(`skel), _("&Skeleton for Home Directory"),skel),
-                `VSpacing(1),
+                `VSpacing(0.5),
                 // text entry
                 `TextEntry( `id(`exp), _("Default E&xpiration Date"), exp_date),
-                `VSpacing(1),
+                `VSpacing(0.5),
                 // intfield
                 `IntField (`id (`inact), _("Days &after Password Expiration Login Is Usable"), -1, 99999, inact),
-                `VSpacing(1)
+                `VSpacing(0.5)
                 ),
               `HSpacing(2))),
-            `VSpacing(1)),
+            `VSpacing(0.5)),
         `HSpacing(1.5));
 
     Wizard::SetContentsButtons(
@@ -1673,7 +1673,7 @@ global define symbol DefaultsDialog() ``{
     {
         modified = false;
         ret = UI::UserInput();
-        if (ret == `back) break;
+        if (ret == `back || ret == `abort) break;
         if (ret == `next)
         {
             new_home  = UI::QueryWidget(`id(`home),  `Value);
