@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul 24 11:10:03 CEST 2003 - msvec@suse.de
+
+- added yast2-pam to needededforbuild
+- 2.8.8
+
+-------------------------------------------------------------------
 Thu Jul 24 10:33:59 CEST 2003 - arvin@suse.de
 
 - adapted neededforbuild to changes in yast2-security
