@@ -1,0 +1,141 @@
+/**
+ * File:	modules/Kerberos.ycp
+ * Module:	Configuration of Kerberos client
+ * Summary:	client configuration data, I/O functions.
+ * Authors: Jiri Suchomel <jsuchome@suse.cz>
+ */
+
+{
+
+module "Kerberos";
+textdomain "kerberos";
+
+import "Summary";
+
+// if pam_krb5 module is used for login
+global boolean use_pam_krb = false;
+
+// default realm name
+global string default_realm = "";
+
+// adress of KDC (key distribution centre) server for default realm
+global string kdc = "";
+
+
+/**
+ * Get all the Kerberos configuration from a map.
+ * @return	success
+ */
+global define boolean Import (map settings) ``{
+	return true;
+}
+
+/**
+ * Only set variables, without checking anything
+ * @return: void
+ */
+global define void Set(map settings)  ``{
+
+	return;
+}
+
+/**
+ * Dump the Kerberos settings to a map, for autoinstallation use.
+ */
+global define map Export () ``{
+	return $[];
+}
+
+/**
+ * Reads Kerberos settings from the SCR
+ * @return success
+ */
+global define boolean Read () ``{
+
+
+    y2milestone("krb dir: %1", SCR::Dir(.etc.krb5_conf.s));
+
+    y2milestone("libdefaults: %1", SCR::Dir(.etc.krb5_conf.v.libdefaults));
+
+    default_realm = SCR::Read(.etc.krb5_conf.v.libdefaults.default_realm);
+
+    // this is bad !!
+    kdc = SCR::Read(.etc.krb5_conf.v.realms.kdc);
+
+    y2milestone("realms: %1", SCR::Dir(.etc.krb5_conf.s.realms));
+
+    y2milestone("krb read: %1", SCR::Read(.etc.krb5_conf.v.realms.SUSE.CZ));
+
+    /*
+    y2milestone("krb read: %1", SCR::Dir(.etc.krb5_conf.v.realms.SUSE.CZ));
+    y2milestone("krb read: %1", SCR::Dir(.etc.krb5_conf.s.realms.SUSE.CZ));
+    */
+
+    return true;
+}
+
+/**
+ * Saves Kerberos configuration.
+ * (No parameters because it is too short to abort)
+ * @return true on success
+ */
+global define boolean Write (boolean writeonly) ``{
+
+    boolean pam_instaled = false;
+    boolean ret = true;
+
+    if (use_pam_krb)
+    {
+
+
+        if (SCR::Execute(.target.bash, "rpm -q pam_krb5") ==0)
+           pam_installed = true;
+        else
+        {
+            // Popup text (required application):
+            if (UI::YesNoPopup(_("To configure PAM autentification with Kerberos,
+the package \"pam_krb5\" is necessary.
+Install this package now?")))
+            {
+                include "require.ycp"; // is it possible to have it here??
+                pam_installed = DoInstallAndRemove(["pam_krb5"], []);
+            }
+        }
+        if (pam_installed)
+            // write to /etc/pam.d/*
+        else
+            // instalation not succesful ?
+            ret = false;
+    }
+
+    // write to /etc/krb5.conf
+    //SCR::Write(.etc.krb5_conf.v.realms.kdc, kdc);
+    //SCR::Write(.etc.krb5_conf.v.libdefaults.default_realm, default_realm);
+    return ret;
+}
+
+
+/**
+ * Summary()
+ * returns html formated configuration summary
+ * @return string
+ */
+global define Summary () ``{
+
+	string summary = "";
+    /*
+	summary = Summary::AddHeader(summary, _("Kerberos Client enabled"));
+	summary = Summary::AddLine(summary, (start) ? "Yes" : Summary::NotConfigured());
+	summary = Summary::AddHeader(summary, _("Kerberos Domain"));
+	summary = Summary::AddLine(summary, (domain != "") ? domain : Summary::NotConfigured());
+	summary = Summary::AddHeader(summary, _("Kerberos Server"));
+	summary = Summary::AddLine(summary,( server!="") ? server : Summary::NotConfigured());
+	summary = Summary::AddHeader(summary, _("Kerberos Version 2"));
+	summary = Summary::AddLine(summary, (ldap_v2) ? "Yes" : Summary::NotConfigured());
+	summary = Summary::AddHeader(summary, _("Kerberos &TLS/SSL"));
+	summary = Summary::AddLine(summary, (ldap_tls) ? "Yes" : Summary::NotConfigured());
+    */
+	return summary;
+}
+
+}
