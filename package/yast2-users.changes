@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Oct  6 17:41:27 CEST 2003 - jsuchome@suse.cz
+
+- basic command-line interface
+- removed CallModule calls
+- 2.9.1
+
+-------------------------------------------------------------------
 Fri Oct  3 12:59:43 CEST 2003 - jsuchome@suse.cz
 
 - 'fullname' attribute renamed to 'cn' to follow LDAP specifications

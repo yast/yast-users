@@ -19,6 +19,7 @@ import "Progress";
 import "Summary";
 import "Require";
 import "Autologin";
+import "Call";
 
 import "Users";
 import "UsersCache";
@@ -705,6 +706,8 @@ _("<p>Really use the entered value?</p>");
 	    }
 	    Users::user_in_work = eval (user);
 	}
+	// TODO check for `abort here (otherwise, new values are lost when abort
+	// is not confirmed)
     }
     until ( contains ([`next,`abort,`back,`cancel,`additional,`nosave,`ldap],
 	    ret) || details );
@@ -844,17 +847,20 @@ global define symbol EditUserDetailsDialog( ) ``{
 	(user_type != "ldap" || Users::ldap_file_server));
 
     term browse = `VBox(
-	skel_check ? `Empty() : `Label (""),
+//	skel_check ? `Empty() :
+	`Label (""),
 	// button label
         `PushButton( `id(`browse), `opt(`key_F6), _("Bro&wse...")));
 
     term home_w = `VBox(
 	// textentry label
-	`TextEntry( `id(`home), _("&Home Directory"), home ),
+	`TextEntry( `id(`home), _("&Home Directory"), home )
+	/*,
 	(skel_check)
 	    // checkbox label FIXME no checking
 	    ? `Left (`CheckBox (_("&Copy Skeleton"), user_type != "system"))
 	    : `Empty()
+	*/
     );
 
     term contents =
@@ -2358,7 +2364,7 @@ Install it now?
 		}
 		else continue;
 	    }
-            if (WFM::CallModule (call_module[button]:button, []) == `next)
+            if (Call::Function (call_module[button]:button, []) == `next)
 	    {
 		changed = true;
 		reload_config ();
