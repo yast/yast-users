@@ -79,10 +79,10 @@
     include "users/ui.ycp";
     include "users/io.ycp";
 
-
+    usersGroupsShadowReadFromDisk();
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
-    usersGroupsShadowReadFromDisk();
+   
     
     // ===== Open UI ==================================================
     UI(`CreateWizardDialog());

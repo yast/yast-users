@@ -20,7 +20,57 @@
 {
 
   textdomain "users";
+  
+  
+    /**
+     * Return the group password if the group have a password ( use current_gshadow ) 
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersGroupPassword( string groupname ) ``{
+	
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+	if( size (password_group_list ) == 0 ) return ( nil ) ;
+	
+	string password = lookup( select(password_group_list, 0) , "password", "" );
+	if( (password != "*" ) &&
+	    ( password  != "!" ) ) return password;
+	return ( nil ) ;
+    }
 
+    
+    /**
+     * Delete the group with the groupname from current_gshadow
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersDeleteGroupFromShadow( string groupname )``{
+	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname") != groupname ) );
+    }
+
+
+    /**
+     * Return the group with the groupname from current_gshadow
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersReturnGroupFromShadow( string groupname ) ``{
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+	if ( size ( password_group_list ) == 0 ) return $[]; 
+	return select(password_group_list, 0);
+    }
+
+
+    
+   /**
+   * Read the /etc/gshadow file and save it to current_gshadow. 
+   * This is used in users.ycp and in usersSaveDialog()
+   * @param 
+   */
+    global define  usersGroupsShadowReadFromDisk() ``{
+	
+	current_gshadow  = SCR(`Read(.etc.gshadow));
+	current_gshadow  = filter(`k, current_gshadow , ``( size(k) > 1 ) );
+	if( test_mode )    SCR(`Write(.dumpto.tmp.current_gshadow,  current_gshadow  ));
+    }  
+    
   /**
    * This define returns the groups of a user
    * This is used in <TT>usersUserSaveToMap </TT> and <TT>usersGroupSaveToMap</TT> and
@@ -101,26 +151,16 @@
 	    group = add(group, "exist", true);
 	    if( is( i_gid , integer ) )
 	    {
+		//if a password in /etc/gshadow for this group a this password and
+		//the group to current_groups
+		string password =  usersGroupPassword( lookup( group, "groupname" , "" ));
+		if ( password != nil ) group = add( group, "password", password );
+		
 		current_groups = add(current_groups, i_gid , group );
 	    }	
 	});
     }
-
-  
-   /**
-   * Read the /etc/gshadow file and save it to current_gshadow. 
-   * This is used in users.ycp and in usersSaveDialog()
-   * @param 
-   */
-  global define  usersGroupsShadowReadFromDisk() ``{
-	
-	current_gshadow  = SCR(`Read(.etc.gshadow));
-	if( test_mode )    SCR(`Write(.dumpto.tmp.current_gshadow,  current_gshadow  ));
-    }  
-
-  
-
-   
+ 
    /**
     * Return the groupId of a groupname  
     * Not used 
@@ -225,7 +265,17 @@ to new home directory %2")), old_home, home));
 
     }
 
+    /**
+     * Add a string to the map user_settings for removing a home directory 
+     * Used in <TT>usersDeleteUser</TT>
+     * @param string <TT>home</TT>
+     */ 
+    global define usersAddRmDir( string  home )``{
 
+	usersAddTodo( ("/bin/rm " +home + " -r" ),
+		      `rm,
+		      sformat(UI(_("Can't remove home directory %1.")),  home));
+    }
     /**
      * Add a string to the map user_settings to set the home dir access right
      * Used in <TT>usersUserSaveToMap</TT>
@@ -458,44 +508,6 @@ to new home directory %2")), old_home, home));
 	return `next;
     }
 
-
-    /**
-     * Return true if the group have a password
-     * @param string  <TT>groupname</TT>
-     */
-    global define usersHaveGroupPassword( string groupname ) ``{
-
-	
-	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
-
-	if( size (password_group_list ) == 0 ) return false;
-	
-	if( (lookup( select(password_group_list, 0) , "password", "" ) != "*" ) &&
-	    (lookup( select(password_group_list, 0) , "password", "" ) != "!" ) ) return true;
-	return false;
-    }
-
-
-    
-    /**
-     * Delete the group with the groupname from current_gshadow
-     * @param string  <TT>groupname</TT>
-     */
-    global define usersDeleteGroupFromShadow( string groupname )``{
-	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname") != groupname ) );
-    }
-
-
-    /**
-     * Return the group with the groupname from current_gshadow
-     * @param string  <TT>groupname</TT>
-     */
-    global define usersReturnGroupFromShadow( string groupname ) ``{
-	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
-	if ( size ( password_group_list ) == 0 ) return $[]; 
-	return select(password_group_list, 0);
-    }
-
     
      /**
      * Add a string to the map user_settings to save a new or modified group 
@@ -507,7 +519,7 @@ to new home directory %2")), old_home, home));
 	   //load the manipulated group from group_in_work
 	   symbol what             = lookup( group_in_work , "what" ,     "");
 	   string new_groupname    = lookup( group_in_work, "groupname",  "");
-	   string password         = lookup( group_in_work, "password",   "");
+	   string password         = lookup( group_in_work, "password",   "x");
 	   string userlist         = lookup( group_in_work, "userlist",   "");
 	   integer gid             = lookup( group_in_work, "gid",        "");
 	   integer old_gid         = lookup( group_in_work, "old_gid",    "");
@@ -613,12 +625,22 @@ to new home directory %2")), old_home, home));
 	       
 	      
 	   }
-	
+	   
+	   // bild todo aktion for gshadow
+	   if( password != "x" )
+	   {	
+	       usersAddSetGroupPassword( new_groupname, password );
+
+	       // if the user delet a password or a new group was added
+	       // modify password for entry in current_groups
+	       if ( password == "*" ) password = "x";
+	   }
+	   
 	   map current_group = $[
 				 "exist"         : do_exist,
 				 "gid"           : gid,
 				 "groupname"     : new_groupname,
-				 "password"      : "x", 
+				 "password"      : password, 
 				 "userlist"      : new_userlist
 	   ];
 
@@ -646,6 +668,7 @@ to new home directory %2")), old_home, home));
 
 
            // update current_gshadow
+	   /*
 	   map shadow_entry =  $[
 				 "disposer"  : "root",
 				 "groupname" : new_groupname,
@@ -660,13 +683,13 @@ to new home directory %2")), old_home, home));
 	       
 	   }
 	   current_gshadow = add( current_gshadow , shadow_entry );  
-
+	   */
 	   
 	   // bild todo aktion
 	   //if( (what == `edit_group && password != "*") ||
 	   //    (what == `add_group) )
 	   // {
-	   usersAddSetGroupPassword( new_groupname, password );
+	 
 	   // }
 
 	   //if test_mode
@@ -813,6 +836,10 @@ to new home directory %2")), old_home, home));
     global define usersFreeGid(map current_groups) ``{
 
 	integer gid  = max_system_gid + 1;
+	// can't delet gid 101 with groupdel ????
+	// ERROR
+	if ( gid == 101 ) gid = 102;
+
 	repeat {
 	    if ( haskey( current_groups, gid ) )
 	    {
@@ -821,10 +848,12 @@ to new home directory %2")), old_home, home));
 		else
 		{
 		    gid = gid + 1;
+		    if ( gid == 101 ) gid = 102;
 		}
 	    }
 	    else return gid;
 	} until ( gid == max_gid );
+	return gid;
     }
 
 

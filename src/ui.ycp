@@ -283,14 +283,14 @@ Please try again.")));
 			    UI(`SetFocus(`id(`home)));
 			    continue;
 			}
-			if ( contains( usersUsersRead(`homelist), new_home ) )
+			if ( contains( usersUsersRead(`homelist), new_home ) || ( Dir( new_home ) != nil) )
 			{
 			    UI(`ErrorPopup(_("The home directory is used from another user.
 Please try again.")));
 			    UI(`SetFocus(`id(`home)));
 			    continue;
 			    
-			}	
+			}
 		    }
 
 		    // chech the grouplist
@@ -708,8 +708,18 @@ Please try again.")));
 			password = crypt (pw1);
 		    }
 
-		    
-		    if ( what == `add_user && home == "/home/" ) home = home + username;
+		    // bild default home dir
+		    if ( what == `add_user && home == "/home/" )
+		    {
+			home = home + username;
+			if(  Dir( home ) != nil )
+			{
+			    UI(`ErrorPopup(_("The default home directory is used from another user.
+Please press button Details and edit home directory.")));
+			    continue;
+			}
+		    }
+			  
 
 		    user_in_work = $[
 				     "what"        :  what ,
@@ -760,22 +770,28 @@ Please try again.")));
 	});
 	current_users = new_current_users;
 
-	
-	//build a shell delete command and save it to user_settings
-	if( lookup( user_in_work, "exist", false ) )
+	if ( fileexist("/usr/sbin/userdel.local") )
 	{
-	    if ( fileexist("/usr/sbin/userdel.local") )
-	    {
-		usersAddTodo(("/usr/sbin/userdel.local " + username),
-			     `del_user_local,
-			     UI(_("Can't execute /usr/sbin/useradd.local")));
-	    }
-	    
-	    usersAddTodo("/usr/sbin/userdel " + username ,
-			 `del_user,
-			 sformat(UI(_("Can't delete the user %1")), username) );
-	    usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
+	    usersAddTodo(("/usr/sbin/userdel.local " + username),
+			 `del_user_local,
+			 UI(_("Can't execute /usr/sbin/useradd.local")));
 	}
+	    
+	usersAddTodo("/usr/sbin/userdel " + username ,
+		     `del_user,
+		     sformat(UI(_("Can't delete the user %1")), username) );
+	usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
+
+	
+        //build a shell delete command and save it to user_settings
+	if(! lookup( user_in_work, "exist", true ) )
+	{
+	    UI(`MessagePopup( lookup( user_in_work , "home", "" )));
+	    if( lookup( user_in_work , "home", "" ) != "") 
+		usersAddRmDir( lookup( user_in_work , "home", "" ));
+	}
+	   
+	
 		    
 		    
 	//delete the user from the map current_groups (userlist)
@@ -877,7 +893,7 @@ Please try again.")));
     
 	// load group saved in group_in_work
 	string  groupname     = lookup( group_in_work, "groupname", "");
-	string  password      = "*";
+	string  password      = lookup( group_in_work, "password" , "x");
 	integer gid           = lookup( group_in_work, "gid", max_gid );
 	string  userlist      = findUsersBelongGroup(gid);
 	if( gid == max_gid )   gid = usersFreeGid(current_groups);
@@ -930,7 +946,7 @@ Please try again.")));
 
 	if( what == `edit_group  )
 	{
-	    if( usersHaveGroupPassword(groupname ) )
+	    if( password != "x"  )
 	    {
 		UI(`ChangeWidget(`id(`pw1), `Value, default_pw));
 		UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
@@ -1019,7 +1035,7 @@ Please try another one.
 			UI(`ErrorPopup(_("The first and the second version
 of the password are different.
 Please try again.")));
-			password = "*";
+			password = "x";
 			// Invalidate any old password
 			
 			// clear password inputfields in this case
@@ -1042,7 +1058,7 @@ Please try again.")));
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
 			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
-			    password = "*";
+			    password = "x";
 			    
 			    // clear password inputfields in this case
 			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
@@ -1062,7 +1078,7 @@ Please try again.")));
 				UI(`ErrorPopup(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again.")));
-				password = "*";
+				password = "x";
 				
 				
 				// clear password inputfields in this case
@@ -1076,14 +1092,21 @@ Please try again.")));
 			password = crypt (pw1);
 		    }
 
+		    // need for update /etc/gshadow
 		    if( pw1 == "" ) password = "*";
 		   
 		    
 		    if ( userlist != new_userlist )
 		    {
+			// remove last ,
+			list new_users = splitstring(new_userlist , "," );
+			new_users   = filter(`k, new_users , ``( k != ""));
+			new_userlist  = mergestring( new_users ,",");
+			
+			
 			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as valid_userlist_chars
 			{
-			    list new_users = splitstring(new_userlist , "," );
+			   
 			    boolean all_found = true;
 			    
 			    foreach( `new_user, new_users , ``{
@@ -1250,15 +1273,13 @@ Please try again.")));
 
 
 	    //delete the group in current_gshadow
-	    usersDeleteGroupFromShadow( lookup( group_in_work, "groupname", ""));
+	    //usersDeleteGroupFromShadow( lookup( group_in_work, "groupname", ""));
 	    
 	    //add a shell delete command to user_settings
-	    if( lookup( group_in_work , "exist", false ) )
-	    {
-		usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
-			     `del_group,
-			     sformat(UI(_("Can't delete group %1 ")),lookup( group_in_work, "groupname", "")));
-	    }
+	    usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
+			 `del_group,
+			 sformat(UI(_("Can't delete group %1 ")),lookup( group_in_work, "groupname", "")));
+	  
 	}
 	else
 	{	
