@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Feb 25 12:33:00 CET 2003 - jsuchome@suse.de
+
+- fixes of _auto client (nashif@suse.de):
+- fix: "user password lost after details menu" (#24231)
+- 2.7.17
+
+-------------------------------------------------------------------
 Tue Feb 25 11:36:02 CET 2003 - arvin@suse.de
 
 - save use of notify events in inst_auth.ycp
