@@ -179,6 +179,7 @@ my %ldap2yast_group_attrs	= ();
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Directory");
+YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Popup");
@@ -1153,7 +1154,7 @@ sub Read {
 		# progress stage label
 		_("Read the configuration type"),
 		# progress stage label
-		_("Read the custom settings"),
+		_("Read the user custom settings"),
 		# progress stage label
 		_("Read users and groups"),
 		# progress stage label
@@ -1167,9 +1168,9 @@ sub Read {
 		# progress step label
 		 _("Reading the configuration type..."),
 		# progress step label
-		 _("Reading the custom settings..."),
+		 _("Reading custom settings..."),
 		# progress step label
-		 _("Reading users and group..."),
+		 _("Reading users and groups..."),
 		# progress step label
 		 _("Building the cache structures..."),
 		# final progress step label
@@ -1384,7 +1385,10 @@ sub DeleteUser {
 
     if (%user_in_work) {
 	$user_in_work{"what"}		= "delete_user";
-	$user_in_work{"delete_home"}	= $_[0];
+y2internal ("param: ", $_[0]);#FIXME FIXME
+	if (YaST::YCP::Boolean ($_[0])) {
+	    $user_in_work{"delete_home"}	= YaST::YCP::Boolean ($_[0]);
+	}
 	return 1;
     }
     return 0;
@@ -1601,9 +1605,10 @@ sub AddUser {
     my $type;
 
     if (!%data) {
-	ResetCurrentUser ();
 	# adding totaly new entry - e.g. from the summary table
 	# Must be called, or some old entries in user_in_work could be used!
+	ResetCurrentUser ();
+	# this is necessary to know when to check uniquity of username etc.
     }
 
     if (defined $data{"type"}) {
@@ -1837,7 +1842,6 @@ sub UserReallyModified {
 	    next;
 	}
 	if (!defined ($user{"org_user"}{$key})) {
-#	    y2internal ("val: -$value-");
 	    if ($value ne "") {
 		$ret = 1;
 	    }
@@ -1865,7 +1869,6 @@ sub CommitUser {
         y2error ("commit is forbidden: ", $user_in_work{"check_error"});
 	return 0;
     }
-DebugMap (\%user_in_work);
 
     # create local copy of current user
     my %user	= %user_in_work;
@@ -2033,10 +2036,14 @@ DebugMap (\%user_in_work);
 	}
 
 	# store deleted directories... someone could want to use them
-	if (defined $user{"delete_home"} && $type ne "ldap") {
+y2internal ("delete: ", $user{"delete_home"});
+y2internal ("delete: ", $user{"delete_home"} || 0);
+# FIXME boolean value cannot be tested???
+# - same for create_home etc.
+	if ($type ne "ldap" && ($user{"delete_home"} || 0)) {
 	    my $h	= $home;
-	    if (defined $user{"org_homeDirectory"}) {
-	        $h	= $user{"org_homeDirectory"};
+	    if (defined $user{"org_user"}{"homeDirectory"}) {
+	        $h	= $user{"org_user"}{"homeDirectory"};
 	    }
 	    $removed_homes{$h}	= 1;
 	}
@@ -2068,11 +2075,13 @@ DebugMap (\%user_in_work);
             delete $users_by_name{$org_type}{$org_username};
         }
 
+        $user{"org_uidNumber"}			= $uid;
         $user{"org_username"}			= $username;
+        $user{"org_homeDirectory"}		= $home;
         $users{$type}{$uid}			= \%user;
         $users_by_name{$type}{$username}	= $uid;
 
-	if (($user{"modified"} || "") ne "") {
+	if ((($user{"modified"} || "") ne "") && $what_user ne "group_change") {
 	    $modified_users{$type}{$uid}	= \%user;
 	}
     }
@@ -2446,6 +2455,8 @@ sub Write {
 		my $gid 	= $user{"gidNumber"};
        
 		if ($user_mod eq "imported" || $user_mod eq "added") {
+#FIXME "create_home" not correctly checked...
+y2warning ("create: ", $user{"create_home"} || 0);
 		    if ((($user{"create_home"} || 0) || $user_mod eq "imported")
 			&& !%{SCR::Read (".target.stat", $home)})
 		    {
@@ -2458,7 +2469,8 @@ sub Write {
 			SCR::Execute (".target.bash", $command));
 		}
 		elsif ($user_mod eq "edited") {
-		    my $org_home = $user{"org_homeDirectory"} || $home;
+#		    my $org_home = $user{"org_homeDirectory"} || $home;
+		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
 		    if ($home ne $org_home) {
 			# move the home directory
 			if ($user{"create_home"} || 0) {
@@ -2581,12 +2593,15 @@ sub CheckUID {
 	return _("There is no free UID for this type of user.");
     }
 
-    if ($uid == $user_in_work{"uidNumber"}) {
-	return "";
-    }
-    if (UsersCache::UIDExists ($uid)) {
-	return _("The user ID entered is already in use.
+    if (("add_user" eq ($user_in_work{"what"} || "")) 	||
+	($uid != ($user_in_work{"uidNumber"} || 0))	||
+	(defined $user_in_work{"org_uidNumber"} && 
+		 $user_in_work{"org_uidNumber"} != $uid)) {
+
+	if (UsersCache::UIDExists ($uid)) {
+	    return _("The user ID entered is already in use.
 Select another user ID.");
+	}
     }
 
     if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
@@ -2680,11 +2695,16 @@ and must begin with a letter or \"_\".
 Try again.");
     }
 
-    if ($username ne ($user_in_work{"username"} || "") &&
-	UsersCache::UsernameExists ($username)) {
-	return _("There is a conflict between the entered
+    if (("add_user" eq ($user_in_work{"what"} || "")) ||
+	($username ne ($user_in_work{"username"} || "")) ||
+	(defined $user_in_work{"org_username"} && 
+		 $user_in_work{"org_username"} ne $username)) {
+
+	if (UsersCache::UsernameExists ($username)) {
+	    return _("There is a conflict between the entered
 user name and an existing user name.
 Try another one.");
+	}
     }
     return "";
     
@@ -2930,9 +2950,7 @@ Try again.");
     }
 
     # check if directory is writable
-#    if (!Mode::config () && ($type ne "ldap" || $ldap_file_server)) 
-# TODO should that ldap-check be here or upper (in the function CheckHome is called from)?
-    if (1) {
+    if (!Mode::config () && ($type ne "ldap" || Ldap::file_server () )) {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = IsDirWritable ($home_path);
         if ($home_path ne "") {
@@ -2941,12 +2959,21 @@ Choose another path for the home directory."), $home_path);
 	}
     }
 
-#    if ($home ne ($user_in_work{"homeDirectory"} || "") &&
-    if (UsersCache::HomeExists ($home)) {
-        return _("The home directory is used from another user.
-Please try again.");
+    if ($home eq GetDefaultHome ($type)) {
+	return "";
     }
 
+    if (("add_user" eq ($user_in_work{"what"} || ""))		||
+	($home ne ($user_in_work{"homeDirectory"} || "")) 	||
+	(defined $user_in_work{"org_homeDirectory"} && 
+		 $user_in_work{"org_homeDirectory"} ne $home)) {
+
+	if (UsersCache::HomeExists ($home)) {
+	    # error message
+	    return _("The home directory is used from another user.
+Please try again.");
+	}
+    }
     return "";
 }
 
@@ -3060,13 +3087,15 @@ sub CheckGID {
 	return _("There is no free GID for this type of group.");
     }
 
-    if ($gid == $group_in_work{"gidNumber"}) {
-	return "";
-    }
+    if (("add_group" eq ($group_in_work{"what"} || "")) ||
+	($gid != ($group_in_work{"gidNumber"} || 0))	||
+	(defined $group_in_work{"org_gidNumber"} && 
+		 $group_in_work{"org_gidNumber"} != $gid)) {
 
-    if (UsersCache::GIDExists ($gid)) {
-	return _("The group ID entered is already in use.
+	if (UsersCache::GIDExists ($gid)) {
+	    return _("The group ID entered is already in use.
 Select another group ID.");
+	}
     }
 
     if (($type ne "system" && $type ne "local" && ($gid < $min || $gid > $max))
@@ -3159,11 +3188,16 @@ and must begin with a letter.
 Try again.");
     }
     
-    if ($groupname ne ($group_in_work{"groupname"} || "") &&
-	UsersCache::GroupnameExists ($groupname)) {
-	return _("There is a conflict between the entered
+    if (("add_group" eq ($group_in_work{"what"} || "")) 	||
+	($groupname ne ($group_in_work{"groupname"} || "")) 	||
+	(defined $group_in_work{"org_groupname"} && 
+		 $group_in_work{"org_groupname"} ne $groupname)) {
+
+	if (UsersCache::GroupnameExists ($groupname)) {
+	    return _("There is a conflict between the entered
 group name and an existing group name.
 Try another one.");
+	}
     }
     return "";
 }

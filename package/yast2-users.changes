@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 13 15:00:26 CET 2004 - jsuchome@suse.cz
+
+- enhanced cmd-line interface support
+- fixes: multiple changes of uid,username,home,gid,groupname
+
+-------------------------------------------------------------------
 Wed Feb 11 17:04:51 CET 2004 - jsuchome@suse.cz
 
 - agent-passwd: correct default values, store password from shadow

@@ -16,9 +16,6 @@ use POSIX ();     # Needed for setlocale()
 POSIX::setlocale(LC_MESSAGES, "");
 textdomain("users");
 
-use Data::Dumper; # -- for debugging the variables
-#print Dumper (\%max_uid), "\n";
-
 our %TYPEINFO;
 
 my $user_type		= "local";
@@ -489,7 +486,6 @@ sub GetUserItems {
     foreach my $itemref (@current_user_items) {
 	foreach my $id (sort keys %{$itemref}) {
 	    push @items, $itemref->{$id};
-# print Dumper ($itemref->{$id});
 	}
     }
     return @items;
@@ -1052,6 +1048,7 @@ sub BuildAdditional {
 
     my $group		= $_[0];
     my @additional 	= ();
+    my %additional	= ();
     my $true		= YaST::YCP::Boolean (1);
     my $false		= YaST::YCP::Boolean (0);
     
@@ -1059,7 +1056,7 @@ sub BuildAdditional {
     # check for userlist before going through %usernames
     foreach my $user (keys %{$group->{"userlist"}}) {
 	my $id = YaST::YCP::Term ("id", $user);
-	push @additional, YaST::YCP::Term ("item", $id, $user, $true);
+	$additional{$user}	= YaST::YCP::Term ("item", $id, $user, $true);
     }
 
     foreach my $type (keys %usernames) {
@@ -1071,10 +1068,10 @@ sub BuildAdditional {
 	    
 		my $id = YaST::YCP::Term ("id", $dn);
 		if (defined $group->{"uniqueMember"}{$dn}) {
-		    push @additional, YaST::YCP::Term ("item", $id, $dn, $true);
+		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn, $true);
 		}
 		elsif (!defined $group->{"more_users"}{$dn}) {
-		    push @additional, YaST::YCP::Term ("item", $id, $dn,$false);
+		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn,$false);
 		}
 	    }
 	    next;
@@ -1084,11 +1081,15 @@ sub BuildAdditional {
 	    my $id = YaST::YCP::Term ("id", $user);
 	    if (!defined $group->{"userlist"}{$user} &&
 		!defined $group->{"more_users"}{$user}) {
-		push @additional, YaST::YCP::Term ("item", $id, $user, $false);
+		$additional{$user} = YaST::YCP::Term("item", $id, $user,$false);
 	    }
 	}
     }
-    return sort @additional;
+    # to return list of terms sorted, use the hash with sortable keys:
+    foreach my $key (sort keys %additional) {
+	push @additional, $additional{$key};
+    }
+    return @additional;
 }
 
 # EOF
