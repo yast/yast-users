@@ -205,16 +205,14 @@ You can configure these settings by running appropriate modules. Select the modu
     // dialog title
     string title = _("Expert Login Options");
 
-    if (!Mode::cont)
-    {
-        Wizard::CreateDialog();
-        Wizard::SetContentsButtons (title, contents, help_text,
-            UI::BackButtonLabel(), UI::FinishButtonLabel());
-        Wizard::ReplaceAbortButton(`Empty ());
-    }
-    else
-// Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
-        Wizard::SetContents (title, contents, help_text, true, true);
+    string next = UI::FinishButtonLabel();
+    if (Mode::cont)
+        next = UI::NextButtonLabel();
+
+    Wizard::CreateDialog();
+    Wizard::SetContentsButtons (title, contents, help_text,
+        UI::BackButtonLabel(), next);
+    Wizard::ReplaceAbortButton(`Empty ());
 
     reload_config();
 
@@ -300,8 +298,7 @@ Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
         }
     }
 
-    if (!Mode::cont)
-        UI::CloseDialog();
+    UI::CloseDialog();
 
     return button;
 }

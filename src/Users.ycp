@@ -53,7 +53,7 @@ map useradd_defaults  = $[
 global string default_shell = "/bin/bash";
 global string default_skel = "/etc/skel";
 global string default_home = "/home/";
-global integer default_gid = 500; // TODO change to 500 with new version
+global integer default_gid = 100; // TODO change to 500 with new version
 global string default_groupname = "users";
 global string default_inactive = "-1";
 global string default_expire = "";
@@ -87,7 +87,7 @@ global string invalid_gecos_chars = ",:";
 global integer max_uid	  = 60000;
 global integer max_gid	  = 60000;
 global integer max_system_uid = 500 - 1;
-global integer max_system_gid = 500 - 1; // TODO change to 500 with new version
+global integer max_system_gid = 100 - 1; // TODO change to 500 with new version
 global integer max_length_uid = 5;// size(sformat("%1", max_uid));
 global integer max_length_gid = 5;
 global integer max_length_pas = 8;
@@ -206,6 +206,8 @@ global boolean use_next_time = true; // what is it for ??
 
 // if anything was done
 global boolean modified = false;
+global boolean customs_modified = false;
+global boolean defaults_modified = false;
 global boolean ldap_modified = false;
 
 // values to MenuItem in Summary dialog
@@ -475,8 +477,7 @@ global define symbol Read (block abort, boolean useUI) ``{
 		return `abort;
 	    }
 	}
-    user_custom_sets = ReadUserCustomSets();
-    group_custom_sets = ReadGroupCustomSets();
+    ReadCustomSets();
 
     // There is no progress for this !!!
     ReadAllShells();
@@ -557,7 +558,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    BackupConfFiles(base_dir);
+    if (modified) // TODO better structure of modfied
+        BackupConfFiles(base_dir); // should be removed at the end?
 
 	if ( useUI )
 	{
@@ -597,13 +599,17 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    // add the edited or new users to modified_users
-    modified_users [`passwd] = WritePasswd (write_dir, users [`system]:$[],
-        users[`local]:$[], plus_passwd);
+
+    if (modified)
+    {
+        // add the edited or new users to modified_users
+        modified_users [`passwd] = WritePasswd (write_dir, users [`system]:$[],
+            users[`local]:$[], plus_passwd);
+    }
 
     if (modified_users [`passwd]:$[] == nil)
     {
-        if ( useUI)
+        if (useUI)
             // error popup
 	        Report::Error (_("Cannot write passwd file."));
         else
@@ -743,23 +749,28 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
 
-    // TODO send whole structure and decide in the write function
-    if (! WriteShadow(write_dir, shadow[`system]:$[], shadow[`local]:$[], plus_shadow))
+    if (modified)
     {
-        if (useUI)
-            // error popup
-	        Report::Error (_("Cannot write shadow file."));
-        else
-            y2error ("Cannot write shadow file.");
-    }
+        // TODO send whole structure and decide in the write function
+        if (! WriteShadow(write_dir, shadow[`system]:$[], shadow[`local]:$[],
+                plus_shadow))
+        {
+            if (useUI)
+                // error popup
+	            Report::Error (_("Cannot write shadow file."));
+            else
+                y2error ("Cannot write shadow file.");
+        }
 
-    if (! WriteGshadow(write_dir, gshadow[`system]:$[], gshadow[`local]:[], plus_gshadow))
-    {
-        if (useUI)
-            // error popup
-	        Report::Error (_("Cannot write gshadow file."));
-        else
-            y2error ("Cannot write gshadow file.");
+        if (! WriteGshadow(write_dir, gshadow[`system]:$[], gshadow[`local]:[],
+                plus_gshadow))
+        {
+            if (useUI)
+                // error popup
+	            Report::Error (_("Cannot write gshadow file."));
+            else
+                y2error ("Cannot write gshadow file.");
+        }
     }
 
     // group
@@ -769,18 +780,21 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
-         plus_group))
+    if (modified)
     {
-        if (useUI)
-            // error popup
-	        Report::Error (_("Cannot write group file."));
-        else
-            y2error("Cannot write group file.");
+        if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
+             plus_group))
+        {
+            if (useUI)
+                // error popup
+                Report::Error (_("Cannot write group file."));
+            else
+                y2error("Cannot write group file.");
+        }
     }
 
     // call make on NIS server
-    if (is_nis_master)
+    if (modified && is_nis_master)
     {
         map ret = SCR::Execute(.target.bash_output, "/usr/bin/make -C /var/yp");
         if (ret["exit"]:1 != 0)
@@ -800,7 +814,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    WriteUserCustomSets();
+    if (customs_modified)
+        WriteCustomSets();
 
     // useradd defaults
 	if ( useUI )
@@ -809,7 +824,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    WriteLoginDefaults();
+    if (defaults_modified)
+        WriteLoginDefaults();
 
     // mail forward from root
     if (Mode::cont && root_mail != "")
@@ -818,9 +834,6 @@ global define symbol Write (block abort, boolean useUI)``{
             // error popup
             Report::Error(_("There was an error while setting forwarding for root's mail."));
     }
-
-    // call only after `back or `abort
-    //    RemoveTmp (tmpdir);
 
 	// increase the progress to "finish"
 	if( useUI ) Progress::NextStage ();
@@ -863,7 +876,7 @@ global define string Summary() ``{
  */
 define map ImportUser (map user) ``{
 
-    string forename = user["furename"]:"";
+    string forename = user["forename"]:"";
     string surname = user["surname"]:"";
     string fullname = "";
 
@@ -907,6 +920,7 @@ define map ImportUser (map user) ``{
         "uid":              user ["uid"]:-1,
         "gid":              user ["gid"]:default_gid,
         "grouplist":        user ["grouplist"]:"",
+        "home":             user ["home"]:"",
         "type":             type,
         "modified":         `imported,
         "shadow":           user_shadow
@@ -976,7 +990,6 @@ global define boolean Import (map settings) ``{
         symbol type = user ["type"]:`local;
         users [type] = add (users[type]:$[], user["uid"]:-1, user);
         // TODO: what if uid was changed??
-        // TODO: set modified flag for imported
 
         // update shadow
         map users_shadow = user ["shadow"]:$[];
@@ -1135,6 +1148,7 @@ define map ExportUser (map user) ``{
         "uid":              user ["uid"]:-1,
         "gid":              user ["gid"]:default_gid,
         "grouplist":        user ["grouplist"]:"",
+        "home":             user ["home"]:"",
         "password_settings":user_shadow
     ];
 
@@ -1302,7 +1316,7 @@ global define boolean Commit (string object, boolean cache)``{
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
-        if (type == `ldap)
+        if (type == `ldap && what_user != `group_change)
             ldap_modified = true;
 
         // the action
@@ -2003,20 +2017,31 @@ global define list GetAllShells(symbol todo ) ``{
 
 
 
-global define list ReadUserCustomSets() ``{
+global define void ReadCustomSets() ``{
 
-    return [`local];
+    string file = Directory::vardir + "/users_customs.ycp";
+    SCR::Execute (.target.bash, sformat ("/bin/touch %1", file));
+    map customs = SCR::Read (.target.ycp, file);
+
+    user_custom_sets = customs ["users"]:[];
+    if (user_custom_sets == [])
+        user_custom_sets = [`local];
+
+    group_custom_sets = customs ["groups"]:[];
+    if (group_custom_sets == [])
+        group_custom_sets = [`local];
 }
 
-global define boolean WriteUserCustomSets() ``{
+global define boolean WriteCustomSets() ``{
 
-    return true;
+    map customs = $[
+        "users": user_custom_sets,
+        "groups": group_custom_sets
+    ];
+    return
+    SCR::Write (.target.ycp, Directory::vardir + "/users_customs.ycp", customs);
 }
 
-global define list ReadGroupCustomSets() ``{
-
-    return [`local];
-}
 
 /**
  * Helper for building items of MenuButton in users/groups summary dialog
@@ -2066,7 +2091,11 @@ global define void ReadUsersCache(boolean read_prebuilded) ``{
 
     // use the pre-builded structures also for cache
     if (read_prebuilded)
+    {
+        ChangeCurrentUsers (`custom); // TODO: move to UsersCache??
+        ChangeCurrentGroups (`custom);
         UsersCache::ReadFromFiles (tmpdir);
+    }
     else
         UsersCache::Read (users, groups, current_users, current_groups);
 
@@ -2112,7 +2141,7 @@ global define map GetGroupByName (string name, symbol usertype)``{
     });
     return ret;
 
-    // FIXME: what if there are groups with same name??
+    // FIXME: what if there are groups with same name and id ?? (local & ldap)
 }
 
 /**
@@ -2167,10 +2196,6 @@ global define map GetGroupFromAll( integer gid )``{
         if (group == $[])
         {
             group = groupset [gid]:$[];
-            /*
-            if (group != $[] && group["type"]:`no == `no)// FIXME
-                group ["type"] = grouptype;
-                */
         }
     });
 	return group;
@@ -2305,10 +2330,6 @@ Do you want to do configure it now?")))
     UsersCache::ReadUsers (type, tmpdir);
     UsersCache::ReadGroups (type, tmpdir);
 
-    // correct also possible change in custom itemlist
-    if (new == `custom)
-        UsersCache::ChangeUserCustoms (current_users);
-
     UI::CloseDialog(); // the wait popup
 }
 
@@ -2334,7 +2355,6 @@ global define void CorrectUsers(symbol type) ``{
  */
 global define void ChangeCurrentUsers(symbol new) ``{
 
-
     if ( new == `custom )
         current_users = eval (user_custom_sets);
     else
@@ -2345,6 +2365,10 @@ global define void ChangeCurrentUsers(symbol new) ``{
 
     if (contains (current_users, `nis) && nis_not_read)
         ReadNewSet (`nis);
+
+    // correct also possible change in custom itemlist
+    if (new == `custom)
+        UsersCache::ChangeUserCustoms (current_users);
 
     UsersCache::current_users = current_users;// via some function?
 }
@@ -2364,6 +2388,10 @@ global define void ChangeCurrentGroups(symbol new) ``{
     if (contains (current_groups, `ldap) && ldap_not_read)
         ReadNewSet(`ldap);
 
+    // correct also possible change in custom itemlist
+    if (new == `custom)
+        UsersCache::ChangeGroupCustoms (current_groups);
+
     UsersCache::current_groups = current_groups;// via some function?
 }
 
@@ -2377,13 +2405,15 @@ global define void ChangeCustoms(string what, list new) ``{
     if (what == "user")
     {
         user_custom_sets = new;
-        UsersCache::ChangeUserCustoms(new);
+        ChangeCurrentUsers (`custom);
     }
     else
     {
         group_custom_sets = new;
-        UsersCache::ChangeGroupCustoms(new);
+        ChangeCurrentGroups (`custom);
     }
+
+    customs_modified = true;
 }
 
 /**
@@ -2407,6 +2437,7 @@ global define void SetDefaults (map new_defaults, string groupname)``{
     default_gid = tointeger(useradd_defaults["group"]:sformat("%1",default_gid));
     default_groupname = groupname;
     SetDefaultValues(false);
+    defaults_modified = true;
 }
 
 /**
@@ -2564,8 +2595,8 @@ global define void cryptRootPassword(string pw1) ``{
 	}
 	if (encryptionMethod == "md5" )
 	{
-	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
+	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );// this is done in
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );// Security module!
 	    rootPassword = cryptmd5 (pw1);
 	}
 	else if (encryptionMethod == "blowfish" )
@@ -2688,7 +2719,7 @@ This is not good security practice. Are you sure?");
 This is not good security practice. Are you sure?");
     }
 
-    return "";
+    return "OK";
 
 }
 

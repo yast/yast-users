@@ -101,20 +101,22 @@ global define symbol EditUserDialog(symbol what) ``{
         ]
     ];
 
-    if ( grouplist == "empty" && what == `edit_user)
+    // grouplist wasnt fully generated while reading nis & ldap users
+    if ( user_type == `nis || user_type == `ldap &&
+         !Users::user_in_work["grouplist_read"]:false)
     {
-        // it wasnt generated for nis, ldap users
-        if (user_type != `system && user_type != `local)
-        {
-            grouplist = Users::FindGroupsBelongUser (username);
-            Users::user_in_work["grouplist"] = grouplist;
-        }
+        Users::user_in_work["grouplist_read"] = true;
+        grouplist = Users::FindGroupsBelongUser (username);
+        Users::user_in_work["grouplist"] = grouplist;
+    }
+
+    if ( grouplist == "empty")
+    {
+        if (what == `add_user)
+            grouplist = Users::GetDefaultGrouplist(user_type);
         else
             grouplist = "";
     }
-
-    if ( grouplist == "empty" && what == `add_user)
-        grouplist = Users::GetDefaultGrouplist(user_type);
 
     integer uid         = Users::user_in_work["uid"]:nil;
     if ( uid ==  nil )
@@ -561,7 +563,7 @@ Please try again."));
             if (Users::obscure_checks)
             {
                 string obs = Users::CheckObscurity (username, pw1);
-                if (obs != "")
+                if (obs != "OK")
                 {
                     if (!UI::YesNoPopup (obs))
                     {
@@ -829,9 +831,10 @@ can be changed for non-local users.")) : `VSpacing (0),
                     new_home = home;
                 email =  UI::QueryWidget(`id(`email),   `Value);
                 // email shoul be at least a@b.cc
-                if ((size (email) < 6) ||
-                    (findfirstof ("@", email) < 0) ||
-                    (findfirstof (".", email) < 0))
+                if (email != "" &&
+                    ((size (email) < 6) ||
+                     (findfirstof ("@", email) < 0) ||
+                     (findfirstof (".", email) < 0)))
                     {
                         // warning message
                         UI::ErrorPopup (_("Enter a valid e-mail address"));
@@ -1199,7 +1202,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
     symbol  group_type  = Users::group_in_work["type"]:nil;
     list list_userlist = splitstring (userlist, ",");
     list list_more_users = splitstring (more_users, ",");
-//    list additional_users = [];
     map additional_users = $[];
     list removed = [];
 

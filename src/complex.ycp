@@ -29,7 +29,9 @@ include "users/helps.ycp";
  * @return true if data was modified
  */
 global define boolean Modified() ``{
-    return Users::modified;
+    return (Users::modified ||
+        Users::customs_modified ||
+        Users::defaults_modified);
 }
 
 
@@ -88,7 +90,6 @@ global define symbol userSetup () ``{
  */
 global define symbol usersInstStart () ``{
     Users::start_dialog = "user_add";// ??
-//    UserWriteStack::Reset ();
     return `next;
 }
 
@@ -128,13 +129,147 @@ global define symbol ReallyAbort() ``{
     else return `back;
 }
 
+/** TODO: only one dialog for users and groups
+ *
+global define symbol SummaryDialog(symbol what) ``{
+//    Users::start_dialog              ="users";
 
+    term contents = `VBox(
+        rbUsersGroup(what),
+        table (what),
+        `HBox (
+            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
+            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
+            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
+            `HStretch()),
+        `HBox(
+            // MenuButton label
+            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set filter"),
+                Users::available_usersets_items),
+            // PushButon
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
+            // PushButon
+            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et defaults")),
+            (Mode::config || what == `group) ? `HSpacing(0):
+            // PushButon
+            `PushButton(`id(`expert), _("E&xpert options...")),
+            `HStretch())
+    );
+
+    string lastbutton =  UI::FinishButtonLabel() ;
+    if( Mode::cont )
+        lastbutton =  UI::NextButtonLabel() ;
+
+    Wizard::SetContentsButtons(
+                    // dialog caption
+                    _("User and group administration"),
+                    contents,
+                    UsersDialogHelp(),
+                    UI::BackButtonLabel(),
+                    lastbutton );
+
+    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
+
+    UsersCache::PrintDate("table shown");
+
+    if( UsersCache::focusline_user != nil)
+        UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
+
+    symbol ret = `next;
+    repeat
+    {
+        ret = UI::UserInput();
+
+        if ( contains (Users::available_usersets, ret) )
+        {
+            Users::ChangeCurrentUsers (ret);
+            UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
+
+            UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
+            if (ret == `custom)
+                UsersCache::customized_usersview = true;
+            else
+                UsersCache::customized_usersview = false;
+
+            ret = `not_next;
+        }
+        if ( ret == `switch_users)
+        {
+            ret = `not_next;
+        }
+        if ( ret == `customize)
+        {
+            if ( CustomizePopup ("user") && UsersCache::customized_usersview)
+                UI::ChangeWidget(`id(`user_table), `Items,
+                    UsersCache::user_itemlist);
+            ret = `not_next;
+        }
+        if ( ret == `expert)
+        {
+            ret = `not_next;
+            if (CallFunction(`expert_login()) == `next)
+            {
+                // check the sources, they could be modified
+                Users::ReadSourcesSettings();
+                Users::BuildMenuButtonItems();
+                ret = `users;
+            }
+        }
+        if ( ret == `user_table )
+            ret = `edit;
+        if ( ret == `edit  || ret == `delete )
+        {
+            any selected = UI::QueryWidget(`id(`user_table), `CurrentItem);
+            if (selected != nil)
+            {
+                Users::SelectUser( selected );
+                UsersCache::user_type = Users::user_in_work["type"]:`local;
+                if (ret == `delete)
+                    ret = DeleteUserPopup();
+            }
+            else
+            {
+                // error popup
+                Report::Message(_("Please select an entry in the user table"));
+                ret = `not_next;
+            }
+        }
+        if ( ret == `new )
+        {
+            Users::user_in_work = $[];
+            if (Users::kerberos_auth == "required")// only this ??
+            {
+                // error popup
+                Report::Message (_("As you are using only Kerberos for authentication, you cannot add local users."));
+                ret = `not_next;
+            }
+        }
+    } until ( ret != `not_next );
+
+    if (ret == `back)
+    {
+        if (Mode::cont)
+        {
+            Users::start_dialog = "user_add";
+            Users::StartAgain ();
+        }
+        Users::use_next_time = true;
+    }
+    save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
+
+    if (!Mode::cont && ret == `next && !Modified())
+        ret = `nosave;
+
+    return ret;
+}
+*/
 
 /**
  * The first of the two main (summary) dialogs -- list of the users.
  * @return symbol for wizard sequencer
  */
 global define symbol UsersDialog() ``{
+
     Users::start_dialog              ="users";
     term contents = `VBox(
         rbUsersGroup(`users),
@@ -192,7 +327,6 @@ global define symbol UsersDialog() ``{
 
         if ( contains (Users::available_usersets, ret) )
         {
-            UsersCache::PrintDate("before change of set");
             Users::ChangeCurrentUsers (ret);
             UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
 
@@ -201,7 +335,6 @@ global define symbol UsersDialog() ``{
                 UsersCache::customized_usersview = true;
             else
                 UsersCache::customized_usersview = false;
-            UsersCache::PrintDate("after change of set");
 
             ret = `not_next;
         }
@@ -333,10 +466,11 @@ global define symbol GroupsDialog() ``{
         {
             Users::ChangeCurrentGroups (ret);
             UsersCache::group_itemlist = UsersCache::groups_itemlists [ret]:[];
+
             UI::ChangeWidget(`id(`group_table), `Items,
                 UsersCache::group_itemlist);
             if (ret == `custom)
-                UsersCache::customized_groupsview = true;
+                UsersCache::customized_groupsview = true; // already set
             else
                 UsersCache::customized_groupsview = false;
             ret = `not_next;
@@ -607,9 +741,9 @@ global define boolean CustomizePopup(string what) ``{
     ));
     any ret = UI::UserInput();
     boolean modified = false;
+    list new_customs = [];
     if (ret == `ok)
     {
-        list new_customs = [];
         foreach (`set, sets, ``{
             if (UI::QueryWidget(`id(set), `Value))
             {
@@ -621,10 +755,12 @@ global define boolean CustomizePopup(string what) ``{
                 if (contains (custom_sets, set)) modified = true;
             }
         });;
-        if (modified)
-            Users::ChangeCustoms (what, new_customs);
     }
     UI::CloseDialog();
+    if (modified)
+    {
+        Users::ChangeCustoms (what, new_customs);
+    }
     return modified;
 }
 

@@ -1,0 +1,40 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+
+    Users::groups [`local ] = $[
+        100: $[ "groupname": "users", "userlist":"", "more_users": "hh","type": `local ],
+        17:  $[ "groupname": "audio", "userlist":"hh,ab", "more_users": "","type": `local ]
+    ];
+
+    Users::groups [`ldap ] = $[
+        100: $[ "groupname": "users", "userlist":"hh", "more_users": "u1,u2","type": `ldap ]
+    ];
+
+    DUMP (sformat ("local groups::\n %1", Users::groups [`local]:$[]));
+
+    DUMP (sformat ("ldap groups::\n %1", Users::groups [`ldap]:$[]));
+
+    DUMP ("==========================================================");
+
+    string user = "hh";
+    DUMP ( sformat("user %1 is in groups:", user) );
+
+    TEST(``(Users::FindGroupsBelongUser (user)), [], 0);
+
+    DUMP ("==========================================================");
+
+    user = "ab";
+    DUMP ( sformat("user %1 is in groups:", user) );
+
+    TEST(``(Users::FindGroupsBelongUser (user)), [], 0);
+
+    DUMP ("==========================================================");
+
+    user = "abc";
+    DUMP ( sformat("user %1 is in groups:", user) );
+
+    TEST(``(Users::FindGroupsBelongUser (user)), [], 0);
+
+}

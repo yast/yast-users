@@ -1,0 +1,56 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+
+   Users::users [`local] = $[
+        501: $[
+            "forename":"",
+            "fullname":"",
+	        "gid":100,
+            "groupname":"users",
+	        "grouplist":"audio",
+	        "home":"/home/aaa",
+	        "org_home":"/home/aaa",
+	        "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1",
+	        "shadow":$["inact":-1, "max":99999, "min":0, "warn":7],
+	        "shell":"/bin/bash",
+	        "surname":"",
+	        "uid":501,
+	        "username":"aaa",
+            "type":`local]
+    ];
+
+   Users::users [`ldap] = $[
+        5001: $[
+            "forename":"",
+            "fullname":"",
+	        "gid":100,
+	        "home":"/home/ldap_user1",
+	        "password":"x",
+	        "shadow": $[],
+	        "shell":"/bin/bash",
+	        "surname":"",
+	        "uid":5001,
+	        "username":"ldap_user1",
+            "type":`ldap]
+    ];
+
+    Users::current_users = [`local, `ldap];
+
+    TEST(``(Users::SelectUser (501)), [], 0);
+
+    DUMP ( sformat ("selected user with id 501:\n %1", Users::user_in_work) );
+
+    DUMP ("==========================================================");
+
+    TEST(``(Users::SelectUser (5001)), [], 0);
+
+    DUMP ( sformat ("selected user with id 5001:\n %1", Users::user_in_work) );
+
+    DUMP ("==========================================================");
+
+    TEST(``(Users::SelectUser (5002)), [], 0);
+
+    DUMP ( sformat ("selected user with id 5002:\n %1", Users::user_in_work) );
+}

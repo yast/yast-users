@@ -161,6 +161,10 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
 
     foreach (`uid, `user, ldap_users, ``{
 
+        symbol  action      = user["modified"]:`nothing;
+        if (action == `nothing)
+            return;
+
         integer gid         = user["gid"]:nil; // default values??
         string  username    = user["username"]:"";
         string  org_username = user["org_username"]:username;
@@ -173,10 +177,6 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
         string  password    = user["password"]:"";
         string  groupname   = user["groupname"]:"";
         string  email       = user["email"]:"";
-        symbol  action      = user["modified"]:`nothing;
-
-        if (action == `nothing)
-            return;
 
         string command = "/usr/bin/cpu -v";
 
@@ -204,7 +204,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
             {
                 command = sformat("%1; /bin/cp -r %2 %3", command, skel, home);
                 command = sformat("%1; /bin/chown -R %2:%3 %4",
-                    command, username, groupname, home);
+                command, username, groupname, home);
             }
         }
         else if (action == `deleted)
@@ -221,7 +221,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
         {
 
             // password for command-line cannot be crypted ??
-            // FIXME -S works as "do not change password"
+            // FIXME -S works as "do not change password" !!
             command = sformat (
             "%1 usermod -f %2 -u %3 -s %4 -g %5 %6 -S",
             command, path_to_cfg, uid, shell, gid, org_username);
@@ -244,8 +244,8 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
                 command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
             }
         }
-        y2warning ("cpu: %1",
-        SCR::Execute(.target.bash_output, command));
+        y2debug ("cpu: %1",
+            SCR::Execute(.target.bash_output, command));
     });
     return true; // TODO check for success
 }
@@ -296,7 +296,8 @@ global define boolean WriteLDAPGroups(map ldap_groups, string dir)``{
                 command = sformat ("%1 -n %2", command, groupname);
         }
 
-        SCR::Execute(.target.bash, command);
+        y2debug ("cpu: %1",
+            SCR::Execute(.target.bash_output, command));
     });
 
     return true;
