@@ -2899,6 +2899,12 @@ global define string IsDirWritable (string dir) ``{
  */
 global define boolean CheckHomeMounted() ``{
 
+    // check below fails for live eval
+    if ( Mode::live_eval )
+    {
+	return true;
+    }
+
     string mountpoint_in = "";
 
     // remove last "/"
