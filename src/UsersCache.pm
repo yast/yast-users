@@ -345,7 +345,7 @@ sub GIDExists {
 	$ret = defined $gids{$group_type}{$gid};
     }
     else {
-	$ret = (defined $gids{"local"}{$gid} &&
+	$ret = (defined $gids{"local"}{$gid} ||
 		defined $gids{"system"}{$gid});
     }
     return $ret;
@@ -1143,4 +1143,5 @@ sub BuildAdditional {
     return @additional;
 }
 
+1
 # EOF
