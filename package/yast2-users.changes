@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Apr 23 15:30:50 CEST 2003 - jsuchome@suse.cz
+
+- LDAP users: edit shadow setting, "more settings" dialog
+- agent-ldap: change DN after change of username (groupname)
+
+-------------------------------------------------------------------
 Tue Apr 22 10:11:49 CEST 2003 - jsuchome@suse.de
 
 - only one field for fullname (#21175)

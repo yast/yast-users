@@ -110,6 +110,7 @@ global define symbol MainSequence(string start) ``{
 	"user_edit":        ``(EditUserDialog("edit_user")),
 	"user_details":     ``(EditUserDetailsDialog()),
 	"user_password":    ``(EditUserPasswordDialog()),
+	"user_ldap":		``(LDAPUserSettingsDialog()),
 	"user_save":        [``(UserSave()), true],
 	"user_setup":	    [ ``(userSetup ()), true],
 
@@ -138,17 +139,18 @@ global define symbol MainSequence(string start) ``{
 	    `cancel:		"without_save",
             `nosave:		`nosave,
 	    `exit:		`abort ],
-	"user_add": $[
-            `nextmodule:    `next,
-	    `nosave:        "users",
-	    `additional:    "user_setup", // only install
-	    `next:          "user_save",  // -> Commit
-	    `details:       "user_details",
-	    `passwordsettings: "user_password",
-	    `abort:         "without_save",
-	    `cancel:        "without_save",
-	    `back:          "users" ],
-	"user_add_inst": $[
+    "user_add": $[
+            `nextmodule:	`next,
+	    `nosave:		"users",
+	    `additional:	"user_setup", // only install
+	    `next:		"user_save",  // -> Commit
+	    `details:		"user_details",
+	    `passwordsettings:	"user_password",
+	    `ldap:		"user_ldap",
+	    `abort:		"without_save",
+	    `cancel:		"without_save",
+	    `back:		"users" ],
+    "user_add_inst": $[
             `nextmodule:    `next, // no user and next pressed (install)
             `nosave:        "users", // no "first user" was added (install)
             `additional:    "user_setup",
@@ -158,28 +160,34 @@ global define symbol MainSequence(string start) ``{
             `abort:         "without_save",
             `cancel:        "without_save",
             `back:          "users" ], // is it OK ??
-	"user_inst_start": $[
+    "user_edit": $[
+            `next:		"user_save",
+	    `details:		"user_details",
+	    `passwordsettings:	"user_password",
+	    `ldap:		"user_ldap",
+	    `cancel:		"without_save",
+	    `abort:		"without_save" ],
+    "user_inst_start": $[
             `next:          "user_add_inst"], // is this needed ??
-	"user_setup": $[
+    "user_setup": $[
             `next :         "user_save" ],
-	"user_details": $[
-            `abort:         "without_save",
-    // next is predefined to add or edit
-	    `add_user:      "user_add",
-	    `cancel:        "without_save",
-	    `edit_user:     "user_edit"],
-	"user_password": $[
-            `abort:         "without_save",
-	    `add_user:      "user_add",
-	    `cancel:        "without_save",
-	    `edit_user:     "user_edit"],
-	"user_edit": $[
-            `next:          "user_save",
-	    `details:       "user_details",
-	    `passwordsettings: "user_password",
-	    `cancel:        "without_save",
-	    `abort:         "without_save" ],
-	"user_save": $[
+    "user_details": $[
+	    // next is predefined to add or edit
+            `abort:		"without_save",
+	    `cancel:		"without_save",
+	    `add_user:		"user_add",
+	    `edit_user:		"user_edit"],
+    "user_password": $[
+            `abort:		"without_save",
+	    `cancel:		"without_save",
+	    `add_user:		"user_add",
+	    `edit_user:		"user_edit"],
+    "user_ldap": $[
+            `abort:		"without_save",
+	    `cancel:		"without_save",
+	    `add_user:		"user_add",
+	    `edit_user:		"user_edit"],
+    "user_save": $[
             `next:	        "users",
 	    `save:          `next], // this should be write - during install ??
     "groups": $[

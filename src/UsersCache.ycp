@@ -66,6 +66,8 @@ global integer max_length_uid = 5;
 global integer max_length_gid = 5;
 global integer max_length_login = 32; // see for example man utmp, UT_NAMESIZE
 global integer min_length_login = 2;
+global integer max_length_groupname = 8;
+global integer min_length_groupname = 2;
 global boolean ldap_file_server = false;
 
 // if currrent view is "customized"
@@ -636,7 +638,7 @@ global define boolean GroupnameExists(string groupname) ``{
 
 /**
  * Scan uidlist for the next free uid.
- * @return integer free uid
+ * @return integer free uid // TODO: user_type as parameter?
  */
 global define integer NextFreeUid() ``{
 

@@ -65,7 +65,7 @@ To save the modified user and group setting to your system, push the button
     ];
     string method = Users::encryptionMethod;
     if (type == "ldap")
-	method = ""; //FIXME: for Ldap users check another variable!!!
+	method = ""; Users::ldap_encryption;
 
 	// help text 1/4
     string help_text =  _("<p>
@@ -101,8 +101,13 @@ repeat it exactly in a second field. Make sure you don't forget your password!
      * @return string The help text.
      */
     global define string DefaultsDialogHelp () ``{
-// Help text 1/6
+// Help text 0/6
       return _("<p>
+Here you can set default values which will be used when creating new local or system user.
+</p>
+") +
+// Help text 1/6
+      _("<p>
 <b>Default Group</b><br>
 The group name for a new user's initial group.
 </p>
@@ -446,11 +451,13 @@ for the files in the user's home directory, but not for the files
 located on the other places.</p>
 ") +
 
-	// help text 4/8 FIXME Browse
+	// help text 4/8
 		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is
-/home/username.
+/home/username. 
+<br>
+You can choose some existing directory by clicking <b>Browse</b> button.
 </p>
 ");
 
@@ -459,13 +466,15 @@ The home directory of the user. Normally this is
     // alternate helptext 5/8
     _("<p>
 The home directory of an LDAP user can be changed only on the
-LDAP server.</p>") +
+file server.</p>");
 
+/*
     // alternate helptext 5.5/8
     _("<p>
 <b>E-Mail:</b>
 Set the user's e-mail address here.</p>
 ");
+*/
 
     else if (user_type == "system" || user_type == "local")
         helptext = helptext +
@@ -549,4 +558,51 @@ The date must be in the format YYYY-MM-DD.
 Leave empty if this account never expires.</P>
 ");
   }
+
+global define string AuthentizationDialogHelp() ``{
+
+    // FIXME
+    string help_text = _("<b>FIXME!</b>") +
+
+    _("<p>
+<b>User Sources</b><br>
+View the sources of user's accounts. The possible values here can be:
+</p>
+") +
+    // help text 2/5
+    _("<p>
+<b>Local Files</b> -- data is stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
+<b>NIS</b> -- user data can be retrieved from the NIS server<br>
+<b>Compat</b> -- both previous sources can be used<br>
+<b>LDAP</b> -- user database is on the LDAP server
+</p>
+") +
+    // help text 3/5
+    _("<p>
+For more information, look at the file <i>/etc/nsswitch.conf</i> and its documentation.
+</p>") +
+
+    // help text 4/5
+    _("<p>
+<b>Additional Authentication</b>
+This is the partial list of your PAM settings. It shows the authentication types, which can be used by users on your system. As a default, users are authenticated by comparing their passwords with the ones saved in local files or on the NIS server.<br>
+Other possibility for authentication is using the LDAP server or Kerberos.
+</p>
+") +
+
+    // help text 5/5
+    _("<p>
+<b>Changing the Values</b><br>
+You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
+</p>
+");
+
+    return help_text;
 }
+
+global define string LDAPUserSettingsDialogHelp() ``{
+
+    return "FIXME";
+}
+
+}// EOF

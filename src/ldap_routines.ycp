@@ -63,34 +63,40 @@ global define void LDAPErrorMessage (string type, string error) ``{
 
     map ldap_error = $[
     "LDAP_INAPPROPRIATE_AUTH":
-	// error message:
+// error message:
 _("The server requires the client which had
 attempted to bind anonymously or without
 supplying credentials to provide some form
 of credentials"),
 
     "LDAP_INVALID_CREDENTIALS":
-	// error message:
-	_("Wrong password was entered."),
+// error message:
+_("Wrong password was entered."),
 
     "LDAP_INVALID_SYNTAX":
-	// error message:
+// error message:
 _("Some part of the request contained an invalid
 syntax. It could be a search with an invalid
 filter or a request to modify the schema
 and the given schema has a bad syntax."),
 
     "LDAP_PARAM_ERROR":
-	// error message:
-	_("An invalid parameter was specified."),
+// error message:
+_("An invalid parameter was specified."),
 
     "LDAP_NO_SUCH_ATTRIBUTE":
-	// error message:
-	_("The request referenced an attribute that does not exist."),
+// error message:
+_("The request referenced an attribute
+that does not exist."),
+
+    "LDAP_NO_SUCH_OBJECT":
+// error message:
+_("The server cannot find an object
+specified in the request."),
 
     "initialize":
-	// error message:
-	_("Server could be down or unreachable."),
+// error message:
+_("Server could be down or unreachable."),
     ];
 
     map error_type = $[
@@ -129,6 +135,7 @@ and the given schema has a bad syntax."),
 	    if (UI::QueryWidget (`id(`details), `Value))
 		UI::ReplaceWidget (`id(`rp), `VBox (
 		    `Label (ldap_error[error]:error)));
+		    // TODO: richtext instead of Label?
 	    else
 		UI::ReplaceWidget (`id(`rp), `Empty());
 	}
@@ -143,13 +150,25 @@ and the given schema has a bad syntax."),
  */
 global define void ReadLDAPSettings () ``{
 
-//    import "Ldap";
-//    Ldap::Read();
-    ldap_base = GetLDAPBase();// LDAP::GetDomain() -> will be filled after Read
-    ldap_host = GetLDAPHost();
-    is_ldap_server = IsLDAPServer (ldap_host);
-//        ldap_file_server = Ldap::file_server; TODO: currenty not in Ldap!
+// FIXME: get the values from Ldap
+    import "Ldap";
+    Ldap::Read();
 
+    ldap_user_base	= GetLDAPBase();// Ldap::GetDomain
+    ldap_group_base	= GetLDAPBase();// FIXME differ! Ldap::group_base
+    ldap_host		= GetLDAPHost();
+    is_ldap_server	= IsLDAPServer (ldap_host);
+//    ldap_file_server	= Ldap::file_server; TODO: currenty not in Ldap!
+//    ldap_version	= Ldap::version; TODO: currenty not in Ldap!
+    ldap_encryption	= Ldap::pam_password; // TODO: configure in Ldap
+    ldap_bind_dn	= Ldap::bind_dn;
+    ldap_user_class	= [
+	"person", "posixAccount" ,"top" ,"shadowAccount", "inetOrgPerson" ];
+	// TODO splitstring (Ldap::user_class
+    ldap_group_class	= ["posixGroup" ,"top" ];//splitstring Ldap::group_class
+    ldap_user_filter	= "objectClass=person"; // FIXME configure, Ldap::
+    ldap_group_filter	= "objectClass=posixGroup"; // FIXME configure, Ldap::
+    ldap_skel		= default_skel;// FIXME: configure in Ldap
 }
 
 
@@ -159,17 +178,17 @@ global define void ReadLDAPSettings () ``{
  * @return error message or empty string on success
  */
 global define string LDAPInit () ``{
-// TODO: set version (in Ldap module)
 
     map ldap = $[
-	"host": ldap_host,
-        "user_base": ldap_base,//FIXME: group, user base!
-        "group_base": ldap_base,//FIXME: group, user base!
-	"user_class": [	"person", "posixAccount" ,"top" ,"shadowAccount",
-			"inetOrgPerson" ],
-	"group_class": ["posixGroup" ,"top" ],
-	"bind_dn": "uid=jirka,dc=suse,dc=cz", // in ldap.conf
-	"pw_hash": "CRYPT"]; // FIXME: ldap.conf
+	"host":		ldap_host,
+        "user_base":	ldap_user_base,
+        "group_base":	ldap_group_base,
+	"user_class":	ldap_user_class,
+	"group_class":	ldap_group_class,
+//	"version":	ldap_version,
+	"bind_dn":	ldap_bind_dn,
+	"pw_hash":	toupper (ldap_encryption) // TODO is toupper needed?
+    ];
     return SCR::Execute (.ldap.init, ldap);
 }
 
@@ -226,12 +245,11 @@ global define string GetLDAPPassword() ``{
  */
 global define string ReadLDAP () ``{
 
-    string ret = SCR::Execute (.ldap.search, $[
-	"output_dir": tmpdir,
-	"user_filter": "objectClass=person", // FIXME configure
-	"group_filter": "objectClass=posixGroup" ]
-    );
-    return ret;
+    return SCR::Execute (.ldap.search, $[
+	"output_dir":	tmpdir,
+	"user_filter":	ldap_user_filter,
+	"group_filter":	ldap_group_filter
+    ]);
 }
 
 /**
@@ -244,7 +262,6 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
 
     string ret = "";
 
-    // TODO: modify shadow settings
     foreach (`uid, `user, ldap_users, ``{
 
         string  action      = user["modified"]:"no";
@@ -262,9 +279,8 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
             // on server, we can modify homes
             if (server && ldap_ret == "")
             {
-		// FIXME: skeleton is missing!
 		if (user["create_home"]:false)
-		    CreateHome (default_skel, home);
+		    CreateHome (ldap_skel, home);
 		ChownHome (uid, gid, home);
             }
         }

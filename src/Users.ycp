@@ -65,7 +65,7 @@ global string default_shell = "/bin/bash";
 global string default_skel = "/etc/skel";
 global string default_home = "/home/";
 global integer default_gid = 100; // TODO change to 500 with new version
-global string default_groupname = "users";
+global string default_groupname = "users";// TODO use some function with type as parameter for this!
 global string default_inactive = "-1";
 global string default_expire = "";
 
@@ -219,6 +219,7 @@ global boolean is_ldap_available = false;
 global boolean is_ldap_server = false; // TODO currently not used
 // if ldap home directiories are on this machine
 global boolean ldap_file_server = false;
+global string ldap_encryption = "crypt";// TODO read from Ldap!
 
 // type of pam kerberos authentication: required/optional/sufficient/""
 global string kerberos_auth = "";
@@ -261,7 +262,16 @@ string plus_gshadow = "";
 
 // ldap configuration from /etc/openldap/ldap.conf
 global string ldap_host = "";
-global string ldap_base = "";
+global string ldap_user_base = "";
+global string ldap_group_base = "";
+global string ldap_bind_dn = "";
+global string ldap_user_filter = "";
+global string ldap_group_filter = "";
+global string ldap_skel = "";// beter whould be: map ldap_shadow
+
+// TODO comment
+global list ldap_user_class = [];
+global list ldap_group_class = [];
 // password to LDAP server
 string ldap_bind_pass = "";
 
@@ -807,6 +817,8 @@ global define symbol Write (block abort, boolean useUI)``{
 		}
 	    }
         }
+	// FIXME: when anonymous is set, bind is OK, but writing not!!!
+	// -> LDAP_STRONG_AUTH_REQUIRED
 
         // cancel returns nil!
         if (ldap_bind_pass != nil)
@@ -884,7 +896,7 @@ global define symbol Write (block abort, boolean useUI)``{
     {
         use_next_time = false;
         saved_user = $[];
-        user_in_work = $[]; // TODO: move to Commit?
+        user_in_work = $[];
     }
 
     return `next;
@@ -1395,20 +1407,139 @@ global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
     return ret;
 }
 
-// prepare user/group_in_work for Commit
+/**
+ * Initializes (user|group)_in_work map with default values
+ * @param what "user" or "group"
+ * @param data user/group initial data (could be an empty map)
+ * @return success
+ */
 global define boolean Add (string what, map data)``{
 
+    string type = data["type"]:nil;
     if (what == "user")
-        user_in_work = $[];
+    {
+	// what could be in "data":
+	// - something from saved_user...
+	// - calling Add User->Details->Next
+	// - base values, like username/uid/fullname??? TODO really here?
+        user_in_work = eval (data);
+	// create some default values
+	if (type == nil)
+	{
+	    type = "local";
+	    // nis user cannot be added from client
+	    integer i = size (current_users) - 1;
+	    while (i >= 0 )
+	    {
+		if (current_users[i]:"local" != "nis")
+		    type = current_users[i]:"local";
+		i = i - 1;
+	    }
+	}
+	UsersCache::user_type = type;
+	user_in_work["type"] = type;
+	user_in_work["uid"] = data["uid"]:NextFreeUid();
+	if ( user_in_work["uid"]:nil ==  nil )
+	{
+	    // error label - TODO: solve for command-line mode!
+	    Report::Error(_("There is no free UID for this type of user."));
+	    return false;
+	}
+	string username = data["username"]:""; //TODO: where to check?
+	user_in_work["username"] = username;
+	user_in_work["fullname"] = data["fullname"]:"";
+	user_in_work["home"] = data["home"]:default_home + username;//TODO: where to check?
+	user_in_work["gid"] = data["gid"]:default_gid;
+	user_in_work["groupname"] = data["groupname"]:default_groupname;
+	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
+	user_in_work["shell"] = data["shell"]:default_shell;
+	user_in_work["shadow"] = data["shadow"]:GetDefaultShadow();
+	user_in_work["password"] = data["password"]:""; // TODO: how to enter/check?
+	user_in_work["create_home"] = data["create_home"]:true;
+	user_in_work["what"] = "add_user";
+    }
     else
-        group_in_work = $[];
-    //create some default values
+    {
+        group_in_work = eval (data);
+	// create some default values
+	if (type == nil)
+	{
+	    type = "local";
+	    // nis group cannot be added from client
+	    integer i = size (current_groups) - 1;
+	    while (i >= 0 )
+	    {
+		if (current_groups[i]:"local" != "nis")
+		    type = current_groups[i]:"local";
+		i = i - 1;
+	    }
+	}
+	UsersCache::group_type = type;
+	group_in_work["type"]	= type;
+	group_in_work["gid"]	= data["gid"]:NextFreeGid();
+	if ( group_in_work["gid"]:nil ==  nil )
+	{
+	    // error label - TODO: solve for command-line mode!
+	    Report::Error(_("There is no free GID for this type of group."));
+	    return false;
+	}
+	group_in_work["what"] = "add_group";
+    }
     return true;
 }
 
+/**
+ * Initializes (user|group)_in_work map for editing
+ * @param what "user" or "group"
+ * @param data user/group data map
+ * @return success
+ * TODO:
+ *  - find out user/group in global map - currently done by SelectUser
+ *  - update the current map?
+ *  - groups
+ */
 global define boolean Edit (string what, map data)``{
 
-    // find user/group and prepare (user|group)_in_work
+    string type = data["type"]:"local";
+    if (what == "user")
+    {
+	string username = data["username"]:"";
+	// user is edited for first time
+	if (!haskey (data, "org_user"))
+	{
+	    if (type == "ldap")
+	    {
+		// convert values with wrong type to string
+		user_in_work = CorrectLDAPValues(data);
+	    }
+	    // save first map for later checks of modification...
+	    user_in_work["org_user"] = eval (data);
+	    // grouplist wasnt fully generated while reading nis & ldap users
+	    if (type == "nis" || type == "ldap")
+	    {
+		user_in_work["grouplist"] = FindGroupsBelongUser (username);
+	    }
+	    // local users have to load shadow settings from global map
+	    if (user_in_work["shadow"]:$[] == $[])
+	    {
+		user_in_work["shadow"] = eval
+		    (shadow[type, username]:GetDefaultShadow());
+	    }
+	}
+	user_in_work["what"] = "edit_user";
+	UsersCache::user_type = type;
+	/*
+	// TODO update the settings when present??
+	foreach (`key, `value, data, ``{
+	    user_in_work[key] = value;
+	});
+	*/
+    }
+    else
+    {
+	group_in_work["what"] = "edit_group";
+	UsersCache::group_type = type;
+    }
     return true;
 }
 
@@ -1459,7 +1590,7 @@ global define boolean Commit (string object, boolean cache)``{
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
-//y2internal ("user: %1", user_in_work);
+//y2warning ("user: %1", user_in_work);
         if ((type == "local" || type == "system") &&
             !users_modified && UserReallyModified()) users_modified = true;
         if (type == "ldap" && !ldap_modified && UserReallyModified())
@@ -1819,13 +1950,12 @@ global define boolean Commit (string object, boolean cache)``{
                     }
                 });
             }
-            if (groupname != org_groupname)
+            if (groupname != org_groupname && type != "ldap")
             {
                 gshadow [type, groupname] = gshadow [type, org_groupname]:$[];
                 if (haskey (gshadow [type]:$[], org_groupname))
                     gshadow [type] = remove (gshadow [type]:$[], org_groupname);
             }
-//            if (password != "x" && password != "*" && password != "!")
 	    if (!contains (["x","*","!"], password) && type != "ldap")
                 gshadow [type, groupname, "password"] = password;
         }
@@ -2127,7 +2257,7 @@ global define boolean ReadSystemDefaults()``{
  * Return a map with the defaults for the shadow entry
  * @return map of shadow settings
  */
-global define map GetDefaultShadow()``{
+global define map GetDefaultShadow()``{// TODO type as parameter!!
 
     return $[
 	"expire": default_expire,
@@ -2197,28 +2327,29 @@ Please change the default group in /etc/default/useradd."), def_int ));
  */
 global define list GetAllShells(symbol todo ) ``{
 
-	list available_shells =  [];
-	list shells_read = SCR::Read(.etc.shells);
+    list available_shells =  [];
+    list shells_read = SCR::Read(.etc.shells);
 
-	foreach( `shell_entry, shells_read, ``{
+    foreach( `shell_entry, shells_read, ``{
 
-	    if( is( shell_entry, string ))
+	if( is( shell_entry, string ))
+	{
+	    if ( (! issubstring( shell_entry, "passwd")) &&
+		 (! issubstring( shell_entry, "bash1")) )
 	    {
-		    if( (! issubstring( shell_entry, "passwd")) &&
-		        (! issubstring( shell_entry, "bash1")) )
-		    {
-		        if(  SCR::Read(.target.size, shell_entry  )  != -1  )
-		        {
-			        if (todo == `items) available_shells = add(available_shells,
-                            `item( `id(shell_entry), shell_entry ));
-			        if ( todo == `stringlist ) available_shells =
-                            add( available_shells, shell_entry);
-		        }
-		    }
-
+		if(  SCR::Read(.target.size, shell_entry  )  != -1  )
+		{
+		    if (todo == `items)
+			available_shells = add(available_shells,
+			    `item( `id(shell_entry), shell_entry ));
+		    if ( todo == `stringlist )
+			available_shells = add( available_shells, shell_entry);
+		}
 	    }
-	});
-	return available_shells;
+
+	}
+    });
+    return available_shells;
 }
 
 /**
@@ -2372,7 +2503,7 @@ global define void SelectUser( integer uid )``{
         }
         i = i + 1;
     }
-    user_in_work = ret;
+    user_in_work = eval (ret);
 }
 
 /**
@@ -2829,16 +2960,22 @@ global define void removeOldConf() ``{
 /**
  * Crypt the given password according to method defined in encryptionMethod
  * @param pw unencrypted password
+ * @param type user type (local/system/ldap)
  * @return encrypted password
  */
-global define string CryptPassword (string pw) ``{
+global define string CryptPassword (string pw, string type) ``{
 
-	if (encryptionMethod == "md5" )
-	    return cryptmd5 (pw);
-	else if (encryptionMethod == "blowfish" )
-	    return cryptblowfish (pw);
-	else
-	    return crypt (pw);
+    string method = encryptionMethod;
+    if (type == "ldap")
+    {
+	method = ldap_encryption;// TODO crypt with slappasswd?
+    }
+    if (method == "md5" )
+	return cryptmd5 (pw);
+    else if (method == "blowfish" )
+	return cryptblowfish (pw);
+    else
+	return crypt (pw);
 }
 
 /**
@@ -2852,7 +2989,7 @@ global define void cryptRootPassword(string pw) ``{
     if (Mode::test) {
 	return;
     }
-    rootPassword = CryptPassword (pw);
+    rootPassword = CryptPassword (pw, "system");
     return;
 }
 
@@ -2949,6 +3086,29 @@ after you mount correctly. Continue user configuration?
     }
     return true;
 
+}
+
+/**
+ * Converts the map of LDAP user to the map using right types
+ * (ldap-agent returns numbers as integers type, but YaST expects string)
+ * @param data map to convert
+ * @return converted map
+ */
+global define map CorrectLDAPValues (map data) ``{
+
+    map ret = eval (data);
+    foreach (`key, `val, data, ``{
+	// when we want to leave integer or boolean
+	if (contains (["uid", "gid", "grouplist_read", "create_home" ], key))
+	    return;
+	// recursion (for shadow map in user map)
+	if (is (val, map))
+	    ret [key] = CorrectLDAPValues (val);
+	// otherwise convert to string:
+	else if (!is (val, string))
+	    ret [key] = sformat ("%1", data[key]:0);
+    });
+    return ret;
 }
 
 }// EOF
