@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb 09 11:58:31 CET 2004 - arvin@suse.de
+
+- removed config files (*.y2cc)
+
+-------------------------------------------------------------------
 Tue Feb  3 19:23:14 CET 2004 - jsuchome@suse.cz
 
 - agent for NIS users/groups
@@ -112,7 +117,7 @@ Sat Sep 13 19:00:22 CEST 2003 - nashif@suse.de
 -------------------------------------------------------------------
 Thu Sep 11 13:03:52 CEST 2003 - jsuchome@suse.cz
 
-- layout of first dialog (#29389) 
+- layout of first dialog (#29389)
 
 -------------------------------------------------------------------
 Wed Sep 10 17:51:43 CEST 2003 - jsuchome@suse.cz
@@ -129,7 +134,7 @@ Tue Sep  9 09:41:54 CEST 2003 - jsuchome@suse.cz
 -------------------------------------------------------------------
 Mon Sep  8 16:14:12 CEST 2003 - jsuchome@suse.cz
 
-- check if NIS was enabled while module is running (#30256) 
+- check if NIS was enabled while module is running (#30256)
 
 -------------------------------------------------------------------
 Mon Sep  8 13:02:08 CEST 2003 - jsuchome@suse.cz
