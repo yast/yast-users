@@ -85,6 +85,14 @@
     }
     else if (func == "Export") {
 	ret = Users::Export();
+	Users::ExportAll = false;
+    }
+    else if (func == "Read") {
+	import "Progress";
+	Users::ExportAll = true;
+	Progress::off();
+	ret = Users::Read(``{}, false);
+	Progress::on();
     }
     else if (func == "Write") {
 	ret = Users::Write ( ``{ return false;}, false);
