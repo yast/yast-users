@@ -18,7 +18,7 @@ ynclude_DATA =		\
     wizards.ycp		\
     widgets.ycp		\
     routines.ycp
-#    passwd.ycp      	\
+#    passwd.ycp    	\
 #    nis_routines.ycp	\
 #    ldap_routines.ycp
 
@@ -27,21 +27,18 @@ client_DATA = 		\
     groups.ycp		\
     inst_root.ycp	\
     inst_user.ycp	\
-    inst_auth.ycp
-#    users_auto.ycp	\
-#    inst_root.ycp	\
-#    inst_user.ycp   	\
-#    inst_auth.ycp
-#
-#config_DATA =		\
-#    users.y2cc		\
-#    groups.y2cc
+    inst_auth.ycp	\
+    users_auto.ycp
+
+config_DATA =		\
+    users.y2cc		\
+    groups.y2cc
 
 desktop_DATA =		\
     users.desktop	\
     groups.desktop
 
-EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
+EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(config_DATA)
 
 users:
 	ln -sf . users
