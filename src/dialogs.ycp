@@ -38,7 +38,7 @@ string default_pw	= "******";
  * @param to_convert original string
  * @return converted symbol
  */
-global define symbol string_to_symbol (string to_convert) ``{
+define symbol string_to_symbol (string to_convert) ``{
 
     map to_symbol = $[
 	"back":		`back,
@@ -48,6 +48,7 @@ global define symbol string_to_symbol (string to_convert) ``{
     return to_symbol [to_convert]:`back;
 }
 
+// FIXME Perl should return correctly integer/string...
 define integer GetInt (map data, string key, integer default_value) {
 
     if (is (data[key]:nil, integer))
@@ -65,8 +66,8 @@ define string GetString (map data, string key, string default_value) {
 }
 
 
-// (it is at the end because it is question)
 // upperase letters were used in username! bug #26409
+// TODO -> CheckUsername!
 define symbol AskForUppercasePopup (string username) ``{
 
     symbol ret = `ok;
@@ -120,7 +121,7 @@ _("<p>Really use the entered value?</p>");
  * @param what "add_user" or "edit_user"
  * @return symbol for wizard sequencer
  */
-global define symbol EditUserDialog (string what) ``{
+define symbol EditUserDialog (string what) ``{
 
     // Maybe we have returned to the first "add user dialog"
     // during installation workflow:
@@ -148,7 +149,6 @@ y2warning ("user: %1", user);
     string org_home	= user["org_homeDirectory"]:home;
     string password	= user["userPassword"]:"x";
     string org_username = user["org_username"]:username;
-//    boolean create_home	= user["create_home"]:1 == 0;
     boolean create_home	= user["create_home"]:true;
     integer uid		= GetInt (user, "uidNumber", 1);
     string dn		= user["dn"]:"";
@@ -529,7 +529,7 @@ Please try again."));
             }
 
 	    // -------------------------------------- directory checks
-	    if (!details) {
+	    if (!details && (what == "add_user" || home != org_home)) {
 		error = Users::CheckHome (home);
 		if (error != "")
 		{
@@ -622,7 +622,7 @@ Please try again."));
  * Details of adding/cloning/editing dialog
  * @return symbol for wizard sequencer
  */
-global define symbol EditUserDetailsDialog( ) ``{
+define symbol EditUserDetailsDialog( ) ``{
 
     map<string,any>user	= Users::GetCurrentUser ();
 
@@ -652,7 +652,7 @@ global define symbol EditUserDetailsDialog( ) ``{
 
     string new_type = user_type;
 
-    map all_groupnames		= UsersCache::GetGroupnames ();
+    map all_groupnames		= UsersCache::GetAllGroupnames ();
 
     // fill the list available_groups and set the user default group true
     foreach (string grouptype, map groupmap, all_groupnames, ``{
@@ -901,8 +901,6 @@ can be changed for non-local users.")) : `VSpacing (0),
 			continue;
 		    }
 		    new_type = error_map["question_id"]:"local";
-		    // FIXME UsersCache::Set right here?
-		    // (it will fail for more changes)
 		    UsersCache::SetUserType (new_type);
 		}
             } // end of uid checks
@@ -1011,7 +1009,7 @@ can be changed for non-local users.")) : `VSpacing (0),
  * Details of adding/cloning/editing dialog
  * @return symbol for wizard sequencer
  */
-global define symbol EditUserPasswordDialog() ``{
+define symbol EditUserPasswordDialog() ``{
 
     map<string,any>user	= Users::GetCurrentUser ();
 
@@ -1033,11 +1031,12 @@ global define symbol EditUserPasswordDialog() ``{
     integer min = GetInt (user, "shadowMin", 0);
     integer warn = GetInt (user, "shadowWarning", 0);
 
-    if (last_change != "0") //FIXME use Users
+    if (last_change != "0")
     {
         map out = (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
         // label
 //FIXME        last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
+	last_change = out["stdout"]:_("unknown");
     }
     else
     {
@@ -1045,7 +1044,7 @@ global define symbol EditUserPasswordDialog() ``{
         last_change = _("never");
     }
     string exp_date = "";
-    if (expires != "0" && expires != "-1" )//FIXME to module
+    if (expires != "0" && expires != "-1" )
     {
         exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -1162,7 +1161,7 @@ global define symbol EditUserPasswordDialog() ``{
  * Dialog for additional settings for LDAP users
  * @return symbol for wizard sequencer
  */
-global define symbol LDAPSettingsDialog(string what) ``{
+define symbol LDAPSettingsDialog(string what) ``{
 
 return `next;
     /*
@@ -1328,7 +1327,7 @@ Are you sure?"), req)))
  * @param what "add_group" or "edit_group"
  * @return symbol for wizard sequencer
  */
-global define symbol EditGroupDialog(string what ) ``{
+define symbol EditGroupDialog(string what ) ``{
 
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
@@ -1573,28 +1572,35 @@ Please try again.")) ;
  * The dialogs for setting defaults from /etc/defaults/useradd
  * @return symbol for wizard sequencer
  */
-global define symbol DefaultsDialog() ``{
+define symbol DefaultsDialog() ``{
 
-return `next;
-    /*
     string home		= Users::GetDefaultHome ("local");
     string shell	= Users::GetDefaultShell ("local");
-    string skel		= Users::default_skel;
-    integer gid		= Users::default_gid;
-    string expire	= Users::default_expire;
-    string inactive	= Users::default_inactive;
-    string grouplist	= Users::GetDefaultGrouplist ("local");
-    integer inact	= tointeger(inactive);
+    integer gid		= Users::GetDefaultGID ("local");
     string defaultgroup	= Users::GetDefaultGroupname ("local");
-    string exp_date = "";
-    list available_groups = [];
-    list available_shells = Users::all_shells_items;
 
-    foreach (string grouptype, list groupset, UsersCache::groupnamelists, ``{
+    map defaults	= Users::GetLoginDefaults ();
+    string skel		= defaults["skel"]:"/etc/skel";
+    string expire	= defaults["expire"]:"";
+    string inactive	= defaults["inactive"]:"";
+    integer inact	= tointeger (inactive);
+
+    map<string,string> groups	= Users::GetDefaultGrouplist ("local");
+
+// FIXME return from Perl???
+    string grouplist	= "";/*mergestring (
+	(list<string>) maplist (string g,`i, groups, ``(g)), ",");*/
+
+    string exp_date		= "";
+    list available_groups	= [];
+    list available_shells	= Users::AllShells ();
+
+    map all_groupnames		= UsersCache::GetAllGroupnames ();
+    foreach (string grouptype, map groupmap, all_groupnames, ``{
 	// only local sets
 	if (!contains (["local", "system"], grouptype))
 	    return;
-        foreach (string group, groupset, ``{
+        foreach (string group, integer val, groupmap, ``{
             if ( group == defaultgroup )
                 available_groups = add (available_groups,
                     `item( `id(group), group, true));
@@ -1609,7 +1615,6 @@ return `next;
         exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat (
 		"date --date='1970-01-01 00:00:01 %1 days' ", expire) +
 		"+\"%Y-%m-%d\"")), "stdout", "");
-        // remove \n from the end
         exp_date = deletechars (exp_date, "\n");
     }
 
@@ -1717,15 +1722,15 @@ return `next;
 	    // check new grouplist...
 	    if (new_grouplist != grouplist)
 	    {
-		list l_grouplist = [];
-		list dont_exist = [];
+		list<string> l_grouplist = [];
+		list<string> dont_exist = [];
 		foreach (string g, splitstring (new_grouplist, ","), ``{
 		    // check for group existence
-		    if (!contains (UsersCache::groupnamelists["local"]:[],g) &&
-			!contains (UsersCache::groupnamelists["system"]:[], g))
-			dont_exist = union (dont_exist, [g]);
+		    if (all_groupnames["local", g]:"" == "" &&
+			all_groupnames["system", g]:"" == "")
+			dont_exist = (list<string>) union (dont_exist, [g]);
 		    // filter out the duplicates
-		    else l_grouplist = union (l_grouplist, [g]);
+		    else l_grouplist = (list<string>) union (l_grouplist, [g]);
 		});
 		if (dont_exist != [])
 		{
@@ -1787,7 +1792,7 @@ Create it now?
             // check the shell existence
             if (shell != new_shell)
             {
-                if (! contains (Users::all_shells, new_shell))
+                if (! contains (available_shells, new_shell))
                 {
                     // Yes-No popup
                     if (! Popup::YesNo (_("If you select a nonexistent shell, the user
@@ -1849,20 +1854,20 @@ Try again.
     }
     if (modified)
     {
-        map new_defaults = $[
+        map<string,string> new_defaults = $[
             "home": new_home,
             "shell": new_shell,
             "skel": new_skel,
             "group": sformat ("%1", lookup (
-                Users::GetGroupByName (new_defgroup, "local"), "gidNumber",gid)),
+                Users::GetGroupByName (new_defgroup, "local"),"gidNumber",gid)),
             "inactive": sformat("%1", new_inact),
             "expire": new_expire,
 	    "groups": new_grouplist
         ];
-        Users::SetDefaults(new_defaults, new_defgroup);
+        Users::SetLoginDefaults (new_defaults, new_defgroup);
     }
 
-    return ret;*/
+    return ret;
 }
 
 
@@ -1870,9 +1875,7 @@ Try again.
  * Choosing the user authentization method
  * @return symbol for sequencer
  */
-global define symbol AuthentizationDialog() ``{
-
-return `next;/*
+define symbol AuthentizationDialog() ``{
 
     list configurable = [ "nis", "nisplus", "ldap", "kerberos", "samba" ];
 
@@ -1903,7 +1906,7 @@ return `next;/*
      * appropriate module
      * @param client
      * @return
-     *
+     */
     define string get_module_data (string client) ``{
 
 	string ret = "";
@@ -1924,6 +1927,7 @@ return `next;/*
 	    Nis::Read();
 	    ret = Nis::ShortSummary();
 	}
+	/*
 	else if (client == "nisplus")
 	{
 	    import "Nisplus";
@@ -1936,6 +1940,7 @@ return `next;/*
 	    Kerberos::Read();
 	    ret = Kerberos::ShortSummary();
 	}
+	*/
 	else if (client == "samba")
 	{
 	    import "Samba";
@@ -1948,7 +1953,7 @@ return `next;/*
 
     /**
      * Reloads the configuration and updates the auth-widget contents
-     *
+     */
     define void reload_config() ``{
 
         string summary = "";
@@ -2031,25 +2036,28 @@ Install it now?
 
     if (changed)
     {
-	boolean was_nis_available = Users::is_nis_available;
+	boolean was_nis_available = Users::IsNISAvailable ();
 	Users::ReadSourcesSettings();
 	// enabling NIS could add + lines!
 	// TODO what about some general solution?
-	if (was_nis_available != Users::is_nis_available)
+	if (was_nis_available != Users::IsNISAvailable ())
 	{
-	    if (Users::is_nis_available) // nis enabled now
+	    if (Users::IsNISAvailable ()) // nis enabled now
 	    {
+		y2error ("FIXME: + lines have to be added!");
+		/*
 		Users::plus_passwd	= "+::::::";
 		Users::plus_group	= "+:::";
 		Users::plus_shadow	= "+";
+		*/
 	    }
 	}
 	// LDAP settings could be modified...??? (re_read_ldap)
 	// FIXME Ldap::file_server wasn't updated
 	// autologin could have been changed
-        Users::BuildMenuButtonItems();
+//        Users::BuildMenuButtonItems(); TODO -> GetSetItems in widgets.ycp (automaticaly?)...
     }
-    return (symbol) button;*/
+    return (symbol) button;
 }
 
 
@@ -2057,7 +2065,7 @@ Install it now?
  * Just giving paramaters for commiting user
  * @return symbol for wizard sequencer
  */
-global define symbol UserSave() ``{
+define symbol UserSave() ``{
 
     Users::CommitUser ();
     // adding only one user during install
@@ -2071,115 +2079,11 @@ global define symbol UserSave() ``{
  * Just giving paramaters for commiting group
  * @return symbol for wizard sequencer
  */
-global define symbol GroupSave() ``{
+define symbol GroupSave() ``{
 
     Users::CommitGroup ();
     return `next;
 }
-
-/**
- * FIXME: move to ui_routines.ycp/dialogs.ycp?
- * Let user choose the encryption method.
- **/
-global define string EncryptionDialog() ``{
-
-      string method = Users::EncryptionMethod ();
-
-      // Help text for password expert dialog 1/5
-      string help_text = _("<p>
-<b>This is for experts only.</b>
-</p>");
-
-      // Help text for password expert dialog 2/5
-      help_text = help_text + _("<p>
-Choose a password encryption method for local and system users.
-<b>DES</b>, the Linux default method, works in all network environments, but it
-restricts passwords to eight characters or less.
-</p>
-");
-
-      // Help text for password expert dialog 3/5
-      help_text = help_text + _("<p>
-<b>MD5</b> allows longer passwords, thus provides more security, but some
-network protocols don't support this, and you may have problems with NIS.
-</p>");
-
-      // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-      // Help text for password expert dialog 5/5
-      help_text = help_text + _("<p>
-As a general rule of thumb, use DES if you are unsure.
-</p>");
-
-      UI::OpenDialog(
-	`VBox(
-	  // Label
-	  `Heading( _("Set Password Encryption") ),
-	  `VSpacing( 0.7 ),
-	  `HBox(
-		`HSpacing( 2 ),
-		`RadioButtonGroup(
-		// frame label
-		`Frame( _("Encryption Type"),
-		  `VBox(
-		  `VSpacing( 0.5 ),
-		  // Radio buttons for password encryption: DES-crypt
-		  `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-			method == "des" ) ),
-		  // Radio buttons for password encryption: MD5-crypt
-		  `Left(`RadioButton(`id(`md5), _("&MD5"),
-			method == "md5" ) ),
-		  // Radio buttons for password encryption: blowfish-crypt
-		  `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-			method == "blowfish" ) )
-		  )
-		)),
-		`HSpacing( 2 )
-	  ),
-	  `VSpacing( 0.5 ),
-	  `HBox(
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`ok), `opt(`default, `key_F10),
-		    Label::OKButton() )),
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`cancel), `opt (`key_F9),
-		    Label::CancelButton())),
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`help), `opt (`key_F2),
-		    Label::HelpButton() ) ),
-		`HStretch()
-	  )
-	));
-
-      any button = nil;
-
-      do
-      {
-	  button = UI::UserInput();
-
-	  if ( button == `help )
-	  {
-	      Wizard::ShowHelp( help_text );
-	  }
-	  else if ( button == `ok )
-	  {
-	      if      ( (boolean) UI::QueryWidget( `id(`des), `Value ) )
-		  method = "des";
-	      else if ( (boolean) UI::QueryWidget( `id(`md5), `Value ) )
-		  method = "md5";
-	      else if ( (boolean) UI::QueryWidget( `id(`blowfish), `Value ) )
-		  method = "blowfish";
-	      y2milestone( "Changing encryption method to %1", method );
-	  }
-      } while ( button != `ok && button != `cancel );
-
-      UI::CloseDialog();
-      return method;
-};
-
 
 /* EOF */
 }

@@ -14,7 +14,6 @@ textdomain "users";
 
 import "Wizard";
 import "Mode";
-import "Popup";
 import "Label";
 
 import "UsersCache";
@@ -31,15 +30,16 @@ import "CWM";
 include "users/widgets.ycp";
 
 
-global define symbol SummaryDialog() ``{
+define symbol SummaryDialog() ``{
 
     term contents = `VBox (
 	`HBox (`Left ("rb_users_groups")),
-        "table"
+        "table",
+	"advanced_buttons"
     );
 
     any ret = CWM::ShowAndRun (
-	["rb_users_groups", "table" ], //"add", "edit", "delete" ],
+	["rb_users_groups", "table", "advanced_buttons" ],
 	widgets,
 	contents,
 	// dialog caption
@@ -71,7 +71,7 @@ global define symbol SummaryDialog() ``{
 }
 
 //FIXME too complicated...
-global define symbol CWMEditUserDialog (string what) ``{
+define symbol CWMEditUserDialog (string what) ``{
 
     // global initialozation for whole dialog
     map dialog_labels = $[
@@ -158,7 +158,7 @@ global define symbol CWMEditUserDialog (string what) ``{
  * @param start the first dialog
  * @return sequence result
  */
-global define symbol MainSequence(string start) ``{
+define symbol MainSequence(string start) ``{
 
     map aliases = $[
 	"summary":		``(SummaryDialog ()),
@@ -333,7 +333,7 @@ global define symbol MainSequence(string start) ``{
  * @param start the first dialog
  * @return sequence result
  */
-global define symbol UsersSequence(string start) ``{
+define symbol UsersSequence(string start) ``{
 
     map aliases = $[
 	"read"  : [ ``( ReadDialog(!Mode::cont)), true ],
@@ -382,7 +382,7 @@ global define symbol UsersSequence(string start) ``{
  * @param start the first dialog
  * @return sequence result
  */
-global define symbol AutoSequence(string start) ``{
+define symbol AutoSequence(string start) ``{
     string caption = _("User and Group Configuration");
     term contents = `Label(_("Initializing ..."));
 

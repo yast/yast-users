@@ -30,13 +30,7 @@ include "users/helps.ycp";
  * Return a modification status
  * @return true if data was modified
  */
-global define boolean Modified() ``{
-    /*
-    return (Users::users_modified || Users::groups_modified ||
-        Users::customs_modified || Users::ldap_modified ||
-        Users::defaults_modified || Users::security_modified ||
-	Autologin::modified);
-    */
+define boolean Modified() ``{
     return Users::Modified () || Autologin::modified;
 }
 
@@ -46,7 +40,7 @@ global define boolean Modified() ``{
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
-global define symbol ReadDialog (boolean useUI ) ``{
+define symbol ReadDialog (boolean useUI ) ``{
 
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( ReadDialogHelp () );
@@ -61,6 +55,7 @@ global define symbol ReadDialog (boolean useUI ) ``{
     return ret; FIXME
     */
     symbol ret = Users::Read () ? `next : `back;
+y2internal ("term: %1", Users::GetTerm ());
     return ret;
 }
 
@@ -69,7 +64,7 @@ global define symbol ReadDialog (boolean useUI ) ``{
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
-global define symbol WriteDialog (boolean useUI ) ``{
+define symbol WriteDialog (boolean useUI ) ``{
 
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
@@ -89,7 +84,7 @@ global define symbol WriteDialog (boolean useUI ) ``{
  * Set the module to normal setup mode
  * @return symbol for wizard sequencer
  */
-global define symbol userSetup () ``{
+define symbol userSetup () ``{
     Users::SetStartDialog ("users") ;
     return `next;
 }
@@ -99,7 +94,7 @@ global define symbol userSetup () ``{
  * first dialog for single user addition
  * @return symbol for wizard sequencer
  */
-global define symbol usersInstStart () ``{
+define symbol usersInstStart () ``{
     Users::SetStartDialog ("user_add") ;
     Users::AddUser ($[]);
     return `next;
@@ -110,7 +105,7 @@ global define symbol usersInstStart () ``{
  * The dialog that appears when the [Abort] button is pressed.
  * @return `abort if user really wants to abort
  */
-global define symbol ReallyAbort() ``{
+define symbol ReallyAbort() ``{
 
     boolean ret = true;
 
@@ -131,130 +126,10 @@ global define symbol ReallyAbort() ``{
 }
 
 /**
- * Define the switch between Users and Groups administration.
- * This is used in UsersDialog and GroupsDialog.
- * @param what what can be `users or `groups
- * @return term RadioButtonGroup widget
- */
-global define term rbUsersGroup(symbol what) ``{
-    string curr = "";
-    /* FIXME
-    if (what == `users)
-    {
-        if (size (Users::GetCurrentUsers ()) == 1)
-            curr = Users::userset_to_string[Users::current_users[0]:"custom"]:"";
-        else
-            curr = Users::userset_to_string["custom"]:"";
-    }
-    else
-    {
-        if (size (Users::current_groups) == 1)
-            curr = Users::groupset_to_string[Users::current_groups[0]:"custom"]:"";
-        else
-            curr = Users::groupset_to_string["custom"]:"";
-    }
-    curr = deletechars (curr, "&");
-    */
-    return
-        `HBox(
-        `Left(`RadioButtonGroup(`HBox(
-            `RadioButton(`id(`switch_users), `opt(`notify),
-                // pushbutton
-                _("&Users"), what == `users),
-            `RadioButton(`id(`switch_groups), `opt(`notify),
-                // pushbutton
-                _("&Groups"), what == `groups)
-        ))),
-        `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
-        );
-}
-
-/**
- * Dialog for definition of customized view
- * @param what "user" or "group"
- * @return true if customs were odified
- */
-global define boolean CustomizePopup(string what) ``{
-
-    term view = `VBox();
-    string label = "";
-    list sets = [];
-    list custom_sets = [];
-    map set_to_string = $[];
-
-    /* FIXME
-    if (what == "user")
-    {
-        sets = filter (`set, Users::available_usersets, ``(set != "custom"));
-        custom_sets = Users::user_custom_sets;
-        set_to_string = Users::userset_to_string;
-		// Frame label
-        label = _("Customize the View of the User List");
-    }
-    else
-    {
-        sets = filter (`set, Users::available_groupsets, ``(set != "custom"));
-        custom_sets = Users::group_custom_sets;
-        set_to_string = Users::groupset_to_string;
-		// Frame label
-        label = _("Customize the View of the Group List");
-    }
-    */
-
-    foreach (`set, sets, ``{
-        view = add (view, `VSpacing(0.5));
-        if ( contains (custom_sets, set) )
-	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
-		true)));
-        else
-	    view = add (view, `Left(`CheckBox(`id(set), set_to_string [set]:"",
-		false)));
-    });
-    view = add (view, `VSpacing(0.5));
-
-    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
-        `VBox(
-            `HSpacing(40),
-            `VSpacing(0.5),
-	        `Frame(label, view),
-            `VSpacing(0.5),
-	    `HBox(
-	        `PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
-		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
-	    ),
-            `VSpacing(0.5)),
-        `HSpacing(1.5)
-    ));
-    any ret = UI::UserInput();
-    boolean modified = false;
-    list<string> new_customs = [];
-    if (ret == `ok)
-    {
-        foreach (`set, sets, ``{
-            if ((boolean)UI::QueryWidget(`id(set), `Value))
-            {
-                new_customs = add (new_customs, set);
-                if (! contains (custom_sets, set)) modified = true;
-            }
-            else
-            {
-                if (contains (custom_sets, set)) modified = true;
-            }
-        });;
-    }
-    UI::CloseDialog();
-    if (modified)
-    {
-        modified = Users::ChangeCustoms (what, new_customs);
-    }
-    return modified;
-}
-
-/**
  * Popup for configuration user/group filter for making the LDAP search
  * @return modified?
  */
-global define boolean LDAPSearchFilterPopup () ``{
+define boolean LDAPSearchFilterPopup () ``{
 
     /* FIXME
 
@@ -372,488 +247,6 @@ Try again.
     */
     return false;
 }
-
-/**
- * @return modified?
- **/
-global define boolean AutologinPopup() ``{
-
-    string help_text = AutologinPopupHelp();
-    boolean ret = false;
-
-    string user		= Autologin::user;
-    boolean pw_less	= Autologin::pw_less;
-    boolean auto_used	= (user != "");
-
-    // TODO check if nis/ldap users were read?
-
-    list usernames	= UsersCache::GetUsernames ("local");
-
-    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
-        `VBox(
-            `HSpacing(40),
-            `VSpacing(0.5),
-		// frame label
-	        `Frame(_("KDM Login Settings"), `HBox(
-		  `HSpacing (0.5),
-		  `VBox(
-		    `VSpacing(0.5),
-		    `Left(`CheckBox (`id(`auto),`opt (`notify),
-			// checkbox label
-			_("Enable &Autologin"), auto_used)),
-		    `VSpacing(0.2),
-		    `HBox (
-			`HSpacing (4), // move text under the checkbox
-			`Left(`ComboBox (`id(`autouser),
-			    // textentry label
-			    _("&User logged in"), usernames))
-		    ),
-		    `VSpacing(0.5),
-		    `Left(`CheckBox (`id(`pw_less),
-			// checkbox label
-			_("&Enable password less logins"), pw_less)),
-		    `VSpacing(0.5)
-		  ),
-		  `HSpacing(0.5)
-		)),
-            `VSpacing(0.5),
-	    `HBox(
-		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
-	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
-	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
-	    ),
-            `VSpacing(0.5)),
-        `HSpacing(1.5)
-    ));
-
-    if (user != "")
-	UI::ChangeWidget (`id (`autouser), `Value, user);
-    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
-
-    symbol button = nil;
-    do
-    {
-	button = (symbol) UI::UserInput();
-
-	if ( button == `help )
-	{
-	    Wizard::ShowHelp( help_text );
-	}
-	if ( button == `auto )
-	{
-	    auto_used = (boolean) UI::QueryWidget (`id(`auto), `Value);
-	    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
-	}
-    } while ( !contains ([`ok, `cancel, `abort], button));
-
-    if (button == `ok)
-    {
-	user = (auto_used) ?(string)UI::QueryWidget (`id(`autouser), `Value):"";
-	pw_less = (boolean) UI::QueryWidget (`id(`pw_less), `Value);
-
-	if (user != Autologin::user || pw_less != Autologin::pw_less)
-	{
-	    ret = true;
-	    Autologin::used	= auto_used;
-	    Autologin::user	= user;
-	    Autologin::pw_less	= pw_less;
-	    Autologin::modified = true;
-	}
-    }
-    UI::CloseDialog();
-    return ret;
-};
-
-
-
-/**
- * The first of the two main (summary) dialogs -- list of the users.
- * @return symbol for wizard sequencer
- */
-global define symbol OldUsersDialog() ``{
-
-    /**
-     * Helper function for reading again current user/group lists if necessary
-     * For use inside UsersDialog
-     */
-    define void re_read_ldap () ``{
-
-	y2error ("FIXME");
-/*
-	// re-read the list when LDAP are shown
-	if (contains (UsersCache::current_users, "ldap"))
-	{
-	    string set = (size(UsersCache::current_users) == 1)?"ldap":"custom";
-	    Users::ChangeCurrentUsers (set);
-	    UsersCache::user_itemlist = UsersCache::users_itemlists[set]:[];
-	    UI::ChangeWidget(`id(`user_table), `Items,
-		UsersCache::user_itemlist);
-	}
-	// modify the list of groups also!
-	if (contains (UsersCache::current_groups, "ldap"))
-	{
-	    string set = (size(UsersCache::current_groups)== 1)?"ldap":"custom";
-	    Users::ChangeCurrentGroups (set);
-	    UsersCache::group_itemlist = UsersCache::groups_itemlists[set]:[];
-	}
-*/
-    }
-
-    list expert_list = [
-	    // menubutton label
-	    `item(`id(`defaults), _("De&faults for New Users")),
-    ];
-    if (!Mode::config)
-    {
-	expert_list = merge (expert_list, [
-	    // menubutton label
-	    `item(`id(`enc), _("Password &Encryption")),
-	    // menubutton label
-	    `item(`id(`auth), _("&Authentication and User Sources"))
-	]);
-	if (Autologin::available)
-	{
-	    expert_list = add (expert_list,
-		// menubutton label
-		`item(`id(`autologinconf), _("&Login Settings")));
-	}
-	/* FIXME
-	if (Users::is_ldap_available)
-	{
-	    if (!Users::ldap_modified)
-	    {
-		expert_list = add (expert_list,
-		    // menubutton label
-		    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
-	    }
-	}
-	*/
-    }
-
-    Users::SetStartDialog ("users");
-    term contents = `VBox(
-        `ReplacePoint (`id(`rp), rbUsersGroup(`users)),
-        `Table(`id(`user_table), `opt(`notify),
-            // table header
-            `header( _("Login"),
-            // table header
-             _("Name"),
-            // table header
-             _("UID"),
-            // table header
-             _("Groups")), [] ), // do not read until the dialog is displayed
-        `HBox (
-            `PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
-            `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
-            `PushButton(`id(`delete), `opt(`key_F5), Label::DeleteButton ()),
-            `HStretch()),
-        `HBox(
-            // MenuButton label
-            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"), []),
-//                Users::GetAvailableUserSets ()),
-//                Users::available_usersets_items), FIXME
-            // PushButon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
-            // PushButon
-            `MenuButton(`id(`expertlist), _("E&xpert Options..."),
-                expert_list),
-            `HStretch()
-	)
-    );
-
-    string lastbutton =  Label::FinishButton() ;
-    if( Mode::cont )
-        lastbutton =  Label::NextButton() ;
-
-    Wizard::SetContentsButtons(
-                    // dialog caption
-                    _("User and Group Administration"),
-                    contents,
-                    UsersDialogHelp(),
-                    Label::BackButton(),
-                    lastbutton );
-
-y2internal ("6");
-//FIXME    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::GetUserItems ());
-
-    /* FIXME
-    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
-    if (size (UsersCache::user_itemlist) > 0)
-	UI::SetFocus (`id(`user_table));
-
-
-    if( UsersCache::focusline_user != nil)
-        UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
-    */
-
-    any ret = `next;
-    repeat
-    {
-        ret = UI::UserInput();
-
-        if ( contains (Users::GetAvailableUserSets (), ret) )
-        {
-            if (Users::ChangeCurrentUsers ((string)ret))
-            {
-		/* FIXME
-                UsersCache::user_itemlist = UsersCache::users_itemlists[ret]:[];
-
-                UI::ChangeWidget(`id(`user_table),`Items,
-                    UsersCache::user_itemlist);
-                if (ret == "custom")
-                    UsersCache::customized_usersview = true;
-                else
-                    UsersCache::customized_usersview = false;
-		*/
-                UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
-            }
-            ret = `not_next;
-        }
-        if ( ret == `switch_users)
-        {
-            ret = `not_next;
-        }
-        if ( ret == `customize)
-        {
-	    /* FIXME
-            if ( CustomizePopup ("user") && UsersCache::customized_usersview)
-                UI::ChangeWidget(`id(`user_table), `Items,
-                    UsersCache::user_itemlist);
-            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
-	    */
-            ret = `not_next;
-        }
-
-	/*
-        if ( ret == `ldapconf )
-        {
-	    // run LDAP client now
-            if (`next == CallFunction("ldap", []))
-	    {
-// FIXME: `next is returned also when writing to LDAP failed...
-		if (!Users::ldap_not_read && !Users::ldap_modified &&
-		    // yes/no popup
-		    Popup::YesNo (_("Reread all data from LDAP server?")))
-		{
-		    Users::ldap_not_read = true;
-		    Users::ldap_filters_read = false;
-		    Users::ldap_initialized = false;
-		    Users::ReadLDAPSettings();
-		    re_read_ldap();
-		}
-	    }
-            ret = `not_next;
-        }
-	*/
-	if ( ret == `ldapfilter )
-	{
-	    // change of search filter (only when LDAP was not modified yet)
-	    if (LDAPSearchFilterPopup())
-	    {
-//FIXME		Users::ldap_not_read = true;
-		re_read_ldap ();
-	    }
-            ret = `not_next;
-	}
-        if ( ret == `enc)
-        {
-            ret = `not_next;
-		/* FIXME
-	    string enc = EncryptionDialog();
-	    if (enc != Users::encryptionMethod)
-	    {
-		Users::encryptionMethod = enc;
-		Users::pass_length ["local", "max"] =
-		    Security::PasswordMaxLengths [Users::encryptionMethod]:8;
-		Users::security_modified = true;
-	    }
-		*/
-        }
-	if (ret == `autologinconf)
-	{
-            ret = `not_next;
-	    AutologinPopup();
-	}
-        if ( ret == `user_table )
-            ret = `edit;
-        if ( ret == `edit  || ret == `delete )
-        {
-            any selected = UI::QueryWidget(`id(`user_table), `CurrentItem);
-            if (selected != nil)
-            {
-                Users::SelectUser((integer)selected );
-//                if (ret == `delete) ret = DeleteUserPopup();
-            }
-            else
-            {
-                // error popup
-                Report::Message(_("Please select an entry in the user table"));
-                ret = `not_next;
-            }
-        }
-
-        if ( ret == `next && Mode::cont ) //FIXME&& !Users::users_modified)
-        {
-            // yes-no popup contents
-            if ( !Popup::YesNo( _("You have not added any users. This only makes sense
-in a network environment with an authentication server.
-
-Are you sure?
-")))
-                ret = `not_next;
-        }
-
-    } until ( ret != `not_next );
-
-    if (ret == `back)
-    {
-        if (Mode::cont)
-        {
-            Users::SetStartDialog ("user_add");
-        }
-        Users::SetUseNextTime (true);
-    }
-//TODO    UsersCache::focusline_user = (integer)UI::QueryWidget(`id(`user_table),`CurrentItem);
-
-    if (!Mode::cont && ret == `next && !Modified())
-        ret = `nosave;
-
-    return (symbol)ret;
-}
-
-
-/**
- * The second of the two main dialogs.
- * @return symbol for wizard sequencer
- */
-global define symbol GroupsDialog() ``{
-
-    /*
-
-    term contents = `VBox(
-        `ReplacePoint (`id(`rp), rbUsersGroup(`groups)),
-        `Table(`id(`group_table ), `opt(`notify),
-            // table header
-             `header(_("Group name"),
-            // table header
-            _("Group ID"),
-            // table header
-            _("Group members")),
-            []),// defer the reading until the dialog is displayed
-        `HBox (
-            `PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
-            `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
-            `PushButton(`id(`delete), `opt(`key_F5), Label::DeleteButton ()),
-            `HStretch()),
-        `HBox(
-            // MenuButton label
-            `MenuButton(`opt(`key_F2), _("&Set Filter"),
-                Users::available_groupsets_items),
-            // PushButyon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
-            `HStretch())
-    );
-
-    string lastbutton = Label::FinishButton();
-    if( Mode::cont )
-        lastbutton =  Label::NextButton();
-
-    // dialog caption
-    Wizard::SetContentsButtons(_("User and Group Administration"),
-                        contents,
-                        GroupsDialogHelp(),
-                        Label::BackButton(),
-                        lastbutton );
-
-    UI::ChangeWidget (`id (`group_table), `Items, UsersCache::group_itemlist);
-
-    if (size (UsersCache::group_itemlist) > 0)
-	UI::SetFocus (`id(`group_table));
-
-    if( UsersCache::focusline_group != nil )
-        UI::ChangeWidget(`id(`group_table), `CurrentItem, UsersCache::focusline_group );
-
-    // save marked table entry to group_in_work
-    any ret = `next;
-    repeat
-    {
-        ret = UI::UserInput();
-
-        if( contains (Users::available_groupsets, ret) )
-        {
-            if (Users::ChangeCurrentGroups ((string)ret))
-            {
-                UsersCache::group_itemlist=UsersCache::groups_itemlists[ret]:[];
-
-                UI::ChangeWidget(`id(`group_table), `Items,
-                    UsersCache::group_itemlist);
-                if (ret == "custom")
-                    UsersCache::customized_groupsview = true; // already set
-                else
-                    UsersCache::customized_groupsview = false;
-                UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
-            }
-            ret = `not_next;
-        }
-        if( ret == `customize)
-        {
-            if ( CustomizePopup ("group") && UsersCache::customized_groupsview)
-                UI::ChangeWidget(`id(`group_table), `Items,
-                    UsersCache::group_itemlist);
-            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
-            ret = `not_next;
-        }
-
-        // double click
-        if( ret == `group_table )
-            ret = `edit;
-
-        if( ret == `switch_groups)
-        {
-            ret = `not_next;
-        }
-
-        if ( ret == `edit  || ret == `delete )
-        {
-            integer selected = (integer)UI::QueryWidget(`id(`group_table), `CurrentItem);
-            if( selected != nil )
-            {
-                Users::SelectGroup( selected );
-                UsersCache::group_type = Users::group_in_work["type"]:"local";
-                if (UsersCache::group_type == "nis")
-                {
-                    // error popup
-                    Report::Message (_("To edit or delete a NIS group,
-you must do it on server.
-"));
-                    ret = `not_next;
-                }
-                else if (ret == `delete)
-                    ret = DeleteGroupPopup();
-            }
-            else
-            {
-                // error popup
-                Report::Error(_("Please select an entry in the group table"));
-                ret = `not_next;
-            }
-        }
-        if ( ret == `new )
-        {
-            Users::group_in_work = $[];
-        }
-    } until ( ret != `not_next  );
-
-    UsersCache::focusline_group = (integer)UI::QueryWidget(`id(`group_table),`CurrentItem);
-
-    if (!Mode::cont && ret == `next && !Modified())
-        ret = `nosave;
-
-    return (symbol)ret;
-    */
-    return `next;
-}
-
 
 
 /* EOF */

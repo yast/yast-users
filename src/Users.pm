@@ -17,6 +17,10 @@ use YaST::YCP qw(Boolean Term);
 
 our %TYPEINFO;
 
+# If YaST UI (Qt,ncurses should be used). When this is off, some helper
+# UI-related structures won't be generated.
+my $use_ui			= 1;
+
 # What client to call after authentication dialog during installation:
 # could be "users","nis","nisplus" or "ldap", for more see inst_auth.ycp
 my $after_auth			= "users";
@@ -79,8 +83,8 @@ my %useradd_defaults		= (
 
 my $tmpdir			= "/tmp";
 # which sets of users are available:
-my @available_usersets		= [ "system", "local"];
-my @available_groupsets		= [ "system", "local"];
+my @available_usersets		= ();
+my @available_groupsets		= ();
 
 # available shells (read from /etc/shells)
 my %all_shells 			= ();
@@ -93,6 +97,9 @@ my $customs_modified 		= 0;
 my $defaults_modified 		= 0;
 my $security_modified 		= 0;
 
+# variables describing available users sets:
+my $is_nis_available 		= 0;
+my $is_ldap_available 		= 0;
 my $is_nis_master		= 0;
 
 my $useradd_cmd 		= "";
@@ -154,7 +161,17 @@ YaST::YCP::Import ("UsersCache");
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
 
+sub contains {
 
+    foreach my $key (@{$_[0]}) {
+	if ($key eq $_[1]) { return 1; }
+    }
+    return 0;
+}
+
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
     return sprintf ("%u", `date +%s` / (60*60*24));
@@ -180,6 +197,11 @@ sub Modified {
 		$security_modified;
 
     return $ret;
+}
+
+BEGIN { $TYPEINFO{IsNISAvailable} = ["function", "boolean"]; }
+sub IsNISAvailable {
+    return $is_nis_available;
 }
 
 BEGIN { $TYPEINFO{GetRootMail} = ["function", "string"]; }
@@ -222,33 +244,141 @@ sub SetUseNextTime {
 
 BEGIN { $TYPEINFO{GetAvailableUserSets} = ["function", ["list", "string"]]; }
 sub GetAvailableUserSets {
-    return \@available_usersets;
+    return @available_usersets;
 }
 
 BEGIN { $TYPEINFO{GetAvailableGroupSets} = ["function", ["list", "string"]]; }
 sub GetAvailableGroupSets {
-    return \@available_groupsets;
+    return @available_groupsets;
 }
     
+##------------------------------------
+BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
+sub GetCurrentUsers {
+    return @current_users;
+}
+
+BEGIN { $TYPEINFO{GetCurrentGroups} = ["function", ["list", "string"]]; }
+sub GetCurrentGroups {
+    return @current_groups;
+}
+
+##------------------------------------
+# Change the current users set, additional reading could be necessary
+# @param new the new current set
+BEGIN { $TYPEINFO{ChangeCurrentUsers} = ["function", "boolean", "string"];}
+sub ChangeCurrentUsers {
+
+    my $new 	= $_[0];
+    my @backup	= @current_users;
+
+    if ($new eq "custom") {
+        @current_users = @user_custom_sets;
+    }
+    else {
+        @current_users = ( $new );
+    }
+
+#    if (contains (current_users, "ldap") && ldap_not_read)
+#    {
+#        if (!ReadNewSet ("ldap"))
+#        {
+#            current_users = backup;
+#            return false;
+#        }
+#    }
+#
+#    if (contains (current_users, "nis") && nis_not_read)
+#    {
+#        if (!ReadNewSet ("nis"))
+#        {
+#            current_users = backup;
+#            return false;
+#        }
+#    } TODO LDAP, NIS
+
+    # correct also possible change in custom itemlist
+    if ($new eq "custom") {
+	UsersCache::SetCustomizedUsersView (1);
+    }
+
+    UsersCache::SetCurrentUsers (\@current_users);
+    return 1;
+}
+
+##------------------------------------
+# Change the current group set, additional reading could be necessary
+# @param new the new current set
+BEGIN { $TYPEINFO{ChangeCurrentGroups} = ["function", "boolean", "string"];}
+sub ChangeCurrentGroups {
+
+    my $new 	= $_[0];
+    my @backup	= @current_groups;
+
+    if ($new eq "custom") {
+        @current_groups = @group_custom_sets;
+    }
+    else {
+        @current_groups = ( $new );
+    }
+
+#    if (contains (current_groups, "ldap") && ldap_not_read)
+#    {
+#        if (!ReadNewSet ("ldap"))
+#        {
+#            current_groups = backup;
+#            return false;
+#        }
+#    }
+#
+#    if (contains (current_groups, "nis") && nis_not_read)
+#    {
+#        if (!ReadNewSet ("nis"))
+#        {
+#            current_groups = backup;
+#            return false;
+#        }
+#    } TODO LDAP, NIS
+
+    # correct also possible change in custom itemlist
+    if ($new eq "custom") {
+	UsersCache::SetCustomizedGroupsView (1);
+    }
+
+    UsersCache::SetCurrentGroups (\@current_groups);
+    return 1;
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{ChangeCustoms} = ["function",
-    "void",
+    "boolean",
     "string", ["list","string"]];
 }
 sub ChangeCustoms {
 
-    #TODO
+    my @new	= @{$_[1]};
+
+    if ($_[0] eq "users") {
+        my @old			= @user_custom_sets;
+        @user_custom_sets 	= @new;
+        $customs_modified	= ChangeCurrentUsers ("custom");
+        if (!$customs_modified) {
+            @user_custom_sets 	= @old;
+	}
+    }
+    else
+    {
+        my @old			= @group_custom_sets;
+        @group_custom_sets 	= @new;
+        $customs_modified	= ChangeCurrentGroups ("custom");
+        if (!$customs_modified) {
+            @group_custom_sets 	= @old;
+	}
+    }
+    return $customs_modified;
 }
 
-BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
-sub GetCurrentUsers {
-    return \@current_users;
-}
-
-BEGIN { $TYPEINFO{ChangeCurrentUsers} = ["function", "boolean", "string"];}
-sub ChangeCurrentUsers {
-    return 1;
-#TODO
-}
 
 BEGIN { $TYPEINFO{AllShells} = ["function", ["list", "string"]];}
 sub AllShells {
@@ -279,15 +409,6 @@ sub SetAskUppercase {
 }
     
     
-##------------------------------------
-#sub contains {
-#
-#    foreach my $key (@{$_[0]}) {
-#	if ($key eq $_[1]) { return 1; }
-#    }
-#    return 0;
-#}
-
 ##------------------------------------
 BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
@@ -413,6 +534,7 @@ sub GetDefaultGID {
 	    $default_groupname	= $group{"groupname"};
 	}
     }
+y2internal ("gid: $gid");
     return $gid;
 }
 
@@ -483,6 +605,40 @@ sub GetDefaultGroupname {
     }
     else {
         return $default_groupname;
+    }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetLoginDefaults} = ["function",
+    ["map", "string", "string"]];
+}
+sub GetLoginDefaults {
+    
+    return \%useradd_defaults;   
+}
+
+# Change the structure with default values (/etc/defaults/useradd)
+# @param new_defaults new values
+# @param groupname the name of dew default group
+##------------------------------------
+BEGIN { $TYPEINFO{SetLoginDefaults} = ["function",
+    "void",
+    ["map", "string", "string"], "string"];
+}
+sub SetLoginDefaults {
+
+    my %data		= %{$_[0]};
+    $default_groupname	= $_[1];
+
+    foreach my $key (keys %data) {
+        if ($data{$key} ne  $useradd_defaults{$key}) {
+            $useradd_defaults{$key} = $data{$key};
+	    $defaults_modified = 1;
+	}
+    };
+
+    if (substr ($useradd_defaults{"home"}, -1, 1) eq "/") {
+	chop $useradd_defaults{"home"};
     }
 }
 
@@ -666,6 +822,16 @@ sub FindGroupsBelongUser {
 ##-------------------------------------------------------------------------
 ##----------------- read routines -----------------------------------------
 
+BEGIN { $TYPEINFO{GetUserCustomSets} = [ "function", ["list", "string"]]; }
+sub GetUserCustomSets {
+    return @user_custom_sets;
+}
+
+BEGIN { $TYPEINFO{GetGroupCustomSets} = [ "function", ["list", "string"]]; }
+sub GetGroupCustomSets {
+    return @group_custom_sets;
+}
+
 ##------------------------------------
 # Reads the set of values in "Custom" filter from disk and other internal
 # variables ("not_ask")
@@ -724,12 +890,12 @@ sub ReadAllShells {
 BEGIN { $TYPEINFO{ReadSourcesSettings} = ["function", "void"]; }
 sub ReadSourcesSettings {
 
-    @available_usersets		= [ "local", "system" ];
-    @available_groupsets	= [ "local", "system" ];
+    @available_usersets		= ( "local", "system" );
+    @available_groupsets	= ( "local", "system" );
 
-    my $is_nis_available	= 1;#FIXME IsNISAvailable ();
-    $is_nis_master 		= 0;#IsNISMaster ();
-    my $is_ldap_available 	= 1;#IsLDAPAvailable ();
+    $is_nis_available		= 0;#FIXME ReadNISAvailable ();
+    $is_nis_master 		= 0;#ReadNISMaster ();
+    $is_ldap_available 		= 0;#ReadLDAPAvailable ();
 
     if (!$is_nis_master && $is_nis_available) {
         push @available_usersets, "nis";
@@ -922,6 +1088,8 @@ sub Read {
     ReadLocal ();
 
     UsersCache::Read ();
+    UsersCache::SetCurrentUsers (\@user_custom_sets);
+    UsersCache::SetCurrentGroups (\@group_custom_sets);
 
     Autologin::Read ();
 
@@ -1240,14 +1408,30 @@ BEGIN { $TYPEINFO{AddUser} = ["function",
 sub AddUser {
 
     my %data	= %{$_[0]};
+    my $type;
 
-    my $type	= "local"; #TODO look into current_users/groups for default type
-    if (defined $data{"type"}) {
-	$type = $data{"type"};
-    }
     if (!%data) {
 	ResetCurrentUser ();
 	# adding totaly new entry - e.g. from the summary table
+	# Must be called, or some old entries in user_in_work could be used!
+    }
+
+    if (defined $data{"type"}) {
+	$type = $data{"type"};
+    }
+
+    # guess the type of new user from the list of users currently shown
+    if (!defined $type) {
+	$type	= "local";
+	my $i	= @current_users - 1;
+	while ($i >= 0 )
+	{
+	    # nis user cannot be added from client
+	    if ($current_users[$i] ne "nis") {
+		$type = $current_users[$i];
+	    }
+	    $i --;
+	}
     }
 
     foreach my $key (keys %data) {
@@ -1258,7 +1442,7 @@ sub AddUser {
 	    $user_in_work{$key}	= $data{$key};
 	}
     }
-#TODO if "what" already exists, we can return
+#TODO if "what" already exists, we can return (Substitute...?)
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
@@ -1347,17 +1531,32 @@ BEGIN { $TYPEINFO{AddGroup} = ["function",
 sub AddGroup {
 
     my %data	= %{$_[0]};
-    my $type	= "local"; #TODO look into current_groups for default type
+    my $type;
+
+    if (!%data) {
+	ResetCurrentGroup ();
+    }
 
     if (defined $data{"type"}) {
 	$type = $data{"type"};
     }
-    if (!%data) {
-	ResetCurrentGroup ();
+    # guess the type of new group from the list of groups currently shown
+    if (!defined $type) {
+	$type	= "local";
+	my $i	= @current_groups - 1;
+	while ($i >= 0 ) {
+	    # nis group cannot be added from client
+	    if ($current_groups[$i] ne "nis") {
+		$type = $current_groups[$i];
+	    }
+	    $i --;
+	}
     }
+
     foreach my $key (keys %data) {
 	$group_in_work{$key}	= $data{$key};
     }
+
     $group_in_work{"type"}		= $type;
     $group_in_work{"what"}		= "add_group";
 	
@@ -1933,9 +2132,10 @@ sub WriteCustomSets {
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
 #    SCR::Write (".target.ycp", Directory::vardir."/users.ycp", \%customs);
-    SCR::Write (".target.ycp", "/var/lib/YaST2/users.ycp", \%customs);
+    my $ret = SCR::Write (".target.ycp", "/var/lib/YaST2/users.ycp", \%customs);
 
-    return 1;
+    y2milestone ("Custom user information written: ", $ret);
+    return $ret;
 }
 
 ##------------------------------------
@@ -2894,3 +3094,11 @@ sub CryptRootPassword {
 #    }
     $root_password = CryptPassword ($root_password, "system");
 }
+
+BEGIN { $TYPEINFO{GetTerm} = ["function", "term"];}
+sub GetTerm {
+    
+    return YaST::YCP::Term ("CzechBox", "Accept spam", YaST::YCP::Boolean (0));
+
+}
+

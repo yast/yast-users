@@ -1,16 +1,248 @@
 /**
- * Widgets for Users module
+ * File:	include/users/widgets.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Widgets definitions and helper functions
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
  */
 {
 
 import "Label";
 import "Users";
+import "Autologin";
+
+    // values to MenuItem in Summary dialog
+    map userset_to_string = $[
+	// the type of user set
+        "system":    _("&System Users"),
+	// the type of user set
+        "local":     _("&Local Users"),
+        // the type of user set
+        "nis":       _("&NIS Users"),
+        // the type of user set
+        "ldap":      _("L&DAP Users"),
+        // the type of user set
+        "samba":     _("Sam&ba Users"),
+        // the type of user set
+        "custom":    _("&Custom")
+    ];
+
+    // values to MenuItem in Summary dialog
+    map groupset_to_string = $[
+        // the type of group set
+        "system":    _("&System Groups"),
+        // the type of group set
+        "local":     _("&Local Groups"),
+        // the type of group set
+        "nis":       _("&NIS Groups"),
+        // the type of group set
+        "ldap":      _("L&DAP Groups"),
+        // the type of group set
+        "samba":     _("Sam&ba Groups"),
+        // the type of group set
+	"custom":    _("&Custom")
+    ];
+
+/**
+ * Popup for choosing the password encryption method.
+ **/
+define string EncryptionPopup() ``{
+
+      string method = Users::EncryptionMethod ();
+
+      // Help text for password expert dialog 1/5
+      string help_text = _("<p>
+<b>This is for experts only.</b>
+</p>");
+
+      // Help text for password expert dialog 2/5
+      help_text = help_text + _("<p>
+Choose a password encryption method for local and system users.
+<b>DES</b>, the Linux default method, works in all network environments, but it
+restricts passwords to eight characters or less.
+</p>
+");
+
+      // Help text for password expert dialog 3/5
+      help_text = help_text + _("<p>
+<b>MD5</b> allows longer passwords, thus provides more security, but some
+network protocols don't support this, and you may have problems with NIS.
+</p>");
+
+      // Help text for password expert dialog 4/5
+      help_text = help_text + _("<p>
+<b>Blowfish</b> is similar to MD5, but uses a different algorithm
+to encrypt passwords.
+</P>");
+      // Help text for password expert dialog 5/5
+      help_text = help_text + _("<p>
+As a general rule of thumb, use DES if you are unsure.
+</p>");
+
+      UI::OpenDialog(
+	`VBox(
+	  // Label
+	  `Heading( _("Set Password Encryption") ),
+	  `VSpacing( 0.7 ),
+	  `HBox(
+		`HSpacing( 2 ),
+		`RadioButtonGroup(
+		// frame label
+		`Frame( _("Encryption Type"),
+		  `VBox(
+		  `VSpacing( 0.5 ),
+		  // Radio buttons for password encryption: DES-crypt
+		  `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+			method == "des" ) ),
+		  // Radio buttons for password encryption: MD5-crypt
+		  `Left(`RadioButton(`id(`md5), _("&MD5"),
+			method == "md5" ) ),
+		  // Radio buttons for password encryption: blowfish-crypt
+		  `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
+			method == "blowfish" ) )
+		  )
+		)),
+		`HSpacing( 2 )
+	  ),
+	  `VSpacing( 0.5 ),
+	  `HBox(
+		`HStretch(),
+		`HWeight(1, `PushButton(`id(`ok), `opt(`default, `key_F10),
+		    Label::OKButton() )),
+		`HStretch(),
+		`HWeight(1, `PushButton(`id(`cancel), `opt (`key_F9),
+		    Label::CancelButton())),
+		`HStretch(),
+		`HWeight(1, `PushButton(`id(`help), `opt (`key_F2),
+		    Label::HelpButton() ) ),
+		`HStretch()
+	  )
+	));
+
+      any button = nil;
+
+      do
+      {
+	  button = UI::UserInput();
+
+	  if ( button == `help )
+	  {
+	      Wizard::ShowHelp( help_text );
+	  }
+	  else if ( button == `ok )
+	  {
+	      if      ( (boolean) UI::QueryWidget( `id(`des), `Value ) )
+		  method = "des";
+	      else if ( (boolean) UI::QueryWidget( `id(`md5), `Value ) )
+		  method = "md5";
+	      else if ( (boolean) UI::QueryWidget( `id(`blowfish), `Value ) )
+		  method = "blowfish";
+	      y2milestone( "Changing encryption method to %1", method );
+	  }
+      } while ( button != `ok && button != `cancel );
+
+      UI::CloseDialog();
+      return method;
+};
+
+/**
+ * @return modified?
+ **/
+define boolean AutologinPopup() ``{
+
+    string help_text = AutologinPopupHelp();
+    boolean ret = false;
+
+    string user		= Autologin::user;
+    boolean pw_less	= Autologin::pw_less;
+    boolean auto_used	= (user != "");
+
+    // TODO check if nis/ldap users were read?
+
+    list usernames	= UsersCache::GetUsernames ("local");
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+		// frame label
+	        `Frame(_("KDM Login Settings"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`auto),`opt (`notify),
+			// checkbox label
+			_("Enable &Autologin"), auto_used)),
+		    `VSpacing(0.2),
+		    `HBox (
+			`HSpacing (4), // move text under the checkbox
+			`Left(`ComboBox (`id(`autouser),
+			    // textentry label
+			    _("&User logged in"), usernames))
+		    ),
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`pw_less),
+			// checkbox label
+			_("&Enable password less logins"), pw_less)),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    if (user != "")
+	UI::ChangeWidget (`id (`autouser), `Value, user);
+    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+
+    symbol button = nil;
+    do
+    {
+	button = (symbol) UI::UserInput();
+
+	if ( button == `help )
+	{
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `auto )
+	{
+	    auto_used = (boolean) UI::QueryWidget (`id(`auto), `Value);
+	    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+	}
+    } while ( !contains ([`ok, `cancel, `abort], button));
+
+    if (button == `ok)
+    {
+	user = (auto_used) ?(string)UI::QueryWidget (`id(`autouser), `Value):"";
+	pw_less = (boolean) UI::QueryWidget (`id(`pw_less), `Value);
+
+	if (user != Autologin::user || pw_less != Autologin::pw_less)
+	{
+	    ret = true;
+	    Autologin::used	= auto_used;
+	    Autologin::user	= user;
+	    Autologin::pw_less	= pw_less;
+	    Autologin::modified = true;
+	}
+    }
+    UI::CloseDialog();
+    return ret;
+};
+
 
 /**
  * Popup for deleting user
  * @return symbol for sequencer
  */
-global define symbol DeleteUserPopup() ``{
+define symbol DeleteUserPopup() ``{
 
     boolean delete      = true;
     boolean delete_home = false;
@@ -116,7 +348,7 @@ Do you really want to delete the user %1?
  * Popup for deleting group
  * @return symbol for sequencer
  */
-global define symbol DeleteGroupPopup() ``{
+define symbol DeleteGroupPopup() ``{
 
     boolean delete	= true;
     string type		= UsersCache::GetGroupType ();
@@ -164,12 +396,146 @@ Remove these users from the group first.
     return `delete;
 }
 
+/**
+ * Dialog for definition of customized view
+ * @param what "users" or "groups"
+ * @return true if customs were odified
+ */
+define boolean CustomizePopup (string what) ``{
+
+    term view = `VBox();
+    string label = "";
+    list sets = [];
+    list custom_sets = [];
+    map set_to_string = $[];
+
+    if (what == "users")
+    {
+        sets = filter (string set, Users::GetAvailableUserSets (),
+	    ``(set != "custom"));
+        custom_sets = Users::GetUserCustomSets ();
+        set_to_string = userset_to_string;
+	// Frame label
+        label = _("Customize the View of the User List");
+    }
+    else
+    {
+        sets = filter (string set, Users::GetAvailableGroupSets (),
+	    ``(set != "custom"));
+        custom_sets = Users::GetGroupCustomSets ();
+        set_to_string = groupset_to_string;
+	// Frame label
+        label = _("Customize the View of the Group List");
+    }
+
+    foreach (string set, sets, ``{
+        view = add (view, `VSpacing(0.5));
+        if ( contains (custom_sets, set) )
+	    view = add (view,
+		`Left(`CheckBox(`id(set), set_to_string [set]:"", true)));
+        else
+	    view = add (view,
+		`Left(`CheckBox(`id(set), set_to_string [set]:"", false)));
+    });
+    view = add (view, `VSpacing(0.5));
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+	    `Frame(label, view),
+            `VSpacing(0.5),
+	    `HBox(
+	        `PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+    any ret = UI::UserInput();
+    boolean modified = false;
+    list<string> new_customs = [];
+    if (ret == `ok)
+    {
+        foreach (`set, sets, ``{
+            if ((boolean)UI::QueryWidget(`id(set), `Value))
+            {
+                new_customs = add (new_customs, set);
+                if (! contains (custom_sets, set)) modified = true;
+            }
+            else
+            {
+                if (contains (custom_sets, set)) modified = true;
+            }
+        });;
+    }
+    UI::CloseDialog();
+    if (modified)
+    {
+        modified = Users::ChangeCustoms (what, new_customs);
+    }
+    return modified;
+}
+
+define list GetSetsItems (string set) ``{
+
+    list items = [];
+    if (set == "users")
+    {
+	foreach (string set, Users::GetAvailableUserSets (), ``{
+	    items = add (items, `item (`id(set), userset_to_string [set]:""));
+	});
+    }
+    else
+    {
+	foreach (string set, Users::GetAvailableGroupSets (), ``{
+	    items = add (items, `item (`id(set), groupset_to_string [set]:""));
+	});
+    }
+    return items;
+}
+
+define list GetExpertList () ``{
+
+    // TODO do not generate always -> expert_list_changed
+    list expert_list = [
+	// menubutton label
+	`item(`id(`defaults), _("De&faults for New Users")),
+    ];
+    if (!Mode::config)
+    {
+	expert_list = merge (expert_list, [
+	    // menubutton label
+	    `item(`id(`enc), _("Password &Encryption")),
+	    // menubutton label
+	    `item(`id(`auth), _("&Authentication and User Sources"))
+	]);
+	if (Autologin::available)
+	{
+	    expert_list = add (expert_list,
+	        // menubutton label
+		`item(`id(`autologinconf), _("&Login Settings")));
+	}
+	/* TODO LDAP
+	if (Users::is_ldap_available)
+	{
+	    if (!Users::ldap_modified)
+	    {
+		expert_list = add (expert_list,
+		    // menubutton label
+		    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
+	    }
+	}
+	*/
+    }
+    return expert_list;
+}
+
 //================================================================
 
 
-global define void SummaryTableInit (string widget_id) ``{
+define void SummaryTableInit (string widget_id) ``{
 
-    y2internal ("---------- init table ----");
     list items			= [];
     string current_summary	= UsersCache::GetCurrentSummary ();
     if (current_summary == "users")
@@ -224,11 +590,10 @@ global define void SummaryTableInit (string widget_id) ``{
 	integer focusline = UsersCache::GetCurrentFocus ();
 	if (focusline != nil)
 	    UI::ChangeWidget (`id(widget_id), `CurrentItem, focusline);
-	// FIXME not called after Add/Edit?
     }
 }
 
-global define any SummaryTableHandler (string widget_id, map event) ``{
+define any SummaryTableHandler (string widget_id, map event) ``{
 
     y2internal ("---------- handle table, event: %1 ----", event);
     any ev_id = event["ID"]:nil;
@@ -241,7 +606,6 @@ global define any SummaryTableHandler (string widget_id, map event) ``{
     {
 	if (UsersCache::GetCurrentSummary () == "users")
 	{
-//		Users::ResetCurrentUser ();
 	    Users::AddUser ($[]);
 //		Users::CheckUID () existence TODO
 	}
@@ -252,12 +616,13 @@ global define any SummaryTableHandler (string widget_id, map event) ``{
     }
     if (ev_id == `edit || ev_id == `delete)
     {
-        any selected = UI::QueryWidget (`id("table"), `CurrentItem);
+        integer selected = (integer)UI::QueryWidget (`id("table"),`CurrentItem);
         if (selected != nil)
         {
+	    UsersCache::SetCurrentFocus (selected);
 	    if (UsersCache::GetCurrentSummary () == "users")
 	    {
-		Users::SelectUser ((integer)selected);
+		Users::SelectUser (selected);
 		if (ev_id == `delete)
 		{
 		    ev_id = DeleteUserPopup ();
@@ -269,25 +634,21 @@ global define any SummaryTableHandler (string widget_id, map event) ``{
 	    }
 	    else
             {
-                Users::SelectGroup ((integer)selected);
-		/* TODO check NIS groups
-                UsersCache::group_type = Users::group_in_work["type"]:"local";
-                if (UsersCache::group_type == "nis")
+                Users::SelectGroup (selected);
+		Users::EditGroup ($[]);
+                if (UsersCache::GetGroupType () == "nis")
                 {
                     // error popup
                     Report::Message (_("To edit or delete a NIS group,
 you must do it on server.
 "));
-                    ret = `not_next;
+                    ev_id = nil;
                 }
-		*/
 
                 if (ev_id == `delete)
 		{
                     ev_id = DeleteGroupPopup();
 		}
-		else
-		    Users::EditGroup ($[]);
             }
         }
         else
@@ -300,33 +661,131 @@ you must do it on server.
     return ev_id;
 }
 
-global define void RadioButtonsUsersGroupsInit (string widget_id) ``{
+define void RadioButtonsUsersGroupsInit (string widget_id) ``{
 
-    UI::ChangeWidget (`id (UsersCache::GetCurrentSummary ()), `Value, true);
+    string current_summary	= UsersCache::GetCurrentSummary ();
+
+    string curr = "";
+    if (current_summary == "users")
+    {
+	list current_users = Users::GetCurrentUsers ();
+        if (UsersCache::CustomizedUsersView ())
+            curr = userset_to_string["custom"]:"";
+	else
+            curr = userset_to_string[current_users[0]:"custom"]:"";
+    }
+    else
+    {
+	list current_groups = Users::GetCurrentGroups ();
+        if (UsersCache::CustomizedGroupsView ())
+            curr = groupset_to_string["custom"]:"";
+	else
+            curr = groupset_to_string[current_groups[0]:"custom"]:"";
+    }
+    // label, e.g. 'Filter: Local Users', 'Filter: NIS Groups', 'Filter: Custom'
+    curr = sformat (_("Filter: %1"), deletechars (curr, "&"));
+
+    UI::ReplaceWidget (`id(`rprb), `HBox (
+	    `Left (`RadioButtonGroup (`HBox(
+		// radiobutton
+		`RadioButton (`id ("users"), `opt(`notify), _("&Users")),
+		// radiobutton
+		`RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
+	    ))),
+	    `Right (`Label (`id(`current_filter), curr))
+    ));
+    UI::ChangeWidget (`id (current_summary), `Value, true);
 }
 
-global define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
+define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
 
-    y2internal ("---------- handle rb ----");
     if (!(boolean)
 	UI::QueryWidget (`id (UsersCache::GetCurrentSummary ()),`Value))
     {
 	UsersCache::ChangeCurrentSummary ();
 	SummaryTableInit ("table");//FIXME is it OK to call it from here?
+
+	UI::ReplaceWidget (`id(`rpfilter), `HBox(
+            // MenuButton label
+            `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
+                GetSetsItems (UsersCache::GetCurrentSummary ()))
+	));
     }
 }
 
+define void AdvancedButtonsInit (string widget_id) ``{
+
+    UI::ReplaceWidget (`id(`rpfilter), `HBox(
+	// MenuButton label
+        `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
+	    GetSetsItems (UsersCache::GetCurrentSummary ()))
+    ));
+}
+
+define any AdvancedButtonsHandler (string widget_id, map event) ``{
+
+    y2internal ("---------- handle advanced, event: %1 ----", event);
+    any ev_id			= event["ID"]:nil;
+    string current_summary	= UsersCache::GetCurrentSummary ();
+    if (current_summary == "users" &&
+	contains (Users::GetAvailableUserSets (), ev_id))
+    {
+        if (Users::ChangeCurrentUsers ((string) ev_id))
+        {
+            UsersCache::SetCustomizedUsersView (ev_id == "custom");
+	    SummaryTableInit ("table");
+	    RadioButtonsUsersGroupsInit ("rb_users_groups");
+        }
+	return nil;
+    }
+    if (current_summary == "groups" &&
+	contains (Users::GetAvailableGroupSets (), ev_id))
+    {
+        if (Users::ChangeCurrentGroups ((string) ev_id))
+        {
+            UsersCache::SetCustomizedGroupsView (ev_id == "custom");
+	    SummaryTableInit ("table");
+	    RadioButtonsUsersGroupsInit ("rb_users_groups");
+        }
+	return nil;
+    }
+    if (ev_id == `customize)
+    {
+        if (CustomizePopup (current_summary) &&
+	    UsersCache::CustomizedUsersView ())
+	{
+	    SummaryTableInit ("table");
+	}
+	RadioButtonsUsersGroupsInit ("rb_users_groups");
+	return nil;
+    }
+    if (ev_id == `enc)
+    {
+	string enc = EncryptionPopup ();
+	Users::SetEncryptionMethod (enc);
+	return nil;
+    }
+    if (ev_id == `autologinconf)
+    {
+	AutologinPopup();
+	return nil;
+    }
+    return ev_id;
+}
 
 map widgets = $[
     "rb_users_groups" : $[
         "widget"		: `custom,
         "help"			: _("Help for radio buttons"),
-	"custom_widget"		: `RadioButtonGroup (`HBox(
+	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox ()),
+	 /*
+	 `RadioButtonGroup (`HBox(
 	    // radiobutton
 	    `RadioButton (`id ("users"), `opt(`notify), _("&Users")),
 	    // radiobutton
 	    `RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
 	)),
+	*/
         "init"			: RadioButtonsUsersGroupsInit,
         "handle"		: RadioButtonsUsersGroupsHandler,
 	"handle_events"		: [ "users", "groups" ]
@@ -336,17 +795,6 @@ map widgets = $[
         "help"			: _("help for table"),
 	"custom_widget"		: `VBox (
 	    `ReplacePoint (`id(`rptable), `VBox ()),
-	    /*
-	    `Table (`id("table"), `opt(`notify), `header(
-		// table header
-		_("Login"),
-		// table header
-		_("Name"),
-		// table header
-		_("UID"),
-		// table header
-		_("Groups")), [] )),
-	    */
 	    `HBox (
 		`PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
 		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
@@ -356,6 +804,25 @@ map widgets = $[
 	"init"			: SummaryTableInit,
 	"handle"		: SummaryTableHandler,
 	"handle_events"		: [ "table", `new, `edit, `delete ],
+    ],
+    "advanced_buttons" : $[
+        "widget"		: `custom,
+        "help"			: _("help for buttons"),
+	"custom_widget"		: `HBox (
+	    `ReplacePoint (`id (`rpfilter), `HBox ()),
+            // PushButon
+            `PushButton (`id(`customize), `opt(`key_F6),_("Customi&ze Filter")),
+            // Menu Buton label
+            `MenuButton (`id(`expertlist), _("E&xpert Options..."),
+                GetExpertList ()),
+            `HStretch()
+	),
+	"init"			: AdvancedButtonsInit,
+	"handle"		: AdvancedButtonsHandler,
+	"handle_events"		: [
+	    // these are for user/group types
+	    "local", "system", "ldap", "nis", "custom",
+	    `defaults, `customize, `enc, `auth, `autologinconf, `ldapfilter ]
     ],
     /*
     "user_name_entries": $[

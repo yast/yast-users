@@ -19,7 +19,6 @@ my %usernames		= (); #TODO used by phone-services, mail, inetd...
 my %homes		= ();
 my %uids		= ();
 my %user_items		= ();
-my @current_user_items	= ();
 my %userdns		= ();
 
 my %groupnames		= ();
@@ -70,7 +69,7 @@ our $min_length_login 	= 2;
 our $max_length_groupname 	= 8; # TODO:why only 8?
 our $min_length_groupname	= 2;
 
-# UI-related variables:
+# UI-related (summary table) variables:
 my $focusline_user;
 my $focusline_group;
 my $current_summary	= "users";
@@ -80,8 +79,17 @@ my @proposed_usernames	= ();
 # number of clicks of "Propose" (-1 means: generate new list)
 my $proposal_count	= -1;
 
-# which sets of users are in 'custom' view
-my @user_custom_sets	= ();
+# list of references to list of current user items
+my @current_user_items	= ();
+my @current_group_items	= ();
+
+# which sets of users are we working with:
+my @current_users	= ();
+my @current_groups	= ();
+
+# Is the currrent table view "customized"?
+my $customized_usersview	= 1;
+my $customized_groupsview	= 1;
 
 ##------------------------------------
 ##------------------- global imports
@@ -111,31 +119,28 @@ sub ProposeUsername {
 	@proposed_usernames	= ();
 	# do not propose username with uppercase (problematic: bug #26409)
 	my @parts 		= split (/ /, lc ($cn));
-	my @tested_usernames 	= @parts;
+	my %tested_usernames 	= ();
 
 	# 1st: add some interesting modifications...
 	my $i = 0;
+	foreach my $part (@parts) { #TODO use 'map'
+	    $tested_usernames{$part}	= 1;
+	}
 	while ($i < @parts - 1) {
 	    my $j = $i;
 	    while ($j < @parts - 1) {
-#		tested_usernames = union ( [ parts[i]:"" + parts[j+1]:"" ],
-#		    tested_usernames);
-#		tested_usernames = union (
-#		    [ substring (parts[i]:"", 0, 1) + parts[j+1]:parts[0]:""],
-#		    tested_usernames);
-#		tested_usernames = union (
-#		    [ parts[j+1]:"" + substring (parts[i]:"", 0, 1)],
-#		    tested_usernames );
-#		tested_usernames = union ( [ parts[j+1]:"" + parts[i]:""],
-#		    tested_usernames ); TODO
+		$tested_usernames{$parts[$i].$parts[$j+1]}	= 1;
+		$tested_usernames{$parts[$j+1].$parts[$i]}	= 1;
+		$tested_usernames{substr ($parts[$i], 0, 1).$parts[$j+1]} = 1;
+		$tested_usernames{$parts[$j+1].substr ($parts[$i], 0, 1)} = 1;
 		$j++;
 	    }
 	    $i++;
 	}
-	push @tested_usernames, $default_login;
+	$tested_usernames{$default_login}	= 1;
 
 	# 2nd: check existence
-	foreach my $name (@tested_usernames) {
+	foreach my $name (sort keys %tested_usernames) {
 	    my $name_count = 0;
 	    while (UsernameExists ($name)) {
 		$name .= "$name_count";
@@ -178,6 +183,60 @@ sub DebugMap {
 	}
     }
     y2internal ("--------------------------- end of output");
+}
+
+##-------------------------------------------------------------------------
+##----------------- current users (group) routines, customization r. ------
+
+BEGIN { $TYPEINFO{SetCurrentUsers} = ["function", "void", ["list", "string"]];}
+sub SetCurrentUsers {
+
+    @current_users	= @{$_[0]}; # e.g. ("local", "system")
+
+    @current_user_items = ();
+    foreach my $type (@current_users) {
+	push @current_user_items, $user_items{$type};
+	# e.g. ( pointer to "local items", pointer to "system items")
+    };
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetCustomizedUsersView} = ["function", "void", "boolean"];}
+sub SetCustomizedUsersView {
+    $customized_usersview = $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{CustomizedUsersView} = ["function", "boolean"];}
+sub CustomizedUsersView {
+    return $customized_usersview;
+}
+
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetCurrentGroups} = ["function", "void", ["list", "string"]];}
+sub SetCurrentGroups {
+
+    @current_groups	= @{$_[0]}; # e.g. ("local", "system")
+y2warning ("--------------- current g: ", @current_groups);
+
+    @current_group_items = ();
+    foreach my $type (@current_groups) {
+	push @current_group_items, $group_items{$type};
+	# e.g. ( pointer to "local items", pointer to "system items")
+    };
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetCustomizedGroupsView} = ["function", "void", "boolean"];}
+sub SetCustomizedGroupsView {
+    $customized_groupsview = $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{CustomizedGroupsView} = ["function", "boolean"];}
+sub CustomizedGroupsView {
+    return $customized_groupsview;
 }
 
 ##-------------------------------------------------------------------------
@@ -338,6 +397,19 @@ sub GetCurrentFocus {
 }
 
 #------------------------------------
+BEGIN { $TYPEINFO{SetCurrentFocus} = ["function", "void", "integer"]; }
+sub SetCurrentFocus {
+
+    if ($current_summary eq "users") {
+	$focusline_user = $_[0];
+    }
+    else {
+	$focusline_group = $_[0];
+    }
+}
+
+
+#------------------------------------
 BEGIN { $TYPEINFO{GetCurrentSummary} = ["function", "string"]; }
 sub GetCurrentSummary {
     return $current_summary;
@@ -363,10 +435,10 @@ sub ChangeCurrentSummary {
 
 
 #------------------------------------ for User Details...
-BEGIN { $TYPEINFO{GetGroupnames} = ["function",
+BEGIN { $TYPEINFO{GetAllGroupnames} = ["function",
     ["map", "string", ["map", "string", "integer"]] ];
 }
-sub GetGroupnames {
+sub GetAllGroupnames {
 
     return \%groupnames;
 }
@@ -375,18 +447,14 @@ sub GetGroupnames {
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
-    return \@{keys %{$usernames{$_[0]}}};
+    return keys %{$usernames{$_[0]}};
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetUserItems} = ["function", ["list", "string"]];}
 sub GetUserItems {
 
-    # FIXME: should return current itemlist
-
-#    return values %{$user_items{"local"}};
-#    return sort values %current_user_items;
-# [ pointer to local hash, pointer to system hash, ...]
+# ( pointer to local hash, pointer to system hash, ...)
 
     my @items;
     foreach my $itemref (@current_user_items) {
@@ -403,10 +471,15 @@ sub GetUserItems {
 BEGIN { $TYPEINFO{GetGroupItems} = ["function", ["list", "string"]];}
 sub GetGroupItems {
 
-    # FIXME: should return current itemlist
-
-    return values %{$group_items{"local"}};
+    my @items;
+    foreach my $itemref (@current_group_items) {
+	foreach my $id (sort keys %{$itemref}) {
+	    push @items, $itemref->{$id};
+	}
+    }
+    return @items;
 }
+
 ##------------------------------------
 BEGIN { $TYPEINFO{GetUserType} = ["function", "string"]; }
 sub GetUserType {
@@ -644,7 +717,6 @@ sub CommitUser {
     my $dn		= $user{"dn"} || $username;
     my $org_dn		= $user{"org_dn"} || $dn;
 
-#DebugMap (\%{$user_items{"local"}});
 
     if ($what eq "add_user") {
 	if ($type eq "ldap") {
@@ -717,7 +789,6 @@ sub CommitUser {
         UpdateUserItemlist ($type);
 	undef $focusline_user;
     }
-#DebugMap (\%{$uids{"local"}});
 }
 
 ##------------------------------------
@@ -805,7 +876,6 @@ sub InitConstants {
 ##------------------------------------
 sub ReadUsers {
 
-#use only for "special cases", not read by default: ldap and nis
     my $type	= $_[0];
 
     my $path 	= ".passwd.$type";
@@ -843,23 +913,9 @@ sub ReadGroups {
     $group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
 }
 
-##------------------------------------
-# Merge the users's item lists of types included in "custom view" to one list
-# @return new table itemlist
-sub MergeUserTableItems {
-
-    my @items	= ();
-    foreach my $type (@user_custom_sets) {
-# add only pointer to list? TODO check the performance!
-	push @items, $user_items{$type};
-    };
-    return @items;
-}
-
-
 
 ##------------------------------------
-BEGIN { $TYPEINFO{Read} = ["function", "void" ];}
+BEGIN { $TYPEINFO{Read} = ["function", "void"];}
 sub Read {
 
     # read data for local & system: passwd agent:
@@ -867,23 +923,8 @@ sub Read {
     ReadUsers ("system");
    # FIXME translate system names: SystemUsers in passwd.ycp
 
-    @user_custom_sets	= ( "local", "system" );#TODO get as parameter
-
-#    $user_items{"custom"}	= MergeUserTableItems ();#list, not hashref!
-#    $current_user_items		= $users_items{"custom"};
-#    @current_user_items		= @{$user_items{"custom"}};
-#    @current_user_items		= [ $user_items{"local"} ];
-    @current_user_items		= MergeUserTableItems ();
-
     ReadGroups ("local");
     ReadGroups ("system");
-
-#    groups_itemlists [ "custom" ] = MergeGroupTableItems();
-#    group_itemlist = groups_itemlists [ "custom" ]:[];
-
-#    current_users = user_custom_sets;
-
-   
 }
 
 # EOF
