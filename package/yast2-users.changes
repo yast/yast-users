@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jul 12 13:57:23 CEST 2004 - jsuchome@suse.cz
+
+- enhanced popup for creating LDAP search filter
+
+-------------------------------------------------------------------
 Tue Jun 29 20:50:54 CEST 2004 - jsuchome@suse.cz
 
 - enable/disable user checkbox (#32587)
