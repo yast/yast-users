@@ -41,7 +41,7 @@ Install it now?
             return CallFunction ("nis", WFM::Args ());
         }
         else
-            return `auto;
+            return `back;
     }
     else if (Users::after_auth == `nisplus)
     {
@@ -50,7 +50,7 @@ Install it now?
             return CallFunction ("nisplus", WFM::Args ());
         }
         else
-            return `auto;
+            return `back;
     }
     else if (Users::after_auth == `ldap)
     {
@@ -59,7 +59,7 @@ Install it now?
             return CallFunction ("ldap", WFM::Args ());
         }
         else
-            return `auto;
+            return `back;
     }
 
     // else run the users module
