@@ -525,7 +525,8 @@ sub CheckHomeMounted {
 
         if (!$mounted) {
             return sprintf (
-# Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
+# Popup text: first and third %s is the directory (e.g. /home),
+# second %s the file name (e.g. /etc/fstab)
 _("In %s, there is a mount point for the directory
 %s, which is used as a default home directory for new
 users, but this directory is not currently mounted.
@@ -1273,8 +1274,9 @@ sub Read {
 
     Autologin::Read ();
 
-    if (Mode::cont () ) {
+    if (Mode::cont ()) {
 	Autologin::Use (YaST::YCP::Boolean (1));
+	Autologin::pw_less (1);#FIXME is it necessary?
     }
 
     ReadAvailablePlugins ();
@@ -1441,7 +1443,6 @@ sub DeleteGroup {
     }
     return 0;
 }
-
 
 ##------------------------------------
 #Edit is used in 2 diffr. situations
@@ -1766,7 +1767,35 @@ BEGIN { $TYPEINFO{Add} = ["function",
 sub Add {
     return AddUser ($_[0]);
 }
-    
+
+##------------------------------------
+# Simplified version of Add/Edit user: just take arguments and copy them
+# to current user map; doesn't do any checks or default adds
+BEGIN { $TYPEINFO{UpdateUser} = ["function",
+    "void",
+    ["map", "string", "any" ]];		# data to change in user_in_work
+}
+sub UpdateUser {
+
+    my %data	= %{$_[0]};
+    foreach my $key (keys %data) {
+	# FIXME how to save Integer/Boolean values?
+	$user_in_work{$key}	= $data{$key};
+    }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{UpdateGroup} = ["function",
+    "void",
+    ["map", "string", "any" ]];		# data to change in user_in_work
+}
+sub UpdateGroup {
+
+    my %data	= %{$_[0]};
+    foreach my $key (keys %data) {
+	$group_in_work{$key}	= $data{$key};
+    }
+}    
 
 ##------------------------------------
 # Initializes group_in_work map with default values
@@ -2893,12 +2922,14 @@ sub CheckPasswordMaxLength {
     my $pw 		= $_[0];
     my $type		= UsersCache::GetUserType ();
     my $max_length 	= $max_pass_length{$type};
+    my $ret		= "";
 
     if (length ($pw) > $max_length) {
-        return sprintf (_("The password is too long for the current encryption method.
+	# popup question
+        $ret = sprintf (_("The password is too long for the current encryption method.
 Truncate it to %s characters?"), $max_length);
     }
-    return "";
+    return $ret;
 }
 
 ##------------------------------------
@@ -2918,6 +2949,7 @@ sub CheckPasswordUI {
 	my $error = CrackPassword ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
+	    # popup question
 	    $ret{"question"}	= sprintf (_("Password is too simple:
 %s
 Really use it?"), $error);
