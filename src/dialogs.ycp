@@ -481,6 +481,7 @@ Please try again."));
                 if ( nil != findfirstnotof( pw1, Users::valid_password_chars ))
                 {
 
+		// FIXME: add "^" as allowed...
                 // The user password contains restricted characters
                 // error popup
                 Report::Error(_("The password may only contain the following characters:
@@ -2293,7 +2294,6 @@ global define symbol AuthentizationDialog() ``{
     reload_config();
 
     any button = nil;
-
     do
     {
         button = UI::UserInput();
@@ -2312,7 +2312,8 @@ Install it now?
 		}
 		else continue;
 	    }
-            WFM::CallModule(call_module[button]:button, WFM::Args ());
+	    // FIXME use CallFunction...
+            WFM::CallModule(call_module[button]:button, []);
             reload_config ();
         }
     } while ( !contains ([`next, `abort, `back, `cancel], button) );
