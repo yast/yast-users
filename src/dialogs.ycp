@@ -1300,10 +1300,12 @@ define symbol PluginDialog (string what) ``{
 	string help	= _("<p>Here you can see the list of 'Plug-ins' - the 
 extensions of User and Group configuration.</p>") +
 
-	"FIXME" +
+	// helptext for plugin dialog 2/3
+	_("The check mark in the left part of the table indicates that plug-in
+is currently in use.") +
 
-	// helptxt for plugin dialog 2/2
-	_("<p>You can start particular plug-in by pushing the <b>Launch</b> button.</p>");
+	// helptext for plugin dialog 3/3
+	_("<p>You can start the detailed configuration of particular plug-in by pushing the <b>Launch</b> button.</p>");
 
 	list items = [];
 	foreach (string cl, clients, ``{
@@ -1355,7 +1357,7 @@ extensions of User and Group configuration.</p>") +
 		}
 		else
 		{
-//FIXME		    Users::AddGroupPlugin (plugin);
+		    Users::AddGroupPlugin (plugin);
 		    object = Users::GetCurrentGroup ();
 		}
 	    }
@@ -1380,13 +1382,11 @@ extensions of User and Group configuration.</p>") +
 		    Users::RemoveUserPlugin (plugin);
 		    object = Users::GetCurrentUser ();
 		}
-		/* TODO
 		else
 		{
 		    Users::RemoveGroupPlugin (plugin);
 		    object = Users::GetCurrentGroup ();
 		}
-		*/
 	    }
 	    if (ret == `run)
 	    {
@@ -1400,10 +1400,11 @@ extensions of User and Group configuration.</p>") +
 		    }
 		    else
 		    {
-//FIXME			Users::AddGroupPlugin (plugin);
+			Users::AddGroupPlugin (plugin);
 			object = Users::GetCurrentGroup ();
 		    }
-
+		    UI::ChangeWidget (`id(`table), `Item (client,0),
+			UI::Glyph (`CheckMark));
 		}
 		any plugin_ret = WFM::CallFunction (client, ["Dialog", $[
 		    "what"	: what ], object ]);
