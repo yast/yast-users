@@ -144,7 +144,7 @@ repeat {
     else if (ret == `local || ret == `network)
     {
 	boolean tmp = !(boolean)UI::QueryWidget (`id(`local), `Value);
-	foreach (`client, available_clients, ``{
+	foreach (string client, available_clients, ``{
 	    UI::ChangeWidget (`id(client), `Enabled, tmp);
 	});
     }
