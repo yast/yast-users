@@ -613,7 +613,7 @@ sub BuildUserItem {
     my $username	= $user{"username"} || "";
     my $full		= $user{"cn"} || "";
 
-#    if ($user_type eq "system") {
+#    if ($user{"type"} eq "system") {
 #	$full		= SystemUsers (full); FIXME translated names!
 #    }
 
@@ -651,14 +651,6 @@ sub BuildUserItemList {
 
 
 ##------------------------------------
-# Update the proper itemlist shown in table
-# @param type user type (system/local/...)
-sub UpdateUserItemlist {
-
-    #TODO
-}
-
-##------------------------------------
 # build item for one group
 sub BuildGroupItem {
 
@@ -674,8 +666,9 @@ sub BuildGroupItem {
     if (defined ($group{"more_users"})) {
 	%more_users	= %{$group{"more_users"}};
     }
-    if ($group_type eq "ldap") {
+    if ($group{"type"} eq "ldap") {
 	%userlist	= %{$group{"uniqueMember"}};
+	# TODO there are DN's, not usernames...
     }
 
     my @all_users	= ();
@@ -729,12 +722,6 @@ sub BuildGroupItemList {
 }
 
 
-sub UpdateGroupItemlist {
-
-    #TODO
-}
-
-
 ##------------------------------------
 # Update the cache after changing user
 # @param user the user's map
@@ -774,7 +761,6 @@ sub CommitUser {
 	}
 	$user_items{$type}{$uid}	= BuildUserItem (\%user);
 
-        UpdateUserItemlist ($type);
 	$focusline_user = $uid;
     }
     elsif ($what eq "edit_user" || $what eq "group_change") {
@@ -811,9 +797,7 @@ sub CommitUser {
 	if ($org_type ne $type)
 	{
 	    undef $focusline_user;
-	    UpdateUserItemlist ($org_type);
 	}
-        UpdateUserItemlist ($type);
     }
     elsif ($what eq "delete_user") {
 	if ($type eq "ldap") {
@@ -827,7 +811,6 @@ sub CommitUser {
 	$removed_uids{$type}{$uid}		= 1;
 	$removed_usernames{$type}{$username}	= 1;
 
-        UpdateUserItemlist ($type);
 	undef $focusline_user;
     }
 }
@@ -855,7 +838,6 @@ sub CommitGroup {
         $gids{$type}{$gid}		= 1;
         $groupnames{$type}{$groupname}	= 1;
 	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
-        UpdateGroupItemlist ($type);
 	$focusline_group = $gid;
     }
     if ($what eq "edit_group") {
@@ -875,16 +857,13 @@ sub CommitGroup {
 	delete $group_items{$org_type}{$org_gid};
 	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
 	if ($org_type ne $type) {
-	    UpdateGroupItemlist ($org_type);
 	    undef $focusline_group;
 	}
-        UpdateGroupItemlist ($type);
     }
     if ($what eq "delete_group") {
         delete $gids{$org_type}{$org_gid};
         delete $groupnames{$org_type}{$org_groupname};
 	delete $group_items{$org_type}{$org_gid};
-        UpdateGroupItemlist ($type);
 	undef $focusline_group;
     }
 }
@@ -923,7 +902,8 @@ sub ReadUsers {
     if ($type eq "ldap") {
 	$path 		= ".ldap";
         %userdns	= %{SCR::Read (".ldap.users.userdns")};
-	$user_items{$type}	= \%{SCR::Read ("$path.users.items")};
+#	$user_items{$type}	= \%{SCR::Read ("$path.users.items")};
+# FIXME looks like Perl cannot recognize YCPTerm... (?)
     }
     elsif ($type eq "nis") {
 	$path		= ".nis";
@@ -936,7 +916,6 @@ sub ReadUsers {
     $usernames{$type}	= \%{SCR::Read ("$path.users.usernames")};
     $uids{$type}	= \%{SCR::Read ("$path.users.uids")};
 
-#TODO NIS
     return 1;
 }
 
@@ -947,7 +926,7 @@ sub ReadGroups {
     my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
 	$path 	= ".$type";
-	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
+#FIXME	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
     }
     elsif ($type eq "nis") {
 	$path 	= ".$type";
