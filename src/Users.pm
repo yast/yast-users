@@ -1102,9 +1102,9 @@ sub ReadLocal {
     # id limits are necessary for differ local and system users
     my $init = SCR::Execute (".passwd.init", \%configuration);
     if (!$init) {
-	y2internal ("passwd agent init: $init");
-#	my $error = SCR::Read (".passwd.error"); TODO
-	return "passwd error";
+	my $error 	= SCR::Read (".passwd.error");
+	my $error_info	= SCR::Read (".passwd.error.info");
+	return UsersUI::GetPasswdErrorMessage ($error, $error_info);
     }
 
     foreach my $type ("local", "system") {
@@ -3888,7 +3888,6 @@ sub ExportUser {
     my $type	= $user->{"type"} || "local";
     my $username = $user->{"username"} || "";
     my %user_shadow	= ();
-
     my %translated = (
 	"shadowInactive"	=> "inact",
 	"shadowExpire"		=> "expire",
@@ -3900,31 +3899,61 @@ sub ExportUser {
 	"userPassword"		=> "password"
     );
     my %shadow_map	= %{CreateShadowMap ($user)};
+    my %org_user	= ();
+    if (defined $user->{"org_user"}) {
+	%org_user	= %{$user->{"org_user"}};
+    }
     foreach my $key (keys %shadow_map) {
 	my $new_key		= $translated{$key} || $key;
+	if ($key eq "userPassword" ||
+	    (defined $org_user{$key} && $shadow_map{$key} eq $org_user{$key}))
+	{
+	    # do not export passwod twice
+	    # do not export unchanged shadow values
+	    next;
+	}
 	$user_shadow{$new_key}	= $shadow_map{$key};
     }
 
-    my $encrypted	= $user->{"encrypted"};
+    # remove the keys, whose values were not changed
+    my %exported_user	= %{$user};
+    if (%org_user) {
+	foreach my $key (keys %org_user) {
+	    if (defined $user->{$key} && $user->{$key} eq $org_user{$key}) {
+		delete $exported_user{$key};
+	    }
+	}
+    }
+
+    my %ret		= (
+	"username"	=> $user->{"username"}
+    );
+
+    my %keys_to_export 	= (
+        "userPassword"	=> "user_password",
+	"cn"		=> "fullname",
+        "loginShell"	=> "shell",
+        "uidNumber"	=> "uid",
+        "gidNumber"	=> "gid",
+        "homeDirectory"	=> "home"
+    );
+    foreach my $key (keys %exported_user) {
+	if (defined $keys_to_export{$key}) {
+	    my $new_key		= $keys_to_export{$key};
+	    $ret{$new_key}	= $exported_user{$key};
+	}
+    }
+    my $encrypted	= $exported_user{"encrypted"};
     if (!defined $encrypted) {
 	$encrypted	= 1;
     }
-    my $grouplist	= "";
-    if (defined $user->{"grouplist"}) {
-	$grouplist	= join (",", keys %{$user->{"grouplist"}});
+    if (defined $ret{"user_password"}) {
+	$ret{"encrypted"}		= $encrypted;
     }
-    return {
-        "encrypted"		=> $encrypted,
-        "user_password"		=> $user->{"userPassword"} || "x",
-        "username"		=> $username,
-	"cn"			=> $user->{"cn"} || "",
-        "shell"			=> $user->{"loginShell"} || "",
-        "uid"			=> $user->{"uidNumber"},
-        "gid"			=> $user->{"gidNumber"},
-        "home"			=> $user->{"homeDirectory"} || "",
-        "grouplist"		=> $grouplist,
-        "password_settings"	=> \%user_shadow
-    };
+    if (%user_shadow) {
+	$ret{"password_settings"} 	= \%user_shadow;
+    }
+    return \%ret;
 #FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
 # better would be: leave the new values, but remove 'internal' ones
 
@@ -3967,6 +3996,7 @@ sub Export {
 	foreach my $user (values %{$users{"local"}}) {
 	    if ($export_all || defined $user->{"modified"}) {
 		push @exported_users, ExportUser ($user);
+#TODO export only changed values for "edited"
 	    }
 	}
     }
