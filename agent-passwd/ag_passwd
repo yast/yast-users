@@ -65,8 +65,8 @@ sub read_shadow () {
 		"shadowExpire"		=> $expire,
 		"shadowMin"		=> $min,
 		"shadowMax"		=> $max,
-		"shadowFlag"		=> $flag,
-		"userPassword"		=> $pass
+		"shadowFlag"		=> $flag
+#		"userPassword"		=> $pass
 	    };
 	}
 	else # plus line in /etc/shadow
@@ -427,7 +427,8 @@ while ( <STDIN> )
 	    }
 	    my $error = read_all ();
 	    if ($error > 0) {
-		ycp::Return("false");
+		ycp::Return ("false");
+		# TODO: save Error message!
 	    }
 	}
 	else {
