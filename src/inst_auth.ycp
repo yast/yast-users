@@ -15,6 +15,14 @@
     import "Users";
 
 
+    // check if lan is configured
+    if (false)			// FIXME
+    {
+	Users::after_auth = `users;
+	return `auto;
+    }
+
+
     // caption for dialog "User Authentication Method"
     string caption = _("User Authentication Method");
 
@@ -34,15 +42,15 @@ Here you can choose the authentication method of users on your system.
     term net_buttons =
 	`RadioButtonGroup (`VBox (
 				  `VSpacing(0.5),
-				  `Left(`RadioButton(`id(`nis), `opt(`disabled),
+				  `Left(`RadioButton(`id(`nis),
 						     // radiobutton to select nis user auth.
-						     _("N&IS"), true)),
-				  `Left(`RadioButton(`id(`nisplus), `opt(`disabled),
+						     _("N&IS"))),
+				  `Left(`RadioButton(`id(`nisplus),
 						     // radiobutton to select nis+ user auth.
-						     _("NI&S+"), false)),
-				  `Left(`RadioButton(`id(`ldap), `opt(`disabled),
+						     _("NI&S+"))),
+				  `Left(`RadioButton(`id(`ldap),
 						     // radiobutton to select ldap user auth.
-						     _("&LDAP"), false)),
+						     _("&LDAP"))),
 				  `VSpacing(0.5)
 				  )
 			   );
@@ -52,10 +60,10 @@ Here you can choose the authentication method of users on your system.
 	`RadioButtonGroup (`VBox (
 				  `Left(`RadioButton(`id(`local), `opt(`notify),
 						     // radiobutton to select local user auth.
-						     _("S&tand alone machine"), true)),
+						     _("S&tand alone machine"))),
 				  `Left(`RadioButton(`id(`network), `opt(`notify),
 						     // radiobutton to select network user auth.
-						     _("N&etwork client"), false)),
+						     _("N&etwork client"))),
 				  `VSpacing(0.5),
 				  `HBox (
 					 `HSpacing (4),
@@ -77,8 +85,34 @@ Here you can choose the authentication method of users on your system.
 			   `VStretch()
 			   );
 
+
     Wizard::SetContentsButtons (caption, contents, help,
 				BackButtonLabel(), NextButtonLabel());
+
+
+    // select and enable to correct buttons
+
+    if (Users::after_auth == `users)
+    {
+	UI::ChangeWidget (`id(`local), `Value, true);
+	UI::ChangeWidget (`id(`network), `Value, false);
+
+	UI::ChangeWidget (`id(`nis), `Value, true);
+
+	UI::ChangeWidget (`id(`nis), `Enabled, false);
+	UI::ChangeWidget (`id(`nisplus), `Enabled, false);
+	UI::ChangeWidget (`id(`ldap), `Enabled, false);
+    }
+    else
+    {
+	UI::ChangeWidget (`id(`local), `Value, false);
+	UI::ChangeWidget (`id(`network), `Value, true);
+
+	UI::ChangeWidget (`id(`nis), `Value, Users::after_auth == `nis);
+	UI::ChangeWidget (`id(`nisplus), `Value, Users::after_auth == `nisplus);
+	UI::ChangeWidget (`id(`ldap), `Value, Users::after_auth == `ldap);
+    }
+
 
     any ret = nil;
 
@@ -123,7 +157,10 @@ Here you can choose the authentication method of users on your system.
             Users::after_auth = `ldap;
     }
     else
-        Users::after_auth = `users;
+    {
+	Users::after_auth = `users;
+    }
+
     return ret;
 
 /* EOF */
