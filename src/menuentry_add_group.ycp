@@ -51,7 +51,7 @@
       `helptext     : UI(_("Create a new group")),
    
       ////////////////////////////////////////////////////////////////////////////////
-      // leaf nil, experts only ;-)
+      // leave nil, experts only ;-)
       `codefragment : nil 
    
    ]
