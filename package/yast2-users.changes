@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 10 14:53:26 CET 2004 - jsuchome@suse.cz
+
+- agent-passwd moved to yast2-pam package
+- 2.9.15
+
+-------------------------------------------------------------------
 Wed Mar 10 14:09:14 CET 2004 - jsuchome@suse.cz
 
 - .pm files adapted for new perl-bindings (use array reference, not array)
