@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-packager cracklib-devel gpp libgpp
+# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-packager cracklib-devel gpp libgpp yast2-mail-aliases
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-pam yast2-security yast2-packager yast2-mail-aliases cracklib
