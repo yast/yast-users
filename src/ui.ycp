@@ -1634,7 +1634,9 @@ Delete this users first."));
 		if( ret == 0 )
 		{
 		    value	= value + 1;
-		    UI::ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) );
+		    if( ! Mode::cont && ! Mode::autoinst) {
+			UI::ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) );
+		    }
 		}
 		else
 		{
