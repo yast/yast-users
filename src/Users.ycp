@@ -23,6 +23,7 @@ import "UsersCache";
 import "MailAliases";
 import "Directory";
 import "Console";
+import "Security";
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
@@ -31,7 +32,7 @@ include "users/ldap_routines.ycp";
 
 
 // Encryption method: "des", "md5" - for future use: "blowfish"
-global string encryptionMethod = "des"; // -- should be loaded from Security
+global string encryptionMethod = "des";
 
 // The root's password
 global string rootPassword = "";
@@ -101,7 +102,11 @@ global integer pass_warn_age = 7;
 
 global string default_pw     = "******";
 
-global symbol encryption	 = `des;
+// if password should be checked against crack
+global boolean use_cracklib = false;
+
+// if password should be checked
+global boolean obscure_checks = false;
 
 global string root_mail = "";
 
@@ -830,17 +835,24 @@ global define symbol Write (block abort, boolean useUI)``{
  */
 global define string Summary() ``{
 
-    string ret = "Summary of users and groups:<br>";
+    string ret = "";
+    //"Summary of users and groups:<br>";
 
-    // do not show system users/groups ??
-    ret = ret + "<p><i>Users:</i><p>";
-    foreach (`uid, `user, users [`local]:$[], ``{
-            ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
-                user["fullname"]:"" );
+    // show only modified system and all local ones
+    ret = ret + "<h3>Users</h3>";
+    foreach (`type, [`local, `system], ``{
+        foreach (`uid, `user, users [type]:$[], ``{
+            if (user ["modified"]:`nothing != `nothing)
+                ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
+                    user["fullname"]:"" );
+        });
     });
-    ret = ret + "<p><i>Groups:</i><p>";
-    foreach (`gid, `group, groups [`local]:$[], ``{
-            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
+    ret = ret + "<h3>Groups</h3>";
+    foreach (`type, [`local, `system], ``{
+        foreach (`gid, `group, groups [type]:$[], ``{
+            if (group ["modified"]:`nothing != `nothing)
+                ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
+        });
     });
 
     return ret;
@@ -873,9 +885,9 @@ define map ImportUser (map user) ``{
         if (!user["encrypted"]:true && pass != "x")
         {
             // encrypt password for shadow
-            if (encryption == `md5)
+            if (encryptionMethod == "md5")
                 pass = cryptmd5 (pass);
-            else if (encryption == `blowfish)
+            else if (encryptionMethod == "blowfish")
                 pass = cryptblowfish (pass);
             else
                 pass = crypt (pass);
@@ -896,6 +908,7 @@ define map ImportUser (map user) ``{
         "gid":              user ["gid"]:default_gid,
         "grouplist":        user ["grouplist"]:"",
         "type":             type,
+        "modified":         `imported,
         "shadow":           user_shadow
     ];
 };
@@ -918,6 +931,7 @@ define map ImportGroup (map group) ``{
         "groupname":        groupname,
         "gid":              group ["gid"]:-1,
         "userlist":         group ["userlist"]:"",
+        "modified":         `imported,
         "type":             type
     ];
 };
@@ -962,6 +976,7 @@ global define boolean Import (map settings) ``{
         symbol type = user ["type"]:`local;
         users [type] = add (users[type]:$[], user["uid"]:-1, user);
         // TODO: what if uid was changed??
+        // TODO: set modified flag for imported
 
         // update shadow
         map users_shadow = user ["shadow"]:$[];
@@ -1147,8 +1162,14 @@ define map ExportGroup (map group) ``{
 global define map Export() ``{
 
     // all local users:
-    list exported_users = maplist (`uid, `user, users [`local]:$[], ``{
-        return ExportUser (user);
+    list exported_users = [];
+    // local users when modified
+    foreach (`uid, `user, users[`local]:$[], ``{
+
+        if (user ["modified"]:`nothing != `nothing)
+        {
+            exported_users = add (exported_users, ExportUser(user));
+        }
     });
     /* deleted system users (??):
     foreach (`uid, `user, modified_users[`system]:$[], ``{
@@ -1165,11 +1186,10 @@ global define map Export() ``{
     });
 
     list exported_groups = [];
-    // all local groups, "users" only when modified
+    // modified local system groups:
     foreach (`uid, `group, groups[`local]:$[], ``{
 
-        if (group ["modified"]:`nothing != `nothing ||
-            group ["groupname"]:"" != "users")
+        if (group ["modified"]:`nothing != `nothing)
         {
             exported_groups = add (exported_groups, ExportGroup(group));
         }
@@ -1187,9 +1207,6 @@ global define map Export() ``{
             exported_groups = add (exported_groups, ExportGroup(group));
         }
     });
-
-    y2error ("groups: %1", groups[`local]:$[]);
-    y2error ("exp groups: %1", exported_groups);
 
     return $[
         "users": exported_users,
@@ -1819,7 +1836,7 @@ define boolean ReadDefaultGroup(boolean useUI)``{
  * variables
  * @return boolean true on success
  */
-global define boolean ReadSystemDefaults()``{ //SecurityDef?
+global define boolean ReadSystemDefaults()``{
 
 	// pam stuff
 	map pam_unix_map = $[];
@@ -1863,17 +1880,22 @@ global define boolean ReadSystemDefaults()``{ //SecurityDef?
     if (nil == pass_warn_age)
         pass_warn_age = 7;
 
-	// password encryption
-	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
-        " "), "md5");
-	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
-        ""), " "), "blowfish");
+    // add a progress for this?
+    Progress::off();
+    Security::Read();
+    Progress::on();
 
-	encryption = md5 ? `md5 : blowfish ? `blowfish : `des;
+    encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
 
-    y2debug ("encryption: %1", Users::encryption);
+    string sec = Security::Settings["PASSWD_USE_CRACKLIB"]:"no";
+    use_cracklib = (sec == "yes") ? true: false;
+    sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
+    obscure_checks = (sec == "yes") ? true: false;
+
+    y2debug ("encryption: %1", Users::encryptionMethod);
+
 	// set maximal password length
-	if (`des != encryption)
+	if ("des" != encryptionMethod)
 	    max_length_pas = 128;
 
     encoding = Console::encoding;
@@ -2560,6 +2582,21 @@ global define void cryptRootPassword(string pw1) ``{
 }
 
 /**
+ * Crypt the given password according to method defined in encryptionMethod
+ * @param pw unencrypted password
+ * @return encrypted password
+ */
+global define string CryptPassword (string pw) ``{
+
+	if (encryptionMethod == "md5" )
+	    return cryptmd5 (pw);
+	else if (encryptionMethod == "blowfish" )
+	    return cryptblowfish (pw);
+	else
+	    return crypt (pw);
+}
+
+/**
  * Writes password of superuser
  * @return true on success
  */
@@ -2621,5 +2658,61 @@ after you mount correctly. Continue users configuration?
 
 }
 
+/**
+ * Just some simple checks for password contens
+ * @param username
+ * @param pw
+ * @return error message (password too sumple) or empty string (OK)
+ */
+global define string CheckObscurity (string username, string pw) ``{
 
+    // FIXME: temporary checked here, LATER with some agent
+    if (issubstring (pw, username))
+    {
+        // yes/no popup
+        return _("You have used username as a part of the password.
+This is not good security practice. Are you sure?");
+    }
+    // check for lowercase
+    if (deletechars (pw, "abcdefghijklmnopqrstuvwxyz") == "")
+    {
+        // yes/no popup
+        return _("You have used only lower case letters for the password.
+This is not good security practice. Are you sure?");
+    }
+    // check for numbers
+    if (deletechars (pw, "0123456789") == "")
+    {
+        // yes/no popup
+        return _("You have used only digits for the password.
+This is not good security practice. Are you sure?");
+    }
+
+    return "";
+
+}
+
+/**
+ * Try to crack password using cracklib
+ * TODO: postponed until tranltation of error messages
+ * @param username
+ * @param pw
+ * @return utility output: ether "OK" or error message
+ */
+global define string CrackPassword (string username, string pw) ``{
+
+    // write password to some shadow file
+    string shadowfile = tmpdir + "/shadowfile";
+    SCR::Write(.target.string, shadowfile, sformat ("%1 %2", username, pw));
+
+    string out = lookup (SCR::Execute (.target.bash_output,
+        sformat ("/bin/cat %1 | /usr/bin/vpass", shadowfile)), "stdout", "");
+
+    // remove \n at the end
+    out = substring(out, 0, size(out)-1);
+
+    SCR::Execute(.target.bash, sformat ("/bin/rm -f %1", shadowfile));
+
+    return out;
+}
 }// EOF

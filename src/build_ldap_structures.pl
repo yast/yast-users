@@ -14,7 +14,7 @@
 #       (making it inside YaST is toooo slow)
 #
 #  Usage:
-#   build_ldap.structures.pl output_directory encoding ldap server_adress base
+#   build_ldap.structures.pl output_directory encoding use_anonymous_access
 #
 #  Example:
 #   build_ldap_structures.pl /tmp iso-8859-2 true
@@ -121,15 +121,13 @@ system "rm -f $cpu_cfg";
 
 $ldap = Net::LDAP->new($host) or die;
 
-$ldap->bind;
-
 if ($anonymous eq "true")
 {
     $ldap->bind;
 }
 else
 {
-     $ldap->bind ($bind_dn, password => $bind_pw);
+    $ldap->bind ($bind_dn, password => $bind_pw);
 }
 
 #--- get LDAP groups
@@ -268,15 +266,6 @@ open MAX_LDAP_UID, "> $last_ldap";
 print MAX_LDAP_UID "$last_ldap_uid";
 close MAX_LDAP_UID;
 
-#open CORRECT, "> $groups_corrected";
-#print CORRECT "\$[\n";
-#foreach $gid (keys %corrected_groups)
-#{
-#    print CORRECT "\t$gid : \"$corrected_groups{$gid}\",\n";
-#}
-#print CORRECT "]\n";
-#close CORRECT;
-
 #-------------------------
 
 open YCP_LDAPGROUP, "> $group_ldap";
@@ -311,7 +300,6 @@ foreach my $gid (keys %groups)
     
     print YCP_LDAPGROUP "\t$gid: \$[\n";
     print YCP_LDAPGROUP "\t\t\"groupname\": \"$groupname\",\n";
-#    print YCP_LDAPGROUP "\t\t\"pass\": \"$pass\",\n";
     print YCP_LDAPGROUP "\t\t\"gid\": $gid,\n";
 #    print YCP_LDAPGROUP "\t\t\"userlist\": \"$userlist\",\n";
     print YCP_LDAPGROUP "\t\t\"more_users\": \"$more_users\",\n";
@@ -320,7 +308,6 @@ foreach my $gid (keys %groups)
 
     print YCP_LDAPGROUP_BYNAME "\t\"$groupname\": \$[\n";
     print YCP_LDAPGROUP_BYNAME "\t\t\"groupname\": \"$groupname\",\n";
-#    print YCP_LDAPGROUP_BYNAME "\t\t\"pass\": \"$pass\",\n";
     print YCP_LDAPGROUP_BYNAME "\t\t\"gid\": $gid,\n";
 #    print YCP_LDAPGROUP_BYNAME "\t\t\"userlist\": \"$userlist\",\n";
     print YCP_LDAPGROUP_BYNAME "\t\t\"more_users\": \"$more_users\",\n";

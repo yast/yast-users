@@ -151,9 +151,9 @@ You can configure these settings by running appropriate modules. Select the modu
 
     // read the encryption settings
     Progress::off();
-    Security::Read();
+    Security::Read(); // TODO: not needed when calling from users module?
     Progress::on();
-    y2milestone ("sec: %1", Security::Settings);
+    y2debug ("sec: %1", Security::Settings);
 
     string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
 
