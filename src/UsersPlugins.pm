@@ -59,6 +59,11 @@ sub Read {
 		    $func       = $module."::$action";
 		    $plugins{$module}{$action}	= &$func ($module, {}, {});
 		}
+		# save the plugin internal keys
+		if ($action eq "InternalAttributes") {
+		    $func       = $module."::$action";
+		    $plugins{$module}{$action}	= &$func ($module, {}, {});
+		}
 	    }
 	}
     }
@@ -106,6 +111,11 @@ sub Apply {
 	    next;
 	}
 
+	if ($action eq "InternalAttributes") {
+	    $ret{$module}	= $plugins{$module}{$action};
+	    next;
+	}
+
 	# check if plugin function is allowed for current user/group type
 	if (defined $plugins{$module}{"Restriction"} 		&&
 	    ref ($plugins{$module}{"Restriction"}) eq "HASH" 	&&
@@ -114,7 +124,6 @@ sub Apply {
 
 	    y2debug ("plugin '$module' not defined for entry type '$type'");
 	    next;
-	# FIXME look also to LDAP Template for allowed plugins
 	}
 		
 	my $func	= $module."::$action";

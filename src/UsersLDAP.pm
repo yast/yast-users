@@ -459,7 +459,7 @@ sub Read {
     # (if yes, objectclass must be in required!)
     # For now, we get all:
     my $user_attrs	= \@user_attributes;
-#    my @user_attrs	= ( "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory" );
+#    my $user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory" ];
     my $group_attrs 	= \@group_attributes;
 
     my %args = (
@@ -604,6 +604,16 @@ sub GetUserInternal {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetUserInternal} = ["function", "void", ["list", "string"]];}
+sub SetUserInternal {
+    my $self    = shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@user_internal_keys	= @{$_[0]};
+    }
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultUserFilter} = ["function", "string"];}
 sub GetDefaultUserFilter {
     return $default_user_filter;
@@ -676,6 +686,14 @@ sub GetGroupInternal {
     return \@group_internal_keys;
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{SetGroupInternal} = ["function", "void", ["list", "string"]];}
+sub SetGroupInternal {
+    my $self    = shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@group_internal_keys	= @{$_[0]};
+    }
+}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGroupFilter} = ["function", "string"];}

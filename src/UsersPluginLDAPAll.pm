@@ -18,7 +18,7 @@ use Locale::gettext;
 use POSIX ();
 
 POSIX::setlocale(LC_MESSAGES, "");
-textdomain("users");	# TODO own textdomain for new plugins
+textdomain("users");
 
 ##--------------------------------------
 ##--------------------- global imports
@@ -55,8 +55,6 @@ my @group_object_class                 =
     
 ##------------------------------------
 
-# TODO check for Mode::config???
- 
 
 # return names of provided functions
 BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"], "any", "any"];}
@@ -76,7 +74,8 @@ sub Interface {
 	    "EditBefore",
 	    "Edit",
 	    "Interface",
-	    "Disable"
+	    "Disable",
+#	    "InternalAttributes",
     );
     return \@interface;
 }
@@ -103,6 +102,21 @@ sub Summary {
 	$ret 	= _("Edit remaining attributes of LDAP group");
     }
     return $ret;
+}
+
+# return plugin internal attributes (which shouldn't be shown to user)
+BEGIN { $TYPEINFO{InternalAttributes} = ["function",
+    [ "list", "string" ], "any", "any"];
+}
+sub InternalAttributes {
+
+    my $self	= shift;
+    my @ret 	= ();
+
+    if (defined $_[0]->{"what"} && $_[0]->{"what"} eq "group") {
+	@ret 	= ();
+    }
+    return \@ret;
 }
 
 
