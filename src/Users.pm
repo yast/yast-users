@@ -1281,6 +1281,39 @@ sub ReadAvailablePlugins {
     if (Mode->test ()) { return; }
 
     UsersPlugins->Read ();
+
+    # update internal keys with the values from plugins
+
+    my @user_internals	= @{UsersLDAP->GetUserInternal ()};
+    my $internals	= UsersPlugins->Apply ("InternalAttributes", {
+	"what" 	=> "user" }, {});
+    if (defined $internals && ref ($internals) eq "HASH") {
+	foreach my $plugin (keys %{$internals}) {
+	    if (ref ($internals->{$plugin}) eq "ARRAY") {
+		foreach my $int (@{$internals->{$plugin}}) {
+		    if (!contains (\@user_internals, $int)) {
+			push @user_internals, $int;
+		    }
+		}
+	    }
+	}
+	UsersLDAP->SetUserInternal (\@user_internals);
+    }
+    my @group_internals	= @{UsersLDAP->GetGroupInternal ()};
+    $internals		= UsersPlugins->Apply ("InternalAttributes", {
+	"what" 	=> "group" }, {});
+    if (defined $internals && ref ($internals) eq "HASH") {
+	foreach my $plugin (keys %{$internals}) {
+	    if (ref ($internals->{$plugin}) eq "ARRAY") {
+		foreach my $int (@{$internals->{$plugin}}) {
+		    if (!contains (\@group_internals, $int)) {
+			push @group_internals, $int;
+		    }
+		}
+	    }
+	}
+	UsersLDAP->SetGroupInternal (\@group_internals);
+    }
 }
 
 ##------------------------------------
@@ -2168,7 +2201,6 @@ sub UpdateUser {
     my $self	= shift;
     my %data	= %{$_[0]};
     foreach my $key (keys %data) {
-	# FIXME how to save Integer/Boolean values?
 	$user_in_work{$key}	= $data{$key};
     }
 }
@@ -2922,6 +2954,8 @@ sub Write {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
+		_("Write LDAP users and groups"),
+		# progress stage label
 		_("Write groups"),
 		# progress stage label
 		_("Check for deleted users"),
@@ -2930,12 +2964,12 @@ sub Write {
 		# progress stage label
 		_("Write passwords"),
 		# progress stage label
-		_("Write LDAP users and groups"),
-		# progress stage label
 		_("Write the custom settings"),
 		# progress stage label
 		_("Write the default login settings")
            ], [
+		# progress step label
+		_("Writing LDAP users and groups..."),
 		# progress step label
 		_("Writing groups..."),
 		# progress step label
@@ -2945,8 +2979,6 @@ sub Write {
 		# progress step label
 		_("Writing passwords..."),
 		# progress step label
-		_("Writing LDAP users and groups..."),
-		# progress step label
 		_("Writing the custom settings..."),
 		# progress step label
 		_("Writing the default login settings..."),
@@ -2954,6 +2986,60 @@ sub Write {
 		_("Finished")
 	    ], "" );
     } 
+
+    # Write LDAP users and groups
+    if ($use_gui) { Progress->NextStage (); }
+
+    if ($ldap_modified) {
+	my $error_msg	= "";
+
+	if (defined ($removed_users{"ldap"})) {
+	    $error_msg	= UsersLDAP->WriteUsers ($removed_users{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap->LDAPErrorMessage ("users", $error_msg);
+	    }
+	    else {
+		delete $removed_users{"ldap"};
+	    }
+	}
+		
+	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
+	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap->LDAPErrorMessage ("users", $error_msg);
+	    }
+	    else {
+		delete $modified_users{"ldap"};
+	    }
+	}
+
+	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
+	    $error_msg	= UsersLDAP->WriteGroups ($removed_groups{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap->LDAPErrorMessage ("groups", $error_msg);
+	    }
+	    else {
+		delete $removed_groups{"ldap"};
+	    }
+	}
+
+	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
+	    $error_msg	= UsersLDAP->WriteGroups ($modified_groups{"ldap"});
+	    if ($error_msg ne "") {
+		Ldap->LDAPErrorMessage ("groups", $error_msg);
+	    }
+	    else {
+		delete $modified_groups{"ldap"};
+	    }
+	}
+
+	if ($error_msg eq "") {
+	    $ldap_modified = 0;
+	}
+	else {
+	    return $error_msg;
+	}
+    }
 
     # Write groups 
     if ($use_gui) { Progress->NextStage (); }
@@ -3053,6 +3139,7 @@ sub Write {
 		    }
 		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
+# TODO check if shadowlastchange exist!
 	    }
 	}
     }
@@ -3075,59 +3162,6 @@ sub Write {
         }
     }
 
-    # Write LDAP users and groups
-    if ($use_gui) { Progress->NextStage (); }
-
-    if ($ldap_modified) {
-	my $error_msg	= "";
-
-	if (defined ($removed_users{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteUsers ($removed_users{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("users", $error_msg);
-	    }
-	    else {
-		delete $removed_users{"ldap"};
-	    }
-	}
-		
-	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("users", $error_msg);
-	    }
-	    else {
-		delete $modified_users{"ldap"};
-	    }
-	}
-
-	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteGroups ($removed_groups{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("groups", $error_msg);
-	    }
-	    else {
-		delete $removed_groups{"ldap"};
-	    }
-	}
-
-	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteGroups ($modified_groups{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("groups", $error_msg);
-	    }
-	    else {
-		delete $modified_groups{"ldap"};
-	    }
-	}
-
-	if ($error_msg eq "") {
-	    $ldap_modified = 0;
-	}
-	else {
-	    return $error_msg;
-	}
-    }
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {
@@ -4284,14 +4318,11 @@ sub ImportUser {
     if (defined $encrypted && ref ($encrypted) ne "YaST::YCP::Boolean") {
 	$encrypted	= YaST::YCP::Boolean ($encrypted);
     }
-    # FIXME when the password will be crypted?
     my $pass		= $user->{"user_password"}	|| "x";
-y2internal ("password: $pass, encrypted: ", bool ($encrypted), "config mode: ", Mode->config());
     if ((!defined $encrypted || !bool ($encrypted)) &&
 	$pass ne "x" && !Mode->config ())
     {
 	$pass 		= $self->CryptPassword ($pass, $type);
-y2internal ("encrypted pass: $pass");
 	$encrypted	= YaST::YCP::Boolean (1);
     }
     my $home	= $self->GetDefaultHome($type).$username;
@@ -4387,8 +4418,10 @@ y2internal ("encrypted pass: $pass");
 	if ($key eq "userpassword") { next; }
 	$ret{$new_key}	= $user_shadow{$key};
     }
-y2internal ("finally imported user: -------------------------------------");
-DebugMap (\%ret);
+    if (!defined $ret{"shadowlastchange"} ||
+	$ret{"shadowlastchange"} eq "") {
+	$ret{"shadowlastchange"}	= LastChangeIsNow ();
+    }
     return \%ret;
 }
 
@@ -4673,7 +4706,8 @@ sub ExportUser {
     }
     foreach my $key (keys %shadow_map) {
 	my $new_key		= $translated{$key} || $key;
-	if ($key eq "userpassword" ||
+	# actual shadowlastchange must be created in Import
+	if ($key eq "userpassword" || $key eq "shadowlastchange" ||
 	    (defined $org_user{$key} && $shadow_map{$key} eq $org_user{$key} &&
 	     ($user->{"modified"} || "") ne "imported"))
 	{
@@ -4727,8 +4761,6 @@ sub ExportUser {
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;
     }
-y2error ("user to export: ------------------------------");
-DebugMap (\%ret);
     return \%ret;
 }
 
