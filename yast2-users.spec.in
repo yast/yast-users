@@ -24,10 +24,12 @@ Summary:	Configuration of users
 %files
 %defattr(-,root,root)
 %dir @yncludedir@/users
+%dir @moduledir@/YaPI
 @clientdir@/*.ycp
 @desktopdir@/*.desktop
 @moduledir@/*.pm
 @moduledir@/UsersUI.y*
+@moduledir@/YaPI/USERS.pm
 @yncludedir@/users/*
 #agents:
 @scrconfdir@/*.scr
