@@ -1,9 +1,8 @@
 /**
  * File:	include/users/routines.ycp
  * Package:	Configuration of users and groups
- * Summary:	users/groups read and write routines
- * Authors:	Johannes Buchhold <jbuch@suse.de>,
- *          Jiri Suchomel <jsuchome@suse.cz>
+ * Summary:	various routines
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  *
@@ -11,561 +10,17 @@
 {
 textdomain "users";
 
-include "users/passwd.ycp";
 import "Wizard";
 import "Label";
-import "Popup";
 import "Users";
-import "Encoding";
 
 /**
- * Reads prebuilded gshadow data
- * @param dir the input directory
- * @return gshadow map
- */
-global define map ReadGshadow(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
-        "system": SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
-    ];
-    SCR::Execute (.target.remove, dir + "/gshadow_local.ycp");
-    SCR::Execute (.target.remove, dir + "/gshadow_system.ycp");
-    return ret;
-}
-
-/**
- * Reads prebuilded shadow data
- * @param dir the input directory
- * @return shadow map
- */
-global define map ReadShadow(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
-        "system": SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
-    ];
-    SCR::Execute (.target.remove, dir + "/shadow_local.ycp");
-    SCR::Execute (.target.remove, dir + "/shadow_system.ycp");
-    return ret;
-}
-
-/**
- * Reads prebuilded groups data
- * @param dir the input directory
- * @return groups map
- */
-global define map ReadGroups(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/group_local.ycp"),
-        "system": SCR::Read(.target.ycp, dir + "/group_system.ycp")
-    ];
-    SCR::Execute (.target.remove, dir + "/group_local.ycp");
-    SCR::Execute (.target.remove, dir + "/group_system.ycp");
-    return ret;
-}
-
-/**
- * Reads prebuilded groups data
- * @param dir the input directory
- * @return groups map
- */
-global define map ReadGroupsByName(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
-        "system": SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
-    ];
-    SCR::Execute (.target.remove, dir + "/group_local_byname.ycp");
-    SCR::Execute (.target.remove, dir + "/group_system_byname.ycp");
-    return ret;
-}
-
-/**
- * Reads prebuilded passwd data
- * @param dir the input directory
- * @return users map
- */
-global define map ReadPasswd(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
-        // this is due to translations of cn's in users/passwd.ycp
-        "system": eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
-    ];
-    SCR::Execute (.target.remove, dir + "/passwd_local.ycp");
-    SCR::Execute (.target.remove, dir + "/passwd_system.ycp");
-    return ret;
-}
-
-/**
- * Reads prebuilded passwd data
- * @param dir the input directory
- * @return users map
- */
-global define map ReadPasswdByName(string dir)``{
-
-    map ret = $[
-        "local": SCR::Read(.target.ycp, dir + "/passwd_local_byname.ycp"),
-        "system": SCR::Read(.target.ycp, dir + "/passwd_system_byname.ycp")
-    ];
-    SCR::Execute (.target.remove, dir + "/passwd_local_byname.ycp");
-    SCR::Execute (.target.remove, dir + "/passwd_system_byname.ycp");
-    return ret;
-}
-
-/**
- * Reads the line begining with + or - from the data files, if exists
- * @param file the input file
- * @return the line
- */
-global define string PlusFile (string file) ``{
-
-    if (SCR::Execute (.target.bash, sformat("/usr/bin/test -e %1", file)) == 0)
-        return (string) SCR::Read(.target.ycp, file);
-    else
-        return "";
-}
-
-/**
- * Reads the line begining with + or - from gshadow file
- * @param dir the input directory
- * @return the line
- */
-global define string ReadPlusGshadow(string dir)``{
-
-    return PlusFile (dir + "/plus_gshadow.ycp");
-}
-
-/**
- * Reads the line begining with + or - from shadow file
- * @param dir the input directory
- * @return the line
- */
-global define string ReadPlusShadow(string dir)``{
-
-    return PlusFile (dir + "/plus_shadow.ycp");
-}
-
-/**
- * Reads the line begining with + or - from group file
- * @param dir the input directory
- * @return the line
- */
-global define string ReadPlusGroup(string dir)``{
-
-    return PlusFile (dir + "/plus_group.ycp");
-}
-
-/**
- * Reads the line begining with + or - from passwd file
- * @param dir the input directory
- * @return the line
- */
-global define string ReadPlusPasswd(string dir)``{
-
-    return PlusFile (dir + "/plus_passwd.ycp");
-}
-
-/**
- * Error messages for errors detected during reading
- * @param returned map returned as the output of target.bash_output
- * @return error message
- */
-global define string GetErrorMessage (map returned) ``{
-
-    string stdout = returned["stdout"]:"";
-    string last =
-// error message 2/2 (= next sentence)
-_("Correct them manually before running the YaST2 users module again.");
-
-    map read_error = $[
-
-    1: sformat(
-// error message 1/2: %1 is file name, %2 is uid, %3 is next sentence (2/2)
-_("There are more users with the same UID (\"%2\") in the file %1.
-%3"), "/etc/passwd", stdout, last),
-
-    2: sformat(
-// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
-_("There are more users with the same name (\"%2\") in the file %1.
-%3"), "/etc/passwd", stdout, last),
-
-    3: sformat(
-// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
-_("There are more users with the same name (\"%2\") in the file %1.
-%3"), "/etc/shadow", stdout, last),
-
-    4: sformat(
-// error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
-_("There are more groups with the same name (\"%2\") in the file %1.
-%3"), "/etc/gshadow", stdout, last),
-
-    5: sformat(
-// error message 1/2: %1 is file name, %2 is gid, %3 is next sentence (2/2)
-_("There are more groups with the same GID (\"%2\") in the file %1.
-%3"), "/etc/group", stdout, last),
-
-    6: sformat(
-// error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
-_("There are more groups with the same name (\"%2\") in the file %1.
-%3"), "/etc/group", stdout, last)
-];
-
-    // default error message
-    return read_error[returned["exit"]:0]: _("Cannot run preparation script.");
-}
-
-/**
- * Writes data to group file (probably /etc/group)
- * @param basedir the directory for output
- * @param system_groups map of groups
- * @param local_groups map of groups
- * @param plus the line begining with +/-
- * @return succes
- */
-global define boolean WriteGroup(string basedir, map system_groups, map local_groups, string plus) ``{
-
-    string conf_path = basedir + "/group";
-    list modified_list = [];
-    list list_to_save = maplist (integer gid, map group, system_groups, ``{
-	string pass = group["password"]:"x";
-        string to_save = sformat("%1:%2:%3:%4",
-            group["groupname"]:"",
-            "x",
-            gid,
-            group["userlist"]:"");
-        return to_save;
-    });
-    list_to_save = merge(list_to_save, maplist (integer gid, map group, local_groups, ``{
-        string to_save = sformat("%1:%2:%3:%4",
-            group["groupname"]:"",
-            "x",
-            gid,
-            group["userlist"]:"");
-        return to_save;
-    }));
-    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
-    if (plus != "" && plus != nil)
-        string_to_save = string_to_save + "\n" + plus;
-    string_to_save = string_to_save + "\n";
-    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
-    y2milestone("Succesfuly written %1: %2", conf_path, ret);
-    return ret;
-}
-
-
-/**
- * Writes data to passwd file (probably /etc/passwd)
- * @param basedir the directory for output
- * @param system_users map of users
- * @param local_users map of users
- * @param plus the line begining with +/-
- * @return modified map or nil
- */
-global define any WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
-
-    string conf_path = basedir + "/passwd";
-    map modified_map = $[];
-    list list_to_save = maplist (integer uid, map user, system_users, ``{
-        string gecos = user["cn"]:"";
-        if (user["addit_data"]:"" != "")
-            gecos = gecos + "," + user["addit_data"]:"";
-        gecos = (string) UI::Recode ("UTF-8", Users::encoding, gecos);
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
-            user["username"]:"",
-            "x",
-            uid,
-            user["gid"]:Users::max_gid[user["type"]:"local"]:60000,
-            gecos,
-            user["home"]:"",
-            user["shell"]:"");
-        if (user["modified"]:`nothing != `nothing)
-            modified_map = add (modified_map, uid, user);
-        return to_save;
-    });
-    list_to_save = merge(list_to_save, maplist (integer uid, map user, local_users, ``{
-        string gecos = user["cn"]:"";
-        if (user["addit_data"]:"" != "")
-            gecos = gecos + "," + user["addit_data"]:"";
-        gecos = (string) UI::Recode ("UTF-8", Users::encoding, gecos);
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
-            user["username"]:"",
-            "x",
-            uid,
-            user["gid"]:Users::max_gid[user["type"]:"local"]:60000,
-            gecos,
-            user["home"]:"",
-            user["shell"]:"");
-        if (user["modified"]:`nothing != `nothing)
-            modified_map = add (modified_map, uid, user);
-        return to_save;
-    }));
-    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
-    if (plus != "" && plus != nil)
-        string_to_save = string_to_save + "\n" + plus;
-    string_to_save = string_to_save + "\n";
-    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
-    y2milestone("Succesfuly written %1: %2", conf_path, ret);
-
-    if (ret)
-        return modified_map;
-    else
-        return nil;
-}
-
-/**
- * Writes data to shadow file (probably /etc/shadow)
- * @param basedir the directory for output
- * @param system_shadow map of shadow
- * @param local_shadow map of shadow
- * @param plus the line begining with +/-
- * @return succes
- */
-global define boolean WriteShadow(string basedir, map system_shadow, map local_shadow, string plus) ``{
-
-    string conf_path = basedir + "/shadow";
-
-    list list_to_save = maplist (string username, map entry, system_shadow, ``{
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
-            username,
-            entry["password"]:"",
-            entry["last_change"]:"",
-            entry["min"]:"",
-            entry["max"]:"",
-            entry["warn"]:"",
-            entry["inact"]:"",
-            entry["expire"]:"",
-            entry["flag"]:"");
-        return to_save;
-    });
-    list_to_save = merge(list_to_save, maplist (string username, map entry, local_shadow, ``{
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
-            username,
-            entry["password"]:"",
-            entry["last_change"]:"",
-            entry["min"]:"",
-            entry["max"]:"",
-            entry["warn"]:"",
-            entry["inact"]:"",
-            entry["expire"]:"",
-            entry["flag"]:"");
-        return to_save;
-    }));
-    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
-    if (plus != "" && plus != nil)
-        string_to_save = string_to_save + "\n" + plus;
-    string_to_save = string_to_save + "\n";
-    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
-    y2milestone("Succesfuly written %1: %2", conf_path, ret);
-    return ret;
-}
-
-
-/**
- * Writes data to gshadow file (probably /etc/gshadow)
- * @param basedir the directory for output
- * @param system_gshadow map of gshadow
- * @param local_gshadow map of gshadow
- * @param plus the line begining with +/-
- * @return succes
- */
-global define boolean WriteGshadow(string basedir, map system_gshadow, map local_gshadow, string plus) ``{
-
-    string conf_path = basedir + "/gshadow";
-    list list_to_save = maplist (string groupname, map entry, system_gshadow, ``{
-        string to_save = sformat("%1:%2:%3:%4",
-            groupname,
-            entry["password"]:"",
-            entry["disposer"]:"",
-            entry["userlist"]:"");
-        return to_save;
-    });
-    list_to_save = merge(list_to_save, maplist (string groupname, map entry, local_gshadow, ``{
-        string to_save = sformat("%1:%2:%3:%4",
-            groupname,
-            entry["password"]:"",
-            entry["disposer"]:"",
-            entry["userlist"]:"");
-        return to_save;
-    }));
-    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
-    if (plus != "" && plus != nil)
-        string_to_save = string_to_save + "\n" + plus;
-    string_to_save = string_to_save + "\n";
-    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
-    y2milestone("Succesfuly written %1: %2", conf_path, ret);
-    return ret;
-}
-
-/**
- * Backup /etc/passwd, shadow, group and gshadow files
- * @param dir the source directory
- */
-global define void BackupConfFiles(string dir)``{
-
-    SCR::Execute(.target.bash,
-        sformat ("/bin/cp %1/shadow %1/shadow.YaST2save", dir));
-    SCR::Execute(.target.bash,
-        sformat ("/bin/cp %1/passwd %1/passwd.YaST2save", dir));
-    SCR::Execute(.target.bash,
-        sformat ("/bin/cp %1/gshadow %1/gshadow.YaST2save", dir));
-    SCR::Execute(.target.bash,
-        sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
-}
-
-/**
- * Create home directory
- * @param skeleton skeleton directory for new home
- * @param home name of new home directory
- * @return success
- */
-global define boolean CreateHome (string skeleton, string home) ``{
-
-    // create a path to new home directory, if not exists
-    string home_path = substring (home, 0, findlastof (home,"/"));
-    if (SCR::Read(.target.stat, home_path) == $[])
-	SCR::Execute(.target.mkdir, home_path);
-
-    // skeleton not exist or should not be copied
-    if (SCR::Read(.target.stat, skeleton) == $[])// || !copy TODO
-    {
-	if (!(boolean) SCR::Execute(.target.mkdir, home))
-	{
-	    y2error ("error creating %1", home);
-	    return false;
-	}
-    }
-    // copy homedir from skeleton
-    else
-    {
-	string command = sformat("/bin/cp -r %1 %2", skeleton, home);
-	map out = (map) SCR::Execute(.target.bash_output, command);
-	if (out["stderr"]:"" != "")
-	{
-	    y2error ("error calling %1: %2", command, out["stderr"]:"");
-	    return false;
-	}
-    }
-    y2milestone ("The directory %1 was created", home);
-    return true;
-}
-
-/**
- * Change ownership of directory
- * @param uid UID of new owner
- * @param gid GID of new owner's default group
- * @param home name of new home directory
- * @return success
- */
-global define boolean ChownHome (integer uid, integer gid, string home)``{
-
-    // directory already exists and chown is needed
-    if (uid == lookup ((map)SCR::Read(.target.stat, home), "uid", -1) &&
-	gid == lookup ((map)SCR::Read(.target.stat, home), "gid", -1))
-	return true;
-
-    string command = sformat("/bin/chown -R %1:%2 %3", uid, gid, home);
-    map out = (map) SCR::Execute(.target.bash_output, command);
-    if (out["stderr"]:"" != "")
-    {
-	y2error ("error calling %1: %2", command, out["stderr"]:"");
-	return false;
-    }
-    y2milestone ("Changed owner of files in %2 to user %1", uid, home);
-
-    return true;
-}
-
-/**
- * Move the directory
- * @param org_home original name of directory
- * @param home name of new home directory
- * @return success
- */
-global define boolean MoveHome (string org_home, string home) ``{
-
-    // create a path to new home directory, if not exists
-    string home_path = substring (home, 0, findlastof (home,"/"));
-    if (SCR::Read(.target.stat, home_path) == $[])
-        SCR::Execute(.target.mkdir, home_path);
-
-    string command = sformat("/bin/mv %1 %2", org_home, home);
-    map out = (map)SCR::Execute(.target.bash_output, command);
-    if (out["stderr"]:"" != "")
-    {
-	y2error ("error calling %1: %2", command, out["stderr"]:"");
-	return false;
-    }
-    y2milestone ("The directory %1 was moved to %2", org_home, home);
-
-    return true;
-}
-
-/**
- * Delete the directory
- * @param home name of directory
- * @return success
- */
-global define boolean DeleteHome (string home) ``{
-
-    string command = sformat("/bin/rm -rf %1", home);
-    map out = (map)SCR::Execute(.target.bash_output, command);
-    if (out["stderr"]:"" != "")
-    {
-	y2error ("error calling %1: %2", command, out["stderr"]:"");
-	return false;
-    }
-    y2milestone ("The directory %1 was deleted", home);
-
-    return true;
-}
-
-/**
- * Split cn (fullname) in forename and surname.
- * @param what `surname or `forename
- * @param cn fullname
- * @param type user type
- * @return string selected part of user name
- */
-global define string SplitFullName(symbol what,string cn) ``{
-
-// TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
-
-    if( cn == nil )
-        cn = "";
-
-    // if cn is to be substituted, do not try to resolve givenName/sn
-    if (issubstring (cn, "%"))
-	return "";
-
-    list    strs    = splitstring(cn , " ");
-    integer i       = 1;
-    string sn  = "";
-    string givenName = "";
-
-    foreach(string str, strs, ``{
-        if ( i < size( strs) )
-        {
-        if( givenName == "" ) givenName = str;
-        else givenName = givenName + " " + str;
-        }
-        else  sn = str;
-        i = i + 1;
-    });
-    if ( what == `sn  ) return sn;
-    if ( what == `givenName ) return givenName;
-}
-
-
-/**
- * TODO: move to ui_routines.ycp?
+ * FIXME: move to ui_routines.ycp/dialogs.ycp?
  * Let user choose the encryption method.
  **/
 global define string EncryptionDialog() ``{
 
-      string method = Users::encryptionMethod;
+      string method = Users::EncryptionMethod ();
 
       // Help text for password expert dialog 1/5
       string help_text = _("<p>
@@ -662,12 +117,202 @@ As a general rule of thumb, use DES if you are unsure.
       return method;
 };
 
+
 /**
+ * Error messages for errors detected during reading
+ * @param returned map returned as the output of target.bash_output
+ * @return error message
+ */
+global define string GetErrorMessage (map returned) ``{
+
+    string stdout = returned["stdout"]:"";
+    string last =
+// error message 2/2 (= next sentence)
+_("Correct them manually before running the YaST2 users module again.");
+
+    map read_error = $[
+
+    1: sformat(
+// error message 1/2: %1 is file name, %2 is uid, %3 is next sentence (2/2)
+_("There are more users with the same UID (\"%2\") in the file %1.
+%3"), "/etc/passwd", stdout, last),
+
+    2: sformat(
+// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
+_("There are more users with the same name (\"%2\") in the file %1.
+%3"), "/etc/passwd", stdout, last),
+
+    3: sformat(
+// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
+_("There are more users with the same name (\"%2\") in the file %1.
+%3"), "/etc/shadow", stdout, last),
+
+    5: sformat(
+// error message 1/2: %1 is file name, %2 is gid, %3 is next sentence (2/2)
+_("There are more groups with the same GID (\"%2\") in the file %1.
+%3"), "/etc/group", stdout, last),
+
+    6: sformat(
+// error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
+_("There are more groups with the same name (\"%2\") in the file %1.
+%3"), "/etc/group", stdout, last)
+];
+
+    // default error message
+    return read_error[returned["exit"]:0]: _("Error while reading users or groups.");
+}
+
+/**
+ * Split cn (fullname) in forename and surname.
+ * @param what `surname or `forename
+ * @param cn fullname
+ * @param type user type
+ * @return string selected part of user name
+ */
+global define string SplitFullName(symbol what,string cn) ``{
+
+// TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
+
+    if( cn == nil )
+        cn = "";
+
+    // if cn is to be substituted, do not try to resolve givenName/sn
+    if (issubstring (cn, "%"))
+	return "";
+
+    list    strs    = splitstring(cn , " ");
+    integer i       = 1;
+    string sn  = "";
+    string givenName = "";
+
+    foreach(string str, strs, ``{
+        if ( i < size( strs) )
+        {
+        if( givenName == "" ) givenName = str;
+        else givenName = givenName + " " + str;
+        }
+        else  sn = str;
+        i = i + 1;
+    });
+    if ( what == `sn  ) return sn;
+    if ( what == `givenName ) return givenName;
+}
+
+
+/** FIXME following functions should be part of Perl backend...
+ * Create home directory
+ * @param skeleton skeleton directory for new home
+ * @param home name of new home directory
+ * @return success
+ *
+global define boolean CreateHome (string skeleton, string home) ``{
+
+    // create a path to new home directory, if not exists
+    string home_path = substring (home, 0, findlastof (home,"/"));
+    if (SCR::Read(.target.stat, home_path) == $[])
+	SCR::Execute(.target.mkdir, home_path);
+
+    // skeleton not exist or should not be copied
+    if (SCR::Read(.target.stat, skeleton) == $[])// || !copy TODO
+    {
+	if (!(boolean) SCR::Execute(.target.mkdir, home))
+	{
+	    y2error ("error creating %1", home);
+	    return false;
+	}
+    }
+    // copy homedir from skeleton
+    else
+    {
+	string command = sformat("/bin/cp -r %1 %2", skeleton, home);
+	map out = (map) SCR::Execute(.target.bash_output, command);
+	if (out["stderr"]:"" != "")
+	{
+	    y2error ("error calling %1: %2", command, out["stderr"]:"");
+	    return false;
+	}
+    }
+    y2milestone ("The directory %1 was created", home);
+    return true;
+}
+
+/**
+ * Change ownership of directory
+ * @param uid UID of new owner
+ * @param gid GID of new owner's default group
+ * @param home name of new home directory
+ * @return success
+ *
+global define boolean ChownHome (integer uid, integer gid, string home)``{
+
+    // directory already exists and chown is needed
+    if (uid == lookup ((map)SCR::Read(.target.stat, home), "uid", -1) &&
+	gid == lookup ((map)SCR::Read(.target.stat, home), "gid", -1))
+	return true;
+
+    string command = sformat("/bin/chown -R %1:%2 %3", uid, gid, home);
+    map out = (map) SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("Changed owner of files in %2 to user %1", uid, home);
+
+    return true;
+}
+
+/**
+ * Move the directory
+ * @param org_home original name of directory
+ * @param home name of new home directory
+ * @return success
+ *
+global define boolean MoveHome (string org_home, string home) ``{
+
+    // create a path to new home directory, if not exists
+    string home_path = substring (home, 0, findlastof (home,"/"));
+    if (SCR::Read(.target.stat, home_path) == $[])
+        SCR::Execute(.target.mkdir, home_path);
+
+    string command = sformat("/bin/mv %1 %2", org_home, home);
+    map out = (map)SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("The directory %1 was moved to %2", org_home, home);
+
+    return true;
+}
+
+/**
+ * Delete the directory
+ * @param home name of directory
+ * @return success
+ *
+global define boolean DeleteHome (string home) ``{
+
+    string command = sformat("/bin/rm -rf %1", home);
+    map out = (map)SCR::Execute(.target.bash_output, command);
+    if (out["stderr"]:"" != "")
+    {
+	y2error ("error calling %1: %2", command, out["stderr"]:"");
+	return false;
+    }
+    y2milestone ("The directory %1 was deleted", home);
+
+    return true;
+}
+*/
+
+/** FIXME rewrite to Perl and move to check_routines!
  * Checks if password is not too long
  * @param pw password
  * @param type user type ("local", "ldap"...)
  * @return true when it is OK (or user accepts truncation)
- **/
+ *
 global define boolean CheckPasswordMaxLength (string pw, string type) ``{
 
     if (type != "ldap")
@@ -688,7 +333,7 @@ Truncate it to %1 characters?\n"), Users::pass_length [type, "max"]:8)));
  * @param username user name
  * @param pw password
  * @return error message (password too sumple) or empty string (OK)
- */
+ *
 global define string CheckObscurity (string username, string pw) ``{
 
     // temporary checked here, TODO use some agent
@@ -724,7 +369,7 @@ This is not good security practice. Are you sure?");
  * @param username user name
  * @param pw password
  * @return utility output: either "OK" or error message
- */
+ *
 global define string CrackPassword (string username, string pw) ``{
 
     string ret = "OK";
@@ -734,6 +379,7 @@ global define string CrackPassword (string username, string pw) ``{
 	ret = (string) SCR::Execute(.crack, pw, Users::cracklib_dictpath);
     return (string) UI::Recode(Encoding::console,"UTF-8", ret);
 }
+*/
 
 
 
