@@ -56,6 +56,7 @@ global define symbol EditUserDialog(symbol what) ``{
         }
     }
     string  org_groupname   = Users::user_in_work["org_groupname"]:groupname;
+    string  email       = Users::user_in_work["email"]:"";
     string  home        = Users::user_in_work["home"]:Users::default_home;
     string  org_home    = Users::user_in_work["org_home"]:home;
     string  shell       = Users::user_in_work["shell"]:Users::default_shell;
@@ -581,15 +582,10 @@ Use it and change its owner?
                 if ( removed_grouplist != [] )
                     Users::user_in_work["removed_grouplist"]=removed_grouplist;
             }
+            if ( email != "")
+                Users::user_in_work ["email"] = email;
 
-            y2debug ("edited user: %1", Users::user_in_work );
-
-/*          if (Users::start_dialog == user_add && Mode::cont)
-            {
-            saved_user = user_in_work;
-            }
-*/
-
+            y2warning ("edited user: %1", Users::user_in_work );
         }
     } until ( ret == `next || details || ret == `abort  || ret == `back ||
               ret == `cancel || ret == `additional || ret == `nosave );
@@ -605,11 +601,7 @@ Use it and change its owner?
     if( ret == `additional ||  ret == `nosave ) // -- ??
     {
         Users::saved_user = Users::user_in_work;
-//      start_sequencer_again = true;
-
-//      if ( ret == `additional ) ret = `next;
     }
-//  else start_sequencer_again = false; -- there is no use of this variable!!
     return ret;
 }
 
@@ -632,6 +624,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     integer gid           = Users::user_in_work["gid"]:Users::max_gid;
     symbol user_type      = Users::user_in_work["type"]:`local;
     string defaultgroup   = Users::user_in_work["groupname"]:"";
+    string email          = Users::user_in_work["email"]:"";
     fullname              = username + ", " + fullname; //??
     integer old_uid       = 0;
 
@@ -695,7 +688,6 @@ global define symbol EditUserDetailsDialog( ) ``{
         _("Login &shell"), available_shells );
 
     boolean do_not_edit = (user_type == `nis);
-//                          (user_type == `ldap && !Users::is_ldap_server));
     term contents =
         `HBox(
           `HSpacing(1),
@@ -714,6 +706,9 @@ can be changed for non-local users.")) : `VSpacing (0),
                     // textentry label
                     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
                         sformat("%1",uid ))),
+                    (user_type != `ldap) ? `Empty() :
+                    // textentry label
+                    `Top(`TextEntry( `id(`email), _("&Email adress"), email )),
                     // textentry label
                     `Top(`TextEntry( `id(`home), _("&Home directory"), home )),
                     `Top(edit_shell),
@@ -782,6 +777,17 @@ can be changed for non-local users.")) : `VSpacing (0),
 //                new_defaultgroup = defaultgroup;
                 if (what == `edit_user && !Users::is_ldap_server)
                     new_home = home;
+                email =  UI::QueryWidget(`id(`email),   `Value);
+                // email shoul be at least a@b.cc
+                if ((size (email) < 6) ||
+                    (findfirstof ("@", email) < 0) ||
+                    (findfirstof (".", email) < 0))
+                    {
+                        // warning message
+                        UI::ErrorPopup (_("Enter a valid e-mail address"));
+                        UI::SetFocus(`id(`email));
+                        continue;
+                    }
             }
 
             list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
@@ -930,6 +936,8 @@ Please try again."));
 
             if ( new_i_uid != uid )
                 Users::user_in_work ["org_uid"] = uid;
+            if ( email != "")
+                Users::user_in_work ["email"] = email;
 
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);

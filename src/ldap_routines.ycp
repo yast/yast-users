@@ -165,11 +165,13 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
         string  org_username = user["org_username"]:username;
         string  forename    = user["forename"]:"";
         string  surname     = user["surname"]:"";
+        string  fullname    = user["fullname"]:"";
         string  home        = user["home"]:"";
         string  org_home    = user["org_home"]:home;
         string  shell       = user["shell"]:"";
         string  password    = user["password"]:"";
         string  groupname   = user["groupname"]:"";
+        string  email       = user["email"]:"";
         symbol  action      = user["modified"]:`nothing;
 
         if (action == `nothing)
@@ -191,6 +193,10 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
                 command = command + " -F " + forename;
             if (surname != "")
                 command = command + " -L " + surname;
+            if (fullname != "")
+                command = command + " -c " + fullname;
+            if (email != "")
+                command = command + " -M " + email;
 
             // on server, we can create the home
             if (server)
@@ -214,14 +220,19 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
         {
 
             // password for command-line cannot be crypted ??
+            // FIXME -S works as "do not change password"
             command = sformat (
-            "%1 usermod -f %2 -u %3 -s %4 -g %5 %6",
+            "%1 usermod -f %2 -u %3 -s %4 -g %5 %6 -S",
             command, path_to_cfg, uid, shell, gid, org_username);
 
             if (forename != "")
                 command = command + " -F " + forename;
             if (surname != "")
                 command = command + " -L " + surname;
+            if (fullname != "")
+                command = command + " -c " + fullname;
+            if (email != "")
+                command = command + " -M " + email;
 
             if (org_username != username)
                 command = sformat ("%1 -l %2", command, username);
@@ -232,7 +243,8 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
                 command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
             }
         }
-        SCR::Execute(.target.bash_output, command);
+        y2warning ("%1",
+        SCR::Execute(.target.bash_output, command));
     });
     return true; // TODO check for success
 }

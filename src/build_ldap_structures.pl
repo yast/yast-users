@@ -154,7 +154,7 @@ $mesg = $ldap->search(
      base => $user_base,
      filter => $user_filter,
      attrs => [ "uid", "uidNumber", "gidNumber", "homeDirectory",
-                "loginShell", "cn" ]);
+                "loginShell", "cn", "mail"]);
 
 open YCP_LDAP, "> $ldap_output";
 open YCP_LDAP_BYNAME, "> $ldap_byname_output";
@@ -211,6 +211,13 @@ foreach $entry ($mesg->all_entries)
     
     my $shell = $entry->get_value("loginShell");
     print YCP_LDAP "\t\"shell\": \"$shell\",\n";
+    
+    my $email = $entry->get_value("mail");
+    if (!defined ($email))
+    {
+        $email = "";
+    }
+    print YCP_LDAP "\t\"email\": \"$email\",\n";
 
     print YCP_LDAP "\t\"type\": `ldap\n";
         

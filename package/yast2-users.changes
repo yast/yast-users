@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan 17 14:57:03 CET 2003 - jsuchome@suse.cz
+
+- ldap: enabled modification of email, seting gecos,
+    password shouldn't be changed by cpu when editing
+
+-------------------------------------------------------------------
 Thu Jan 16 19:25:56 CET 2003 - jsuchome@suse.de
 
 - autoinst

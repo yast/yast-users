@@ -931,7 +931,7 @@ define map ImportGroup (map group) ``{
  */
 global define boolean Import (list settings) ``{
 
-    y2warning("importing: %1", settings);
+    y2debug("importing: %1", settings);
 
     if (settings[2]:$[] == $[])
         ReadLoginDefaults(false);
