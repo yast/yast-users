@@ -1515,15 +1515,12 @@ sub WriteGroups {
 	    %new_group			= %{$group};
 	}
 	my @ocs		= ();
-	if ($action ne "deleted") {
-	    foreach my $oc (keys %o_classes) {
-		if (Ldap->ObjectClassExists ($oc)) {
-		    push @ocs, $oc;
-		}
+	foreach my $oc (keys %o_classes) {
+	    if (Ldap->ObjectClassExists ($oc)) {
+	        push @ocs, $oc;
 	    }
-	    $group->{"objectclass"}	= \@ocs;
 	}
-
+	$group->{"objectclass"}	= \@ocs;
 	# ----------- now call the WriteBefore plugin function for this group
     
 	if (!defined $plugins) {
@@ -1580,7 +1577,6 @@ sub WriteGroups {
 	my %arg_map		= (
 	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
 	);
-
 
         if ($action eq "added") {
 	    if ($org_dn ne "") {
