@@ -891,7 +891,8 @@ global define string ProposeUsername( string fullname ) ``{
 
 	proposed_usernames = [];
 	fullname = filterchars (fullname, Users::valid_logname_chars + " ");
-	list parts = splitstring (fullname, " ");
+	// do not propose username with uppercase (problematic: #26409)
+	list parts = splitstring (tolower(fullname), " ");
 	list tested_usernames = eval (parts);
 
 	// 1st: add some interesting modifications...
@@ -915,12 +916,6 @@ global define string ProposeUsername( string fullname ) ``{
 	    }
 	    i = i + 1;
 	}
-
-	// lowercase proposals go first
-	foreach (`name, tested_usernames, ``{
-	    tested_usernames = union ([ tolower(name) ], tested_usernames );
-//	    tested_usernames = union (tested_usernames, [ toupper(name) ]  );
-	});
 	tested_usernames = add (tested_usernames, default_login);
 
 	// 2nd: check existence
@@ -936,7 +931,7 @@ global define string ProposeUsername( string fullname ) ``{
 	    proposed_usernames = add (proposed_usernames, name);
 	});
 
-	if (! UsersCache::UsernameExists ("42") && size (proposed_usernames)>40)
+	if (!UsersCache::UsernameExists ("42") && size (proposed_usernames)> 11)
 	{
 	    proposed_usernames = add (proposed_usernames, "42");
 	}

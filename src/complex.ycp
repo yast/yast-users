@@ -225,6 +225,9 @@ global define symbol UsersDialog() ``{
 
     UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
 
+    if (size (UsersCache::user_itemlist) > 0)
+	UI::SetFocus (`id(`user_table));
+
     if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
 
@@ -424,6 +427,9 @@ global define symbol GroupsDialog() ``{
                         lastbutton );
 
     UI::ChangeWidget (`id (`group_table), `Items, UsersCache::group_itemlist);
+
+    if (size (UsersCache::group_itemlist) > 0)
+	UI::SetFocus (`id(`group_table));
 
     if( UsersCache::focusline_group != nil )
         UI::ChangeWidget(`id(`group_table), `CurrentItem, UsersCache::focusline_group );

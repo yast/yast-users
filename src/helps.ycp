@@ -1,9 +1,10 @@
 /**
  *
  * File:	include/users/helps.ycp
- * Package: Configuration of users and groups
+ * Package:	Configuration of users and groups
  * Summary:	Helptext for the users module
- * Authors: Johannes Buchhold <jbuch@suse.de>
+ * Authors:	Johannes Buchhold <jbuch@suse.de>,
+ *		Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  *
@@ -214,12 +215,6 @@ click <b>Edit</b> or <b>Delete</b>.
 </p>
 ") +
 
-/*		_("<p>
-	// help text 5/6
-To change the default settings used for new users, select the <b>Set Defaults</b> button.</p>
-") +
-*/
-
 	// help text 6/6
 _("<p>
 Click <b>Expert Options</b> if you want to edit various expert settings:
@@ -308,7 +303,8 @@ the corresponding field.
 The <b>User Login</b> could be created from components of the full name after
 clicking <b>Suggestion</b> button. You're allowed to modify it, but only use
 letters (no accented characters), digits, and <tt>._-</tt>
-User names have stricter restrictions than passwords!
+Do not use uppercase letters in this entry unless you really know what you are doing.
+User names have stricter restrictions than passwords! 
 </p>
 ");
     }
@@ -319,6 +315,7 @@ User names have stricter restrictions than passwords!
 	_("<p>
 When you modify the <b>User Login</b>, use only
 letters (no accented characters), digits, and <tt>._-</tt>
+Do not use uppercase letters in this entry unless you really know what you are doing.
 User names have stricter restrictions than passwords!
 </p>
 ");

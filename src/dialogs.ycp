@@ -301,7 +301,7 @@ Try again.
 
         if (( ret == `next || ret == `additional || details ) && !do_not_edit)
         {
-	    // --------------------------------- username checks
+	    // --------------------------------- username checks, part 1/2
             if ( username == "" && Mode::cont && ret == `next &&
 		 Users::start_dialog == "user_add")
 	    {
@@ -377,7 +377,6 @@ Please try another one.
                 UI::SetFocus(`id(`username));
                 continue;
             }
-
 	    // --------------------------------- password checks
             string pw1   = UI::QueryWidget(`id(`pw1), `Value);
             string pw2   = UI::QueryWidget(`id(`pw2), `Value);
@@ -428,7 +427,7 @@ Please try again."));
                 continue;
                 }
             }
-            /* password check against cracklib FIXME */
+            /* password check against cracklib */
             if (Users::use_cracklib)
             {
                 string out = CrackPassword (username, pw1);
@@ -523,6 +522,29 @@ Press Details and edit the home directory."), home_path));
                         continue;
                     }
                 }
+            }
+	    // --------------------------------- username checks, part 2/2
+	    // (it is at the end because it is question)
+	    // upperase letters were used in username! bug #26409
+            if ( username != tolower (username) &&
+		 (what == "add_user" || username != org_username) &&
+		 Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
+            {
+                // The login name contains uppercase
+		if (!UI::YesNoPopup (_("You have used uppercase letters in the user login entry.
+
+This could cause the problem with delivering the mail 
+to this user, because mail systems generally don't
+support case sensitive names.
+You could solve this problem by editing the alias table.
+
+Are you sure to use the entered value?
+")))
+		{
+		    UI::SetFocus(`id(`username));
+		    continue;
+		}
+		// TODO: add "do not ask later" checkbox
             }
 
 	    // --------------------------------- now everything should be OK
@@ -1191,6 +1213,8 @@ global define symbol EditUserPasswordDialog() ``{
  */
 global define symbol LDAPUserSettingsDialog() ``{
 
+    // TODO: offer a table, where use can add/remove the attributes
+    // (schema has to be read from server)
     string mail                 = Users::user_in_work["mail"]:"";
     string roomNumber           = Users::user_in_work["roomNumber"]:"";
     string telephoneNumber      = Users::user_in_work["telephoneNumber"]:"";
@@ -1886,7 +1910,7 @@ global define symbol AuthentizationDialog() ``{
 
     define string additional_info (list labels, list values, boolean enabled)``{
 
-	// FIXME: ugly in ncurses!
+	// FIXME: richtext looks ugly in ncurses!
 	string ret = "";
 	integer i = 0;
 	foreach (`value, values, ``{
@@ -1922,7 +1946,7 @@ global define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "ldap")
 	{
-	    import "Ldap"; //FIXME: import here?
+	    import "Ldap";
 	    Ldap::Read();
 	    string server = Ldap::server;
 	    string domain = Ldap::GetDomain();
@@ -1932,7 +1956,7 @@ global define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "nis")
 	{
-	    import "Nis"; //FIXME: import here?
+	    import "Nis";
 	    Nis::Read();
 	    string servers = mergestring (Nis::servers,"<br>");
 	    string domain = Nis::GetDomain();
@@ -1942,7 +1966,7 @@ global define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "nisplus")
 	{
-	    import "Nisplus"; //FIXME: import here?
+	    import "Nisplus";
 	    Nisplus::Read();
 	    string server = Nisplus::server;
 	    string domain = Nisplus::GetDomain();
@@ -1952,7 +1976,7 @@ global define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "kerberos")
 	{
-	    import "Kerberos"; //FIXME: import here?
+	    import "Kerberos";
 	    Kerberos::Read();
 	    string kdc = Kerberos::kdc;
 	    string domain = Kerberos::default_domain;
