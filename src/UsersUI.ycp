@@ -196,4 +196,16 @@ global define string RecodeUTF (string text) ``{
     return (string) UI::Recode (WFM::GetEnvironmentEncoding(), "UTF-8",text);
 }
 
+/**
+ */
+global define string HashPassword (string method, string pw) ``{
+
+    if (method == "md5")
+	return cryptmd5 (pw);
+    if (method == "blowfish")
+	return cryptblowfish (pw);
+    return crypt (pw);
+}
+
+
 }//EOF
