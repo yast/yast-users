@@ -186,7 +186,7 @@ sub DebugMap {
 
     my $self		= shift;
 
-    if (!defined $_[0]) { return; }
+    if (!defined $_[0] || ref ($_[0]) ne "HASH") { return; }
     my %map = %{$_[0]};
     
     y2internal ("--------------------------- start of output");
