@@ -459,6 +459,7 @@ sub Read {
     # (if yes, objectClass must be in required!)
     # For now, we get all:
     my @user_attrs	= ();
+#    my @user_attrs	= ( "uid", "uidNumber", "gidNumber", "gecos", "cn", "homeDirectory" );
     my @group_attrs 	= ();
 
     my %args = (
@@ -467,11 +468,11 @@ sub Read {
 	"user_filter"		=> $user_filter,
 	"group_filter"		=> $group_filter,
 	"user_scope"		=> YaST::YCP::Integer ($user_scope),
-	# 2 = sub - FIXME configurable?
+	# 2 = sub - TODO configurable?
 	"group_scope"		=> YaST::YCP::Integer ($group_scope),
 	"user_attrs"		=> \@user_attrs,
 	"group_attrs"		=> \@group_attrs,
-	"itemlists"		=> YaST::YCP::Boolean (1),
+#	"itemlists"		=> YaST::YCP::Boolean (0),
 	"member_attribute"	=> $member_attribute
     );
     if (!SCR->Execute (".ldap.users.search", \%args)) {
@@ -871,6 +872,19 @@ sub ConvertMap {
     return \%ret;
 }
 
+# check the boolean value
+sub bool {
+
+    my $param = $_[0];
+    if (!defined $param) {
+	return 0;
+    }
+    if (ref ($param) eq "YaST::YCP::Boolean") {
+	return $param->value();
+    }
+    return $param;
+}
+
 ##------------------------------------
 # Writing modified LDAP users with
 # @param ldap_users map of all ldap users
@@ -902,8 +916,10 @@ sub WriteUsers {
         my $home	= $user->{"homeDirectory"} || "";
         my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
         my $gid		= $user->{"gidNumber"} || GetDefaultGID ();
-	my $create_home	= $user->{"create_home"} || YaST::YCP::Boolean (0);
-	my $delete_home	= $user->{"delete_home"} || YaST::YCP::Boolean (0);
+	my $create_home	= bool ($user->{"create_home"});
+	my $delete_home	= bool ($user->{"delete_home"});
+	my $enabled	= bool ($user->{"enabled"});
+	my $disabled	= bool ($user->{"disabled"});
 	my $plugins	= $user->{"plugins"};
 
 	# old DN stored from ldap-search (removed in Convert)
@@ -929,20 +945,25 @@ sub WriteUsers {
 	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
 	);
 
-	# ----------- now call the "before-write" plugin function for this user
+	# ----------- now call the WriteBefore plugin function for this user
 
 	if (!defined $plugins) {
 	    $plugins	= \@default_user_plugins;
 	}
-    
+	my $config	= {
+	    "what"	=> "user",
+	    "type"	=> "ldap",
+	    "modified"	=> $action
+	};
+	if ($disabled) {
+	    $config->{"disabled"}	= $disabled;
+	}
+	if ($enabled) {
+	    $config->{"enabled"}	= $disabled;
+	}
 	foreach my $plugin (sort @{$plugins}) {
-	    my $result = UsersPlugins->Apply ("WriteBefore", {
-		"what"		=> "user",
-		"type"		=> "ldap",
-		"plugins"	=> [ $plugin ],
-		"modified"	=> $action,
-#FIXME "enabled"/"disabled"
-	    }, $user);
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
 #TODO check the return value?
 	}
 
@@ -957,7 +978,7 @@ sub WriteUsers {
 		    $last_id = $uid;
 		}
 		if ($server) {
-		    if ($create_home->value) {
+		    if ($create_home) {
 			UsersRoutines->CreateHome ($useradd_defaults{"skel"}, $home);
 		    }
 		    UsersRoutines->ChownHome ($uid, $gid, $home);
@@ -968,7 +989,7 @@ sub WriteUsers {
 	    if (! SCR->Write (".ldap.delete", \%arg_map)) {
 		%ret = %{Ldap->LDAPErrorMap ()};
 	    }
-            elsif ($server && $delete_home->value) {
+            elsif ($server && $delete_home) {
                 UsersRoutines->DeleteHome ($home);
             }
         }
@@ -991,7 +1012,7 @@ sub WriteUsers {
 		    $last_id = $uid;
 		}
 		if ($server && $home ne $org_home) {
-		    if ($create_home->value) {
+		    if ($create_home) {
 			UsersRoutines->MoveHome ($org_home, $home);
 		    }
 		    UsersRoutines->ChownHome ($uid, $gid, $home);
@@ -1000,14 +1021,10 @@ sub WriteUsers {
         }
 	# ----------- now call the "write" plugin function for this user
 	if (!defined $ret{"msg"}) {
-	    my $result = UsersPlugins->Apply ("Write", {
-		"what"		=> "user",
-		"type"		=> "ldap",
-		"plugins"	=> $plugins,
-		"modified"	=> $action,
-#FIXME "enabled"/"disabled"
-	    }, $user);
-#TODO check the return value?
+	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
+	    }
 	}
 	# --------------------------------------------------------------------
     }
@@ -1053,11 +1070,14 @@ sub WriteGroups {
             next; 
 	}
 	my %new_group	= ();
+	my $plugins	= $group->{"plugins"};
 	my $dn		= $group->{"dn"}	|| "";
 	my $org_dn	= $group->{"org_dn"} 	|| $dn;
-	my @obj_classes	= @{$group->{"objectClass"}};
-	if (@obj_classes == 0) {
-	    @obj_classes= @group_class;
+
+	my @obj_classes	= @group_class;
+	if (defined $group->{"objectClass"} &&
+	    ref ($group->{"objectClass"}) eq "ARRAY") {
+	    @obj_classes= @{$group->{"objectClass"}};
 	}
 	my %o_classes	= ();
 	foreach my $oc (@obj_classes) {
@@ -1112,6 +1132,22 @@ sub WriteGroups {
 	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
 	);
 
+	# ----------- now call the WriteBefore plugin function for this group
+
+	if (!defined $plugins) {
+	    $plugins	= \@default_group_plugins;
+	}
+	my $config	= {
+	    "what"	=> "group",
+	    "type"	=> "ldap",
+	    "modified"	=> $action
+	};
+	foreach my $plugin (sort @{$plugins}) {
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+	}
+	# -------------------------------------------------------------------
+	
         if ($action eq "added") {
 	    if (!SCR->Write (".ldap.add", \%arg_map, $group)) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
@@ -1141,7 +1177,22 @@ sub WriteGroups {
 		$last_id	= $gid;
 	    }
         }
+	# ----------- now call the Write plugin function for this group
+	if (!defined $ret{"msg"}) {
+	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+	    }
+	}
+	# --------------------------------------------------------------------
+
+	# now add a group whose object class was changed:
 	if (%new_group && !%ret) {
+	    $config->{"modified"}	= "added";
+	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+	    }
 	    # now add new group with modified objectClass
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"dn"}	= $dn;
@@ -1154,6 +1205,10 @@ sub WriteGroups {
 	    }
 	    elsif ($gid > $last_id) {
 		$last_id = $gid;
+	    }
+	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
 	    }
 	}
     }
