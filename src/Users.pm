@@ -71,6 +71,8 @@ my %modified_users 		= (
     "system"		=> {}
 );
 
+my %modified_groups 		= ();
+
 my %user_in_work		= ();
 my %group_in_work		= ();
 
@@ -982,6 +984,7 @@ sub ReadLoginDefaults {
 # Read new set of users - "on demand" (called from running module)
 # @param type the type of users, currently "ldap" or "nis"
 # @return success
+BEGIN { $TYPEINFO{ReadNewSet} = ["function", "boolean", "string"]; }
 sub ReadNewSet {
 
     my $type	= $_[0];
@@ -1374,6 +1377,7 @@ sub EditUser {
 	    {
 		$user_in_work{$org_key}	= $user_in_work{$key};
 	    }
+#TODO FIXME check change of user_naming_attr -> user DN
 	}
 	# compare the differences, create removed_grouplist
 	if ($key eq "grouplist" && defined $user_in_work{$key}) {
@@ -1445,6 +1449,7 @@ sub EditGroup {
 	    {
 		$group_in_work{$org_key}	= $group_in_work{$key};
 	    }
+#TODO FIXME check change of group_naming_attr -> group DN
 	}
 	# compare the differences, create removed_userlist
 	if ($key eq "userlist" && defined $group_in_work{"userlist"}) {
@@ -2125,6 +2130,10 @@ sub CommitGroup {
 
         $groups{$type}{$gid}		= \%group;
         $groups_by_name{$type}{$groupname}	= $gid;
+
+	if (($group{"modified"} || "") ne "") {
+	    $modified_groups{$type}{$gid}	= \%group;
+	}
     }
     undef %group_in_work;
     return 1;
@@ -2486,7 +2495,17 @@ sub Write {
 	    UsersLDAP::WriteUsers ($removed_users{"ldap"});
 	}
 	
-	UsersLDAP::WriteUsers ($modified_users{"ldap"});
+	if (defined ($modified_users{"ldap"})) {
+	    UsersLDAP::WriteUsers ($modified_users{"ldap"});
+	}
+
+	if (defined ($removed_groups{"ldap"})) {
+	    UsersLDAP::WriteGroups ($removed_groups{"ldap"});
+	}
+
+	if (defined ($modified_groups{"ldap"})) {
+	    UsersLDAP::WriteGroups ($modified_groups{"ldap"});
+	}
     }
 
     # call make on NIS server
@@ -3214,7 +3233,7 @@ sub CreateGroupDN {
     if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
 	return undef;
     }
-    return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, UsersLDAP::GetUserBase ());
+    return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, UsersLDAP::GetGroupBase ());
 }
 
 ##-------------------------------------------------------------------------
