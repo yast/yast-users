@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Mar 27 10:55:34 CET 2003 - jsuchome@suse.de
+
+- fixes in LDAP users management:
+    display error messages, use spaces in fullname, don't ask for
+    delete directory if it is not present
+- don't save users when no really change was done (ReallyModified())
+- changed abort popup
+- 2.8.1
+
+-------------------------------------------------------------------
 Tue Mar 25 11:08:35 CET 2003 - jsuchome@suse.de
 
 - adapted to Require interface

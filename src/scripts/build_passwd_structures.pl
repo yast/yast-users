@@ -406,7 +406,7 @@ foreach my $user (<PASSWD>)
             print $YCP_PASSWD "\t\t\"addit_data\": \"$additional\",\n";
         }
         print $YCP_PASSWD "\t\t\"home\": \"$home\",\n";
-        print $YCP_PASSWD "\t\t\"org_home\": \"$home\",\n";
+
         print $YCP_PASSWD "\t\t\"shell\": \"$shell\",\n";
         print $YCP_PASSWD "\t\t\"groupname\": \"$groupname\",\n";
         print $YCP_PASSWD "\t\t\"grouplist\": \"$grouplist\",\n";

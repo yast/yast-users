@@ -218,7 +218,7 @@ global define string KerberosAuth () ``{
     list pam_auth_list = SCR::Read (.pam.login);
     string ret = "";
     foreach (`line, pam_auth_list, ``{
-        if (issubstring (line["module"]:"", "pam_krb5.so") &&
+        if (issubstring (line["module"]:"", "pam_krb5") &&
             line["type"]:"" == "auth" && ret == "")
                 ret = line["control"]:"";
     });
