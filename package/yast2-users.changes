@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Sep  8 13:02:08 CEST 2003 - jsuchome@suse.cz
+
+- do not create root's home direcotry in autoyast install (#30186)
+
+-------------------------------------------------------------------
 Fri Sep  5 11:12:28 CEST 2003 - jsuchome@suse.cz
 
 - save changed autologin status (#30105)

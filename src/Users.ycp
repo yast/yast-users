@@ -836,8 +836,8 @@ global define symbol Write (block abort, boolean useUI)``{
         integer gid = user["gid"]:default_gid;
         if (user_mod == "imported" || user_mod == "added")
         {
-            if (user["create_home"]:true ||
-               (user_mod == "imported" && SCR::Read(.target.stat, home) == $[]))
+            if ((user["create_home"]:true || user_mod == "imported") &&
+		SCR::Read(.target.stat, home) == $[])
             {
 		CreateHome (default_skel, home);
             }

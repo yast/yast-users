@@ -306,15 +306,12 @@ can be changed for non-local users.
 
     if ( what == "add_user" )
     {
+	if (user_type == "system")
+	    UI::ChangeWidget(`id(`propose), `Enabled, false );
 	if (user_type == "ldap")
 	    UI::SetFocus(`id(`givenName));
 	else
 	    UI::SetFocus(`id(`fullname));
-    }
-
-    if (user_type == "system")
-    {
-        UI::ChangeWidget(`id(`propose), `Enabled, false );
     }
 
     if( password != "")
