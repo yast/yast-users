@@ -1,0 +1,141 @@
+/**
+ * File:
+ *  users/ui.ycp
+ *
+ * Module:
+ *  Configuration of the users and groups
+ *
+ * Summary:
+ *  Screens and UI routines for the users module
+ *
+ * Authors:
+ *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *
+ * $Id$
+ *
+ */
+
+{
+    textdomain "users";
+
+    // ===== includes =================================================
+    include "ui/wizard_dialog.ycp";
+    include "ui/common_messages.ycp";
+
+    /**
+     * Define the switch between Users and Groups administration.
+     * This is used in <TT>usersUsersDialog()</TT> and <TT>usersGroupsDialog</TT>.
+     * @param symbol what can be <TT>`users</TT> or <TT>`groups</TT>
+     */
+    global define rbUsersGroup(symbol what) ``{
+	return 
+	    `Left(`RadioButtonGroup(`HBox
+	    (
+	        `RadioButton(`id(`switch_users), `opt(`notify),
+			     _("Users administration"), what == `users),
+		`RadioButton(`id(`switch_groups), `opt(`notify),
+			     _("Groups administration"), what == `groups)
+	    )));
+    }
+
+    /**
+     * The first of the two main dialogs.
+     */
+    global define usersUsersDialog() ``{
+	string help_text = "TODO HELP user";
+
+	term contents = 
+	    `VBox(rbUsersGroup(`users),
+		  `Table(`header(_("Login"), _("Name")),
+		         []),
+	          `HBox
+		  (
+		      `PushButton(`id(`new),       _("&Add")),
+		      `PushButton(`id(`clone),     _("&Clone")),
+		      `PushButton(`id(`clone),     _("&Edit")),
+		      `HStretch(),
+		      `PushButton(`id(`delete),    _("&Delete"))
+		  )
+	    );
+
+	UI(`SetWizardContentsButtons(_("User and group administration"),
+		                     contents,
+			             help_text,
+			             CancelButtonLabel(),
+				     FinishButtonLabel()));
+
+	term ret = UI(`UserInput());
+	
+	/* TODO change the current_user here */
+
+	return ret;
+    }
+    
+    /**
+     * The second of the two main dialogs.
+     */
+    global define usersGroupsDialog() ``{
+	string help_text = "TODO HELP Group";
+
+	term contents = 
+	    `VBox(rbUsersGroup(`groups),
+		  `Table(`header(_("Name"), _("GID")),
+		         []),
+	          `HBox
+		  (
+		      `PushButton(`id(`new),   _("&Add")),
+		      `PushButton(`id(`clone), _("&Clone")),
+		      `PushButton(`id(`edit),  _("&Edit")),
+		      `HStretch(),
+		      `PushButton(`id(`delete),      _("&Delete"))
+		  )
+	    );
+
+	UI(`SetWizardContentsButtons(_("User and group administration"),
+		                     contents,
+			             help_text,
+			             CancelButtonLabel(),
+				     FinishButtonLabel()));
+
+	term ret = UI(`UserInput());
+	
+	/* TODO change the current_group here */
+
+	return ret;
+    }
+    
+    /**
+     * Function that adds or clones a user
+     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
+     */
+    global define usersEditUser(term what) ``{
+	string help_text = "TODO HELP Add/Clone/Edit user";
+
+	term contents = 
+	    `VBox(rbUsersGroup(`users),
+		  `Table(`header(_("Login"), _("Name")),
+		         []),
+	          `HBox
+		  (
+		      `PushButton(`id(`new),       _("&Add")),
+		      `PushButton(`id(`clone),     _("&Clone")),
+		      `PushButton(`id(`edit),      _("&Edit")),
+		      `HStretch(),
+		      `PushButton(`id(`delete),    _("&Delete"))
+		  )
+	    );
+
+	UI(`SetWizardContentsButtons(_("User and group administration"),
+		                     contents,
+			             help_text,
+			             CancelButtonLabel(),
+				     FinishButtonLabel()));
+
+	term ret = UI(`UserInput());
+	
+	/* TODO change the current_user here */
+
+	return ret;
+    }
+    
+} // End

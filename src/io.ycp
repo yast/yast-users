@@ -1,0 +1,30 @@
+/**
+ * File:
+ *  users/io.ycp
+ *
+ * Module:
+ *  Configuration of the users and groups
+ *
+ * Summary:
+ *  Input/Output routines for the users module
+ *
+ * Authors:
+ *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *
+ * $Id$
+ *
+ * Input/Output routines.
+ */
+
+{
+    global define usersRead() ``{
+	/* TODO Some code */
+	return $[];
+    }
+
+    global define usersWrite(map u_settings) ``{
+	/* TODO Some code */
+	return true;
+    }
+
+}

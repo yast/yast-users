@@ -1,11 +1,11 @@
 #
-# Makefile.am for y2c_prnt/doc
+# Makefile.am for yast2-config-users
 #
 
 SUBDIRS = autodocs
 
 docdir = @DOCDIR@
-htmldir = $(docdir)/yast2-config-printer
+htmldir = $(docdir)/yast2-config-users
 
 html_DATA = 
 
