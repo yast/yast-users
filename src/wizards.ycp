@@ -129,8 +129,8 @@ define symbol MainSequence(string start) ``{
 	    `details		: "user_details",
 	    `passwordsettings	: "user_password",
 	    `ldap		: "user_ldap",
-	    `abort		: "without_save",
-	    `cancel		: "without_save",
+	    `abort		: `abort,
+	    `cancel		: `abort,
 	],
 	"user_add_inst": $[
             `nextmodule		: `next, // no user and next pressed (install)
@@ -147,8 +147,8 @@ define symbol MainSequence(string start) ``{
 	    `details:		"user_details",
 	    `passwordsettings:	"user_password",
 	    `ldap:		"user_ldap",
-	    `cancel:		"without_save",
-	    `abort:		"without_save"
+	    `abort		: `abort,
+	    `cancel		: `abort,
 	],
 	"user_inst_start": $[
             `next:          "user_add_inst"
@@ -182,16 +182,16 @@ define symbol MainSequence(string start) ``{
         ],
 	"group_add": $[
 	    `nosave		: "summary",
-            `next:		"group_save",
-            `abort:		"without_save",
-	    `cancel:		"without_save",
-	    `ldap:		"group_ldap",
+            `next		: "group_save",
+	    `ldap		: "group_ldap",
+	    `abort		: `abort,
+	    `cancel		: `abort,
 	],
         "group_edit": $[
-            `next:		"group_save",
-            `cancel:		"without_save",
-	    `ldap:		"group_ldap",
-	    `abort:		"without_save"
+            `next		: "group_save",
+	    `ldap		: "group_ldap",
+	    `abort		: `abort,
+	    `cancel		: `abort,
 	],
         "group_ldap": $[
 	    `next:		"group_save",
