@@ -43,6 +43,9 @@ while ( arg < size( WFM::Args() ) )
     arg = arg + 1;
 }
 
+// default for this client
+UsersCache::SetCurrentSummary ("users");
+
 if (start_dialog == "users" || start_dialog == "groups")
 {
     UsersCache::SetCurrentSummary (start_dialog);
