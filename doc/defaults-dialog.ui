@@ -1,0 +1,355 @@
+<!DOCTYPE UI><UI>
+<class>Defaults</class>
+<widget>
+    <class>QDialog</class>
+    <property stdset="1">
+        <name>name</name>
+        <cstring>Defaults</cstring>
+    </property>
+    <property stdset="1">
+        <name>geometry</name>
+        <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>925</width>
+            <height>618</height>
+        </rect>
+    </property>
+    <property stdset="1">
+        <name>caption</name>
+        <string>Defaults</string>
+    </property>
+    <widget>
+        <class>QPushButton</class>
+        <property stdset="1">
+            <name>name</name>
+            <cstring>PushButton2</cstring>
+        </property>
+        <property stdset="1">
+            <name>geometry</name>
+            <rect>
+                <x>260</x>
+                <y>560</y>
+                <width>120</width>
+                <height>32</height>
+            </rect>
+        </property>
+        <property stdset="1">
+            <name>text</name>
+            <string>Back</string>
+        </property>
+    </widget>
+    <widget>
+        <class>QPushButton</class>
+        <property stdset="1">
+            <name>name</name>
+            <cstring>PushButton1</cstring>
+        </property>
+        <property stdset="1">
+            <name>geometry</name>
+            <rect>
+                <x>800</x>
+                <y>560</y>
+                <width>120</width>
+                <height>32</height>
+            </rect>
+        </property>
+        <property stdset="1">
+            <name>text</name>
+            <string>OK</string>
+        </property>
+    </widget>
+    <widget>
+        <class>QGroupBox</class>
+        <property stdset="1">
+            <name>name</name>
+            <cstring>GroupBox1</cstring>
+        </property>
+        <property stdset="1">
+            <name>geometry</name>
+            <rect>
+                <x>380</x>
+                <y>80</y>
+                <width>390</width>
+                <height>390</height>
+            </rect>
+        </property>
+        <property stdset="1">
+            <name>title</name>
+            <string>Set the default values for new user</string>
+        </property>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1_2_2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>200</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Expiration</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QSpinBox</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>SpinBox2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>280</x>
+                    <y>310</y>
+                    <width>40</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>minValue</name>
+                <number>-1</number>
+            </property>
+            <property stdset="1">
+                <name>value</name>
+                <number>-1</number>
+            </property>
+        </widget>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1_2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>150</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Login shell</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLineEdit</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>LineEdit1_2_2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>220</y>
+                    <width>251</width>
+                    <height>24</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string></string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLineEdit</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>LineEdit1_2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>170</y>
+                    <width>251</width>
+                    <height>24</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>/bin/bash</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1_2_3</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>250</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Skeletons</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLineEdit</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>LineEdit1</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>120</y>
+                    <width>251</width>
+                    <height>24</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>/home</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1_2_3_2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>310</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Inactive:</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLineEdit</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>LineEdit1_2_3</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>270</y>
+                    <width>251</width>
+                    <height>24</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>/etc/skel</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>100</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Home directory in</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QLabel</class>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>TextLabel1_3</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>40</y>
+                    <width>110</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property stdset="1">
+                <name>text</name>
+                <string>Default group</string>
+            </property>
+        </widget>
+        <widget>
+            <class>QComboBox</class>
+            <item>
+                <property>
+                    <name>text</name>
+                    <string>users</string>
+                </property>
+            </item>
+            <item>
+                <property>
+                    <name>text</name>
+                    <string>own group</string>
+                </property>
+            </item>
+            <property stdset="1">
+                <name>name</name>
+                <cstring>ComboBox2</cstring>
+            </property>
+            <property stdset="1">
+                <name>geometry</name>
+                <rect>
+                    <x>70</x>
+                    <y>60</y>
+                    <width>250</width>
+                    <height>30</height>
+                </rect>
+            </property>
+        </widget>
+    </widget>
+    <widget>
+        <class>QTextView</class>
+        <property stdset="1">
+            <name>name</name>
+            <cstring>TextView3</cstring>
+        </property>
+        <property stdset="1">
+            <name>geometry</name>
+            <rect>
+                <x>20</x>
+                <y>20</y>
+                <width>221</width>
+                <height>580</height>
+            </rect>
+        </property>
+        <property stdset="1">
+            <name>text</name>
+            <string>helptext</string>
+        </property>
+    </widget>
+</widget>
+</UI>

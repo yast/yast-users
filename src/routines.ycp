@@ -1,16 +1,9 @@
 /**
- * File:
- *  routines.ycp
- *
- * Module:
- *  Users
- *
- * Summary:
- *  Read routines (moved from UserSettings.ycp)
- *
- * Authors:
- *  Johannes Buchhold <jbuch@suse.de>,
- *  ...
+ * File:	include/users/routines.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	users/groups read and write routines
+ * Authors:	Johannes Buchhold <jbuch@suse.de>,
+ *          Jiri Suchomel <jsuchome@suse.cz>
  *
  */
 // There are some variables (last_*) from Users used here !!
@@ -180,8 +173,6 @@ SCR::Execute(.target.bash, "touch /tmp/touch/2dpasswd_before_foreach-agent");
           user["shadow"] = shadow[username]:$[];
           passwd_users[ i_uid ] = user;
       }
-      else // + value
-          Users::last_passwd = user;
       });
 SCR::Execute(.target.bash, "touch /tmp/touch/2epasswd_after_foreach-agent");
     return passwd_users;
@@ -295,8 +286,6 @@ global define boolean ReadGroupFromDisk(string basedir, map gshadowmap) ``{
             if ( password != nil ) group["password"]=  password;*/
             loaded_groups[ i_gid ] = group;
         }
-        else
-            Users::last_group = group;
     });
     return loaded_groups;
 }
@@ -409,8 +398,6 @@ global define map ReadShadowFromDisk(string basedir) ``{
 
             current_shadow[ username ] = new_entry;
         }
-        else
-            Users::last_shadow = entry;
     });
 
     return current_shadow;
@@ -444,13 +431,15 @@ global define string getGroupPassword( string groupname ) ``{
      * @param fullname fullname of the user
      * @return string recoded fullname
      */
-    global define string consoleUncoding( string fullname ) ``{
-    return UI::Recode( Users::encoding,"UTF-8",  fullname );
+    define string consoleUncoding( string fullname ) ``{
+    return UI::Recode( Users::encoding,"UTF-8",  fullname );// do not use Users
     }
 
     /**
      */
     global define boolean ReadLDAPUsers() ``{
+        y2milestone("dir ldap: %1", SCR::Dir(.etc.openldap.ldap_conf));
+        y2milestone("read ldap.host: %1", SCR::Read(.etc.openldap.ldap_conf.host));
     }
 
     /**
@@ -458,11 +447,18 @@ global define string getGroupPassword( string groupname ) ``{
     global define boolean ReadLDAPGroups() ``{
     }
 
-    /**
-      */
-    global define boolean IsLDAPServer () ``{
-        return false;
-    }
+/**
+  */
+global define boolean IsLDAPPresent () ``{
+
+    y2milestone("dir nsswitch: %1", SCR::Dir(.etc.nsswitch_conf));
+    string passwd_source = SCR::Read(.etc.nsswitch_conf.passwd);
+    y2milestone("read nsswitch.passwd: %1", passwd_source);
+
+    if (issubstring(passwd_source, "ldap")) // ??
+        return true;
+    return false;
+}
 
 /**
  * Read the file /etc/group.
@@ -505,10 +501,9 @@ global define boolean ReadGroupFromDiskAsString(map gshadowmap) ``{
 
 /**  -- using target.string
  */
-global define list WriteGroup(map system_groups, map local_groups) ``{
+global define list WriteGroup(string basedir, map system_groups, map local_groups, string last) ``{
 
-//    string conf_path = basedir + "/group";
-    string conf_path = "/tmp/group";
+    string conf_path = basedir + "/group";
     list modified = [];
     list list_to_save = maplist (`gid, `group, system_groups, ``{
         string to_save = sformat("%1:%2:%3:%4",
@@ -531,16 +526,8 @@ global define list WriteGroup(map system_groups, map local_groups) ``{
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
-    if (Users::last_group != $[])
-    {
-        map group = Users::last_group;
-        string to_save = sformat("%1:%2:%3:%4",
-            group["groupname"]:"",
-            group["password"]:"",
-            group["gid"]:max_gid,
-            group["userlist"]:"");
-        string_to_save = string_to_save + "\n" + to_save + "\n";
-    }
+    if (last != "" && last != nil)
+        string_to_save = string_to_save + "\n" + last;
     y2milestone("Succesfuly written %1: %2", conf_path,
         SCR::Write(.target.string, conf_path, string_to_save));
     return modified;
@@ -549,10 +536,9 @@ global define list WriteGroup(map system_groups, map local_groups) ``{
 
 /**  -- using target.string
  */
-global define list WritePasswd(map system_users, map local_users) ``{
+global define list WritePasswd(string basedir, map system_users, map local_users, string last) ``{
 
-//    string conf_path = basedir + "/passwd";
-    string conf_path = "/tmp/passwd";
+    string conf_path = basedir + "/passwd";
     list modified = [];
     list list_to_save = maplist (`uid, `user, system_users, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
@@ -581,19 +567,8 @@ global define list WritePasswd(map system_users, map local_users) ``{
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
-    if (Users::last_passwd != $[])
-    {
-        map user = Users::last_passwd;
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
-            user["username"]:"",
-            user["password"]:"",
-            user["uid"]:max_uid,
-            user["gid"]:max_gid,
-            user["fullname"]:"",
-            user["home"]:"",
-            user["shell"]:"");
-        string_to_save = string_to_save + "\n" + to_save + "\n";
-    }
+    if (last != "" && last != nil)
+        string_to_save = string_to_save + "\n" + last;
     y2milestone("Succesfuly written %1: %2", conf_path,
         SCR::Write(.target.string, conf_path, string_to_save));
     return modified;
@@ -778,10 +753,10 @@ global define map ReadShadowFromDiskAsString(string basedir) ``{
 
 /**  -- using target.string
  */
-global define boolean WriteShadow(map shadow) ``{
+global define boolean WriteShadow(string basedir, map shadow, string last) ``{
 
-//    string conf_path = basedir + "/shadow";
-    string conf_path = "/tmp/shadow";
+    string conf_path = basedir + "/shadow";
+
     list list_to_save = maplist (`username, `entry, shadow, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
             username,
@@ -796,22 +771,8 @@ global define boolean WriteShadow(map shadow) ``{
         return to_save;
     });
     string string_to_save = mergestring (list_to_save, "\n");
-    // ?? is it needed ??
-    if (Users::last_shadow != $[])
-    {
-        map entry = Users::last_shadow;
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
-            entry["username"]:"",
-            entry["password"]:"",
-            entry["last_change"]:"",
-            entry["min"]:"",
-            entry["max"]:"",
-            entry["warn"]:"",
-            entry["inact"]:"",
-            entry["expire"]:"",
-            entry["flag"]:"");
-        string_to_save = string_to_save + "\n" + to_save + "\n";
-    }
+    if (last != "" && last != nil)
+        string_to_save = string_to_save + "\n" + last;
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
@@ -855,10 +816,9 @@ global define map ReadGshadowFromDiskAsString(string basedir)``{
 
 /**  -- using target.string
  */
-global define boolean WriteGshadow(map gshadow) ``{
+global define boolean WriteGshadow(string basedir, map gshadow, string last) ``{
 
-//    string conf_path = basedir + "/gshadow";
-    string conf_path = "/tmp/gshadow";
+    string conf_path = basedir + "/gshadow";
     list list_to_save = maplist (`groupname, `entry, gshadow, ``{
         string to_save = sformat("%1:%2:%3:%4",
             groupname,
@@ -868,6 +828,8 @@ global define boolean WriteGshadow(map gshadow) ``{
         return to_save;
     });
     string string_to_save = mergestring (list_to_save, "\n");
+    if (last != "" && last != nil)
+        string_to_save = string_to_save + "\n" + last;
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
@@ -1033,8 +995,6 @@ SCR::Execute(.target.bash, "touch /tmp/touch/2dpasswd_before_foreach-new");
           user["shadow"] = shadow[username]:$[];
           passwd_users[ i_uid ] = user;
       }
-      else // + value
-          Users::last_passwd = user;
       });
 SCR::Execute(.target.bash, "touch /tmp/touch/2epasswd_after_foreach-new");
     return passwd_users;
@@ -1108,8 +1068,6 @@ global define boolean ReadGroupFromDiskNew (string basedir, map gshadowmap) ``{
                 group["password"] = password;
             loaded_groups[ i_gid ] = group;
         }
-        else
-            Users::last_group = group;
     });
     return loaded_groups;
 }

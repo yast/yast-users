@@ -22,12 +22,12 @@
 {
     textdomain "users";
 
-    import "./Users";
+    import "Users";
 //    import "./UsersCache";
     import "Wizard";
 //    include "users/ui.ycp";
 //    include "users/io.ycp";
-    include "./wizards.ycp";
+    include "users/wizards.ycp";
     include "wizard/sequencer.ycp";
 
     list args = Args ();

@@ -2,7 +2,8 @@
  * File:	include/users/wizards.ycp
  * Package:	Configuration of users and groups
  * Summary:	Wizards definitions
- * Authors:	jsuchome <jsuchome@suse.cz>
+ * Authors:	Johannes Buchhold <jbuch@suse.de>,
+ *          Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  */
@@ -18,29 +19,29 @@ include "ui/common_popups.ycp";
 include "ui/common_messages.ycp";
 include "wizard/sequencer.ycp";
 
-include "./complex.ycp";
-include "./dialogs.ycp";
+include "users/complex.ycp";
+include "users/dialogs.ycp";
 
 
 /**
  * Whole configuration of users
  * @return sequence result
- */
+ *
 global define symbol OldUsersSequence() ``{
 
     map aliases = $[
     "read":         [``(ReadDialog(!Mode::cont)), true ],
 	"users":         ``(UsersDialog()),
     "user_add":      ``(EditUserDialog(`add_user)),
-//	"user_add_inst": ``(EditUserDialog(`add_user)),
-//	"user_inst_start":[``(usersInstStart ()), true],
+	"user_add_inst": ``(EditUserDialog(`add_user)),
+	"user_inst_start":[``(usersInstStart ()), true],
     "user_edit":     ``(EditUserDialog(`edit_user)),
 	"user_details":  ``(EditUserDetailsDialog()),
 	"user_password": ``(EditUserPasswordDialog()),
 //    "user_delete":   ``(DeleteUserDialog()),
 	"user_save":     ``(UserSave()),
 //	"user_save":     [ ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )), true],
-//	"user_setup":	 [ ``(userSetup ()), true],
+	"user_setup":	 [ ``(userSetup ()), true],
 
 	"groups":        ``(GroupsDialog()),
     "group_add":     ``(EditGroupDialog(`add_group)),
@@ -83,7 +84,7 @@ global define symbol OldUsersSequence() ``{
 			`abort:         "without_save",
 			`cancel:        "without_save",
 			`back:          "users" ],
-/*	"user_add_inst": $[ `nextmodule:     `next,
+	"user_add_inst": $[ `nextmodule:     `next,
                             `nosave:         "users",
                             `additional:     "user_setup",
                             `next:           "user_save",
@@ -92,7 +93,7 @@ global define symbol OldUsersSequence() ``{
                             `abort:          "without_save",
                             `cancel:         "without_save",
                             `back:           "users" ],
-	"user_inst_start": $[ `next : "user_add_inst"],*/
+	"user_inst_start": $[ `next : "user_add_inst"],
 //	"user_setup":	 $[ `next : "user_save" ],
 	"user_details": $[
             `abort:         "without_save",
@@ -112,8 +113,8 @@ global define symbol OldUsersSequence() ``{
 			`cancel:        "without_save",
 	        `abort:         "without_save" ],
 //	"user_delete":   $[ `next:           "users",
-/*	"user_delete":   $[ `next:           "user_save",
-	        `abort:          `abort ],*/
+	"user_delete":   $[ `next:           "user_save",
+	        `abort:          `abort ],
 	"user_save": $[
             `next:	        "users",
 			`save:          "write"],
@@ -162,7 +163,7 @@ global define symbol OldUsersSequence() ``{
 	UI::CloseDialog();
 
     return ret;
-}
+}*/
 
 /**
  * Whole configuration of users/groups
@@ -231,27 +232,27 @@ global define symbol AutoSequence(string start) ``{
 global define symbol MainSequence(string start) ``{
 
     map aliases = $[
-	"users":         ``(UsersDialog()),
-    "user_add":      ``(EditUserDialog(`add_user)),
-//	"user_add_inst": ``(EditUserDialog(`add_user)),
-//	"user_inst_start":[``(usersInstStart ()), true],
-    "user_edit":     ``(EditUserDialog(`edit_user)),
-	"user_details":  ``(EditUserDetailsDialog()),
-	"user_password": ``(EditUserPasswordDialog()),
+	"users":            ``(UsersDialog()),
+    "user_add":         ``(EditUserDialog(`add_user)),
+	"user_add_inst":    ``(EditUserDialog(`add_user)),
+	"user_inst_start":  [``(usersInstStart ()), true],
+    "user_edit":        ``(EditUserDialog(`edit_user)),
+	"user_details":     ``(EditUserDetailsDialog()),
+	"user_password":    ``(EditUserPasswordDialog()),
 //    "user_delete":   ``(DeleteUserDialog()),
-	"user_save":     ``(UserSave()),
+	"user_save":        ``(UserSave()),
 //	"user_save":     [ ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )), true],
-//	"user_setup":	 [ ``(userSetup ()), true],
+	"user_setup":	    [ ``(userSetup ()), true],
 
-	"groups":        ``(GroupsDialog()),
-    "group_add":     ``(EditGroupDialog(`add_group)),
-    "group_edit":    ``(EditGroupDialog(`edit_group)),
+	"groups":           ``(GroupsDialog()),
+    "group_add":        ``(EditGroupDialog(`add_group)),
+    "group_edit":       ``(EditGroupDialog(`edit_group)),
 //    "group_delete":  ``(DeleteGroupDialog()),
-	"group_save":    ``(GroupSave()),
+	"group_save":       ``(GroupSave()),
 //	"group_save"  :  ``(UserWriteStack::GroupSave(group_in_work,  start_dialog == "group_add")),
 
     "defaults":         ``(DefaultsDialog()),
-	"without_save" :  ``(ReallyAbort()),
+	"without_save":     ``(ReallyAbort()),
     ];
 
     map main_sequence = $[
@@ -269,26 +270,29 @@ global define symbol MainSequence(string start) ``{
 		    `cancel:        "without_save",
 		    `exit:          `abort ],
 	"user_add": $[
-            `nextmodule:    `next, // no user and next pressed (install)
-			`nosave:        "users", // no "first user" was added (install)
-//			`additional:    "user_setup", // only install
-			`next:          "user_save",  // why this?
+            `nextmodule:    `next,
+			`nosave:        "users",
+			`additional:    "user_setup", // only install
+			`next:          "user_save",  // -> Commit
 			`details:       "user_details",
 			`passwordsettings: "user_password",
 			`abort:         "without_save",
 			`cancel:        "without_save",
 			`back:          "users" ],
-/*	"user_add_inst": $[ `nextmodule:     `next,
-                            `nosave:         "users",
-                            `additional:     "user_setup",
-                            `next:           "user_save",
-                            `details:        "user_details",
-                            `passwordsettings: "user_password",
-                            `abort:          "without_save",
-                            `cancel:         "without_save",
-                            `back:           "users" ],
-	"user_inst_start": $[ `next : "user_add_inst"],*/
-//	"user_setup":	 $[ `next : "user_save" ],
+	"user_add_inst": $[
+            `nextmodule:    `next, // no user and next pressed (install)
+            `nosave:        "users", // no "first user" was added (install)
+            `additional:    "user_setup",
+            `next:          "user_save",
+            `details:       "user_details",
+            `passwordsettings:  "user_password",
+            `abort:         "without_save",
+            `cancel:        "without_save",
+            `back:          "users" ],
+	"user_inst_start": $[
+            `next:          "user_add_inst"], // is this needed ??
+	"user_setup": $[
+            `next :         "user_save" ],
 	"user_details": $[
             `abort:         "without_save",
     // next is predefined to add or edit
@@ -310,9 +314,9 @@ global define symbol MainSequence(string start) ``{
 /*	"user_delete":   $[ `next:           "user_save",
 	        `abort:          `abort ],*/
 	"user_save": $[
-            `next:	        "users"],
+            `next:	        "users",
 //			`save:          "write"],
-//			`save:          `next],
+			`save:          `next], // this should be write - during install ??
     "groups": $[
             `switch_users:  "users",
 //			`switch_groups: "groups",

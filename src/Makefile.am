@@ -31,6 +31,9 @@ config_DATA =			\
 #	add_user.y2cc		\
 #	add_group.y2cc
 
+ybin_SCRIPTS =  \
+    build_users_structures.pl
+
 ydata_DATA = accounts.ycp
 
 noinst_DATA = passwd.sh
@@ -38,4 +41,4 @@ noinst_DATA = passwd.sh
 passwd.ycp: passwd.sh /etc/passwd
 	./passwd.sh > passwd.ycp
 
-EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(ydata_DATA) $(noinst_DATA)
+EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(ydata_DATA) $(noinst_DATA) $(ybin_SCRIPTS)

@@ -1,23 +1,12 @@
 .etc.default.useradd
 
-`ag_anyagent(
-  Description (
-    ``(File("/etc/default/useradd")),	// real file name
-    "#\n",				// Comment
-    false,				// read-only
-    ``(Tuple (
-      Choice (
-        [ "GROUP",      Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `group(String("^\n")), Optional(String("^\n"))))],
-        [ "HOME",       Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `home(String("^\n")),  Optional(String("^\n"))))],
-        [ "INACTIVE",   Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `inactive(String("^\n")),  Optional(String("^\n"))))],
-        [ "EXPIRE",     Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `expire(String("^\n")),    Optional(String("^\n"))))],
-        [ "SHELL",      Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `shell(String("^\n")),    Optional(String("^\n"))))],
-	[ "SKEL",       Optional (Sequence (Optional(Whitespace()), "=", Optional(Whitespace()), `skel(String("^\n")),      Optional(String("^\n"))))],
-	[ " ",          Optional (`unknown(String ("^\n")))]
-      ),
-      Continue ("\n")
-      ))
-    )
-  )
-           
- 
+`ag_ini(
+  IniAgent(
+    "/etc/default/useradd",
+    $[ "options" : [ "ignore_case", "global_values", "flat" ],
+       "comments" : [ "^#.*", "^[ \t]*$", ],
+       "params" : [
+		 $[ "match" : [ "^[ \t]*([^=]*[^ \t=])[ \t]*=[ \t]*(.*[^ \t]|)[ \t]*$" , "%s=%s"],],
+       ]
+	]
+    ))

@@ -1,16 +1,8 @@
 /**
- * File:
- *  nis_routines.ycp
- *
- * Module:
- *  Users
- *
- * Summary:
- *  NIS server read routines (moved from UserSettings.ycp)
- *
- * Authors:
- *  Johannes Buchhold <jbuch@suse.de>,
- *  ...
+ * File:	include/users/nis_routines.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	NIS server test and read routines
+ * Authors:	Johannes Buchhold <jbuch@suse.de>
  *
  */
 
@@ -95,9 +87,9 @@ Select which one to configure.
         `VSpacing (1),
         `HBox (
         `HStretch (),
-        `PushButton (`id (`ok), OKButtonLabel()),
+        `PushButton (`id (`ok), UI::OKButtonLabel()),
         `HStretch (),
-        `PushButton (`id (`abort), AbortButtonLabel()),
+        `PushButton (`id (`abort), UI::AbortButtonLabel()),
         `HStretch ()
         )
     );

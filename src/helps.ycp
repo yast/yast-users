@@ -1,15 +1,9 @@
 /**
- * File:
- *  users/helps.ycp
  *
- * Module:
- *  Configuration of the users and groups
- *
- * Summary:
- *  Helptext for the users module
- *
- * Authors:
- *  Johannes Buchhold <jbuch@suse.de>
+ * File:	include/users/helps.ycp
+ * Package: Configuration of users and groups
+ * Summary:	Helptext for the users module
+ * Authors: Johannes Buchhold <jbuch@suse.de>
  *
  * $Id$
  *
@@ -103,6 +97,10 @@ button now.
 </P>");
     }
 
+    global define string WriteDialogHelp () ``{
+	// TODO FIXME: Modify it to your needs!
+	return "";
+    }
 
 
   /**

@@ -1,7 +1,10 @@
 /**
- * Module:      UsersCache.ycp
+ * File:	modules/UsersCache.ycp
+ * Package: Configuration of users and groups
+ * Summary:	Helper functions and cache structures for use from Users module
  *
- * Authors:     Johannes Buchhold <jbuch@suse.de>,
+ * Authors: Johannes Buchhold <jbuch@suse.de>,
+ *          Jiri Suchomel <jsuchome@suse.cz>
  *
  */
 {
@@ -10,19 +13,20 @@ module "UsersCache";
 textdomain "users";
 
 import "Mode";
+import "Console";
 //import "./UsersConsts";
 
-include "./passwd.ycp";
+//include "./passwd.ycp";
+include "users/passwd.ycp";
 
-map homelists = $[];
+global map homelists = $[];
 global map usernamelists = $[];
-//    global map groupnamelists = $[];
 global map groupnamelists = $[];
-global map users_itemlists = $[]; // global ??
+global map users_itemlists = $[];
 global map groups_itemlists = $[]; // global ??
 global list user_itemlist = [];
 global list group_itemlist = [];
-list uidlist = [];
+global list uidlist = [];
 list gidlist = [];
 global list current_users = []; // global ??
 global list current_groups = []; // global ??
@@ -32,8 +36,8 @@ global list group_custom_sets = []; // global ??
 global symbol user_type = `local;
 global symbol group_type = `local;
 
-global integer focusline_group = 0;
-global integer focusline_user  = 0;
+global integer focusline_group = nil;
+global integer focusline_user  = nil;
 
 global integer max_uid  = 0; // no !!!
 global integer max_gid  = 0;
@@ -45,24 +49,35 @@ global integer max_length_gid = 0;
 global boolean customized_usersview = true;
 global boolean customized_groupsview = true;
 
-global define boolean Read(map usermap, map groupmap, list custom_u, list custom_g) ``{
+string encoding = "";
+
+integer last_used_local_uid = 1;
+
+global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g)
+``{
+
+    encoding = Console::encoding;
 
     // build the cache structures
     // this variables should be changed only when necessary
-    user_custom_sets = custom_u;
-    current_users = custom_u;
+    user_custom_sets = cust_u;
+    current_users = cust_u;
     foreach (`type, `usersmap, usermap, ``{
-        homelists = add (homelists, type, BuildHomeList(usersmap));
-        usernamelists = add (usernamelists, type, BuildUsernameList(usersmap));
+        if (homelists [type]:nil == nil)
+            homelists = add (homelists, type, BuildHomeList(usersmap));
+        if (usernamelists [type]:nil == nil)
+            usernamelists = add (usernamelists, type, BuildUsernameList(usersmap));
+        // itemlists are not externly pre-builded
         users_itemlists = add (users_itemlists, type,
             BuildUserItemList(usersmap));
     });
-    uidlist = BuildUIDList(usermap); //??
+    if (uidlist == [])
+        uidlist = BuildUIDList(usermap);
     users_itemlists [ `custom ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ `custom ]:[]; // ukazatel?
 
-    group_custom_sets = custom_g;
-    current_groups = custom_g;
+    group_custom_sets = cust_g;
+    current_groups = cust_g;
     foreach (`type, `groupsmap, groupmap, ``{
         groupnamelists [type] = BuildGroupnameList (groupsmap);
         groups_itemlists [type] = BuildGroupItemList(groupsmap);
@@ -72,6 +87,8 @@ global define boolean Read(map usermap, map groupmap, list custom_u, list custom
     group_itemlist = groups_itemlists [ `custom ]:[]; // ukazatel?
 
 //y2milestone("groupnamelist: %1", groupnamelists);
+
+    last_used_local_uid = max_system_uid + 1;
 
     return true;
 }
@@ -151,7 +168,8 @@ global define list BuildGIDList(map allgroups) ``{
     while (  blanks_counter < count )
     {
         blanks_counter = blanks_counter + 1;
-        blanks         = blanks + "\302\240";
+        blanks         = blanks + "\302\240"; // why this ??
+//        blanks         = blanks + " ";
     }
     return blanks;
     }
@@ -173,7 +191,8 @@ global define list BuildUserItemList(map map_of_users) ``{
         a = add(a, username );
 
         if(key > max_system_uid)
-            a = add(a, user["fullname"]:"" );
+//            a = add(a, user["fullname"]:"" );
+            a = add(a, Uncoding(user["fullname"]:"") );
         else
             a = add(a, SystemUsers[username]:user["fullname"]:"" );
 
@@ -198,9 +217,22 @@ global define list BuildUserItemList(map map_of_users) ``{
 
         a = add(a, grouplist );
         items = add( items, a );
+
+//y2milestone ("a[2] = %1", select(a,2,nil));
     });
 
     return items;
+}
+
+/**
+ * Uncode the string.
+ * @param fullname string
+ * @return string string recoded to UTF
+ */
+global define string Uncoding( string fullname ) ``{
+
+    return UI::Recode( encoding, "UTF-8",  fullname );
+
 }
 
 /* item list for the user table
@@ -275,20 +307,22 @@ global define void ChangeGroupCustoms (list new) ``{
  */
 global define boolean UsernameExists(string username) ``{
 
+    boolean ret = false;
     foreach (`type, `usernames, usernamelists, ``{
-        if ( contains (usernames, username)) return true;
+        if ( contains (usernames, username)) ret = true;
     });
-    return false;
+    return ret;
 }
 
 /* -- check for nis homes???
  */
 global define boolean HomeExists(string home) ``{
 
+    boolean ret = false;
     foreach (`type, `homes, homelists, ``{
-        if ( contains (homes, home)) return true;
+        if ( contains (homes, home)) ret = true;
     });
-    return false;
+    return ret;
 }
 
 /*
@@ -311,10 +345,11 @@ global define boolean GIDExists(integer gid) ``{
  */
 global define boolean GroupnameExists(string groupname) ``{
 
+    boolean ret = false;
     foreach (`type, `groupnames, groupnamelists, ``{
-        if ( contains (groupnames, groupname)) return true;
+        if ( contains (groupnames, groupname)) ret = true;
     });
-    return false;
+    return ret;
 }
 
 /**
@@ -328,13 +363,18 @@ global define integer NextFreeUid() ``{
     if (user_type == `system)
         max = max_system_uid;
     else // beware !! what about LDAP etc.??
-        min = max_system_uid + 1;
+//        min = max_system_uid + 1;
+        min = last_used_local_uid + 1;
     integer uid = min;
     repeat
     {
         if (contains (uidlist, uid))
             uid = uid + 1;
-        else return uid;
+        else
+        {
+            last_used_local_uid = uid;
+            return uid;
+        }
     } until ( uid == max );
     return nil;
     // what about last_uid_used ??
@@ -377,6 +417,8 @@ define void UpdateUserItemlist () ``{
     }
     else
         user_itemlist = users_itemlists [`custom]:[]; //pointer ??
+
+    user_itemlist = sort (user_itemlist);
 }
 
 /* Update the proper itemlist showed in table */
@@ -391,6 +433,8 @@ define void UpdateGroupItemlist () ``{
     }
     else
         group_itemlist = groups_itemlists [`custom]:[]; //pointer ??
+
+    group_itemlist = sort (group_itemlist);
 }
 
 /* Update the cache after changing user */
@@ -430,8 +474,10 @@ global define void ChangeUser(symbol what, map user) ``{
         // could be done faster?  use add/merge/prepend?
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
             ``(select(item,1,"") != org_username));
-        users_itemlists [type] = merge (users_itemlists [type]:[], //add?
-            BuildUserItemList( $[ uid : user ] ));
+        users_itemlists [type] = prepend (users_itemlists [type]:[],
+            select (BuildUserItemList( $[ uid : user ] ), 0, []));
+/*        users_itemlists [type] = merge (users_itemlists [type]:[],
+            BuildUserItemList( $[ uid : user ] ));*/
         UpdateUserItemlist ();
     }
     else if (what == `delete_user)

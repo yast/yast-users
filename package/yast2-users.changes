@@ -1,7 +1,16 @@
 -------------------------------------------------------------------
-Wed Nov 20 09:52:51 CET 2002 - jsuchome@suse.cz
+Wed Nov 27 09:20:09 CET 2002 - jsuchome@suse.cz
 
-- New version of Users module
+- New version of Users module:
+- rewrite of code
+- new files structure
+- new data structures, enabling faster behaviour
+- data structures are pre-builded via perl-script
+- data are written directly to config (passwd...) files, not by extern
+  tools (useradd etc.)
+- dialog for changing /etc/default/useradd values (#14129)
+- updated documentation
+- etc_default_useradd.scr changed to use ini-agent
 - 2.7.0
 
 -------------------------------------------------------------------

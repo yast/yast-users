@@ -2,7 +2,8 @@
  * File:	include/users/complex.ycp
  * Package: Configuration of users and groups
  * Summary:	Dialogs definitions
- * Authors:	jsuchome <jsuchome@suse.cz>
+ * Authors:	Johannes Buchhold <jbuch@suse.de>,
+ *          Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  */
@@ -15,13 +16,18 @@ import "Wizard";
 import "Mode";
 import "Report";  // we could use ErrorPopup instead of Report::
 
+/*
 import "./Users";
 import "./UsersCache";
+*/
+import "Users";
+import "UsersCache";
 
 include "ui/common_popups.ycp";
 include "ui/common_messages.ycp";
 
-include "./helps.ycp";
+include "users/helps.ycp";
+
 //include "./routines.ycp";
 
 /**
@@ -182,38 +188,45 @@ global define symbol ReadDialog (boolean useUI ) ``{
  */
 global define boolean WriteDialog (boolean useUI ) ``{
 
+    // Set help text
+    if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
+
     // A callback function for abort
     block abort = ``{
-        return UI::PollInput () == `abort;
+//        return UI::PollInput () == `abort; // ask !!
+        if (UI::PollInput () == `abort && UI::YesNoPopup ("Do you really want to abort writing process?"))
+            return true;
+        return false;
     };
     return Users::Write(abort, useUI);
 }
 
-    /**
-      * Set the module to normal setup mode
-      * @return symbol for wizard sequencer
-      */
-    global define symbol userSetup () ``{
-    start_dialog = "users" ;
+/**
+  * Set the module to normal setup mode
+  * @return symbol for wizard sequencer
+  */
+global define symbol userSetup () ``{
+    Users::start_dialog = "users" ;
     return `next;
-    }
+}
 
-    /**
-      * Set the module into installation mode with first dialog for single user addition
-      * @return symbol for wizard sequencer
-      */
-    global define symbol usersInstStart () ``{
-    start_dialog = "user_add";
-    UserWriteStack::Reset ();
+/**
+  * Set the module into installation mode with
+  * first dialog for single user addition
+  * @return symbol for wizard sequencer
+  */
+global define symbol usersInstStart () ``{
+    Users::start_dialog = "user_add";
+//    UserWriteStack::Reset ();
     return `next;
-    }
+}
 
 
-    /**
-     * The dialog that appears when the [Abort] button is pressed.
-     * @return `abort if user really wants to abort
-     */
-    global define symbol ReallyAbort() ``{
+/**
+ * The dialog that appears when the [Abort] button is pressed.
+ * @return `abort if user really wants to abort
+ */
+global define symbol ReallyAbort() ``{
 
     boolean ret = true;
 
@@ -239,7 +252,7 @@ global define boolean WriteDialog (boolean useUI ) ``{
 
     if( ret ) return `abort;
     else return `back;
-    }
+}
 
 
 
@@ -248,7 +261,9 @@ global define boolean WriteDialog (boolean useUI ) ``{
  * @return symbol for wizard sequencer
  */
 global define symbol UsersDialog() ``{
-//  start_dialog              ="users"; // should be global?
+y2milestone ("start dialog = %1", Users::start_dialog);
+    Users::start_dialog              ="users"; // should be global?
+y2milestone ("start dialog = %1", Users::start_dialog);
 //  Users::user_in_work = $[]; // why here?
 y2milestone("--------------- Users summary");
     term contents = `VBox(
@@ -291,7 +306,7 @@ y2milestone("--------------- Users summary");
 
     UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
 
-    if( UsersCache::focusline_user != 0)
+    if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
 
     symbol ret = `next;
@@ -360,13 +375,15 @@ y2milestone("--------------- Users summary");
     if (ret == `back)
     {
         // -- don't understand at all... beware!!
-        /*
-        start_dialog = "user_add";
-        UserWriteStack::Reset ();
+        // UserWriteStack::Reset ();
         if (Mode::cont)
-            UsersCache::ReadSettingsFromDisk(false);
-        use_next_time = true;
-        */
+        {
+y2milestone ("start dialog = %1", Users::start_dialog);
+            Users::start_dialog = "user_add";
+y2milestone ("start dialog = %1", Users::start_dialog);
+            //UsersCache::ReadSettingsFromDisk(false);
+        }
+        Users::use_next_time = true; // ??
     }
     save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
@@ -419,7 +436,7 @@ y2milestone("--------------- Groups summary");
 
     UI::ChangeWidget (`id (`group_table), `Items, UsersCache::group_itemlist);
 
-    if( UsersCache::focusline_group != 0 )
+    if( UsersCache::focusline_group != nil )
         UI::ChangeWidget(`id(`group_table), `CurrentItem, UsersCache::focusline_group );
 
     // save marked table entry to group_in_work
@@ -700,6 +717,10 @@ global define symbol UserSave() ``{
 
     Users::Commit("user", true);
 
+    // adding only one user during install
+    if (Mode::cont && Users::start_dialog == "user_add")
+        return `save;
+    else
     return `next;
 }
 
@@ -751,11 +772,12 @@ global define void save_focus(integer table_input, any ret, symbol what) ``{
     {
         l_focusline = table_input;
         if( ret == `delete )
-            l_focusline = 0;
+            l_focusline = nil;
     }
-    if( l_focusline == nil || l_focusline < 0 )
+//    if( l_focusline == nil || l_focusline < 0 )
+    if( l_focusline < 0 )
     {
-        l_focusline = 0;
+        l_focusline = nil;
     }
 
     if ( what == `group )

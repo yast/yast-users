@@ -32,7 +32,7 @@ import "Mode";
 //    import "./Users";
 
 //include "wizard/sequencer.ycp";
-include "./wizards.ycp";
+include "users/wizards.ycp";
 
 string  start_dialog	   = "users";
 integer arg		   = 0;
@@ -51,21 +51,6 @@ while ( arg < size( Args() ) )
 
 
 y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
-
-
-    // ===== Definitions ==============================================
-/*
-    map group_in_work = $[];
-    map user_in_work  = $[];
-
-    integer focusline_group = 0;
-    integer focusline_user  = 0;
-    boolean view_all_users  = false;
-    boolean view_all_groups = false;
-
-    boolean start_sequencer_again  = false;
-    */
-
 
 
     // ===== change start dialog =========================================
