@@ -7,14 +7,10 @@ package UsersCache;
 
 use strict;
 
-use ycp;
-use YaST::YCP qw(Term Integer);
+use YaST::YCP qw(:LOGGING);
+use YaPI;
 
-use Locale::gettext;
-use POSIX ();     # Needed for setlocale()
-
-POSIX::setlocale(LC_MESSAGES, "");
-textdomain("users");
+textdomain ("users");
 
 our %TYPEINFO;
 
@@ -76,7 +72,7 @@ my %last_gid		= (
 my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
 my $min_length_login 	= 2;
 
-my $max_length_groupname 	= 8; # TODO:why only 8?
+my $max_length_groupname 	= 32;
 my $min_length_groupname	= 2;
 
 # UI-related (summary table) variables:
@@ -922,7 +918,7 @@ sub CommitUser {
     my $self		= shift;
     my %user		= %{$_[0]};
     my $what		= $user{"what"};
-    my $type		= $user{"type"};
+    my $type		= $user{"type"}	|| "";
     my $org_type	= $user{"org_type"} || $type;
     my $uid		= $user{"uidnumber"};
     my $org_uid		= $user{"org_uidnumber"} || $uid;

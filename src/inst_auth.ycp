@@ -17,14 +17,14 @@ import "Popup";
 import "Require";
 import "Users";
 import "NetworkDevices";
-import "Internet";
 import "DSL";
+import "Ldap";
 
 // Check if lan is configured
 list<string> net_devices = NetworkDevices::List("");
 y2debug("net_devices: %1", net_devices);
 
-if(size(net_devices) == 0) {
+if (size(net_devices) == 0 && size (Ldap::initial_defaults) == 0) {
     Users::SetAfterAuth ("users");
     return `auto;
 }
@@ -36,7 +36,7 @@ maplist(string dev, net_devices, ``{
 });
 y2debug("found=%1", found);
 
-if(!found) {
+if (!found && size (Ldap::initial_defaults) == 0) {
     Users::SetAfterAuth ("users");
     return `auto;
 }
@@ -51,84 +51,61 @@ Here you can choose the authentication method of users on your system.
 </p>") +
 
 // helptext 2/3
-_("<p>Select <b>Stand-Alone Machine</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
+_("<p>Select <b>Local</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
 
 // helptext 3/3
-_("<p>If you are using NIS or LDAP server to store user data, select <b>Network  Client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
+_("<p>If you are using a NIS or LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
 
 map button_labels = $[
+    // radiobutton to select ldap user auth.
+    "ldap":      _("&LDAP"),
     // radiobutton to select nis user auth.
     "nis":       _("N&IS"),
-    // radiobutton to select ldap user auth.
-    "ldap":      _("&LDAP")
+    // radiobutton to select local user auth.
+    "users":     _("Local (/etc/passwd)")
 ];
 
-// check if nis+/ldap are available (there are not in personal edition)
-list<string> available_clients = ["nis"];
+list<string> available_clients = [];
 
-if (Require::IsPackageAvailable("yast2-ldap-client"))
-    available_clients = add (available_clients, "ldap");
+if (Require::IsPackageAvailable("yast2-nis-client") && found)
+    available_clients = add (available_clients, "nis");
 
-term net_buttons = `VBox (`VSpacing(0.5));
+available_clients = add (available_clients, "ldap");
+available_clients = add (available_clients, "users");
+
+term buttons = `VBox (`VSpacing(0.5));
 
 foreach (string client, available_clients, ``{
-    net_buttons = add (net_buttons,
+    buttons = add (buttons,
 	`Left(`RadioButton(`id(client), button_labels[client]:"")));
 });
 
-net_buttons = add (net_buttons, `VSpacing(0.5));
+buttons = add (buttons, `VSpacing(0.5));
 
-term buttons = `RadioButtonGroup (`VBox (
-		`Left(`RadioButton(`id(`local), `opt(`notify),
-			// radiobutton to select local user auth.
-			_("S&tand-Alone Machine"))),
-		`Left(`RadioButton(`id(`network), `opt(`notify),
-			// radiobutton to select network user auth.
-			_("N&etwork Client"))),
-		`VSpacing(0.5),
-		`HBox (
-		    `HSpacing (4),
-		    // frame title for network authentication methods
-		    `Frame (_("Network Authentication Method"),
-			`RadioButtonGroup( net_buttons )
-		    )
-		))
-);
+// set LDAP for default, if ldap-server was configured:
+if (size (Ldap::initial_defaults) > 0)
+    Users::SetAfterAuth ("ldap");
 
 term contents = `VBox (
 		       `VStretch(),
 		       `HBox (
 			      `HStretch(),
-			      buttons,
+			      // frame title for authentication methods
+			      `Frame (_("Authentication Method"),
+				      `RadioButtonGroup( buttons )
+				      ),
 			      `HStretch()
 			      ),
 		       `VStretch()
 		       );
-
 Wizard::SetDesktopIcon("users");
 Wizard::SetContents (caption, contents, help,
 		    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
 
 // select and enable to correct buttons
-if (Users::AfterAuth () == "users")
-{
-    UI::ChangeWidget (`id(`local), `Value, true);
-    UI::ChangeWidget (`id(`network), `Value, false);
-    UI::ChangeWidget (`id("nis"), `Value, true);
-
-    foreach (string client, available_clients, ``{
-	UI::ChangeWidget (`id(client), `Enabled, false);
-    });
-}
-else
-{
-    UI::ChangeWidget (`id(`local), `Value, false);
-    UI::ChangeWidget (`id(`network), `Value, true);
-
-    foreach (string client, available_clients, ``{
-	UI::ChangeWidget (`id(client), `Value, Users::AfterAuth () == client);
-    });
-}
+foreach (string client, available_clients, ``{
+    UI::ChangeWidget (`id(client), `Value, Users::AfterAuth () == client);
+});
 
 any ret = nil;
 
@@ -141,13 +118,6 @@ repeat {
 	if ( Popup::ConfirmAbort (`incomplete) )
 	    break;
     }
-    else if (ret == `local || ret == `network)
-    {
-	boolean tmp = !(boolean)UI::QueryWidget (`id(`local), `Value);
-	foreach (string client, available_clients, ``{
-	    UI::ChangeWidget (`id(client), `Enabled, tmp);
-	});
-    }
     else if ( ret == `help )
     {
 	Wizard::ShowHelp (help);
@@ -155,17 +125,12 @@ repeat {
 
 } until ( ret == `next || ret == `back );
 
-if ( (boolean) UI::QueryWidget( `id(`network), `Value ) )
-{
-    if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
-	Users::SetAfterAuth ("nis");
-    if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
-	Users::SetAfterAuth ("ldap");
-}
-else
-{
+if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
+    Users::SetAfterAuth ("ldap");
+if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
+    Users::SetAfterAuth ("nis");
+if ( (boolean) UI::QueryWidget( `id("users"), `Value ) )
     Users::SetAfterAuth ("users");
-}
 
 return (symbol) ret;
 

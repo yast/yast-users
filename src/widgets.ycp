@@ -440,7 +440,7 @@ define symbol DeleteUserPopup() ``{
 
     // if the user has log on system
     string proc = lookup ((map)SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
-    if (size (proc) != 0)
+    if (size (proc) != 0 && !Mode::config)
     {
         // error popup
         Report::Error(_("You can not delete this user, because the user is present.
@@ -660,6 +660,71 @@ define boolean CustomizePopup (string what) ``{
     return modified;
 }
 
+/**
+ * When there are more users/groups shown, choose which type should be created
+ * after `add click
+ */
+define string ChooseTypePopup (list<string> sets, string what) ``{
+
+    map set_to_string = $[
+	// type of user/group
+	// (item of list with the headline 'Choose the type of user to add')
+	"local"	: _("Local"),
+	// type of user/group
+	// (item of list with the headline 'Choose the type of user to add')
+	"ldap"	: _("LDAP"),
+	// type of user/group
+	// (item of list with the headline 'Choose the type of user to add')
+	"system": _("System")
+    ];
+
+    sets		= filter (string set, sets, ``(set != "nis"));
+    string ret		= sets[0]:"local";
+    string label	= (what == "user") ?
+	// label
+	_("Choose the type of user to add") :
+	// label
+	_("Choose the type of group to add");
+
+    if (size (sets) < 2) return ret;
+
+    term rbs = `VBox ();
+    foreach (string set, sets, ``{
+	rbs = add (rbs, `Left (
+	    `RadioButton (`id (set), set_to_string [set]:set, set == ret)));
+    });
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+	    `Left (`Label (label)),
+            `VSpacing(0.5),
+	    `Left (`RadioButtonGroup (rbs)),
+            `VSpacing(0.5),
+	    `HBox(
+	        `PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+		`PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    any r = UI::UserInput();
+
+    foreach (string set, sets, ``{
+	if ( (boolean) UI::QueryWidget( `id(set), `Value ) )
+	    ret = set;
+    });
+
+    UI::CloseDialog();
+
+    if (r == `cancel) return "";
+
+    return ret;
+}
+
+
 //================================================================
 
 define list GetSetsItems (string set) ``{
@@ -772,10 +837,8 @@ Customize your view filter with <b>Customize Filter</b>.</p>
 _("<p>
 Click <b>Expert Options</b> to edit various expert settings:
 password encryption type, user authentication method, default values for new
-users, or login settings. With <b>Write Changes Now</b> expert option, you
-can save all changes you have done do far without exiting from configuration
-module.
-</p>
+users, or login settings. With <b>Write Changes Now</b>, save
+all changes made so far without exiting the configuration module.</p>
 ") +
 
     // help text 3/3, %1 is translated button label
@@ -911,16 +974,45 @@ define any SummaryTableHandler (string widget_id, map event) ``{
     }
     if (ev_id == `new)
     {
+	string error	= "";
 	if (UsersCache::GetCurrentSummary () == "users")
-	    Users::AddUser ($[]);
+	{
+	    list<string> current_users	= Users::GetCurrentUsers();
+	    if (size (current_users) > 1)
+	    {
+		string set = ChooseTypePopup (current_users, "user");
+		if (set == "") return nil;
+		current_users = filter (string u, current_users, ``(u != set));
+		current_users = prepend (current_users, set);
+		Users::SetCurrentUsers (current_users);
+	    }
+	    error = Users::AddUser ($[]);
+	}
 	else
-	    Users::AddGroup ($[]);
+	{
+	    list<string> current_groups	= Users::GetCurrentGroups();
+	    if (size (current_groups) > 1)
+	    {
+		string set = ChooseTypePopup (current_groups, "group");
+		if (set == "") return nil;
+		current_groups = filter (string u, current_groups,``(u != set));
+		current_groups = prepend (current_groups, set);
+		Users::SetCurrentGroups (current_groups);
+	    }
+	    error = Users::AddGroup ($[]);
+	}
+	if (error != "")
+	{
+	    Popup::Error (error);
+	    return nil;
+	}
     }
     if (ev_id == `edit || ev_id == `delete)
     {
         integer selected = (integer)UI::QueryWidget (`id("table"),`CurrentItem);
         if (selected != nil)
         {
+	    string error	= "";
 	    UsersCache::SetCurrentFocus (selected);
 	    if (UsersCache::GetCurrentSummary () == "users")
 	    {
@@ -928,7 +1020,9 @@ define any SummaryTableHandler (string widget_id, map event) ``{
 		if (ev_id == `delete)
 		    ev_id = DeleteUserPopup ();
 		else
-		    Users::EditUser ($[]);
+		{
+		    error = Users::EditUser ($[]);
+		}
 	    }
 	    else
             {
@@ -945,8 +1039,15 @@ you must do it on server.
                 if (ev_id == `delete)
                     ev_id = DeleteGroupPopup();
 		else
-		    Users::EditGroup ($[]);
+		{
+		    error = Users::EditGroup ($[]);
+		}
             }
+	    if (error != "")
+	    {
+		Report::Error (error);
+		return nil;
+	    }
         }
         else
         {
@@ -955,13 +1056,6 @@ you must do it on server.
             return nil;
         }
     }
-    /* TODO -- good to set here: what idf user cancels the password popup?
-    if (ev_id == `next && Users::LDAPModified () && Ldap::anonymous)
-    {
-	// ask for real LDAP password if reading was anonymous
-	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
-    }
-    */
     return ev_id;
 }
 
@@ -1054,7 +1148,6 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (current_summary == "users" && is (ev_id,string) &&
 	contains (Users::GetAvailableUserSets (), (string) ev_id))
     {
-	// FIXME do not work if LDAP is in custom set!
 	if (ev_id == "ldap" && Ldap::bind_pass == nil)
 	{
 	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
@@ -1212,12 +1305,11 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	Wizard::CloseDialog ();
 	if (ret == `next)
 	{
-	    y2internal ("write ret: %1", ret);
-	    // TODO unset modified flags
+	    y2debug ("write ret: %1", ret);
 	}
 	else
 	{
-	    y2internal ("write ret: %1", ret);
+	    y2debug ("write ret: %1", ret);
 	    // TODO if write of LDAP fails, should it be read again?
 	}
 	// LDAP expert options could be available again

@@ -1,6 +1,12 @@
-// UI-related routines to be run from Users.pm
+/**
+ * File:	modules/UsersUI.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	UI-related routines to be run from perl modules (Users.pm etc.)
+ * Author:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
 {
-
     module "UsersUI";
     textdomain "users";
 
@@ -256,34 +262,34 @@ _("Correct them manually before running the YaST2 users module again.");
 
     1: sformat(
 // error message 1/2: %1 is file name, %2 is uid, %3 is next sentence (2/2)
-_("There are more users with the same UID (\"%2\") in the file %1.
+_("There are multiple users with the same UID (\"%2\") in the file %1.
 %3"), "/etc/passwd", more, last),
 
     2: sformat(
 // error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
-_("There are more users with the same name (\"%2\") in the file %1.
+_("There are multiple users with the same name (\"%2\") in the file %1.
 %3"), "/etc/passwd", more, last),
 
     3: sformat(
 // error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
-_("There are more users with the same name (\"%2\") in the file %1.
+_("There are multiple users with the same name (\"%2\") in the file %1.
 %3"), "/etc/shadow", more, last),
 
     5: sformat(
 // error message 1/2: %1 is file name, %2 is gid, %3 is next sentence (2/2)
-_("There are more groups with the same GID (\"%2\") in the file %1.
+_("There are multiple groups with the same GID (\"%2\") in the file %1.
 %3"), "/etc/group", more, last),
 
     6: sformat(
 // error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
-_("There are more groups with the same name (\"%2\") in the file %1.
+_("There are multiple groups with the same name (\"%2\") in the file %1.
 %3"), "/etc/group", more, last),
 
     7: sformat(
 // error message 1/2: %1 is file name, %2 is line
 _("There is a strange line in the file %1:
 %2
-Perhaps number of colons is wrong or some line entry is missing.
+Perhaps the number of colons is wrong or some line entry is missing.
 Correct the file manually before running the YaST2 users module again."),
 "/etc/passwd", more),
 
@@ -291,14 +297,14 @@ Correct the file manually before running the YaST2 users module again."),
 // error message 1/2: %1 is file name, %2 is line
 _("There is a strange line in the file %1:
 %2
-Perhaps number of colons is wrong or some line entry is missing.
+Perhaps the number of colons is wrong or some line entry is missing.
 Correct the file manually before running the YaST2 users module again."),
 "/etc/group", more),
 
     9: sformat(
 // error message 1/2: %1 is file name
 _("There is a strange line in the file %1.
-Perhaps number of colons is wrong or some line entry is missing.
+Perhaps the number of colons is wrong or some line entry is missing.
 Correct the file manually before running the YaST2 users module again."),
 "/etc/shadow", more),
 
@@ -306,7 +312,7 @@ Correct the file manually before running the YaST2 users module again."),
 ];
 
     // default error message
-    return read_error[errno]: _("Cannot read user and/or group data.");
+    return read_error[errno]: _("Cannot read user or group data.");
 }
 
 

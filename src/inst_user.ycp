@@ -12,11 +12,12 @@
 
     textdomain "users";
 
-    import "Mode";
-    import "Product";
     import "Users";
     import "Require";
     import "Label";
+    import "Ldap";
+
+    any ret	= `back;
 
     // what to call after inst_auth dialog
     if (Users::AfterAuth() != "users")
@@ -28,17 +29,31 @@
 Install it now?
 "), package), Label::OKButton(), Label::CancelButton()))
         {
-            return (symbol)WFM::CallFunction (Users::AfterAuth(), WFM::Args ());
+            ret = (symbol)WFM::CallFunction (Users::AfterAuth(), WFM::Args ());
         }
         else
             return `back;
+
+	if (ret == `next && Users::AfterAuth() == "ldap" &&
+	    Ldap::initial_defaults_used)
+	{
+	    // continue with users...
+	    Users::SetAfterAuth ("users");
+	    y2milestone("calling users module to enable creating LDAP user...");
+	}
+	else
+	{
+	    // ldap not used, or the client configuration is different than
+	    // proposal from ldap server
+	    return (symbol) ret;
+	}
     }
 
     // else run the users module
     list start_params = [ "user_inst_start" ];
 
     y2debug("Starting user management module with parameters %1", start_params);
-    any ret = WFM::CallFunction ("users", start_params );
+    ret = WFM::CallFunction ("users", start_params );
     y2debug("User management module returned %1", ret );
 
     if ( ret == nil )

@@ -1,0 +1,175 @@
+/**
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm UsersCache.pm USERS.pm
+
+    include "testsuite.ycp";
+
+    import "YaPI::USERS";
+    import "Mode";
+
+    map R = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid"		: "hh",
+			"uidnumber"	: 500,
+			"gidnumber"	: 100,
+			"type"		: "local",
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		    "hh": $[
+		    ]
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local",
+			"more_users":	$[
+			    "hh":	1,
+			]
+		    ],
+		    1000: $[
+			"cn"	:	"gg",
+			"gidnumber":	1000,
+			"type"	:	"local",
+			"userlist":	$[
+			    "hh":	1
+			]
+		    ],
+		    1001: $[
+			"cn"	:	"gr",
+			"gidnumber":	1001,
+			"type"	:	"local",
+		    ],
+		    "by_name": $[
+			"users":	100,
+			"gg"	:	1000,
+			"gr"	:	1001
+		    ],
+		    "gids": $[
+			100:		1,
+			1000:		1,
+			1001:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+			"gg":		1,
+			"gr":		1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		    "root": $[
+		    ]
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/tmp/local/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
+    ];
+    map W = $[];
+    map E = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> config_map  = $[];
+
+    DUMP ("============ delete non-existent user: ==================");
+    config_map["uid"]	= "hhh";
+    string error = (string)
+	TEST (``(YaPI::USERS::UserDelete (config_map)), [R,W,E], 0);
+
+    DUMP ("============ delete user by name: =======================");
+
+    config_map["uid"]	= "hh";
+    TEST (``(YaPI::USERS::UserDelete (config_map)), [R,W,E], 0);
+
+    DUMP ("============ delete user by uid number: ================");
+
+    config_map	= $[
+	"uidnumber"	: "500"
+    ];
+    TEST (``(YaPI::USERS::UserDelete (config_map)), [R,W,E], 0);
+}

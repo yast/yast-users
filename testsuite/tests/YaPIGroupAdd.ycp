@@ -1,0 +1,169 @@
+/**
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm UsersCache.pm USERS.pm
+
+    include "testsuite.ycp";
+
+    import "YaPI::USERS";
+    import "Mode";
+
+    map R = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid":	"hh"
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local"
+		    ],
+		    "by_name": $[
+			"users":	100,
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn":	"root",
+			"gidnumber":	0,
+			"type"	:	"system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/tmp/local/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "IO_SCHEDULER"		: "",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
+    ];
+    map W = $[];
+    map E = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target": $[
+	    "mkdir"	: true,
+	]
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    map<string,any> config_map  = $[];
+    map<string,any> data_map    = $[
+	"cn"	: "gg",
+    ];
+
+    DUMP ("============ add new group 'gg': ==========================");
+    TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ add new group 'gg' - done ====================");
+
+
+    data_map ["userlist"]	= [ "hh1", "hh2" ];
+
+    DUMP ("============ add new group 'gg' with first userlist as list ==");
+    TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ add new group 'gg' - done ====================");
+
+    data_map ["userlist"]	= $[
+	"hh1"	: 1,
+	"hh2"	: 1
+    ];
+
+    DUMP ("============ add new group 'gg' with first userlist as map ==");
+    TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP ("============ add new group 'gg' - done ====================");
+
+
+    DUMP ("============ add new group 'root' (groupname conflict): ======");
+
+    data_map	= $[
+	"cn"	: "root"
+    ];
+
+    string error = (string)
+	TEST (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
+    DUMP (sformat ("------------ GroupAdd return value:\n%1", error));
+
+    DUMP ("============ add new group 'root' - done ====================");
+    DUMP ("==========================================================");
+}

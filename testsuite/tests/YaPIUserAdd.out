@@ -1,13 +1,13 @@
 Dump	==========================================================
 Dump	============ add new user 'jj': ==========================
 Read	.target.tmpdir "/tmp/YaST"
-Read	.etc.default.useradd.expire 0
-Read	.etc.default.useradd.group 100
-Read	.etc.default.useradd.groups "audio,video"
-Read	.etc.default.useradd.home "/tmp/local/home"
-Read	.etc.default.useradd.inactive 0
-Read	.etc.default.useradd.shell 0
-Read	.etc.default.useradd.skel 0
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 100
+Read	.etc.default.useradd."groups" "audio,video"
+Read	.etc.default.useradd."home" "/tmp/local/home"
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -26,9 +26,9 @@ Read	.passwd.system.users.by_name $["root":0]
 Read	.passwd.system.shadow $[]
 Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
 Read	.passwd.system.groups.by_name $["root":0]
-Read	.passwd.passwd.plusline 0
-Read	.passwd.shadow.plusline 0
-Read	.passwd.group.plusline 0
+Read	.passwd.passwd.pluslines 0
+Read	.passwd.shadow.pluslines 0
+Read	.passwd.group.pluslines 0
 Read	.passwd.local.users.last_uid 500
 Read	.passwd.local.users.homes $["/home/hh":1]
 Read	.passwd.local.users.usernames $["hh":1]
@@ -49,8 +49,9 @@ Write	.passwd.users $["local":$["1000":$["cn":"", "create_home":true, "encrypted
 Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Read	.target.stat "/tmp/local/home/jj" $[]
 Read	.target.stat "/tmp/local/home" $[]
-Execute	.target.mkdir "/tmp/local/home" 0
-Execute	.target.mkdir "/tmp/local/home/jj" 0
+Execute	.target.mkdir "/tmp/local/home" true
+Read	.target.stat "/tmp/local/home/jj" $[]
+Execute	.target.mkdir "/tmp/local/home/jj" true
 Read	.target.stat "/tmp/local/home/jj" $[]
 Execute	.target.bash " jj" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
@@ -59,13 +60,13 @@ Return
 Dump	============ add new user 'jj' - done ====================
 Dump	============ add new user 'hh': ==========================
 Read	.target.tmpdir "/tmp/YaST"
-Read	.etc.default.useradd.expire 0
-Read	.etc.default.useradd.group 100
-Read	.etc.default.useradd.groups "audio,video"
-Read	.etc.default.useradd.home "/tmp/local/home"
-Read	.etc.default.useradd.inactive 0
-Read	.etc.default.useradd.shell 0
-Read	.etc.default.useradd.skel 0
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 100
+Read	.etc.default.useradd."groups" "audio,video"
+Read	.etc.default.useradd."home" "/tmp/local/home"
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -84,9 +85,9 @@ Read	.passwd.system.users.by_name $["root":0]
 Read	.passwd.system.shadow $[]
 Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
 Read	.passwd.system.groups.by_name $["root":0]
-Read	.passwd.passwd.plusline 0
-Read	.passwd.shadow.plusline 0
-Read	.passwd.group.plusline 0
+Read	.passwd.passwd.pluslines 0
+Read	.passwd.shadow.pluslines 0
+Read	.passwd.group.pluslines 0
 Read	.passwd.local.users.last_uid 500
 Read	.passwd.local.users.homes $["/home/hh":1]
 Read	.passwd.local.users.usernames $["hh":1]

@@ -1,12 +1,12 @@
 Dump	==========================================================
 Read	.target.tmpdir 0
-Read	.etc.default.useradd.expire 0
-Read	.etc.default.useradd.group 100
-Read	.etc.default.useradd.groups "audio,video"
-Read	.etc.default.useradd.home "/home"
-Read	.etc.default.useradd.inactive 0
-Read	.etc.default.useradd.shell 0
-Read	.etc.default.useradd.skel 0
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 100
+Read	.etc.default.useradd."groups" "audio,video"
+Read	.etc.default.useradd."home" "/home"
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -25,9 +25,9 @@ Read	.passwd.system.users.by_name $[]
 Read	.passwd.system.shadow $[]
 Read	.passwd.system.groups $[0:$["cn":"root", "gidNumber":0, "type":"system"], "by_name":$["root":0], "gids":$[0:1], "groupnames":$["root":1]]
 Read	.passwd.system.groups.by_name $["root":0]
-Read	.passwd.passwd.plusline 0
-Read	.passwd.shadow.plusline 0
-Read	.passwd.group.plusline 0
+Read	.passwd.passwd.pluslines 0
+Read	.passwd.shadow.pluslines 0
+Read	.passwd.group.pluslines 0
 Read	.passwd.local.users.last_uid 600
 Read	.passwd.local.users.homes $["/home/hh":1]
 Read	.passwd.local.users.usernames $["hh":1, "ii":1]

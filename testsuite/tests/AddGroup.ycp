@@ -28,8 +28,9 @@
     map READ = $[
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
 		    "ENABLE_AUTOLOGIN"		: "false",
+		    "IO_SCHEDULER"		: "",
 		    "EVMS_CONFIG"		: "no"
 		]
 	],
@@ -37,10 +38,11 @@
 	    "local": $[
 		"users": $[
 		    500: $[
-			"uid"	: "hh",
-			"gecos"	: "HaHa",
+			"uid"		: "hh",
+			"gecos"		: "HaHa",
 			"gidnumber"	: 100,
-			"uidnumber"	: 500
+			"uidnumber"	: 500,
+			"type"		: "local"
 		    ],
 		    "by_name": $[
 			"hh":	500,
@@ -103,6 +105,9 @@
 		    ]
 		],
 	    ],
+	    "passwd": $[
+		"pluslines": ["+"]
+	    ]
 	],
 	"etc" : $[
 	    "fstab": [],

@@ -8,8 +8,7 @@ package UsersPlugins;
 
 use strict;
 
-use ycp;
-use YaST::YCP;
+use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
 

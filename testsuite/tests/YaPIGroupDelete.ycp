@@ -16,6 +16,8 @@
 		"users": $[
 		    500: $[
 			"uid"		: "hh",
+			"type"		: "local",
+			"uidnumber"	: 500,
 			"gidnumber"	: 100
 		    ],
 		    "by_name": $[
@@ -130,7 +132,8 @@
 	],
 	"product": $[
 		"features": $[
-		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "EVMS_CONFIG"		: "no"
 		]
