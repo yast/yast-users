@@ -17,20 +17,50 @@
     import "Product";
     import "Users";
 
+    include "require.ycp";
+
     // no user for imap server cd, y2c_imap will create it
     if (Product::imap_server || Product::openteam_server || Product::fwadmin_host)
         return `auto;
 
+    define boolean check_for_package (string package) ``{
+
+        return RequireAndConflictButtons ( [package], [],
+            // popup label (%1 is package to install)
+            sformat (_("Package %1 is not installed.
+Install it now?
+"), package), UI::OKButtonLabel(), UI::CancelButtonLabel());
+
+    }
+
     // what to call after inst_auth dialog
     if (Users::after_auth == `nis)
-        return CallModule ("nis", WFM::Args ());
-
+    {
+        if (check_for_package ("yast2-nis-client"))
+        {
+            return CallModule ("nis", WFM::Args ());
+        }
+        else
+            return `auto;
+    }
     else if (Users::after_auth == `nisplus)
-        return CallModule ("nisplus", WFM::Args ());
-
+    {
+        if (check_for_package ("yast2-nisplus-client"))
+        {
+            return CallModule ("nisplus", WFM::Args ());
+        }
+        else
+            return `auto;
+    }
     else if (Users::after_auth == `ldap)
-        return CallModule ("ldap", WFM::Args ());
-
+    {
+        if (check_for_package ("yast2-ldap-client"))
+        {
+            return CallModule ("ldap", WFM::Args ());
+        }
+        else
+            return `auto;
+    }
 
     // else run the users module
     string start_mod = "user_inst_start";

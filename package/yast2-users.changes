@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Feb 11 13:27:57 CET 2003 - jsuchome@suse.de
+
+- check for installed {nis,nisplus,ldap}-client module before called
+- more checks for new hoe directory
+- add user dialog (#23512)
+  password and home are not checked when clicking "Details"
+- 2.7.13
+
+-------------------------------------------------------------------
 Tue Feb 11 00:49:18 CET 2003 - nashif@suse.de
 
 - Update shadow settings with new password when importing
