@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb  2 14:49:18 CET 2004 - jsuchome@suse.cz
+
+- new backend, written in Perl
+- 2.9.4
+
+-------------------------------------------------------------------
 Mon Jan 19 10:56:43 CET 2004 - jsrain@suse.de
 
 - merged the new interpreter branch
