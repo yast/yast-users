@@ -20,22 +20,27 @@
     any ret	= `back;
 
     // what to call after inst_auth dialog
-    if (Users::AfterAuth() != "users")
+    string client	= Users::AfterAuth();
+    if (client != "users")
     {
-        string package = sformat("yast2-%1-client", Users::AfterAuth());
+        string package = sformat("yast2-%1-client", client);
+	// name of client to call
+        map call_client = $[
+	    "samba": "samba-client",
+	];
 	if (Require::RequireAndConflictButtons ( [package], [],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
 Install it now?
 "), package), Label::OKButton(), Label::CancelButton()))
         {
-            ret = (symbol)WFM::CallFunction (Users::AfterAuth(), WFM::Args ());
+            ret = (symbol) WFM::CallFunction (call_client [client]:client,
+		WFM::Args ());
         }
         else
             return `back;
 
-	if (ret == `next && Users::AfterAuth() == "ldap" &&
-	    Ldap::initial_defaults_used)
+	if (ret == `next && client == "ldap" && Ldap::initial_defaults_used)
 	{
 	    // continue with users...
 	    Users::SetAfterAuth ("users");
