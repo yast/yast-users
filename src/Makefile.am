@@ -5,6 +5,8 @@
 
 SUBDIRS = scripts
 
+YCPCFLAGS = -I .
+
 yncludedir = @yncludedir@/users
 
 module_DATA =		\
@@ -38,5 +40,10 @@ desktop_DATA =		\
     groups.desktop
 
 EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
+
+symlinks:
+	test -L users || ln -sf . users
+
+ycpchook = symlinks
 
 include $(top_srcdir)/Makefile.am.common

@@ -123,8 +123,8 @@ global define list BuildHomeList(map usersmap) ``{
 
     list ret = [];
     foreach (integer k, map v, usersmap, ``{
-        if (v["home"]:nil != nil)
-            ret = add (ret, v["home"]:nil);
+        if (v["home"]:"" != "")
+            ret = add (ret, v["home"]:"");
     });
     return ret;
 }
@@ -138,8 +138,8 @@ global define list BuildUsernameList(map usersmap) ``{
 
     list ret = [];
     foreach (integer k, map v, usersmap, ``{
-        if (v["username"]:nil != nil)
-            ret = add (ret, v["username"]:nil);
+        if (v["username"]:"" != "")
+            ret = add (ret, v["username"]:"");
     });
     return ret;
 }
@@ -246,8 +246,8 @@ global define list BuildGroupnameList(map groupsmap) ``{
 
     list ret = [];
     foreach (integer k, map v, groupsmap, ``{
-        if (v["groupname"]:nil != nil)
-            ret = add (ret, v["groupname"]:nil);
+        if (v["groupname"]:"" != "")
+            ret = add (ret, v["groupname"]:"");
     });
     return sort (ret); //-- is this needed??
 }
@@ -303,7 +303,7 @@ global define list BuildGroupItemList(map map_of_groups) ``{
 		    return substring (dn_l[0]:"", find (dn_l[0]:"", "=")+1);
 		}));
 	    if (size (all_users) <= the_answer)
-		userlist = mergestring (all_users, ",");
+		userlist = mergestring ((list<string>)all_users, ",");
 	}
         // shorten the list, if it is too long:
         if (size (all_users) > the_answer)
@@ -447,10 +447,9 @@ global define boolean ReadGroups (string type, string dir) ``{
 	    type + ".ycp");
 	groupnamelists [type] = SCR::Read (.target.ycp, dir + "/groupnamelist_"
 	    + type + ".ycp");
-	groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
-	    + type + "_itemlist.ycp");
+	groups_itemlists [type] = eval (SCR::Read(.target.ycp, dir + "/group_"
+	    + type + "_itemlist.ycp"));
     }
-
     return true;
 }
 
@@ -759,16 +758,16 @@ define void UpdateGroupItemlist (string type) ``{
  */
 global define void ChangeUser(string what, map user) ``{
 
-    integer uid = user["uid"]:nil;
-    integer org_uid = user["org_uid"]:uid;
-    string home = user["home"]:nil;
-    string org_home = user["org_home"]:nil;
-    string username = user["username"]:nil;
+    integer uid		= user["uid"]:-1;
+    integer org_uid	= user["org_uid"]:uid;
+    string home		= user["home"]:"";
+    string org_home	= user["org_home"]:"";
+    string username	= user["username"]:"";
     string org_username = user["org_username"]:username;
-    string type = user["type"]:"local";
-    string org_type = user["org_type"]:type;
-    string dn = user["dn"]:"";
-    string org_dn = user["org_dn"]:nil;
+    string type		= user["type"]:"local";
+    string org_type	= user["org_type"]:type;
+    string dn		= user["dn"]:"";
+    string org_dn	= user["org_dn"]:"";
 
     if (what == "add_user")
     {
@@ -866,12 +865,12 @@ global define void ChangeUser(string what, map user) ``{
  */
 global define void ChangeGroup (string what, map group) ``{
 
-    integer gid = group["gid"]:nil;
-    integer org_gid = group["org_gid"]:gid;
-    string groupname = group["groupname"]:nil;
-    string org_groupname = group["org_groupname"]:groupname;
-    string type = group["type"]:"local";
-    string org_type = group["org_type"]:type;
+    integer gid			= group["gid"]:-1;
+    integer org_gid		= group["org_gid"]:gid;
+    string groupname		= group["groupname"]:"";
+    string org_groupname	= group["org_groupname"]:groupname;
+    string type			= group["type"]:"local";
+    string org_type		= group["org_type"]:type;
 
     if (what == "add_group")
     {
@@ -902,10 +901,6 @@ global define void ChangeGroup (string what, map group) ``{
     if (what == "edit_group" || what == "user_change" ||
              what == "user_change_default")
     {
-	/*
-        groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
-            ``(select(item,1,"") != org_groupname));
-	*/
         groups_itemlists [org_type] = filter (term i,
 	    groups_itemlists [org_type]:[],``(select(i,1,"") != org_groupname));
         groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?

@@ -26,16 +26,17 @@ CrackAgent::~CrackAgent()
 /**
  * Dir
  */
-YCPValue CrackAgent::Dir(const YCPPath& path)
+YCPList CrackAgent::Dir(const YCPPath& path)
 {
     y2error("Wrong path '%s' in Read().", path->toString().c_str());
-    return YCPVoid();
+    return YCPNull();
 }
 
 /**
  * Read
  */
-YCPValue CrackAgent::Read(const YCPPath &path, const YCPValue& arg)
+YCPValue CrackAgent::Read(const YCPPath &path, const YCPValue& arg,
+	const YCPValue& opt)
 {
     y2error("Wrong path '%s' in Read().", path->toString().c_str());
     return YCPVoid();
@@ -44,11 +45,11 @@ YCPValue CrackAgent::Read(const YCPPath &path, const YCPValue& arg)
 /**
  * Write
  */
-YCPValue CrackAgent::Write(const YCPPath &path, const YCPValue& value,
+YCPBoolean CrackAgent::Write(const YCPPath &path, const YCPValue& value,
     const YCPValue& arg)
 {
     y2error("Wrong path '%s' in Write().", path->toString().c_str());
-    return YCPVoid();
+    return YCPBoolean(false);
 }
 
 /**
@@ -78,7 +79,7 @@ YCPValue CrackAgent::Execute(const YCPPath &path, const YCPValue& value,
  */
 YCPValue CrackAgent::otherCommand(const YCPTerm& term)
 {
-    string sym = term->symbol()->symbol();
+    string sym = term->name();
 
     if (sym == "CrackAgent") {
         /* Your initialization */

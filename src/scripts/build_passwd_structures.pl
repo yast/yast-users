@@ -256,10 +256,11 @@ open YCP_LOCAL_ITEMLIST, "> $passwd_local_itemlist";
 open YCP_LOCAL, "> $passwd_local_output";
 open YCP_LOCAL_BYNAME, "> $passwd_local_byname_output";
 
+print YCP_SYSTEM_ITEMLIST "{\ninclude \"users/passwd.ycp\";\nreturn eval(";
 print YCP_SYSTEM_ITEMLIST "[\n";
 print YCP_SYSTEM "\$[\n";
 print YCP_SYSTEM_BYNAME "\$[\n";
-print YCP_LOCAL_ITEMLIST "[\n";
+print YCP_LOCAL_ITEMLIST "{\nreturn\n [ ";
 print YCP_LOCAL "\$[\n";
 print YCP_LOCAL_BYNAME "\$[\n";
 
@@ -474,10 +475,10 @@ foreach my $user (<PASSWD>)
     }
 }
 
-print YCP_LOCAL_ITEMLIST "]\n";
+print YCP_LOCAL_ITEMLIST "];\n}\n";
 print YCP_LOCAL "]\n";
 print YCP_LOCAL_BYNAME "]\n";
-print YCP_SYSTEM_ITEMLIST "]\n";
+print YCP_SYSTEM_ITEMLIST "]);\n}\n";
 print YCP_SYSTEM "]\n";
 print YCP_SYSTEM_BYNAME "]\n";
 print YCP_LOCAL_UIDLIST "]\n";
@@ -542,8 +543,10 @@ print YCP_GROUP_LOCAL "\$[\n";
 print YCP_GROUP_SYSTEM "\$[\n";
 print YCP_GROUP_BYNAME_LOCAL "\$[\n";
 print YCP_GROUP_BYNAME_SYSTEM "\$[\n";
-print YCP_GROUP_ITEMLIST_LOCAL "[\n";
-print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
+print YCP_GROUP_ITEMLIST_LOCAL "{\n return [\n";
+print YCP_GROUP_ITEMLIST_SYSTEM "{\n return [\n";
+#print YCP_GROUP_ITEMLIST_LOCAL "[\n";
+#print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
 
 open YCP_GSHADOW_LOCAL, "> $gshadow_local";
 print YCP_GSHADOW_LOCAL "\$[\n";
@@ -649,8 +652,8 @@ print YCP_GROUP_LOCAL "]\n";
 print YCP_GROUP_SYSTEM "]\n";
 print YCP_GROUP_BYNAME_LOCAL "]\n";
 print YCP_GROUP_BYNAME_SYSTEM "]\n";
-print YCP_GROUP_ITEMLIST_SYSTEM "]\n";
-print YCP_GROUP_ITEMLIST_LOCAL "]\n";
+print YCP_GROUP_ITEMLIST_SYSTEM "];\n}\n";
+print YCP_GROUP_ITEMLIST_LOCAL "];\n}\n";
 
 print YCP_GIDLIST_LOCAL "]\n";
 close YCP_GIDLIST_LOCAL;

@@ -9,7 +9,7 @@
 
 {
 textdomain "users";
-import "Runlevel";
+import "Service";
 import "Label";
 
 /**
@@ -74,7 +74,7 @@ global define boolean IsNISAvailable (list passwd_source) ``{
     if (contains (passwd_source, "nis") ||
         contains (passwd_source, "compat"))
     {
-        return Runlevel::ServiceEnabled ("ypbind");
+        return Service::Enabled ("ypbind");
     }
     return false;
 }

@@ -2,7 +2,7 @@
 # Makefile.am for .../agent-crack/src
 #
 
-AM_CXXFLAGS = -DY2LOG=\"agent-crack\" -Wall
+AM_CXXFLAGS = -DY2LOG=\"agent-crack\" -Wall -I/usr/include/YaST2
 
 plugin_LTLIBRARIES = libpy2ag_crack.la
 noinst_LTLIBRARIES = liby2ag_crack.la
