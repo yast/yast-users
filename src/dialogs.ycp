@@ -142,7 +142,7 @@ can be changed for non-local users.
 		    : `Bottom(`PushButton(`id(`propose), _("&Suggestion"))))
 	),
 	// first version of user password
-	`Password(`id(`pw1), _("&Password"), ""),
+	`Password(`id(`pw1), _("P&assword"), ""),
 	// second version of user password, retyped to avoid typos
 	// please use newline if it is longer than 48 characters
 	`Password(`id(`pw2), _("&Verify Password:"), "")
@@ -1429,6 +1429,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
 	"fullname", "password", "objectClass", "shell", "gid",
 	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
 	"shadowMin", "shadowMax", "shadowFlag" ] :
+	// and now for groups
 	[ "groupname", "gid", "password", "objectClass", "userlist",
 	"uniqueMember" ];
 
