@@ -11,7 +11,7 @@
 
 textdomain "users";
 
-// TODO Fo now (8.2), users are added manualy. For future, scripts which goes
+// TODO Fo now (9.0), users are added manualy. For future, scripts which goes
 // through all rpms would be better
 
 global map SystemUsers = $[
@@ -97,6 +97,16 @@ global map SystemUsers = $[
     "Daemon user for stunnel (universal SSL tunnel)" : _("Daemon user for stunnel (universal SSL tunnel)"),
     /* User name for user: "zope" */
     "Zope" : _("Zope"),
+
+    /* User name for user: "radiusd" */
+    "Radius daemon" : _("Radius daemon"),
+    /* User name for user: "otrs" */
+    "OTRS System User" : _("OTRS System User"),
+    /* User name for user: "privoxy" */
+    "Daemon user for privoxy" : _("Daemon user for privoxy"),
+    /* User name for user: "vdr" */
+    "Video Disk Recorder" : _("Video Disk Recorder"),
+
 ];
 
 /* EOF */
