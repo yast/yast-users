@@ -1,6 +1,6 @@
 /*
  * File:
- *   etc_shells.scr
+ *   etc_default_useradd.scr
  * Summary:
  *   SCR Agent for reading/writing /etc/defaults/useradd
  * Access:
