@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Feb 21 15:21:18 CET 2003 - arvin@suse.de
+
+- better text for "abort installation" popup (bug #24019)
+
+-------------------------------------------------------------------
 Fri Feb 21 10:27:34 CET 2003 - jsuchome@suse.de
 
 - changed text for no user during installation
@@ -36,7 +41,7 @@ Thu Feb 13 17:23:45 CET 2003 - jsuchome@suse.de
 -------------------------------------------------------------------
 Wed Feb 12 12:38:45 CET 2003 - jsuchome@suse.de
 
-- additional text corrected 
+- additional text corrected
 
 -------------------------------------------------------------------
 Tue Feb 11 13:27:57 CET 2003 - jsuchome@suse.de
@@ -103,7 +108,7 @@ Mon Jan 27 13:23:39 CET 2003 - jsuchome@suse.cz
 
 - autoinst fix: do not export group with only cache structures changed
 - fix: changing id's more times, check for keys to remove from maps
-- adapted testsuite 
+- adapted testsuite
 
 -------------------------------------------------------------------
 Mon Jan 27 12:09:04 CET 2003 - jsuchome@suse.cz
@@ -160,7 +165,7 @@ Thu Jan 16 19:25:56 CET 2003 - jsuchome@suse.de
 Wed Jan 15 17:58:36 CET 2003 - jsuchome@suse.cz
 
 - use cpu_configure from ldap-client to set cpu.cfg values (for LDAP)
-- not neccessary to have anonymous access to LDAP server 
+- not neccessary to have anonymous access to LDAP server
   (-> ask for password)
 - 2.7.5
 
@@ -378,7 +383,7 @@ Thu Jul 18 14:40:19 CEST 2002 - jsrain@suse.cz
 Tue Jul 16 10:50:05 CEST 2002 - jsrain@suse.cz
 
 - Removed namaspace using for Args and CallFunction
-- Added support for seting forwaring root's mail during 
+- Added support for seting forwaring root's mail during
   installation
 
 -------------------------------------------------------------------
