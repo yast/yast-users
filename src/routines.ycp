@@ -9,6 +9,10 @@
 {
 include "users/passwd.ycp";
 
+/*
+ * Reads prebuilded gshadow data
+ * @param dir the input directory
+ */
 global define map ReadGshadow(string dir)``{
 
     return $[
@@ -17,6 +21,10 @@ global define map ReadGshadow(string dir)``{
     ];
 }
 
+/*
+ * Reads prebuilded shadow data
+ * @param dir the input directory
+ */
 global define map ReadShadow(string dir)``{
 
     return $[
@@ -84,10 +92,24 @@ global define string ReadPlusPasswd(string dir)``{
     return PlusFile (dir + "/plus_passwd.ycp");
 }
 
-
-/**  -- using target.string
+/*
+ * Check if authentication with pam_krb5 is used
  */
-//global define list WriteGroup(string basedir, map system_groups, map local_groups, string plus) ``{
+global define boolean KerberosAuth () ``{
+
+    list pam_auth_list = SCR::Read (.pam.login);
+    boolean auth_krb = false;
+    foreach (`line, pam_auth_list, ``{
+        if (issubstring (line["module"]:"", "pam_krb5.so") &&
+            line["type"]:"" == "auth")
+            auth_krb = true;
+    });
+    return auth_krb;
+}
+
+/**
+ * Writes data to group file (probably /etc/group)
+ */
 global define boolean WriteGroup(string basedir, map system_groups, map local_groups, string plus) ``{
 
     string conf_path = basedir + "/group";
@@ -122,7 +144,8 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
 }
 
 
-/**  -- using target.string
+/**
+ * Writes data to passwd file (probably /etc/passwd)
  */
 global define list WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
 
@@ -166,7 +189,8 @@ global define list WritePasswd(string basedir, map system_users, map local_users
         return nil;
 }
 
-/**  -- using target.string
+/**
+ * Writes data to shadow file (probably /etc/shadow)
  */
 global define boolean WriteShadow(string basedir, map system_shadow, map local_shadow, string plus) ``{
 
@@ -207,7 +231,8 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
 }
 
 
-/**  -- using target.string
+/**
+ * Writes data to gshadow file (probably /etc/gshadow)
  */
 global define boolean WriteGshadow(string basedir, map system_gshadow, map local_gshadow, string plus) ``{
 
@@ -319,7 +344,5 @@ global define void BackupConfFiles(string dir)``{
     SCR::Execute(.target.bash,
         sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
 }
-
-
 
 } // EOF
