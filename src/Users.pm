@@ -1969,7 +1969,7 @@ sub CommitUser {
         $ldap_modified = 1;
     }
 
-    y2internal ("commiting user '$username', action is '$what_user', modified: $users_modified");
+    y2internal ("commiting user '$username', action is '$what_user', modified: $users_modified, ldap modified: $ldap_modified");
 
     # --- 1. do the special action
     if ($what_user eq "add_user") {
@@ -2581,6 +2581,7 @@ sub Write {
 	if (defined ($modified_groups{"ldap"})) {
 	    UsersLDAP::WriteGroups ($modified_groups{"ldap"});
 	}
+	$ldap_modified = 0;
     }
 
     # call make on NIS server
@@ -2596,18 +2597,24 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($customs_modified) {
-        WriteCustomSets();
+        if (WriteCustomSets()) {
+	    $customs_modified = 0;
+	}
     }
 
     # Write the default login settings
     if ($use_gui) { Progress::NextStage (); }
 
     if ($defaults_modified) {
-        WriteLoginDefaults();
+        if (WriteLoginDefaults()) {
+	    $defaults_modified	= 0;
+	}
     }
 
     if ($security_modified) {
-	WriteSecurity();
+	if (WriteSecurity()) {
+	    $security_modified	= 0;
+	}
     }
 
     # mail forward from root
@@ -2627,6 +2634,10 @@ sub Write {
         undef %saved_user;
         undef %user_in_work;
     }
+
+    $users_modified	= 0;
+    $groups_modified	= 0;
+
     return 1;
 }
 
@@ -3518,10 +3529,12 @@ BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
 sub ReadNISAvailable {
 
     my $passwd_source = SCR::Read (".etc.nsswitch_conf.passwd");
-    foreach my $source (split (/ /, $passwd_source)) {
+    if (defined $passwd_source) {
+	foreach my $source (split (/ /, $passwd_source)) {
 
-	if ($source eq "nis" || $source eq "compat") {
-	    return (Service::Status ("ypbind") == 0);
+	    if ($source eq "nis" || $source eq "compat") {
+		return (Service::Status ("ypbind") == 0);
+	    }
 	}
     }
     return 0;
