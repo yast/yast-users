@@ -104,6 +104,21 @@
 	ret = (Users::Write () == "");
 	Progress::on();
     }
+    /**
+     * Return if configuration  was changed
+     * return boolean
+     */
+    else if (func == "GetModified") {
+	ret = Users::Modified ();
+    }
+    /**
+     * Set all modified flags
+     * return boolean
+     */
+    else if (func == "SetModified") {
+	Users::SetModified (true);
+	ret = true;
+    }
     /* unknown function */
     else {
 	y2error("unknown function: %1", func);
