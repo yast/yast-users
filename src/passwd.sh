@@ -26,7 +26,7 @@ cat $passwd| sed 's/#.*$//g' | grep -v '^$'| cut -d: -f1,5 |
 	[ "$user" == "+" ] && continue
 	[ -z "$name" ] && echo "Empty name: $user" >&2 && exit 1
 	echo "    /* User name for user: \"$user\" */"
-	echo "    \"$user\" : _(\"$name\"),"
+	echo "    \"$name\" : _(\"$name\"),"
     done || exit 1
 
 # footer

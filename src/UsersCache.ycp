@@ -336,6 +336,7 @@ global define list BuildUserItemList(map map_of_users) ``{
     list items = [];
     foreach ( `key, `user,  map_of_users, ``{
         string username = user["username"]:"";
+        string full = user["fullname"]:"";
         string  s_uid = sformat("%1", key );
         term    a     = `item(`id(key));
 
@@ -345,9 +346,9 @@ global define list BuildUserItemList(map map_of_users) ``{
         a = add(a, username );
 
         if (user["type"]:`local == `system)
-            a = add(a, SystemUsers[username]:user["fullname"]:"" );
+            a = add(a, SystemUsers [full]:full );
         else
-            a = add(a, user["fullname"]:"" );
+            a = add(a, full );
 
         a = add(a, s_uid );
 
@@ -518,7 +519,6 @@ global define boolean UIDExists(integer uid) ``{
 
     boolean ret = false;
     foreach (`type, `uids, uidlists, ``{
-y2warning("uids: %1", uids);
         if ( !ret && contains (uids, uid)) ret = true;
     });
     return ret;
