@@ -1223,17 +1223,19 @@ define symbol PluginDialog (string what) ``{
     map<string, any> tmp_object	= $[];
 
     list plugins	= UsersPlugins::Get ("GUIClient");
-    string plugin	= plugins[0]:"";
     any ret		= `not_next;
 
     // FIXME plugins should be available also for non-ldap users!
 
-    if (plugin == "")// || plugin == "users_plugin_dummy.ycp")
+    if (plugins == [])
     {
 	ret = `next;
     }
     else
     {
+	string plugin	= plugins[0]:"";
+
+	// dialog caption (temporary - FIXME)
 	string caption	= _("Plug-ins");
 
 	string help	= "general helptext for plugins FIXME";
@@ -1330,7 +1332,7 @@ define symbol PluginDialog (string what) ``{
 	{
 	    ret = UI::UserInput();
 	    y2internal ("ret: %1", ret);
-	    if (ret == `run)
+	    if (ret == `run || ret == `table)
 	    {
 		plugin	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
 		any plugin_ret = WFM::CallFunction (plugin, ["Dialog", $[
@@ -1383,10 +1385,11 @@ define symbol EditGroupDialog (string what ) ``{
     string new_dn		= dn;
     list additional_users	= [];
     list removed		= [];
+    string member_attribute	= UsersLDAP::GetMemberAttribute ();
 
     if (group_type == "ldap")
     {
-	userlist		= group["uniqueMember"]:$[];
+	userlist		= group[member_attribute]:$[];
     }
     additional_users		= UsersCache::BuildAdditional (group);
 
@@ -1594,7 +1597,7 @@ Please try again.")) ;
             group["type"]		= new_type;
 	    if (group_type == "ldap")
 	    {
-		group["uniqueMember"]	= new_userlist;
+		group[member_attribute]	= new_userlist;
 		ret			= `ldap; // additional settings
 	    }
 	    else
