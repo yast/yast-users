@@ -11,6 +11,12 @@ use strict;
 use ycp;
 use YaST::YCP qw(Boolean);
 
+use Locale::gettext;
+use POSIX;     # Needed for setlocale()
+
+setlocale(LC_MESSAGES, "");
+textdomain("users");
+
 our %TYPEINFO;
 
 # if LDAP user/group management is initialized
