@@ -11,6 +11,7 @@ Read	.sysconfig.console.CONSOLE_SCREENMAP ""
 Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
+Read	.sysconfig.language.RC_LANG ""
 Dump	importing:
 Dump	 $["encrypted":true, "forename":"aa", "gid":500, "grouplist":"audio", "home":"/home/aaa", "password_settings":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"A", "uid":500, "user_password":"5OkhN2nLxMfEY", "username":"aaa"]
 Dump	==== processing ImportUser... ============================

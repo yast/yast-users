@@ -11,6 +11,7 @@ Read	.sysconfig.console.CONSOLE_SCREENMAP ""
 Read	.sysconfig.console.CONSOLE_UNICODEMAP ""
 Read	.sysconfig.console.CONSOLE_MAGIC ""
 Read	.sysconfig.console.CONSOLE_ENCODING ""
+Read	.sysconfig.language.RC_LANG ""
 Dump	local user itemlist:
 Dump	 [`item (`id (500), "aaa", "", "500", "users,audio")]
 Dump	local groups:
