@@ -1144,7 +1144,8 @@ global define symbol EditGroupDialog(symbol what ) ``{
     symbol  group_type  = Users::group_in_work["type"]:nil;
     list list_userlist = splitstring (userlist, ",");
     list list_more_users = splitstring (more_users, ",");
-    list additional_users = [];
+//    list additional_users = [];
+    map additional_users = $[];
     list removed = [];
 
     if (group_type == nil)
@@ -1168,17 +1169,39 @@ global define symbol EditGroupDialog(symbol what ) ``{
     }
 
     // -- this could be also pre-builded, then changed via ChangeWidget ??
-    foreach ( `type, `userset, UsersCache::usernamelists, ``{// not all sets??
+    foreach ( `type, `userset, UsersCache::usernamelists, ``{
         foreach ( `username, userset, ``{
-            if ( contains (list_userlist, username) ||
-                 contains (list_more_users, username))
-                additional_users = add (additional_users,
+            boolean in_more = false;
+            if ( contains (list_more_users, username))
+            {
+                additional_users [`more] = add (additional_users [`more]:[],
                     `item( `id(username), username, true ));
-            else
-                additional_users = add (additional_users,
+                in_more = true;
+            }
+            if ( contains (list_userlist, username) )
+                additional_users [`ulist] = add (additional_users [`ulist]:[],
+                    `item( `id(username), username, true ));
+            else if (!in_more)
+                additional_users [`ulist] = add (additional_users [`ulist]:[],
                     `item( `id(username), username, false));
         });
     });
+
+    // maybe some users are not accesible in usernamelist (not loaded yet),
+    // but they are in userlist...
+    foreach (`username, list_userlist, ``{
+        if (! contains (additional_users [`ulist]:[],
+                `item ( `id(username), username, true)))
+        {
+            additional_users [`ulist] = add (additional_users [`ulist]:[],
+                `item( `id(username), username, true ));
+        }
+    });
+
+
+    boolean more = false;
+    if (size(list_more_users) > 0)
+        more = true;
 
     // make dialog
     term contents = `HBox(
@@ -1206,14 +1229,17 @@ global define symbol EditGroupDialog(symbol what ) ``{
             `VSpacing(1),
             // selection box label
             `MultiSelectionBox( `id(`userlist), _("&Members of this group"),
-                additional_users),
-//                UsersCache::additional_users),
+                additional_users [`ulist]:[]),
+            more ? `VSpacing(1) : `VSpacing (0),
+            // selection box label
+            more ? `MultiSelectionBox( `id(`more_users), _("\"&Core\" members"),
+                additional_users [`more]:[]) : `VSpacing (0),
             `VSpacing(1)
         ));
 
     Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
                         contents,
-                        EditGroupDialogHelp(),
+                        EditGroupDialogHelp(more),
                         UI::BackButtonLabel(),
                         UI::NextButtonLabel());
 
@@ -1236,6 +1262,9 @@ global define symbol EditGroupDialog(symbol what ) ``{
         UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
         }
     }
+
+    if (more)
+        UI::ChangeWidget (`id(`more_users), `Enabled, false);
 
     symbol ret = `next;
     repeat
@@ -1407,68 +1436,63 @@ Please try again."));
             // need for update /etc/gshadow --- ???
             if( pw1 == "" ) password = "*";
 
-            /*
-              There was a lot of code here to check that `userlist
-              is valid input. Most of it is now obsolete because
-              it is now a multi-selection box, not a text-entry box.
-              We also assume that the input to this routine was valid.
-            */
+            // check the gid
+            integer new_i_gid = tointeger(new_gid);
 
-            // Find out which users were added and deleted:
-            // added users will have a +1, deleted ones a -1,
-            // unchanged ones a 0
-            //list old_users = splitstring (userlist, ","); // do not need??
-//y2milestone("old_users: %1", old_users);
-//y2milestone("totez jako list_userlist: %1", list_userlist);
-//y2milestone("new_users: %1", new_users);
-/*
-            map diff_users = listmap (string u, old_users, ``([u, -1]));
-y2milestone("diff_users: %1", diff_users);
-            foreach (string u, new_users, ``{
-                diff_users[u] = diff_users[u]:0 + 1;
-            });
-y2milestone("diff_users: %1", diff_users);
-            boolean all_ok = true;
+            if( new_i_gid != gid)
+            {
 
-            string more_users = userlist;// users with this group as default??
-//            string more_users = lookup (UsersCache::GetGroup (gid), "userlist", "");
-            foreach (string user, integer action, diff_users, ``{
-                if (action < 0)
+                if( (!( new_i_gid >= 0  && ( new_i_gid <=  Users::max_gid ))
+                     && ( new_i_gid != nil )) ||
+                     nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
                 {
-                    // The substring comparison is not entirely
-                    // correct but this whole thing
-                    // is too broken anyway.
-                    if (!issubstring (more_users, user))
-                    {
-                    // error popup
-                    string error_text = sformat (_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group"), user );
-                    Report::Error (error_text);
-                    // wrong (it is a multiselbox)
-                    // and useless (better let the user back out)
-                    //UI::ChangeWidget(`id(`userlist), `Value, userlist);
-                    UI::SetFocus (`id (`userlist));
-                    all_ok = false;
-                    }
+                // error popup %1 is number
+                Report::Error(sformat(_("The selected Group Id is not allowed.
+Please select a valid integer between 0 and %1"),  Users::max_gid));
+                UI::SetFocus(`id(`gid));
+                continue;
                 }
-            });*/
 
-            /*
-            foreach (`user, removed, ``{
-                map u = Users::GetUserByName (user);
-                if ( u ["groupname"]:"" == groupname)
+
+                if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
                 {
                     // error popup
-                    string error_text = sformat (_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group"), user );
-                    Report::Error (error_text);
-                    UI::SetFocus (`id (`userlist));
-                    all_ok = false;
+                    Report::Error(_("The inputted Group Id is reserved.
+Please select a another Group Id"));
+                    UI::SetFocus(`id(`gid));
+                    continue;
                 }
-            });*/
 
+                if ( ( what == `edit_group ) &&
+                     ( new_i_gid <= Users::max_system_gid) &&
+                     ( grup_type != `system ) )
+                {
+                    // error popup
+                    Report::Error(_("The inputted Group Id is a system Id.
+Please try again."));
+                    UI::SetFocus(`id(`gid));
+                    continue;
+                }
+
+                if ( (what == `edit_group ) &&
+                     (new_i_gid > Users::max_system_gid ) &&
+                     ( group_type == `system ))
+                {
+                    // error popup
+                    Report::Error(_("The inputted Group Id is not a system Id.
+Please try again."));
+                    UI::SetFocus(`id(`gid));
+                    continue;
+
+                }
+            }
+
+            /*
             // these 3 foreach's should be fasten !!!
+            // 1. looking for illegaly removed (more_users) users
+            // - only the smaller set could be checked
             boolean all_ok = true;
+
             foreach (`user, list_more_users, ``{
                 if (! contains (new_users, user))
                 {
@@ -1487,65 +1511,24 @@ because the user's defaultgroup is this group"), user );
                 continue;
             }
 
-            foreach (`user, list_userlist, ``{
-                if (! contains (new_users, user))
-                    removed = add(removed, user);
-            });
-
+            // 2. build the new userlist
             foreach (`user, new_users, ``{
                 if (!contains (list_more_users, user))
                     l_new_userlist = add (l_new_userlist, user);
             });
-            new_userlist = mergestring(l_new_userlist, "," );
 
-            integer new_i_gid = tointeger(new_gid);
-
-            // check the gid
-            if( new_i_gid != gid)
-            {
-
-                if( (!( new_i_gid >= 0  && ( new_i_gid <=  Users::max_gid ))
-                     && ( new_i_gid != nil )) ||
-                     nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
-                {
-                // error popup %1 is number
-                Report::Error(sformat(_("The selected Group Id is not allowed.
-Please select a valid integer between 0 and %1"),  Users::max_gid));
-                UI::SetFocus(`id(`gid));
-                continue;
-                }
-
-
-            if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
-            {
-                // error popup
-                Report::Error(_("The inputted Group Id is reserved.
-Please select a another Group Id"));
-                UI::SetFocus(`id(`gid));
-                continue;
-            }
-
-            if ( (what == `edit_group ) && (new_i_gid <= Users::max_system_gid)
-                  && ( gid > Users::max_system_gid ) )// type != `system
-            {
-                // error popup
-                Report::Error(_("The inputted Group Id is a system Id.
-Please try again."));
-                UI::SetFocus(`id(`gid));
-                continue;
-            }
-
-            if ( (what == `edit_group ) && (new_i_gid > Users::max_system_gid )
-                  && ( gid <=  Users::max_system_gid ) )// type == `system
-            {
-                // error popup
-                Report::Error(_("The inputted Group Id is not a system Id.
-Please try again."));
-                UI::SetFocus(`id(`gid));
-                continue;
-
-            }
-            }
+            // 3. which users are regulary (userlist) removed?
+            foreach (`user, list_userlist, ``{
+                if (!contains (l_new_userlist, user))
+                    removed = add (removed, user);
+            });
+            */
+//            new_userlist = mergestring(l_new_userlist, "," );
+            foreach (`user, list_userlist, ``{
+                if (!contains (new_users, user))
+                    removed = add (removed, user);
+            });
+            new_userlist = mergestring(new_users, "," );
 
             // if something has changed
             if ( ((what == `edit_group) && (

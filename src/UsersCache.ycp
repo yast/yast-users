@@ -73,10 +73,6 @@ string dir) ``{
     foreach (`type, `usersmap, usermap, ``{
         BuildUsers (usersmap, type, dir);
     });
-    /*
-    if (uidlist == [])
-        uidlist = BuildUIDList(usermap);
-    */
     users_itemlists [ `custom ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ `custom ]:[];
 
@@ -84,17 +80,11 @@ string dir) ``{
     // -- change groups building in a same way !!
     group_custom_sets = cust_g;
     current_groups = cust_g;
-    foreach (`type, `groupsmap, groupmap, ``{
-        if (groupnamelists [type]:nil == nil)
-            groupnamelists [type] = BuildGroupnameList (groupsmap);
-        groups_itemlists [type] = BuildGroupItemList(groupsmap);
-    });
 
-    if (gidlist == [])
-        gidlist = BuildGIDList(groupmap); // this doesn't look very useful...
+    BuildGroups (groupmap, dir);
+
     groups_itemlists [ `custom ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ `custom ]:[];
-
 
     return true;
 }
@@ -103,7 +93,7 @@ global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
 
     string stringtype = symbol_to_string[type]:"";
 
-    if (! issubstring (dir, "/tmp/"))
+    if (! issubstring (dir, "/tmp/")) // build it here
     {
         homelists = add (homelists, type, BuildHomeList(usersmap));
         usernamelists = add(usernamelists,type,BuildUsernameList(usersmap));
@@ -131,6 +121,32 @@ global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
                 stringtype + "_uid.ycp");
     }
 }
+
+global define boolean BuildGroups (map groupmap, string dir) ``{
+
+
+    if (! issubstring (dir, "/tmp/"))
+    {
+
+        foreach (`type, `groupsmap, groupmap, ``{
+            if (groupnamelists [type]:nil == nil)
+                groupnamelists [type] = BuildGroupnameList (groupsmap);
+            groups_itemlists [type] = BuildGroupItemList(groupsmap);
+        });
+
+        gidlist = BuildGIDList(groupmap);
+    }
+    else
+    {
+        gidlist = SCR::Read (.target.ycp, dir + "/gidlist.ycp");
+        groupnamelists = SCR::Read (.target.ycp, dir + "/groupnamelists.ycp");
+        foreach (`type, `groupsmap, groupmap, ``{
+            groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
+                + symbol_to_string [type]:"" + "_itemlist.ycp");
+        });
+    }
+}
+
 
 // to use for reseting settings during autoinstallation
 global define void EmptyStructures () ``{
@@ -296,6 +312,8 @@ global define list BuildGroupItemList(map map_of_groups) ``{
 
         string userlist = group["userlist"]:"";
         string more = group["more_users"]:"";
+y2milestone ("userlist: %1", userlist);
+y2milestone ("more: %1", more);
         if ((userlist != "") && (more != ""))
             userlist = userlist + ",";
         userlist = userlist + more;

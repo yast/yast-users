@@ -24,9 +24,14 @@ global define symbol KerberosDialog () ``{
     boolean use_pam_krb = Kerberos::use_pam_krb;
     string default_realm = Kerberos::default_realm;
     string kdc = Kerberos::kdc;
-    list types = [  `item (`id (`optional), "optional", false),
-                    `item (`id (`required), "required", false),
-                    `item (`id (`sufficient), "sufficient", true) ];
+    string control = Kerberos::control;
+//    string arguments = Kerberos::argumets;
+
+    list controls = [
+        `item (`id ("required"), "required", false),
+        `item (`id ("optional"), "optional", false),
+        `item (`id ("sufficient"), "sufficient", false)
+    ];
 
     term con = `HVSquash(
         `VBox (
@@ -42,8 +47,8 @@ global define symbol KerberosDialog () ``{
                         // radio button label
                         `Left(`RadioButton(`id(`pamyes), `opt (`notify), _("&Use Kerberos"), use_pam_krb)))))),
                 // text entry label
-                `ComboBox (`id (`auth_type), `opt(`hstretch),
-                    _("Kerberos &authentification is"), types),
+                `ComboBox (`id (`auth_control), `opt(`hstretch),
+                    _("Kerberos &authentification is"), controls),
                 `VSpacing (0.5))
         ),
         `VSpacing(1),
@@ -53,7 +58,7 @@ global define symbol KerberosDialog () ``{
                 `VSpacing (0.5),
                 `HSquash(
                     // textentry label
-                    `TextEntry (`id (`realm), _("&Default realm"),
+                    `TextEntry (`id (`realm), _("Default &realm"),
                          default_realm)),
                 `HSquash(
                     // textentry label
@@ -70,24 +75,26 @@ global define symbol KerberosDialog () ``{
         _("Kerberos Client Configuration"), con, help_text,
         UI::BackButtonLabel (), UI::FinishButtonLabel ());
 
-    UI::ChangeWidget (`id (`auth_type), `Enabled, use_pam_krb);
+    UI::ChangeWidget (`id (`auth_control), `Enabled, use_pam_krb);
+
+    if (control != "")
+        UI::ChangeWidget (`id(`auth_control), `Value, control);
 
     any result = nil;
     do {
         result = UI::UserInput ();
 
-        use_pam_krb = (UI::QueryWidget(`id(`rd), `CurrentButton) == `pamyes);
-
         if (result == `pamyes || result == `pamno) {
-            UI::ChangeWidget (`id (`auth_type), `Enabled, use_pam_krb);
+            use_pam_krb = (result == `pamyes);
+            UI::ChangeWidget (`id (`auth_control), `Enabled, use_pam_krb);
         }
+
+        default_realm = UI::QueryWidget(`id(`realm), `Value);
+        kdc = UI::QueryWidget(`id(`kdc), `Value);
 
         if (result == `next && use_pam_krb) {
 
-            realm = UI::QueryWidget(`id(`realm), `Value);
-            kdc = UI::QueryWidget(`id(`kdc), `Value);
-
-            if (realm == "")
+            if (default_realm == "")
             {
                // error popup label
                Report::Error(_("Enter the default realm name."));
@@ -95,7 +102,7 @@ global define symbol KerberosDialog () ``{
                continue;
             }
 
-           if (kds == "")
+           if (kdc == "")
             {
                 // error popup label
                 Report::Error(_("Enter the address of KDC server."));
@@ -109,6 +116,8 @@ global define symbol KerberosDialog () ``{
     if (result == `next)
     {
         Kerberos::use_pam_krb = use_pam_krb;
+        Kerberos::default_realm = default_realm;
+        Kerberos::kdc = kdc;
     }
 
     return result;
@@ -126,10 +135,9 @@ global define symbol KerberosDialog () ``{
 
     if (result == `next)
     {
-        if (Kerberos::Write (false));
+        if (Kerberos::Write (false))
             UI::MessagePopup(_("The configuration of the Kerberos client
 was saved and can be used."));
-    }
     }
 
     return UI::CloseDialog();

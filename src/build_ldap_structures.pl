@@ -59,7 +59,7 @@ $last_ldap      =   $output_dir."/last_ldap_uid.ycp";
 
 %groupnamelists = ();
 
-$last_ldap_uid = $max_system_uid + 1;
+$last_ldap_uid = 1;
 
 
 $the_answer = 42; # ;-)

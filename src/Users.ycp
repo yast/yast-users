@@ -685,9 +685,6 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 
     if ( !is_nis_master && is_nis_available )
     {
-//        users [`nis] = ReadNISUsers (tmpdir);
-//        users_by_name [`nis] = ReadNISUsersByName (tmpdir);
-//        if (users [`nis ]:nil != nil)
             available_usersets = add ( available_usersets, `nis);
     }
 
@@ -698,7 +695,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
         is_ldap_server = IsLDAPServer (ldap_host);
 
         available_usersets = add ( available_usersets, `ldap);
-        available_groupsets = add ( available_groupsets, `ldap);// ??
+//        available_groupsets = add ( available_groupsets, `ldap);// ??
     }
 
     available_usersets = add ( available_usersets, `custom);
@@ -1588,7 +1585,9 @@ y2milestone("group: %1", group_in_work);
                 // -- what if user doesn't exist??
                 user_in_work = GetUserByName (user);
                 string grouplist = user_in_work ["grouplist"]:"";
-                user_in_work["grouplist"] = grouplist + "," + groupname;
+                if (grouplist != "")
+                   grouplist = grouplist + ",";
+                user_in_work["grouplist"] = grouplist + groupname;
                 user_in_work["what"] = `group_change;
                 Commit("user", cache);
             });
@@ -1605,42 +1604,54 @@ y2milestone("group: %1", group_in_work);
             // update users's grouplists (mainly local structures)
             foreach (`user, l_userlist, ``{
                 user_in_work = GetUserByName (user);
-                string grouplist = user_in_work ["grouplist"]:"";
-                list l_grouplist = splitstring (grouplist, ",");
-                boolean commit_user = false;
-                // new user added to group
-                if (! contains (l_grouplist, org_groupname))
+                if (user_in_work != $[])
                 {
-                    user_in_work["grouplist"] = grouplist + "," + groupname;
-                    commit_user = true;
-                }
-                else if (org_groupname != groupname)
-                {
-                    l_grouplist = filter (`g, l_grouplist,``(g!=org_groupname));
-                    grouplist = mergestring (l_grouplist, ",");
-                    // what about ",,"?
-                    user_in_work["grouplist"] = grouplist + "," + groupname;
-                    commit_user = true;
-                }
-                if (commit_user)
-                {
-                    user_in_work["what"] = `group_change;
-                    Commit("user", cache);
+                    string grouplist = user_in_work ["grouplist"]:"";
+                    list l_grouplist = splitstring (grouplist, ",");
+                    boolean commit_user = false;
+                    // new user added to group
+                    if (! contains (l_grouplist, org_groupname))
+                    {
+                        if (grouplist != "")
+                           grouplist = grouplist + ",";
+                        user_in_work["grouplist"] = grouplist + groupname;
+                        commit_user = true;
+                    }
+                    else if (org_groupname != groupname)
+                    {
+                        l_grouplist = filter (`g, l_grouplist,
+                            ``(g!=org_groupname));
+                        grouplist = mergestring (l_grouplist, ",");
+                        // what about ",,"?
+                        if (grouplist != "")
+                           grouplist = grouplist + ",";
+                        user_in_work["grouplist"] = grouplist + groupname;
+                        commit_user = true;
+                    }
+                    if (commit_user)
+                    {
+                        user_in_work["what"] = `group_change;
+                        Commit("user", cache);
+                    }
                 }
             });
             // check the additional users removed from this group
             list removed_user_list = group_in_work ["removed_userlist"]:[];
             foreach (`user, removed_user_list, ``{
                 user_in_work = GetUserByName (user);
-                string grouplist = user_in_work ["grouplist"]:"";
-                list l_grouplist = splitstring (grouplist, ",");
-                if ( contains (l_grouplist, org_groupname))
+                if (user_in_work != $[])
                 {
-                    l_grouplist = filter (`g, l_grouplist,``(g!=org_groupname));
-                    grouplist = mergestring (l_grouplist, ",");
-                    user_in_work["grouplist"] = grouplist;
-                    user_in_work["what"] = `group_change;
-                    Commit("user", cache);
+                    string grouplist = user_in_work ["grouplist"]:"";
+                    list l_grouplist = splitstring (grouplist, ",");
+                    if ( contains (l_grouplist, org_groupname))
+                    {
+                        l_grouplist = filter (`g, l_grouplist,
+                            ``(g!=org_groupname));
+                        grouplist = mergestring (l_grouplist, ",");
+                        user_in_work["grouplist"] = grouplist;
+                        user_in_work["what"] = `group_change;
+                        Commit("user", cache);
+                    }
                 }
             });
             // correct the changed groupname/gid for users with this group
@@ -1651,10 +1662,13 @@ y2milestone("group: %1", group_in_work);
                 list l_more_users = splitstring (more_users, ",");
                 foreach (`user, l_more_users, ``{
                     user_in_work = GetUserByName (user);
-                    user_in_work["groupname"] = groupname;
-                    user_in_work["gid"] = gid;
-                    user_in_work["what"] = `group_change;
-                    Commit("user", cache);
+                    if (user_in_work != $[])
+                    {
+                        user_in_work["groupname"] = groupname;
+                        user_in_work["gid"] = gid;
+                        user_in_work["what"] = `group_change;
+                        Commit("user", cache);
+                    }
                 });
             }
             // modify the gshadow -- userlist ??
@@ -1882,18 +1896,20 @@ global define void ChangeCurrentUsers(symbol new) ``{
 
     if (contains (current_users, `ldap) && ldap_not_read)
     {
-        // first: check for perl-ldap:
-        if (SCR::Execute(.target.bash, "rpm -q perl-ldap") !=0)
+        // first: check for required packages:
+        if (SCR::Execute(.target.bash, "rpm -q perl-ldap cpu") !=0)
         {
             // Popup text (required application):
-            if (UI::YesNoPopup(_("For getting list of LDAP users from the server, 
-the package \"perl-ldap\" is necessary.
-Do you want to install it now?")))
+            if (UI::YesNoPopup(_("For managing LDAP users, the packages
+\"perl-ldap\" and \"cpu\" are necessary.
+Do you want to install them now?")))
             {
                 include "require.ycp"; // is it possible to have it here??
-                DoInstallAndRemove(["perl-ldap"], []);
+                DoInstallAndRemove(["perl-ldap", "cpu"], []);
             }
-            else return;
+            // perl-ldap is necessary for reading
+            if (SCR::Execute(.target.bash, "rpm -q perl-ldap") !=0)
+                return;
         }
         // run preparation script:
         RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base));

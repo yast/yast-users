@@ -15,11 +15,19 @@ import "Summary";
 // if pam_krb5 module is used for login
 global boolean use_pam_krb = false;
 
+// required/optional/sufficient
+global string control = "";
+
+// argumets to pam module
+global string arguments = "";
+
 // default realm name
 global string default_realm = "";
 
 // adress of KDC (key distribution centre) server for default realm
 global string kdc = "";
+
+global string clockskew = "";
 
 
 /**
@@ -46,30 +54,50 @@ global define map Export () ``{
 	return $[];
 }
 
+global define string ReadString (path path_to_value) ``{
+
+    string value = SCR::Read (path_to_value);
+    if (value == nil)
+        value = "";
+
+    return value;
+}
+
 /**
  * Reads Kerberos settings from the SCR
  * @return success
  */
 global define boolean Read () ``{
 
+    // first, read the pam settings
+    // currently, only /etc/pam.d/login is checked
+    list pam_login = SCR::Read(.pam.login);
+    foreach (`line, pam_login, ``{
+        if ( line["type"]:"" == "auth" &&
+             issubstring (line["module"]:"", "pam_krb5.so"))
+        {
+            use_pam_krb = true;
+            // only the first is taken
+            if (control == "")
+                control = line["control"]:"";
+            if (arguments == "")
+                arguments = line["arguments"]:"";
+        }
+    });
 
-    y2milestone("krb dir: %1", SCR::Dir(.etc.krb5_conf.s));
+    // now read the settings from /etc/krb5.conf
+    if (SCR::Execute (.target.bash, "/usr/bin/test -e /etc/krb5.conf") == 0)
+    {
+        y2debug("krb5.conf sections: %1", SCR::Dir(.etc.krb5_conf.s));
 
-    y2milestone("libdefaults: %1", SCR::Dir(.etc.krb5_conf.v.libdefaults));
+        default_realm = ReadString (.etc.krb5_conf.v.libdefaults.default_realm);
 
-    default_realm = SCR::Read(.etc.krb5_conf.v.libdefaults.default_realm);
+        clockskew = ReadString (.etc.krb5_conf.v.libdefaults.clockskew);
 
-    // this is bad !!
-    kdc = SCR::Read(.etc.krb5_conf.v.realms.kdc);
-
-    y2milestone("realms: %1", SCR::Dir(.etc.krb5_conf.s.realms));
-
-    y2milestone("krb read: %1", SCR::Read(.etc.krb5_conf.v.realms.SUSE.CZ));
-
-    /*
-    y2milestone("krb read: %1", SCR::Dir(.etc.krb5_conf.v.realms.SUSE.CZ));
-    y2milestone("krb read: %1", SCR::Dir(.etc.krb5_conf.s.realms.SUSE.CZ));
-    */
+        kdc = ReadString ( add ( add (.etc.krb5_conf.v, default_realm), "kdc"));
+    }
+    else
+        SCR::Execute (.target.bash, sformat("/usr/bin/touch /etc/krb5.conf"));
 
     return true;
 }
@@ -81,13 +109,12 @@ global define boolean Read () ``{
  */
 global define boolean Write (boolean writeonly) ``{
 
-    boolean pam_instaled = false;
+    boolean pam_installed = false;
     boolean ret = true;
 
+    // -- pam settings
     if (use_pam_krb)
     {
-
-
         if (SCR::Execute(.target.bash, "rpm -q pam_krb5") ==0)
            pam_installed = true;
         else
@@ -102,15 +129,37 @@ Install this package now?")))
             }
         }
         if (pam_installed)
+        {
             // write to /etc/pam.d/*
+            y2milestone ("save --");
+//            SCR::Write(.pam.login.pam_krb5.module, "+auth");
+//            SCR::Write(.pam.login.auth.pam_krb5, "+module");
+        }
         else
             // instalation not succesful ?
             ret = false;
     }
 
-    // write to /etc/krb5.conf
-    //SCR::Write(.etc.krb5_conf.v.realms.kdc, kdc);
-    //SCR::Write(.etc.krb5_conf.v.libdefaults.default_realm, default_realm);
+    // -- write to /etc/krb5.conf
+
+    // change the default realm name
+    SCR::Write(.etc.krb5_conf.v.libdefaults.default_realm, default_realm);
+
+    if (contains (SCR::Dir(.etc.krb5_conf.s), default_realm))
+    {
+        // update the default realm settings
+        SCR::Write(
+            add (add (.etc.krb5_conf.v, default_realm), "kdc"), kdc);
+    }
+    else
+    {
+        // specify the type of this subsection
+        SCR::Write( add (.etc.krb5_conf.st.realms, default_realm), 1);
+        // write the settings of the new default realm
+        SCR::Write(
+            add (add (.etc.krb5_conf.v.realms, default_realm), "kdc"), kdc);
+    }
+
     return ret;
 }
 
@@ -123,18 +172,6 @@ Install this package now?")))
 global define Summary () ``{
 
 	string summary = "";
-    /*
-	summary = Summary::AddHeader(summary, _("Kerberos Client enabled"));
-	summary = Summary::AddLine(summary, (start) ? "Yes" : Summary::NotConfigured());
-	summary = Summary::AddHeader(summary, _("Kerberos Domain"));
-	summary = Summary::AddLine(summary, (domain != "") ? domain : Summary::NotConfigured());
-	summary = Summary::AddHeader(summary, _("Kerberos Server"));
-	summary = Summary::AddLine(summary,( server!="") ? server : Summary::NotConfigured());
-	summary = Summary::AddHeader(summary, _("Kerberos Version 2"));
-	summary = Summary::AddLine(summary, (ldap_v2) ? "Yes" : Summary::NotConfigured());
-	summary = Summary::AddHeader(summary, _("Kerberos &TLS/SSL"));
-	summary = Summary::AddLine(summary, (ldap_tls) ? "Yes" : Summary::NotConfigured());
-    */
 	return summary;
 }
 
