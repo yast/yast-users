@@ -262,9 +262,6 @@ global boolean is_ldap_server = false; // currently not used
 global boolean ldap_file_server = false;
 global string ldap_encryption = "crypt";
 
-// type of pam kerberos authentication: required/optional/sufficient/""
-global string kerberos_auth = "";
-
 /**
  * nis users are not read by default, but could be read on demand:
  */
@@ -2361,7 +2358,6 @@ global define void ReadSourcesSettings () ``{
     is_nis_available = IsNISAvailable (user_sources);
     is_nis_master = IsNISMaster ();
     is_ldap_available = IsLDAPAvailable (user_sources);
-    kerberos_auth = KerberosAuth();
 
     if ( !is_nis_master && is_nis_available )
     {
