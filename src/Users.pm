@@ -186,8 +186,8 @@ my @group_custom_sets		= ("local");
 #my %ldap2yast_user_attrs	= ();
 #my %ldap2yast_group_attrs	= ();
 
-# list of available plugin clients with features, enhabcing users module
-#my @available_plugins		= ();
+# list of available plugin modules for local and system users (groups)
+my @local_plugins		= ();
  
 ##------------------------------------
 ##------------------- global imports
@@ -953,6 +953,10 @@ sub ReadCustomSets {
 	    if (defined ($custom_map{"dont_warn_when_uppercase"})) {
 		$not_ask_uppercase = $custom_map{"dont_warn_when_uppercase"};
 	    }
+	    if (defined ($custom_map{"plugins"}) &&
+		ref ($custom_map{"plugins"}) eq "ARRAY") {
+		@local_plugins	= @{$custom_map{"plugins"}};
+	    }
 	}
     }
     if (@user_custom_sets == 0) {
@@ -1469,8 +1473,7 @@ sub GetUserPlugins {
 	return UsersLDAP::GetUserPlugins ();
     }
     else {
-    # FIXME where to get list of plugins for local users?
-	return [];
+	return \@local_plugins;
     }
 }
 
@@ -1652,8 +1655,9 @@ sub EditUser {
 		$user_in_work{"removed_grouplist"} = \%removed;
 	    }
 	}
-	if ($key eq "create_home" || $key eq "encrypted" ||
-	    $key eq "no_skeleton" || $key eq "disabled" || $key eq "enabled") {
+	if ($key eq "create_home" || $key eq "delete_home" ||
+	    $key eq "encrypted" ||$key eq "no_skeleton" ||
+	    $key eq "disabled" || $key eq "enabled") {
 	    if (ref $data{$key} eq "YaST::YCP::Boolean") {
 		$user_in_work{$key}	= $data{$key};
 	    }
@@ -1850,7 +1854,8 @@ sub AddUser {
     # now copy the data to map of current user
     foreach my $key (keys %data) {
 	if ($key eq "create_home" || $key eq "encrypted" ||
-	    $key eq "no_skeleton" || $key eq "disabled" || $key eq "enabled") {
+	    $key eq "delete_home" || $key eq "no_skeleton" ||
+	    $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
 	# crypt password only once
@@ -2320,7 +2325,7 @@ sub CommitUser {
 	}
 
 	# store deleted directories... someone could want to use them
-	my $delete_home = $user{"delete_home"} || YaST::YCP::Boolean (0);
+	my $delete_home = bool ($user{"delete_home"});
 	if ($type ne "ldap" && $delete_home->value) {
 	    my $h	= $home;
 	    if (defined $user{"org_user"}{"homeDirectory"}) {
@@ -2758,7 +2763,7 @@ sub Write {
 		my $command 	= "";
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidNumber"};
-		my $create_home	= $user{"create_home"} || YaST::YCP::Boolean(0);
+		my $create_home	= $user{"create_home"};
        
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    my $skel	= $useradd_defaults{"skel"};
@@ -2767,7 +2772,7 @@ sub Write {
 			$user{"no_skeleton"}->value) {
 			$skel 	= "";
 		    }
-		    if (($create_home->value || $user_mod eq "imported")
+		    if ((bool ($create_home) || $user_mod eq "imported")
 			&& !%{SCR::Read (".target.stat", $home)})
 		    {
 			UsersRoutines::CreateHome ($skel, $home);
@@ -2819,12 +2824,18 @@ sub Write {
 	    if ($error_msg ne "") {
 		Ldap::LDAPErrorMessage ("users", $error_msg);
 	    }
+	    else {
+		delete $removed_users{"ldap"};
+	    }
 	}
 		
 	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
 	    $error_msg	= UsersLDAP::WriteUsers ($modified_users{"ldap"});
 	    if ($error_msg ne "") {
 		Ldap::LDAPErrorMessage ("users", $error_msg);
+	    }
+	    else {
+		delete $modified_users{"ldap"};
 	    }
 	}
 
@@ -2833,12 +2844,18 @@ sub Write {
 	    if ($error_msg ne "") {
 		Ldap::LDAPErrorMessage ("groups", $error_msg);
 	    }
+	    else {
+		delete $removed_groups{"ldap"};
+	    }
 	}
 
 	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
 	    $error_msg	= UsersLDAP::WriteGroups ($modified_groups{"ldap"});
 	    if ($error_msg ne "") {
 		Ldap::LDAPErrorMessage ("groups", $error_msg);
+	    }
+	    else {
+		delete $modified_groups{"ldap"};
 	    }
 	}
 
@@ -3384,9 +3401,9 @@ sub CheckHomeUI {
     my %ui_map		= %{$_[2]};
     my $type		= UsersCache::GetUserType ();
     my %ret		= ();
-    my $create_home	= $user_in_work{"create_home"} || YaST::YCP::Boolean(0);
+    my $create_home	= $user_in_work{"create_home"};
 
-    if ($home eq "" || !($create_home->value) || Mode::config()) {
+    if ($home eq "" || !bool ($create_home) || Mode::config()) {
 	return \%ret;
     }
     if ($type eq "ldap" && !Ldap::file_server ()) {
