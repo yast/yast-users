@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Sep  9 09:41:54 CEST 2003 - jsuchome@suse.cz
+
+- flush /etc/sysconfig/displaymanager after write during installation
+  (autologin bug #30124)
+- 2.8.14
+
+-------------------------------------------------------------------
 Mon Sep  8 16:14:12 CEST 2003 - jsuchome@suse.cz
 
 - check if NIS was enabled while module is running (#30256) 

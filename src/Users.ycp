@@ -1034,6 +1034,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    autologin);
 	SCR::Write(.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
 	    autologin == "" ? "no" : "yes");
+	// flush changes (#30124)
+	SCR::Write(.sysconfig.displaymanager, nil);
     }
 
     // increase the progress to "finish"
