@@ -49,7 +49,22 @@ $nis_itemlist      = $output_dir."/itemlist_nis.ycp";
 $uidlist_nis       = $output_dir."/uidlist_nis.ycp";
 
 $the_answer = 42; # ;-)
+$max_length_id = length("60000");
 
+# addBlanks to uid entry in table
+sub addBlanks {
+
+    my ($id) = @_;
+    $missing = $max_length_id - length ($id);
+    if ($missing > 0)
+    {
+        for ($i = 0; $i < $missing; $i++)
+        {
+            $id = " ".$id;
+        }
+    }
+    return $id;
+}
 
 @ypcat = `ypcat passwd`;  # add a check for existence !
 
@@ -135,8 +150,9 @@ foreach $user (@ypcat)
 #        }
     $all_groups = "...";
 
+    $uid_wide = addBlanks ($uid);
     print YCP_NIS_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-        "\"$full\", \"$uid\", \"$all_groups\"),\n";
+        "\"$full\", \"$uid_wide\", \"$all_groups\"),\n";
 }
 open CORRECT, "> $groups_corrected";
 print CORRECT "\$[\n";

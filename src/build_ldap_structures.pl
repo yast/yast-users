@@ -61,8 +61,23 @@ $last_ldap      =   $output_dir."/last_ldap_uid.ycp";
 
 $last_ldap_uid = 1;
 
-
 $the_answer = 42; # ;-)
+$max_length_id = length("60000");
+
+# addBlanks to uid entry in table
+sub addBlanks {
+
+    my ($id) = @_;
+    $missing = $max_length_id - length ($id);
+    if ($missing > 0)
+    {
+        for ($i = 0; $i < $missing; $i++)
+        {
+            $id = " ".$id;
+        }
+    }
+    return $id;
+}
 
 %corrected_groups = ();
 
@@ -148,8 +163,10 @@ foreach $entry ($mesg->all_entries)
     print YCP_LDAP_UIDLIST "$uid, ";
     print YCP_LDAP_USERNAMES "\"$username\", ";
     print YCP_LDAP_HOMES "\"$home\", ";
+    
+    $uid_wide = addBlanks ($uid);
     print YCP_LDAP_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-        "\"$fullname\", \"$uid\", \"$groups{$gid}\"),\n";
+        "\"$fullname\", \"$uid_wide\", \"$groups{$gid}\"),\n";
 
     if ($last_ldap_uid < $uid)
     {
