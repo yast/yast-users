@@ -324,9 +324,7 @@ Select which one to configure.
     global define symbol usersUsersDialog() ``{
 	start_dialog              ="users";
 	user_in_work = $[];
-y2error ("Entering UsersUsersDialog");
 	list usersList = UserSettings::UsersRead(`items ,view_all_users );
-y2error ("Users read");
 
 	term contents =
 	    `VBox(rbUsersGroup(`users),
@@ -388,6 +386,12 @@ y2error ("Users read");
 		    if (user_table_input != nil)
 		    {
 			user_in_work = UserSettings::GetUser( user_table_input ); // Default nil ??
+                        if (ret == `delete && lookup (user_in_work, "type", `passwd) == `getent)
+                        {
+                            // error popup
+                            Report::Message (sformat (_("Can't delete the user %1"), lookup (user_in_work, "username", "")));
+                            ret = `not_next;
+                        }
 		    }
 		    else
 		    {

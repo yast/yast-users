@@ -3,6 +3,7 @@ Fri Sep  6 16:28:47 CEST 2002 - jsrain@suse.cz
 
 - fixed provides/obsoletes
 - fixed translation of expiration date help (Bug #18601)
+- added error popup to avoid deleting remote NIS server user
 - 2.6.26
 
 -------------------------------------------------------------------
