@@ -1,22 +1,20 @@
 #
-# Makefile.am for y2c_prnt/src
+# Makefile.am for y2c_users/src
 #
 
 menudir = $(YAST2DIR)/menuentries
 includedir = $(YAST2DIR)/include/users
-modulesdir = $(YAST2DIR)/clients
+clientsdir = $(YAST2DIR)/clients
 
 include_DATA =			\
 	io.ycp			\
 	ui.ycp			\
 	functions.ycp
 
-modules_DATA = 				\
+clients_DATA = 			\
 	users.ycp
+	#users_write.ycp
 
 menu_DATA = menuentry_users.ycp
 
-EXTRA_DIST = \
-	$(modules_DATA)			\
-	$(menu_DATA)			\
-	$(include_DATA)
+EXTRA_DIST = $(clients_DATA) $(menu_DATA) $(include_DATA)

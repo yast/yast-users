@@ -13,11 +13,9 @@ Distribution: SuSE Linux 6.4 (i386)
 Name:         @RPMNAME@
 Release:      1
 Copyright:    (c) 2000 SuSE GmbH
-Requires:     y2d_prnt >= 2.1.22 aps netcat yast2
+Requires:     yast2 yast2-trans-users
 Group:        System Environment/YaST
 BuildArchitectures: noarch
-Provides:     y2c_prnt
-Obsoletes:    y2c_prnt
 
 Packager:     @MAINTAINER@
 
@@ -29,33 +27,21 @@ Source0:      @RPMNAME@-@VERSION@.tar.bz2
 -
 
 %prep
-
 %setup -n @RPMNAME@-@VERSION@
 
 %build
-
 ./configure
 make
 
 %install
-
 make install
-
+#make check
 %{?suse_check}
 
 %files
-
-%dir @YAST2DIR@
-%dir @YAST2DIR@/bin
-%dir @YAST2DIR@/clients
-%dir @YAST2DIR@/include
-%dir @YAST2DIR@/menuentries
+%dir @YAST2DIR@/include/users
+@YAST2DIR@/clients/users.ycp
+@YAST2DIR@/include/users/*
+@YAST2DIR@/menuentries/menuentry_users.ycp
 %dir @DOCDIR@
-%dir @DOCDIR@/yast2-config-printer
-@YAST2DIR@/clients/printconf*
-@YAST2DIR@/include/printconf/*
-@YAST2DIR@/menuentries/menu*.ycp
-@YAST2DIR@/bin/test_device
-@YAST2DIR@/bin/test_remote_lpd
-@YAST2DIR@/suse_testpg.*
-@DOCDIR@/yast2-config-printer/*
+@DOCDIR@/*

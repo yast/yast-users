@@ -1,0 +1,37 @@
+YaST2: Users configuration module
+=================================
+
+This module should be able to manage the users and all things
+regarding users.
+
+Author: Michal Svec <msvec@suse.cz>
+
+Basic module abilities:
+- add, remove, edit and clone users
+- add, remove, edit and clone groups
+
+User attributes:
+- name
+- uid
+- full name
+- other data (office, phone, ...) passwd(5)
+- group (groups)
+- shell
+- password
+- password changing and warning limits
+- nice|umask|ulimit passwd(5), useradd(8)
+
+Group attributes:
+- name
+- gid
+- users
+
+Implementation
+--------------
+- current Adduser security subdialog
+- used by useradd and Add dialog
+- use skeleton? (/etc/skel)
+
+Future features:
+- ftp only users
+- samba only users
