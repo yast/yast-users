@@ -133,7 +133,7 @@ global define symbol ReallyAbort() ``{
  */
 global define symbol UsersDialog() ``{
 y2milestone ("start dialog = %1", Users::start_dialog);
-    Users::start_dialog              ="users"; // should be global?
+    Users::start_dialog              ="users";
 y2milestone ("start dialog = %1", Users::start_dialog);
 //  Users::user_in_work = $[]; // why here?
 y2milestone("--------------- Users summary");
@@ -188,7 +188,7 @@ y2milestone("--------------- Users summary");
         if( contains (Users::available_usersets, ret) )
         {
             UI::OpenDialog (`opt(`decorated ),
-                // -- wait popup
+                // wait popup
                 `Label(_("Reading set of users, one moment please...")));
             Users::ChangeCurrentUsers (ret);
             UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
@@ -202,12 +202,6 @@ y2milestone("--------------- Users summary");
 
             ret = `not_next;
         }
-        /*
-        if( ret == `defaults)
-        {
-            ret = `not_next;
-        }
-        */
         if( ret == `switch_users)
         {
             ret = `not_next;

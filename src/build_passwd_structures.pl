@@ -64,7 +64,7 @@ $passwd_local_itemlist          = $output_dir."/itemlist_local.ycp";
 $uidlist_local       = $output_dir."/uidlist_local.ycp";
 $uidlist_system       = $output_dir."/uidlist_system.ycp";
 
-$groupnamelist_file  = $output_dir."/groupnamelist.ycp";
+$groupnamelist_file  = $output_dir."/groupnamelists.ycp";
 $gidlist_file       = $output_dir."/gidlist.ycp";
 
 $plus_passwd_file = $output_dir."/plus_passwd.ycp";
@@ -543,8 +543,8 @@ foreach (values %groupmap)
 print YCP_GROUP_LOCAL "]\n";
 print YCP_GROUP_SYSTEM "]\n";
 print YCP_GROUP_BYNAME "]\n";
-print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
-print YCP_GROUP_ITEMLIST_LOCAL "[\n";
+print YCP_GROUP_ITEMLIST_SYSTEM "]\n";
+print YCP_GROUP_ITEMLIST_LOCAL "]\n";
 
 print YCP_GIDLIST "]\n";
 close YCP_GIDLIST;

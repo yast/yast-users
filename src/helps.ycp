@@ -32,8 +32,13 @@ least belongs to one group.
    * @return string help text
    */
   global define string help_main_end()``{
-	// help text 1/1
+	// help text 1/2
       return _("<p>
+Users and groups are arranged to various sets. You can change the set currently showed in the table with the <b>Set filter</b> button.
+You can also customize you view filter after pushing <b>Customize filter</b>.")
+
+	// help text 1/2
+         + _("<p>
 To save the modified user and group setting to your system push the button
 <b>Finish</b>.
 </p>");
@@ -52,13 +57,13 @@ password should have at least 5 characters and, as a rule, not contain any
 special characters (e.g., accented characters).
 </p>
 ");
-      
+
       // help text 2/3
       help_text = help_text + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
-  
+
       //help text 3/3
       help_text = help_text + _("<p>
 It's enough to use a password with a length of approximately 8 alpha-numeric
@@ -108,33 +113,36 @@ button now.
    * @return string help text
    */
   global define string UsersDialogHelp() ``{
-    return "";
-	// help text 1/4
+	// help text 1/5
       return ( help_main_start() + _("
 <p>
 In this dialog, you can get information about existing <b>users</b>.
 </p>
 ") +
 
-	// help text 2/4
+	// help text 2/5
 		_("<p>
 To shift to the group dialog push the radio button <b>Groups administration</b>.
 </p>
 ") +
 
-	// help text 3/4
+	// help text 3/5
 		_("
 <p>
 To create a new user, push the button <b>Add</b>.
 </p>
 ") +
 
-	// help text 4/4
+	// help text 4/5
 		_("<p>
 To edit or delete an existing user, select one user from the list and
 click <b>Edit</b> or <b>Delete</b>.
 </p>
-") +  help_main_end() );
+") +
+
+	// help text 5/5
+		_("<p>
+To change the default settings used for new users, select the <b>Set defaults</b> button.") + help_main_end() );
   }
 
 
@@ -221,9 +229,9 @@ To see more details like the home directory or the user ID push
    * Help for EditGroupDialog.
    * @return string help text
    */
-  global define string EditGroupDialogHelp() ``{
+  global define string EditGroupDialogHelp(boolean more) ``{
 	// help text 1/6
-      return _("<p>
+      string helptext = _("<p>
 YaST provides an easy means of maintaining user groups on your
 system. Here is what the different entries mean:
 </p>
@@ -268,6 +276,16 @@ Select which users should be members of this group.
 </p>
 ");
 
+    if (more)
+        // additional helptext for EditFroup dialog
+        helptext = helptext +
+		_("<p>
+<b>\"Core\" members:</b>
+... cannot be edited.
+</p>
+");
+
+    return helptext;
   }
 
 
