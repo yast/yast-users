@@ -31,7 +31,7 @@
 
     any ret = nil;
     string func = "";
-    list param = $[];
+    list param = [];
     /* Check arguments */
     if(size(Args()) > 0 && is(Args(0), string)) {
 	func = WFM::Args(0);
