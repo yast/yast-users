@@ -2,11 +2,11 @@
 # neededforbuild yast2-devtools  autoconf automake ycpdoc 
 
 @HEADER@
-Requires:     yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
+Requires:	yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
 
-BuildArchitectures: noarch
+BuildArchitectures:	noarch
 
-Summary:      YaST2 Modules for installation
+Summary:	YaST2 Modules for installation
 
 %description
 -
