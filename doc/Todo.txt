@@ -3,19 +3,21 @@ Users module Todo
 
 NIS:
 - edit fields on client
-    - problem: all tools are interactive
+    - problem: tools are interactive?
 
 LDAP:
-- show users without need of anonymous access [done]
 - edit password
     - problem: doesn't work with cpu
 
 - adding users to LDAP groups
-
-- propose configuration of /etc/cpu.cfg       [done]
+    - problem: not possible with cpu?
 
 - dialog for definition query filter
+    - problem: needed all id's, usernames for checking
+    
 - "reconnect to server" button (with new password/query)
+
+- showing error cpu's messages
 
 Kerberos:
 
@@ -28,6 +30,12 @@ Expert login dialog (authentication):
 
 - other values for pam/nsswitch (krb5 - required?)
 
+- do not enable call from installation?
+
 Dialogs behaviour:
 
 - groups and users summary to one dialog
+
+System users:
+
+- script to gather all system users from rpms
