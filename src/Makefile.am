@@ -10,7 +10,6 @@ module_DATA =			\
 	UserSettings.ycp	\
 	UserWriteStack.ycp	\
 	UserAddDefs.ycp		\
-	User.ycp		\
 	Accounts.ycp
 
 ynclude_DATA =			\
