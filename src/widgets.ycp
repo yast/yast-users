@@ -817,14 +817,6 @@ push the button <b>Edit</b> or <b>Delete</b>.
 }
 
 
-/*
-define string SummaryDialogHelp () ``{
-
-    return (UsersCache::GetCurrentSummary () == "users") ?
-	UsersDialogHelp () : GroupsDialogHelp ();
-}
-*/
-
 //================================================================
 
 /**
@@ -931,10 +923,12 @@ you must do it on server.
 	// ask for real LDAP password if reading was anonymous
 	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
     }
+    /*
     if (ev_id == `back && !Mode::cont && !Popup::ReallyAbort(Users::Modified()))
     {
 	return `summary;
     }
+    */
     return ev_id;
 }
 
@@ -1134,7 +1128,7 @@ map widgets = $[
 	),
 	"init"			: SummaryTableInit,
 	"handle"		: SummaryTableHandler,
-	"handle_events"		: ["table", `new, `edit, `delete, `next, `back],
+	"handle_events"		: ["table", `new, `edit, `delete, `next],
     ],
     "advanced_buttons" : $[
         "widget"		: `custom,
