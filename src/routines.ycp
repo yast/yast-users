@@ -251,7 +251,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
             "x",
-            group["gid"]:max_gid,
+            gid,
             group["userlist"]:"");
         return to_save;
     });
@@ -259,7 +259,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
             "x",
-            group["gid"]:max_gid,
+            gid,
             group["userlist"]:"");
         return to_save;
     }));
@@ -294,7 +294,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
             user["username"]:"",
             "x",
             uid,
-            user["gid"]:max_gid,
+            user["gid"]:max_gid[user["type"]:"local"]:60000,
             gecos,
             user["home"]:"",
             user["shell"]:"");
@@ -311,7 +311,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
             user["username"]:"",
             "x",
             uid,
-            user["gid"]:max_gid,
+            user["gid"]:max_gid[user["type"]:"local"]:60000,
             gecos,
             user["home"]:"",
             user["shell"]:"");

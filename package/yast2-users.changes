@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug  6 14:33:38 CEST 2003 - jsuchome@suse.de
+
+- fixed: importing empty group (#28491)
+- do not abort from Read in installation mode
+
+-------------------------------------------------------------------
 Thu Jul 24 11:10:03 CEST 2003 - msvec@suse.de
 
 - added yast2-pam to needededforbuild

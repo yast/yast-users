@@ -557,7 +557,12 @@ global define symbol Read (block abort, boolean useUI) ``{
     {
         string dir = ReadNISConfigurationType (base_dir);
         if (dir == nil)
-            return `abort; // aborted in NIS server dialog
+	{
+	    if (Mode::cont)
+		return `nextmodule; // what to return during install ??
+	    else
+		return `abort; // aborted in NIS server dialog
+	}
         else
             base_dir = dir;
     }
@@ -578,7 +583,10 @@ global define symbol Read (block abort, boolean useUI) ``{
     if ( prepare["exit"]:0 != 0 )
     {
         Report::Error (GetErrorMessage(prepare));
-        return `abort;
+        if (Mode::cont)
+            return `nextmodule; // what to return during install ??
+	else
+	    return `abort;
     }
 
     // read password settings
@@ -601,7 +609,10 @@ global define symbol Read (block abort, boolean useUI) ``{
     {
 	// error popup
 	Report::Error (_("Cannot read the password settings."));
-	return `abort;
+        if (Mode::cont)
+            return `nextmodule; // what to return during install ??
+	else
+	    return `abort;
     }
 
     // read group settings
@@ -698,7 +709,7 @@ global define symbol Read (block abort, boolean useUI) ``{
  */
 global define symbol Write (block abort, boolean useUI)``{
 
-    string write_dir = base_dir;//"/tmp"; // -- just for testing
+    string write_dir = base_dir;//"/tmp"; // tmp is just for testing
 
     // progress caption
     string caption = _("Writing user and group configuration...");
@@ -1356,27 +1367,33 @@ global define boolean Import (map settings) ``{
     ReadDefaultGroup(false);
 
     // create more_users (for groups), grouplist and groupname (for users)
-    // TODO move this block to ReadCache?
     foreach (`type, ["system", "local"], ``{
 
         foreach (`uid, `user, users [type]:$[], ``{
             string username = user["username"]:":";
             user ["grouplist"] = FindGroupsBelongUser (username, "");
             integer gid = user["gid"]:default_gid;
-            // hack: change of default group's gid - is it correct?
-            if (gid == 100 && default_gid != 100)
-            {
-                gid = default_gid;
-                user ["gid"] = gid;
-            }
+
+            // hack: change of default group's gid
+	    // (example: user games has gid 100, but there is only group 500!)
             map group = GetGroupFromAll (gid);
+	    if (group == $[])
+	    {
+		if (gid == 100)		gid = 500;
+		else if (gid == 500)	gid = 100;
+		// one more chance...
+		group = GetGroupFromAll (gid);
+		// adapt user's gid to new one:
+		if (group != $[])
+		    user ["gid"] = gid;
+	    }
             user ["groupname"] = group ["groupname"]:default_groupname;
             users [type, uid] = user;
 
-            // update the group's more_users (use Commit?)
+            // update the group's more_users
             string more_users = group ["more_users"]:"";
             list more_list = splitstring (more_users, ",");
-            if (! contains (more_list, username))
+            if (!contains (more_list, username) && group != $[])
             {
                 if (more_users != "") more_users = more_users + ",";
                 group ["more_users"] = more_users + username;
@@ -1988,7 +2005,6 @@ global define boolean Commit (string object, boolean cache)``{
                 user_in_work ["modified"] = "edited";
             // check the change of additional group membership
             foreach (`group, group_list, ``{
-//y2internal ("group: %1", group);
                 group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[]) return;
                 // username changed - remove org_username
@@ -2405,8 +2421,9 @@ global define boolean ReadLoginDefaults(boolean useUI)``{
     path useradd_path = .etc.default.useradd;
 
     foreach (`key, `value, useradd_defaults, ``{
-        path entry_path = add (useradd_path, key);
-        useradd_defaults[key] = deletechars (SCR::Read(entry_path), "\"");
+	string entry = SCR::Read(add (useradd_path, key));
+	if (entry == nil) entry = "";
+        useradd_defaults[key] = deletechars (entry, "\"");
     });
 
     if( useradd_defaults == $[] || useradd_defaults == nil )
