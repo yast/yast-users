@@ -467,7 +467,7 @@ Use it and change its owner?
                     {
                         // error popup (%1 is part of home path, e.g. "/home")
                         Report::Error(sformat (_("The directory %1 is not writable.
-Please press button Details and edit home directory."), home_path));
+Press Details and edit the home directory."), home_path));
                         home = Users::default_home;
                         continue;
                     }
@@ -962,7 +962,7 @@ Please select a another User Id"));
                     {
                         // error popup (%1 is part of home path, e.g. "/home")
                         Report::Error(sformat (_("The directory %1 is not writable.
-Choose another path to home directory."), home_path));
+Choose another path for home directory."), home_path));
                         UI::SetFocus(`id(`home));
                         continue;
                     }
