@@ -233,36 +233,38 @@ the password. This starting procedure is traditionally known as the
 
     if (mail) // these are used only during installation time
     {
-	// help text 3.5/7 (only during installation)
+	// help text 4/7 (only during installation)
 	help = help + _("<p>
 The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, this user is logged in automatically. This feature is only
 available when using KDM as a login manager.</p>
 ") +
 
-        // help text 4/7
+        // help text 5/7 (only during installation)
         _("<p>
 The mail for root will be forwarded to this user if you check the option \"Receive System Mail\".</p>
 ") +
 
-	    // help text 5/7
-        _("<p>Press <b>Additional Users and Groups</b> to add more users or groups to your system.</p>");
+	// help text 6/7 (only during installation)
+        _("<p>Press <b>User Management</b> to add more users or groups to your system.</p>");
     }
-
-	// help text 6/7
-    help = help + _("<p>
+    else
+    {
+	// alternative help text 4/7
+	help = help + _("<p>
 To see more details, such as the home directory or the user ID, click
 <b>Details</b>.
 </p>
 ") +
 
-	// help text 6/6
-    _("<p>
+	// alternative help text 5/7
+	_("<p>
 To edit various password settings of this user (e.g., expiration date), click <b>Password Settings</b>.</p>
 ");
+    }
 
-    if (!Stage::cont () && type != "nis")
+    if (!mail && type != "nis")
     {
-	// help text 7/6
+	// help text 7/7
 	help = help + _("<p>To disallow this user to
 log in, check <b>Disable User Login</b> option.</p>");
     }
