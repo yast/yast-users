@@ -497,7 +497,7 @@ Are you sure?")))
 	    user["username"]		= username;
 
 	    // --------------------------------- uid check (for nil value)
-	    if (!details)
+	    if (!details && uid == nil)
 	    {
 		error = Users::CheckUID (uid);
 		if (error != "")
