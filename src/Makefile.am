@@ -40,8 +40,8 @@ desktop_DATA =		\
 
 EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
 
-symlinks:
-	test -L users || ln -sf . users
+users:
+	ln -sf . users
 
 ycpchook = users
 
