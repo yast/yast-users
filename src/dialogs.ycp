@@ -92,11 +92,11 @@ global define symbol EditUserDialog(string what) ``{
     string org_username = user["org_username"]:username;
     boolean create_home	= user["create_home"]:true;
     map shadow		= user["shadow"]:$[];
-    integer uid		= user["uid"]:nil;
+    integer uid		= user["uid"]:-1;
     string dn		= user["dn"]:"";
     string new_dn	= dn;
 
-    if ( uid ==  nil )
+    if ( uid ==  nil || uid == -1)
     {
         y2error ("user has no UID?");
         return `nosave;
@@ -284,6 +284,9 @@ can be changed for non-local users.
 	UI::ChangeWidget(`id(`autologin), `Enabled, false );
 
 
+    boolean details	= false;
+    any ret		= `next;
+
     /**
      * Helper function for user dialog:
      * invalidate any old password and clear password inputfields
@@ -291,13 +294,12 @@ can be changed for non-local users.
     define void clear_password_fields () ``{
 
 	password = "";
+	ret = `notnext;
 	UI::ChangeWidget(`id(`pw1), `Value, "");
 	UI::ChangeWidget(`id(`pw2), `Value, "");
 	UI::SetFocus(`id(`pw1));
     }
 
-    boolean details	= false;
-    any ret		= `next;
     repeat
     {
         ret = UI::UserInput();
@@ -348,6 +350,7 @@ The full user name cannot contain
 Try again.
 "));
 		    UI::SetFocus(`id(`cn));
+		    ret = `notnext;
 		    continue;
 		}
 	    }
@@ -390,6 +393,7 @@ Try again.
 		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
 so the password settings cannot be edited.
 "));
+		ret = `notnext;
 		continue;
 	}
 
@@ -414,6 +418,7 @@ Are you sure?
                     break;
                 }
                 UI::SetFocus(`id(`username));
+		ret = `notnext;
                 continue;
             }
             else if ( username == "")
@@ -424,6 +429,7 @@ Are you sure?
 Please try again.
 "));
                 UI::SetFocus(`id(`username));
+		ret = `notnext;
                 continue;
             }
 
@@ -436,6 +442,7 @@ Please try again.
 Try again.
 "), UsersCache::min_length_login, UsersCache::max_length_login));
                 UI::SetFocus(`id(`username));
+		ret = `notnext;
                 continue;
             }
 
@@ -453,6 +460,7 @@ and must begin with a letter or \"_\".
 Try again.
 "));
                 UI::SetFocus(`id(`username));
+		ret = `notnext;
                 continue;
             }
 
@@ -469,6 +477,7 @@ login name and an existing user name.
 Try another one.
 "));
                 UI::SetFocus(`id(`username));
+		ret = `notnext;
                 continue;
             }
 	    // now save username to map
@@ -577,6 +586,7 @@ Really use it?
                     Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
                     home = default_home;
+		    ret = `notnext;
                     continue;
                 }
                 // do not check in autoinstal config and for ldap client
@@ -610,6 +620,7 @@ Use this directory?
                     if (! Popup::YesNo(question))
                     {
                         home = default_home;
+			ret = `notnext;
                         continue;
                     }
                     create_home = false;
@@ -628,6 +639,7 @@ Use this directory?
                         Report::Error(sformat (_("The directory %1 is not writable.
 Press Details and edit the home directory."), home_path));
                         home = default_home;
+			ret = `notnext;
                         continue;
                     }
                 }
@@ -683,6 +695,7 @@ _("<p>Really use the entered value?</p>");
 		if (r != `ok)
 		{
 		    UI::SetFocus(`id(`username));
+		    ret = `notnext;
 		    continue;
 		}
             }
@@ -1002,6 +1015,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 contain a colon (:).  Try again.
 "));
                     UI::SetFocus(`id(`addd));
+		    ret = `notnext;
                     continue;
                 }
                 list add_l = splitstring (addit_data, ",");
@@ -1013,6 +1027,7 @@ of up to three sections separated by commas.
 Remove the surplus.
 "));
                     UI::SetFocus(`id(`addd));
+		    ret = `notnext;
                     continue;
                 }
             }
@@ -1037,6 +1052,7 @@ Remove the surplus.
 Select another user ID.
 "));
 		    UI::SetFocus(`id(`uid));
+		    ret = `notnext;
 		    continue;
 		}
 		if (!UsersCache::CheckUIDInterval (new_i_uid, user_type))
@@ -1055,6 +1071,7 @@ because the ID is smaller than %1.
 Really change type of user to 'system'?"), Users::max_uid["system"]:499 + 1 )))
 			{
 			    UI::SetFocus(`id(`uid));
+			    ret = `notnext;
 			    continue;
 			}
 			new_type = "system";
@@ -1069,6 +1086,7 @@ because the ID is greater than %1.
 Really change type of user to 'local'?"), Users::max_uid["system"]:499 )))
 			{
 			    UI::SetFocus(`id(`uid));
+			    ret = `notnext;
 			    continue;
 			}
 			new_type = "local";
@@ -1081,6 +1099,7 @@ _("The selected user ID is not allowed.
 Select a valid integer between %1 and %2.
 "),  minimum, Users::max_uid[user_type]:60000 ));
 			UI::SetFocus(`id(`uid));
+			ret = `notnext;
 			continue;
 		    }
 		}
@@ -1105,6 +1124,7 @@ a..zA..Z0..9_-/
 Try again.
 "));
                     UI::SetFocus(`id(`home));
+		    ret = `notnext;
                     continue;
                 }
 
@@ -1121,6 +1141,7 @@ Try again.
 Choose another path for the home directory.
 "), home_path));
                         UI::SetFocus(`id(`home));
+			ret = `notnext;
                         continue;
                     }
                 }
@@ -1137,6 +1158,7 @@ Choose another path for the home directory.
                     Report::Error(_("The home directory is used from another user.
 Please try again."));
                     UI::SetFocus(`id(`home));
+		    ret = `notnext;
                     continue;
                 }
                 // do not check local directories in autoinst config
@@ -1168,6 +1190,7 @@ Use this directory?
                     if (! Popup::YesNo(question))
                     {
                         UI::SetFocus(`id(`home));
+			ret = `notnext;
                         continue;
                     }
                     create_home = false;
@@ -1181,7 +1204,10 @@ Use this directory?
                 if (! Popup::YesNo (_("If you select a nonexistent shell, the user
 may be unable to log in. Continue?
 ")))
+		{
+		    ret = `notnext;   
                     continue;
+		}
             }
 
             // check the grouplist
@@ -1214,6 +1240,7 @@ may be unable to log in. Continue?
 letters and digits.
 Please try again."));
                 UI::SetFocus(`id(`grouplist));
+		ret = `notnext;
                 continue;
             }
 
@@ -1364,6 +1391,7 @@ global define symbol EditUserPasswordDialog() ``{
             // The date must stay in this format
             Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
             UI::SetFocus(`id("expire"));
+	    ret = `notnext;
             continue;
             }
             // update the values in shadow map
@@ -1523,16 +1551,18 @@ global define symbol LDAPSettingsDialog(string what) ``{
 	    value = LdapPopup::EditAttribute (attr, value, [],
 		Ldap::SingleValued (attr), []);
 	    if (value == object [attr]:[])
+	    {
+		ret = `notnext;
 		continue;
+	    }
 	    UI::ChangeWidget (`id(`table),`Item(attr,1),mergestring(value,","));
 	    object [attr] = value;
 	}
         if ( ret == `next )
         {
 	    // check for required attributes
-	    boolean again = false;
 	    foreach (string req, required_attrs, ``{
-		if (again) return;
+		if (ret == `notnext) return;
 		if ((contains (used_attributes, req) ||
 		     contains (new_attributes, req)) &&
 		    object [req]:[] == [])
@@ -1541,9 +1571,9 @@ global define symbol LDAPSettingsDialog(string what) ``{
 _("The attribute '%1' is required for this object according
 to its LDAP configuration, but it is currently empty.
 Are you sure?"), req)))
-			again = true;
+			ret = `notnext;
 	    });
-	    if (again) continue;
+	    if (ret == `notnext) continue;
 	    // update global variables
 	    foreach (string k, list v, object, ``{
 		if (v != [] || contains (used_attributes, k))
@@ -1614,12 +1644,12 @@ global define symbol EditGroupDialog(string what ) ``{
     map group			= (map) eval (Users::group_in_work);
     string  groupname		= group["groupname"]:"";
     string  password		= group["password"]:"x";
-    integer gid			= group["gid"]:nil;
+    integer gid			= group["gid"]:-1;
     // these are the users with this group as a default:
     string  more_users		= group["more_users"]:"";
     // these are users from /etc/group:
     string  userlist		= group["userlist"]:"";
-    string  group_type		= group["type"]:nil;
+    string  group_type		= group["type"]:"";
     string  new_type		= group_type;
     list list_userlist		= splitstring (userlist, ",");
     list list_more_users	= splitstring (more_users, ",");
@@ -1696,6 +1726,8 @@ global define symbol EditGroupDialog(string what ) ``{
         UI::ChangeWidget (`id(`more_users), `Enabled, false);
     }
 
+    any ret = `next;
+
     /**
      * Helper function for group dialog:
      * invalidate any old password and clear password inputfields
@@ -1703,12 +1735,12 @@ global define symbol EditGroupDialog(string what ) ``{
     define void clear_password_fields () ``{
 
 	password = "";
+	ret = `notnext;
 	UI::ChangeWidget(`id(`pw1), `Value, "");
 	UI::ChangeWidget(`id(`pw2), `Value, "");
 	UI::SetFocus(`id(`pw1));
     }
 
-    any ret = `next;
     repeat
     {
         ret = UI::UserInput();
@@ -1730,6 +1762,7 @@ global define symbol EditGroupDialog(string what ) ``{
 Please try again.
 ")) ;
                 UI::SetFocus(`id(`groupname));
+		ret = `notnext;
                 continue;
             }
 
@@ -1742,6 +1775,7 @@ Please try again.
 Try again.
 "),UsersCache::min_length_groupname, UsersCache::max_length_groupname)) ;
                 UI::SetFocus(`id(`groupname)) ;
+		ret = `notnext;
                 continue;
             }
 
@@ -1757,6 +1791,7 @@ and must begin with a letter.
 Try again.
 ")) ;
                 UI::SetFocus(`id(`groupname)) ;
+		ret = `notnext;
                 continue;
             }
 
@@ -1771,6 +1806,7 @@ group name and an existing group name.
 Try another one.
 "));
                 UI::SetFocus(`id(`groupname)) ;
+		ret = `notnext;
                 continue;
             }
 
@@ -1838,6 +1874,7 @@ Please try again."));
 Select a another group ID.
 "));
                     UI::SetFocus(`id(`gid));
+		    ret = `notnext;
                     continue;
                 }
 		if (!UsersCache::CheckGIDInterval (new_i_gid, group_type))
@@ -1852,6 +1889,7 @@ because the ID is smaller than %1.
 Really change group type to 'system'?"), Users::max_gid["system"]:499 + 1 )))
 			{
 			    UI::SetFocus(`id(`gid));
+			    ret = `notnext;
 			    continue;
 			}
 			new_type = "system";
@@ -1866,6 +1904,7 @@ because the ID is greater than %1.
 Really change group type to 'local'?"), Users::max_gid["system"]:499 )))
 			{
 			    UI::SetFocus(`id(`gid));
+			    ret = `notnext;
 			    continue;
 			}
 			new_type = "local";
@@ -1882,6 +1921,7 @@ _("The selected group ID is not allowed.
 Select a valid integer between %1 and %2.
 "),  minimum, Users::max_gid[group_type]:60000 ));
 			UI::SetFocus(`id(`gid));
+			ret = `notnext;
 			continue;
 		    }
 		}
@@ -2134,6 +2174,7 @@ Try again.
 "), mergestring (dont_exist, ",")));
 
 		    UI::SetFocus (`id(`grouplist));
+		    ret = `notnext;
 		    continue;
 		}
 		new_grouplist = mergestring (l_grouplist, ",");
@@ -2152,6 +2193,7 @@ Try again.
 Try again.
 "));
 			UI::SetFocus(`id(`home));
+			ret = `notnext;
 			continue;
 		    }
 		    else
@@ -2166,12 +2208,14 @@ Create it now?
 		                // error popup message
 				Report::Error (sformat (_("Unable to create directory '%1'."), new_home));
 				UI::SetFocus (`id(`home));
+				ret = `notnext;
 				continue;
 			    }
 			}
 			else
 			{
 			    UI::SetFocus (`id(`home));
+			    ret = `notnext;
 			    continue;
 			}
 		    }
@@ -2187,7 +2231,10 @@ Create it now?
                     if (! Popup::YesNo (_("If you select a nonexistent shell, the user
 may be unable to log in. Continue?
 ")))
+		    {
+			ret = `notnext;
                         continue;
+		    }
                 }
                 modified = true;
             }
@@ -2200,6 +2247,7 @@ may be unable to log in. Continue?
 Try again.
 "));
                     UI::SetFocus(`id(`skel));
+		    ret = `notnext;
                     continue;
                 }
                 modified = true;
@@ -2214,6 +2262,7 @@ Try again.
                     // The date must stay in this format
                     Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
                     UI::SetFocus(`id(`exp));
+		    ret = `notnext;
                     continue;
                 }
                 if (new_exp_date == "")
@@ -2325,9 +2374,11 @@ global define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "samba")
 	{
+	    /* FIXME
 	    import "Samba";
 	    Samba::Read();
 	    ret = Samba::ShortSummary();
+	    */
 	}
 	Progress::on();
 	return ret;
@@ -2400,7 +2451,11 @@ Install it now?
 		{
 		    installed = add (installed, button);
 		}
-		else continue;
+		else
+		{
+		    button = `notnext;
+		    continue;
+		}
 	    }
             if (WFM::CallFunction (
 		(string)lookup (call_module,button,button), []) == `next)

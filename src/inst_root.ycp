@@ -141,7 +141,10 @@ Do not forget this \"root\" password!
 	  if ( Popup::ConfirmAbort (`incomplete) )
 	      return `abort;
 	  else
+	  {
+	      ret = `notnext;
 	      continue;
+	  }
       }
 
       if (ret == `cancel)
@@ -154,7 +157,7 @@ Do not forget this \"root\" password!
           string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
       }
-      else if (ret != `back)
+      else if (ret != `back && ret != `notnext)
       {
           string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
           string pw2 = (string) UI::QueryWidget(`id(`pw2), `Value);
@@ -165,6 +168,7 @@ Do not forget this \"root\" password!
          Popup::Message(_("The first and the second version\nof the password don't match!\nPlease try again."));
          // Invalidate any old password
          Users::rootPassword = "";
+	 ret = `notnext;
          continue;
       }
 
@@ -183,6 +187,7 @@ Do not forget this \"root\" password!
 Please try again."));
             // Invalidate any old password
             Users::rootPassword = "";
+	    ret = `notnext;
             continue;
          }
 
@@ -194,6 +199,7 @@ Are you sure?")))
             {
                 // Invalidate any old password
                 Users::rootPassword = "";
+		ret = `notnext;
                 continue;
             }
          }
@@ -205,12 +211,14 @@ Are you sure?")))
             Popup::Message(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
             // Invalidate any old password
             Users::rootPassword = "";
+	    ret = `notnext;
             continue;
          }
 	 if (!CheckPasswordMaxLength(pw1, "local"))
 	 {
             // Invalidate any old password
             Users::rootPassword = "";
+	    ret = `notnext;
             continue;
 	 }
 

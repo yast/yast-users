@@ -22,7 +22,7 @@ import "Report";
 import "UsersCache";
 import "MailAliases";
 import "Directory";
-import "Console";
+import "Encoding";
 import "Security";
 import "Require";
 import "Popup";
@@ -924,7 +924,7 @@ global define boolean ReadSystemDefaults()``{
     y2debug ("encryption: %1", encryptionMethod);
 
     // FIXME: encoding... look at bug #3385!
-    encoding = Console::encoding;
+    encoding = Encoding::console;
 
     return true;
 }
@@ -2406,7 +2406,7 @@ define boolean RemoveUserFromGroup (string user) ``{
 	l_userlist = filter (`u, l_userlist, ``(u != user));
 	if (group_type != "ldap")
 	{
-	    userlist = mergestring (l_userlist, ",");
+	    userlist = mergestring ((list<string>)l_userlist, ",");
 	    group_in_work ["userlist"] = userlist;
 	}
 	else
@@ -2577,7 +2577,7 @@ global define boolean Commit (string object, boolean cache)``{
                     list l_more_users = splitstring (more_users, ",");
                     l_more_users = filter (`u, l_more_users,
                         ``(u != org_username));
-                    more_users = mergestring (l_more_users, ",");
+                    more_users = mergestring ((list<string>)l_more_users, ",");
                     if (more_users != "") more_users = more_users + ",";
                     group_in_work ["more_users"] = more_users + username;
                     Commit ("group", cache);
@@ -2595,7 +2595,7 @@ global define boolean Commit (string object, boolean cache)``{
                     list l_more_users = splitstring (more_users, ",");
                     l_more_users = filter (`u, l_more_users,
                         ``(u != org_username));
-                    more_users = mergestring (l_more_users, ",");
+                    more_users = mergestring ((list<string>)l_more_users, ",");
                     group_in_work ["more_users"] = more_users;
                     Commit ("group", cache);
                 }
@@ -2639,7 +2639,7 @@ global define boolean Commit (string object, boolean cache)``{
             string more_users = group_in_work ["more_users"]:"";
             list l_more_users = splitstring (more_users, ",");
             l_more_users = filter (`u, l_more_users, ``(u != username));
-            more_users = mergestring (l_more_users, ",");
+            more_users = mergestring ((list<string>)l_more_users, ",");
             group_in_work ["more_users"] = more_users;
             Commit ("group", cache);
 
@@ -2772,7 +2772,7 @@ global define boolean Commit (string object, boolean cache)``{
                     {
                         l_grouplist = filter (`g, l_grouplist,
                             ``(g!=org_groupname));
-                        grouplist = mergestring (l_grouplist, ",");
+                        grouplist = mergestring ((list<string>)l_grouplist, ",");
                         // what about ",,"?
                         if (grouplist != "")
                            grouplist = grouplist + ",";
@@ -2798,7 +2798,7 @@ global define boolean Commit (string object, boolean cache)``{
                     {
                         l_grouplist = filter (`g, l_grouplist,
                             ``(g!=org_groupname));
-                        grouplist = mergestring (l_grouplist, ",");
+                        grouplist = mergestring ((list<string>)l_grouplist, ",");
                         user_in_work["grouplist"] = grouplist;
                         user_in_work["what"] = "group_change";
                         Commit("user", cache);

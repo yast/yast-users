@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jan 19 10:56:43 CET 2004 - jsrain@suse.de
+
+- merged the new interpreter branch
+
+-------------------------------------------------------------------
 Mon Dec  1 14:20:39 CET 2003 - jsuchome@suse.cz
 
 - syntax fixes for new interpreter

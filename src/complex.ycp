@@ -320,6 +320,7 @@ global define boolean LDAPSearchFilterPopup () ``{
 Try again.
 "));
 		    UI::SetFocus (`id(`userf));
+		    button = `notnext;
 		    continue;
 		}
 		user_f = new_user_f;
@@ -333,6 +334,7 @@ Try again.
 Try again.
 "));
 		    UI::SetFocus (`id(`groupf));
+		    button = `notnext;
 		    continue;
 		}
 		group_f = new_group_f;

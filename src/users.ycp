@@ -206,37 +206,27 @@ map cmdline = $[
     "id"		: "users",
     // translators: command line help text for Users module
     "help"		: _("Users configuration module."),
-    "guihandler"	: ``(UsersGUI()),
-    "initialize"	: ``(UsersRead()),
-    "finish"		: ``(UsersWrite()),
-    /*
     "guihandler"	: UsersGUI,
     "initialize"	: UsersRead,
     "finish"		: UsersWrite,
-    TODO NI
-    */
     "actions"		: $[
 	"list" :$[
-	    "handler"	: ``(UsersListHandler()),
-//	    "handler"	: UsersListHandler,TODO NI
+	    "handler"	: UsersListHandler,
 	    // translators: command line help text for list action
 	    "help"	: _("List of available users")
 	],
 	"show" :$[
-	    "handler"	: ``(UsersShowHandler()),
-//	    "handler"	: UsersShowHandler,TODO NI
+	    "handler"	: UsersShowHandler,
 	    // translators: command line help text for show action
 	    "help"	: _("Show information of selected user")
 	],
 	"add" :$[
-	    "handler"	: ``(UsersAddHandler()),
-//	    "handler"	: UsersAddHandler,TODO NI
+	    "handler"	: UsersAddHandler,
 	    // translators: command line help text for ad action
 	    "help"	: _("Add new user")
 	],
 	"delete" :$[
-	    "handler"	: ``(UsersDeleteHandler ()),
-//	    "handler"	: UsersDeleteHandler,TODO NI
+	    "handler"	: UsersDeleteHandler,
 	    // translators: command line help text for delete action
 	    "help"	: _("Delete an existing user. (Home directory is not removed.)" )
 	],

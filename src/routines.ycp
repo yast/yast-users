@@ -16,7 +16,7 @@ import "Wizard";
 import "Label";
 import "Popup";
 import "Users";
-import "Console";
+import "Encoding";
 
 /**
  * Reads prebuilded gshadow data
@@ -246,7 +246,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             group["userlist"]:"");
         return to_save;
     }));
-    string string_to_save = mergestring (list_to_save, "\n");
+    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
     string_to_save = string_to_save + "\n";
@@ -302,7 +302,7 @@ global define any WritePasswd(string basedir, map system_users, map local_users,
             modified_map = add (modified_map, uid, user);
         return to_save;
     }));
-    string string_to_save = mergestring (list_to_save, "\n");
+    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
     string_to_save = string_to_save + "\n";
@@ -353,7 +353,7 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
             entry["flag"]:"");
         return to_save;
     }));
-    string string_to_save = mergestring (list_to_save, "\n");
+    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
     string_to_save = string_to_save + "\n";
@@ -390,7 +390,7 @@ global define boolean WriteGshadow(string basedir, map system_gshadow, map local
             entry["userlist"]:"");
         return to_save;
     }));
-    string string_to_save = mergestring (list_to_save, "\n");
+    string string_to_save = mergestring ((list<string>)list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
     string_to_save = string_to_save + "\n";
@@ -732,7 +732,7 @@ global define string CrackPassword (string username, string pw) ``{
 	ret = (string) SCR::Execute(.crack, pw);
     else
 	ret = (string) SCR::Execute(.crack, pw, Users::cracklib_dictpath);
-    return (string) UI::Recode(Console::encoding,"UTF-8", ret);
+    return (string) UI::Recode(Encoding::console,"UTF-8", ret);
 }
 
 
