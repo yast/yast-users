@@ -19,6 +19,7 @@
     import "Users";
     import "Mode";
     import "Directory";
+    import "Progress";
 
     map READ = $[
 	"passwd": $[

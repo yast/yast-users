@@ -10,15 +10,18 @@ Read	.etc.default.useradd.skel 0
 Read	.etc.fstab []
 Read	.target.size "/etc/cryptotab" 0
 Read	.etc.cryptotab []
-Execute	.target.bash "/bin/touch /var/lib/YaST2/users.ycp" 0
-Read	.target.ycp "/var/lib/YaST2/users.ycp" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
+Read	.etc.nsswitch_conf.passwd 0
+Read	.target.size "/usr/lib/yp/yphelper" 0
+Read	.etc.nsswitch_conf.passwd 0
+Execute	.target.bash "/bin/touch /var/lib/YaST2/users.ycp" 0
+Read	.target.ycp "/var/lib/YaST2/users.ycp" 0
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":499, "max_system_uid":499] 0
 Read	.passwd.local.users $[500:$["username":"hh"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
 Read	.passwd.local.users.by_name $["hh":500]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["gidNumber":100, "groupname":"users"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
+Read	.passwd.local.groups $[100:$["gidNumber":100, "groupname":"users", "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
 Read	.passwd.local.groups.by_name $["users":100]
 Read	.passwd.system.users $["by_name":$[], "homes":$[], "last_uid":0, "uids":$[], "usernames":$[]]
 Read	.passwd.system.users.by_name $[]
@@ -43,14 +46,15 @@ Dump	---- current user:
 Dump	 $[]
 Return	true
 Dump	---- current user (empty add):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":1, "video":1], "groupname":"users", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidNumber":100, "grouplist":$["audio":1, "video":1], "groupname":"users", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"12457", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"", "what":"add_user"]
+Execute	.target.bash_output "/usr/bin/openssl passwd -crypt $1$T8$yEI1SH.1b0jqeqDq6bHha1" $["stdout":"$1$T8$yEI1SH.1b0jqeqDq6bHha1"]
 Return	true
 Dump	---- current user (after rich add):
-Dump	 $["cn":"", "create_home":true, "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "homeDirectory":"/local/home/aaa", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "username":"aaa", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "homeDirectory":"/local/home/aaa", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"12457", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "username":"aaa", "what":"add_user"]
 Return	true
 Dump	==========================================================
 Return	true
 Return	true
 Dump	---- current user (minimal add, used default values):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":1, "video":1], "groupname":"users", "homeDirectory":"/home/hhh", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":502, "userPassword":"", "username":"hhh", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidNumber":100, "grouplist":$["audio":1, "video":1], "groupname":"users", "homeDirectory":"/home/hhh", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"12457", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":502, "userPassword":"", "username":"hhh", "what":"add_user"]
 Dump	==========================================================

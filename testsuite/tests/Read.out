@@ -10,10 +10,13 @@ Read	.etc.default.useradd.skel 0
 Read	.etc.fstab []
 Read	.target.size "/etc/cryptotab" 0
 Read	.etc.cryptotab []
-Execute	.target.bash "/bin/touch /var/lib/YaST2/users.ycp" 0
-Read	.target.ycp "/var/lib/YaST2/users.ycp" 0
 Read	.target.string "/etc/shells" 0
 Read	.target.size "0" 0
+Read	.etc.nsswitch_conf.passwd 0
+Read	.target.size "/usr/lib/yp/yphelper" 0
+Read	.etc.nsswitch_conf.passwd 0
+Execute	.target.bash "/bin/touch /var/lib/YaST2/users.ycp" 0
+Read	.target.ycp "/var/lib/YaST2/users.ycp" 0
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":499, "max_system_uid":499] 0
 Read	.passwd.local.users $[500:$["username":"hh"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
 Read	.passwd.local.users.by_name $["hh":500]
