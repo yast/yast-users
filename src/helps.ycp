@@ -269,7 +269,7 @@ the password. This starting procedure is traditionally known as the
     if (mail)
         // help text 4/5
         help = help + _("<p>
-The mail for root will be forwarded to this user, if you check the option \"This user will recieve system mail\".</p>");
+The mail for root will be forwarded to this user, if you check the option \"Recieve System Mail\".</p>");
 
 	// help text 5/5
     help = help + _("<p>

@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Jan 27 12:09:04 CET 2003 - jsuchome@suse.cz
+
+- autoinstall: check for imported users without uid's
+- changed checkbox "forward root's mail"
+- fix: recode gecos for system users when saving
+- yast2-security is needed for build
+- 2.7.9
+
+-------------------------------------------------------------------
 Fri Jan 24 18:22:00 CET 2003 - jsuchome@suse.cz
 
 - reading and saving custom settings

@@ -152,7 +152,6 @@ global define symbol EditUserDialog(symbol what) ``{
                  _("&Password settings")),
             `VStretch());
 
-    // running in inst-sys and first mask to a user
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
         detailsmorebox = add(detailsmorebox,
@@ -161,7 +160,7 @@ global define symbol EditUserDialog(symbol what) ``{
                 _("Additional users/&groups")));
         detailsmorebox = `VBox (
             // checkbox label
-            `CheckBox (`id (`root_mail),_("This user &will recieve all system mail"),
+            `CheckBox (`id (`root_mail),_("Recieve S&ystem Mail"),
                 Users::root_mail != ""),
             `VStretch (),
             detailsmorebox);
