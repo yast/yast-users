@@ -25,6 +25,9 @@ my $use_ui			= 1;
 # could be "users","nis","nisplus" or "ldap", for more see inst_auth.ycp
 my $after_auth			= "users";
 
+# Write only, keep progress turned off
+my $write_only			= 0; 
+
 my $root_password		= "";
 
 my $default_groupname		= "users";
@@ -158,9 +161,9 @@ my @group_custom_sets		= ();
 
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Autologin");
-YaST::YCP::Import ("Directory"); #TODO check all Directory::*
+YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("MailAliases");
-YaST::YCP::Import ("Mode"); #TODO checks for Mode::*
+YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("UsersCache");
@@ -381,7 +384,7 @@ sub ChangeCustoms {
 
 BEGIN { $TYPEINFO{AllShells} = ["function", ["list", "string"]];}
 sub AllShells {
-    return keys %all_shells;
+    return sort keys %all_shells;
 }
 
 BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
@@ -413,9 +416,9 @@ BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
 sub CheckHomeMounted {
 
-#    if ( Mode::live_eval ) { TODO
-#	return "";
-#    }
+    if ( Mode::live_eval() ) {
+	return "";
+    }
 
     my $ret 		= "";
     my $mountpoint_in	= "";
@@ -432,7 +435,7 @@ sub CheckHomeMounted {
 	}
     };
 
-    if (-e "/etc/cryptotab") {
+    if (SCR::Read (".target.size", "/etc/cryptotab") != -1) {
         my @cryptotab = SCR::Read (".etc.cryptotab");
 	foreach my $line (@cryptotab) {
 	    my %line	= %{$line};
@@ -533,7 +536,6 @@ sub GetDefaultGID {
 	    $default_groupname	= $group{"groupname"};
 	}
     }
-y2internal ("gid: $gid");
     return $gid;
 }
 
@@ -836,8 +838,7 @@ sub GetGroupCustomSets {
 # variables ("not_ask")
 sub ReadCustomSets {
 
-#    my $file = Directory::vardir."/users.ycp";
-    my $file = "/var/lib/YaST2/users.ycp";
+    my $file = Directory::vardir()."/users.ycp";
     SCR::Execute (".target.bash", "/bin/touch $file");
     my $customs = SCR::Read (".target.ycp", $file);
 
@@ -867,6 +868,7 @@ sub ReadCustomSets {
 # Read the /etc/shells file and return a item list or a string shell list.
 # @param todo `items or `stringlist
 # @return list of shells
+BEGIN { $TYPEINFO{ReadAllShells} = ["function", "void"]; }
 sub ReadAllShells {
 
     my @available_shells	= ();
@@ -878,7 +880,7 @@ sub ReadAllShells {
 	if ($shell_entry eq "" || $shell_entry =~ m/^passwd|bash1$/) {
 	    next;
 	}
-	if (-e $shell_entry) {
+	if (SCR::Read (".target.size", $shell_entry) != -1) {
 	    $all_shells{$shell_entry} = 1;
 	}
     };
@@ -913,6 +915,8 @@ sub ReadSourcesSettings {
 BEGIN { $TYPEINFO{ReadSystemDefaults} = ["function", "void"]; }
 sub ReadSystemDefaults {
 
+    if (Mode::test ()) { return; }
+
     Progress::off ();
     Security::Read ();
     Progress::on ();
@@ -945,7 +949,7 @@ sub ReadSystemDefaults {
 BEGIN { $TYPEINFO{ReadLoginDefaults} = ["function", "boolean"]; }
 sub ReadLoginDefaults {
 
-    foreach my $key (keys %useradd_defaults) {
+    foreach my $key (sort keys %useradd_defaults) {
         my $entry = SCR::Read (".etc.default.useradd.$key");
         if (!$entry) {
 	    $entry = "";
@@ -1075,7 +1079,6 @@ sub ReadUsersCache {
 
     UsersCache::SetCurrentUsers (\@user_custom_sets);
     UsersCache::SetCurrentGroups (\@group_custom_sets);
-
 }
 
 ##------------------------------------
@@ -1102,13 +1105,10 @@ sub Read {
 
     Autologin::Read ();
 
-#    if (Mode::cont) # initial configuration
-#    {
+#    if (Mode::cont () ) { # initial configuration
 #	Autologin::used		= true;
-#	Autologin::modified	= true;
+#	Autologin::modified	= true;FIXME SetAutologin...
 #    }
-
-#    ReadNewSet ("ldap");
 
     return 1;
 }
@@ -1222,6 +1222,7 @@ sub SelectUser {
 
     %user_in_work = %{GetUser ($_[0], "")};
     LoadShadow ();
+    UsersCache::SetUserType ($user_in_work{"type"});
 }
 
 ##------------------------------------
@@ -1242,6 +1243,7 @@ BEGIN { $TYPEINFO{SelectGroup} = [ "function",
 sub SelectGroup {
 
     %group_in_work = %{GetGroup ($_[0], "")};
+    UsersCache::SetGroupType ($group_in_work{"type"});
 }
 
 
@@ -1307,9 +1309,9 @@ sub EditUser {
 	}
 	# empty password entry for autoinstall config (do not want to
 	# read password from disk: #30573)
-#	if (Mode::config && $user_in_work{"userPassword"} eq "x") {
-#	    $user_in_work{"userPassword"} = "";
-#	}
+	if (Mode::config () && $user_in_work{"userPassword"} eq "x") {
+	    $user_in_work{"userPassword"} = "";
+	}
     }
     # update the settings which should be changed
     foreach my $key (keys %data) {
@@ -1490,7 +1492,7 @@ sub AddUser {
 	$user_in_work{"userPassword"}	= "";
     }
     else {
-	# TODO apply CryptPassword?
+	# FIXME when apply CryptPassword?
     }
     my %default_shadow = GetDefaultShadow ($type);
     foreach my $shadow_item (keys %default_shadow) {
@@ -1585,6 +1587,7 @@ sub AddGroup {
 #	    });
 #	    group_in_work ["dn"] = data["dn"]:CreateGroupDN (data);
 #	}
+y2error ("g: ", %group_in_work);
     return 1;
 }
 
@@ -1659,7 +1662,6 @@ sub CommitUser {
     my $groupname	= $user{"groupname"};
     my $home		= $user{"homeDirectory"};
     my %grouplist	= %{$user{"grouplist"}};
-
 
     if (($type eq "local" || $type eq "system") &&
 	!$users_modified && UserReallyModified (\%user)) {
@@ -1862,7 +1864,10 @@ sub CommitUser {
 BEGIN { $TYPEINFO{CommitGroup} = ["function", "boolean"]; }
 sub CommitGroup {
 
-    if (!%group_in_work) { return 0; }
+    if (!%group_in_work || !defined $group_in_work{"gidNumber"} ||
+	!defined $group_in_work{"groupname"}) {
+	return 0;
+    }
 
     if (defined $group_in_work{"check_error"}) {
         y2error ("commit is forbidden: ", $group_in_work{"check_error"});
@@ -1883,8 +1888,10 @@ sub CommitGroup {
     my $org_groupname	= $group{"org_groupname"} || $groupname;
     my $gid    		= $group{"gidNumber"};
     my $org_gid		= $group{"org_gidNumber"} || $gid;
-    my %userlist	= %{$group{"userlist"}};
-
+    my %userlist	= ();
+    if (defined $group{"userlist"}) {
+	%userlist	= %{$group{"userlist"}};
+    }
     y2internal ("commiting group '$groupname', action is '$what_group'");
 
     if ($type eq "system" || $type eq "local") {
@@ -2139,8 +2146,7 @@ sub WriteCustomSets {
     );
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
-#    SCR::Write (".target.ycp", Directory::vardir."/users.ycp", \%customs);
-    my $ret = SCR::Write (".target.ycp", "/var/lib/YaST2/users.ycp", \%customs);
+    SCR::Write (".target.ycp", Directory::vardir()."/users.ycp", \%customs);
 
     y2milestone ("Custom user information written: ", $ret);
     return $ret;
@@ -2328,22 +2334,22 @@ sub Write {
     }
 
     # mail forward from root
-#    if (Mode::cont &&
-    if ($root_mail ne "" && !MailAliases::SetRootAlias ($root_mail)) {
+    if (Mode::cont () && $root_mail ne "" &&
+	!MailAliases::SetRootAlias ($root_mail)) {
         
 	# error popup
         $ret = "There was an error while setting forwarding for root's mail.";
     }
 
-#    Autologin::Write (Mode::cont || write_only);
+    Autologin::Write (Mode::cont () || $write_only);
 
 
-#    # do not show user in first dialog when all has been writen
-#    if (Mode::cont) {
-#        $use_next_time	= 0;
-#        undef %saved_user;
-#        undef %user_in_work;
-#    }
+    # do not show user in first dialog when all has been writen
+    if (Mode::cont ()) {
+        $use_next_time	= 0;
+        undef %saved_user;
+        undef %user_in_work;
+    }
 
     return $ret;
 }
@@ -2687,7 +2693,7 @@ sub IsDirWritable {
 
     my $tmpfile = $dir."/tmpfile";
 
-    while (SCR::Execute (".target.bash", "/usr/bin/test -e $tmpfile") == 0) {
+    while (SCR::Execute (".target.size", $tmpfile) != -1) {
         $tmpfile .= "0";
     }
 
@@ -2722,8 +2728,8 @@ Try again.";
     }
 
     # check if directory is writable
-#    if (!Mode::config && ($type ne "ldap" || $ldap_file_server)) 
-# TODO chould that ldap-check be here or upper (in the function CheckHome is called from)?
+#    if (!Mode::config () && ($type ne "ldap" || $ldap_file_server)) 
+# TODO should that ldap-check be here or upper (in the function CheckHome is called from)?
     if (1) {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = IsDirWritable ($home_path);
@@ -2762,8 +2768,8 @@ sub CheckHomeUI {
     }
 
     if ((($ui_map{"chown"} || 0) != 1) &&
+	!Mode::config () &&
 	(SCR::Read (".target.size", $home) != -1)) {
-#	!Mode::config &&
 #	($user_type ne "ldap" || $ldap_file_server))
         
 	$ret{"question_id"}	= "chown";
@@ -3097,10 +3103,9 @@ y2warning ("============== write root pw: $root_password"); return 1;
 BEGIN { $TYPEINFO{CryptRootPassword} = ["function", "void"];}
 sub CryptRootPassword {
 
-#    if (Mode::test) {
-#	return;
-#    }
-    $root_password = CryptPassword ($root_password, "system");
+    if (!Mode::test ()) {
+	$root_password = CryptPassword ($root_password, "system");
+    }
 }
 
 # EOF

@@ -97,6 +97,7 @@ my $the_answer			= 42;
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Progress");
@@ -263,8 +264,7 @@ sub UIDExists {
 	if (defined $uids{$type}{$uid}) { $ret = 1; }
     };
     # for autoyast, check only loaded sets
-#    if (Mode::config || $ret) TODO
-    if ($ret) {
+    if ($ret || Mode::config () || Mode::test ()) {
 	return $ret;
     }
     # not found -> check all sets via agent...
@@ -301,8 +301,7 @@ sub UsernameExists {
     foreach my $type (keys %usernames) {
 	if (defined $usernames{$type}{$username}) { $ret = 1; }
     };
-#    if (Mode::config || ret) 
-    if ($ret) {
+    if ($ret || Mode::config () || Mode::test ()) 
 	return $ret;
     }
     $ret = UsernameConflicts ($username);
@@ -608,9 +607,8 @@ sub SetGroupType {
 ##------------------------------------
 # build item for one user
 sub BuildUserItem {
-
+    
     my %user		= %{$_[0]};
-
     my $uid		= $user{"uidNumber"};
     my $username	= $user{"username"} || "";
     my $full		= $user{"cn"} || "";
@@ -640,6 +638,8 @@ BEGIN { $TYPEINFO{BuildUserItemList} = ["function",
 }
 sub BuildUserItemList {
 
+    if (Mode::test ()) { return; }
+
     my $type		= $_[0];
     my %map_of_users	= %{$_[1]};
     $user_items{$type}	= {};
@@ -666,9 +666,14 @@ sub BuildGroupItem {
     my $gid		= $group{"gidNumber"};
     my $groupname	= $group{"groupname"} || "";
 
-    my %userlist	= %{$group{"userlist"}};
-    my %more_users	= %{$group{"more_users"}};
-
+    my %userlist	= ();
+    if (defined ($group{"userlist"})) {
+	%userlist 	= %{$group{"userlist"}};
+    }
+    my %more_users	= ();
+    if (defined ($group{"more_users"})) {
+	%more_users	= %{$group{"more_users"}};
+    }
     if ($group_type eq "ldap") {
 	%userlist	= %{$group{"uniqueMember"}};
     }
@@ -711,6 +716,8 @@ BEGIN { $TYPEINFO{BuildGroupItemList} = ["function",
     ["map", "integer", [ "map", "string", "any"]] ];
 }
 sub BuildGroupItemList {
+
+    if (Mode::test ()) { return; }
 
     my $type		= $_[0];
     my %map_of_groups	= %{$_[1]};
