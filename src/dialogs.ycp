@@ -1255,10 +1255,13 @@ define symbol PluginDialog (string what) ``{
 	$[ "what"	: what,
 	   "type"	: object["type"]:""
 //	   "plugins" entry not present => apply for all present plugins
-// (limited only to user type)
+// (limited only to user/group type)
 	],
 	$[]
     );
+    // remove empty clients
+    plugin_clients = filter (string plugin, string client,
+	(map<string,string>) plugin_clients, ``(client != ""));
 
     symbol ret			= `not_next;
 
