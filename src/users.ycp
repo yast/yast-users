@@ -1,37 +1,19 @@
 /**
- * File:
- *  users.ycp
- *
- * Module:
- *  Configuration of the users and groups stettings
- *
- * Summary:
- *  Main file.
- *
- * Authors:
- *  Johannes Buchhold <jbuch@suse.de>,
- *  Jiri Suchomel <jsuchome@suse.cz>
- *
- * $Id$
- *
- * Main file of yast2-users package. Calls all other modules.
+ * small client to test the minimum features (e.g. command-line) of new
+ * Users module
  */
 
 {
-
-/***
- * <h3>Configuration of users and groups</h3>
- */
 
 textdomain "users";
 
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
+import "Users";
 import "Mode";
 
 include "users/wizards.ycp";
-
 include "commandline/commandline.ycp";
 
 string  start_dialog	= "users";
@@ -72,21 +54,9 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
  */
 global define boolean UsersListHandler (map options ) ``{
 
-    map o = $[];
-    foreach (string k, string v, options, ``{
-	if (contains (Users::available_usersets, k))
-	    o ["sets"] = union (o["sets"]:[], [ k ]);
 
-	// TODO: read ldap/nis users automaticaly?
-	if (k=="nis" && Users::nis_not_read)
-	    Users::ReadNewSet (k);
-
-	if (k=="ldap" && Users::ldap_not_read)
-	    Users::ReadNewSet (k);
-    });
-
-
-    CommandLine::Print (Users::ListUsers (o));
+    y2internal ("---------------------------");
+//    Users::ListUsers (options["sets"]:["local"]); TODO
 
     return false; // do not call Write...
 }
@@ -98,32 +68,24 @@ global define boolean UsersListHandler (map options ) ``{
 global define boolean UsersShowHandler (map options ) ``{
 
     map user = $[];
-    integer uid = tointeger (options ["uid"]:-1);
+    integer uid = tointeger (options ["uidNumber"]:-1);
     string username = options ["username"]:"";
 
     if (uid != -1)
     {
-	Users::SelectUser (uid); // FIXME SelectUser looks only to current_users
-	// -> GetUserFromAll?
-	user = Users::user_in_work;
+	user = Users::GetUser (uid, "local");
     }
     else if (username != "")
     {
-	user = Users::GetUserByName (username);
-    }
-    else
-    {
-	//error message
-	Report::Error( _("You must specify either UID or username"));
-	return false;
+	user = Users::GetUserByName (username, "");
     }
 
     string out = "";
-    // TODO: only some values + translate keys
     foreach (string key, any value, user, ``{
 	out = out + sformat ("%1:\t%2\n", key, value);
     });
 
+    y2internal ("user:\n%1", out);
     CommandLine::Print (out);
 
     return false; // do not call Write...
@@ -133,73 +95,60 @@ global define boolean UsersShowHandler (map options ) ``{
  * Add user
  * @return boolean false
  */
-global define boolean UsersAddHandler (map options ) ``{
+global define boolean UsersAddHandler (map <string, any> options ) ``{
 
     if (options["username"]:"" == "")
     {
-	//error message
-	Report::Error( _("You must specify username"));
+	y2error ("You must specify username");
 	return false;
     }
 
-    map user = options;
-
-    // FIXME all checks (username etc. has to be done here...)
-
+    map <string, any> user = options;
     string pw = user["password"]:"";
+    /* TODO
     if (pw != "")
 	user["password"] = Users::CryptPassword(pw, user["type"]:"local");
+    */
 
-    Users::Add ("user", user);
-    Users::Commit ("user", true);
+    Users::AddUser (user);
+    Users::CheckUser (user);
+    return Users::CommitUser ();
 
-    Report::Message (_("Sorry, but adding is not supported yet. (No checks...)"));
-    return false;
 }
 
 /**
  * Delete user
  * @return boolean false
  */
-global define boolean UsersDeleteHandler (map options ) ``{
+global define boolean UsersDeleteHandler (map  <string, any>options ) ``{
 
     if (options["username"]:"" == "")
     {
-	//error message
-	Report::Error( _("You must specify username"));
+	y2error ("You must specify username");
 	return false;
     }
+    boolean delete_home = false;
 
-    map	user = Users::GetUserByName (options["username"]:"");
-    if (user == $[])
-	return false;
-
-    user ["what"] = "delete_user";
-    // TODO delete home?
-    user ["delete_home"] = false;
-    Users::user_in_work = user;
-
-    Users::Commit ("user", true);
+    Users::SelectUserByName (options["username"]:"");
+    Users::DeleteUser (delete_home);
+    Users::CommitUser ();
     return true;
 }
 
 global define boolean UsersRead () ``{
 
-    // TODO UI should be used some way...
-    block<boolean> abort =``{ return false;};
-    return (Users::Read(abort, false) == `next);
+    return Users::Read ();
 }
 
 global define boolean UsersWrite () ``{
 
-    // TODO UI should be used some way...
-    block<boolean> abort =``{ return false;};
-    return (Users::Write(abort, false) == `next);
+    return Users::Write ();
 }
 
 global define boolean UsersGUI ()``{
     return (UsersSequence (start_dialog) == `next);
 }
+
 
 /* the command line description map */
 map cmdline = $[
@@ -285,4 +234,4 @@ y2milestone("Users module finished with %1", ret);
 y2milestone("----------------------------------------");
 return ret;
 
-} // End
+} //EOF
