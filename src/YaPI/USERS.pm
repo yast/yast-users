@@ -119,7 +119,7 @@ our %TYPEINFO;
 
 # -------------------------------------
 
-# internal function - FIXME should go to some other file...
+# internal function
 sub InitializeConfiguration {
 
     my $config = $_[0];
@@ -130,7 +130,6 @@ sub InitializeConfiguration {
     else {
 	Ldap->bind_dn ("");
     }
-# FIXME FIXME bind_dn cannot be changed...
 
     if (defined $config->{"bind_pw"}) {
 	Ldap->SetBindPassword ($config->{"bind_pw"});
@@ -227,7 +226,123 @@ sub InitializeConfiguration {
     else {
 	UsersLDAP->SetGroupPlugins (["UsersPluginLDAPAll"]);
     }
-    # ...
+}
+
+# -------------------------------------
+sub InitializeLdapConfiguration {
+
+    my $config = $_[0];
+
+    if (defined $config->{"bind_dn"}) {
+	Ldap->bind_dn ($config->{"bind_dn"});
+    }
+    else {
+	Ldap->bind_dn ("");
+    }
+
+    if (defined $config->{"bind_pw"}) {
+	Ldap->SetBindPassword ($config->{"bind_pw"});
+    }
+    else {
+	Ldap->SetBindPassword (undef);
+    }
+
+    if (defined $config->{"anonymous_bind"}) {
+	Ldap->SetAnonymous ($config->{"anonymous_bind"});
+    }
+    else {
+	Ldap->SetAnonymous (0);
+    }
+
+    # this could replace the settings read from Ldap::member_attribute
+    if (defined $config->{"member_attribute"}) {
+	Ldap->member_attribute ($config->{"member_attribute"});
+    }
+
+# FIXME config_dn etc.
+}
+
+# -------------------------------------
+sub InitializeUsersLdapConfiguration {
+
+    my $config = shift;
+
+    if (defined $config->{"user_attributes"} &&
+	ref ($config->{"user_attributes"}) eq "ARRAY") {
+	UsersLDAP->SetUserAttributes ($config->{"user_attributes"});
+    }
+    else {
+	UsersLDAP->SetUserAttributes ([]);
+    }
+
+    if (defined $config->{"user_filter"}) {
+	UsersLDAP->SetCurrentUserFilter ($config->{"user_filter"});
+    }
+    else {
+	UsersLDAP->SetCurrentUserFilter (UsersLDAP->GetDefaultUserFilter ());
+    }
+
+    # this could replace the settings saved in LDAP config ("susedefaultbase")
+    if (defined $config->{"user_base"}) {
+	UsersLDAP->SetUserBase ($config->{"user_base"});
+    }
+
+    if (defined $config->{"user_scope"}) {
+	UsersLDAP->SetUserScope ($config->{"user_scope"});
+    }
+    else {
+	UsersLDAP->SetUserScope (2);
+    }
+    
+    if (defined $config->{"group_attributes"} &&
+	ref ($config->{"group_attributes"}) eq "ARRAY") {
+	UsersLDAP->SetGroupAttributes ($config->{"group_attributes"});
+    }
+    else {
+	UsersLDAP->SetGroupAttributes ([]);
+    }
+
+    if (defined $config->{"group_base"}) {
+	UsersLDAP->SetGroupBase ($config->{"group_base"});
+    }
+
+    if (defined $config->{"group_filter"}) {
+	UsersLDAP->SetCurrentGroupFilter ($config->{"group_filter"});
+    }
+    else {
+	UsersLDAP->SetCurrentGroupFilter (UsersLDAP->GetDefaultGroupFilter ());
+    }
+
+	
+    if (defined $config->{"group_scope"}) {
+	UsersLDAP->SetGroupScope ($config->{"group_scope"});
+    }
+    else {
+	UsersLDAP->SetGroupScope (2);
+    }
+
+    if (defined $config->{"plugins"} && ref ($config->{"plugins"}) eq "ARRAY") {
+	UsersLDAP->SetUserPlugins ($config->{"plugins"});
+    }
+    else {
+	UsersLDAP->SetUserPlugins (["UsersPluginLDAPAll"]);
+    }
+
+    if (defined $config->{"user_plugins"} &&
+	ref ($config->{"user_plugins"}) eq "ARRAY") {
+	UsersLDAP->SetUserPlugins ($config->{"user_plugins"});
+    }
+    elsif (!defined $config->{"plugins"}) {
+	UsersLDAP->SetUserPlugins (["UsersPluginLDAPAll"]);
+    }
+
+    if (defined $config->{"group_plugins"} &&
+	ref ($config->{"group_plugins"}) eq "ARRAY") {
+	UsersLDAP->SetGroupPlugins ($config->{"group_plugins"});
+    }
+    else {
+	UsersLDAP->SetGroupPlugins (["UsersPluginLDAPAll"]);
+    }
 }
 
 # helper function
@@ -348,18 +463,21 @@ sub UserAdd {
     $ret = Users->Read ();
     if ($ret ne "") { return $ret; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $type	= $config->{"type"} || "local";
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# first, read settings from Ldap.ycp (e.g. /etc/ldap.conf)
+	UsersLDAP->ReadLdap ();
+
+	# before we read LDAP, we could find here bind password, bind DN etc.
+	InitializeLdapConfiguration ($config);
+
+	# this initializes the connection and reads the settings stored in LDAP
 	$ret	= UsersLDAP->ReadSettings ();
 	if ($ret ne "") { return $ret; }
 
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	# now rewrite default values (read from LDAP) with given values
+	InitializeUsersLdapConfiguration ($config);
 
 	SetNecessaryUserAttributes (["homedirectory"]);
 	# read only users ID's (because we need to create new one -> TODO
@@ -465,10 +583,6 @@ sub UserModify {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     # 1. select user
 
     my $key	= "";
@@ -483,12 +597,13 @@ sub UserModify {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# If we want to change atributes, that should be unique
 	# (uid/dn/uidnumber/home we must read everything to check
@@ -592,10 +707,6 @@ sub UserFeatureAdd {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     # 1. select user
 
     my $key	= "";
@@ -610,12 +721,13 @@ sub UserFeatureAdd {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -706,10 +818,6 @@ sub UserFeatureDelete {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     # 1. select user
 
     my $key	= "";
@@ -724,12 +832,13 @@ sub UserFeatureDelete {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -818,10 +927,6 @@ sub UserDelete {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -834,12 +939,13 @@ sub UserDelete {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1006,10 +1112,6 @@ sub UserGet {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -1022,12 +1124,13 @@ sub UserGet {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
-	$error	= UsersLDAP->ReadSettings ();
-	if ($error ne "") { return $ret; }
 
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1107,15 +1210,13 @@ sub UsersGet {
     Users->SetReadLocal ($type ne "ldap");
     if (Users->Read ()) { return $ret; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
-	if (UsersLDAP->ReadSettings ()) { return $ret; }
 
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
+	if (UsersLDAP->ReadSettings ()) { return $ret; }
+	InitializeUsersLdapConfiguration ($config);
 
 	# finally read LDAP tree contents
 	# -- should be also filtered by InitializeConfiguration!
@@ -1204,17 +1305,14 @@ sub GroupAdd {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: group type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	SetNecessaryGroupAttributes ([]);
 
@@ -1304,10 +1402,6 @@ sub GroupModify {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: group type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     # 1. select group
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
@@ -1334,12 +1428,13 @@ sub GroupModify {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# If we want to atributes, that should be unique
 	# (cn/dn/gidnumber/memebr we must read everything to check
@@ -1453,10 +1548,6 @@ sub GroupMemberAdd {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -1469,12 +1560,13 @@ sub GroupMemberAdd {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1612,10 +1704,6 @@ sub GroupMemberDelete {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -1628,12 +1716,13 @@ sub GroupMemberDelete {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1764,10 +1853,6 @@ sub GroupDelete {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -1780,12 +1865,13 @@ sub GroupDelete {
     }
     
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	$error	= UsersLDAP->ReadSettings ();
 	if ($error ne "") { return $error; }
-
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1877,10 +1963,6 @@ sub GroupGet {
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     my $key	= "";
     if (defined $config->{"dn"} && $type eq "ldap") {
 	$key	= "dn";
@@ -1893,12 +1975,13 @@ sub GroupGet {
     }
 
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
-	$error	= UsersLDAP->ReadSettings ();
-	if ($error ne "") { return $ret; }
 
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+	InitializeUsersLdapConfiguration ($config);
 
 	# search with proper filter (= one DN/uid/uidnumber)
 	# should be sufficient in this case...
@@ -1989,16 +2072,15 @@ sub GroupsGet {
     Users->SetReadLocal ($type ne "ldap");
     if (Users->Read ()) { return $ret; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
+
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
 	if (UsersLDAP->ReadSettings ()) {
 	    return $ret;
 	}
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	InitializeUsersLdapConfiguration ($config);
 
 	if (!defined $config->{"user_filter"}) {
 	    # we don't need any users -> fake filter for faster searching
@@ -2066,16 +2148,13 @@ sub GroupsGetByUser {
     Users->SetReadLocal ($type ne "ldap");
     if (Users->Read ()) { return $ret; }
 
-    # config map could contain: user type, plugins to use, ... (?)
-    # before we read LDAP, we could find here e.g. bind password
-    InitializeConfiguration ($config);
-
     if ($type eq "ldap") {
-	# this initializes LDAP with the default values and read the
-	if (UsersLDAP->ReadSettings ()) { return $ret; }
 
-	# now rewrite default values with given values
-	InitializeConfiguration ($config);
+	# initialize LDAP (more comments in UserAdd)
+	UsersLDAP->ReadLdap ();
+	InitializeLdapConfiguration ($config);
+	if (UsersLDAP->ReadSettings ()) { return $ret; }
+	InitializeUsersLdapConfiguration ($config);
 
 	my $member_attr     = UsersLDAP->GetMemberAttribute ();
 	
