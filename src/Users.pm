@@ -181,6 +181,10 @@ sub contains {
     return 0;
 }
 
+# FIXME remove this func
+sub _ {
+    return $_[0];
+}
 
 
 ##------------------------------------
@@ -932,7 +936,7 @@ sub ReadSystemDefaults {
 
     Progress::off ();
     Security::Read ();
-    Progress::on ();
+    if ($use_gui) { Progress::on (); }
 
     my %security	= %{Security::Export ()};
     $pass_warn_age	= $security{"PASS_WARN_AGE"};
@@ -1038,8 +1042,11 @@ sub ReadLocal {
 	"base_directory"	=> "/tmp"
     );
     # id limits are necessary for differ local and system users
-    SCR::Execute (".passwd.init", \%configuration);
-    # TODO check for errors like "duplicated uid"
+    my $init = SCR::Execute (".passwd.init", \%configuration);
+    if (!$init) {
+	# TODO check for errors like "duplicated uid"
+	y2internal ("passwd agent init: $init");
+    }
 
     foreach my $type ("local", "system") {
 	$users{$type}		= \%{SCR::Read (".passwd.$type.users")};
@@ -1069,21 +1076,77 @@ sub ReadUsersCache {
 BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
+    # progress caption
+    my $caption 	= "Initializing user and group configuration";
+    my $no_of_steps 	= 5;
+
+    if ($use_gui) {
+	Progress::New ($caption, " ", $no_of_steps,
+	    [
+		# progress stage label
+		_("Read the default login settings"),
+		# progress stage label
+		_("Read the default system settings"),
+		# progress stage label
+		_("Read the configuration type"),
+		# progress stage label
+		_("Read the custom settings"),
+		# progress stage label
+		_("Read users and groups"),
+		# progress stage label
+		_("Build the cache structures")
+           ],
+	   [
+		# progress step label
+		_("Reading the default login settings..."),
+		# progress step label
+		 _("Reading the default system setttings..."),
+		# progress step label
+		 _("Reading the configuration type..."),
+		# progress step label
+		 _("Reading the custom settings..."),
+		# progress step label
+		 _("Reading users and group..."),
+		# progress step label
+		 _("Building the cache structures..."),
+		# final progress step label
+		 _("Finished")
+	    ], "" );
+    }
+
     $tmpdir = SCR::Read (".target.tmpdir");
+
+    # default login settings
+    if ($use_gui) { Progress::NextStage (); }
 
     ReadLoginDefaults ();
 
     CheckHomeMounted();
 
+    # default system settings
+    if ($use_gui) { Progress::NextStage (); }
+
     ReadSystemDefaults();
-
-    ReadSourcesSettings();
-
-    ReadCustomSets();
 
     ReadAllShells();
 
+    # configuration type
+    if ($use_gui) { Progress::NextStage (); }
+
+    ReadSourcesSettings();
+
+    # custom settings
+    if ($use_gui) { Progress::NextStage (); }
+
+    ReadCustomSets();
+
+    # users and group
+    if ($use_gui) { Progress::NextStage (); }
+
     ReadLocal ();
+
+    # Build the cache structures
+    if ($use_gui) { Progress::NextStage (); }
 
     ReadUsersCache ();
 
@@ -2224,8 +2287,52 @@ sub DeleteUsers {
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
 sub Write {
 
-    my $ret	= "";
-    
+    my $ret	= ""; #TODO return value???
+
+    # progress caption
+    my $caption 	= _("Writing user and group configuration...");
+    my $no_of_steps = 8;
+
+    if ($use_gui) {
+	Progress::New ($caption, " ", $no_of_steps,
+	    [
+		# progress stage label
+		_("Write groups"),
+		# progress stage label
+		_("Check for deleted users"),
+		# progress stage label
+		_("Write users"),
+		# progress stage label
+		_("Write passwords"),
+		# progress stage label
+		_("Write LDAP users and groups"),
+		# progress stage label
+		_("Write the custom settings"),
+		# progress stage label
+		_("Write the default login settings")
+           ], [
+		# progress step label
+		_("Writing groups..."),
+		# progress step label
+		_("Checking deleted users..."),
+		# progress step label
+		_("Writing users..."),
+		# progress step label
+		_("Writing passwords..."),
+		# progress step label
+		_("Writing LDAP users and groups..."),
+		# progress step label
+		_("Writing the custom settings..."),
+		# progress step label
+		_("Writing the default login settings..."),
+		# final progress step label
+		_("Finished")
+	    ], "" );
+    } 
+
+    # Write groups 
+    if ($use_gui) { Progress::NextStage (); }
+
     if ($groups_modified) {
         if (! WriteGroup ()) {
             y2error ("Cannot write group file.");
@@ -2235,12 +2342,20 @@ sub Write {
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
     }
 
+    # Check for deleted users
+    if ($use_gui) { Progress::NextStage (); }
 
     if ($users_modified) {
         if (!DeleteUsers ()) {
             y2error ("Error while removing users.");
 	    $ret = "Error while removing users.";
 	}
+    }
+
+    # Write users
+    if ($use_gui) { Progress::NextStage (); }
+
+    if ($users_modified) {
         if (!WritePasswd ()) {
             y2error ("Cannot write passwd file.");
 	    $ret = "Cannot write passwd file.";
@@ -2285,12 +2400,18 @@ sub Write {
 	};
     };
 
+    # Write passwords
+    if ($use_gui) { Progress::NextStage (); }
+
     if ($users_modified) {
         if (! WriteShadow ()) {
 	    $ret = "Cannot write shadow file.";
             y2error ("Cannot write shadow file.");
         }
     }
+
+    # LDAP users and groups TODO
+    if ($use_gui) { Progress::NextStage (); }
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {
@@ -2301,9 +2422,15 @@ sub Write {
         }
     }
 
+    # Write the custom settings
+    if ($use_gui) { Progress::NextStage (); }
+
     if ($customs_modified) {
         WriteCustomSets();
     }
+
+    # Write the default login settings
+    if ($use_gui) { Progress::NextStage (); }
 
     if ($defaults_modified) {
         WriteLoginDefaults();
@@ -3235,5 +3362,11 @@ BEGIN { $TYPEINFO{SetWriteOnly} = ["function", "void", "boolean"];}
 sub SetWriteOnly {
     $write_only = $_[0];
 }
+
+BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
+sub SetGUI {
+    $use_gui = $_[0];
+}
+
 
 # EOF
