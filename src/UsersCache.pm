@@ -523,7 +523,7 @@ sub GetMinUID {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMaxUID} = ["function",
     "integer",
-    "string"]; #user type
+    "string"];
 }
 sub GetMaxUID {
 
@@ -532,7 +532,6 @@ sub GetMaxUID {
     }
     return 60000;
 }
-
 
 ##------------------------------------
 BEGIN { $TYPEINFO{NextFreeUID} = ["function", "integer"]; }
@@ -604,6 +603,50 @@ sub NextFreeGID {
 ##----------------- data manipulation routines ----------------------------
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetMaxUID} = ["function",
+    "void",
+    "integer",# uid
+    "string"];#user type
+}
+sub SetMaxUID {
+    $max_uid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetMaxGID} = ["function",
+    "void",
+    "integer",# gid
+    "string"];#user type
+}
+sub SetMaxGID {
+    $max_gid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetMinUID} = ["function", "void", "integer", "string"]; }
+sub SetMinUID {
+    $min_uid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetMinGID} = ["function", "void", "integer", "string"]; }
+sub SetMinGID {
+    $min_gid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetLastUID} = ["function", "void", "integer", "string"]; }
+sub SetLastUID {
+    $last_uid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetLastGID} = ["function", "void", "integer", "string"]; }
+sub SetLastGID {
+    $last_gid{$_[1]}	= $_[0];
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{SetUserType} = ["function", "void", "string"]; }
 sub SetUserType {
 
@@ -628,7 +671,7 @@ sub BuildUserItem {
     my $full		= $user{"cn"} || "";
 
 #    if ($user{"type"} eq "system") {
-#	$full		= SystemUsers (full); FIXME translated names!
+#	$full		= SystemUsers (full); FIXME translate names!
 #    }
 
     my $groupname	= $user{"groupname"} || "";
@@ -976,30 +1019,40 @@ sub BuildAdditional {
     my $true		= YaST::YCP::Boolean (1);
     my $false		= YaST::YCP::Boolean (0);
     
+    # when LDAP/NIS users were not yet read, they are not in %usernames ->
+    # check for userlist before going through %usernames
+    foreach my $user (keys %{$group->{"userlist"}}) {
+	my $id = YaST::YCP::Term ("id", $user);
+	push @additional, YaST::YCP::Term ("item", $id, $user, $true);
+    }
+
     foreach my $type (keys %usernames) {
 
 	# LDAP groups can contain only LDAP users...
-	if ($group_type eq "ldap" && $type ne "ldap") {
+	if ($group_type eq "ldap") {
+	    if ($type ne "ldap") { next; }
+	    foreach my $dn (keys %userdns) {
+	    
+		my $id = YaST::YCP::Term ("id", $dn);
+		if (defined $group->{"uniqueMember"}{$dn}) {
+		    push @additional, YaST::YCP::Term ("item", $id, $dn, $true);
+		}
+		elsif (!defined $group->{"more_users"}{$dn}) {
+		    push @additional, YaST::YCP::Term ("item", $id, $dn,$false);
+		}
+	    }
 	    next;
-	    # TODO LDAP users are identified by DN's, not by names!
 	}
-
 	foreach my $user (keys %{$usernames{$type}}) {
 	
 	    my $id = YaST::YCP::Term ("id", $user);
-	    
-	    if (defined $group->{"userlist"}{$user}) {
-
-		push @additional, YaST::YCP::Term ("item", $id, $user, $true);
-	    }
-	    elsif (!defined $group->{"more_users"}{$user}) {
+	    if (!defined $group->{"userlist"}{$user} &&
+		!defined $group->{"more_users"}{$user}) {
 		push @additional, YaST::YCP::Term ("item", $id, $user, $false);
 	    }
 	}
     }
-
     return @additional;
-
 }
 
 

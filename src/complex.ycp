@@ -40,7 +40,7 @@ define boolean Modified() ``{
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
-define symbol ReadDialog (boolean useUI ) ``{
+define symbol ReadDialog (boolean useUI) ``{
 
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( ReadDialogHelp () );
@@ -50,11 +50,10 @@ define symbol ReadDialog (boolean useUI ) ``{
         return UI::PollInput () == `abort;
     };
 
-    /*
-    symbol ret = Users::Read (abort, useUI);
-    return ret; FIXME
-    */
+    Users::SetGUI (useUI);
     symbol ret = Users::Read () ? `next : `back;
+    Users::SetGUI (true);
+
     return ret;
 }
 
@@ -63,20 +62,22 @@ define symbol ReadDialog (boolean useUI ) ``{
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
-define symbol WriteDialog (boolean useUI ) ``{
+define symbol WriteDialog (boolean useUI) ``{
 
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
 
-    // A callback function for abort
+    // A callback function for abort TODO not functional now
     block<boolean> abort = ``{
         // popup text
         if (UI::PollInput () == `abort && Popup::YesNo (_("Really abort the writing process?")))
             return true;
         return false;
     };
-//    return Users::Write(abort, useUI);
+
+    Users::SetGUI (useUI);
     return Users::Write () == "" ? `next : `abort;
+    Users::SetGUI (true);
 }
 
 /**

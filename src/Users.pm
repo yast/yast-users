@@ -18,9 +18,6 @@ use POSIX;     # Needed for setlocale()
 setlocale(LC_MESSAGES, "");
 textdomain("users");
 
-#use io_routines;
-#use check_routines;
-
 our %TYPEINFO;
 
 # If YaST UI (Qt,ncurses should be used). When this is off, some helper
@@ -36,7 +33,7 @@ my $write_only			= 0;
 
 my $root_password		= "";
 
-my $default_groupname		= "users";
+my %default_groupname		= ();
 
 my @user_sources		= ();
 
@@ -161,6 +158,11 @@ my %max_pass_length	= (
 # users sets in "Custom" selection:
 my @user_custom_sets		= ();
 my @group_custom_sets		= ();
+
+my %ldap2yast_user_attrs	= (
+    "uid"		=> "username"
+);
+    
   
 ##------------------------------------
 ##------------------- global imports
@@ -187,7 +189,6 @@ sub contains {
     return 0;
 }
 
-# FIXME remove this func
 sub _ {
     return $_[0];
 }
@@ -234,6 +235,16 @@ sub LDAPAvailable {
 BEGIN { $TYPEINFO{LDAPModified} = ["function", "boolean"]; }
 sub LDAPModified {
     return $ldap_modified;
+}
+
+BEGIN { $TYPEINFO{LDAPNotRead} = ["function", "boolean"]; }
+sub LDAPNotRead {
+    return $ldap_not_read;
+}
+
+BEGIN { $TYPEINFO{SetLDAPNotRead} = ["function", "void", "boolean"]; }
+sub SetLDAPNotRead {
+    $ldap_not_read = $_[0];
 }
 
 
@@ -311,7 +322,6 @@ sub ChangeCurrentUsers {
     else {
         @current_users = ( $new );
     }
-
     if (contains (\@current_users, "ldap") && $ldap_not_read) {
         if (!ReadNewSet ("ldap")) {
             @current_users = @backup;
@@ -498,27 +508,6 @@ after you mount correctly. Continue user configuration?";
 ##----------------- get routines ------------------------------------------
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetMinUID} = ["function",
-    "integer",
-    "string"]; #user type
-}
-sub GetMinUID {
-
-    return UsersCache::GetMinUID ($_[0]);
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{GetMaxUID} = ["function",
-    "integer",
-    "string"]; #user type
-}
-sub GetMaxUID {
-
-    return UsersCache::GetMaxUID ($_[0]);
-}
-
-
-##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function",
     ["map", "string", "string"],
     "string"];
@@ -534,7 +523,7 @@ sub GetDefaultGrouplist {
 	}
     }
     else {
-#	@grouplist	= split (/,/, $useradd_defaults{"groups"});#TODO LDAP
+# FIXME Ldap should have group DN's, not names...
     }
     return \%grouplist;
 }
@@ -547,17 +536,7 @@ sub GetDefaultGID {
     my $gid	= $useradd_defaults{"group"};
 
     if ($type eq "ldap") {
-#	$gid	= $ldap_defaults{"group"}; #TODO LDAP
-    }
-    else {
-	# set also default group name
-	my %group	= %{GetGroup ($gid, "local")};
-        if (!%group) {
-	    %group	= %{GetGroup ($gid, "system")};
-	}
-        if (%group) {
-	    $default_groupname	= $group{"groupname"};
-	}
+	$gid	= UsersLDAP::GetDefaultGID ();
     }
     return $gid;
 }
@@ -569,7 +548,7 @@ sub GetDefaultShell {
     my $type = $_[0];
 
     if ($type eq "ldap") {
-	return "/bin/bash";#TODO LDAP
+	return UsersLDAP::GetDefaultShell ();
     }
     else {
         return $useradd_defaults{"shell"};
@@ -583,7 +562,7 @@ sub GetDefaultHome {
     my $home = $useradd_defaults{"home"} || "";
 
     if ($_[0] eq "ldap") {
-	$home	= "/home/";
+	$home	= UsersLDAP::GetDefaultHome ();
     }
     if (substr ($home, -1, 1) ne "/") {
 	$home.="/";
@@ -598,13 +577,8 @@ BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
 }
 sub GetDefaultShadow {
 
-    my $type = $_[0];
-
-    if ($type eq "ldap") {
-	return {};
-    }
-    else {
-        return (
+    my $type	= $_[0];
+    my %ret 	= (
             "shadowInactive"	=> $useradd_defaults{"inactive"},
             "shadowExpire"      => $useradd_defaults{"expire"},
             "shadowWarning"     => $pass_warn_age,
@@ -613,8 +587,11 @@ sub GetDefaultShadow {
             "shadowFlag"        => "",
             "shadowLastChange"	=> "",
 	    "userPassword"	=> ""
-	);
+    );
+    if ($type eq "ldap") {
+	%ret	= %{UsersLDAP::GetDefaultShadow()};
     }
+    return \%ret;
 }
 
 
@@ -624,11 +601,24 @@ sub GetDefaultGroupname {
 
     my $type = $_[0];
 
-    if ($type eq "ldap") {
-	return "lusers";
+    if (defined $default_groupname{$type}) {
+        return $default_groupname{$type};
     }
-    else {
-        return $default_groupname;
+	
+    my $gid	= GetDefaultGID ($type);
+    my %group	= ();
+    if ($type eq "ldap") {
+	%group	= %{GetGroup ($gid, "ldap")};
+    }
+    if (!%group) {
+	%group	= %{GetGroup ($gid, "local")};
+    }
+    if (!%group) {
+	%group	= %{GetGroup ($gid, "system")};
+    }
+    if (%group) {
+	$default_groupname{$type}	= $group{"groupname"};
+        return $default_groupname{$type};
     }
 }
 
@@ -651,8 +641,9 @@ BEGIN { $TYPEINFO{SetLoginDefaults} = ["function",
 }
 sub SetLoginDefaults {
 
-    my %data		= %{$_[0]};
-    $default_groupname	= $_[1];
+    my %data			= %{$_[0]};
+    $default_groupname{"local"}	= $_[1];
+    $default_groupname{"system"}= $_[1];
 
     foreach my $key (keys %data) {
         if ($data{$key} ne  $useradd_defaults{$key}) {
@@ -829,15 +820,6 @@ sub FindGroupsBelongUser {
             if (defined $userlist->{$uname}) {
 		$grouplist{$group->{"groupname"}}	= 1;
             }
-
-#	    my %group	= %{$groups{$type}{$gid}}; # ref?
-#            my %userlist = %{$group{"userlist"}};
-#	    if ($type eq "ldap") { 
-#		%userlist = %{$group{"uniqueMember"}};
-#	    }
-#            if (%userlist && defined $userlist{$uname}) {
-#		$grouplist{$group{"groupname"}}	= 1;
-#            }
         };
     };
     return \%grouplist;
@@ -982,6 +964,8 @@ sub ReadLoginDefaults {
         $useradd_defaults{$key} = $entry;
     }
 
+    UsersLDAP::InitConstants (\%useradd_defaults);
+
     if (%useradd_defaults) {
         return 1;
     }
@@ -1014,22 +998,29 @@ sub ReadNewSet {
 	    return 0;
 	}
 
+	# generate ldap users/groups list in the agent:
 	my $ldap_mesg = UsersLDAP::Read();
 	if ($ldap_mesg ne "") {
             Ldap::LDAPErrorMessage ("read", $ldap_mesg);
 	    # FIXME error as return value?
             return 0;
         }
-        $ldap_not_read = 0;
 
+	# read the LDAP data (users, groups, items)
 	$users{$type}		= \%{SCR::Read (".$type.users")};
 	$users_by_name{$type}	= \%{SCR::Read (".$type.users.by_name")};
 	$groups{$type}		= \%{SCR::Read (".$type.groups")};
 	$groups_by_name{$type}	= \%{SCR::Read(".$type.groups.by_name")};
 
+	# read the necessary part of LDAP user configuration
+	$min_pass_length{"ldap"}	= UsersLDAP::GetMinPasswordLength ();
+	$max_pass_length{"ldap"}	= UsersLDAP::GetMaxPasswordLength ();
+
 	# TODO itemlist should be generated by ldap-agent...
 	UsersCache::BuildUserItemList ($type, $users{$type});
 	UsersCache::BuildGroupItemList ($type, $groups{$type});
+
+        $ldap_not_read = 0;
     }
     UsersCache::ReadUsers ($type);
     UsersCache::ReadGroups ($type);
@@ -1179,11 +1170,10 @@ sub CreateShadowMap {
     my %user		= %{$_[0]};
     my %shadow_map	= ();
     
-    my %default_shadow = GetDefaultShadow ($user{"type"});
+    my %default_shadow = %{GetDefaultShadow ($user{"type"})};
     foreach my $shadow_item (keys %default_shadow) {
 	$shadow_map{$shadow_item}	= $user{$shadow_item};
     };
-    
     return \%shadow_map;
 }
 
@@ -1341,13 +1331,15 @@ sub EditUser {
 
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
+
     if (defined $data{"type"}) {
 	$type 	= $data{"type"};
     }
     my $username	= $data{"username"};
+
     # check if user is edited for first time
     if (!defined $user_in_work{"org_user"} &&
-	($user_in_work{"what"} || "add_user") ne "add_user") {
+	($user_in_work{"what"} || "") ne "add_user") {
 
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
@@ -1356,7 +1348,6 @@ sub EditUser {
 	# grouplist wasn't fully generated while reading nis & ldap users
 	if ($type eq "nis" || $type eq "ldap") {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
-	    # TODO is map evaluated?
 	    DebugMap ($user_in_work{"grouplist"});
 	}
 	# empty password entry for autoinstall config (do not want to
@@ -1540,34 +1531,43 @@ sub AddUser {
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
     }
-    if (!defined $user_in_work{"userPassword"}) {
-	$user_in_work{"userPassword"}	= "";
-    }
     else {
 	# FIXME when apply CryptPassword?
     }
-    my %default_shadow = GetDefaultShadow ($type);
+    my %default_shadow = %{GetDefaultShadow ($type)};
     foreach my $shadow_item (keys %default_shadow) {
 	if (!defined $user_in_work{$shadow_item}) {
 	    $user_in_work{$shadow_item}	= $default_shadow{$shadow_item};
 	}
     }
-    if (!defined $user_in_work{"shadowLastChange"}) {
+    if (!defined $user_in_work{"shadowLastChange"} ||
+	$user_in_work{"shadowLastChange"} eq "") {
         $user_in_work{"shadowLastChange"} = LastChangeIsNow ();
+    }
+    if (!defined $user_in_work{"userPassword"}) {
+	$user_in_work{"userPassword"}	= "";
     }
 
     if ($type eq "ldap") {
-	    # add default object classes
-#	    if (!defined $user_in_work{"objectClass"}) {
-#		$user_in_work{"objectClass"} = GetLDAPUserClass();
-#	    }
-	    # add other default values
-#	    foreach (string attr, any val, ldap_user_defaults, ``{
-#		string a = ldap2yast_user_attrs [attr]:attr;
-#		if (!haskey (user_in_work, a) || user_in_work[a]:"" == "")
-#		    user_in_work [a] = val;
-#	    });
-#	    user_in_work ["dn"] = data["dn"]:CreateUserDN (data);
+	# add default object classes
+	if (!defined $user_in_work{"objectClass"}) {
+	    my @classes = UsersLDAP::GetUserClass();
+	    $user_in_work{"objectClass"} = \@classes;
+	}
+        # add other default values
+	my %ldap_defaults	= %{UsersLDAP::GetUserDefaults()};
+	foreach my $attr (keys %ldap_defaults) {
+	    my $a = $ldap2yast_user_attrs{$attr} || $a;
+	    if (!defined ($user_in_work{$attr})) {
+		$user_in_work{$attr}	= $ldap_defaults{$attr};
+	    }
+	};
+	if (!defined $user_in_work{"dn"}) {
+	    my $dn = CreateUserDN (\%data);
+	    if (defined $dn) {
+		$user_in_work{"dn"} = $dn;
+	    }
+	}
     }
     return 1;
 }
@@ -3111,15 +3111,21 @@ sub CheckGroup {
 ##------------------------------------ LDAP related routines...
 # Creates DN of user
 BEGIN { $TYPEINFO{CreateUserDN} = ["function",
-    ["map", "string", "any"],
+    "string",
     ["map", "string", "any"]];
 }
 sub CreateUserDN {
 
-    return $_[0]; #FIXME
-#    string dn_attr = ldap_user_naming_attr;
-#    string user_attr = ldap2yast_user_attrs [dn_attr]:dn_attr;
-#    return sformat ("%1=%2,%3", dn_attr, user[user_attr]:"", ldap_user_base);
+    my $dn_attr		= UsersLDAP::GetUserNamingAttr ();
+    my $user_attr	= $dn_attr;
+    if (defined $ldap2yast_user_attrs{$dn_attr}) {
+	$user_attr	= $ldap2yast_user_attrs{$dn_attr};
+    }
+    my $user		= $_[0];
+    if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
+	return undef;
+    }
+    return sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr} || "", UsersLDAP::GetUserBase ());
 }
 
 ##------------------------------------
@@ -3327,14 +3333,6 @@ sub ReadNISAvailable {
 #    return ypdir;
 #}
 
-
-##------------------------------------
-# Read user and group filter needed LDAP search
-# Fiters are read from config modules stored in LDAP directory
-BEGIN { $TYPEINFO{ReadLDAPFilters} = ["function", "boolean"];}
-sub ReadLDAPFilters {
-    return UsersLDAP::ReadFilters ();
-}
 
 BEGIN { $TYPEINFO{Import} = ["function",
     "boolean",

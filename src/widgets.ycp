@@ -17,6 +17,7 @@ import "Mode";
 
 import "Users";
 import "UsersCache";
+import "UsersLDAP";
 
 
 textdomain "users";
@@ -216,7 +217,7 @@ define boolean LDAPSearchFilterPopup () ``{
 	}
 	if ( button == `read )
 	{
-	    if (Users::ReadLDAPFilters())
+	    if (UsersLDAP::ReadFilters())
 	    {
 		/*
 		UI::ChangeWidget(`id (`userf), `Value,
@@ -779,7 +780,6 @@ you must do it on server.
 define void RadioButtonsUsersGroupsInit (string widget_id) ``{
 
     string current_summary	= UsersCache::GetCurrentSummary ();
-
     string curr = "";
     if (current_summary == "users")
     {
@@ -843,10 +843,15 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     any ev_id			= event["ID"]:nil;
     string current_summary	= UsersCache::GetCurrentSummary ();
 
-// TODO wait popup when reading nis/ldap...
     if (current_summary == "users" &&
 	contains (Users::GetAvailableUserSets (), ev_id))
     {
+	if (ev_id == "ldap" && Users::LDAPNotRead ())
+	{
+	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+// solve `cancel...
+// TODO wait popup when reading nis/ldap...
+	}
         if (Users::ChangeCurrentUsers ((string) ev_id))
         {
             UsersCache::SetCustomizedUsersView (ev_id == "custom");
@@ -858,6 +863,10 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (current_summary == "groups" &&
 	contains (Users::GetAvailableGroupSets (), ev_id))
     {
+	if (ev_id == "ldap" && Users::LDAPNotRead ())
+	{
+	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+	}
         if (Users::ChangeCurrentGroups ((string) ev_id))
         {
             UsersCache::SetCustomizedGroupsView (ev_id == "custom");
@@ -890,12 +899,13 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (ev_id == `ldapfilter)
     {
 	// change of search filter (only when LDAP was not modified yet)
-	if (LDAPSearchFilterPopup())
+	if (LDAPSearchFilterPopup()) //TODO !Users::LDAPModified ??
 	{
-	    /*
-	    Users::ldap_not_read = true; TODO
-	    re_read_ldap (); -> SummaryTableInit ("table");
+	    Users::SetLDAPNotRead (true);
+	     /*TODO
+	    re_read_ldap (); ->
 	    */
+	    SummaryTableInit ("table");
 	}
 	return nil;
     }
@@ -906,7 +916,15 @@ map widgets = $[
     "rb_users_groups" : $[
         "widget"		: `custom,
         "help"			: _("Help for radio buttons"),
-	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox ()),
+	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox (
+	    `Left (`RadioButtonGroup (`HBox(
+		// radiobutton
+		`RadioButton (`id ("users"), `opt(`notify), _("&Users")),
+		// radiobutton
+		`RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
+	    ))),
+	    `Right (`Label (`id(`current_filter), "")))
+	),
         "init"			: RadioButtonsUsersGroupsInit,
         "handle"		: RadioButtonsUsersGroupsHandler,
 	"handle_events"		: [ "users", "groups" ]
@@ -915,7 +933,7 @@ map widgets = $[
         "widget"		: `custom,
         "help"			: _("help for table"),
 	"custom_widget"		: `VBox (
-	    `ReplacePoint (`id(`rptable), `VBox ()),
+	    `ReplacePoint (`id(`rptable), `Table (`id("table"), `header(""))),
 	    `HBox (
 		`PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
 		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
@@ -930,7 +948,10 @@ map widgets = $[
         "widget"		: `custom,
         "help"			: _("help for buttons"),
 	"custom_widget"		: `HBox (
-	    `ReplacePoint (`id (`rpfilter), `HBox ()),
+	    `ReplacePoint (`id (`rpfilter),
+		// menubutton label
+		`MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"), [])
+	    ),
             // PushButon
             `PushButton (`id(`customize), `opt(`key_F6),_("Customi&ze Filter")),
             // Menu Buton label
