@@ -236,9 +236,6 @@ sub InitializeLdapConfiguration {
     if (defined $config->{"bind_dn"}) {
 	Ldap->bind_dn ($config->{"bind_dn"});
     }
-    else {
-	Ldap->bind_dn ("");
-    }
 
     if (defined $config->{"bind_pw"}) {
 	Ldap->SetBindPassword ($config->{"bind_pw"});
