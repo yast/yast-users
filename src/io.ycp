@@ -116,8 +116,10 @@
       string grouplist = "";
       foreach( `key, `group, current_groups , ``{
 	  
-	  string userlist = lookup( group, "userlist","");
-	  if ( issubstring(userlist , username ))
+	  string userlist      = lookup( group, "userlist","");
+	  list   usersplitlist = splitstring( userlist, "," );
+ 
+	  if( contains( usersplitlist, username ) )
 	  {
 	      string groupname = lookup( group, "groupname","");
 	      if( grouplist == "" ) grouplist = groupname;
@@ -176,13 +178,17 @@
 
       if( what == `string )
       {
-	  string userlist = lookup( lookup( current_groups, gid, $[]),  "userlist", "");
+	  string userlist     = lookup( lookup( current_groups, gid, $[]),  "userlist", "");
+	  list split_userlist = splitstring( userlist, "," ); 
+	  
 	  foreach( `key, `user, current_users , ``{
 	  
-	      if ( gid == lookup(user, "gid", -1 ) &&(! issubstring(userlist,  lookup( user, "username", "") )))
+	      if ( gid == lookup(user, "gid", -1 ) &&(! contains( split_userlist, user["username"]:"" )  ))
 	      {
 		  if( userlist == "") userlist = lookup( user, "username", "");
 		  else userlist = userlist + "," + lookup( user, "username", "");
+
+		  split_userlist = add( split_userlist,  user["username"]:"" );
 	      }
 	  });
 	  if (   userlist != nil )  return userlist;
@@ -251,11 +257,16 @@
 	  
 	    if( is( i_uid , integer ) )
 	    {
-		
 		user = add( user , "fullname", usersConsoleUncoding( lookup( user, "fullname" ,"" )));
+		user = add( user , "org_home", lookup( user, "home", ""));
+
+		if(test_mode) y2milestone(" user: %1", user);
+		    
 		current_users = add(current_users, i_uid , user );
 	    }	
 	});
+
+	if(test_mode) y2milestone(" current_users: %1", current_users);
     }
 
 
@@ -388,7 +399,7 @@
      * @param home string
      * @param old_home string
      * @return nil
-     */ 
+     */
     global define void usersAddMoveDir(string old_home, string  home )``{
 
 	usersAddTodo( ("/bin/mv " + old_home + " " +  home ),
@@ -418,7 +429,7 @@ to new home directory %2"), old_home, home));
      * @param user string
      * @param group string
      * @return nil
-     */ 
+     */
     global define void usersAddChownHome( string home, string user, string group)``{
 
 	usersAddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
@@ -493,7 +504,7 @@ to new home directory %2"), old_home, home));
 	    //add username to string
 	    todo = todo + " " + username;
 
-	    usersAddMakeHomeDir( home );
+	    // usersAddMakeHomeDir( home );
 
 	    if(  SCR::Read(.target.size, "/usr/sbin/useradd.local" ) != -1  )
 	    {	
@@ -506,8 +517,9 @@ to new home directory %2"), old_home, home));
 	    usersAddTodo( todo ,
 			  `add_user,
 			  sformat(_("Can't create the new user %1"), username ) );
-	    
-	    usersAddChownHome( home, username , groupIdToName(gid ));
+
+	    // done by option -m in useradd
+	    //usersAddChownHome( home, username , groupIdToName(gid ));
 	}
 	else
 	{
@@ -520,8 +532,8 @@ to new home directory %2"), old_home, home));
 	    //add home_dir to string
 	    if ( lookup( org_user, "home" ,    "" ) != home     )
 	    {
-		todo = todo + " -d "  + home;
-		usersAddMoveDir(lookup( org_user, "home" ,    "" ),  home );
+		todo = todo + " -d "  + home + " -m";
+		//usersAddMoveDir(lookup( org_user, "home" ,    "" ),  home );
 	    }
 
 	    //add password to string 
@@ -563,7 +575,7 @@ to new home directory %2"), old_home, home));
 	    }
 	}
 
-
+	
 	
 	map current_user = $[
 			     "exist"    : do_exist,
@@ -573,7 +585,8 @@ to new home directory %2"), old_home, home));
 			     "password" : password,
 			     "shell"    : shell,
 			     "uid"      : uid,
-			     "username" : username
+			     "username" : username,
+			     "org_home" : user_in_work["org_home"]:""
 	];	
 
 	
@@ -609,14 +622,15 @@ to new home directory %2"), old_home, home));
 	//must be updated
 	// add or delete user from userlist
 	foreach( `key, `group, tmp_current_groups, ``{
-	    string userlist  = lookup(group, "userlist" , "");
-	    map    new_group = group;
+	    string userlist      = lookup(group, "userlist" , "");
+	    list split_userlist = splitstring( userlist, ",");
+	    map    new_group     = group;
 	    
-	    if( issubstring( userlist, username ) &&( ! contains(search_groups, lookup( group, "groupname","")) ))
+	    if( contains( split_userlist, username )  &&( ! contains(search_groups, lookup( group, "groupname","")) ))
 	    {
 		//UI(`MessagePopup("delete " + username + " from " +  lookup( group, "groupname") ));
 		// delete username from userlist
-		list split_userlist = splitstring( userlist, ",");
+		
 		string new_userlist = "";
 		
 		foreach( `entry, split_userlist, ``{
@@ -630,7 +644,7 @@ to new home directory %2"), old_home, home));
 		new_group = add( new_group, "userlist", new_userlist );
 		current_groups = add( current_groups, key , new_group );
 	    }
-	    if(	 contains(search_groups, lookup( group, "groupname","")) &&( ! issubstring( userlist, username )))
+	    if(	 contains(search_groups, lookup( group, "groupname","")) &&( ! contains(split_userlist, username )))
 	    {
 		//UI(`MessagePopup("add " + username + " to " + lookup( group, "groupname") ));
 		// add username to userlist
@@ -879,7 +893,9 @@ to new home directory %2"), old_home, home));
 	    if ( lookup(group ,"todo", "") != `delete )
 	    {
 		if( todo == `items  &&
-		    ( view_all_groups || ( ! view_all_groups && (key > max_system_gid &&  group["groupname"]:"" != "nogroup" ))))
+		    ( view_all_groups || ( ! view_all_groups && (key > max_system_gid &&
+								 group["groupname"]:"" != "nobody" &&
+								 group["groupname"]:"" != "nogroup" ))))
 		{
 		    string  s_gid = sformat("%1", key   );
 		    term    a     = `item(`id(key));
@@ -937,7 +953,6 @@ to new home directory %2"), old_home, home));
 
 		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0),$[]), "groupname","");
 		    string more_groups = findGroupsBelongUser( username );
-	
 		    
 		    if ( contains ( splitstring( more_groups , "," ) , grouplist )) grouplist = more_groups;
 		    else
@@ -956,7 +971,7 @@ to new home directory %2"), old_home, home));
 		}
 		else if ( todo == `homelist && username != "" )
 		{
-		    todo_list = add(todo_list, username );
+		    todo_list = add(todo_list, user["home"]:"" );
 		}
 	    }
 	});
@@ -1067,7 +1082,7 @@ to new home directory %2"), old_home, home));
      * @return boolean
      */
     global define boolean usersConsoleUncoding( string fullname ) ``{
-	return UI::Recode( encoding,"utf-8",  fullname );
+	return UI::Recode( encoding,"UTF-8",  fullname );
     }
 
     /**
@@ -1092,7 +1107,7 @@ to new home directory %2"), old_home, home));
 	    });
 	}
 	
-	return  UI::Recode("utf-8", encoding, sformat("\"%1\"", fullname ));
+	return  UI::Recode("UTF-8", encoding, sformat("\"%1\"", fullname ));
     }
 
 

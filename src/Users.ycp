@@ -25,7 +25,8 @@
     integer max_length_gid      = size(sformat("%1", max_gid));
     integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN",8));
     integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN",5));
-
+    boolean pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ; 
+    
     // ===== global values=============================================
     string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz";
     string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
@@ -40,11 +41,18 @@
     integer focusline_user  = 0;
     boolean view_all_users  = false;
     boolean view_all_groups = false;
- 
+
+    /*
     list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
     map  pam_map  = select( pam_list, 0, $[]);
     boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
-
+    */
+    /* get md5 support from security
+    list pam_list = SCR::Read(.pam.all.password.pam_unix2);
+    map pam_map   = select(pam_list,0,$[]);
+    boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
+    */
+    
     map useradd_defaults  = SCR::Read(.etc.default.useradd);
 
      // ===== Definitions ==============================================

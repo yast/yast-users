@@ -1,0 +1,41 @@
+/**
+ * File:
+ *   run_procfiles.scr
+ * Summary:
+ *   SCR Agent for reading "ls -l /proc"
+ * Access:
+ *   read-only
+ * Authors:
+ *   Unknown <yast2-hacker@suse.de>
+ 
+ * $$
+ */
+.run.procfiles
+
+`ag_anyagent(
+  Description (
+      ``(Run("/bin/ls -l /proc")),	// real filename
+      "#",			// Comment
+      true,
+      ``(List (
+	Or (
+	 Tuple (
+	  `rights ( String ("^ ")),
+	  Whitespace(),
+	  `count( String ("^ ")),
+	  Whitespace(),
+	  `username ( String ("^ ")),
+	  Whitespace(),
+	  `groupname( String ("^ ")),
+	  Whitespace(),
+	  `rest( String ("^\n"))
+	),
+	 Tuple (
+	  `all(String("^ ")),
+	  Whitespace(),
+	  `count (String ("^\n"))
+	)),
+	"\n"
+      ))
+    )
+)

@@ -1,0 +1,51 @@
+/**
+ * File:
+ *   etc_shells.scr
+ * Summary:
+ *   SCR Agent for reading /etc/shells
+ * Access:
+ *   read-only
+ * Authors:
+ *   Johannes Buchhold <jbuch@suse.de>
+ * See:
+ *   anyagent
+ *   libscr
+ *   man shells
+ * Example:
+ *   Read(.etc.shells)
+ *   (
+ *    ["/bin/ash",
+ *     "/bin/bash",
+ *     "/bin/bash1",
+ *     ...
+ *    ]
+ *   )
+ * 
+ * $Id$
+ *
+ * Returns a list of lines from /etc/shells. These are the allowes login 
+ * shells for users.
+ * 
+ */
+.etc.shells
+
+#  ----------------------------------------------------------
+# 							      
+# file:       etc_shells.scr			              
+# maintainer: jbuch@suse.de                                    
+#							      
+# $Id$ 
+#  ----------------------------------------------------------
+
+`ag_anyagent(
+  Description (
+      ``(File("/etc/shells")),	// real filename
+      "",			// Comment
+      true,                    // true = ro false = rw
+      ``(List (
+	      String ("^\n"),
+	"\n"
+	))
+  )
+)
+q

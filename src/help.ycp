@@ -52,23 +52,31 @@ To save the modified user and group setting to your system push the button
    */
   global define help_password()``{
 
-      return _("<p>
+      string help_text =  _("<p>
 When entering a password, you must distinguish between uppercase and lowercase. A
 password should have at least 5 characters and, as a rule, not contain any
 special characters (e.g., accented characters).
 </p>
-") +
+");
+      // TODO FIXME 
+      textdomain "user";
+      
+      help_text = help_text + _("<p>
+Valid password characters are letters, digits, blanks, and
+<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}</tt>.
+</p>");
 
+      textdomain "users";
+      // TODO FIXMDE END
+      
+      help_text = help_text +
 _("<p>
-Possible characters are
-<tt>#*,.;:._-+!$</tt>
-<tt>%&/|?{[()]}</tt> and blanks and digits
-<tt>0</tt> to <tt>9</tt>.
 It's enough to use a password with a length of approximately 8 alpha-numeric
 characters. To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
 </p>
 ");
+      return help_text;
 
   }
 
@@ -218,14 +226,14 @@ here. You don't need to fill out this entry.
 <b>Repeat password:</b>
 The password has to be entered a second time to avoid typos.
 </p>
-") +
-
+"); /*+
+       FIXME TODO  - add new help text for members of this group
 		_("<p>
 <b>Members of this group:</b>
 Here the user names of all group members are listed. The single names have to be
 separated by commas. Example:
 peter,anna,book,news
-</p>");
+</p>");*/
 
   }
 

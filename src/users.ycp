@@ -32,7 +32,8 @@
     
     // ===== arguments ================================================
 
-    boolean test_mode = false;
+    boolean test_mode     = false;
+    boolean use_security  = true;
     boolean start_sequencer_again = false;
     string  start_dialog = "users";
     integer arg = 0;
@@ -44,6 +45,10 @@
 	if ( Args( arg ) == .test )
 	{
 	    test_mode = true;
+	}
+	else if ( Args( arg ) == .nosecurity )
+	{
+	    use_security = false;
 	}
 	else
 	{
@@ -69,18 +74,21 @@
     map user_in_work  = $[];
 
     // ===== global values=============================================
-    string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz";
+    string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz-_";
     string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
-    string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/";
+    string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-";
     string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
+    string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
     string valid_id_chars       = "0123456789";
     
    
 
     
     include "security/io.ycp";              
-    map security  		= SecurityRead();
+    map security  		= $[];
+    
+    if( use_security ) security = SecurityRead();
+    
     integer max_uid             = tointeger(lookup( security, "UID_MAX" , 60000));
     integer max_gid             = tointeger(lookup( security, "GID_MAX" , 60000));
     integer max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)); 
@@ -89,9 +97,14 @@
     integer max_length_gid      = size(sformat("%1", max_gid));
     integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN",8));
     integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN",5));
+    boolean pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ; 
+
     
-    
-    if( test_mode )    SCR::Write(.dumpto.tmp.security, security  );
+    if( test_mode )
+    {
+	SCR::Write(.dumpto.tmp.security, security  );
+	y2milestone("pam ? %1", pam );
+    }
     
     max_system_gid = max_system_gid - 1;
     max_system_uid = max_system_uid - 1;
@@ -116,32 +129,55 @@
     usersGroupsShadowReadFromDisk();
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
-  
+
+    /*
     list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
     map  pam_map  = select( pam_list, 0, $[]);
     boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
+    */
 
+    /*
+    boolean pam   = false;
+    list pam_list = [];
+    if ( ! disable_pam )
+    {
+	map pam_unix_map = $[];
+	pam_list         = SCR::Read(.pam.all.password.pam_unix2);
+	if(pam_list != [] && pam_list != nil)
+	    pam_unix_map = select(pam_list,0,$[]);
+
+	 pam = contains(splitstring(lookup(pam_unix_map , "arguments", ""), " "), "md5");
+    }
+    */
+
+    /*
+      map pam_check_map = $[];
+    pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
+    if(pam_list != [] && pam_list != nil)
+	pam_check_map = select(pam_list,0,$[]);
+    */
+    
     map useradd_defaults  = SCR::Read(.etc.default.useradd);
-    y2milestone(" uasd %1",useradd_defaults);
 
-
-    y2milestone(" getGroup : %1", getDefaultGid());
-    y2milestone(" getDefaultHome ; %1", getDefaultHome());
-    y2milestone(" getDefaultShell : %1", getDefaultShell());
+    if (test_mode )
+    {
+	y2milestone(" uasd %1",useradd_defaults);
+	y2milestone(" getGroup : %1", getDefaultGid());
+	y2milestone(" getDefaultHome ; %1", getDefaultHome());
+	y2milestone(" getDefaultShell : %1", getDefaultShell());
+    }
     
     // test pam -md5
     if( test_mode ) {
 	y2milestone(" orgi pam : %1 ", pam );
-	//pam = true;
-	y2milestone(" cryptmd5 : %1 ", cryptmd5( "askldjfhakjsh"));
+	y2milestone(" cryptmd5 : %1 ",   cryptmd5( "askldjfhakjsh"));
 	y2milestone(" crypt    : %1 ",  crypt( "askldjfhakjsh"));
-	SCR(`Write(.dumpto.tmp.pam, pam_list ));
+	// SCR(`Write(.dumpto.tmp.pam, pam_list ));
     }
 
     if( pam )
     {
 	max_length_pas = 128;
-	min_length_pas = 8;
     }
     
     // if in inst-system and one user was already created switsch to overview
@@ -194,12 +230,14 @@
 		            `edit:           "user_edit",
 		            `delete:         "user_delete",
 		            `next:           "save_to_system",
-			    `abort:          `abort,
+			    `abort:          "without_save",
 			    `cancel:         "without_save",
 			    `exit:           `abort ],
-	"user_add":      $[ `next:           "user_save",
+	"user_add":      $[ `nextmodule:     `next,
+			    `nosave:         `next,
+			    `next:           "user_save",
 	      		    `details:        "user_details",
-			    `abort:          `abort,
+			    `abort:          "without_save",
 			    `cancel:         "without_save",
 			    `back:           "users" ],
 	"user_clone":    $[ `next:           "user_save",
@@ -247,8 +285,9 @@
 			    `abort:          "without_save" ],
 	"group_save"  :  $[ `next:           "groups",
 			    `save:           "save_to_system" ],
-	"without_save":  $[ `next :          `next,
-			    `back :          `back   ],
+	"without_save":  $[ `next  :          `next,
+			    `abort :          `abort,
+			    `back  :          `back   ],
 	"save_to_system": $[ `next: 	     `next ]
 	
     ];
@@ -262,6 +301,8 @@
 
     if ( start_sequencer_again )
     {
+	if(test_mode ) y2milestone(" Start sequencer again");
+	start_sequencer_again = false;
 	
 	user_settings = $[];
 	current_users   = $[];
@@ -277,6 +318,7 @@
 	start_dialog = "users";
 	main_sequence["ws_start"]="users";
 	ret = WizardSequencer(aliases, main_sequence);
+	
     }
 
     if( ! Mode::cont )

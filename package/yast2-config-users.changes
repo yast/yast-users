@@ -1,4 +1,112 @@
 -------------------------------------------------------------------
+Wed Mar 27 10:51:37 CET 2002 - mvidner@suse.cz
+
+- Prevent deleting a currently logged-in user. (#15557)
+
+-------------------------------------------------------------------
+Fri Mar  8 16:37:12 CET 2002 - jbuch@suse.de
+
+- remove incorrect help text (#14712)
+  mike has checked this diff too 
+
+-------------------------------------------------------------------
+Fri Mar  8 16:21:09 CET 2002 - jbuch@suse.de
+
+- fixed bug - changing password of an existing user 
+
+-------------------------------------------------------------------
+Fri Mar  8 14:36:23 CET 2002 - jbuch@suse.de
+
+- Set focus on userpage to forename field (Bug #14664)
+  Use helptext form inst_root.ycp for password (Bug #13383)
+  Mike has checked this diff too 
+
+-------------------------------------------------------------------
+Fri Mar  1 14:42:39 CET 2002 - jbuch@suse.de
+
+- use min_pas_len from /etc/login.defs for md5 too
+  mike has checked this diff too  
+
+-------------------------------------------------------------------
+Thu Feb 28 16:52:35 MET 2002 - jbuch@suse.de
+
+-  bug 14105: fixed problems with users that have nearly the same name
+   mike has checked this diff too 
+
+-------------------------------------------------------------------
+Tue Feb 26 18:03:30 MET 2002 - jbuch@suse.de
+
+- fixed bug 12647 - change the home directory
+  in continue mode call the abort Popup from user module (not inst_user.ycp) 
+
+-------------------------------------------------------------------
+Mon Feb 25 17:37:51 MET 2002 - jbuch@suse.de
+
+- utf-8 -> UTF-8 
+  Encodings must be upper case !
+
+-------------------------------------------------------------------
+Mon Feb 25 17:12:58 MET 2002 - jbuch@suse.de
+
+- fixed module syntax (Users.ycp)
+
+-------------------------------------------------------------------
+Mon Feb 25 16:29:09 MET 2002 - jbuch@suse.de
+
+- fixed call of pam agent
+ 
+-------------------------------------------------------------------
+Mon Feb 25 15:20:54 MET 2002 - jbuch@suse.de
+
+- fixed sequencer bug in the inst-sys
+  don't show group nobody
+  use value "umask" from /etc/login.defs 
+
+-------------------------------------------------------------------
+Fri Feb 22 19:26:56 MET 2002 - jbuch@suse.de
+
+- raise login name length limit to 32 chars
+  fixed bad help text
+  fixed SetFocus bugs
+  fixed one ShortCut bug
+  changed allowed password characters 
+
+-------------------------------------------------------------------
+Thu Feb 21 11:50:05 CET 2002 - lslezak@suse.cz
+
+- fixed bug (#13199) - user configuration in installation
+  can be skipped now
+- version 2.5.10
+
+-------------------------------------------------------------------
+Mon Feb 18 17:28:08 CET 2002 - sh@suse.de
+
+- V 2.5.9
+- Fixed bug #13518: Keyboard focus not in input field when adding user 
+
+-------------------------------------------------------------------
+Mon Feb 18 14:31:44 CET 2002 - sh@suse.de
+
+- V 2.5.8
+- Fixed bug #13383: Letters not mentioned as valid chars in help text 
+
+-------------------------------------------------------------------
+Mon Feb 18 13:20:00 CET 2002 - kkaempf@suse.de
+
+- use etc_passwd.scr as provided by yast2.rpm.
+
+-------------------------------------------------------------------
+Mon Feb 18 12:00:49 CET 2002 - kkaempf@suse.de
+
+- provide .scr files in filelist.
+
+-------------------------------------------------------------------
+Mon Feb 18 11:38:47 CET 2002 - kkaempf@suse.de
+
+- defined any agent config files used here.
+- don't use /tmp file but parse command output directly.
+
+-------------------------------------------------------------------
 Tue Feb 12 11:10:41 CET 2002 - kkaempf@suse.de
 
 - re-enable chown after useradd.local

@@ -51,27 +51,32 @@
     
     /**
      * The dialog that appears when the [Abort] button is pressed.
-     * @return boolean true if user really wants to abort
+     * @return `abort if user really wants to abort
      */
     global define symbol usersReallyAbort() ``{
-	if (size( user_settings ) == 0 )
-	{ 
-	    return `next;
-	}
-        boolean ret = UI::AnyQuestionPopup
-	       (
-	           // message box label
-		   _("Exit without saving"),
-		   // message box text
-		   _("All your changes in the setup procedure\nwill be lost if you continue."),
-		   // push button 
-		   _("&Exit without saving"),
-		   // push button 
-		   _("&Cancel abort"),
-		   `focus_yes
-               );
 
-	if( ret ) return `next;
+	boolean ret = true;
+
+	if ( ! Mode::cont )
+	{
+	    ret =  UI::AnyQuestionPopup (
+					 // message box label
+					 _("Exit without saving"),
+					 // message box text
+					 _("All your changes in the setup procedure\nwill be lost if you continue."),
+					 // push button 
+					 _("&Exit without saving"),
+					 // push button 
+					 _("&Cancel abort"),
+					 `focus_yes
+					 );
+	}
+	else
+	{
+	    ret = CallFunction(`inst_confirm_abort(`incomplete));
+	}
+
+	if( ret ) return `abort;
 	else return `back;
     }
 
@@ -315,29 +320,50 @@ Please select a another User Id"));
 			}
 		    });
 
-		    
+		    	    
+		
+  
 		    // check the homedirectory
-		    if ( home != new_home  )
+		    if ( home != new_home || what == `add_user )
 		    {
 			if( (nil != findfirstnotof( new_home, valid_home_chars )) ||
 			    (  0 != findfirstof( new_home, "/")   ))
 			{
+			    //TODO FIXME - ADD "-_" to message - not start with "-"
+			    
 			    Report::Error(_("The home directory  may only contain the following characters:
 a..zA..Z0..9/
 Please try again."));
 			    UI::SetFocus(`id(`home));
 			    continue;
 			}
-			//y2milestone("be1 . dir");
-			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
-			if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1  )
+			
+			
+			if( test_mode ) y2milestone("newhome: %1,  org_home: %2", new_home, user_in_work["org_home"]:""  );
+
+			if ( what == `edit_user && ( new_home != user_in_work["org_home"]:"" )
+			     || what == `add_user )
 			{
-			    Report::Error(_("The home directory is used from another user.
+			    if (test_mode)  y2milestone("homelist %1",   usersUsersRead(`homelist)  );
+
+			    /* TODO new popup for existing dir */
+			    if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1 )
+			    {
+				Report::Error(_("The home directory is used from another user.
 Please try again."));
-			    UI::SetFocus(`id(`home));
-			    continue;
-			    
+				UI::SetFocus(`id(`home));
+				continue;
+			    }
+			    /*
+			    if(  SCR::Read(.target.size, new_home ) !=-1 )
+			    {
+				 WarningPopup ???
+			      
+			    }
+			    */
+			   
 			}
+			    
 		    }
 
 		    // chech the grouplist
@@ -408,7 +434,9 @@ Please try again."));
 		}    
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 	
-	if ( ret == `next ) ret = what; 
+	if ( ret == `next ) ret = what;
+
+	if( test_mode ) y2milestone("user in work  %1: ",user_in_work);
 	return ret;
     }
 
@@ -493,7 +521,10 @@ Please try again."));
      * @return string
      */
     global define string usersSplitFullName( symbol what, string fullname, integer uid) ``{
-
+	
+	if( fullname == nil )
+	    fullname = "";
+	
 	list    strs    = splitstring(fullname , " ");
 	integer i       = 1;
 	string surname  = "";
@@ -559,7 +590,7 @@ Please try again."));
 	// running in inst-sys and first mask to a user
 	if( Mode::cont &&  start_dialog == "user_add" )
 	{
-	    detailsmorebox = add(detailsmorebox, `PushButton(`id(`additional), _("&Additional users/groups")));
+	    detailsmorebox = add(detailsmorebox, `PushButton(`id(`additional), _("Additional users/&groups")));
 	}
 	    
 	term contents = 
@@ -610,6 +641,9 @@ Please try again."));
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
 	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
 	//else  if( what == `edit_user)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
+
+
+	if( what == `add_user ) UI::SetFocus(`id(`forename));
 	
 	if( uid <= max_system_uid && what == `edit_user )
 	{
@@ -623,7 +657,7 @@ Please try again."));
 	}
 
 	
-	symbol ret = `next;
+	symbol ret = `next;	
 	repeat
 	    {
 		ret = UI::UserInput();
@@ -636,8 +670,19 @@ Please try again."));
 		    string username = usersProposeUsername( forename, surname );
 		    UI::ChangeWidget(`id(`username), `Value, username);
 		}
-		    	
-		if ( ret == `next || ret == `details || ret == `additional )
+
+
+		if( ret == `additional )
+		{
+		    if( ! UI::YesNoPopup(_("Do you want to create one user first?")) )
+		    {
+			ret = `nosave;
+		    }
+		}
+
+		
+		if (( ! Mode::cont && ( ret == `next || ret == `details) )
+		 || (   Mode::cont && ( ret == `details || ret == `additional || ret == `next )))
 		{
 		    string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
 		    string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
@@ -645,44 +690,68 @@ Please try again."));
 		    forename     = UI::QueryWidget(`id(`forename), `Value);
 		    surname      = UI::QueryWidget(`id(`surname ), `Value);
 
-		    if( forename != "" ) fullname = forename + " " + surname;
-		    else                 fullname = surname;
+		    if( forename != "" )
+		    {
+			if( surname != "")
+			{
+			    fullname = forename + " " + surname;
+			}
+			else
+			{
+			    fullname = forename;
+			}
+		    }
+		    else fullname = surname;
 		    
 
 		    if ( Mode::test )
 		    {	
-			return `next;
+			// return `next;
 		    }
 		    
-		    if ( (what == `add_user  && fullname == "") ||
-			 (what == `edit_user && fullname == "" && ( lookup( user_in_work , "fullname", "") != "") ) )
-		    {
-			// There is a check whether the information from the UI is
-			// correct and complete.  The name information is not
-			// complete, the user is asked to complete the information
-			Report::Error(_("Please enter a name."));
-			UI::SetFocus(`id(`surname));
-			continue;
-		    }
-		    
+		
 		    if ( username == "" )
 		    {
-			// There is a check whether the information from the UI is
-			// correct and complete.  The username is empty (no user
-			//  input).
-			Report::Error(_("You didn't enter a username.
+			// The user login field is empty, this is allowed if the
+			// system is part of a network with NIS user management.
+			// Ask the user about this in a Yes/No popup
+			// The first string is the title of the popup.
+
+			if( Mode::cont && ret != `details && ret != `additional && start_dialog == "user_add" )
+			{
+			    if (  UI::YesNoHeadlinePopup(_("Empty user login"), _("Leaving the user name empty only makes sense
+in a network environment with a NIS server.
+
+Is this system a network client?
+")))
+			    {
+				start_sequencer_again = false;
+				ret = `nextmodule;
+				break;	
+			    }
+			    UI::SetFocus(`id(`username));
+			    continue;
+			}
+			else
+			{
+			    // There is a check whether the information from the UI is
+			    // correct and complete.  The username is empty (no user
+			    //  input).
+			    Report::Error(_("You didn't enter a username.
 Please try again.
 "));	
-			UI::SetFocus(`id(`username));
-                        continue;
+			    UI::SetFocus(`id(`username));
+			    continue;
+			}
 		    }	
 		    
-		    if  (  ( size( username ) < 2 || size( username ) > 8 ) )
+		    if  (  ( size( username ) < 2 || size( username ) > 32 ) )
 		    {
+			
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username must have a size
-			// between 2 and 8 characters.
-			Report::Error(_("The username must be between 2 and 8 characters in length.
+			// between 2 and 32 characters.
+			Report::Error(_("The username must be between 2 and 32 characters in length.
 Please try again.
 "));
 			UI::SetFocus(`id(`username));
@@ -690,16 +759,18 @@ Please try again.
 		    }
 		    
 		    string firstchar = substring(username, 0, 1);
-		    
-		    if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
-			   nil != findfirstnotof( username, valid_logname_chars ) ) )
+
+
+		    if ( ( ! ( (firstchar >= "a" && firstchar <= "z" ) || firstchar == "_"  ) ||
+                           nil != findfirstnotof( username, valid_logname_chars ) ) )
 		    {
+			
 			// There is a check whether the information from the UI is
 			// correct and complete.  The login name may contain only
 			// certain characters and must begin with a letter.
-			Report::Error(_("The username may contain only
-lower case letters and digits
-and must begin with a letter.
+			Report::Error(_("The user login may contain only
+lower case letters, digits, \"-\" and \"_\"
+and must begin with a letter or \"_\".
 Please try again.
 "));
 			UI::SetFocus(`id(`username));
@@ -711,6 +782,7 @@ Please try again.
 		    if ( (username != lookup( user_in_work , "username", "")) &&
 			 contains( usersUsersRead(`usernamelist), username ) )
 		    {
+			
 			// Tell the user that the login he entered conflicts with
 			// predefined logins in the passwd file.
 			Report::Error(_("There is a conflict between the entered
@@ -721,10 +793,27 @@ Please try another one.
 			UI::SetFocus(`id(`username));
 			continue;
 		    }
+
+		    /* Bugzilla Bug  13417 
+		    if ( (what == `add_user  && fullname == "") ||
+			 (what == `edit_user && fullname == "" && ( lookup( user_in_work , "fullname", "") != "") )
+			 && username != "" )
+		    {
+			
+			// There is a check whether the information from the UI is
+			// correct and complete.  The name information is not
+			// complete, the user is asked to complete the information
+			Report::Error(_("Please enter a name."));
+			UI::SetFocus(`id(`surname));
+			continue;
+		    }
+		    */
+
 		    
 		    if (  pw1 != pw2 )
 		    {
-			// There is a check whether the information from the UI is
+			
+			//There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
 			Report::Error(_("The first and the second version
@@ -746,7 +835,7 @@ Please try again."));
 		    if ( (pw1 != default_pw) && (pw2 != default_pw ))
 		    {
 			if ( pw1 == "" )
-			{
+			{    
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The first user password
 			    // information is empty (no user input)
@@ -762,12 +851,13 @@ Please try again."));
 			}
 			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
 			{
+			   
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
 			    Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
-						   min_length_pas,
-						   max_length_pas));
+						      min_length_pas,
+						      max_length_pas));
 			    password = "";
 			    
 			    // clear password inputfields in this case
@@ -778,10 +868,11 @@ Please try again."));
 			    continue;
 			}
 			
-			if ( size(pw1) >= 5 )
+			if ( size(pw1) >= min_length_pas )
 			{
 			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
 			    {
+				
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
 				// contain only certain characters
@@ -800,7 +891,7 @@ Please try again."));
 			    }	
 			}
 
-			if( pam  && what == `add_user )
+			if( pam )
 			{
 			    password = cryptmd5(pw1);
 			}
@@ -811,20 +902,39 @@ Please try again."));
 		    }
 
 		    // bild default home dir
+		    // TODO Fixme 
 		    if ( what == `add_user && home == getDefaultHome() )
 		    {
 			home = home + username;
-			
-			//if( SCR(`Read(.target.dir , home )) != nil )
-			if(    SCR::Read(.target.size, home ) != -1  )
+		    }
+
+		    if( home != user_in_work["org_home"]:"" )
+		    {
+			// TODO new popup for existing dir
+			if(  (contains( usersUsersRead(`homelist), home ) || SCR::Read(.target.size, home ) != -1 )
+			     && ret !=`details )  
 			{
 			    Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
 			    continue;
 			}
+		    
+			/*
+			  if( SCR::Read(.target.size, home ) != -1  )
+			  {
+			  // WarningPopup ??
+			  }
+			*/
 		    }
-			  
 
+		    if ( what == `add_user )  user_in_work["org_home"] = home;
+			
+			
+		  
+			  
+		    if(test_mode ) y2milestone(" user in work : %1", user_in_work );
+			
+		    
 		    user_in_work = $[
 				     "what"        :  what ,
 				     "fullname"    :  fullname,
@@ -836,21 +946,26 @@ Please press button Details and edit home directory."));
 				     "username"    :  username,
 				     "grouplist"   :  grouplist,
 				     "forename"    :  forename,
-				     "surname"     :  surname 
+				     "surname"     :  surname,
+				     "org_home"    :  user_in_work["org_home"]:""
 		    ];
 
 		}
 		
-	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional );
+	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional || ret == `nosave );
 
+	
+	
 	// only in inst-sys
 	// create more users and groups
 	// leave sequencer and start it again with new start_dialog
-	if( ret == `additional )
+	if( ret == `additional ||  ret == `nosave )
 	{
 	    start_sequencer_again = true;
-	    ret = `next;
+
+	    if ( ret == `additional ) ret = `next;
 	}
+	else start_sequencer_again = false;
 	
 	return ret;
     }
@@ -872,9 +987,7 @@ Please press button Details and edit home directory."));
 	map new_current_users = $[];
 	
 	// if the user has log on system
-	SCR::Execute(.target.bash, "/bin/ls -l /proc >/tmp/lsl");
-	list proc  = SCR::Read(.tmp.lsl );
-	SCR::Execute(.target.bash, "/bin/rm /tmp/lsl");
+	list proc  = SCR::Read(.run.procfiles);
 
         // the user that should deleted is present
 	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
@@ -976,7 +1089,7 @@ Do you really want to delete the user %1?
 	  if( delete_home )
 	  {
 	      usersAddRmDir( lookup( user_in_work, "home", "" ));
-	      y2milestone("delete home");
+	      if( test_mode ) y2milestone("delete home");
 	  }
 	}
 	   
@@ -1156,6 +1269,8 @@ Do you really want to delete the user %1?
 	if( what == `add_group && ! Mode::cont)  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
 	//else   if( what == `edit_group)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 
+	if( what == `add_group ) UI::SetFocus(`id(`groupname));
+	
 	if( what == `edit_group  )
 	{
 	    if( password != "x"  )
@@ -1308,7 +1423,7 @@ Please try again."));
 			}
 
 			
-			if( pam  && what == `add_group )
+			if( pam )
 			{
 			    password  = cryptmd5(pw1);
 			}
@@ -1560,7 +1675,7 @@ Delete this users first."));
      */
     global define symbol usersSaveDialog() ``{
 	
-	if ( size ( user_settings ) == 0 ) return `next;
+	if ( size ( user_settings ) == $[] ) return `next;
 
 	SCR::Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save");
 	SCR::Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save");
