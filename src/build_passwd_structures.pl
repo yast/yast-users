@@ -93,8 +93,8 @@ $max_length_id = length("60000");
 # for debugging
 sub print_date {
 
-    my ($message) = @_;
-    $date = `date +%X`;
+#    my ($message) = @_;
+#    $date = `date +%X`;
 #    print STDERR "$message: $date";
 }
         
@@ -102,7 +102,7 @@ sub print_date {
 sub addBlanks {
 
     my ($id) = @_;
-    $missing = $max_length_id - length ($id);
+    my $missing = $max_length_id - length ($id);
     if ($missing > 0)
     {
         for ($i = 0; $i < $missing; $i++)
@@ -119,7 +119,7 @@ sub addBlanks {
 
 open SHADOW, "< $shadow_input";
 
-foreach $shadow_entry (<SHADOW>)
+foreach my $shadow_entry (<SHADOW>)
 {
     chomp $shadow_entry;
 
@@ -182,7 +182,6 @@ foreach (<GROUP>)
     my $first = substr ($groupname, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
-        $_ .= ":";
         $groupmap{$gid} = $_;
 
         # for each user generate list of groups, where the user is contained
@@ -253,31 +252,32 @@ print YCP_SHADOW_LOCAL "\$[\n";
 open YCP_SHADOW_SYSTEM, "> $shadow_system";
 print YCP_SHADOW_SYSTEM "\$[\n";
 
-foreach $user (<PASSWD>)
+print_date ("passwd start");
+
+foreach my $user (<PASSWD>)
 {
     chomp $user;
     my ($username, $password, $uid, $gid, $full, $home, $shell)
      = split(/:/,$user);
 
     my $first = substr ($username, 0, 1);
+
     if ( $first ne "+" && $first ne "-" )
     {
 
         my $groupname = "";
         if (defined $groupmap{$gid})
         {
-            my $default_group = $groupmap{$gid};
-            my @default_group_as_list = split (/:/,$default_group);
-            $groupname = $default_group_as_list[0];
+            ($groupname) = split (/:/,$groupmap{$gid});
 
             # modify default group's more_users entry
-            if (substr ($default_group, - 1, 1) eq ":")
+            if (defined $more_usersmap{$gid})
             {
-                $groupmap{$gid} = $default_group.$username;
+                $more_usersmap{$gid} .= ",$username";
             }
             else
             {
-                $groupmap{$gid} = $default_group.",$username";
+                $more_usersmap{$gid} = $username;
             }
         }
 
@@ -320,7 +320,7 @@ foreach $user (<PASSWD>)
             }
         }
         # recode the fullname to utf
-        from_to($full, $encod, "utf-8");
+        from_to($full, $encod, "utf-8"); # this slows a bit...
 
         print $YCP_PASSWD_HOMES "\"$home\", ";
         print $YCP_PASSWD_USERNAMES "\"$username\", ";
@@ -346,24 +346,13 @@ foreach $user (<PASSWD>)
         print $YCP_PASSWD "\t\t\"shell\": \"$shell\",\n";
         print $YCP_PASSWD "\t\t\"groupname\": \"$groupname\",\n";
         print $YCP_PASSWD "\t\t\"grouplist\": \"$grouplist\",\n";
-#        print $YCP_PASSWD "\t\t\"shadow\": \$[\n";
-
-        my ($uname, $pass, $last_change, $min, $max, $warn, $inact,
-         $expire, $flag) = split(/:/,$shadowmap{$username});
-
-            # the shadow entry of this user
-#            print $YCP_PASSWD "\t\t\t\"password\": \"$pass\",\n";
-#            print $YCP_PASSWD "\t\t\t\"last_change\": \"$last_change\",\n";
-#            print $YCP_PASSWD "\t\t\t\"min\": \"$min\",\n";
-#            print $YCP_PASSWD "\t\t\t\"max\": \"$max\",\n";
-#            print $YCP_PASSWD "\t\t\t\"warn\": \"$warn\",\n";
-#            print $YCP_PASSWD "\t\t\t\"inact\": \"$inact\",\n";
-#            print $YCP_PASSWD "\t\t\t\"expire\": \"$expire\",\n";
-#            print $YCP_PASSWD "\t\t\t\"flag\": \"$flag\"\n";
-#            print $YCP_PASSWD "\t\t],\n";
-    
         print $YCP_PASSWD "\t\t\"type\": `$user_type\n";
         print $YCP_PASSWD "\t],\n";
+
+        print $YCP_PASSWD_BYNAME "\t\"$username\" : $uid,\n";
+
+        my ($uname, $pass, $last_change, $min, $max, $warn, $inact,
+         $expire, $flag) = split(/:/,$shadowmap{$username});  
 
         print $YCP_SHADOW "\t\"$uname\": \$[\n";
         print $YCP_SHADOW "\t\t\"password\": \"$pass\",\n";
@@ -375,8 +364,6 @@ foreach $user (<PASSWD>)
         print $YCP_SHADOW "\t\t\"expire\": \"$expire\",\n";
         print $YCP_SHADOW "\t\t\"flag\": \"$flag\"\n";
         print $YCP_SHADOW "\t],\n";
-
-        print $YCP_PASSWD_BYNAME "\t\"$username\" : $uid,\n";
 
         # check for duplicates !
         if ( $groupname ne "" )
@@ -483,7 +470,13 @@ print YCP_GSHADOW_SYSTEM "\$[\n";
 
 foreach (values %groupmap)
 {
-    ($groupname, $pass, $gid, $userlist, $more_users) = split (/:/,$_);
+    my ($groupname, $pass, $gid, $userlist) = split (/:/,$_);
+    if (defined $more_usersmap{$gid}) {
+        $more_users = $more_usersmap{$gid};
+    }
+    else {
+        $more_users = "";
+    }
 
     my $group_type = "local";
     $YCP_GROUP = YCP_GROUP_LOCAL;
@@ -515,7 +508,7 @@ foreach (values %groupmap)
         print $YCP_GSHADOW "\t\t\"disposer\": \"$disp\",\n";
         print $YCP_GSHADOW "\t\t\"userlist\": \"$ulist\"\n";
         print $YCP_GSHADOW "\t],\n";
-     }
+    }
     
     print $YCP_GROUP "\t$gid: \$[\n";
     print $YCP_GROUP "\t\t\"groupname\": \"$groupname\",\n";

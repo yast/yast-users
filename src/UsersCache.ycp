@@ -683,6 +683,7 @@ global define void ChangeGroup (symbol what, map group) ``{
     }
 }
 
+// debug function
 global define void PrintDate(string message) ``{
 
 //    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
