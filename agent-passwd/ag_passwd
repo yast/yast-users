@@ -49,7 +49,11 @@ sub read_shadow {
 
     %shadow_tmp	= ();
 
-    open SHADOW, "< $base_directory/shadow";
+    my $o = open SHADOW, "< $base_directory/shadow";
+    if (!defined $o) {
+	y2warning ("$base_directory/shadow cannot be opened for reading!");
+	return 0;
+    }
 
     foreach my $shadow_entry (<SHADOW>)
     {
@@ -107,7 +111,11 @@ sub read_group {
     %gids	= ();
     %groupnames	= ();
 
-    open GROUP, "< $base_directory/group";
+    my $o = open GROUP, "< $base_directory/group";
+    if (!defined $o) {
+	y2warning ("$base_directory/group cannot be opened for reading!");
+	return 0;
+    }
 
     foreach my $group (<GROUP>) {
 	
@@ -193,7 +201,11 @@ sub read_group {
 
 sub read_passwd {
 
-    open PASSWD, "< $base_directory/passwd";
+    my $o = open PASSWD, "< $base_directory/passwd";
+    if (!defined $o) {
+	y2warning ("$base_directory/passwd cannot be opened for reading!");
+	return 0;
+    }
 
     %users 	= ();
     %shadow	= ();
@@ -325,7 +337,7 @@ sub read_passwd {
 	    };
 
 	    if (! defined $shadow_tmp{$username}) {
-		y2warning ("There is no shadow entry for user $username.");
+		y2debug ("There is no shadow entry for user $username.");
 	    }
 	    else {
 		# divide shadow map accoring to user type
@@ -348,7 +360,12 @@ sub read_passwd {
 
 sub write_passwd {
 
-    my %users_w	= %{$_[0]};
+    my %users_w		= %{$_[0]};
+
+    # do not allow user to remove whole passwd
+    if (!%users_w) {
+	%users_w	= %users;
+    }
 
     my $o = open PASSWD, "> $base_directory/passwd";
     if (!defined $o) {
@@ -433,6 +450,11 @@ sub write_group {
 
     my %groups_w = %{$_[0]};
 
+    # do not allow user to remove whole group
+    if (!%groups_w) {
+	%groups_w	= %groups;
+    }
+
     my $o = open GROUP, "> $base_directory/group";
     if (!defined $o) {
 	y2error ("$base_directory/group cannot be opened for writing!");
@@ -500,8 +522,12 @@ while ( <STDIN> )
     
 	if ( $path eq '.init' ) {
 	    if (ref ($argument) eq "HASH") {
-		$max_system_uid	= $argument->{"max_system_uid"};
-		$max_system_gid	= $argument->{"max_system_gid"};
+		if (defined ($argument->{"max_system_uid"})) {
+		    $max_system_uid	= $argument->{"max_system_uid"};
+		}
+		if (defined ($argument->{"max_system_gid"})) {
+		    $max_system_gid	= $argument->{"max_system_gid"};
+		}
 		if (defined ($argument->{"base_directory"})) {
 		    $base_directory	= $argument->{"base_directory"};
 		}
