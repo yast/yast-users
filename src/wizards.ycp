@@ -336,7 +336,7 @@ global define symbol MainSequence(string start) ``{
 global define symbol UsersSequence(string start) ``{
 
     map aliases = $[
-    "read"  : [ ``( ReadDialog(!Mode::cont)), true ],
+	"read"  : [ ``( ReadDialog(!Mode::cont)), true ],
 	"main"	:   ``( MainSequence( start ) ),
 	"write" : [ ``( WriteDialog( true )), true ]// true as parameter ??
     ];
@@ -352,7 +352,7 @@ global define symbol UsersSequence(string start) ``{
 	"main" : $[
 	    `abort	: `abort,
 	    `next	: "write",
-        `nosave : `next
+	    `nosave : `next
 	],
 	"write" : $[
 	    `abort	: `abort,

@@ -24,12 +24,15 @@ ynclude_DATA =		\
 
 client_DATA = 		\
     users.ycp		\
-    groups.ycp
+    groups.ycp		\
+    inst_root.ycp	\
+    inst_user.ycp	\
+    inst_auth.ycp
 #    users_auto.ycp	\
 #    inst_root.ycp	\
 #    inst_user.ycp   	\
 #    inst_auth.ycp
-
+#
 #config_DATA =		\
 #    users.y2cc		\
 #    groups.y2cc
