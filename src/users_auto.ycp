@@ -26,7 +26,6 @@
     import "Wizard";
 
     include "users/wizards.ycp";
-    include "wizard/sequencer.ycp";
 
     any ret = nil;
     string func = "";
