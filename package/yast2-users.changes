@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Jul 30 13:09:28 CEST 2004 - jsuchome@suse.cz
+
+- audio,uucp,dialout groups are not added as default (#43329)
+- removed check for Mode::live_eval
+- add warning when changing password encryption type on NIS server
+- fixed testsuite
+- 2.10.3
+
+-------------------------------------------------------------------
 Mon Jul 26 16:31:35 CEST 2004 - jsuchome@suse.cz
 
 - use Message module for common messages

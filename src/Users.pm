@@ -1,6 +1,10 @@
 #! /usr/bin/perl -w
 #
-# Users module
+# File:			modules/Users.pm
+# Package:		Configuration of users and groups
+# Summary:		I/O routines + main data structures
+#
+# $Id$
 #
 
 package Users;
@@ -92,7 +96,7 @@ my %useradd_defaults		= (
     "expire"		=> "",
     "shell"		=> "",
     "skel"		=> "",
-    "groups"		=> "audio,video,uucp,dialout",
+    "groups"		=> "video",
 );
 
 my $tmpdir			= "/tmp";
@@ -160,6 +164,9 @@ my $use_next_time		= 0;
 
 # if user should be warned when using uppercase letters in login name
 my $not_ask_uppercase		= 0;
+
+# if user should be warned when using blowfish/md5 encryption on NIS server
+my $not_ask_nisserver_notdes	= 0;
 
 # which sets of users are we working with:
 my @current_users		= ();
@@ -278,6 +285,12 @@ BEGIN { $TYPEINFO{NISAvailable} = ["function", "boolean"]; }
 sub NISAvailable {
     return $nis_available;
 }
+
+BEGIN { $TYPEINFO{NISMaster} = ["function", "boolean"]; }
+sub NISMaster {
+    return $nis_master;
+}
+
 
 BEGIN { $TYPEINFO{NISNotRead} = ["function", "boolean"]; }
 sub NISNotRead {
@@ -520,11 +533,26 @@ sub NotAskUppercase {
 BEGIN { $TYPEINFO{SetAskUppercase} = ["function", "void", "boolean"];}
 sub SetAskUppercase {
     my $self	= shift;
-    if ($not_ask_uppercase != $_[0]) {
-        $not_ask_uppercase 	= $_[0];
+    if ($not_ask_uppercase != bool ($_[0])) {
+        $not_ask_uppercase 	= bool ($_[0]);
 	$customs_modified	= 1;
     }
 }
+
+BEGIN { $TYPEINFO{NotAskNISServerNotDES} = ["function", "boolean"];}
+sub NotAskNISServerNotDES {
+    return $not_ask_nisserver_notdes;
+}
+
+BEGIN { $TYPEINFO{SetAskNISServerNotDES} = ["function", "void", "boolean"];}
+sub SetAskNISServerNotDES {
+    my $self	= shift;
+    if ($not_ask_nisserver_notdes != bool ($_[0])) {
+        $not_ask_nisserver_notdes 	= bool ($_[0]);
+	$customs_modified		= 1;
+    }
+}
+
     
     
 ##------------------------------------
@@ -532,7 +560,7 @@ BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
 sub CheckHomeMounted {
 
-    if ( Mode->live_eval() || Mode->test() || Mode->config() ) {
+    if (Mode->test() || Mode->config()) {
 	return "";
     }
 
@@ -1049,6 +1077,10 @@ sub ReadCustomSets {
 	    if (defined ($custom_map{"dont_warn_when_uppercase"})) {
 		$not_ask_uppercase = $custom_map{"dont_warn_when_uppercase"};
 	    }
+	    if (defined ($custom_map{"dont_warn_when_nisserver_notdes"})) {
+		$not_ask_nisserver_notdes	=
+		    $custom_map{"dont_warn_when_nisserver_notdes"};
+	    }
 	    if (defined ($custom_map{"plugins"}) &&
 		ref ($custom_map{"plugins"}) eq "ARRAY") {
 		@local_plugins	= @{$custom_map{"plugins"}};
@@ -1147,6 +1179,7 @@ sub ReadSystemDefaults {
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     $group_encryption_method
 	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
+
     $cracklib_dictpath	= $security{"CRACKLIB_DICTPATH"};
     $use_cracklib 	= ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
     $obscure_checks 	= ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
@@ -3538,6 +3571,8 @@ sub WriteCustomSets {
     );
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
+    $customs{"dont_warn_when_nisserver_notdes"} =
+	YaST::YCP::Boolean ($not_ask_nisserver_notdes);
     my $ret = SCR->Write (".target.ycp", Directory->vardir()."/users.ycp", \%customs);
 
     y2milestone ("Custom user information written: ", $ret);

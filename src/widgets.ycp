@@ -159,6 +159,54 @@ As a general rule of thumb, use DES if you are unsure.
 };
 
 /**
+ * NIS server enabled together with non-DES encryption of passwords
+ * In these popup, ask user what to do.
+ */
+define symbol AskForNISServerEncryptionPopup (string encr) {
+
+    symbol ret = `ok;
+
+    // help text 1/3
+    string text = _("<p>
+You have changed the default encryption for user passwords.</p>") +
+
+    // help text 2/3
+    _("<p>It seems that you are running NIS server. In some network enviroments,
+you could be unable to login at a NIS client when user password is
+crypted with different a method than DES.
+</p>
+") +
+
+    // help text 3/3
+    _("<p>Are you sure to use selected method?</p>");
+
+    UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
+	`VBox (
+	    `HSpacing(50),
+	    `RichText (`id(`rt), text),
+	    `CheckBox (`id(`ch), `opt(`notify),
+		// checkbox label
+		_("Do Not Show This Message &Again")),
+	    `HBox (
+		`PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
+		`PushButton (`id(`no),`opt(`key_F9), Label::NoButton())
+	    )
+	))
+    );
+    do {
+	ret = (symbol) UI::UserInput();
+    }
+    while (!contains ([`cancel, `ok, `no], ret));
+
+    if (ret != `cancel)
+    {
+	Users::SetAskNISServerNotDES((boolean)UI::QueryWidget(`id(`ch),`Value));
+    }
+    UI::CloseDialog();
+    return ret;
+}
+
+/**
  * Popup for configuration user/group filter for making the LDAP search
  * @return modified?
  */
@@ -221,8 +269,6 @@ _("<p>Here, extend the search filters for users and groups beyond the default se
 _("<p>With <b>Default</b> button, load the default filter from User and Group
 Configuration Modules, saved on the LDAP server (values of 'susesearchfilter' attributes).
 If you are not connected yet, you will be asked for password.</p>") +
-
-// FIXME more help
 
 // helptext 4/4 (do not translate the value (written as <tt> font))
 _("<p><b>Example:</b>
@@ -1338,7 +1384,16 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (ev_id == `enc)
     {
 	string enc = EncryptionPopup ();
-	Users::SetEncryptionMethod (enc);
+	if (enc != Users::EncryptionMethod ())
+	{
+	    if (enc != "des" &&
+		Users::NISMaster () && !Users::NotAskNISServerNotDES ())
+	    {
+		if (AskForNISServerEncryptionPopup (enc) != `ok)
+		    return nil;
+	    }
+	    Users::SetEncryptionMethod (enc);
+	}
 	return nil;
     }
     if (ev_id == `autologinconf)
