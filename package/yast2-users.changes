@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Thu Nov 27 15:27:09 CET 2003 - jsuchome@suse.cz
+
+- LDAP: added crypting passwords via slappaswd
+
+-------------------------------------------------------------------
+Tue Nov 25 15:43:19 CET 2003 - jsuchome@suse.cz
+
+- fix for LDAP: ignore non-existent attribute, until it is set again
+  (caused "No such attribute" error when agent tried
+  to remove actualy non-existent one from user/group entry)
+
+-------------------------------------------------------------------
 Tue Nov 18 14:31:51 CET 2003 - jsuchome@suse.cz
 
 - used UI:: builtins for file selection widgets

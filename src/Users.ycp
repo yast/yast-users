@@ -3456,13 +3456,29 @@ global define string CryptPassword (string pw, string type) ``{
     string method = encryptionMethod;
     if (type == "ldap")
     {
-	method = ldap_encryption;
+	method = toupper (ldap_encryption);
+	if (method == "CLEAR")
+	    return pw;
+	if ((contains (["MD5", "SMD5", "SHA", "SSHA"], method)) &&
+	    (SCR::Read (.target.size, "/usr/sbin/slappasswd") != -1))
+	{
+	    string in = tmpdir + "/pwin";
+	    string out = tmpdir + "/pwout";
+	    SCR::Write (.target.string, in, pw);
+	    SCR::Execute (.target.bash, sformat ("/bin/chmod 400 %1", in));
+	    SCR::Execute (.target.bash, sformat (
+		"/usr/sbin/slappasswd -h {%1} -T %2 > %3", method, in, out));
+	    string crypted = SCR::Read (.target.string, out);
+	    SCR::Execute (.target.remove, in);
+	    SCR::Execute (.target.remove, out);
+	    return crypted;
+	}
     }
-    if (method == "clear")
-        return pw;// no crypting
-    else if (method == "md5" )
+    if (tolower(method) == "md5" )
+    {
 	return cryptmd5 (pw);
-    else if (method == "blowfish" )
+    }
+    else if (tolower(method) == "blowfish" )
 	return cryptblowfish (pw);
     else
 	return crypt (pw);
