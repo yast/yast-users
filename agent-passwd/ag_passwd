@@ -84,6 +84,8 @@ sub read_shadow {
 sub read_group {
 
     %groups	= ();
+    %gids	= ();
+    %groupnames	= ();
 
     open GROUP, "< $base_directory/group";
 
@@ -106,7 +108,7 @@ sub read_group {
             # check for duplicates...
 	    if (defined $gids{"local"}{$gid}  || defined $gids{"system"}{$gid})
 	    {
-		y2error ("duplicated gid in /etc/group! Exiting...");
+		y2error ("duplicated gid ($gid) in /etc/group! Exiting...");
 		return 5;
 	    }
 	    else
@@ -157,7 +159,10 @@ sub read_passwd {
 
     open PASSWD, "< $base_directory/passwd";
 
-    %users = ();
+    %users 	= ();
+    %uids	= ();
+    %usernames	= ();
+    %homes	= ();
 
     foreach my $user (<PASSWD>) {
 
