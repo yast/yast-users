@@ -169,7 +169,6 @@ can be changed for non-local users.
 	    // checkbox label
 	    `Left( `CheckBox (`id (`autologin),_("A&uto Login"), true) )
 	);
-	
 	optionbox = `HBox(
 			  `HStretch(),
 			  `HVCenter( `HVSquash( checkboxes ) ),
@@ -214,7 +213,7 @@ can be changed for non-local users.
     {
 	contents = add( contents, `VStretch() );
     }
-    
+
     /*
     term detailsmorebox =
         `HBox(
@@ -385,13 +384,15 @@ Try again.
         // generate a login name from first and last name
         if (ret == `propose)
         {
-	    if (tmp_fullname != fullname)
+	    string to_propose = issubstring (fullname, "%") ?
+		givenName + " " + sn : fullname;
+	    if (tmp_fullname != to_propose)
 	    {
 		UsersCache::proposal_count = -1;
-		tmp_fullname = fullname;
+		tmp_fullname = to_propose;
 	    }
 	    username = UsersCache::ProposeUsername(
-		filterchars (fullname, Users::valid_logname_chars + " "));
+		filterchars (to_propose, Users::valid_logname_chars + " "));
             UI::ChangeWidget(`id(`username), `Value, username);
         }
 

@@ -461,8 +461,15 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
 	list object_classes	= user["objectClass"]:[];
 	if (object_classes == [])
 	    object_classes	= ldap_user_class;
-	user			= ConvertUserToLDAP (user,
-	    Ldap::GetObjectAttributes (object_classes));
+	// check allowed object classes
+	list ocs = [];
+	foreach (string oc, object_classes, ``{
+	    if (Ldap::ObjectClassExists (oc))
+		ocs = add (ocs, oc);
+	});
+	// FIXME: we need structural object class: person or inetOrgPerson?
+	user ["objectClass"]	= eval (ocs);
+	user	= ConvertUserToLDAP (user, Ldap::GetObjectAttributes (ocs));
 	string rdn	= sformat ("%1=%2", dn_attr, user[dn_attr]:"");
 	string new_dn	= sformat ("%1,%2", rdn, ldap_user_base);
 	map arg_map	= $[ "dn": (org_dn != "")? org_dn: new_dn ];
