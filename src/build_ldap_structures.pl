@@ -17,7 +17,7 @@
 #   build_ldap.structures.pl output_directory encoding ldap server_adress base
 #
 #  Example:
-#   build_ldap_structures.pl /tmp iso-8859-2 ldap 10.20.3.130 dc=suse,dc=cz
+#   build_ldap_structures.pl /tmp iso-8859-2 true
 #
 #
 
@@ -29,11 +29,9 @@ use Encode 'from_to';
 
 # the input parameters:
 
-$output_dir     = $ARGV[0];
+$output_dir     = $ARGV[0]; # also directory with cpu.cfg
 $encod          = $ARGV[1];
-$user_type      = $ARGV[2]; # not necessary, used to differ from YaST
-$host           = $ARGV[3];
-$base           = $ARGV[4];
+$anonymous      = $ARGV[2]; # if we have anonymous access
 
 $ldap_output                    = $output_dir."/ldap.ycp";
 $ldap_byname_output             = $output_dir."/ldap_byname.ycp";
@@ -51,9 +49,7 @@ $group_ldap_itemlist = $output_dir."/group_ldap_itemlist.ycp";
 $gidlist_ldap        = $output_dir."/gidlist_ldap.ycp";
 $groupnamelist_ldap  = $output_dir."/groupnamelist_ldap.ycp";
 
-
-# hash with the form: user => group1,group2
-#%users_groups = ();
+$cpu_cfg             = $output_dir."/cpu.cfg";
 
 $last_ldap_uid = 1;
 
@@ -75,30 +71,88 @@ sub addBlanks {
     return $id;
 }
 
-#%corrected_groups = ();
+#--- get settings from cpu.cfg
+
+open CPU_CFG, "< $cpu_cfg";
+
+foreach (<CPU_CFG>)
+{
+    (my $key, my $value) = split (/::/,$_);
+    
+    if (defined ($value))
+    {
+        chomp $value;
+    }
+
+    if ($key eq "ldap_host")
+    { 
+        $host = $value;
+    }
+    if ($key eq "user_base")
+    {   
+        $user_base = $value;
+    }
+    if ($key eq "group_base")
+    {
+        $group_base = $value;
+    }
+    if ($key eq "user_filter")
+    {
+        $user_filter = $value;
+    }
+    if ($key eq "bind_dn")
+    {
+        $bind_dn = $value;
+    }
+    if ($key eq "bind_pass")
+    {   
+        $bind_pw = $value;
+    }
+
+}
+
+close CPU_CFG;
+
+# remove cpu.cfg now, there can be a password in it!
+system "rm -f $cpu_cfg";
+
+
+#--- connect to ldap server
 
 $ldap = Net::LDAP->new($host) or die;
 
-$ldap->bind ; # database must allow anonymous binds...
+$ldap->bind;
+
+if ($anonymous eq "true")
+{
+    $ldap->bind;
+}
+else
+{
+     $ldap->bind ($bind_dn, password => $bind_pw);
+}
+
+#--- get LDAP groups
 
 $mesg = $ldap->search(
-     base => $base,
+     base => $group_base,
      filter => "objectclass=posixGroup",
      attrs => [ "cn", "gidNumber" ] );
 
 %groups = ();
 
-# all ldap groups
 foreach $entry ($mesg->all_entries)
 { 
     $groups{$entry->get_value("gidNumber")} = $entry->get_value("cn");
-# get the userlist and save it to users_groups...
+    
+    # how to get userlist??
 }
 
-# this should be configurable...
+#--- get LDAP users
+
 $mesg = $ldap->search(
-     base => $base,
-     filter => "objectclass=posixAccount",
+     base => $user_base,
+     filter => $user_filter,
      attrs => [ "uid", "uidNumber", "gidNumber", "homeDirectory",
                 "loginShell", "cn" ]);
 
@@ -123,6 +177,10 @@ print YCP_LDAP_UIDLIST "[\n";
 foreach $entry ($mesg->all_entries)
 { 
     my $uid = $entry->get_value("uidNumber");
+    if (! defined ($uid)) # for cyrus??
+    {
+        next;
+    }
     print YCP_LDAP "$uid:\t\$[\n";
        
     my $username = $entry->get_value("uid");
@@ -134,6 +192,7 @@ foreach $entry ($mesg->all_entries)
     print YCP_LDAP "\t\"gid\": $gid,\n";
     
     print YCP_LDAP "\t\"groupname\": \"$groups{$gid}\",\n";
+
 #        print YCP_LDAP "\t\"grouplist\": \"\",\n";
 
     my $fullname = $entry->get_value("cn");
@@ -171,24 +230,15 @@ foreach $entry ($mesg->all_entries)
         $last_ldap_uid = $uid;
     }
 
-#    if (defined ($corrected_groups{$gid}))
-#    {
-#        $corrected_groups{$gid} .= ",$username";
-#    }
-#    else
-#    {
-#        $corrected_groups{$gid} = "$username";
-#    }
-#
-     # modify default group's more_users entry
-     if (defined $more_usersmap{$gid})
-     {
-         $more_usersmap{$gid} .= ",$username";
-     }
-     else
-     {
-         $more_usersmap{$gid} = $username;
-     }
+    # modify default group's more_users entry
+    if (defined $more_usersmap{$gid})
+    {
+        $more_usersmap{$gid} .= ",$username";
+    }
+    else
+    {
+        $more_usersmap{$gid} = $username;
+    }
 }
 
 $ldap->unbind;          
@@ -310,4 +360,3 @@ close YCP_LDAPGROUPNAMELIST;
 close YCP_LDAPGROUP_BYNAME;
 close YCP_LDAPGROUP_ITEMLIST;
 close YCP_LDAPGROUP;
-

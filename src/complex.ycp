@@ -193,12 +193,8 @@ global define symbol UsersDialog() ``{
         if ( contains (Users::available_usersets, ret) )
         {
             UsersCache::PrintDate("before change of set");
-            UI::OpenDialog (`opt(`decorated ),
-                // wait popup
-                `Label(_("Reading set of users, one moment please...")));
             Users::ChangeCurrentUsers (ret);
             UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
-            UI::CloseDialog();
 
             UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
             if (ret == `custom)

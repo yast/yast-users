@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Jan 15 17:58:36 CET 2003 - jsuchome@suse.cz
+
+- use cpu_configure from ldap-client to set cpu.cfg values (for LDAP)
+- not neccessary to have anonymous access to LDAP server 
+  (-> ask for password)
+- 2.7.5
+
+-------------------------------------------------------------------
 Wed Jan  8 13:04:06 CET 2003 - jsuchome@suse.de
 
 - fix: created path to home directory if not exist
