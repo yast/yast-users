@@ -29,6 +29,7 @@ import "Stage";
 import "Users";
 import "UsersCache";
 import "Wizard";
+import "GetArgs";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
@@ -115,8 +116,8 @@ Do not forget this \"root\" password!
 
     Wizard::SetDesktopIcon("users");
     Wizard::SetContents (title, contents, helptext,
-	(boolean) WFM::Args(0),
-	(boolean) WFM::Args(1));
+        GetArgs::enable_back(),
+	GetArgs::enable_next());
 
 
     symbol ret = nil;

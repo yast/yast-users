@@ -19,6 +19,7 @@ import "Package";
 import "Popup";
 import "Users";
 import "Wizard";
+import "GetArgs";
 
 // Check if lan is configured
 list<string> net_devices = NetworkDevices::List("");
@@ -132,7 +133,7 @@ term contents = `VBox (
 
 Wizard::SetDesktopIcon("users");
 Wizard::SetContents (caption, contents, help,
-    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
+    GetArgs::enable_back(), GetArgs::enable_next());
 
 // select and enable to correct buttons
 foreach (string client, available_clients, ``{

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jan 24 17:12:43 CET 2005 - nashif@suse.de
+
+- Set arguments according to new installation workflow interface
+
+-------------------------------------------------------------------
 Fri Jan 21 15:31:21 CET 2005 - jsuchome@suse.cz
 
 - offer adaptation of home directory when user name was changed
