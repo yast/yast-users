@@ -47,16 +47,21 @@
            "user_password":"pass",
            "encrypted": false,
            "uid":501,
-           "gid":500,
+           "gid":100,
            "password_settings":$[
                 "expire":""
             ]
+        ],
+        $[ "username":"daemon",
+           "user_password":"pass",
+           "encrypted": false,
+        ],
+        $[ "username":"root",
+           "user_password":"pass",
         ]
      ];
 
-    list groups = [];
-
-//    param = [users, groups, $[]];
+//    param = $["users": users];
 
     if (func == "Import") {
 	ret = Users::Import(param);
