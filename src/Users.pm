@@ -4553,11 +4553,11 @@ sub CheckObscurity {
 	if ($current_summary eq "groups") {
 	    # popup question
 	    return __("You have used the group name as a part of the password.
-This is not good security practice. Are you sure?");
+This is not a good security practice. Really use it?");
 	}
 	# popup question
         return __("You have used the user name as a part of the password.
-This is not good security practice. Are you sure?");
+This is not good security practice. Really use it?");
     }
 
     # check for lowercase

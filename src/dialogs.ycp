@@ -454,7 +454,7 @@ can be changed for non-local users.
 
 	term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch),
 	    // combobox label
-	    _("De&fault group"), available_groups );
+	    _("De&fault Group"), available_groups );
 	term edit_shell = `ComboBox(`id(`shell), `opt(`hstretch, `editable),
 	    // combobox label
 	    _("Login &shell"), available_shells );
@@ -584,7 +584,7 @@ can be changed for non-local users.")) : `VSpacing (0),
                     `VSpacing (0.5),
                     `TextEntry (`id ("shadowexpire"),
 			// textentry label
-			_("Ex&piration date"), exp_date)
+			_("Ex&piration Date"), exp_date)
                 )),
                 `VStretch ()),
             `HSpacing (3)
@@ -680,7 +680,7 @@ can be changed for non-local users.")) : `VSpacing (0),
     if (user_type == "ldap")
     {
 	// tab label
-	tabs = add (tabs, `item(`id(`plugins), _("Plu&g-ins") ));
+	tabs = add (tabs, `item(`id(`plugins), _("Plu&g-Ins") ));
     }
 
     term dialog_contents = `VBox (
@@ -1668,7 +1668,7 @@ define symbol EditGroupDialog (string what) {
 	    // tab label
 	    `item(`id(`edit), _("Group &Data"), true),
 	    // tab label
-	    `item(`id(`plugins), _("Plu&g-ins") )
+	    `item(`id(`plugins), _("Plu&g-Ins") )
 	];
 
 	dialog_contents = `VBox (

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb  7 17:06:15 CET 2005 - jsuchome@suse.cz
+
+- merged texts from proofreading 
+- 2.11.11
+
+-------------------------------------------------------------------
 Fri Feb  4 14:32:03 CET 2005 - jsuchome@suse.cz
 
 - call GROUPADD_CMD if provided in /etc/login.defs
