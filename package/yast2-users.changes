@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb 16 17:54:52 CET 2004 - jsuchome@suse.cz
+
+- fix: enable whitespace in passwords (#34590)
+
+-------------------------------------------------------------------
 Mon Feb 16 17:16:51 CET 2004 - jsuchome@suse.cz
 
 - support for autoyast (initial for new module backend)
