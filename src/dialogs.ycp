@@ -919,8 +919,9 @@ Remove the surplus.
                 nil != findfirstnotof( new_uid , Users::valid_id_chars ) )
             {
                 // error popup, %1 is integer
-                string error = sformat(_("The selected User Id is not allowed.
-Please select a valid integer between 0 and %1."),  Users::max_uid );
+                string error = sformat(_("The selected User ID is not allowed.
+Select a valid integer between 0 and %1.
+"),  Users::max_uid );
                 Report::Error( error );
                 UI::SetFocus(`id(`uid));
                 continue;
@@ -929,8 +930,10 @@ Please select a valid integer between 0 and %1."),  Users::max_uid );
             {
                 // tell the max_system_uid
                 // error popup
-                string error = sformat(_("The selected User Id is a system Id,
-because the Id is smaller than %1. \nDo you really want to create a new system user?"),  Users::max_system_uid );
+                string error = sformat(_("The selected user ID is a system ID,
+because the ID is smaller than %1. 
+Really create a new system user?
+"),  Users::max_system_uid );
                 if( ! UI::YesNoPopup( error ))
                 {
                 UI::SetFocus(`id(`uid));
@@ -942,8 +945,9 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
             if( UsersCache::UIDExists( new_i_uid ) )
             {
                 // error popup
-                Report::Error(_("The inputted User Id is reserved.
-Please select a another User Id."));
+                Report::Error(_("The user ID entered is reserved.
+Select a another user ID.
+"));
                 UI::SetFocus(`id(`uid));
                 continue;
             }
@@ -967,7 +971,8 @@ Please select a another User Id."));
                     {
                         // error popup (%1 is part of home path, e.g. "/home")
                         Report::Error(sformat (_("The directory %1 is not writable.
-Choose another path for home directory."), home_path));
+Choose another path for the home directory.
+"), home_path));
                         UI::SetFocus(`id(`home));
                         continue;
                     }
