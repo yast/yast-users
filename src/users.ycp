@@ -21,8 +21,7 @@ string  start_dialog	= "summary";
 
 any	ret		= nil;
 integer arg		= 0;
-//TODO groups -> adapt current_summary list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
-list    possible_start_dialogs = ["user_add", "group_add", "summary", "user_inst_start" ];
+list    possible_start_dialogs = ["user_add", "group_add", "summary", "user_inst_start", "users", "groups" ];
 
 while ( arg < size( WFM::Args() ) )
 {
@@ -34,10 +33,16 @@ while ( arg < size( WFM::Args() ) )
     arg = arg + 1;
 }
 
+if (start_dialog == "users" || start_dialog == "groups")
+{
+    UsersCache::SetCurrentSummary (start_dialog);
+    start_dialog = "summary";
+}
+
 if (start_dialog != "summary")
 {
     y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
-    ret = UsersSequence(start_dialog);
+    ret = UsersSequence (start_dialog);
     y2milestone("Users module finished with %1", ret);
     y2milestone("----------------------------------------");
     return ret;

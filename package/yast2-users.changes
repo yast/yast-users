@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb  9 17:13:18 CET 2004 - jsuchome@suse.cz
+
+- more functions for LDAP support (write users, read groups)
+- fixed installation clients
+- 2.9.6
+
+-------------------------------------------------------------------
 Mon Feb 09 11:58:31 CET 2004 - arvin@suse.de
 
 - removed config files (*.y2cc)

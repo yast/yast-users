@@ -16,6 +16,9 @@ use POSIX;     # Needed for setlocale()
 setlocale(LC_MESSAGES, "");
 textdomain("users");
 
+use Data::Dumper; # -- for debugging the variables
+#print Dumper (\%max_uid), "\n";
+
 our %TYPEINFO;
 
 my $user_type		= "local";
@@ -475,6 +478,7 @@ sub GetUserItems {
     foreach my $itemref (@current_user_items) {
 	foreach my $id (sort keys %{$itemref}) {
 	    push @items, $itemref->{$id};
+# print Dumper ($itemref->{$id});
 	}
     }
     return @items;
@@ -684,6 +688,7 @@ sub BuildUserItem {
 
     my $id = YaST::YCP::Term ("id", $uid);
     my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
+#if (defined $user{"what"}) { print Dumper ($t); }
 
     return $t;
 }
@@ -894,11 +899,11 @@ BEGIN { $TYPEINFO{CommitGroup} = ["function",
 sub CommitGroup {
 
     my %group		= %{$_[0]};
-    my $what		= $group{"what"};
-    my $type		= $group{"type"};
+    my $what		= $group{"what"} || "";
+    my $type		= $group{"type"} || ""; 
 
     my $org_type	= $group{"org_type"} || $type;
-    my $groupname	= $group{"groupname"};
+    my $groupname	= $group{"groupname"} || "";
     my $org_groupname	= $group{"org_groupname"} || $groupname;
     my $gid		= $group{"gidNumber"};
     my $org_gid		= $group{"org_gidNumber"} || $gid;
@@ -924,6 +929,7 @@ sub CommitGroup {
         $what eq "user_change_default") {
 
 	delete $group_items{$org_type}{$org_gid};
+	
 	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
 	if ($org_type ne $type) {
 	    undef $focusline_group;
@@ -956,6 +962,9 @@ sub InitConstants {
 
     $min_uid{"system"}	= $security->{"SYSTEM_UID_MIN"};
     $max_uid{"system"}	= $security->{"SYSTEM_UID_MAX"};
+
+    $min_gid{"local"}	= $security->{"GID_MIN"};
+    $max_gid{"local"}	= $security->{"GID_MAX"};
 
     $min_gid{"system"}	= $security->{"SYSTEM_GID_MIN"};
     $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"};
