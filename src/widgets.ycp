@@ -177,6 +177,8 @@ define boolean LDAPSearchFilterPopup () ``{
 
     boolean ret = false;
 
+    // attributes are listed here, because during filter editing, the connection
+    // to LDAP server doesn't have to be run yet
     list user_attributes	= [
 	"objectclass", "loginshell", "gecos", "description", "cn", "uid",
 	"uidnumber", "gidnumber", "homedirectory", "shadowlastchange",
@@ -199,11 +201,14 @@ define boolean LDAPSearchFilterPopup () ``{
     ];
 
     list connectives	= [
+	// combo box item
 	`item (`id("and"), _("AND")),
+	// combo box item
 	`item (`id("or"), _("OR"))
-    ];//TODO not?
+    ];
     list equality	= [ "=", "~=", "<=", ">=" ];
-    symbol curr_shown	= `users;
+    symbol curr_shown	= UsersCache::GetCurrentSummary () == "users" ?
+	`users : `groups;
 
     string help_text =
 // helptext 1/4 - caption
@@ -216,6 +221,8 @@ _("<p>Here, extend the search filters for users and groups beyond the default se
 _("<p>With <b>Default</b> button, load the default filter from User and Group
 Configuration Modules, saved on the LDAP server (values of 'susesearchfilter' attributes).
 If you are not connected yet, you will be asked for password.</p>") +
+
+// FIXME more help
 
 // helptext 4/4 (do not translate the value (written as <tt> font))
 _("<p><b>Example:</b>
@@ -230,21 +237,15 @@ only obtain users with a user name beginning with 'u'.</p>
     term contents = `HBox (`HSpacing(1.5), `VBox(
 	`HSpacing(70), // max 65 with help on left side...
         `VSpacing(0.5),
-	/*
-        `VSpacing(0.5),
-	`TextEntry (`id(`userf),
-	    // textentry label
-	    _("Current Search Filter for &Users"), user_f),
-	*/
 	`Left (`RadioButtonGroup (`VBox(
 	    `Left (`RadioButton (`id (`users), `opt(`notify),
 		// radiobutton label
-		_("Search Filter for &Users"), true)),
+		_("Search Filter for &Users"), curr_shown == `users)),
 	    `Left (`RadioButton (`id (`groups), `opt(`notify),
 		// radiobutton label
-		_("Search Filter for &Groups")))
+		_("Search Filter for &Groups"),curr_shown == `groups))
 	))),
-	`TextEntry (`id(`currf), "", user_f),
+	`TextEntry (`id(`currf), "", curr_shown == `users ? user_f : group_f),
 	`VSpacing(0.5),
 	// frame label
 	`Frame (_("Add new condition to current filter"), `HBox (
@@ -253,7 +254,7 @@ only obtain users with a user name beginning with 'u'.</p>
 		`HBox (
 		    `ReplacePoint (`id(`rpa),
 			// combobox label
-			`ComboBox (`id(`atrs), _("&Attribute"),
+			`ComboBox (`id(`atrs), `opt(`editable), _("&Attribute"),
 			    curr_shown == `users ?
 			    user_attributes : group_attributes)
 		    ),
@@ -403,8 +404,9 @@ Are you sure?")))
 		    user_f : group_f);
 		UI::ReplaceWidget (`id(`rpa),
 		    // combobox label
-		    `ComboBox (`id(`atrs), _("&Attribute"), curr_shown == `users
-			? user_attributes : group_attributes)
+		    `ComboBox (`id(`atrs), `opt(`editable), _("&Attribute"),
+			curr_shown == `users ?
+			user_attributes : group_attributes)
 		);
 	    }
 	}
