@@ -57,14 +57,14 @@ map last_uid = $[
     `system: 1,
     `local: 500];
 
-    map symbol_to_string = $[
-        `local: "local",
-        `system:"system",
-        `nis:   "nis",
-        `ldap:  "ldap",
-        `kerb:  "kerb",
-        `smb:   "smb"
-        ];
+map symbol_to_string = $[
+    `local: "local",
+    `system:"system",
+    `nis:   "nis",
+    `ldap:  "ldap",
+    `kerb:  "kerb",
+    `smb:   "smb"
+];
 
 /**
  * Build the cache structures, used for fasten operations
@@ -83,7 +83,6 @@ string dir) ``{
 
     current_groups = group_custom_sets;
 
-    BuildGroups (groupmap);
     foreach (`type, `groupsmap, groupmap, ``{
         BuildGroups (groupsmap, type);
     });
