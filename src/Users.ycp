@@ -964,11 +964,15 @@ global define string Summary() ``{
  */
 define map ImportUser (map user) ``{
 
-    string forename = user["forename"]:"";
-    string surname = user["surname"]:"";
+	y2debug("Importing User=%1", user);
+	map currentUser = eval(user);
+    string forename = currentUser["forename"]:"";
+    string surname = currentUser["surname"]:"";
     string fullname = "";
-    string username = user["username"]:"";
-    integer uid = user["uid"]:-1;
+    string username = currentUser["username"]:"";
+	y2debug("Username=%1", username);
+
+    integer uid = currentUser["uid"]:-1 ;
 
     if( forename != "" )
     {
@@ -986,77 +990,78 @@ define map ImportUser (map user) ``{
 
     string pass = user ["user_password"]:"x";
 
-    if (!user["encrypted"]:true && pass != "x" && !Mode::config)
-    {
-	// encrypt password for shadow
-	if (encryptionMethod == "md5")
-	    pass = cryptmd5 (pass);
-	else if (encryptionMethod == "blowfish")
-	    pass = cryptblowfish (pass);
-	else
-	    pass = crypt (pass);
-    }
+	if (!currentUser["encrypted"]:true  && pass != "x" && !Mode::config)
+	{
+		// encrypt password for shadow
+		if (encryptionMethod == "md5")
+			pass = cryptmd5 (pass);
+		else if (encryptionMethod == "blowfish")
+			pass = cryptblowfish (pass);
+		else
+			pass = crypt (pass);
+	}
 
     user_shadow = add (user_shadow, "password", pass);
 
-    if (uid == -1)
-    {
-        // check for existence of user -> change it
-        map existing = GetUserByName (username);
-        if (existing != $[])
-        {
-            type = existing ["type"]:`system; // these should be system
-            // change only imported values...
-            if (!haskey (user,"password_settings"))
-	    {
-                user_shadow = shadow [type, username]:$[];
-                // real password is in shadow
-		user_shadow["password"] =
-                    ( pass != "x") ? pass : shadow[type,username,"password"]:"x";
-	    }
-	    string finalpw = "";
-	    if (pass != "x")
-		finalpw = pass;
-	    else
-		finalpw = existing["password"]:"x";
+	if (uid == -1)
+	{
+		// check for existence of user -> change it
+		map existing = GetUserByName (username);
+		if (existing != $[])
+		{
+			y2milestone("Exisitng user=%1", existing);
+			type = existing ["type"]:`system; // these should be system
+			// change only imported values...
+			if (!haskey (user,"password_settings"))
+			{
+				user_shadow = shadow [type, username]:$[];
+				// real password is in shadow
+				user_shadow["password"] =
+					( pass != "x") ? pass : shadow[type,username,"password"]:"x";
+			}
+			string finalpw = "";
+			if (pass != "x")
+				finalpw = pass;
+			else
+				finalpw = existing["password"]:"x";
 
-            if (!haskey (user,"forename") && !haskey (user, "surname"))
-                fullname = existing["fullname"]:"";
+			if (!haskey (user,"forename") && !haskey (user, "surname"))
+				fullname = existing["fullname"]:"";
 
-            map ret = $[
-			"encrypted":    user ["encrypted"]:existing["encrypted"]:true,
+			map ret = $[
+				"encrypted":    user ["encrypted"]:existing["encrypted"]:true,
 			"password":     finalpw,
 			"username":     username,
-			"forename":     user["forename"]:existing["forename"]:"",
-			"surname":      user["surname"]:existing["surname"]:"",
+			"forename":     currentUser["forename"]:existing["forename"]:"",
+			"surname":      currentUser["surname"]:existing["surname"]:"",
 			"fullname":     fullname,
-			"shell":        user ["shell"]:existing["shell"]:default_shell,
+			"shell":        currentUser ["shell"]:existing["shell"]:default_shell,
 			"uid":          existing["uid"]:-1,
-			"gid":          user ["gid"]:existing["gid"]:default_gid,
-			"grouplist":    user ["grouplist"]:"",
-			"home":         user ["home"]:existing["home"]:"",
+			"gid":          currentUser ["gid"]:existing["gid"]:default_gid,
+			"grouplist":    currentUser ["grouplist"]:"",
+			"home":         currentUser ["home"]:existing["home"]:"",
 			"type":         type,
 			"modified":     `imported,
 			"shadow":       user_shadow
-            ];
+				];
 
-            return ret;
-        }
-    }
+			return ret;
+		}
+	}
     string home = default_home + username;
     return $[
         "encrypted":        user ["encrypted"]:true,
         //can be distinct (uncrypted) from pass (which is always crypted)
-        "password":         user ["user_password"]:"x",
-        "username":         user ["username"]:"",
+        "password":         pass,
+        "username":         username,
         "forename":         forename,
         "surname":          surname,
         "fullname":         fullname,
-        "shell":            user ["shell"]:default_shell,
+        "shell":            currentUser ["shell"]:default_shell,
         "uid":              uid,
-        "gid":              user ["gid"]:default_gid,
-        "grouplist":        user ["grouplist"]:"",
-        "home":             user ["home"]:home,
+        "gid":              currentUser ["gid"]:default_gid,
+        "grouplist":        currentUser ["grouplist"]:"",
+        "home":             currentUser ["home"]:home,
         "type":             type,
         "modified":         `imported,
         "shadow":           user_shadow
