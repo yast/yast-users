@@ -118,6 +118,11 @@ define symbol SummaryDialog() {
 	    Users::SetLDAPNotRead (true);
 	    Users::ChangeCurrentUsers ("ldap");
 	}
+	else
+	{
+	    // update the user item list
+	    Users::ChangeCurrentUsers ("custom");
+	}
 	Users::SetGUI (old_gui);
 	ret	= `back;
     }

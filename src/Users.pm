@@ -211,6 +211,7 @@ YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Message");
 YaST::YCP::Import ("Mode");
+YaST::YCP::Import ("Package");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
@@ -1057,7 +1058,8 @@ sub ReadCustomSets {
 
     my $file = Directory->vardir()."/users.ycp";
     if (SCR->Read (".target.size", $file) == -1) {
-	SCR->Execute (".target.bash", "/bin/touch $file");
+	my %customs	= {};
+	SCR->Write (".target.ycp", $file, \%customs);
 	$customs_modified	= 1;
 
 	if ($ldap_available && Ldap->initial_defaults_used () &&
@@ -4107,7 +4109,7 @@ sub Write {
     }
 
     # remove the passwd cache for nscd (bug 24748, 41648)
-    if (!$write_only) {
+    if (!$write_only && Package->Installed ("nscd")) {
 	if ($nscd_passwd) {
 	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i passwd");
 	}
@@ -4154,7 +4156,7 @@ sub Write {
 	!MailAliases->SetRootAlias ($root_mail)) {
         
 	# error popup
-        $ret =__("There was an error while setting forwarding for root's mail.");
+        $ret=__("There was an error while setting forwarding for root's mail.");
 	Report->Error ($ret);
 	return $ret;
     }
@@ -5641,6 +5643,7 @@ sub Import {
     if ($error_msg) {
 	return 0; #TODO do not return, just read less
     }
+# FIXME remove local/system cache entries
 
     if (Mode->config ()) {
 	
