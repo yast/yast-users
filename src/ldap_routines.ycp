@@ -142,8 +142,8 @@ global define boolean WriteLDAPFinish (string dir) ``{
     // remove the cfg and shadowfile files
     string path_to_cfg = dir + "/cpu.cfg";
     string shadow_file = dir + "/shadowfile";
-    return SCR::Execute(.target.bash,
-        "/bin/rm " + path_to_cfg + " " + shadow_file);
+    return SCR::Execute(.target.bash_output,
+        "/bin/rm -f " + path_to_cfg + " " + shadow_file);
 }
 
 /**
@@ -244,7 +244,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
                 command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
             }
         }
-        y2warning ("%1",
+        y2warning ("cpu: %1",
         SCR::Execute(.target.bash_output, command));
     });
     return true; // TODO check for success

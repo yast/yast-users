@@ -10,6 +10,8 @@
 {
 include "users/passwd.ycp";
 
+// TODO: remove files after read?
+
 /**
  * Reads prebuilded gshadow data
  * @param dir the input directory

@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Wed Jan 22 15:43:56 CET 2003 - jsuchome@suse.de
+
+- autoinstalation: only modified users and groups exported
+- encryption settings and password checks read from Security module
+- added some checks for password content
+- new translation texts
+- 2.7.7
+
+-------------------------------------------------------------------
 Mon Jan 20 17:00:40 CET 2003 - jsuchome@suse.cz
 
 - fix in recoding strings

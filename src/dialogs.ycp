@@ -207,7 +207,8 @@ can be changed for non-local users.
             UI::BackButtonLabel(),
             UI::NextButtonLabel());
 
-    if (do_not_edit) // canot be something edited??
+    // TODO edit values for NIS users
+    if (do_not_edit)
     {
         UI::ChangeWidget (`id(`forename), `Enabled, false);
         UI::ChangeWidget (`id(`surname), `Enabled, false);
@@ -216,16 +217,16 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`pw2), `Enabled, false);
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
-    // it should be editable some time...
+    // TODO ldap passwords should be editable some time...
     // enable password changing for local users only (not in Kerbers DB)... ??
-    if (user_type == `ldap || Users::kerberos_auth != "")
+    if (user_type == `ldap)// || Users::kerberos_auth != "required")
     {
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
         if (what == `edit_user)
         {
             UI::ChangeWidget (`id(`pw1), `Enabled, false);
             UI::ChangeWidget (`id(`pw2), `Enabled, false);
-            password = "x"; //the pasword value is ignored when editing LDAP!!
+            password = "x"; //the pasword value is ignored when editing LDAP
         }
     }
 
@@ -410,6 +411,42 @@ Please try another one.
                 continue;
             }
 
+            // bild default home dir - when could be home empty string??
+            // TODO Fixme
+            if ( home == Users::default_home || home == "")
+            {
+                home = home + username;
+            }
+
+            if ( home != org_home )
+            {
+                // new popup for existing dir
+                if( (UsersCache::HomeExists(home)) && !details )
+                {
+                    // error popup
+                    Report::Error(_("The default home directory is used from another user.
+Please press button Details and edit home directory."));
+                    home = Users::default_home;
+                    continue;
+                }
+                // do not check in autoinstal config and for ldap client
+                if ((user_type != `ldap || Users::is_ldap_server) &&
+                    !Mode::config &&
+                    SCR::Read(.target.size, home ) != -1)
+                {
+                    // yes-no popup
+                    if (! UI::YesNoPopup(_("The home directory selected already exists.
+Use it and change its owner?
+")))
+                    {
+                        home = Users::default_home;
+                        continue;
+                    }
+                    create_home = false;
+                }
+            }
+
+
             if (  pw1 != pw2 )
             {
                 // There is a check whether the information from the UI is
@@ -503,65 +540,44 @@ Please try again."));
                 continue;
                 }
             }
-            // to use with autoinst.
-            if (Users::user_in_work["encrypted"]:true)
+            /* cracklib password check TODO: LATER
+            if (Users::use_cracklib)
             {
-                if (Users::encryption == `md5)
+                string crack_out = Users::CrackPassword (username, pw1);
+                if (crack_out != "" && crack_out != "OK")
                 {
-                    password = cryptmd5(pw1);
-                }
-                else if (Users::encryption == `blowfish)
-                {
-                    password = cryptblowfish(pw1);
-                }
-                else
-                {
-                    password = crypt (pw1);
-                }
-            }
-            }
+                    // error message of cracklib
+                    Report::Error("");
+                    password = "";
 
-            // bild default home dir - when could be home empty string??
-            // TODO Fixme
-//            if ( what == `add_user &&
-            if ( home == Users::default_home || home == "")
-            {
-                home = home + username;
-            }
-
-            // the homedir was changed (see above)
-            if ( home != org_home &&
-            // do not check for ldap client
-                (user_type != `ldap || Users::is_ldap_server))
-            {
-                // new popup for existing dir
-                if( (UsersCache::HomeExists(home)) && !details )
-                {
-                    // error popup
-                    Report::Error(_("The default home directory is used from another user.
-Please press button Details and edit home directory."));
-                    home = Users::default_home;
+                    // clear password inputfields in this case
+                    UI::ChangeWidget(`id(`pw1), `Value, "");
+                    UI::ChangeWidget(`id(`pw2), `Value, "");
+                    UI::SetFocus(`id(`pw1));
                     continue;
                 }
-                // do not check in autoinstal config
-                if (SCR::Read(.target.size, home ) != -1 && !Mode::config)
+            }
+            */
+            if (Users::obscure_checks)
+            {
+                string obs = Users::CheckObscurity (username, pw1);
+                if (obs != "")
                 {
-                    // yes-no popup
-                    if (! UI::YesNoPopup(_("The home directory selected already exists.
-Use it and change its owner?
-")))
+                    if (!UI::YesNoPopup (obs))
                     {
-                        home = Users::default_home;
+                        password = "";
+                        // clear password inputfields in this case
+                        UI::ChangeWidget(`id(`pw1), `Value, "");
+                        UI::ChangeWidget(`id(`pw2), `Value, "");
+                        UI::SetFocus(`id(`pw1));
                         continue;
                     }
-                    create_home = false;
                 }
             }
-
-            /*
-            if ( what == `add_user )
-                org_home = home;
-                */
+            // to use with autoinst.
+            if (Users::user_in_work["encrypted"]:true)
+                password = Users::CryptPassword (pw1);
+            }
 
             if (password != "x" && password != "")
             {
@@ -1440,18 +1456,7 @@ Please try again."));
                 }
             }
 
-            if (Users::encryption == `md5)
-            {
-                password = cryptmd5(pw1);
-            }
-            else if (Users::encryption == `blowfish)
-            {
-                password = cryptblowfish(pw1);
-            }
-            else
-            {
-                password = crypt (pw1);
-            }
+            password = Users::CryptPassword (pw1);
             }
 
             // need for update /etc/gshadow --- ???

@@ -224,7 +224,6 @@ global define symbol UsersDialog() ``{
                 // check the sources, they could be modified
                 Users::ReadSourcesSettings();
                 Users::BuildMenuButtonItems();
-                // the encryption could be changed!!
                 ret = `users;
             }
         }
