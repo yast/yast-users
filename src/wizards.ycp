@@ -75,6 +75,16 @@ define symbol SummaryDialog() ``{
 	ret = update_symbol [ret, UsersCache::GetCurrentSummary ()]:`back;
     }
 
+    if (ret == `back && Mode::cont)
+    {
+	Users::SetStartDialog ("user_add");
+	Users::SetUseNextTime (true);
+	boolean old_gui = Users::GetGUI ();
+	Users::SetGUI (false);
+	Users::Read ();
+	Users::SetGUI (old_gui);
+    }
+
     return (symbol) ret;
 }
 

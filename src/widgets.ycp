@@ -702,9 +702,12 @@ define list GetExpertList () ``{
 	        // menubutton label
 		`item(`id(`autologinconf), _("&Login Settings")));
 	}
-	expert_list = add (expert_list,
-	    // menubutton label
-	    `item(`id(`save), _("&Write Changes Now")));
+	if (!Mode::cont)
+	{
+	    expert_list = add (expert_list,
+		// menubutton label
+		`item(`id(`save), _("&Write Changes Now")));
+	}
     }
     return expert_list;
 }
