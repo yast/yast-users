@@ -16,7 +16,7 @@ X-SuSE-YaST-Geometry=
 X-SuSE-YaST-SortKey=
 X-SuSE-YaST-AutoinstResource=
 
-Icon=sysadmin
+Icon=group_add
 Exec=/sbin/yast2 users groups
 
 Name=Edit and create groups

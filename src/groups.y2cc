@@ -18,7 +18,7 @@ Name = _("Edit and create groups")
 Group = Security
 
 ; icon displayed in y2cc
-Icon = sysadmin.png
+Icon = group_add.png
 
 ; *one* *short* descriptive line for y2cc
 Helptext = _("Edit and create groups")
