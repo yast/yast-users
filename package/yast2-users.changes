@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Aug 16 13:27:03 CEST 2002 - jsrain@suse.cz
+
+- fixed kdoc comments
+- merged proofread strings
+- fixed sorting by UID /GID (Bug #17653)
+- 2.6.19
+
+-------------------------------------------------------------------
 Fri Aug  9 09:22:32 CEST 2002 - jsrain@suse.de
 
 - fixed initialization help text (Bug #17542)

@@ -46,7 +46,7 @@
 
   /**
    * Return true if the stack is empty.
-   * @return boolean
+   * @return boolean true if empty
    */
   global define boolean IsEmpty()``{
       return write_to_system_stack == [];
@@ -55,7 +55,7 @@
   /**
    * Add an entry to the map write_to_system_stack for a todo position.
    * @param todo exec string
-   * @param what
+   * @param what symbol
    *  `set_group_password
    *  `add_user_local
    *  `add_user
@@ -70,7 +70,7 @@
    * @param error error message
    * @param type symbol `user of `group
    * @param id integer uid or gid depending on type
-   * @return boolean
+   * @return boolean true if success
    */
     global define boolean AddTodo( string todo, symbol what, string error, symbol type, integer id ) ``{
 	write_to_system_stack = add (write_to_system_stack, $[
@@ -88,7 +88,7 @@
    * Add a entry to the map write_to_system_stack to set a group password
    * @param groupname the name of the group
    * @param password the new group password
-   * @return boolean
+   * @return boolean true if success
    */
   define boolean addSetGroupPassword( string groupname, string password ) ``{
 
@@ -108,9 +108,9 @@
   /**
    * Encode the fullname of a user.
    * @param fullname the fullname of a user
-   * @return boolean
+   * @return string recoded fullname
    */
-  define boolean consoleEncoding( string fullname ) ``{
+  define string consoleEncoding( string fullname ) ``{
 
 	any ret = findfirstof( fullname , "\"" );
 
@@ -137,7 +137,9 @@
     /**
      * Add entries to the map write_to_system_stack to save a new or modified user.
      * Update the virtual user and group settings in UserSettings.
-     * @return symbol
+     * @param user_in_work map of user to save
+     * @param save_directly boolean true to save directly and not using WriteQueue
+     * @return symbol for wizard sequencer
      */
     global define symbol UserSave(map user_in_work, boolean save_directly ) ``{
 	symbol  what     = lookup( user_in_work , "what"      , `nix );
@@ -325,6 +327,9 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
      /**
      * Add entries to the map write_to_system_stack to save a new or modified group.
      * Update the virtual user and groups settings.
+     * @param group_in_work map of selected group
+     * @param save_directly boolean true to save directly and not using WriteQueue
+     * @return symbol for wizard sequencer
      */
     global define symbol GroupSave(map group_in_work , boolean save_directly ) ``{
 	   //load the manipulated group settings from group_in_work
@@ -474,13 +479,10 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	   return `next;
        }
 
-
-
-
-
   /**
    * Dialog to save the Groups and Usersettings to system
-   * @return symbol
+   * @param useUI boolean true to set change UI (progress bar)
+   * @return symbol for wizard sequencer
    */
   global define symbol SaveDialog(boolean useUI ) ``{
 	if ( IsEmpty() ) return `next;
@@ -614,99 +616,4 @@ are configured and usable"));
 
 	return `next;
     }
-
-
-
-    /**
-     * Add a string to the map write_to_system_stack for creating a home dir for a new user.
-     * Used in AddMoveDir and usersUserSaveToMap.
-     * @param home string
-     * @return nil
-     */
-    /*
-    define void AddMakeHomeDir( string home ) ``{
-
-	list   split_home = splitstring( home, "/");
-	string tmp_dir    = "";
-
-	foreach( `sub_dir, split_home , ``{
-	    if( sub_dir != "" )
-	    {
-		tmp_dir = tmp_dir + "/"+sub_dir;
-		//milestone("be 2. dir");
-		//if( nil == SCR(`Read(.target.dir , tmp_dir) ))
-		if( SCR::Read(.target.size, tmp_dir ) == -1  )
-		    AddTodo( ("/bin/mkdir " + tmp_dir),
-				  `mkdir,
-				  sformat(_("Can't make directory %1"), tmp_dir));
-	    }
-	});
-    }
-    */
-
-    /**
-     * Add a string to the map write_to_system_stack for creating a home dir for a new user.
-     * Used in AddMoveDir and usersUserSaveToMap.
-     * @param home string
-     * @param old_home string
-     * @return nil
-     */
-    /*
-    define void AddMoveDir(string old_home, string  home )``{
-
-	AddTodo( ("/bin/mv " + old_home + " " +  home ),
-		      `mv,
-		      sformat(_("Can't move old home directory %1
-to new home directory %2"), old_home, home));
-
-
-    }
-    */
-
-    /**
-     * Add a string to the map write_to_system_stack for removing a home directory.
-     * Used in usersDeleteUser.
-     * @param home string
-     * @return nil
-     */
-    /*
-    define void AddRmDir( string  home )``{
-
-	AddTodo( ("/bin/rm " +home + " -r" ),
-		      `rm,
-		      sformat(_("Can't remove home directory %1."),  home));
-    }
-    */
-
-
-    /**
-     * Add a string to the map write_to_system_stack to set the home dir access right.
-     * Used in usersUserSaveToMap.
-     * @param home string
-     * @param user string
-     * @param group string
-     * @return nil
-     */
-    /*
-    define void AddChownHome( string home, string user, string group)``{
-
-	AddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
-		     `chown,
-		     _("Can't set user and group variable to the home directory"));
-
-	// FIXME, check general security level
-	if (false)
-	{
-	    AddTodo(("/bin/chmod g-rx " + home ),
-			`chown,
-			_("Can't set read and write permissions to the home directory"));
-
-	    AddTodo(("/bin/chmod o-rx " + home ),
-			`chown,
-			_("Can't set read and write permissions to the home directory"));
-	}
-    }
-    */
-
-
 }

@@ -52,7 +52,10 @@
     Users::Import ( settings );
     y2milestone("Imported: (%1)", settings);
 
-    define set_contents()
+    /**
+      * set contents of main Users dialog for autoinstallation
+      */
+    define void set_contents()
 	``{
 	term contents =
 	    `VBox(

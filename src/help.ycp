@@ -19,7 +19,7 @@
 
   /**
    * First part of the help text.
-   * @return string
+   * @return string help text
    */
   global define string help_main_start()``{
 	// help text 1/1
@@ -35,7 +35,7 @@ least belongs to one group.
 
   /**
    * Last part of the help text.
-   * @return string
+   * @return string help text
    */
   global define string help_main_end()``{
 	// help text 1/1
@@ -48,7 +48,7 @@ To save the modified user and group setting to your system push the button
 
   /**
    * Password help text.
-   * @return string
+   * @return string help text
    */
   global define string help_password()``{
 	// help text 1/3
@@ -101,7 +101,7 @@ button now.
 
   /**
    * Help for usersUsersDialog.
-   * @return string
+   * @return string help text
    */
   global define string usersUsersDialogHelp() ``{
 	// help text 1/4
@@ -136,7 +136,7 @@ click <b>Edit</b> or <b>Delete</b>.
 
   /**
    * Help for usersGroups.
-   * @return string
+   * @return string help text
    */
   global define string usersGroupsDialogHelp()``{
 	// help text 1/4
@@ -171,7 +171,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
 
   /**
    * Help for usersEditUser.
-   * @return string
+   * @return string help text
    */
   global define string usersEditUserHelp() ``{
 	// help text 1/4
@@ -214,7 +214,7 @@ To see more details like the home directory or the user ID push
 
   /**
    * Help for usersEditGroup.
-   * @return string
+   * @return string help text
    */
   global define string usersEditGroupHelp() ``{
 	// help text 1/6
@@ -269,7 +269,7 @@ Select which users should be members of this group.
 
   /**
    * Help for usersEditUserDetails.
-   * @return string
+   * @return string help text
    */
   global define string usersEditUserDetailsHelp() ``{
 
@@ -317,7 +317,7 @@ All additional memberships in groups for the user.
 
   /**
    * Help for usersSave.
-   * @return string
+   * @return string help text
    */
   global define string usersSaveDialogHelp() ``{
 	// help texts 1/1
@@ -327,7 +327,10 @@ Save the current user and group settings to system
 
   }
 
-
+  /**
+   * Help for editing password settings
+   * @return string help text
+   */
   global define string  usersEditUserPasswordHelp() ``{
 // Help text 1/5
       return _("<p>

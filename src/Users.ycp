@@ -46,7 +46,7 @@
      * Remove old config options
      * @return void;
      */
-    global define removeOldConf()
+    global define void removeOldConf()
 	``{
 	SCR::Write(.pam.all.password.pam_unix2, "-md5");
 	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
@@ -76,6 +76,7 @@
 
     /**
      * Crypt the root password according to method defined in encryptionMethod
+     * @param pw1 unencrypted password
      * @return void
      */
     global define void cryptRootPassword(string pw1)

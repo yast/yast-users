@@ -1,3 +1,4 @@
+Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Execute	.target.bash "/bin/cp /etc/gshadow /etc/gshadow.YaST2save" 0
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0

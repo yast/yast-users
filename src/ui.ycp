@@ -34,18 +34,29 @@
 
     global map saved_user = $[];
     global boolean use_next_time = true;
-
+    /**
+      * Set the module to normal setup mode
+      * @return symbol for wizard sequencer
+      */
     global define symbol userSetup () ``{
 	start_dialog = "users" ;
 	return `next;
     }
-
+    /**
+      * Set the module into installation mode with first dialog for single user addition
+      * @return symbol for wizard sequencer
+      */
     global define symbol usersInstStart () ``{
 	start_dialog = "user_add";
 	UserWriteStack::Reset ();
 	return `next;
     }
-
+    /**
+      * Save focus of main users dialog
+      * @param table_input integer
+      * @param ret any
+      * @param what symbol
+      */
      global define void save_focus( integer table_input, any ret , symbol what) ``{
 
 	integer l_focusline = 0;
@@ -76,7 +87,7 @@
      * Define the switch between Users and Groups administration.
      * This is used in usersUsersDialog and usersGroupsDialog.
      * @param what what can be `users or `groups
-     * @return symbol
+     * @return term RadioButtonGroup widget
      */
     global define term rbUsersGroup(symbol what) ``{
 	return
@@ -122,7 +133,8 @@
 	else return `back;
     }
     /**
-      * Ask user for configuration type
+      * Ask user for configuration type (standard or NIS)
+      * @param dir string directory with NIS settings
       * @return symbol `passwd or `nis or `abort
       */
     global define symbol getConfigurationType (string dir) ``{
@@ -166,6 +178,7 @@ Select which one to configure.
     }
     /**
      * Read settings dialog
+     * @param useUI boolean use user interface (change progress bar)
      * @return symbol `next if success, else `abort
      */
     global define symbol ReadDialog (boolean useUI ) ``{
@@ -260,9 +273,7 @@ Select which one to configure.
 		return !read_aborted;
 	    }
 	}
-
 	boolean settings = UserSettings::ReadSettingsFromDisk(true);
-
 	if ( (! settings) && UserSettings::aborted)
 	{
 	    return `abort;
@@ -285,14 +296,6 @@ Select which one to configure.
 	    }
 	}
 
-
-/*	if ( ! (UserSettings::ReadGroupFromDisk() &&
-	        UserSettings::ReadGshadowFromDisk() ))
-	{
-	    Report::Error (_("Can not read the group settings!"));
-	}*/
-
-
 	// read password settings
 	if( useUI )
 	{
@@ -303,13 +306,6 @@ Select which one to configure.
 		return !read_aborted;
 	    }
 	}
-
-
-/*	if ( ! (UserSettings::ReadShadowFromDisk() ))
-	{
-	    Report::Error (_("Can not read the password settings!"));
-	}*/
-
 
 	// increase the progress to "finish"
 	if( useUI ) Progress::NextStage ();
@@ -323,11 +319,14 @@ Select which one to configure.
 
     /**
      * The first of the two main dialogs -- list of the users.
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersUsersDialog() ``{
 	start_dialog              ="users";
 	user_in_work = $[];
+y2error ("Entering UsersUsersDialog");
+	list usersList = UserSettings::UsersRead(`items ,view_all_users );
+y2error ("Users read");
 
 	term contents =
 	    `VBox(rbUsersGroup(`users),
@@ -338,7 +337,7 @@ Select which one to configure.
 			// table header
 			 _("UID"),
 			// table header
-			 _("Groups")), UserSettings::UsersRead(`items ,view_all_users )),
+			 _("Groups")), usersList ),//UserSettings::UsersRead(`items ,view_all_users )),
 		  // not only sysem user
 		  // checkbox
 		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system users"), view_all_users )),
@@ -416,7 +415,7 @@ Select which one to configure.
 
     /**
      * Details of adding/cloning/editing dialog
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersEditUserDetails( ) ``{
 
@@ -637,6 +636,7 @@ Use it and change its owner?
 
                     if ((! contains (as, new_shell)) && (new_shell != lookup (user_in_work, "shell", "")))
                     {
+			// Yes-No popup
                         if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
 may be unable to log in. Continue?
 ")))
@@ -723,7 +723,7 @@ Please try again."));
 
     /**
      * Details of adding/cloning/editing dialog
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersEditUserPassword() ``{
 
@@ -816,7 +816,7 @@ Please try again."));
      * Propose a username.
      * @param forename forename
      * @param surname surname
-     * @return string
+     * @return string proposed login name
      */
     global define string usersProposeUsername( string forename, string surname ) ``{
 
@@ -888,8 +888,8 @@ Please try again."));
      * Split fullname in forename and surname.
      * @param what `surname or `forename
      * @param fullname fullname
-     * @param uid uid
-     * @return string
+     * @param uid user id
+     * @return string selected part of user name
      */
     global define string usersSplitFullName( symbol what, string fullname, integer uid) ``{
 
@@ -925,7 +925,7 @@ Please try again."));
     /**
      * Function that adds or edits a user.
      * @param what `add_user or `edit_user
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersEditUser(symbol what) ``{
 	map dialog_labels = $[
@@ -1418,7 +1418,7 @@ Use it and change its owner?
     /**
      * Delete the user saved in user_in_work from current_users and
      * add a entry with a shell delete command to the map write_to_system_stack.
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersDeleteUser() ``{
 
@@ -1550,7 +1550,7 @@ Do you really want to delete the user %1?
 
     /**
      * The second of the two main dialogs.
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersGroupsDialog() ``{
 
@@ -1638,7 +1638,7 @@ Do you really want to delete the user %1?
     /**
      * Details of adding/cloning/editing dialog
      * @param what `add_user, `clone_user or `edit_user
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
     global define symbol usersEditGroup(symbol what ) ``{
 
@@ -2064,9 +2064,9 @@ Please try again."));
     /**
      * Delete the Group saved in group_in_work from current_groups and
      * add a entry with a shell delete command to the map write_to_system_stack.
-     * @return symbol
+     * @return symbol for wizard sequencer
      */
-    global define usersDeleteGroup() ``{
+    global define symbol usersDeleteGroup() ``{
 
 	boolean delete = true;
 	integer gid = lookup (group_in_work , "gid", -1 );
