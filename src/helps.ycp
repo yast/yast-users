@@ -340,7 +340,7 @@ Here, select which users should be members of this group.
    * @param what what to do with a user (add_user/edit_user)
    * @return string help text
    */
-  define string EditUserDetailsDialogHelp(string user_type, string what) ``{
+  define string EditUserDetailsDialogHelp(string user_type, string what) {
 
 	// help text 1/8
     string helptext = _("<p>
@@ -391,14 +391,6 @@ is created from the default skeleton (%1).</p>
 The home directory of an LDAP user can be changed only on the
 file server.</p>");
 
-/*
-    // alternate helptext 5.5/8
-    _("<p>
-<b>E-Mail:</b>
-Set the user's e-mail address here.</p>
-");
-*/
-
     else if (user_type == "system" || user_type == "local")
         helptext = helptext +
     // alternate helptext 5/8
@@ -425,11 +417,28 @@ from the list of all groups existing on your system.
 </p>") +
 	// help text 8/8
 		_("<p>
-<b>Additional group membership:</b>
+<b>Group membership:</b>
 All additional memberships in groups for the user.
 </p>
 ");
     return helptext;
+  }
+
+  /**
+   * help text for dualogs with plugins
+   */
+  define string PluginDialogHelp () {
+
+    // helptxt for plugin dialog 1/2
+    return _("<p>Here, see the list of 'Plug-ins' -- the
+extensions of user and group configuration.</p>") +
+
+    // helptext for plugin dialog 2/3
+    _("The check mark in the left part of the table indicates that plug-in
+is currently in use.") +
+
+    // helptext for plugin dialog 3/3
+    _("<p>Start the detailed configuration of particular plug-in by selecting <b>Launch</b>.</p>");
   }
 
 

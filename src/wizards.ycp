@@ -135,7 +135,7 @@ define symbol SummaryDialog() {
  * @param start the first dialog
  * @return sequence result
  */
-define symbol MainSequence(string start) ``{
+define symbol MainSequence(string start) {
 
     map aliases = $[
 	"init_summary"		: [``(InitializeTableItems ()), true ],
@@ -144,14 +144,10 @@ define symbol MainSequence(string start) ``{
 	"user_add_inst"		: ``(EditUserDialog("add_user")),
 	"user_inst_start"	: [``(usersInstStart ()), true],
 	"user_edit"		: ``(EditUserDialog("edit_user")),
-	"user_details"		: ``(EditUserDetailsDialog()),
-	"user_password"		: ``(EditUserPasswordDialog()),
-	"user_plugin"		: ``(PluginDialog("user")),
 	"user_save"		: [``(UserSave()), true],
 
 	"group_add"		: ``(EditGroupDialog("add_group")),
 	"group_edit"		: ``(EditGroupDialog("edit_group")),
-	"group_plugin"		: ``(PluginDialog("group")),
 	"group_save"		: [``(GroupSave()), true],
 
 	"defaults"		: ``(DefaultsDialog()),
@@ -185,8 +181,6 @@ define symbol MainSequence(string start) ``{
 	    `nosave		: "summary",
 	    `additional		: "user_save", // only install
 	    `next		: "user_save",  // -> Commit
-	    `details		: "user_details",
-	    `passwordsettings	: "user_password",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
@@ -195,39 +189,16 @@ define symbol MainSequence(string start) ``{
             `nosave		: "summary",
             `additional		: "user_save",
             `next		: "user_save",
-            `details		: "user_details",
-            `passwordsettings	: "user_password",
             `abort		: "without_save",
             `cancel		: "without_save",
 	],
 	"user_edit": $[
-            `next:		"user_save",
-	    `details:		"user_details",
-	    `passwordsettings:	"user_password",
+            `next		: "user_save",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
 	"user_inst_start": $[
-            `next:          "user_add_inst"
-	],
-	"user_details": $[
-	    // next is predefined to add or edit
-            `abort:		"without_save",
-	    `cancel:		"without_save",
-	    `next:		"user_plugin",
-	],
-	"user_password": $[
-            `abort:		"without_save",
-	    `cancel:		"without_save",
-	    `add_user:		"user_add",
-	    `edit_user:		"user_edit"
-	],
-	"user_plugin": $[
-            `abort:		"without_save",
-	    `cancel:		"without_save",
-	    `add_user:		"user_add",
-	    `edit_user:		"user_edit",
-	    `abort:		`abort,
+            `next		: "user_add_inst"
 	],
 	"user_save": $[
             `next		: "summary",
@@ -236,19 +207,13 @@ define symbol MainSequence(string start) ``{
 	"group_add": $[
 	    `nosave		: "summary",
             `next		: "group_save",
-	    `ldap		: "group_plugin",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
         "group_edit": $[
             `next		: "group_save",
-	    `ldap		: "group_plugin",
 	    `abort		: `abort,
 	    `cancel		: `abort,
-	],
-	"group_plugin": $[
-	    `next:		"group_save",
-	    `abort:		`abort,
 	],
         "group_save"  : $[
             `next		: "summary"

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jan  5 15:42:07 CET 2005 - jsuchome@suse.cz
+
+- use tabs in Edit User and Edit Group dialogs
+- enable list values for LDAP attributes (cn, sn, givenname)
+- 2.11.5 
+
+-------------------------------------------------------------------
 Wed Dec 15 14:51:15 CET 2004 - jsuchome@suse.cz
 
 - do not show Abort button in pseudo-popups
