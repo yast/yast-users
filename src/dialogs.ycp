@@ -925,7 +925,7 @@ Please select a valid integer between 0 and %1."),  Users::max_uid );
                 UI::SetFocus(`id(`uid));
                 continue;
             }
-            if( new_i_uid <= Users::max_system_uid && user_type!= `system)
+            if( new_i_uid <= Users::max_system_uid && user_type == `local)
             {
                 // tell the max_system_uid
                 // error popup

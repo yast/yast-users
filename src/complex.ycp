@@ -182,7 +182,8 @@ global define symbol SummaryDialog(symbol what) ``{
 
         if ( contains (Users::available_usersets, ret) )
         {
-            Users::ChangeCurrentUsers (ret);
+            if (Users::ChangeCurrentUsers (ret))
+            {
             UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
 
             UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
@@ -190,6 +191,7 @@ global define symbol SummaryDialog(symbol what) ``{
                 UsersCache::customized_usersview = true;
             else
                 UsersCache::customized_usersview = false;
+            }
 
             ret = `not_next;
         }
@@ -328,16 +330,18 @@ global define symbol UsersDialog() ``{
 
         if ( contains (Users::available_usersets, ret) )
         {
-            Users::ChangeCurrentUsers (ret);
-            UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
+            if (Users::ChangeCurrentUsers (ret))
+            {
+                UsersCache::user_itemlist = UsersCache::users_itemlists[ret]:[];
 
-            UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
-            if (ret == `custom)
-                UsersCache::customized_usersview = true;
-            else
-                UsersCache::customized_usersview = false;
-
-            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
+                UI::ChangeWidget(`id(`user_table),`Items,
+                    UsersCache::user_itemlist);
+                if (ret == `custom)
+                    UsersCache::customized_usersview = true;
+                else
+                    UsersCache::customized_usersview = false;
+                UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
+            }
             ret = `not_next;
         }
         if ( ret == `switch_users)
@@ -466,17 +470,19 @@ global define symbol GroupsDialog() ``{
 
         if( contains (Users::available_groupsets, ret) )
         {
-            Users::ChangeCurrentGroups (ret);
-            UsersCache::group_itemlist = UsersCache::groups_itemlists [ret]:[];
+            if (Users::ChangeCurrentGroups (ret))
+            {
+                UsersCache::group_itemlist=UsersCache::groups_itemlists[ret]:[];
 
-            UI::ChangeWidget(`id(`group_table), `Items,
-                UsersCache::group_itemlist);
-            if (ret == `custom)
-                UsersCache::customized_groupsview = true; // already set
-            else
-                UsersCache::customized_groupsview = false;
-            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
-            ret = `not_next;
+                UI::ChangeWidget(`id(`group_table), `Items,
+                    UsersCache::group_itemlist);
+                if (ret == `custom)
+                    UsersCache::customized_groupsview = true; // already set
+                else
+                    UsersCache::customized_groupsview = false;
+                UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
+                ret = `not_next;
+            }
         }
         if( ret == `customize)
         {
@@ -764,7 +770,7 @@ global define boolean CustomizePopup(string what) ``{
     UI::CloseDialog();
     if (modified)
     {
-        Users::ChangeCustoms (what, new_customs);
+        modified = Users::ChangeCustoms (what, new_customs);
     }
     return modified;
 }

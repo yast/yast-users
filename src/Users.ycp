@@ -827,47 +827,61 @@ global define symbol Write (block abort, boolean useUI)``{
         if (ldap_bind_pass == "" && useUI)
             ldap_bind_pass = GetLDAPPassword();
 
-        WriteLDAPPrepare (tmpdir, ldap_bind_pass);
-        // there are deleted users in modified_users [`ldap]
-        if (size (modified_users [`ldap]:$[]) > 0)
+        if (useUI)
         {
-            succ = WriteLDAPUsers (
-                modified_users [`ldap]:$[], is_ldap_server, tmpdir);
+            while (ldap_bind_pass != nil && !LDAPBindCheck())
+            {
+                // error popup (probably bad password)
+                UI::ErrorPopup(_("There was a problem with connecting the LDAP server."));
+                ldap_bind_pass = GetLDAPPassword();
+            }
         }
 
-        // now write all other modifications
-        succ = succ && WriteLDAPUsers (
-            users [`ldap]:$[], is_ldap_server, tmpdir);
-
-        if (!succ)
+        // cancel returns nil!
+        if (ldap_bind_pass != nil)
         {
-            if (useUI)
-                // error popup
-	            Report::Error (_("Cannot write LDAP users."));
-            else
-                y2error ("Cannot write ldap users.");
+            WriteLDAPPrepare (tmpdir, ldap_bind_pass);
+            // there are deleted users in modified_users [`ldap]
+            if (size (modified_users [`ldap]:$[]) > 0)
+            {
+                succ = WriteLDAPUsers (
+                    modified_users [`ldap]:$[], is_ldap_server, tmpdir);
+            }
+
+            // now write all other modifications
+            succ = succ && WriteLDAPUsers (
+                users [`ldap]:$[], is_ldap_server, tmpdir);
+
+            if (!succ)
+            {
+                if (useUI)
+                    // error popup
+	                Report::Error (_("Cannot write LDAP users."));
+                else
+                    y2error ("Cannot write ldap users.");
+            }
+
+            succ = true;
+            // there are deleted groups in modified_groups [`ldap]
+            if (size (modified_groups [`ldap]:$[]) > 0)
+            {
+                succ = WriteLDAPGroups (modified_groups [`ldap]:$[], tmpdir);
+            }
+
+            // now write all other groups modifications
+            succ = succ && WriteLDAPGroups (groups [`ldap]:$[], tmpdir);
+
+            if (!succ)
+            {
+                if (useUI)
+                    // error popup
+	                Report::Error (_("Cannot write LDAP groups."));
+                else
+                    y2error ("Cannot write ldap groups.");
+            }
+
+            WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
         }
-
-        succ = true;
-        // there are deleted groups in modified_groups [`ldap]
-        if (size (modified_groups [`ldap]:$[]) > 0)
-        {
-            succ = WriteLDAPGroups (modified_groups [`ldap]:$[], tmpdir);
-        }
-
-        // now write all other groups modifications
-        succ = succ && WriteLDAPGroups (groups [`ldap]:$[], tmpdir);
-
-        if (!succ)
-        {
-            if (useUI)
-                // error popup
-	            Report::Error (_("Cannot write LDAP groups."));
-            else
-                y2error ("Cannot write ldap groups.");
-        }
-
-        WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
     }
 
 
@@ -2413,8 +2427,9 @@ global define integer NextFreeUid() ``{
 /**
  * Read new set of users - "on demand" (called from running module)
  * @param type the type of users, currently `ldap or `nis
+ * @return success
  */
-global define void ReadNewSet (symbol type) ``{
+global define boolean ReadNewSet (symbol type) ``{
 
     if (type == `nis)
     {
@@ -2445,9 +2460,8 @@ global define void ReadNewSet (symbol type) ``{
 are necessary, but some of them are not present.
 Install them now?
 ")) == false)
-                return;
+                return false;
         }
-        ldap_not_read = false;
         // check for cpu.cfg
         if (!CpuConfigured (ldap_host, ldap_base))
         {
@@ -2464,6 +2478,11 @@ Configure it now?
             }
         }
         ldap_bind_pass = GetLDAPPassword();
+        if (ldap_bind_pass == nil) // cancel button
+        {
+            return false;
+        }
+
         // prepare config file
         WriteLDAPPrepare (tmpdir, ldap_bind_pass);
 
@@ -2474,11 +2493,13 @@ Configure it now?
         // run preparation script for geting users and groups from server:
         if (!RunPrepare ("ldap"))
         {
-            // Popup text (required application):
-            UI::WarningPopup(_("There was a problem with connecting the LDAP server."));
-            UI::CloseDialog(); // the wait popup
-            return;
+            // error Popup text (bad password?):
+            UI::ErrorPopup(_("There was a problem with connecting the LDAP server."));
+            UI::CloseDialog(); // close the wait popup
+            return false;
         }
+        ldap_not_read = false;
+        WriteLDAPFinish (tmpdir); // not neccessary here...
         // read the LDAP users and groups now
         users [`ldap ] = ReadLDAPUsers (tmpdir);
         users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
@@ -2489,6 +2510,7 @@ Configure it now?
     UsersCache::ReadGroups (type, tmpdir);
 
     UI::CloseDialog(); // the wait popup
+    return true;
 }
 
 /**
@@ -2510,8 +2532,11 @@ global define void CorrectUsers(symbol type) ``{
 /**
  * Change the current users set, additional reading could be necessary
  * @param new the new current set
+ * @return success
  */
-global define void ChangeCurrentUsers(symbol new) ``{
+global define boolean ChangeCurrentUsers(symbol new) ``{
+
+    list current = current_users;
 
     if ( new == `custom )
         current_users = eval (user_custom_sets);
@@ -2519,59 +2544,88 @@ global define void ChangeCurrentUsers(symbol new) ``{
         current_users = [ new ];
 
     if (contains (current_users, `ldap) && ldap_not_read)
-        ReadNewSet (`ldap);
+        if (!ReadNewSet (`ldap))
+        {
+            current_users = current;
+            return false;
+        }
 
     if (contains (current_users, `nis) && nis_not_read)
-        ReadNewSet (`nis);
+        if (!ReadNewSet (`nis))
+        {
+            current_users = current;
+            return false;
+        }
 
     // correct also possible change in custom itemlist
     if (new == `custom)
         UsersCache::ChangeUserCustoms (current_users);
 
-    UsersCache::current_users = current_users;// via some function?
+    UsersCache::current_users = current_users;
+
+    return true;
 }
 
 /**
  * Change the set of current groups viewed
  * @param new the new current set
+ * @return success
  */
-global define void ChangeCurrentGroups(symbol new) ``{
+global define boolean ChangeCurrentGroups(symbol new) ``{
+
+    list current = current_groups;
 
     if ( new == `custom )
         current_groups = eval (group_custom_sets);
     else
         current_groups = [ new ];
     if (contains (current_groups, `nis) && nis_not_read)
-        ReadNewSet(`nis);
+        if (!ReadNewSet(`nis))
+        {
+            current_groups = current;
+            return false;
+        }
     if (contains (current_groups, `ldap) && ldap_not_read)
-        ReadNewSet(`ldap);
+        if (!ReadNewSet(`ldap))
+        {
+            current_groups = current;
+            return false;
+        }
 
     // correct also possible change in custom itemlist
     if (new == `custom)
         UsersCache::ChangeGroupCustoms (current_groups);
 
-    UsersCache::current_groups = current_groups;// via some function?
+    UsersCache::current_groups = current_groups;
+    return true;
 }
 
 /**
  * Change the value of custom user/group view
  * @param what "user" or "group"
  * @param new the new customs
+ * @return success
  */
-global define void ChangeCustoms(string what, list new) ``{
+global define boolean ChangeCustoms(string what, list new) ``{
 
     if (what == "user")
     {
+        list old = user_custom_sets;
         user_custom_sets = new;
-        ChangeCurrentUsers (`custom);
+        customs_modified = ChangeCurrentUsers (`custom);
+        if (!customs_modified)
+            user_custom_sets = old;
     }
     else
     {
+        list old = group_custom_sets;
         group_custom_sets = new;
-        ChangeCurrentGroups (`custom);
+        customs_modified = ChangeCurrentGroups (`custom);
+        if (!customs_modified)
+            group_custom_sets = old;
     }
 
-    customs_modified = true;
+    return customs_modified;
 }
 
 /**
@@ -2633,13 +2687,27 @@ global define boolean RunPrepare(string type) ``{
     }
     else if ( issubstring (type, "ldap") )// ldap has some additional parameters
     {
-        string anonymous = "false";
+        string binding = "password";
         if (ldap_bind_pass == "")
-            anonymous = "true";
+            binding = "anonymous";
         ret = SCR::Execute(.target.bash, sformat(
         "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
-        tmpdir, encoding, anonymous));
+        tmpdir, encoding, binding));
     }
+    return (ret == 0);
+}
+
+/**
+ * Tries to bind to LDAP server with current password
+ * @return success
+ */
+global define boolean LDAPBindCheck () ``{
+
+    WriteLDAPPrepare (tmpdir, ldap_bind_pass);
+    integer ret = SCR::Execute(.target.bash, sformat(
+        "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
+        tmpdir, encoding, "check"));
+    WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
     return (ret == 0);
 }
 

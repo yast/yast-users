@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb 24 17:26:34 CET 2003 - jsuchome@suse.de
+
+- enable re-connecting to ldap server (bug #24198)
+
+-------------------------------------------------------------------
 Mon Feb 24 10:03:47 CET 2003 - jsuchome@suse.de
 
 - fix: group ownership for home directory not set if group is newly
