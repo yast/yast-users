@@ -1,0 +1,191 @@
+// UI-related routines to be run from Users.pm
+{
+
+    module "UsersUI";
+    textdomain "users";
+
+    import "Label";
+
+/**
+ * Return the translated name for system user
+ */
+global define string SystemUserName (string name) ``{
+
+// TODO Fo now (9.0), users are added manualy. For future, scripts which goes
+// through all rpms would be better
+map SystemUsers = $[
+
+    /* User name for user: "root" */
+    "root" : _("root"),
+    /* User name for user: "bin" */
+    "bin" : _("bin"),
+    /* User name for user: "daemon" */
+    "Daemon" : _("Daemon"),
+    /* User name for user: "lp" */
+    "Printing daemon" : _("Printing daemon"),
+    /* User name for user: "mail" */
+    "Mailer daemon" : _("Mailer daemon"),
+    /* User name for user: "news" */
+    "News system" : _("News system"),
+    /* User name for user: "uucp" */
+    "Unix-to-Unix CoPy system" : _("Unix-to-Unix CoPy system"),
+    /* User name for user: "games" */
+    "Games account" : _("Games account"),
+    /* User name for user: "man" */
+    "Manual pages viewer" : _("Manual pages viewer"),
+    /* User name for user: "at" */
+    "Batch jobs daemon" : _("Batch jobs daemon"),
+    /* User name for user: "wwwrun" */
+    "WWW daemon apache" : _("WWW daemon apache"),
+    /* User name for user: "ftp" */
+    "FTP account" : _("FTP account"),
+    /* User name for user: "named" */
+    "Nameserver daemon" : _("Name server daemon"),
+    /* User name for user: "gdm" */
+    "Gnome Display Manager daemon" : _("Gnome Display Manager daemon"),
+    /* User name for user: "postfix" */
+    "Postfix Daemon" : _("Postfix Daemon"),
+    /* User name for user: "sshd" */
+    "SSH daemon" : _("SSH daemon"),
+    /* User name for user: "ntp" */
+    "NTP daemon" : _("NTP daemon"),
+    /* User name for user: "ldap" */
+    "User for OpenLDAP" : _("User for OpenLDAP"),
+    /* User name for user: "nobody" */
+    "nobody" : _("nobody"),
+
+    /* User name for user: "amanda" */
+    "Amanda admin" : _("Amanda admin"),
+    /* User name for user: "vscan" */
+    "Vscan account" : _("Vscan account"),
+    /* User name for user: "bigsister" */
+    "Big Sister" : _("Big Sister"),
+    /* User name for user: "wnn" */
+    "Wnn System Account" : _("Wnn System Account"),
+    /* User name for user: "cyrus" */
+    "User for cyrus-imapd" : _("User for cyrus-imapd"),
+    /* User name for user: "dpbox" */
+    "DpBox account" : _("DpBox account"),
+    /* User name for user: "gnats" */
+    "Gnats Gnu Backtracking System" : _("Gnats Gnu Backtracking System"),
+    /* User name for user: "gnump3d" */
+    "GNUMP3 daemon" : _("GNUMP3 daemon"),
+    /* User name for user: "hacluster" */
+    "heartbeat processes" : _("heartbeat processes"),
+    /* User name for user: "irc" */
+    "IRC daemon" : _("IRC daemon"),
+    /* User name for user: "mailman" */
+    "GNU mailing list manager" : _("GNU mailing list manager"),
+    /* User name for user: "mdom" */
+    "Mailing list agent" : _("Mailing list agent"),
+    /* User name for user: "mysql" */
+    "MySQL database admin" : _("MySQL database admin"),
+    /* User name for user: "oracle" */
+    "Oracle user" : _("Oracle user"),
+    /* User name for user: "postgres" */
+    "PostgreSQL Server": _("PostgreSQL Server"),
+    /* User name for user: "pop" */
+    "POP admin" : _("POP admin"),
+    /* User name for user: "sapdb" */
+    "SAPDB account" : _("SAPDB account"),
+    /* User name for user: "snort" */
+    "Snort network monitor" : _("Snort network monitor"),
+    /* User name for user: "squid" */
+    "WWW-proxy squid" : _("WWW-proxy squid"),
+    /* User name for user: "stunnel" */
+    "Daemon user for stunnel (universal SSL tunnel)" : _("Daemon user for stunnel (universal SSL tunnel)"),
+    /* User name for user: "zope" */
+    "Zope" : _("Zope"),
+
+    /* User name for user: "radiusd" */
+    "Radius daemon" : _("Radius Daemon"),
+    /* User name for user: "otrs" */
+    "OTRS System User" : _("OTRS System User"),
+    /* User name for user: "privoxy" */
+    "Daemon user for privoxy" : _("Daemon User for privoxy"),
+    /* User name for user: "vdr" */
+    "Video Disk Recorder" : _("Video Disk Recorder"),
+
+    /* User name for user: "icecream" */
+    "Icecream Daemon" : _("Icecream Daemon"),
+
+    ];
+    return SystemUsers[name]:name;
+}
+
+/**
+  * Ask user for configuration type (standard or NIS)
+  * @param dir string directory with NIS settings
+  * @return symbol `passwd or `nis or `abort
+  */
+define symbol getConfigurationType (string dir) ``{
+    term contents = `VBox (
+        // label
+        `Label (_("You have installed an NIS master server.
+It is configured to use a different database
+of users and groups than the local system 
+database in the /etc directory.
+Select which one to configure.
+")),
+        `VSpacing (1),
+        `RadioButtonGroup (`id (`configtype), `VBox (
+        // radio button
+        `RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
+        `VSpacing (1),
+        // radio button, %1 is path (eg. /etc)
+        `RadioButton (`id (`nis), `opt (`hstretch), sformat(_("&NIS (%1 directory)"), dir), false)
+        )),
+        `VSpacing (1),
+        `HBox (
+        `HStretch (),
+        `PushButton (`id (`ok), `opt(`default), Label::OKButton()),
+        `HStretch (),
+        `PushButton (`id (`abort), Label::AbortButton()),
+        `HStretch ()
+        )
+    );
+    UI::OpenDialog (contents);
+    symbol ret = nil;
+    while (ret == nil)
+    {
+        ret = (symbol) UI::UserInput ();
+        if (ret != `cancel && ret != `ok)
+            continue;
+    }
+    if (ret == `ok)
+        ret = (symbol) UI::QueryWidget (`id (`configtype), `CurrentButton);
+    UI::CloseDialog ();
+    return ret;
+}
+
+/**
+ * If we can ask and are a NIS server, ask which set of users
+ * to administer and set UserWriteStack accordingly.
+ * @param basedir the directory, where the data are stored
+ * @return directory
+ */
+global define string ReadNISConfigurationType (string basedir)``{
+
+    string ypdir = (string)SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
+    while (substring (ypdir, size (ypdir) - 1) == "/")
+    {
+        ypdir = substring (ypdir, 0, size (ypdir) -1);
+    }
+    if (ypdir == "" || ypdir == nil)
+        ypdir = basedir;
+    if (ypdir != basedir)
+    {
+        symbol type = getConfigurationType (ypdir);
+        if (type == `abort)
+        {
+            return nil;
+        }
+        if (type != `nis)
+        {
+            ypdir = basedir;
+	}
+    }
+    return ypdir;
+}
+
+}//EOF

@@ -12,7 +12,8 @@ module_DATA =		\
     Users.pm		\
     UsersCache.pm	\
     UsersLDAP.pm	\
-    UsersRoutines.pm
+    UsersRoutines.pm	\
+    UsersUI.ycp
 
 ynclude_DATA =		\
     complex.ycp		\
@@ -21,7 +22,6 @@ ynclude_DATA =		\
     wizards.ycp		\
     widgets.ycp		\
     routines.ycp
-#    passwd.ycp
 
 client_DATA = 		\
     users.ycp		\
