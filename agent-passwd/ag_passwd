@@ -367,7 +367,7 @@ sub update_groups () {
 		$all_users .= "...";
 	    }
 	    $groups_itemlists{$type}{$gid} =
-	"`item(`id($gid), ".$group{"groupname"}.", \"$gid\", \"$all_users\")";
+	"`item(`id($gid), \"".$group{"groupname"}."\", \"$gid\", \"$all_users\")";
 
 	}
     }
