@@ -1,5 +1,11 @@
 /**
+ * Module:		Users.ycp
  *
+ * Authors:		Anas Nashif (nashif@suse.de)
+ *
+ * Purpose:		Handle users functions
+ *
+ * $Id$
  */
 {
     module "Users";
@@ -125,6 +131,7 @@
      * @return true on success
      */
     global define boolean Write ()``{
+	
 	any ret = usersSaveDialog();
 	return true;
     }
