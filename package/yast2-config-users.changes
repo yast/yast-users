@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sat Sep  8 14:54:44 CEST 2001 - jbuch@suse.de
+
+- Add the new CheckBox "Also view system users/groups"
+- Changed TextEntry for userlist/grouplist to MultiSelectionBox 
+
+-------------------------------------------------------------------
 Fri Sep  7 18:08:20 CEST 2001 - jbuch@suse.de
 
 - fixed bug 10290 
