@@ -49,6 +49,7 @@ include "users/routines.ycp";   // for EncryptionDialog()
 
   string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
   Users::encryptionMethod = encryptionMethod;
+  Users::max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
 
   // Title for root-password dialogue
   string title = _("Password for \"root\", the system administrator");
@@ -172,6 +173,8 @@ Do not forget this \"root\" password!
 
       if ( this_is_for_real )
       {
+	Users::encryptionMethod = encryptionMethod;
+	Users::max_length_pas =Security::PasswordMaxLengths[encryptionMethod]:8;
          if (pw1 == "")
          {
             // report if user forgot to enter a password
@@ -193,7 +196,6 @@ Are you sure?")))
                 continue;
             }
          }
-
          if ( findfirstnotof (pw1, Users::valid_password_chars ) != nil )
          {
             // There is a check whether the information from the UI is
@@ -204,8 +206,13 @@ Are you sure?")))
             Users::rootPassword = "";
             continue;
          }
+	 if (!CheckPasswordMaxLength(pw1))
+	 {
+            // Invalidate any old password
+            Users::rootPassword = "";
+            continue;
+	 }
 
-	Users::encryptionMethod = encryptionMethod;
         if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
         {
             Security::modified = true;
@@ -215,15 +222,15 @@ Are you sure?")))
             Progress::on();
         }
 
-         y2milestone( "encrypting with %1", Users::encryptionMethod );
+        y2milestone( "encrypting with %1", Users::encryptionMethod );
 
-         Users::cryptRootPassword(pw1);
-         if ( ! Users::SetRootPassword())
-         {
+        Users::cryptRootPassword(pw1);
+        if ( ! Users::SetRootPassword())
+	{
              // Error msg
              Report::Error(_("The root password could not be set.
 You will not be able to log in.\n"));
-         }
+        }
       }
       }
   } until ( ret == `next || ret == `back || ret == `cancel );

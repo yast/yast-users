@@ -33,6 +33,18 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(string what) ``{
 
+    /**
+     * Invalidate any old password
+     * Clear password inputfields
+     */
+    define void clear_password_fields () ``{
+
+	password = "";
+        UI::ChangeWidget(`id(`pw1), `Value, "");
+	UI::ChangeWidget(`id(`pw2), `Value, "");
+        UI::SetFocus(`id(`pw1));
+    }
+
     y2internal ("user: %1", Users::user_in_work);
     map org_user = Users::user_in_work["org_user"]:eval(Users::user_in_work);
 
@@ -533,13 +545,7 @@ Press Details and edit the home directory."), home_path));
                 Report::Error(_("The first and the second version
 of the password are different.
 Please try again."));
-                password = "";
-                // Invalidate any old password
-                // clear password inputfields in this case
-                UI::ChangeWidget(`id(`pw1), `Value, "");
-                UI::ChangeWidget(`id(`pw2), `Value, "");
-
-                UI::SetFocus(`id(`pw1));
+		clear_password_fields ();
                 continue;
             }
 
@@ -554,13 +560,7 @@ Please try again."));
                 // information is empty (no user input)
                 // error popup
                 Report::Error(_("You didn't enter a password.\nPlease try again."));
-                password = "";
-
-                // clear password inputfields in this case
-                UI::ChangeWidget(`id(`pw1), `Value, "");
-                UI::ChangeWidget(`id(`pw2), `Value, "");
-
-                UI::SetFocus(`id(`pw1));
+		clear_password_fields ();
                 continue;
             }
             if (size (pw1) < Users::min_length_pas && pw1 != "")
@@ -574,26 +574,8 @@ Please try again."));
                     Users::min_length_pas,
                     Users::max_length_pas));
 
-                password = "";
-
-                // clear password inputfields in this case
-                UI::ChangeWidget(`id(`pw1), `Value, "");
-                UI::ChangeWidget(`id(`pw2), `Value, "");
-                UI::SetFocus(`id(`pw1));
+		clear_password_fields ();
                 continue;
-            }
-            if (size(pw1) >  Users::max_length_pas)
-            {
-                // error popup. %1 is number (typical 8)
-                if (!UI::YesNoPopup (sformat(_("The password is longer than %1 characters. It will be truncated to %1 characters."),
-                        Users::max_length_pas)))
-                {
-                password = "";
-                UI::ChangeWidget(`id(`pw1), `Value, "");
-                UI::ChangeWidget(`id(`pw2), `Value, "");
-                UI::SetFocus(`id(`pw1));
-                continue;
-                }
             }
             if ( size(pw1) >=  Users::min_length_pas )
             {
@@ -607,49 +589,39 @@ Please try again."));
                 Report::Error(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again."));
-                password = "";
-
-                // clear password inputfields in this case
-                UI::ChangeWidget(`id(`pw1), `Value, "");
-                UI::ChangeWidget(`id(`pw2), `Value, "");
-                UI::SetFocus(`id(`pw1));
+		clear_password_fields ();
                 continue;
                 }
             }
-            /* cracklib password check TODO: LATER
+            /* cracklib password check TODO */
             if (Users::use_cracklib)
             {
-                string crack_out = Users::CrackPassword (username, pw1);
+                string crack_out = CrackPassword (username, pw1);
                 if (crack_out != "" && crack_out != "OK")
                 {
                     // error message of cracklib
-                    Report::Error("");
-                    password = "";
-
-                    // clear password inputfields in this case
-                    UI::ChangeWidget(`id(`pw1), `Value, "");
-                    UI::ChangeWidget(`id(`pw2), `Value, "");
-                    UI::SetFocus(`id(`pw1));
+                    Report::Error(out);
+		    clear_password_fields ();
                     continue;
                 }
             }
-            */
             if (Users::obscure_checks && !details)
             {
-                string obs = Users::CheckObscurity (username, pw1);
+                string obs = CheckObscurity (username, pw1);
                 if (obs != "OK")
                 {
                     if (!UI::YesNoPopup (obs))
                     {
-                        password = "";
-                        // clear password inputfields in this case
-                        UI::ChangeWidget(`id(`pw1), `Value, "");
-                        UI::ChangeWidget(`id(`pw2), `Value, "");
-                        UI::SetFocus(`id(`pw1));
+			clear_password_fields ();
                         continue;
                     }
                 }
             }
+	    if (!CheckPasswordMaxLength (pw1))
+	    {
+		clear_password_fields ();
+		continue;
+	    }
             if (pw1 != "x" && pw1 != "")
             {
                 // to use with autoinst.

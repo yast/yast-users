@@ -559,7 +559,7 @@ global define string SplitFullName(symbol what,string fullname, string type) ``{
     if ( what == `forename ) return forename;
 }
 
-/** TODO: move to dialogs.ycp?
+/** TODO: move to ui_routines.ycp?
  * Let user choose the encryption method.
  **/
 global define string EncryptionDialog() ``{
@@ -654,6 +654,89 @@ As a general rule of thumb, use DES if you are unsure.
       UI::CloseDialog();
       return method;
   };
+
+/** TODO: move to some ui_routines?
+ * Checks if password is not too long
+ * @param pw
+ * @return true when it is OK (or user accepts truncation)
+ **/
+global define boolean CheckPasswordMaxLength (string pw) ``{
+
+    if (size(pw) > Users::max_length_pas)
+    {
+	// error popup. %1 is number (typical 8)
+        return (UI::YesNoPopup (sformat(_("The password is too long for current encryption method.
+It will be truncated to %1 characters."), Users::max_length_pas)));
+
+    }
+    return true;
+}
+
+/**
+ * Just some simple checks for password contens
+ * @param username user name
+ * @param pw password
+ * @return error message (password too sumple) or empty string (OK)
+ */
+global define string CheckObscurity (string username, string pw) ``{
+
+    // temporary checked here, TODO use some agent
+    if (issubstring (pw, username))
+    {
+        // yes/no popup
+        return _("You have used the user name as a part of the password.
+This is not good security practice. Are you sure?
+");
+    }
+    // check for lowercase
+    if (deletechars (pw, "abcdefghijklmnopqrstuvwxyz") == "")
+    {
+        // yes/no popup
+        return _("You have used only lowercase letters for the password.
+This is not good security practice. Are you sure?
+");
+    }
+    // check for numbers
+    if (deletechars (pw, "0123456789") == "")
+    {
+        // yes/no popup
+        return _("You have used only digits for the password.
+This is not good security practice. Are you sure?");
+    }
+
+    return "OK";
+
+}
+
+/**
+ * Try to crack password using cracklib
+ * @param username user name
+ * @param pw password
+ * @return utility output: ether "OK" or error message
+ */
+global define string CrackPassword (string username, string pw) ``{
+
+
+    return "OK"; //FIXME
+//    return (SCR::Execute(.crack, pw));
+    /*
+    // write password to some shadow file
+    string shadowfile = tmpdir + "/shadowfile";
+    SCR::Write(.target.string, shadowfile, sformat ("%1 %2", username, pw));
+
+    string out = lookup (SCR::Execute (.target.bash_output,
+        sformat ("/bin/cat %1 | /usr/bin/vpass", shadowfile)), "stdout", "");
+
+    // remove \n at the end
+    out = substring(out, 0, size(out)-1);
+
+    SCR::Execute(.target.bash, sformat ("/bin/rm -f %1", shadowfile));
+
+    return out;
+    */
+
+}
+
 
 
 } // EOF

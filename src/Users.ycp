@@ -2055,6 +2055,8 @@ define boolean ReadDefaultGroup(boolean useUI)``{
  */
 global define boolean ReadSystemDefaults()``{
 
+	// TODO: read all settings from Security module...
+
 	// pam stuff
 	map pam_unix_map = $[];
 	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
@@ -2079,11 +2081,9 @@ global define boolean ReadSystemDefaults()``{
     max_system_gid = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
     if (nil == max_system_gid)
         max_system_gid = 99;
-	max_length_uid = size(sformat("%1", max_uid));
-	max_length_gid = size(sformat("%1", max_gid));
-    max_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
-    if (nil ==  max_length_pas)
-        max_length_pas = 8;
+    max_length_uid = size(sformat("%1", max_uid));
+    max_length_gid = size(sformat("%1", max_gid));
+
     min_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
     if (nil ==  min_length_pas)
         min_length_pas = 5;
@@ -2109,15 +2109,12 @@ global define boolean ReadSystemDefaults()``{
     sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
     obscure_checks = (sec == "yes") ? true: false;
 
+    max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
     y2debug ("encryption: %1", Users::encryptionMethod);
-
-	// set maximal password length -- is 128 right value??
-	if ("des" != encryptionMethod)
-	    max_length_pas = 128;
 
     encoding = Console::encoding;
 
-	return true;
+    return true;
 }
 
 
@@ -2127,13 +2124,13 @@ global define boolean ReadSystemDefaults()``{
  */
 global define map GetDefaultShadow()``{
 
-	return	$[
-           "expire"	: default_expire,
-		   "inact"	: default_inactive,
-           "last_change": "", // LastChangeIsNow() is called from dialogs
-		   "max"	: sformat("%1", pass_max_days),
-		   "min"	: sformat("%1", pass_min_days),
-		   "warn"	: sformat("%1", pass_warn_age)
+    return $[
+	"expire": default_expire,
+	"inact"	: default_inactive,
+	"last_change": "", // LastChangeIsNow() is called from dialogs
+	"max"	: sformat("%1", pass_max_days),
+	"min"	: sformat("%1", pass_min_days),
+	"warn"	: sformat("%1", pass_warn_age)
     ];
 }
 
@@ -2941,66 +2938,6 @@ after you mount correctly. Continue user configuration?
     }
     return true;
 
-}
-
-/**
- * Just some simple checks for password contens
- * @param username user name
- * @param pw password
- * @return error message (password too sumple) or empty string (OK)
- */
-global define string CheckObscurity (string username, string pw) ``{
-
-    // temporary checked here, TODO use some agent
-    if (issubstring (pw, username))
-    {
-        // yes/no popup
-        return _("You have used the user name as a part of the password.
-This is not good security practice. Are you sure?
-");
-    }
-    // check for lowercase
-    if (deletechars (pw, "abcdefghijklmnopqrstuvwxyz") == "")
-    {
-        // yes/no popup
-        return _("You have used only lowercase letters for the password.
-This is not good security practice. Are you sure?
-");
-    }
-    // check for numbers
-    if (deletechars (pw, "0123456789") == "")
-    {
-        // yes/no popup
-        return _("You have used only digits for the password.
-This is not good security practice. Are you sure?");
-    }
-
-    return "OK";
-
-}
-
-/**
- * Try to crack password using cracklib
- * TODO: postponed until tranltation of error messages
- * @param username user name
- * @param pw password
- * @return utility output: ether "OK" or error message
- */
-global define string CrackPassword (string username, string pw) ``{
-
-    // write password to some shadow file
-    string shadowfile = tmpdir + "/shadowfile";
-    SCR::Write(.target.string, shadowfile, sformat ("%1 %2", username, pw));
-
-    string out = lookup (SCR::Execute (.target.bash_output,
-        sformat ("/bin/cat %1 | /usr/bin/vpass", shadowfile)), "stdout", "");
-
-    // remove \n at the end
-    out = substring(out, 0, size(out)-1);
-
-    SCR::Execute(.target.bash, sformat ("/bin/rm -f %1", shadowfile));
-
-    return out;
 }
 
 }// EOF
