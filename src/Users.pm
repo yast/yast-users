@@ -5604,6 +5604,7 @@ sub ImportGroup {
 	my $existing 	= $self->GetGroupByName ($groupname, "");
 	if (ref ($existing) eq "HASH" && %{$existing}) {
 	    $gid	= $existing->{"gidnumber"};
+	    $type       = $existing->{"type"} || $type;
 	}
     }
     elsif (($gid <= UsersCache->GetMaxGID ("system") ||
@@ -5787,7 +5788,9 @@ sub Import {
     }
 
     # we're not interested in local userlists...
-    RemoveDiskUsersFromGroups ($groups{"system"});
+    if (Mode->config ()) {
+	RemoveDiskUsersFromGroups ($groups{"system"});
+    }
 
     if (Mode->config ()) {
 	$groups{"local"}		= {};

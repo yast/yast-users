@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Mar  4 14:04:14 CET 2005 - jsuchome@suse.cz
+
+- autoyast: do not import groups that already exist as new
+- 2.11.16 
+
+-------------------------------------------------------------------
 Mon Feb 28 10:29:34 CET 2005 - jsuchome@suse.cz
 
 - 2.11.15 
