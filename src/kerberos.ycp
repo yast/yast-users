@@ -19,7 +19,20 @@ import "Kerberos";
 global define symbol KerberosDialog () ``{
 
     // help text
-    string help_text = "";
+    string help_text = _("<p>
+<b>Autentication with Kerberos</b><br>
+You can update your PAM settings to enable the Kerberos autentication for your users. 
+</p>")+
+
+_("<p><b>Authentication modes</b><br>
+If you choose <b>optional</b> mode, the primary authentication is with the existing framework, such as user entries in the <i>/etc/shadow</i> or NIS/LDAP database. The only difference is that, in addition, if there is a Kerberos principal associated with the user, PAM module will try to obtain a ticket on behalf of the user, using the previously suplied password.
+<br>
+Otherwise, when you want to use Kerberos PAM module as a primary authentication mechanism, select <b>sufficient</b>. When user fails to log in (because there is no such principal in Kerberos database or the KDC is down), the system will try to authenticate the user with the entered password against the remaining defined database (local files, NIS, LDAP). 
+</p>");
+
+    help_text = help_text + _("<p>
+<b>Setting the Kerberos client</b><br>
+This is just a simple confiuration of your client. Please enter your <b>default realm</b> and the <b>host name</b> or <b>adress</b> of your Key Distribution Center (KDC)");
 
     boolean use_pam_krb = Kerberos::use_pam_krb;
     string default_realm = Kerberos::default_realm;
@@ -28,7 +41,6 @@ global define symbol KerberosDialog () ``{
 //    string arguments = Kerberos::argumets;
 
     list controls = [
-        `item (`id ("required"), "required", false),
         `item (`id ("optional"), "optional", false),
         `item (`id ("sufficient"), "sufficient", false)
     ];
@@ -48,7 +60,7 @@ global define symbol KerberosDialog () ``{
                         `Left(`RadioButton(`id(`pamyes), `opt (`notify), _("&Use Kerberos"), use_pam_krb)))))),
                 // text entry label
                 `ComboBox (`id (`auth_control), `opt(`hstretch),
-                    _("Kerberos &authentification is"), controls),
+                    _("&Authentication mode"), controls),
                 `VSpacing (0.5))
         ),
         `VSpacing(1),
@@ -69,7 +81,6 @@ global define symbol KerberosDialog () ``{
         `VSpacing(1)
     ));
 
-
     Wizard::SetContentsButtons (
         // dialog title
         _("Kerberos Client Configuration"), con, help_text,
@@ -89,8 +100,9 @@ global define symbol KerberosDialog () ``{
             UI::ChangeWidget (`id (`auth_control), `Enabled, use_pam_krb);
         }
 
-        default_realm = UI::QueryWidget(`id(`realm), `Value);
-        kdc = UI::QueryWidget(`id(`kdc), `Value);
+        default_realm = UI::QueryWidget (`id(`realm), `Value);
+        kdc = UI::QueryWidget (`id(`kdc), `Value);
+        control = UI::QueryWidget (`id (`auth_control), `Value);
 
         if (result == `next && use_pam_krb) {
 
@@ -115,7 +127,13 @@ global define symbol KerberosDialog () ``{
 
     if (result == `next)
     {
-        Kerberos::use_pam_krb = use_pam_krb;
+        if (use_pam_krb != Kerberos::use_pam_krb ||
+            control != Kerberos::control)
+        {
+            Kerberos::use_pam_krb = use_pam_krb;
+            Kerberos::control = control;
+            Kerberos::pam_modified = true;
+        }
         Kerberos::default_realm = default_realm;
         Kerberos::kdc = kdc;
     }
@@ -125,7 +143,6 @@ global define symbol KerberosDialog () ``{
 
 
     // -- main
-
     Wizard::CreateDialog ();
     Wizard::ReplaceAbortButton(`Empty ());
 
