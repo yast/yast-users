@@ -140,17 +140,12 @@ Here you can choose the authentication method of users on your system.
 	    if ( WFM::CallFunction (`inst_confirm_abort(`incomplete) ) )
 		break;
 	}
-	else if (ret == `local)
+	else if (ret == `local || ret == `network)
 	{
-        foreach (`client, available_clients, ``{
-            UI::ChangeWidget (`id(client), `Enabled, false);
-        });
-	}
-	else if (ret == `network)
-	{
-        foreach (`client, available_clients, ``{
-            UI::ChangeWidget (`id(client), `Enabled, true);
-        });
+	    boolean tmp = !UI::QueryWidget (`id(`local), `Value);
+	    foreach (`client, available_clients, ``{
+		UI::ChangeWidget (`id(client), `Enabled, tmp);
+	    });
 	}
 	else if ( ret == `help )
 	{

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb 25 11:36:02 CET 2003 - arvin@suse.de
+
+- save use of notify events in inst_auth.ycp
+
+-------------------------------------------------------------------
 Mon Feb 24 17:26:34 CET 2003 - jsuchome@suse.de
 
 - enable re-connecting to ldap server (bug #24198)
