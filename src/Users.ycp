@@ -1065,11 +1065,12 @@ after you mount correctly. Continue user configuration?
 global define list GetAllShells(symbol todo ) ``{
 
     list available_shells =  [];
-    list shells_read = (list) SCR::Read(.etc.shells);
+    string shells_s = (string) SCR::Read (.target.string, "/etc/shells");
+    list shells_read = splitstring (shells_s, "\n");
 
     foreach(any shell_entry, shells_read, ``{
 
-	if( is( shell_entry, string ))
+	if( is( shell_entry, string ) && shell_entry != "")
 	{
 	    if ( (! issubstring( (string)shell_entry, "passwd")) &&
 		 (! issubstring( (string)shell_entry, "bash1")) )
@@ -2031,7 +2032,7 @@ global define map SubstituteValues (string what, map data) ``{
 
 	// translate attribute names from LDAP to yast-type
 	string ldap_attr = ldap_attrs_conversion [attr]:attr;
-	string val = defaults [ldap_attr]:nil;
+	string val = (string) lookup (defaults, ldap_attr, nil);
 
 	if (val != nil && issubstring (val, "%"))
 	{
@@ -2154,7 +2155,7 @@ global define string CreateGroupDN (map group) ``{
  */
 global define boolean Add (string what, map data)``{
 
-    string type = data["type"]:nil;
+    string type = (string) lookup (data, "type", nil);
     if (what == "user")
     {
 	// what could be in "data":
