@@ -31,14 +31,12 @@ client_DATA = 		\
 config_DATA =			\
 	users.y2cc		\
 	groups.y2cc	
-#	\
-#	add_user.y2cc		\
-#	add_group.y2cc
 
 ybin_SCRIPTS =  \
     build_passwd_structures.pl  \
-    build_nis_structures.pl  \
-    build_ldap_structures.pl
+    build_nis_structures.pl     \
+    build_ldap_structures.pl    \
+    build_additional_users.pl
 
 ydata_DATA = accounts.ycp
 

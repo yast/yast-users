@@ -16,22 +16,22 @@ import "Mode";
 
 include "users/passwd.ycp";
 
-// list of home directories
+// map of list of home directories
 global map homelists = $[];
 global map usernamelists = $[];
 global map groupnamelists = $[];
 global map users_itemlists = $[];
-global map groups_itemlists = $[]; // global ??
+global map groups_itemlists = $[];
 // item list of all users used in edit group dialog
 global list additional_users = [];
 global list user_itemlist = [];
 global list group_itemlist = [];
 map uidlists = $[];
 global list gidlist = [];
-global list current_users = []; // global ??
-global list current_groups = []; // global ??
-global list user_custom_sets = []; // global ??
-global list group_custom_sets = []; // global ??
+global list current_users = [];
+global list current_groups = [];
+global list user_custom_sets = [];
+global list group_custom_sets = [];
 
 global symbol user_type = `local;
 global symbol group_type = `local;
@@ -232,7 +232,8 @@ define string addBlanks(integer count ) ``{
     while (  blanks_counter < count )
     {
         blanks_counter = blanks_counter + 1;
-        blanks         = blanks + "\302\240"; // why this ??
+//        blanks         = blanks + "\302\240"; // why this ??
+        blanks         = blanks + " "; // why this ??
     }
     return blanks;
 }
@@ -624,8 +625,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
-
-
 }
+
 
 }

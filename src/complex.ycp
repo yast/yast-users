@@ -24,7 +24,6 @@ include "ui/common_messages.ycp";
 
 include "users/helps.ycp";
 
-
 /**
  * Return a modification status
  * @return true if data was modified
@@ -132,11 +131,7 @@ global define symbol ReallyAbort() ``{
  * @return symbol for wizard sequencer
  */
 global define symbol UsersDialog() ``{
-y2milestone ("start dialog = %1", Users::start_dialog);
     Users::start_dialog              ="users";
-y2milestone ("start dialog = %1", Users::start_dialog);
-//  Users::user_in_work = $[]; // why here?
-y2milestone("--------------- Users summary");
     term contents = `VBox(
         rbUsersGroup(`users),
         `Table(`id(`user_table), `opt(`notify),
@@ -213,17 +208,13 @@ y2milestone("--------------- Users summary");
                     UsersCache::user_itemlist);
             ret = `not_next;
         }
-
-        // double click
         if( ret == `user_table )
             ret = `edit;
-
         if ( ret == `edit  || ret == `delete )
         {
             any selected = UI::QueryWidget(`id(`user_table), `CurrentItem);
             if (selected != nil)
             {
-                // what about using Users::Add/Edit/Delete?
                 Users::SelectUser( selected );
                 UsersCache::user_type = Users::user_in_work["type"]:`local;
                 if (ret == `delete)
@@ -239,17 +230,21 @@ y2milestone("--------------- Users summary");
         if ( ret == `new )
         {
             Users::user_in_work = $[];
+            if (Users::kerberos_auth)
+            {
+                // error popup
+                Report::Message (_("As you are using Kerberos for authentication, you cannot add local users."));
+                ret = `not_next;
+            }
         }
     } until ( ret != `not_next );
 
     if (ret == `back)
     {
         // -- don't understand at all... beware!!
-        // UserWriteStack::Reset ();
         if (Mode::cont)
         {
             Users::start_dialog = "user_add";
-            //UsersCache::ReadSettingsFromDisk(false);
         }
         Users::use_next_time = true; // ??
     }
@@ -265,8 +260,6 @@ y2milestone("--------------- Users summary");
  * @return symbol for wizard sequencer
  */
 global define symbol GroupsDialog() ``{
-y2milestone("--------------- Groups summary");
-    //group_in_work = $[];
 
     term contents = `VBox(
         rbUsersGroup(`groups),
@@ -288,8 +281,6 @@ y2milestone("--------------- Groups summary");
             `MenuButton(_("&Set filter"), Users::available_groupsets_items),
             // PushButyon
             `PushButton(`id(`customize), _("Customi&ze filter")),
-            /* PushButyon
-            `PushButton(`id(`defaults), _("S&et defaults")),*/
             `HStretch())
     );
 
@@ -389,8 +380,7 @@ global define symbol DeleteUserPopup() ``{
     if (UsersCache::user_type == `nis)
     {
         // error popup
-        Report::Message (sformat (_("Can't delete the user %1"), username));
-        // reason??
+        Report::Message (sformat (_("Can't delete the user %1, it has to be done on NIS server"), username));
         return `not_next;
     }
 
@@ -418,7 +408,6 @@ Please log off the user first."));
     }
     else
     {
-//        if( lookup( user_in_work, "exist", true ) && home != "")
         if( org_home != "")
         {
         term contents = `HBox(
@@ -585,7 +574,8 @@ global define boolean CustomizePopup(string what) ``{
     return modified;
 }
 
-/* -- move to some other include
+/*
+ * Just giving paramaters for commiting user
  */
 global define symbol UserSave() ``{
 
@@ -598,7 +588,8 @@ global define symbol UserSave() ``{
     return `next;
 }
 
-/* -- move to some other include
+/*
+ * Just giving paramaters for commiting group
  */
 global define symbol GroupSave() ``{
 
@@ -624,7 +615,6 @@ global define term rbUsersGroup(symbol what) ``{
                 _("&Groups administration"), what == `groups)
         )));
 }
-
 
 /**
  * Save focus of main dialog's table
