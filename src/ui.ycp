@@ -20,6 +20,7 @@
     textdomain "users";
     import "Wizard";
     import "Mode";
+    import "Report";
 
     // ===== includes =================================================
     //include "ui/wizard_dialog.ycp";
@@ -136,7 +137,7 @@
 		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input ,nil);
 		    else
 		    {
-			UI::MessagePopup(_("Please select an entry in the user table"));
+			Report::Message(_("Please select an entry in the user table"));
 			ret = `not_next;
 		    }
 		   
@@ -273,7 +274,7 @@
 			{
 			    string error = sformat(UI(_("The selected User Id is not allowed.
 Please select a valid integer between 0 and %1")), max_uid );
-			    UI::ErrorPopup( error );
+			    Report::Error( error );
 			    UI::SetFocus(`id(`uid));
 			    continue;
 			}
@@ -294,7 +295,7 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
 
 			if(  haskey( current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
 			{
-			    UI::ErrorPopup(_("The inputted User Id is reserved.
+			    Report::Error(_("The inputted User Id is reserved.
 Please select a another User Id"));
 			    UI::SetFocus(`id(`uid));
 			    continue;
@@ -318,7 +319,7 @@ Please select a another User Id"));
 			if( (nil != findfirstnotof( new_home, valid_home_chars )) ||
 			    (  0 != findfirstof( new_home, "/")   ))
 			{
-			    UI::ErrorPopup(_("The home directory  may only contain the following characters:
+			    Report::Error(_("The home directory  may only contain the following characters:
 a..zA..Z0..9/
 Please try again."));
 			    UI::SetFocus(`id(`home));
@@ -328,7 +329,7 @@ Please try again."));
 			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
 			if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1  )
 			{
-			    UI::ErrorPopup(_("The home directory is used from another user.
+			    Report::Error(_("The home directory is used from another user.
 Please try again."));
 			    UI::SetFocus(`id(`home));
 			    continue;
@@ -374,7 +375,7 @@ Please try again."));
 				    });
 				    if ( found == false )
 				    {
-					UI::ErrorPopup(_("You can only assign the user
+					Report::Error(_("You can only assign the user
 groups that really exists.
 Please try again."));
 					UI::SetFocus(`id(`grouplist));
@@ -386,7 +387,7 @@ Please try again."));
 			}
 			else
 			{
-			    UI::ErrorPopup(_("The groupfield may contain only
+			    Report::Error(_("The groupfield may contain only
 letters and digits.
 Please try again."));
 			    UI::SetFocus(`id(`grouplist));
@@ -656,7 +657,7 @@ Please try again."));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The name information is not
 			// complete, the user is asked to complete the information
-			UI::ErrorPopup(_("Please enter a name."));
+			Report::Error(_("Please enter a name."));
 			UI::SetFocus(`id(`surname));
 			continue;
 		    }
@@ -666,7 +667,7 @@ Please try again."));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username is empty (no user
 			//  input).
-			UI::ErrorPopup(_("You didn't enter a username.
+			Report::Error(_("You didn't enter a username.
 Please try again.
 "));	
 			UI::SetFocus(`id(`username));
@@ -678,7 +679,7 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username must have a size
 			// between 2 and 8 characters.
-			UI::ErrorPopup(_("The username must be between 2 and 8 characters in length.
+			Report::Error(_("The username must be between 2 and 8 characters in length.
 Please try again.
 "));
 			UI::SetFocus(`id(`username));
@@ -693,7 +694,7 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The login name may contain only
 			// certain characters and must begin with a letter.
-			UI::ErrorPopup(_("The username may contain only
+			Report::Error(_("The username may contain only
 lower case letters and digits
 and must begin with a letter.
 Please try again.
@@ -709,7 +710,7 @@ Please try again.
 		    {
 			// Tell the user that the login he entered conflicts with
 			// predefined logins in the passwd file.
-			UI::ErrorPopup(_("There is a conflict between the entered
+			Report::Error(_("There is a conflict between the entered
 login name and a predefined username.
 
 Please try another one.
@@ -723,7 +724,7 @@ Please try another one.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
-			UI::ErrorPopup(_("The first and the second version
+			Report::Error(_("The first and the second version
 of the password are different.
 Please try again."));
 			password = "";
@@ -746,7 +747,7 @@ Please try again."));
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The first user password
 			    // information is empty (no user input)
-			    UI::ErrorPopup(_("You didn't enter a password.\nPlease try again."));
+			    Report::Error(_("You didn't enter a password.\nPlease try again."));
 			    password = "";
 			  		    
 			    // clear password inputfields in this case
@@ -761,7 +762,7 @@ Please try again."));
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
-			    UI::ErrorPopup(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+			    Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
 						   min_length_pas,
 						   max_length_pas));
 			    password = "";
@@ -781,7 +782,7 @@ Please try again."));
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
 				// contain only certain characters
-				UI::ErrorPopup(_("The password may only contain the following characters:
+				Report::Error(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again."));
 				password = "";
@@ -814,7 +815,7 @@ Please try again."));
 			//if( SCR(`Read(.target.dir , home )) != nil )
 			if(    SCR::Read(.target.size, home ) != -1  )
 			{
-			    UI::ErrorPopup(_("The default home directory is used from another user.
+			    Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
 			    continue;
 			}
@@ -876,7 +877,7 @@ Please press button Details and edit home directory."));
 	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
 				       (groupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
 	{
-	    UI::ErrorPopup(_("You can not delete this user, because the user is present.
+	    Report::Error(_("You can not delete this user, because the user is present.
 Please log off the user first."));
 	    delete = false;
 	}
@@ -1073,7 +1074,7 @@ Do you really want to delete the user %1?
 		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input ,nil);
 		    else
 		    {
-			UI::ErrorPopup(_("Please select an entry in the group table"));
+			Report::Error(_("Please select an entry in the group table"));
 			ret = `not_next;
 		    }
 		   
@@ -1185,7 +1186,7 @@ Do you really want to delete the user %1?
 			// There is a check whether the information from the UI is
 			// correct and complete.  The new_groupname is empty (no group
 			//  input).
-			UI::ErrorPopup(_("You didn't enter a groupname.
+			Report::Error(_("You didn't enter a groupname.
 Please try again.
 ")) ;	
 			UI::SetFocus(`id(`groupname)) ;
@@ -1198,7 +1199,7 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The groupname must have a size
 			// between 2 and 8 characters.
-			UI::ErrorPopup(_("The groupname must be between 2 and 8 characters in length.
+			Report::Error(_("The groupname must be between 2 and 8 characters in length.
 Please try again.
 ")) ;
 			UI::SetFocus(`id(`groupname)) ;
@@ -1213,7 +1214,7 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The groupname may contain only
 			// certain characters and must begin with a letter.
-			UI::ErrorPopup(_("The groupname may contain only
+			Report::Error(_("The groupname may contain only
 lower case letters and digits
 and must begin with a letter.
 Please try again.
@@ -1241,7 +1242,7 @@ Please try another one.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
-			UI::ErrorPopup(_("The first and the second version
+			Report::Error(_("The first and the second version
 of the password are different.
 Please try again.")) ;
 			password = "x";
@@ -1266,7 +1267,7 @@ Please try again.")) ;
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
-			    UI::ErrorPopup(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+			    Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
 						   min_length_pas,
 						   max_length_pas));
 			    password = "x";
@@ -1288,7 +1289,7 @@ Please try again.")) ;
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
 				// contain only certain characters
-				UI::ErrorPopup(_("The password may only contain the following characters:
+				Report::Error(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again."));
 				password = "x";
@@ -1359,7 +1360,7 @@ Please try again."));
 				{
 				    if ( new_user != "")
 				    {		
-					UI::ErrorPopup(_("You can only assign the group
+					Report::Error(_("You can only assign the group
 users that really exists.
 Please try again."));
 					UI::SetFocus(`id(`userlist));
@@ -1386,7 +1387,7 @@ Please try again."));
 					{
 					    string error_text = sformat(UI(_("You can't delete the user -%1- from this group,
 because the user's defaultgroup is this group")), old_user );
-					    UI::ErrorPopup(error_text );
+					    Report::Error(error_text );
 					    UI::ChangeWidget(`id(`userlist), `Value, userlist);
 					    UI::SetFocus(`id(`userlist));
 					    all_found = false;
@@ -1398,7 +1399,7 @@ because the user's defaultgroup is this group")), old_user );
 			}
 			else
 			{
-			    UI::ErrorPopup(_("Syntax in Members of this group is not ok.
+			    Report::Error(_("Syntax in Members of this group is not ok.
 Please try again."));
 			    UI::SetFocus(`id(`userlist));
 			    continue;
@@ -1413,7 +1414,7 @@ Please try again."));
 			if( (!( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil )) ||
 			    nil !=  findfirstnotof( new_gid, valid_id_chars ))
 			{
-			    UI::ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
+			    Report::Error(sformat(UI(_("The selected Group Id is not allowed.
 Please select a valid integer between 0 and %1")), max_gid));
 			    UI::SetFocus(`id(`gid));
 			    continue;
@@ -1424,7 +1425,7 @@ Please select a valid integer between 0 and %1")), max_gid));
 			{
 			    if ( lookup(lookup( current_groups, new_i_gid ,$[]), "todo", "") != `delete )
 			    {
-				UI::ErrorPopup(_("The inputted Group Id is reserved.
+				Report::Error(_("The inputted Group Id is reserved.
 Please select a another Group Id"));
 				UI::SetFocus(`id(`gid));
 				continue;
@@ -1433,7 +1434,7 @@ Please select a another Group Id"));
 
 			if ( (what != `add_group ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
 			{
-			    UI::ErrorPopup(_("The inputted Group Id is a system Id.
+			    Report::Error(_("The inputted Group Id is a system Id.
 Please try again."));
 			    UI::SetFocus(`id(`gid));
 			    continue;
@@ -1441,7 +1442,7 @@ Please try again."));
 
 			if ( (what != `add_group ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
 			{
-			    UI::ErrorPopup(_("The inputted Group Id is not a system Id.
+			    Report::Error(_("The inputted Group Id is not a system Id.
 Please try again."));
 			    UI::SetFocus(`id(`gid));
 			    continue;
@@ -1563,7 +1564,7 @@ Delete this users first."));
 	SCR::Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save");
 
 	// normal, running system
-	if( ! Mode::cont )
+	if( ! Mode::cont && ! Mode::autoinst)
 	{
 	    term contents =   `VBox(
 				    `VSpacing( 2 ),
@@ -1638,21 +1639,21 @@ Delete this users first."));
 		else
 		{
 		    ok = false;
-		    UI::ErrorPopup( lookup ( todomap , "error", "" ));
+		    Report::Error( lookup ( todomap , "error", "" ));
 		}
 	    });
 
 	    if ( !ok)
 	    {
-		UI::ErrorPopup(_("The new user and group are not configured."));	
+		Report::Error(_("The new user and group are not configured."));	
 
 	    }
 	    else
 	    {
 		// normal, running system
-		if( ! Mode::cont )
+		if( ! Mode::cont && ! Mode::autoinst)
 		{
-		    UI::MessagePopup(_("The new user and group settings
+		    Report::Message(_("The new user and group settings
 are configured and usable"));	
 		}
 	    }

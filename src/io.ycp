@@ -1100,7 +1100,7 @@ to new home directory %2")), old_home, home));
 	
 	if( lookup ( current_groups , def_int ,$[]) == $[])
 	{
-	    UI::ErrorPopup(sformat(_("The default group with the id %1 does not exist.
+	    Report::Error(sformat(_("The default group with the id %1 does not exist.
 Please change the default group in /etc/default/useradd."),def_int ));
 
 	    /* TODO If group 100 does not exists ? */

@@ -42,10 +42,12 @@ make install
 %defattr(-,root,root)
 %dir @YAST2DIR@/include/users
 @YAST2DIR@/clients/users.ycp
+@YAST2DIR@/clients/users_write.ycp
+@YAST2DIR@/modules/Users.ycp
 @YAST2DIR@/include/users/*
 @YAST2DIR@/menuentries/menuentry_users.y2cc
 @YAST2DIR@/menuentries/menuentry_groups.y2cc
 @YAST2DIR@/menuentries/menuentry_add_user.y2cc
 @YAST2DIR@/menuentries/menuentry_add_group.y2cc
 %docdir @DOCDIR@
-@DOCDIR@/*
+%doc @DOCDIR@/*

@@ -1,0 +1,134 @@
+/**
+ *
+ */
+{
+    module "Users";
+    import "Console";
+    import "Mode";
+
+    include "security/io.ycp";
+    // include "users/io.ycp";
+    include "users/ui.ycp";
+    
+    map security  		= SecurityRead();
+    integer max_uid             = tointeger(lookup( security, "UID_MAX" , 60000));
+    integer max_gid             = tointeger(lookup( security, "GID_MAX" , 60000));
+    integer max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)); 
+    integer max_system_gid      = tointeger(lookup( security, "GID_MIN" , 100));
+    integer max_length_uid      = size(sformat("%1", max_uid));
+    integer max_length_gid      = size(sformat("%1", max_gid));
+    integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN",8));
+    integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN",5));
+
+    // ===== global values=============================================
+    string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz";
+    string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
+    string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/";
+    string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
+    string valid_id_chars       = "0123456789";
+
+
+    string default_pw           = "******";
+    integer focusline_group = 0;
+    integer focusline_user  = 0;
+    boolean view_all_users  = false;
+    boolean view_all_groups = false;
+ 
+    list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
+    map  pam_map  = select( pam_list, 0, $[]);
+    boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
+
+    map useradd_defaults  = SCR::Read(.etc.default.useradd);
+
+     // ===== Definitions ==============================================
+    
+    // The most important variable
+    map user_settings = $[];
+
+    // For cloning and so
+    map  current_users   = $[];
+    map  current_groups  = $[];
+    list current_gshadow = [];
+
+    map group_in_work = $[];
+    map user_in_work  = $[];
+    string language = UI::GetLanguage(true);
+    string encoding = Console::SelectFont( language);
+    boolean test_mode = false;
+    
+    global define void Users()
+	``{
+	max_system_gid = max_system_gid - 1;
+	max_system_uid = max_system_uid - 1;
+	   
+
+	usersGroupsShadowReadFromDisk();
+	usersUsersReadFromDisk();
+	usersGroupsReadFromDisk();
+	y2milestone("groups %1", current_groups);
+	
+	if( pam )
+	{
+	    max_length_pas = 128;
+	    min_length_pas = 8;
+	}
+	return;
+    }
+
+    /**
+     * Get all the user configuration from a map.
+     * When called by users_auto (preparing autoinstallation data)
+     * the list can't be  empty.
+     * @param settings	A list of users to be added to the system		
+     * @return	success
+     */
+
+    global define boolean Import (list settings) ``{
+	foreach(`u , settings, ``{
+	    if (u["username"]:"" != "root") {
+		string def_home = getDefaultHome() + u["username"]:"lxuser";
+		string fullname =  u["forename"]:"forname" + " " + u["surname"]:"surname";
+
+		integer gid = max_gid;
+		// check the defaultgroup
+		y2milestone("groups %1", current_groups);
+		foreach ( `key, `group,  current_groups, ``{
+		    if( lookup( group, "groupname", "") == "users" )
+		    {
+			gid = lookup(group, "gid", max_gid);
+		    }
+		});
+		
+		user_in_work = $[
+				 "what"        :  `add_user ,
+				 "fullname"    :  u["fullname"]:fullname,
+				 "gid"         :  u["gid"]:gid,
+				 "home"        :  u["home"]:def_home,
+				 "password"    :  u["user_password"]:"", 
+				 "shell"       :  u["shell"]:getDefaultShell(),
+				 "uid"         :  u["uid"]:usersFreeUid(current_users),
+				 "username"    :  u["username"]:"lx_user",
+				 "grouplist"   :  u["grouplist"]:"dialout,uucp,video,audio",
+				 "forename"    :  u["forename"]:"forname",
+				 "surname"     :  u["surname"]:"surname" 
+		];
+		any ret = usersUserSaveToMap();		
+	    }
+	});
+	return true;
+    }
+
+    /**
+     * Saves users into the system
+     * @param writeonly	 true for autoinstal - don't start the service yet
+     * @return true on success
+     */
+    global define boolean Write ()``{
+	any ret = usersSaveDialog();
+	return true;
+    }
+
+		
+    
+}

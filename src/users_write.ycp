@@ -1,0 +1,44 @@
+/**
+ * File:
+ *   users_write.ycp
+ *
+ * Module:
+ *   Configuration of users
+ *
+ * Summary:
+ *   Writing only client
+ *
+ * Authors:
+ *   Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * This is a write-only client. It takes its arguments and just
+ * write the settings.
+ */
+
+/**
+ * @param first a map of users settings
+ * @see Users#Import
+ * @return boolean success of operation
+ */
+{
+
+    textdomain "users";
+
+    import "Users";
+
+    if (size (Args ()) != 1)
+    {
+	y2error ("Exactly one argument required.");
+	return false;
+    }
+    if (! is (Args (0), list))
+    {
+	y2error ("The argument must be a list.");
+	return false;
+    }
+
+    // The write is a simple one so we don't use Progress
+    return Users::Import (Args (0)) && Users::Write ();
+}
