@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Feb 18 16:43:46 CET 2004 - jsuchome@suse.cz
+
+- do not import Kerberos,Samba,Nis
+
+-------------------------------------------------------------------
 Mon Feb 16 17:54:52 CET 2004 - jsuchome@suse.cz
 
 - fix: enable whitespace in passwords (#34590)
