@@ -203,7 +203,7 @@ An additional dialog will inform you whether it is safe to do so.
 	// help text 1/6
       return ( help_main_start() + _("
 <p>
-In this dialog, you can get information about existing <b>Users</b>.
+In this dialog, get information about existing <b>Users</b>.
 </p>
 ") +
 
@@ -248,7 +248,7 @@ users, or LDAP client configuration.
 	// help text 1/4
       return ( help_main_start() +  _("
 <p>
-In this dialog, you can get information about existing <b>Groups</b>.
+In this dialog, get information about existing <b>Groups</b>.
 </p>
 ") +
 	// help text 2/4
@@ -347,7 +347,8 @@ the password. This starting procedure is traditionally known as the
     {
 	// help text 3.5/7 (only during installation)
 	help = help + _("<p>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> option is set. In such case, this user will be logged in automatically.</p>") +
+The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, this user will be logged in automatically.</p>
+") +
 
         // help text 4/7
         _("<p>
