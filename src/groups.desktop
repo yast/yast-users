@@ -6,7 +6,7 @@ X-KDE-ModuleType=Library
 X-KDE-RootOnly=true
 X-KDE-HasReadOnlyMode=true
 X-KDE-Library=yast2
-X-KDE-FactoryName=users_groups
+X-SuSE-YaST-Call=users groups
 
 X-SuSE-YaST-Group=Security
 X-SuSE-YaST-Argument=groups
