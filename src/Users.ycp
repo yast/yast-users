@@ -1480,6 +1480,8 @@ global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
  */
 global define boolean Add (string what, map data)``{
 
+    // FIXME ldap: substitute default values (like %cn)
+
     string type = data["type"]:nil;
     if (what == "user")
     {

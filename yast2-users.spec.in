@@ -32,7 +32,6 @@ Summary:	Configuration of users
 #agents:
 @scrconfdir@/*.scr
 @agentdir@/ag_uid
-@agentdir@/ag_ldap
 @plugindir@/libpy2ag_crack.so.*
 @plugindir@/libpy2ag_crack.so
 @plugindir@/libpy2ag_crack.la
