@@ -3345,9 +3345,14 @@ sub UpdateUsersAfterWrite {
         foreach my $uid (keys %{$modified_users{$type}}) {
 	    my $a = $modified_users{$type}{$uid}{"modified"};
 	    if (!defined $a) { next;}
-	    if (defined $users{$type}{$uid} &&
-		$users{$type}{$uid}{"modified"} || "" eq $a) {
-		delete $users{$type}{$uid}{"modified"};
+	    if (defined $users{$type}{$uid}) {
+		if (($users{$type}{$uid}{"modified"} || "") eq $a) {
+		    delete $users{$type}{$uid}{"modified"};
+		}
+		# org_user map must be also removed (e.g. for multiple renames)
+		if (defined $users{$type}{$uid}{"org_user"}) {
+		    delete $users{$type}{$uid}{"org_user"};
+		}
 	    }
 	}
     }
@@ -3363,9 +3368,14 @@ sub UpdateGroupsAfterWrite {
         foreach my $gid (keys %{$modified_groups{$type}}) {
 	    my $a = $modified_groups{$type}{$gid}{"modified"};
 	    if (!defined $a) { next;}
-	    if (defined $groups{$type}{$gid} &&
-		$groups{$type}{$gid}{"modified"} || "" eq $a) {
-		delete $groups{$type}{$gid}{"modified"};
+	    if (defined $groups{$type}{$gid}) {
+		if (($groups{$type}{$gid}{"modified"} || "") eq $a) {
+		    delete $groups{$type}{$gid}{"modified"};
+		}
+		# org_group map must be also removed (e.g. for multiple renames)
+		if (defined $groups{$type}{$uid}{"org_group"}) {
+		    delete $groups{$type}{$uid}{"org_group"};
+		}
 	    }
 	}
     }
