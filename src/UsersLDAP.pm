@@ -1140,10 +1140,12 @@ sub WriteUsers {
 	}
 	# now call WriteBefore on plugins which should be removed:
 	# (such call could e.g. remove mail account)
-	foreach my $plugin (sort @{$plugins_to_remove}) {
-	    $config->{"plugins"}	= [ $plugin ];
-	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
-	}
+        if ( defined $plugins_to_remove ) {
+            foreach my $plugin (sort @{$plugins_to_remove}) {
+                $config->{"plugins"}	= [ $plugin ];
+                my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
+            }
+        }
 	# --------------------------------------------------------------------
 	# --------------------------------------------------------------------
         if ($action eq "added") {
@@ -1210,11 +1212,13 @@ sub WriteUsers {
 	}
 #FIXME check the return value! (set 'ret')
 	if (!defined $ret{"msg"}) {
-	    foreach my $plugin (sort @{$plugins_to_remove}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("Write", $config, $user);
+            if ( defined $plugins_to_remove ) {
+	        foreach my $plugin (sort @{$plugins_to_remove}) {
+		    $config->{"plugins"}	= [ $plugin ];
+		    my $res = UsersPlugins->Apply ("Write", $config, $user);
+	        }
 	    }
-	}
+        }
 	# --------------------------------------------------------------------
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
