@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb 10 19:09:17 CET 2004 - jsuchome@suse.cz
+
+- LDAP: write groups
+- new file: UsersRoutines.pm
+
+-------------------------------------------------------------------
 Mon Feb  9 17:13:18 CET 2004 - jsuchome@suse.cz
 
 - more functions for LDAP support (write users, read groups)
