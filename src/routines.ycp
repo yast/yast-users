@@ -348,4 +348,42 @@ global define void BackupConfFiles(string dir)``{
         sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
 }
 
+// FIXME: move to some other include!
+/**
+ * Split fullname in forename and surname.
+ * @param what `surname or `forename
+ * @param fullname fullname
+ * @param type user type
+ * @return string selected part of user name
+ */
+global define string SplitFullName(symbol what,string fullname, symbol type) ``{
+
+    if( fullname == nil )
+        fullname = "";
+
+    list    strs    = splitstring(fullname , " ");
+    integer i       = 1;
+    string surname  = "";
+    string forename = "";
+
+    if (type == `system)
+    {
+        if ( what == `surname  ) return fullname;
+        if ( what == `forename ) return "";
+    }
+
+    foreach( `str, strs, ``{
+        if ( i < size( strs) )
+        {
+        if( forename == "" ) forename = str;
+        else forename = forename + " " + str;
+        }
+        else  surname = str;
+        i = i + 1;
+    });
+    if ( what == `surname  ) return surname;
+    if ( what == `forename ) return forename;
+}
+
+
 } // EOF

@@ -23,6 +23,7 @@ include "ui/common_messages.ycp";
 include "ui/common_popups.ycp";
 
 include "users/helps.ycp";
+include "users/routines.ycp";
 
 /**
  * Function that adds or edits a user.
@@ -478,17 +479,21 @@ Please try again."));
                 continue;
                 }
             }
-            if (Users::encryption == `md5)
+            // to use with autoinst.
+            if (Users::user_in_work["encrypted"]:true)
             {
-                password = cryptmd5(pw1);
-            }
-            else if (Users::encryption == `blowfish)
-            {
-                password = cryptblowfish(pw1);
-            }
-            else
-            {
-                password = crypt (pw1);
+                if (Users::encryption == `md5)
+                {
+                    password = cryptmd5(pw1);
+                }
+                else if (Users::encryption == `blowfish)
+                {
+                    password = cryptblowfish(pw1);
+                }
+                else
+                {
+                    password = crypt (pw1);
+                }
             }
             }
 
@@ -1761,43 +1766,6 @@ global define string ProposeUsername( string forename, string surname ) ``{
         }
     }
     return username;
-}
-
-
-/**
- * Split fullname in forename and surname.
- * @param what `surname or `forename
- * @param fullname fullname
- * @param type user type
- * @return string selected part of user name
- */
-global define string SplitFullName(symbol what,string fullname, symbol type) ``{
-
-    if( fullname == nil )
-        fullname = "";
-
-    list    strs    = splitstring(fullname , " ");
-    integer i       = 1;
-    string surname  = "";
-    string forename = "";
-
-    if (type == `system)
-    {
-        if ( what == `surname  ) return fullname;
-        if ( what == `forename ) return "";
-    }
-
-    foreach( `str, strs, ``{
-        if ( i < size( strs) )
-        {
-        if( forename == "" ) forename = str;
-        else forename = forename + " " + str;
-        }
-        else  surname = str;
-        i = i + 1;
-    });
-    if ( what == `surname  ) return surname;
-    if ( what == `forename ) return forename;
 }
 
 
