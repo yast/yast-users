@@ -86,7 +86,7 @@ y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
     }
 */
 
-symbol ret = UsersSequence();
+symbol ret = UsersSequence(start_dialog);
 
 /* Finish */
 y2milestone("Users module finished with %1", ret);

@@ -22,90 +22,128 @@
 {
     textdomain "users";
 
-    import "Users";
+    import "./Users";
+//    import "./UsersCache";
     import "Wizard";
-    include "users/ui.ycp";
-    include "users/io.ycp";
-
+//    include "users/ui.ycp";
+//    include "users/io.ycp";
+    include "./wizards.ycp";
     include "wizard/sequencer.ycp";
+
     list args = Args ();
+    /*
     if ( size (args) <= 0 )
     {
-	y2error ("Did not get the settings, probably some mistake...");
-	return false;
+        y2error ("Did not get the settings, probably some mistake...");
+        return false;
     }
     if ( !is ( Args (0), list ) )
     {
-	y2error ("Bad argument for users_auto: %1", Args (0));
-	return false;
+    y2error ("Bad argument for users_auto: %1", Args (0));
+    return false;
     }
+    */
     list settings = [];
     {
-	integer i = 0;
-	while (i < size (Args()))
-	{
-	    if (is (Args (i), list) && nil != Args (i))	settings = Args (i);
-	    i = i + 1;
-	}
+    integer i = 0;
+    while (i < size (Args()))
+    {
+        if (is (Args (i), list) && nil != Args (i)) settings = Args (i);
+        i = i + 1;
     }
+    }
+
+    map users = $[
+     `system: $[
+        0: $["fullname":"root", "gid":0, "grouplist":"mistni", "groupname":"root", "home":"/root", "org_home":"/root", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"11960", "max":"10000", "min":"0", "password":"Ncih21hF1IXI2", "warn":""], "shell":"/bin/bash", "uid":0, "username":"root"]
+        ],
+     `local: $[
+        501:$["fullname":"A", "gid":100, "grouplist":"", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]
+        ]];
+
+    map shadow = $[
+        "ab":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"],
+        "root":$["expire":"", "flag":"", "inact":"", "last_change":"11960", "max":"10000", "min":"0", "password":"Ncih21hF1IXI2", "warn":""]];
+
+    map groups = $[
+     `system: $[
+        0: $["gid":0, "groupname":"root", "more_users":"root", "password":"x", "userlist":""]
+        ],
+     `local: $[
+        100:$["gid":100, "groupname":"users", "more_users":"ab", "password":"x", "userlist":""]
+        ]];
+
+    map gshadow = $[
+        "root":$["disposer":"root", "password":"*", "userlist":""],
+        "users":$["disposer":"root", "password":"*", "userlist":""]];
+
+    settings = [ users, groups, shadow, gshadow ];
 
     Users::Import ( settings );
     y2milestone("Imported: (%1)", settings);
+
+    Users::ReadUsersCache(); // used for UI and helper structures
 
     /**
       * set contents of main Users dialog for autoinstallation
       */
     define void set_contents()
-	``{
-	term contents =
-	    `VBox(
-		  `VSpacing(1),
-		  `RichText( `id(`summary), Users::Summary()),
-		  `VSpacing(0.5),
-		  `HBox(
-			// push button
-			`PushButton(`id(`configure), _("&Configure Users")),
-			`HStretch(),
-			// push button
-			`PushButton(`id(`reset), _("&Reset Configuration"))
-			),
-		  `VSpacing(1)
-		  );
-	// dialog caption
-	Wizard::SetContents(_("Users Configuration"),
-			    contents, "", true, true);
+    ``{
+    term contents =
+        `VBox(
+          `VSpacing(1),
+          `RichText( `id(`summary), Users::Summary()),
+          `VSpacing(0.5),
+          `HBox(
+            // push button
+            `PushButton(`id(`configure), _("&Configure Users")),
+            `HStretch(),
+            // push button
+            `PushButton(`id(`reset), _("&Reset Configuration"))
+            ),
+          `VSpacing(1)
+          );
+    // dialog caption
+    Wizard::SetContents(_("Users Configuration"),
+                contents, "", true, true);
     }
 
 
+    /* -- they are now in Users
     string default_pw           = "******";
     integer focusline_group = 0;
     integer focusline_user  = 0;
     boolean view_all_users  = false;
     boolean view_all_groups = false;
+    */
 
+
+    Wizard::CreateDialog(); // just a hack, only for testing
     set_contents();
     any result = nil;
     any ret = nil;
+    string start_dialog = "users"; //look to users.ycp for possible values
     repeat {
-	ret = UI::UserInput();
-	if (ret == `configure)
-	{
-	    Wizard::CreateDialog();
-	    result = AutoSequence();
-	    Wizard::CloseDialog();
-	    if (result == `next || result == `finish)
-	    {
-		settings = Users::Export ();
-	    }
-	    Users::Set(settings);
-	    set_contents();
-	}
-	else if ( ret == `reset)
-	{
-	    settings= [];
-	    Users::Set(settings);
-	    set_contents();
-	}
+    ret = UI::UserInput();
+    if (ret == `configure)
+    {
+        Wizard::CreateDialog();
+        result = AutoSequence(start_dialog);
+        Wizard::CloseDialog();
+        if (result == `next || result == `finish)
+        {
+            settings = Users::Export ();
+            y2milestone ("settings from Export: %1", settings);
+        }
+        Users::Set(settings); // what is this for ?? something like Import??
+        set_contents();
+    }
+    else if ( ret == `reset)
+    {
+        settings= [];
+        Users::Set(settings);
+        set_contents();
+    }
     } until (ret == `back || ret == `next || ret ==`key);
 
     return [ret, settings];
