@@ -89,8 +89,9 @@ repeat it exactly in a second field. Make sure you don't forget your password!
 	return
 	    // For translators: joe read dialog help, part 1 of 2
 _("<P><B><BIG>Initializing joe</BIG></B><BR>
-Please wait for a while...
-<BR></P>") +
+Please wait...
+<BR></P>
+") +
 	    // For translators: joe read dialog help, part 2 of 2
 _("<P><B><BIG>Aborting the initialization:</BIG></B><BR>
 You can safely abort the configuration utility by pressing the <B>Abort</B>
@@ -246,8 +247,9 @@ The password has to be entered a second time to avoid typos.
 ") +
 		_("<p>
 <b>Members of this group:</b>
-Select users which shall be members of this group.
-</p>");
+Select which users should be members of this group.
+</p>
+");
 
   }
 
@@ -312,23 +314,27 @@ Save the current user and group settings to system
 // Help text 1/5
       return _("<p>
 <b>Warning before expiration</B><BR>
-User can be warned before expiration of it's password. You can set 
-how many days before gets user warned. Set -1 to disable warning.
-</p>")
+Users can be warned before expiration of their passwords. Set 
+how many days before expiration the warning is issued. Set -1 to disable warning.
+</p>
+")
 +
 // Help text 2/5
 _("<P><B>Logging in after expiration</B><BR>
-User can log in after expiration of his password. Set how many days 
-after expiration it will be posisble. Set -1 to unlimited.
-</P>")
+Users can log in after expiration of passwords. Set how many days 
+after expiration login is allowed. Use -1 for unlimited access.
+</P>
+")
 +
 //Help text 3/5
-_("<P><B>Lifitime of password</B><BR> Set how many days can user 
-use the same password before it expires.</P>")
+_("<P><B>Lifetime of password</B><BR> Set how many days a user 
+can use the same password before it expires.</P>
+")
 +
 // Help text 4/5
-_("<P><B>Minimal age of password</B><BR>Set the minimal age of 
-password when user will be allowed to change it.</P>")
+_("<P><B>Minimum age of password</B><BR>Set the minimum age of 
+the password when user will be allowed to change it.</P>
+")
 +
 // Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
 ("<P><B>Expiration date</B><BR>Set the date when this account expires. 

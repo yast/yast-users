@@ -125,11 +125,12 @@
       */
     global define symbol getConfigurationType (string dir) ``{
 	term contents = `VBox (
-	    `Label (_("You have installed NIS master server.
-It is configured to use different database
+	    `Label (_("You have installed an NIS master server.
+It is configured to use a different database
 of users and groups than the local system 
 database in /etc directory.
-Select which one do you want to configure.")),
+Select which one to configure.
+")),
 	    `VSpacing (1),
 	    `RadioButtonGroup (`id (`configtype), `VBox (
 		`RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
@@ -185,11 +186,11 @@ Select which one do you want to configure.")),
 			 _("Read the user settings"),
 			 _("Read the group settings"),
 			 _("Read the password settings") ],
-		       [ _("Reading the default login settings ..."),
-			 _("Reading the default system setttings ..."),
-			 _("Reading the user settings ..."),
-			 _("Reading the group settings ..."),
-			 _("Reading the password settings ..."),
+		       [ _("Reading the default login settings..."),
+			 _("Reading the default system setttings..."),
+			 _("Reading the user settings..."),
+			 _("Reading the group settings..."),
+			 _("Reading the password settings..."),
 			 _("Finished") ],
 			    "" );
 
@@ -208,7 +209,7 @@ Select which one do you want to configure.")),
 
 	if ( ! UserAddDefs::Read() )
 	{
-	    Report::Warning (_("Can not read the default login settings!"));
+	    Report::Warning (_("Cannot read the default login settings."));
 	}
 
 	// read default system settings
@@ -225,7 +226,7 @@ Select which one do you want to configure.")),
 
 	if ( ! UserDefs::Read() )
 	{
-	    Report::Error (_("Can not read the default systems settings!"));
+	    Report::Error (_("Cannot read the default systems settings."));
 	}
 
 
@@ -250,7 +251,7 @@ Select which one do you want to configure.")),
 
 	if ( ! settings )
 	{
-	    Report::Error (_("Can not read the user settings!"));
+	    Report::Error (_("Cannot read the user settings."));
 	}
 
 	// read group settings
@@ -268,7 +269,7 @@ Select which one do you want to configure.")),
 /*	if ( ! (UserSettings::ReadGroupFromDisk() &&
 	        UserSettings::ReadGshadowFromDisk() ))
 	{
-	    Report::Error (_("Can not read the group settings!" ));
+	    Report::Error (_("Can not read the group settings!"));
 	}*/
 
 
@@ -286,7 +287,7 @@ Select which one do you want to configure.")),
 
 /*	if ( ! (UserSettings::ReadShadowFromDisk() ))
 	{
-	    Report::Error (_("Can not read the password settings!" ));
+	    Report::Error (_("Can not read the password settings!"));
 	}*/
 
 
@@ -434,7 +435,9 @@ Select which one do you want to configure.")),
 			   `HSpacing(1),
 			   `VBox(
 				 `VSpacing(1),
-				user_type == `getent ? `Label(_("Only additionial group membership \ncan be changed for non-local users")) : `VSpacing (0),
+				user_type == `getent ? `Label(_("Only additional group memberships 
+can be changed for non-local users.
+")) : `VSpacing (0),
 				user_type == `getent ? `VSpacing (1) : `VSpacing (0),
 				 // User account information, forename or first name
 				 `TextEntry(`id(`fullname), _("&Detaild profile for user:"), fullname),
@@ -564,8 +567,9 @@ Please try again."));
 			    }
 			    if (SCR::Read(.target.size, new_home ) !=-1)
 			    {
-				if (! UI::YesNoPopup(_("The home directory you selected already exists.
-Do you want to use it and change it's owner?.")))
+				if (! UI::YesNoPopup(_("The home directory selected already exists.
+Use it and change its owner?
+")))
 				{
 				    UI::SetFocus(`id(`home));
 				    continue;
@@ -573,7 +577,7 @@ Do you want to use it and change it's owner?.")))
 
 //				UserWriteStack::AddTodo(sformat("/bin/chown -R %1:%2 %3", username, gid, new_home),
 //					`chown_home,
-//					_("Can't execute /usr/sbin/userdel.local"));
+//					_("Cannot execute /usr/sbin/userdel.local"));
 //				what = `add_user_nodir;
 
 			    }
@@ -687,10 +691,10 @@ Please try again."));
 				      `Top(`Left (`Label (sformat (_("Date of the last password change: %1"), last_change )))),
 				      `VSpacing (1),
 				       `HSquash(`VBox(
-						      `IntField (`id ("warn"), _("How many day's &warning before password expires?"), -1, 99999,
+						      `IntField (`id ("warn"), _("Issue &warning how many days before password expiration?"), -1, 99999,
 								 shadow["warn"]:""),
 						      `VSpacing (0.5),
-						      `IntField (`id ("inact"), _("How many days &after password expires is the login usable"), -1, 99999,
+						      `IntField (`id ("inact"), _("How many days &after password expires is the login usable?"), -1, 99999,
 								 shadow["inact"]:""),
 						      `VSpacing (0.5),
 						      `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999,
@@ -926,7 +930,9 @@ Please try again."));
 	    `HSquash(`VBox(
 			   `VStretch(),
 			   `VBox(
-				 user_type == `getent ? `Label(_("Only additionial group membership \ncan be changed for non-local users")) : `VSpacing (0),
+				 user_type == `getent ? `Label(_("Only additional group memberships 
+can be changed for non-local users.
+")) : `VSpacing (0),
                                  user_type == `getent ? `VSpacing (1) : `VSpacing (0),
 				 `TextEntry(`id(`forename), _("&First name:"), forename),
 				 `TextEntry(`id(`surname),  _("&Last name:"),  surname )
@@ -1176,7 +1182,7 @@ Please try again."));
 			}
 			if (size(pw1) >  UserDefs::max_length_pas)
 			{
-			    if (!UI::YesNoPopup (sformat(_("The password is longer then %1 characters. It will be truncated to %1 characters."),
+			    if (!UI::YesNoPopup (sformat(_("The password is longer than %1 characters. It will be truncated to %1 characters."),
 						UserDefs::max_length_pas)))
 			    {
 				password = "";
@@ -1242,8 +1248,9 @@ Please press button Details and edit home directory."));
 			if (SCR::Read(.target.size, home ) != -1)
 			{
 
-                            if (! UI::YesNoPopup(_("The home directory you selected already exists.
-Do you want to use it and change it's owner?.")))
+                            if (! UI::YesNoPopup(_("The home directory selected already exists.
+Use it and change its owner?
+")))
                             {
                                 UI::SetFocus(`id(`home));
                                 continue;
@@ -1251,7 +1258,7 @@ Do you want to use it and change it's owner?.")))
 
 //                            UserWriteStack::AddTodo(sformat("/bin/chown -R %1:%2 %3", username, gid, new_home),
   //                                  `chown_home,
-    //                                _("Can't execute /usr/sbin/userdel.local"));
+    //                                _("Cannot execute /usr/sbin/userdel.local"));
 			    create_home = false;
 //                            what = `add_user_nodir;
 			}
@@ -1407,7 +1414,7 @@ Do you really want to delete the user %1?
 	{
 	    UserWriteStack::AddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
-			 _("Can't execute /usr/sbin/userdel.local"), `user, uid);
+			 _("Cannot execute /usr/sbin/userdel.local"), `user, uid);
 	}
 
 	UserWriteStack::AddTodo(UserWriteStack::userdel + " " + username ,
@@ -1419,7 +1426,7 @@ Do you really want to delete the user %1?
 	{
 	    if( lookup( user_in_work , "home", "" ) != "")
 		UserWriteStack::AddTodo(sformat ("/bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
-			sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
+			sformat (_("Cannot delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
 //		usersAddRmDir( lookup( user_in_work , "home", "" ));
 	}
 	else
@@ -1427,7 +1434,7 @@ Do you really want to delete the user %1?
 	  if( delete_home )
 	  {
 		UserWriteStack::AddTodo(sformat ("test -d %1 && /bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
-                        sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
+                        sformat (_("Cannot delete directory %1"), lookup(user_in_work, "home", "")), `user, uid);
 //	      usersAddRmDir( lookup( user_in_work, "home", "" ));
 	      if( Mode::test ) y2milestone("delete home");
 	  }
@@ -1709,7 +1716,7 @@ Please try again.")) ;
 			}
                         if (size(pw1) >  UserDefs::max_length_pas)
                         {
-                            if (!UI::YesNoPopup (sformat(_("The password is longer then %1 characters. It will be truncated to %1 characters."),
+                            if (!UI::YesNoPopup (sformat(_("The password is longer than %1 characters. It will be truncated to %1 characters."),
                                                 UserDefs::max_length_pas)))
                             {
                                 password = "x";

@@ -96,7 +96,7 @@
 						      "groupname" : groupname,
 						      "password"  : password,
 						      "what" : `set_group_password,
-						      "error": _("Can' set group password" )
+						      "error": _("Cannot set group password")
       ]);
       return true;
   }
@@ -187,7 +187,7 @@
 		{
 		    AddTodo (sformat("/bin/chown -R %1:%2 %3", username, UserSettings::GroupIdToName(gid), home),
 				`chown_home,
-				_("Can't chown home directory"), `user, uid);
+				_("Cannot chown home directory."), `user, uid);
 		}
 	    }
 	}
@@ -251,7 +251,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 		{
 		    today = substring (today, 0, 10);
 		    todo = sformat (chage + " -d %1 %2", today, username);
-		    AddTodo( todo, `edit_user, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		    AddTodo( todo, `edit_user, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 		}
 	    }
 	}
@@ -261,21 +261,21 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    map shadow = lookup (user_in_work, "shadow", $[]);
 	    integer val = lookup (shadow, "min", nil);
 	    if (nil != val)
-		AddTodo( sformat (chage + " -m %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		AddTodo( sformat (chage + " -m %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "max", nil);
             if (nil != val)
-                AddTodo( sformat (chage + " -M %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -M %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "warn", nil);
             if (nil != val)
-                AddTodo( sformat (chage + " -W %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -W %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
             val = lookup (shadow, "inact", nil);
             if (nil != val)
-                AddTodo( sformat (chage + " -I %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -I %1 %2", val, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	    string sval = substring (lookup (shadow, "expire", nil), 0, 10);
             if (regexpmatch (sval, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
-                AddTodo( sformat (chage + " -E %1 %2", sval, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -E %1 %2", sval, username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	    else
-		AddTodo( sformat (chage + " -E -1 %1", username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		AddTodo( sformat (chage + " -E -1 %1", username), what, sformat(_("Cannot change the password settings of user %1."), username ), `user, uid);
 	}
 
 	map current_user = $[
