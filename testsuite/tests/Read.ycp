@@ -14,6 +14,7 @@
  */
 
 {
+    // testedfiles: Users.pm
 
     include "testsuite.ycp";
     import "Users";
@@ -28,7 +29,8 @@
 	    "local": $[
 		"users": $[
 		    500: $[
-			"username":	"hh"
+			"uid"		: "hh",
+			"uidnumber"	: 500
 		    ],
 		    "by_name": $[
 			"hh":	500,
@@ -48,7 +50,7 @@
 		],
 		"groups": $[
 		    100: $[
-			"groupname":	"users",
+			"cn":	"users",
 		    ],
 		    "by_name": $[
 			"users":	100,

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr  6 13:04:39 CEST 2004 - jsuchome@suse.cz
+
+- fix: check for shadowAccount attribute of LDAP users (#38467)
+- 2.9.27
+
+-------------------------------------------------------------------
 Mon Apr  5 10:53:53 CEST 2004 - jsuchome@suse.cz
 
 - fix: correct initial ID for LDAP groups (#38250)

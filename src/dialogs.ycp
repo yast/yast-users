@@ -485,16 +485,19 @@ log in, check <b>Disable User Login</b> option.</p>");
 
         details = (contains ([`details,`passwordsettings], ret));
 
-	if (ret == `passwordsettings && user_type == "ldap" &&
-	    !contains (user["objectclass"]:[], "shadowaccount"))
+	if (ret == `passwordsettings && user_type == "ldap")
 	{
-	    // error, do not translate 'shadowaccount' (LDAP user parameter)
-	    Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
+	    list ocs = maplist (string oc, user["objectclass"]:[], ``(tolower (oc)));
+	    if (!contains (ocs, "shadowaccount"))
+	    {
+		// error, do not translate 'shadowaccount' (LDAP user parameter)
+		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
 so the password settings cannot be edited.
 "));
-	    UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
-	    ret = `notnext;
-	    continue;
+		UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
+		ret = `notnext;
+		continue;
+	    }
 	}
 
         if (( ret == `next || ret == `additional || details ) && !do_not_edit)
