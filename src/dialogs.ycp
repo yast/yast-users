@@ -395,7 +395,7 @@ Please try again."));
 
             // Use the old password (if any) if no passwords were entered.
             // only check pw1 here, its identical with pw2 as checked before
-            if ( pw1 !=  Users::default_pw )
+            if ( pw1 != Users::default_pw )
             {
             if ( pw1 == "" && !details )
             {
@@ -526,16 +526,19 @@ Press Details and edit the home directory."), home_path));
             }
 
 	    // --------------------------------- now everything should be OK
-            if (pw1 != "x" && pw1 != "")
+            if (pw1 != "x" && pw1 != "" && pw1 != Users::default_pw)
             {
                 // to use with autoinst.
                 if (Users::user_in_work["encrypted"]:true)
+		{
                     password = Users::CryptPassword (pw1, user_type);
                 }
                 else password = pw1;
 
                 shadow["password"] = password;
                 shadow["last_change"] = Users::LastChangeIsNow();
+		Users::user_in_work["password"]	= password;
+		Users::user_in_work["shadow"]	= shadow;
             }
 
 	    // save only what could have changed:
@@ -543,8 +546,6 @@ Press Details and edit the home directory."), home_path));
 	    Users::user_in_work["fullname"]	= fullname;
 	    Users::user_in_work["home"]		= home;
 	    Users::user_in_work["create_home"]	= create_home;
-	    Users::user_in_work["password"]	= password;
-	    Users::user_in_work["shadow"]	= shadow;
 
             if ( what != "add_user" )
             {
@@ -556,6 +557,7 @@ Press Details and edit the home directory."), home_path));
 		Users::user_in_work ["givenName"] = givenName;
 		Users::user_in_work ["sn"] = sn;
 	    }
+	}
     }
     until ( contains ([`next,`abort,`back,`cancel,`additional,`nosave,`ldap],
 	    ret) || details );
@@ -1076,7 +1078,7 @@ global define symbol EditUserPasswordDialog() ``{
         last_change = _("never");
     }
     string exp_date = "";
-    if (expires != "0" )
+    if (expires != "0" && expires != "-1" )
     {
         exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -1091,10 +1093,10 @@ global define symbol EditUserPasswordDialog() ``{
                 `VSpacing (1),
                 `HSquash(`VBox(
                     // intfield
-                    `IntField (`id ("warn"), _("Issue &warning how many days before password expiration?"), -1, 99999, warn),
+                    `IntField (`id ("warn"), _("Issue &warning how many days before password expiration"), -1, 99999, warn),
                     `VSpacing (0.5),
                     // intfield
-                    `IntField (`id ("inact"), _("How many days &after password expires is the login usable?"), -1, 99999, inact),
+                    `IntField (`id ("inact"), _("How many days &after password expires is the login usable"), -1, 99999, inact),
                     `VSpacing (0.5),
                     // intfield
                     `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999, max),
@@ -1684,7 +1686,7 @@ global define symbol DefaultsDialog() ``{
     {
         modified = false;
         ret = UI::UserInput();
-        if (ret == `back || ret == `abort) break;
+        if (ret == `back || ret == `abort || ret == `cancel) break;
         if (ret == `next)
         {
             new_home  = UI::QueryWidget(`id(`home),  `Value);
