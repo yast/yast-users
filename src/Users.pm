@@ -229,6 +229,7 @@ sub _ {
 }
 
 
+# check the boolean value
 sub bool {
 
     my $param = $_[0];
@@ -1586,7 +1587,9 @@ sub EditUser {
 
 	# password we have read was real
 	my $pw	= $user_in_work{"userPassword"} || "";
-	if ($pw ne "" && $pw ne "!" && $pw ne "x") {
+	if ($pw ne "" && $pw ne "x" &&
+	    (!defined $user_in_work{"encrypted"} ||
+	     bool ($user_in_work{"encrypted"}))) {
 	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
 
@@ -1651,18 +1654,25 @@ sub EditUser {
 	}
 	if ($key eq "create_home" || $key eq "encrypted" ||
 	    $key eq "no_skeleton" || $key eq "disabled" || $key eq "enabled") {
-	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
+	    if (ref $data{$key} eq "YaST::YCP::Boolean") {
+		$user_in_work{$key}	= $data{$key};
+	    }
+	    else {
+		$user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
+	    }
 	    next;
 	}
 	if ($key eq "org_user") {
 	    next;
 	}
 	if ($key eq "userPassword" && $data{$key} ne "" &&
-	    $data{$key} ne "x" &&  $data{$key} ne "!") {
+	    $data{$key} ne "x" && $data{$key} ne "!" &&
+	    $data{$key} ne $user_in_work{$key}) {
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
 		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
 	    }
 	}
@@ -2100,7 +2110,7 @@ sub UserReallyModified {
 	    if (!defined $user{$key} || $user{$key} ne $value)
 	    {
 		$ret = 1;
-		y2internal ("old value: $value, changed to: ",
+		y2debug ("old value: $value, changed to: ",
 		    $user{$key} || "-" );
 	    }
 	}
@@ -3958,10 +3968,12 @@ sub ImportUser {
     }
     # FIXME when the password will be crypted?
     my $pass		= $user->{"user_password"}	|| "x";
+y2internal ("password: $pass, encrypted: ", bool ($encrypted), "config mode: ", Mode::config());
     if ((!defined $encrypted || !bool ($encrypted)) &&
 	$pass ne "x" && !Mode::config ())
     {
 	$pass 		= CryptPassword ($pass, $type);
+y2internal ("encrypted pass: $pass");
 	$encrypted	= YaST::YCP::Boolean (1);
     }
     my $home	= GetDefaultHome($type).$username;
@@ -4057,6 +4069,8 @@ sub ImportUser {
 	if ($key eq "userPassword") { next; }
 	$ret{$new_key}	= $user_shadow{$key};
     }
+y2internal ("finally imported user: -------------------------------------");
+DebugMap (\%ret);
     return \%ret;
 }
 
@@ -4078,7 +4092,14 @@ sub ImportGroup {
     if (!defined $gid) {
 	$gid		= $group{"gid"};
 	if (!defined $gid) {
-	    $gid 		= -1;
+	    $gid 	= -1;
+	}
+    }
+    if ($gid == -1) {
+	# check for existence of this group (and change it with given values)
+	my $existing 	= GetGroupByName ($groupname, "");
+	if (ref ($existing) eq "HASH" && %{$existing}) {
+	    $gid	= $existing->{"gidNumber"};
 	}
     }
 
@@ -4248,7 +4269,10 @@ sub Import {
 
 	    my $user		= $users{$type}{$uid};
             my $username 	= $user->{"uid"}	|| "";
-            my $gid 		= $user->{"gidNumber"}	|| GetDefaultGID($type);
+            my $gid 		= $user->{"gidNumber"};
+	    if (!defined $gid) {
+		$gid		= GetDefaultGID($type);
+	    }
             $users{$type}{$uid}{"grouplist"} = FindGroupsBelongUser ($user);
 
             # hack: change of default group's gid
@@ -4307,7 +4331,6 @@ sub Import {
 sub ExportUser {
 
     my $user	= $_[0];
-
     my $type		= $user->{"type"} || "local";
     my $username 	= $user->{"uid"} || "";
     my %user_shadow	= ();
@@ -4329,7 +4352,8 @@ sub ExportUser {
     foreach my $key (keys %shadow_map) {
 	my $new_key		= $translated{$key} || $key;
 	if ($key eq "userPassword" ||
-	    (defined $org_user{$key} && $shadow_map{$key} eq $org_user{$key}))
+	    (defined $org_user{$key} && $shadow_map{$key} eq $org_user{$key} &&
+	     ($user->{"modified"} || "") ne "imported"))
 	{
 	    # do not export passwod twice
 	    # do not export unchanged shadow values
@@ -4342,18 +4366,20 @@ sub ExportUser {
 
     # remove the keys, whose values were not changed
     my %exported_user	= %{$user};
-    if (%org_user) {
+    # export all when username was changed!
+    if (%org_user && $user->{"uid"} eq $org_user{"uid"} &&
+	($user->{"modified"} || "") ne "imported") {
 	foreach my $key (keys %org_user) {
 	    if (defined $user->{$key} && $user->{$key} eq $org_user{$key}) {
 		delete $exported_user{$key};
 	    }
 	}
     }
-
     my %ret		= (
 	"username"	=> $user->{"uid"}
     );
 
+    # change the key names
     my %keys_to_export 	= (
         "userPassword"	=> "user_password",
 	"cn"		=> "fullname",
@@ -4368,6 +4394,7 @@ sub ExportUser {
 	    $ret{$new_key}	= $exported_user{$key};
 	}
     }
+    
     my $encrypted	= $exported_user{"encrypted"};
     if (!defined $encrypted) {
 	$encrypted	= YaST::YCP::Boolean (1);
@@ -4378,10 +4405,9 @@ sub ExportUser {
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;
     }
+y2error ("user to export: ------------------------------");
+DebugMap (\%ret);
     return \%ret;
-#FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
-# better would be: leave the new values, but remove 'internal' ones
-
 }
 
 ##------------------------------------
@@ -4391,23 +4417,26 @@ sub ExportUser {
 sub ExportGroup {
 
     my $group	= $_[0];
-
     my $userlist	= "";
     if (defined $group->{"userlist"}) {
 	$userlist	= join (",", keys %{$group->{"userlist"}});
     }
     my %ret		= (
-        "group_password"	=> $group->{"userPassword"} 	|| "x",
         "groupname"		=> $group->{"cn"}		|| "",
         "userlist"		=> $userlist
     );
     if (defined $group->{"org_group"} &&
-	defined $group->{"org_group"}{"gidNumber"} &&
-	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"}) {
+	(defined $group->{"org_group"}{"gidNumber"} &&
+	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"})
+	||
+	(defined $group->{"org_group"}{"cn"} &&
+	$group->{"cn"} ne $group->{"org_group"}{"cn"}))
+	{
 
 	$ret{"gid"}		= $group->{"gidNumber"};
-# TODO check also change in password & userlist
-# FIXME export all when password was changed!
+    }
+    if (($group->{"userPassword"} || "x") ne "x") {
+	$ret{"group_password"}	= $group->{"userPassword"};
     }
 
     return \%ret;

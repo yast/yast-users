@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar 16 11:06:37 CET 2004 - jsuchome@suse.cz
+
+- autoinstall fixes: do not lost gid, check if password should be crypted
+
+-------------------------------------------------------------------
 Mon Mar 15 17:09:56 CET 2004 - jsuchome@suse.cz
 
 - plugins: changed calling convention (call only default ones,
