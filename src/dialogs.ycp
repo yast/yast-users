@@ -840,9 +840,10 @@ Please select a another User Id"));
                 (  0 != findfirstof( new_home, "/")   ))
             {
                 //TODO FIXME - ADD "-_" to message - not start with "-"
+                // why it couldn't start with "-" ?
                 // error popup
                 Report::Error(_("The home directory may only contain the following characters:
-a..zA..Z0..9/
+a..zA..Z0..9_-/
 Please try again."));
                 UI::SetFocus(`id(`home));
                 continue;
@@ -1495,6 +1496,7 @@ Please try again."));
 
 /**
  * The dialogs for setting defaults from /etc/defaults/useradd
+ * @return symbol for wizard sequencer
  */
 global define symbol DefaultsDialog() ``{
 
@@ -1763,7 +1765,7 @@ global define string ProposeUsername( string forename, string surname ) ``{
  * Split fullname in forename and surname.
  * @param what `surname or `forename
  * @param fullname fullname
- * @param uid user id
+ * @param type user type
  * @return string selected part of user name
  */
 global define string SplitFullName(symbol what,string fullname, symbol type) ``{

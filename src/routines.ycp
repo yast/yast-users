@@ -10,9 +10,10 @@
 {
 include "users/passwd.ycp";
 
-/*
+/**
  * Reads prebuilded gshadow data
  * @param dir the input directory
+ * @return gshadow map
  */
 global define map ReadGshadow(string dir)``{
 
@@ -22,9 +23,10 @@ global define map ReadGshadow(string dir)``{
     ];
 }
 
-/*
+/**
  * Reads prebuilded shadow data
  * @param dir the input directory
+ * @return shadow map
  */
 global define map ReadShadow(string dir)``{
 
@@ -34,6 +36,11 @@ global define map ReadShadow(string dir)``{
     ];
 }
 
+/**
+ * Reads prebuilded groups data
+ * @param dir the input directory
+ * @return groups map
+ */
 global define map ReadGroups(string dir)``{
 
     return $[
@@ -42,15 +49,24 @@ global define map ReadGroups(string dir)``{
     ];
 }
 
+/**
+ * Reads prebuilded groups data
+ * @param dir the input directory
+ * @return groups map
+ */
 global define map ReadGroupsByName(string dir)``{
 
-//    return SCR::Read(.target.ycp, dir + "/group_byname.ycp");
     return $[
         `local: SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
     ];
 }
 
+/**
+ * Reads prebuilded passwd data
+ * @param dir the input directory
+ * @return users map
+ */
 global define map ReadPasswd(string dir)``{
 
     return $[
@@ -60,6 +76,11 @@ global define map ReadPasswd(string dir)``{
     ];
 }
 
+/**
+ * Reads prebuilded passwd data
+ * @param dir the input directory
+ * @return users map
+ */
 global define map ReadPasswdByName(string dir)``{
 
     return $[
@@ -68,6 +89,11 @@ global define map ReadPasswdByName(string dir)``{
     ];
 }
 
+/**
+ * Reads the line begining with + or - from the data files, if exists
+ * @param file the input file
+ * @return the line
+ */
 global define string PlusFile (string file) ``{
 
     if (SCR::Execute (.target.bash, sformat("/usr/bin/test -e %1", file)) == 0)
@@ -76,28 +102,48 @@ global define string PlusFile (string file) ``{
         return "";
 }
 
+/**
+ * Reads the line begining with + or - from gshadow file
+ * @param dir the input directory
+ * @return the line
+ */
 global define string ReadPlusGshadow(string dir)``{
 
     return PlusFile (dir + "/plus_gshadow.ycp");
 //    return SCR::Read(.target.ycp, dir + "/plus_gshadow.ycp");
 }
 
+/**
+ * Reads the line begining with + or - from shadow file
+ * @param dir the input directory
+ * @return the line
+ */
 global define string ReadPlusShadow(string dir)``{
 
     return PlusFile (dir + "/plus_shadow.ycp");
 }
 
+/**
+ * Reads the line begining with + or - from group file
+ * @param dir the input directory
+ * @return the line
+ */
 global define string ReadPlusGroup(string dir)``{
 
     return PlusFile (dir + "/plus_group.ycp");
 }
 
+/**
+ * Reads the line begining with + or - from passwd file
+ * @param dir the input directory
+ * @return the line
+ */
 global define string ReadPlusPasswd(string dir)``{
 
     return PlusFile (dir + "/plus_passwd.ycp");
 }
 
-/*
+/**
  * Check if authentication with pam_krb5 is used
  * @return type of authentication: required/optional/sufficient/[empty string]
  */
@@ -115,6 +161,11 @@ global define string KerberosAuth () ``{
 
 /**
  * Writes data to group file (probably /etc/group)
+ * @param basedir the directory for output
+ * @param system_groups map of groups
+ * @param local_groups map of groups
+ * @param plus the line begining with +/-
+ * @return succes
  */
 global define boolean WriteGroup(string basedir, map system_groups, map local_groups, string plus) ``{
 
@@ -123,21 +174,17 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     list list_to_save = maplist (`gid, `group, system_groups, ``{
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            "x",//group["password"]:"",// write x !!
+            "x",//group["password"]:"",// TODO what if there should be * or !
             group["gid"]:max_gid,
             group["userlist"]:"");
-//        if (group["modified"]:`nothing != `nothing)
-//            modified_list = add (modified_list, group);
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
-            "x",//group["password"]:"",// write x !!
+            "x",//group["password"]:"",
             group["gid"]:max_gid,
             group["userlist"]:"");
-//        if (group["modified"]:`nothing != `nothing)
-//            modified_list = add (modified_list, group);
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
@@ -147,12 +194,16 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
-//    return modified_list;
 }
 
 
 /**
  * Writes data to passwd file (probably /etc/passwd)
+ * @param basedir the directory for output
+ * @param system_users map of users
+ * @param local_users map of users
+ * @param plus the line begining with +/-
+ * @return succes
  */
 global define map WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
 
@@ -199,6 +250,11 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
 
 /**
  * Writes data to shadow file (probably /etc/shadow)
+ * @param basedir the directory for output
+ * @param system_shadow map of shadow
+ * @param local_shadow map of shadow
+ * @param plus the line begining with +/-
+ * @return succes
  */
 global define boolean WriteShadow(string basedir, map system_shadow, map local_shadow, string plus) ``{
 
@@ -242,6 +298,11 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
 
 /**
  * Writes data to gshadow file (probably /etc/gshadow)
+ * @param basedir the directory for output
+ * @param system_gshadow map of gshadow
+ * @param local_gshadow map of gshadow
+ * @param plus the line begining with +/-
+ * @return succes
  */
 global define boolean WriteGshadow(string basedir, map system_gshadow, map local_gshadow, string plus) ``{
 
@@ -271,78 +332,10 @@ global define boolean WriteGshadow(string basedir, map system_gshadow, map local
     return ret;
 }
 
-/** -- using agent
- *
-global define boolean WritePasswd(map passwd_users) ``{
-
-    path passwd_path  = .tmp.passwd;
-//    string conf_path = basedir + "/passwd";
-    string conf_path = "/tmp/passwd";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/passwd";
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),  // real filename
-      \"#\",                      // Comment
-      false,
-      ``(List (
-        Or (
-          Tuple (
-          `username (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `uid (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `fullname (String (\"\")),
-          \":\",
-          `home (String (\"\")),
-          \":\",
-          `shell (String (\"\"))
-        ),
-
-        Tuple (
-          `username (String (\"^:\")),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `uid (Number ()),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `fullname (Or (String (\"^:\"), \"\")),
-          \":\",
-          `home (String (\"^:\")),
-          \":\",
-          `shell (String (\"^\n\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", passwd_path, conf_path);
-    SCR::Write (.target.string, tmpfile, data);
-    SCR::RegisterAgent(passwd_path, tmpfile);
-
-    list list_to_save = maplist (`uid, `user, passwd_users, ``{
-        map to_save = $[
-            "username": user["username"]:"",
-            "password": "x",//user["password"]:"",
-            "uid": user["uid"]:max_uid,
-            "gid": user["gid"]:max_gid,
-            "fullname": user["fullname"]:"",
-            "home": user["home"]:"",
-            "shell": user["shell"]:""];
-        return to_save;
-    });
-    return SCR::Write( passwd_path, list_to_save);
-}*/
-
 /**
-  * Backup /etc/passwd, shadow, group and gshadow files
-  */
+ * Backup /etc/passwd, shadow, group and gshadow files
+ * @param dir the source directory
+ */
 global define void BackupConfFiles(string dir)``{
 
     SCR::Execute(.target.bash,

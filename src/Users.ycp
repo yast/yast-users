@@ -233,6 +233,7 @@ global map groupset_to_string = $[
 
 /**
  * Read all the settings
+ * @param abort the abort block
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
@@ -494,6 +495,7 @@ global define symbol Read (block abort, boolean useUI) ``{
  * Saves users into the system
  * @param abort abort block
  * @param useUI if user interface (progress bar and popups) should be used
+ * @return symbol `next for success, `abort otherwise
  */
 global define symbol Write (block abort, boolean useUI)``{
 
@@ -818,6 +820,7 @@ global define symbol Write (block abort, boolean useUI)``{
 
 /**
  * Summary for autoinstalation
+ * @return summary of the current configuration
  */
 global define string Summary() ``{
 
@@ -941,7 +944,7 @@ global define boolean Import (list settings) ``{
  * Reseting the values (probably to empty set) - to use for autoinstallation
  * @param settings same as in Import
  */
-global define Set (list settings) ``{
+global define void Set (list settings) ``{
 
     // what about system users/groups ??
 
@@ -980,7 +983,9 @@ global define map Export() ``{
  * Helper function, which corects the userlist entry of each group.
  * During autoinstallation, system groups are loaded from the disk,
  * and the userlists of these groups can contain the local users,
- * which we don not want to Import. So they are checked here.
+ * which we don not want to Import. So they are removed here.
+ * @param disk_groups the groups loaded from local disk
+ * @return corrected map of groups
  */
 global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
 
@@ -1018,16 +1023,19 @@ global define boolean Add (string what, map data)``{
         user_in_work = $[];
     else
         group_in_work = $[];
+    //create some default values
     return true;
 }
 
 global define boolean Edit (string what, map data)``{
 
+    // find user/group and prepare (user|group)_in_work
     return true;
 }
 
 global define boolean Delete (string what, map data)``{
 
+    // find user/group and prepare (user|group)_in_work
     return true;
 }
 
@@ -1036,6 +1044,7 @@ global define boolean Delete (string what, map data)``{
  * Update the global user and/or group map with current
  * user_in work or group_in_work
  * @param object "user" or "group"
+ * @param cache if cache structures (from UsersCache) should be updated
  * @return true on success
  */
 global define boolean Commit (string object, boolean cache)``{
@@ -1479,7 +1488,8 @@ global define void ReadSourcesSettings () ``{
 
 /**
  * Return map for mapping user names to UIDs
- * @return map mapping
+ * @param usermap map of users of type $[ uid:user's map ]
+ * @return new mapping of type $[ username: uid ]
  */
 global define map UsersByName (map usermap) ``{
 	map res = mapmap (`k, `v, usermap, ``{
@@ -1490,7 +1500,8 @@ global define map UsersByName (map usermap) ``{
 
 /**
  * Maps groupname to group's map
- * @return map mapping
+ * @param groupsmap map of groups of type $[ gid:group's map ]
+ * @return new mapping of type $[ groupname: group's map ]
  */
 global define map GroupsByName (map groupsmap) ``{
 	map res = mapmap (`k, `v, groupsmap, ``{
@@ -1502,6 +1513,7 @@ global define map GroupsByName (map groupsmap) ``{
 /**
  * Fills the variables with the default values
  * (used only for better access)
+ * @param useUI if UI is used
  */
 define void SetDefaultValues(boolean useUI) ``{
 
@@ -1517,6 +1529,7 @@ define void SetDefaultValues(boolean useUI) ``{
 
 /**
  * Reads settings from /etc/defaults/useradd
+ * @param useUI if UI is used
  * @return true on success
  */
 global define boolean ReadLoginDefaults(boolean useUI)``{
@@ -1567,6 +1580,7 @@ define boolean ReadAllShells()``{
 
 /**
  * Sets the default gid and groupname
+ * @param useUI if UI is used
  * @return true
  */
 define boolean ReadDefaultGroup(boolean useUI)``{
@@ -1663,6 +1677,7 @@ global define map GetDefaultShadow()``{
 
 /**
  * Return the default home value for a new user.
+ * @param useUI if UI is used
  * @return string home directory
  */
 global define string GetDefaultHome(boolean useUI)``{
@@ -1686,6 +1701,7 @@ Create it now?"), def_home)))
 
 /**
  * Return the default group id for a new user.
+ * @param useUI if UI is used
  * @return integer gid
  */
 global define integer GetDefaultGid(boolean useUI)``{
@@ -1743,7 +1759,7 @@ global define list GetAllShells(symbol todo ) ``{
 
 global define list ReadUserCustomSets() ``{
 
-    return [`local];//, `nis];
+    return [`local];
 }
 
 global define boolean WriteUserCustomSets() ``{
@@ -1753,9 +1769,12 @@ global define boolean WriteUserCustomSets() ``{
 
 global define list ReadGroupCustomSets() ``{
 
-    return [`local];//, `system];//, `nis];
+    return [`local];
 }
 
+/**
+ * Helper for building items of MenuButton in users/groups summary dialog
+ */
 global define void BuildMenuButtonItems() ``{
 
     available_usersets_items = [];
@@ -1774,11 +1793,13 @@ global define void BuildMenuButtonItems() ``{
 }
 
 /**
- * Reads the setting, used for cache
+ * Reads the settings, used for cache structures
+ * @param read_prebuilded if there were some structures prebuilded by extern
+ * script and should be readed from files
  */
-global define boolean ReadUsersCache(boolean read_prebuilded) ``{
+global define void ReadUsersCache(boolean read_prebuilded) ``{
 
-    // this is ugly!! -- move it to Consts module !!
+    // this is ugly -- move it to some Consts module ?
     UsersCache::max_uid         =    max_uid;
     UsersCache::max_gid         =    max_gid;
     UsersCache::max_system_uid  =    max_system_uid;
@@ -1801,12 +1822,14 @@ global define boolean ReadUsersCache(boolean read_prebuilded) ``{
     if (read_prebuilded)
         UsersCache::ReadFromFiles (tmpdir);
     else
-        UsersCache::Read (users, groups, current_users, current_groups, "");
+        UsersCache::Read (users, groups, current_users, current_groups);
 
 }
 
 /**
  * Returns the map of users specified by its name
+ * @param name user's name
+ * @return the desired user's map
  */
 global define map GetUserByName ( string name )``{
     map ret = $[];
@@ -1822,7 +1845,12 @@ global define map GetUserByName ( string name )``{
     return ret;
 }
 
-// gets the first group with this name - what if they are some with same name??
+/**
+ * Gets the first group with given name
+ * @param name group's name
+ * @param usertype type of user - group will be searched in this set for first
+ * @return the desired group's map
+ */
 global define map GetGroupByName (string name, symbol usertype)``{
     map ret = $[];
 
@@ -1837,7 +1865,10 @@ global define map GetGroupByName (string name, symbol usertype)``{
         }
     });
     return ret;
+
+    // FIXME: what if there are groups with same name??
 }
+
 /**
  * Finds the user specified by uid and set is as current
  * @param uid the user id
@@ -1916,21 +1947,30 @@ global define string FindGroupsBelongUser( string username ) ``{
     return grouplist;
 }
 
-/*
+/**
+ * Check if homedir doesn't exist for another user
+ * @param home the name
+ * @return true if exists
  */
 global define boolean HomeExists(string home) ``{
 
     return UsersCache::HomeExists(home);
 }
 
-/*
+/**
+ * Check if UID doesn't already exist
+ * @param uid UID
+ * @return true if exists
  */
 global define boolean UIDExists(integer uid) ``{
 
     return UsersCache::UIDExists(uid);
 }
 
-/*
+/**
+ * Check if username already exists
+ * @param username username
+ * @return true if exists
  */
 global define boolean UsernameExists(string username) ``{
 
@@ -1938,7 +1978,8 @@ global define boolean UsernameExists(string username) ``{
 }
 
 /**
- * Read new set of users - "on demand"
+ * Read new set of users - "on demand" (called from running module)
+ * @param type the type of users, currently `ldap or `nis
  */
 define void ReadNewSet (symbol type) ``{
 
@@ -1993,34 +2034,9 @@ Do you want to install them now?")))
 }
 
 /**
- * Update groups's more_users entries, after new read
- *
-global define void CorrectGroups() ``{
-
-    map correction = SCR::Read(.target.ycp, tmpdir + "/group_correct.ycp");
-    foreach (`gid, `userslist, correction, ``{
-
-        map corrected_group = GetGroupFromAll(gid);
-        if (corrected_group == $[]) // can be e.g. for NIS groups
-            return;
-        // TODO here could be the conversion 100 <-> 500 done...
-
-        if (corrected_group ["more_users"]:"" == "")
-            corrected_group ["more_users"] = userslist;
-        else
-            corrected_group ["more_users"] = corrected_group ["more_users"]:""
-                +  "," + userslist;
-
-        groups [ corrected_group["type"]:`local, gid ] = corrected_group;
-
-        // also the group's itemlist must be changed
-        UsersCache::ChangeGroup (`itemlist, corrected_group);
-    });
-}*/
-
-/**
  * Check local groups for presence of non-local users, which was read now
  * and correct that users's grouplists
+ * @param type type of users
  */
 global define void CorrectUsers(symbol type) ``{
 
@@ -2035,6 +2051,7 @@ global define void CorrectUsers(symbol type) ``{
 
 /**
  * Change the current users set, additional reading could be necessary
+ * @param new the new current set
  */
 global define void ChangeCurrentUsers(symbol new) ``{
 
@@ -2055,6 +2072,7 @@ global define void ChangeCurrentUsers(symbol new) ``{
 
 /**
  * Change the set of current groups viewed
+ * @param new the new current set
  */
 global define void ChangeCurrentGroups(symbol new) ``{
 
@@ -2070,6 +2088,11 @@ global define void ChangeCurrentGroups(symbol new) ``{
     UsersCache::current_groups = current_groups;// via some function?
 }
 
+/**
+ * Change the value of custom user/group view
+ * @param what "user" or "group"
+ * @param new the new customs
+ */
 global define void ChangeCustoms(string what, list new) ``{
 
     if (what == "user")
@@ -2086,8 +2109,10 @@ global define void ChangeCustoms(string what, list new) ``{
 
 /**
  * Change the structure with default values (/etc/defaults/useradd)
+ * @param new_defaults new values
+ * @param groupname the name of dew default group
  */
-global define boolean SetDefaults (map new_defaults, string groupname)``{
+global define void SetDefaults (map new_defaults, string groupname)``{
 
     modified = true;
 
@@ -2103,12 +2128,11 @@ global define boolean SetDefaults (map new_defaults, string groupname)``{
     default_gid = tointeger(useradd_defaults["group"]:sformat("%1",default_gid));
     default_groupname = groupname;
     SetDefaultValues(false);
-
-    return true;
 }
 
 /**
  * Sets the time of last password change
+ * @return current date string
  */
 global define string LastChangeIsNow () ``{
     map out = SCR::Execute(.target.bash_output, "date +%s");
@@ -2118,9 +2142,10 @@ global define string LastChangeIsNow () ``{
     return sformat("%1", days);
 }
 
-/*
+/**
  * Runs a script, preparing the data structures
  * @param type type of user/group set to load, can be "passwd", "nis", "ldap"
+ * @return true on success
  */
 global define boolean RunPrepare(string type) ``{
 
@@ -2149,6 +2174,7 @@ global define boolean RunPrepare(string type) ``{
 
 /**
  * Gets the bind password to LDAP database
+ * @return password
  */
 define string GetLDAPPassword() ``{
 
@@ -2169,6 +2195,7 @@ define string GetLDAPPassword() ``{
 /**
  * The default grouplist for new user
  * @param type type of new user (`local, `system, `nis, `ldap)
+ * @return the grouplist
  */
 global define string GetDefaultGrouplist (symbol type) ``{
 
@@ -2177,10 +2204,12 @@ global define string GetDefaultGrouplist (symbol type) ``{
         return "dialout,uucp,video,audio";
     else
         return "";
+    // TODO defaults for another types? (ldap)
 }
 
 /**
  * Gets the source of user lists from /etc/nsswitch.conf
+ * @return list of sources (e.g. [ "ldap", "files" ]
  */
 global define list GetUsersSources() ``{
 
@@ -2192,8 +2221,9 @@ global define list GetUsersSources() ``{
 
 /**
  * Calls the script which builds the widget contens for EditGroup dialog
- @ param userlist the list of users, having this group as additional
- @ param more_users the list of users, having this group as default group
+ * @param userlist the list of users, having this group as additional
+ * @param more_users the list of users, having this group as default group
+ * @return the map with widget contents
  */
 global define map BuildAdditional (string userlist, string more_users) ``{
 
@@ -2219,6 +2249,7 @@ global define map BuildAdditional (string userlist, string more_users) ``{
 
 /**
  * Re-read the settings, when back was pushed during installation
+ * @return true
  */
 global define boolean StartAgain() ``{
 
@@ -2229,7 +2260,6 @@ global define boolean StartAgain() ``{
 
 /**
  * Remove old config options - is used from inst_root.ycp
- * @return void;
  */
 global define void removeOldConf() ``{
 

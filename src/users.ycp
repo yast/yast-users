@@ -53,24 +53,6 @@ while ( arg < size( Args() ) )
 y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
 
 
-    // ===== change start dialog =========================================
-    // if in inst-system and one user was already created switch to overview
-
-// this has to be moved somewhere after ReadDialog !!
-/*
-    if( start_dialog == "user_add" && ( Mode::cont ))
-    {
-	map non_system_user = filter(`key, `user, Users::local_users,
-//	map non_system_user = filter(`key, `user, UserSettings::current_users,
-				     ``( ( user["uid"]:0 >   Users::max_system_uid) && user["username"]:"" != "nobody"  ));
-
-	if( size( non_system_user ) > 0 )
-	{
-	    start_dialog = "users";
-	}
-    }
-*/
-
 symbol ret = UsersSequence(start_dialog);
 
 /* Finish */

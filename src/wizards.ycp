@@ -26,6 +26,7 @@ include "users/dialogs.ycp";
 
 /**
  * Whole configuration of users/groups
+ * @param start the first dialog
  * @return sequence result
  */
 global define symbol UsersSequence(string start) ``{
@@ -77,6 +78,7 @@ global define symbol UsersSequence(string start) ``{
 /**
  * Whole configuration of users/groups but without reading and writing.
  * For use with autoinstallation.
+ * @param start the first dialog
  * @return sequence result
  */
 global define symbol AutoSequence(string start) ``{
@@ -95,6 +97,7 @@ global define symbol AutoSequence(string start) ``{
 
 /**
  * Main workflow of the users/groups configuration
+ * @param start the first dialog
  * @return sequence result
  */
 global define symbol MainSequence(string start) ``{

@@ -402,6 +402,7 @@ you must do it on server."));
 
 /**
  * Popup for deleting user
+ * @return symbol for sequencer
  */
 global define symbol DeleteUserPopup() ``{
 
@@ -502,6 +503,7 @@ Do you really want to delete the user %1?
 
 /**
  * Popup for deleting group
+ * @return symbol for sequencer
  */
 global define symbol DeleteGroupPopup() ``{
 
@@ -548,6 +550,8 @@ Remove these users from the group first."));
 
 /**
  * Dialog for definition of customized view
+ * @param what "user" or "group"
+ * @return true if customs were modified
  */
 global define boolean CustomizePopup(string what) ``{
 
@@ -626,6 +630,7 @@ global define boolean CustomizePopup(string what) ``{
 
 /**
  * Just giving paramaters for commiting user
+ * @return symbol for wizard sequencer
  */
 global define symbol UserSave() ``{
 
@@ -639,6 +644,7 @@ global define symbol UserSave() ``{
 
 /**
  * Just giving paramaters for commiting group
+ * @return symbol for wizard sequencer
  */
 global define symbol GroupSave() ``{
 

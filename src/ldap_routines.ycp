@@ -12,6 +12,7 @@
 /**
  * Returns a map of LDAP users
  * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
  */
 global define map ReadLDAPUsers(string dir) ``{
 
@@ -21,6 +22,7 @@ global define map ReadLDAPUsers(string dir) ``{
 /**
  * Returns a map of LDAP users
  * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
  */
 global define map ReadLDAPUsersByName(string dir) ``{
 
@@ -30,6 +32,7 @@ global define map ReadLDAPUsersByName(string dir) ``{
 /**
  * Returns a map of LDAP groups
  * @param dir directory, where prebuilded map is stored as a file
+ * @return map of groups
  */
 global define map ReadLDAPGroups(string dir)``{
 
@@ -39,6 +42,7 @@ global define map ReadLDAPGroups(string dir)``{
 /**
  * Returns a map of LDAP groups
  * @param dir directory, where prebuilded map is stored as a file
+ * @return map of groups
  */
 global define map ReadLDAPGroupsByName(string dir)``{
 
@@ -47,14 +51,15 @@ global define map ReadLDAPGroupsByName(string dir)``{
 
 /**
  * Writing modified LDAP users with cpu
- * @param ldap_groups map of all ldap groups
+ * @param ldap_users map of all ldap users
  * @param server true if this machine is LDAP server
  * @param dir temporary directory to store config and secret data
  * @param pass bind password to LDAP server
+ * @return true
  */
 global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir, string pass)``{
 
-// check for cpu existence ...
+    // TODO:check for cpu existence ...
 
     // register agent for manipulating with cpu.cfg
     path agent_path = .etc.cpu_cfg;
@@ -86,7 +91,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
     // save also ldap_host bind_dn, base_dn, user_base etc. !!
 
     string skel = SCR::Read(.etc.cpu_cfg."skel_dir");
-    // other values??
+    // TODO: set other values
 
     // save the cfg file
     SCR::Write (.etc.cpu_cfg, "force");
@@ -171,7 +176,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
 
     // remove the cfg and shadowfile files
     SCR::Execute(.target.bash, "/bin/rm " + path_to_cfg + " " + shadow_file);
-    return true;
+    return true; // TODO check for success
 }
 
 /**
@@ -179,6 +184,7 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
  * @param ldap_groups map of all ldap groups
  * @param dir temporary directory to store config and secret data
  * @param pass bind password to LDAP server
+ * @return true
  */
 global define boolean WriteLDAPGroups(map ldap_groups, string dir, string pass)``{
 
@@ -255,8 +261,10 @@ global define boolean WriteLDAPGroups(map ldap_groups, string dir, string pass)`
 }
 
 /**
-  * Checks if ldap server is set to localhost
-  */
+ * Checks if ldap server is set to localhost
+ * @param host adress of LDAP server
+ * @return result
+ */
 global define boolean IsLDAPServer (string host) ``{
 
     if (host == "localhost" || host == "127.0.0.1")
@@ -265,23 +273,28 @@ global define boolean IsLDAPServer (string host) ``{
 }
 
 /**
-  * Reads the LDAP base from /etc/openldap/ldap.conf
-  */
+ * Reads the LDAP base from /etc/openldap/ldap.conf
+ * @return LDAP base
+ */
 global define string GetLDAPBase () ``{
 
     return SCR::Read(.etc.openldap.ldap_conf.base);
 }
 
 /**
-  * Reads the LDAP host adress from /etc/openldap/ldap.conf
-  */
+ * Reads the LDAP host adress from /etc/openldap/ldap.conf
+ * @return host adress
+ */
 global define string GetLDAPHost () ``{
 
     return SCR::Read(.etc.openldap.ldap_conf.host);
 }
 
 /**
-  */
+ * Checks the user sources for presence of "ldap"
+ * @param passwd_source the list of sources (e.g. ["compat", "ldap"])
+ * @return result
+ */
 global define boolean IsLDAPAvailable (list passwd_source) ``{
 
     if ( contains (passwd_source, "ldap"))

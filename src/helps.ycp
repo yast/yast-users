@@ -235,6 +235,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
 
   /**
    * Help for EditUserDialog.
+   * @param mail if checkbox for mail forwarding should be included
    * @return string help text
    */
   global define string EditUserDialogHelp(boolean mail) ``{
@@ -284,6 +285,7 @@ To see more details like the home directory or the user ID push
 
   /**
    * Help for EditGroupDialog.
+   * @param more if the widget with more_users will be shown
    * @return string help text
    */
   global define string EditGroupDialogHelp(boolean more) ``{
