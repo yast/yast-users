@@ -31,6 +31,9 @@ my $after_auth			= "users";
 # Write only, keep progress turned off
 my $write_only			= 0; 
 
+# Where the user/group/password data are stored (can be different on NIS server)
+my $base_directory		= "/etc";
+
 my $root_password		= "";
 
 my %default_groupname		= ();
@@ -178,12 +181,15 @@ YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Mode");
+YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
 YaST::YCP::Import ("Progress");
+YaST::YCP::Import ("Report");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersLDAP");
 YaST::YCP::Import ("UsersRoutines");
+YaST::YCP::Import ("UsersUI");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -201,22 +207,19 @@ sub _ {
 }
 
 
+sub DebugMap {
+    UsersCache::DebugMap (@_);
+}
+
 ##------------------------------------
 BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
+    if (Mode::test ()) { return "0";}
+
     my %out = %{SCR::Execute (".target.bash_output", "date +%s")};
     my $seconds = $out{"stdout"} || "0";
     chomp $seconds;
     return sprintf ("%u", $seconds / (60*60*24));
-}
-
-
-BEGIN { $TYPEINFO{DebugMap} = ["function",
-    "void",
-    [ "map", "string", "string"]];
-}
-sub DebugMap {
-    UsersCache::DebugMap (@_);
 }
 
 BEGIN { $TYPEINFO{Modified} = ["function", "boolean"];}
@@ -463,7 +466,7 @@ BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
 sub CheckHomeMounted {
 
-    if ( Mode::live_eval() ) {
+    if ( Mode::live_eval() || Mode::test() || Mode::config() ) {
 	return "";
     }
 
@@ -480,7 +483,7 @@ sub CheckHomeMounted {
         if ($line{"file"} eq $home) {
             $mountpoint_in = "/etc/fstab";
 	}
-    };
+    }
 
     if (SCR::Read (".target.size", "/etc/cryptotab") != -1) {
         my @cryptotab = SCR::Read (".etc.cryptotab");
@@ -489,7 +492,7 @@ sub CheckHomeMounted {
             if ($line{"mount"} eq $home) {
 		$mountpoint_in = "/etc/cryptotab";
 	    }
-        };
+        }
     }
 
     if ($mountpoint_in ne "") {
@@ -500,10 +503,10 @@ sub CheckHomeMounted {
 	    if ($line{"file"} eq $home) {
                 $mounted = 1;
 	    }
-        };
+        }
 
         if (!$mounted) {
-            return sprintf ( #FIXME question!
+            return sprintf (
 # Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
 _("In %s, there is a mount point for the directory
 %s, which is used as a default home directory for new
@@ -879,21 +882,28 @@ sub GetGroupCustomSets {
 sub ReadCustomSets {
 
     my $file = Directory::vardir()."/users.ycp";
-    SCR::Execute (".target.bash", "/bin/touch $file");
-    my $customs = SCR::Read (".target.ycp", $file);
+    if (SCR::Read (".target.size", $file) == -1) {
+	SCR::Execute (".target.bash", "/bin/touch $file");
+	$customs_modified	= 1;
+    }
+    else {
+	my $customs = SCR::Read (".target.ycp", $file);
 
-    if (defined $customs && ref ($customs) eq "HASH") {
-	my %custom_map	= %{$customs};
-	if (defined ($custom_map{"custom_users"}) &&
-	    ref ($custom_map{"custom_users"}) eq "ARRAY") {
-	    @user_custom_sets = @{$custom_map{"custom_users"}};
-	}
-	if (defined ($custom_map{"custom_groups"}) &&
-	    ref ($custom_map{"custom_groups"}) eq "ARRAY") {
-	    @group_custom_sets = @{$custom_map{"custom_groups"}};
-	}
-	if (defined ($custom_map{"dont_warn_when_uppercase"})) {
-	    $not_ask_uppercase = $custom_map{"dont_warn_when_uppercase"};
+	if (defined $customs && ref ($customs) eq "HASH") {
+	    my %custom_map	= %{$customs};
+	    if (defined ($custom_map{"custom_users"}) &&
+		ref ($custom_map{"custom_users"}) eq "ARRAY")
+	    {
+		@user_custom_sets = @{$custom_map{"custom_users"}};
+	    }
+	    if (defined ($custom_map{"custom_groups"}) &&
+		ref ($custom_map{"custom_groups"}) eq "ARRAY")
+	    {
+		@group_custom_sets = @{$custom_map{"custom_groups"}};
+	    }
+	    if (defined ($custom_map{"dont_warn_when_uppercase"})) {
+		$not_ask_uppercase = $custom_map{"dont_warn_when_uppercase"};
+	    }
 	}
     }
     if (@user_custom_sets == 0) {
@@ -1071,19 +1081,21 @@ sub ReadNewSet {
 
 
 ##------------------------------------
-BEGIN { $TYPEINFO{ReadLocal} = ["function", "void"]; }
+BEGIN { $TYPEINFO{ReadLocal} = ["function", "string"]; }
 sub ReadLocal {
 
+    y2warning ("ReadLocal start");
     my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
-	"base_directory"	=> "/etc"
+	"base_directory"	=> $base_directory
     );
     # id limits are necessary for differ local and system users
     my $init = SCR::Execute (".passwd.init", \%configuration);
     if (!$init) {
-	# TODO check for errors like "duplicated uid"
 	y2internal ("passwd agent init: $init");
+#	my $error = SCR::Read (".passwd.error"); TODO
+	return "passwd error";
     }
 
     foreach my $type ("local", "system") {
@@ -1097,20 +1109,30 @@ sub ReadLocal {
     $plus_passwd	= SCR::Read (".passwd.passwd.plusline");
     $plus_shadow	= SCR::Read (".passwd.shadow.plusline");
     $plus_group		= SCR::Read (".passwd.group.plusline");
+    y2warning ("ReadLocal finish");
+    return "";
 }
 
 sub ReadUsersCache {
     
+#    y2warning ("ReadUsersCache start");
     UsersCache::Read ();
+
+#    y2warning ("ReadUsersCache 1");
 
     UsersCache::BuildUserItemList ("local", $users{"local"});
     UsersCache::BuildUserItemList ("system", $users{"system"});
 
+#    y2warning ("ReadUsersCache 2");
+
     UsersCache::BuildGroupItemList ("local", $groups{"local"});
     UsersCache::BuildGroupItemList ("system", $groups{"system"});
 
+#    y2warning ("ReadUsersCache 3");
+
     UsersCache::SetCurrentUsers (\@user_custom_sets);
     UsersCache::SetCurrentGroups (\@group_custom_sets);
+#    y2warning ("ReadUsersCache finish");
 }
 
 ##------------------------------------
@@ -1156,13 +1178,18 @@ sub Read {
     }
 
     $tmpdir = SCR::Read (".target.tmpdir");
+    my $error_msg = "";
 
     # default login settings
     if ($use_gui) { Progress::NextStage (); }
 
     ReadLoginDefaults ();
 
-    CheckHomeMounted();
+    $error_msg = CheckHomeMounted();
+
+    if ($use_gui && $error_msg ne "" && !Popup::YesNo ($error_msg)) {
+	return 0;
+    }
 
     # default system settings
     if ($use_gui) { Progress::NextStage (); }
@@ -1176,6 +1203,16 @@ sub Read {
 
     ReadSourcesSettings();
 
+    if ($nis_master && $use_gui && !Mode::cont()) {
+	my $directory = UsersUI::ReadNISConfigurationType ($base_directory);
+	if (!defined ($directory)) {
+	    return 0; # aborted in NIS server dialog
+	}
+	else {
+	    $base_directory = $directory;
+	}
+    }
+
     # custom settings
     if ($use_gui) { Progress::NextStage (); }
 
@@ -1184,7 +1221,11 @@ sub Read {
     # users and group
     if ($use_gui) { Progress::NextStage (); }
 
-    ReadLocal ();
+    $error_msg = ReadLocal ();
+    if ($error_msg) {
+	Report::Error ($error_msg);
+	return 0;
+    }
 
     # Build the cache structures
     if ($use_gui) { Progress::NextStage (); }
@@ -1745,16 +1786,6 @@ sub AddGroup {
     return 1;
 }
 
-##------------------------------------ 
-BEGIN { $TYPEINFO{SubstituteValues} = ["function",
-    ["map", "string", "any" ],
-    "string", ["map", "string", "any" ]];
-}
-sub SubstituteValues {
-    
-    return $_[1]; #FIXME - call this from AddUser/Group...?
-
-}
 
 ##------------------------------------ 
 # Checks if commited user is really modified and has to be saved
@@ -1819,7 +1850,6 @@ sub CommitUser {
 
     if (!%user_in_work) { return 0; }
     if (defined $user_in_work{"check_error"}) {
-	y2error ("commit is forbidden: ", $user_in_work{"check_error"});
 	return 0;
     }
 
@@ -1856,7 +1886,8 @@ sub CommitUser {
         $user{"modified"}	= "added";
 
 	if ($type eq "ldap") {
-	    %user = %{SubstituteValues ("user", \%user)};
+	    %user = %{UsersLDAP::SubstituteValues ("user", \%user)};
+	    # FIXME where else to call this?
 	}
 
         # update the affected groups
@@ -2308,7 +2339,7 @@ sub DeleteUsers {
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
 sub Write {
 
-    my $ret	= ""; #TODO return value???
+    my $ret	= ""; #FIXME return value???
 
     # progress caption
     my $caption 	= _("Writing user and group configuration...");
@@ -2356,7 +2387,7 @@ sub Write {
 
     if ($groups_modified) {
         if (! WriteGroup ()) {
-            y2error ("Cannot write group file.");
+            Report::Error (_("Cannot write group file."));
 	    $ret = _("Cannot write group file.");
         }
         # remove the group cache for nscd (bug 24748)
@@ -2368,7 +2399,7 @@ sub Write {
 
     if ($users_modified) {
         if (!DeleteUsers ()) {
-            y2error ("Error while removing users.");
+            Report::Error (_("Error while removing users."));
 	    $ret = _("Error while removing users.");
 	}
     }
@@ -2378,7 +2409,7 @@ sub Write {
 
     if ($users_modified) {
         if (!WritePasswd ()) {
-            y2error ("Cannot write passwd file.");
+            Report::Error (_("Cannot write passwd file."));
 	    $ret = _("Cannot write passwd file.");
 	}
 	# remove the passwd cache for nscd (bug 24748)
@@ -2430,7 +2461,7 @@ sub Write {
     if ($users_modified) {
         if (! WriteShadow ()) {
 	    $ret = _("Cannot write shadow file.");
-            y2error ("Cannot write shadow file.");
+            Report::Error (_("Cannot write shadow file."));
         }
     }
 
@@ -2438,8 +2469,7 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($ldap_modified) {
-	# TODO: bind should be checked again (ask for password)
-	# 1st: deleted users
+	# TODO return value from UsersLDAP::Write
 	if (defined ($removed_users{"ldap"})) {
 	    UsersLDAP::WriteUsers ($removed_users{"ldap"});
 	}
@@ -2493,7 +2523,6 @@ sub Write {
     }
 
     Autologin::Write (Mode::cont () || $write_only);
-
 
     # do not show user in first dialog when all has been writen
     if (Mode::cont ()) {
@@ -3316,83 +3345,6 @@ sub ReadNISAvailable {
     }
     return 0;
 }
-
-#/** FIXME
-#  * Ask user for configuration type (standard or NIS)
-#  * @param dir string directory with NIS settings
-#  * @return symbol `passwd or `nis or `abort
-#  */
-#global define symbol getConfigurationType (string dir) ``{
-#    term contents = `VBox (
-#        // label
-#        `Label (_("You have installed an NIS master server.
-#It is configured to use a different database
-#of users and groups than the local system 
-#database in the /etc directory.
-#Select which one to configure.
-#")),
-#        `VSpacing (1),
-#        `RadioButtonGroup (`id (`configtype), `VBox (
-#        // radio button
-#        `RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
-#        `VSpacing (1),
-#        // radio button, %1 is path (eg. /etc)
-#        `RadioButton (`id (`nis), `opt (`hstretch), sformat(_("&NIS (%1 directory)"), dir), false)
-#        )),
-#        `VSpacing (1),
-#        `HBox (
-#        `HStretch (),
-#        `PushButton (`id (`ok), Label::OKButton()),
-#        `HStretch (),
-#        `PushButton (`id (`abort), Label::AbortButton()),
-#        `HStretch ()
-#        )
-#    );
-#    UI::OpenDialog (contents);
-#    symbol ret = nil;
-#    while (ret == nil)
-#    {
-#        ret = (symbol) UI::UserInput ();
-#        if (ret != `cancel && ret != `ok)
-#            continue;
-#    }
-#    if (ret == `ok)
-#        ret = (symbol) UI::QueryWidget (`id (`configtype), `CurrentButton);
-#    UI::CloseDialog ();
-#    return ret;
-#}
-#/**
-# * If we can ask and are a NIS server, ask which set of users
-# * to administer and set UserWriteStack accordingly.
-# * @param basedir the directory, where the data are stored
-# * @return directory
-# */
-#global define string ReadNISConfigurationType (string basedir)``{
-#
-#    string ypdir = (string)SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
-#    while (substring (ypdir, size (ypdir) - 1) == "/")
-#        ypdir = substring (ypdir, 0, size (ypdir) -1);
-#    if ("" == ypdir)
-#        ypdir = "/";
-#    if (ypdir != basedir)
-#    {
-#        symbol type = getConfigurationType (ypdir);
-#        if (type == `abort)
-#        {
-#            return nil;
-#        }
-#        if (type == `nis)
-#        {
-#            // this should never happen, probably only in testsuites
-#            if (ypdir == nil)
-#                ypdir = basedir;
-#        }
-#        else
-#            ypdir = basedir;
-#    }
-#    return ypdir;
-#}
-
 
 BEGIN { $TYPEINFO{Import} = ["function",
     "boolean",

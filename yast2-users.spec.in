@@ -27,6 +27,7 @@ Summary:	Configuration of users
 @clientdir@/*.ycp
 @desktopdir@/*.desktop
 @moduledir@/*.pm
+@moduledir@/UsersUI.y*
 @yncludedir@/users/*
 #agents:
 @scrconfdir@/*.scr

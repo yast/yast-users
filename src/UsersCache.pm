@@ -111,6 +111,7 @@ YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Progress");
+YaST::YCP::Import ("UsersUI");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -677,11 +678,14 @@ sub BuildUserItem {
     my %user		= %{$_[0]};
     my $uid		= $user{"uidNumber"};
     my $username	= $user{"username"} || "";
-    my $full		= $user{"cn"} || ""; #FIXME use gecos if present...
+    my $full		= $user{"cn"} || "";
+    if (defined $user{"gecos"} && $user{"gecos"} ne "") {
+	$full		= $user{"gecos"};
+    }
 
-#    if ($user{"type"} eq "system") {
-#	$full		= SystemUsers (full); FIXME translate names!
-#    }
+    if ($user{"type"} eq "system") {
+	$full		= UsersUI::SystemUserName ($full);
+    }
     if (ref ($full) eq "ARRAY") {
 	$full	= $full->[0];
     }
@@ -696,7 +700,6 @@ sub BuildUserItem {
 
     my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($uid));
     my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
-
     return $t;
 }
 
@@ -1012,7 +1015,7 @@ sub ReadGroups {
     my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
 	$path 	= ".$type";
-#FIXME	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
+#	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
     }
     elsif ($type eq "nis") {
 	$path 	= ".$type";
