@@ -1522,7 +1522,8 @@ map <string, map <string, any> > widgets = $[
 	),
         "init"			: RadioButtonsUsersGroupsInit,
         "handle"		: RadioButtonsUsersGroupsHandler,
-	"handle_events"		: [ "users", "groups" ]
+	"handle_events"		: [ "users", "groups" ],
+	"no_help"		: true
     ],
     "table" : $[
         "widget"		: `custom,
@@ -1542,6 +1543,7 @@ map <string, map <string, any> > widgets = $[
 	"init"			: SummaryTableInit,
 	"handle"		: SummaryTableHandler,
 	"handle_events"		: ["table", `new, `edit, `delete, `next],
+	"no_help"		: true
     ],
     "advanced_buttons" : $[
         "widget"		: `custom,
@@ -1559,7 +1561,8 @@ map <string, map <string, any> > widgets = $[
 	    "local", "system", "ldap", "nis", "custom",
 	    `defaults, `customize, `enc, `auth, `autologinconf, `ldapfilter,
 	    `ldapconf, `save
-	]
+	],
+	"no_help"		: true
     ],
 ];
 
