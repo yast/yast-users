@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Jan 31 12:55:14 CET 2003 - jsuchome@suse.de
+
+- expert settings for root: used only popup again
+- new file inst_auth.ycp: authentication setting during installation
+- expert_settings: show NIS in authentication table
+- 2.7.11
+
+-------------------------------------------------------------------
 Wed Jan 29 11:15:05 CET 2003 - jsuchome@suse.cz
 
 - gathered new system users to passwd.ycp (do not use passwd.sh now)

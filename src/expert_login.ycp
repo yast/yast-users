@@ -16,6 +16,7 @@ import "Users";
 import "Mode";
 import "Security";
 import "Progress";
+import "Runlevel";
 
 include "ui/common_messages.ycp";
 include "require.ycp";
@@ -134,6 +135,11 @@ You can configure these settings by running appropriate modules. Select the modu
         if (auth_unix)
         {
             auth_text = auth_text + to_string ["files"]:"" + "<br>";
+
+            if ((contains (users_sources, "nis") ||
+                contains (users_sources, "compat")) &&
+                Runlevel::ServiceEnabled ("ypbind"))
+                auth_text = auth_text + to_string ["nis"]:"" + "<br>";
 
             // check for pam settings (/etc/security/pam_unix2.conf)
             map pam_auth_map = $[];
