@@ -77,9 +77,14 @@ sub ChownHome {
     my $gid	= $_[1];
     my $home	= $_[2];
 
-    # directory already exists and chown is not needed
     my %stat	= %{SCR::Read (".target.stat", $home)};
+    if (!%stat) {
+	#no such directory
+	return 1;
+    }
+
     if (($uid == ($stat{"uid"} || -1)) && ($gid == ($stat{"gid"} || -1))) {
+	# directory already exists and chown is not needed
 	return 1;
     }
 
@@ -142,4 +147,5 @@ sub DeleteHome {
     return 1;
 }
 
+1
 # EOF
