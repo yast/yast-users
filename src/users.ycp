@@ -81,9 +81,15 @@
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
     include "wizard/sequencer.ycp";
+    include "font_defines.ycp";
     
     include "users/ui.ycp";
     include "users/io.ycp";
+
+    map    settings = $[];
+    string language = UI( `GetLanguage());
+    settings        = SelectConsoleFont( language);
+    string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
 
     usersGroupsShadowReadFromDisk();
     usersUsersReadFromDisk();

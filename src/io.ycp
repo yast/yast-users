@@ -130,8 +130,10 @@
 	foreach ( `user, users,  ``{
 	    any i_uid = lookup(  user, "uid", 0);
 	    user = add( user ,"exist", true);
+	  
 	    if( is( i_uid , integer ) )
 	    {
+		user = add( user , "fullname", usersConsoleUncoding( lookup( user, "fullname" ,"" )));
 		current_users = add(current_users, i_uid , user );
 	    }	
 	});
@@ -908,13 +910,23 @@ to new home directory %2")), old_home, home));
 
 
     /**
-     * Encode the fullname?
+     * Uncode the fullname
+     * This is used in <TT>usersUsersReadFromDisk</TT>.
+     * @param string <TT>fullname</TT>  
+     */
+    global define usersConsoleUncoding( string fullname ) ``{
+	
+	return UI(`Recode ( encoding,"utf-8",  fullname ));
+    }
+
+    /**
+     * Encode the fullname
      * This is used in <TT>usersUserSaveToMap</TT>.
      * @param string <TT>fullname</TT>  
      */
     global define usersConsoleEncoding( string fullname ) ``{
 
-	include "font_defines.ycp";
+	
 	any ret = findfirstof( fullname , "\"" );
 	
 	if(  ret != nil )
@@ -927,15 +939,8 @@ to new home directory %2")), old_home, home));
 		else fullname = fullname + "\\\"" + split; 
 	    });
 	}
-
-	      
-	map    settings = $[];
-	string language = UI( `GetLanguage() );
-	settings        = SelectConsoleFont( language);
-	string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
-	string comment  = UI(`Recode ("utf-8", encoding, sformat("\"%1\"", fullname )));
-
-	return comment;
+	
+	return  UI(`Recode ("utf-8", encoding, sformat("\"%1\"", fullname )));
     }
 
 
