@@ -1,5 +1,6 @@
 #
 # Makefile.am for users/src
+#
 # $Id$
 #
 
@@ -31,15 +32,11 @@ client_DATA = 		\
     inst_auth.ycp	\
     users_auto.ycp
 
-config_DATA =		\
-    users.y2cc		\
-    groups.y2cc
-
 desktop_DATA =		\
     users.desktop	\
     groups.desktop
 
-EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(config_DATA)
+EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
 
 users:
 	ln -sf . users

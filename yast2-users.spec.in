@@ -25,7 +25,6 @@ Summary:	Configuration of users
 %defattr(-,root,root)
 %dir @yncludedir@/users
 @clientdir@/*.ycp
-@configdir@/*.y2cc
 @desktopdir@/*.desktop
 @moduledir@/*.pm
 @yncludedir@/users/*
