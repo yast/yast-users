@@ -1,8 +1,8 @@
-<html><head><title>YaST2 Users module documentation</title></head>
+<html><head><title>YaST2 Users module</title></head>
 <body>
 <h1>YaST2: Users configuration module</h1>
 
-<h2>Current Features (SL 9.0)</h2>
+<h2>Features (SL 9.3)</h2>
 
 <p>
 Basic module abilities:
@@ -37,175 +37,304 @@ Group attributes:
 <li>special attributes for LDAP groups
 </ul>
 
-<h2>TODO</h2>
-
-<ul>
-<li>Re-write to Perl... :-)
-<li>
-If it makes some sense, there could be a possibility for creating own group for
-a new user by checking checkbox in "Add user dialog".
-<li><a href="Todo.txt">TODO file</a>
-</ul>
+<a href="Todo.txt">TODO file</a>
 
 <hr>
 <h2>Implementation</h2>
 
-<h3>1. The workflow</h3>
+YaST Users module consists from following subcomponents:
 
-Current workflow
+<ul>
+<li>Perl modules
+    <ul>
+    <li>Users.pm
+    <li>UsersLDAP.pm
+    <li>UsersCache.pm
+    <li>UsersLDAP.pm
+    <li>YaPI/USERS.pm
+    </ul>
+<li>SCR agents
+    <ul>
+    <li>SCR agent for reading and writing the main user/group config files
+	(e.g. /etc/passwd)
+    <li>SCR agent for reading and writing /etc/default/useradd config file
+    li>SCR agent for testing the password strength ("agent-crack")
+    <li>SCR agent for testing if the UIDs/usernames are unique ("agent-uid")
+    </ul>
+<li>User interface files (dialog behaviour definition and implementation)
+</ul>
+<h3>Users.pm data structures and functions</h3>
+
+<h4>Purpose of this module</h4>
+<ul>
+    <li>Read and write the settings using agents
+    <li>Store the settings in module variables
+    <li>Provide functions required by other components
+    <li>Provide functions tightly bound to the data it stores
+    <li>Provide other functions required by user interface
+</ul>
+
+<h4>Data structures</h4>
+
+      <h5>map users</h5>
+
+      This structure gatheres informations of all users in the system.
+      (To be more precise, information of NIS and LDAP users could be
+      read later on demand, so just after Users::Read call, the map
+      describes the content of /etc/passwd config file). The map is
+      indexed by user type (local,system etc.), values are maps of each
+      type. The inner maps are indexed by UID, values are maps of users.
+      Such user map has the keys (user attributes, like 'uid' (= login name)
+      or 'home') and its values describing that user (see <i>user_in_work</i>
+      map).
+
+      <p>
+      Here is the example of 'users' structure, written in YCP:
+
+<pre>
+$[
+	"local":$[
+	    500: $[
+		    "cn"		:"Ha Ha Herman",
+		    "uid"		:"hh",
+		    "uidnumber"		:500,
+		    "gidnumber"		:100,
+		    "homedirectory"	:"/home/hh",
+		    "userpassword"	:"x",
+		    "loginshell"	:"/bin/bash",
+		    "type"		: "local",
+		    "grouplist"		: $[
+			    "audio" : 1,
+			    "video" : 1,
+		    ],
+		    "modified"		: "added",
+		    "what"		: "add_user",
+	    ],
+	],
+	"ldap": $[
+	    5000: $[
+		    "cn"	:"LDAP user",
+		    "givenname"	: "LDAP",
+		    "sn"	: "user",
+		    "dn"	: "uid=ldap1,ou=people,dc=suse,dc=cz",
+		    "uid"	: "ldap1",
+		    "uidnumber"	: 5000,
+		    "gidnumber"	: 100,
+		    "homedirectory"	: "/ldap_homes/ldap1",
+		    "userpassword"	: "x",
+		    "loginshell"	: "/bin/bash",
+		
+		    "shadowexpire"	: "0",
+		    "shadowinact"	: "-1",
+		    "shadowlastchange"	: "11984",
+		    "shadowmax"		: "99999",
+		    "shadowmin"		: "0",
+		    "shadowwarn"	: "7",
+
+		    "type"		: "ldap",
+		    "grouplist"		: $[
+			    "audio" : 1,
+			    "video" : 1,
+			    "lgroup": 1
+		    ],
+	    ]
+	]
+]
+</pre>
+<p>
+<h5>map groups</h5>
+<p>
+
+      This structure describes all the groups (which means - as default
+      - the content of /etc/group config file). The map is indexed by
+      group type (local,system etc.), values are maps of each type. The
+      inner maps are indexed by GID, values are maps of groups.
+<p>
+      Example of structure:
+<p>
+<pre>
+$[
+	"local":$[
+	    500 :$[
+		    "cn"		: "users",
+		    "gid"		: 500,
+		    "type"		: "local"
+		    "userlist"		: $[],
+		    "more_users"	: $[ 
+			    "hh": 1
+		    ],
+	    ]
+	],
+	"system": $[
+	    1: $[
+		    "cn"		: "bin",
+		    "gid"		: 1,
+		    "type"		: "system"
+		    "userlist"		: $[
+			    "daemon": 1
+		    ],
+		    "more_users"	: $[
+			    "bin"   : 1
+		    ],
+	    ],
+	]
+]
+</pre>
+<p>
+<h5>map shadow</h5>
+<p>
+      This is the map indexed by user type (local,system etc.), values
+      are maps of each type. The inner maps are indexed by username,
+      values are maps of user shadow settings. This map describes the
+      content of /etc/shadow file.
+
+<p>
+<h5>map useradd_defaults</h5>
+<p>
+      This map contains information about default values, used for new
+      users. It describes /etc/default/useradd config file.
+<p>
+      Example of structure:
+<p>
+<pre>
+$[
+    "group"	: "500",
+    "home"	: "/home",
+    "inactive"	: "-1",
+    "expire"	: "",
+    "shell"	: "/bin/bash",
+    "skel"	: "/etc/skel",
+    "groups"	: "dialout,uucp,video,audio",
+]
+</pre>
+<p>
+<h5>map user_in_work</h5>
+<p>
+      Map of current user. The maps with the same structure are saved in
+      global "users" map as the values for UID keys. The map contains:
+<p>
+<ul>
+<li>real data entries
+<p>
+
+            these which were read from the config file (/etc/passwd) or
+            other user repository (LDAP directory) and will be written
+            there at the end, like "gidnumber", "uidnumber", or "username".
+
+<li>helper structures
+<p>
+            these were generated from the "real" data and are stored in
+            the user map just as in some cache, like "grouplist"
+            (generated from "group" map), "org_home" (necessary for
+            moving home directory to new location), "type", etc.
+</ul>
+<p>
+      Example of <i>user_in_work</i> structure:
+<pre>
+$[
+	    "cn"		: "LDAP user",
+	    "givenname"		: "LDAP",
+	    "sn"		: "user",
+	    "dn"		: "uid=ldap1,ou=people,dc=suse,dc=cz",
+	    "uid"		: "ldap1",
+	    "uidnumber"		: 5000,
+	    "gidnumber"		: 100,
+	    "homedirectory"	: "/ldap_homes/ldap1",
+	    "userpassword"	: "x",
+	    "loginshell"	: "/bin/bash",
+	    "shadowexpire"	: "0",
+	    "shadowinact"	: "-1",
+	    "shadowlastChange"	: "11984",
+	    "shadowmax"		: "99999",
+	    "shadowmin"		: "0",
+	    "shadowwarn"	: "7",
+	    "type"		: "ldap",
+	    "grouplist"		: $[
+			"audio" : 1,
+			"video" : 1,
+			"lgroup": 1
+	    ],
+]
+</pre>
+
+<h4>Functions</h4>
+
+<h5>boolean Users::ReadNewSet (string type)</h5>
+
+      Local and system users (groups) are always read as default in
+      Users::Read() function. ReadNewSet () function provides reading of
+      non-standard user (group) set (this currently means NIS or LDAP)
+      on demand. Function gets the connection to server where the sets
+      are stored (it could require user interaction) and generates
+      appropriate ("nis" or "ldap") structures for both users and groups.
+
+
+<h5>boolean Users::AddUser (map data)</h5>
+
+      Initialize data structure for new user. As a parameter, gets
+      data for new user - the map can be empty (just to fill in
+      defaults) or almost complete (for example after user added the
+      details via UI) - in this case use the map of <i>user_in_work</i>
+      format. Function chooses new UID
+      (if not given), fills defaults (from useradd structure), and
+      copies given data to new user map.
+
+
+<h5>boolean Users::SelectUser (integer uid)</h5>
+      Finds the user identified by its UID and copies its data from
+      global <i>users</i> map to current user map (<i>user_in_work</i>).
+
+<h5>boolean Users::SelectUserByName (string username)</h5>
+
+      Finds the user identified by its name and copies its data to
+      current user map.
+
+<h5>boolean Users::EditUser (map data)</h5>
+
+      Initializes current user map (<i>user_in_work</i>) for editing. Copies
+      the original (not yet edited) data to 'org_user' submap.
+      Additionaly, loads the data not yet contained in current user map
+      (like "shadow" values or additional groups for NIS/LDAP users)
+      from the global structures to the <i>user_in_work</i> map. Initialization
+      is the one type of usage of Edit function, in such case its
+      parameter could be an empty map.
+      <p>
+
+      In the second type of usage, function updates current user map
+      using the values in the given parameter, which is a map with the
+      same format as the <i>user_in_work</i>, but
+      containing only the entries with the changed values.
+
+<h5>string Users::CheckUser ()</h5>
+
+      Function does all necessary checks to ensure that new or just
+      edited user can be written (for example the checks for possible
+      UID/username duplicates, home directory existence etc.). Returns
+      error message of the first check that failed.
+
+
+<h5>boolean Users::CommitUser ()</h5>
+
+      Saves the current user map to global structures and updates all
+      affected structures. Adapts the (cache) lists of all usernames,
+      uid's, home directories; adapts the affected groups. Cache
+      structures are adapted in UsersCache::CommitUser() function.
+<p>
+      Takes care of special cases, e.g. when username or uid is changed,
+      because both are used as the indexes in some global structures.
+<p>
+      All possible problems should be resolved in check functions before
+      CommitUser is called, so theoreticaly this function should never
+      fail.
+
+<h3>The workflow</h3>
 
 <p>
 <img src="workflow.png">
 <p>
 
-<h3>1.1 Common Dialogs</h3>
 
-<ul>
-<li>
-Summary dialog:
-<p>
-<img src="summary-dialog.png">
-<p>
-This dialog provides multiple filters (views) to sets of users
-(local/system/ldap/nis/custom). "Customize Filter" button will open the
-Customize popup for configuring the custom view (e.g. system+local). This
-setting is saved to configuration file (currently /var/lib/YaST2/users.ycp).
-<p>
-Customize popup
-<p>
-<img src="customize-popup.png">
-<p>
-
-In this popup user can customize the view of the users set. (He can e.g. set to
-view only local and NIS users.)
-<p>
-"Expert Options" menubutton provides extended features:
-<ul>
-<li>Defaults
-<li>Pasword Encryption
-<li>Authetication and User Sources
-<li>LDAP Client configuration (just runs yast2-ldap-client module)
-<li>setting LDAP Search Filter (entry is only shown when LDAP source is
-available)
-</ul>
-<p>
-
-<li>
-Defaults dialog
-<p>
-Here the default settings for new users could be set.
-<p>
-<img src="defaults-dialog.png">
-<p>
-
-<li>Encryption
-<p>
-For password encryption, use only small popup
-(known from installation sequence):
-<p>
-<img src="encryption.png">
-
-<li>Authentication and user sources
-<p>
-There is a list of various modules which configure authentization of user data
-sources and its stettings. The modules could be called from here to change the
-appropriate configuration.
-<p>
-<img src="authentication.png">
-<p>
-</ul>
-
-<ul>
-<h4>But the main purpose of module is editing users and groups</h4>
-
-"User" and "Group" dialog could be opened directly form Summary dialog, by using
-<i>Add</i> or <i>Edit</i> buttons
-<p>
-
-<li>Group Add/Edit dialog
-<p>
-<img src="group_edit.png">
-<p>
-
-<p>
-<li>User Add/Edit dialog
-<p>
-<img src="user_add.png">
-<p>
-<i>Suggestion</i> creates a proposal for username from the given full name
-<p>
-From this dialog, two additional could be opened: "User Details Dialog"
-and "User Password Settings" dialog as it arises from the button labels.
-<p>
-<li>User Details dialog
-<p>
-<img src="user_details.png">
-<p>
-
-<li>User Password Settings dialog
-<p>
-<img src="user_password_settings.png">
-<p>
-
-</ul>
-
-<h3>1.2 LDAP specials: dialogs extending traditional User/Group dialogs</h3>
-
-<ul>
-
-<li>LDAP filter
-<p>
-This popup is envoked by entry in "Expert Options" menubutton from Summary
-dialog. It is used for setting filter for LDAP users/groups which are to be
-loaded from LDAP server (can be defined some smaller group when it is not
-necessary to read all of them).
-<p>
-<img src="ldap_filter.png">
-<p>
-
-<li>Dialog for single user
-<p>
-After Details dialog, there is one more dialog, called "LDAP settings".
-In the dialog there is be possibility to set
-values that are used only for LDAP users, just like "e-mail", "homePhone",
-"description" or "roomNumber".
-<p>
-<img src="ldap_user_settings.png">
-<p>
-
-<li>Also for groups there is such dialog, showed after slicking Next from Edit
-Group dialog:
-<p>
-<img src="ldap_group_settings.png">
-<p>
-</ul>
-
-<h3>1.3 Installation workflow: what is different</h3>
-
-During installation workflow, the extened "Add User Dialog" is shown at first
-(not the Summary dialog) to add the first (and possible only) user.
-<ul>
-
-<li>User Add dialog
-<p>
-<img src="user_add_install.png">
-<p>
-The additional widhets (2 checkboxes and 1 button) are shown only in this
-(installation) time and only for this first user. So you won't see them if
-you go to Summary dialog and use "Add" button to add new user with the standard
-way.
-<p>
-
-<i>Recieve System Mail</i> sets forwaring of root's mail to this user<br>
-<i>Auto Login</i> means that user will be logged in automatically without
-prompting for pasword (works only with KDM). It is true by default.<br>
-<i>User Management</i> brings us to traditional "Summary" dialog of users
-module.
-
-</ul>
-
-
-<h2>2. The files</h2>
+<h2>The files</h2>
 
 For more, see <a href="autodocs/index.html">developer's documentation</a>.
 </body></html>
