@@ -48,6 +48,7 @@ my @group_object_class                 =
 # "modified"		=> "added"/"edited"/"deleted"
 # "enabled"		=> 1/ key not present
 # "disabled"		=> 1/ key not present
+# "plugins_to_remove"	=> list of plugins which has to be removed 
 
 # 'data' map contains the atrtributes of the user. It could also contain
 # some keys, which Users module uses internaly (like 'groupname' for name of
@@ -75,6 +76,7 @@ sub Interface {
 	    "Edit",
 	    "Interface",
 	    "Disable",
+	    "PluginPresent",
 #	    "InternalAttributes",
     );
     return \@interface;
@@ -118,6 +120,19 @@ sub InternalAttributes {
     }
     return \@ret;
 }
+
+# checks the current data map of user/group (2nd parameter) and returns
+# true if given user (group) has our plugin
+BEGIN { $TYPEINFO{PluginPresent} = ["function", "boolean", "any", "any"];}
+sub PluginPresent {
+
+    my $self	= shift;
+
+    # Yes, all LDAP users/groups have this plugin as default
+    # (and this plugin is used only for LDAP objects, see Restriction function)
+    return 1;
+}
+
 
 
 # return name of YCP client defining YCP GUI
@@ -292,7 +307,8 @@ sub EditBefore {
     # data of original user/group are saved as a submap of $config
     # data with key "org_data"
 
-#    $data	= update_object_classes ($config, $data);
+    # in $data hash, there could be "plugins_to_remove": list of plugins which
+    # has to be removed from the user
 
     y2internal ("EditBefore LDAPAll called");
     return $data;
@@ -308,6 +324,9 @@ sub Edit {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1]; # the whole map of current user/group after Users::Edit
+
+    # in $data hash, there could be "plugins_to_remove": list of plugins which
+    # has to be removed from the user
 
     y2internal ("Edit LDAPAll called");
     return $data;
