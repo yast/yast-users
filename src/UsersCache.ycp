@@ -68,9 +68,13 @@ map symbol_to_string = $[
 
 /**
  * Build the cache structures, used for fasten operations
+ * @param usermap the map of users
+ * @param groupmap the map of groups
+ * @param cust_u custom view of user sets
+ * @param cust_g custom view of group sets
+ * @return true
  */
-global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g,
-string dir) ``{
+global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) ``{
 
     current_users = user_custom_sets;
     PrintDate ("read cache start");
@@ -92,7 +96,12 @@ string dir) ``{
     return true;
 }
 
-global define boolean ReadFromFiles (string dir) ``{
+/**
+ * Read the prebuilded cache structures from files
+ * @param dir the location of input files
+ * @return true
+ */
+global define void ReadFromFiles (string dir) ``{
 
     current_users = user_custom_sets;
     PrintDate ("read cache start");
@@ -119,8 +128,10 @@ global define boolean ReadFromFiles (string dir) ``{
 
 /**
  * Build the cache structures for user set
+ * @param usersmap map of users of one type
+ * @param type the users type
  */
-global define boolean BuildUsers (map usersmap, symbol type) ``{
+global define void BuildUsers (map usersmap, symbol type) ``{
 
     PrintDate ("build users start");
 
@@ -137,8 +148,10 @@ global define boolean BuildUsers (map usersmap, symbol type) ``{
 
 /**
  * Build the cache structures for group set
+ * @param groupsmap map of groups of one type
+ * @param type the groups type
  */
-global define boolean BuildGroups (map groupsmap, symbol type) ``{
+global define void BuildGroups (map groupsmap, symbol type) ``{
 
     if (groupnamelists [type]:nil == nil)
         groupnamelists [type] = BuildGroupnameList (groupsmap);
@@ -148,21 +161,10 @@ global define boolean BuildGroups (map groupsmap, symbol type) ``{
 }
 
 /**
- * Build the cache structures for group set
- *
-global define boolean BuildGroups (map groupmap) ``{
-
-    foreach (`type, `groupsmap, groupmap, ``{
-        if (groupnamelists [type]:nil == nil)
-            groupnamelists [type] = BuildGroupnameList (groupsmap);
-        groups_itemlists [type] = BuildGroupItemList(groupsmap);
-    });
-
-    gidlist = BuildGIDList(groupmap);
-}*/
-
-/**
  * Read the prepared user data from the files
+ * @param type the type of users
+ * @param dir the source directory
+ * @return true
  */
 global define boolean ReadUsers (symbol type, string dir) ``{
 
@@ -186,12 +188,16 @@ global define boolean ReadUsers (symbol type, string dir) ``{
     if (type != `nis)
         last_uid [type] = SCR::Read (.target.ycp, dir + "/last_" +
             stringtype + "_uid.ycp");
+
+    return true; // TODO: test for errors while reading
 }
 
 /**
  * Read the prepared group data from the files
+ * @param type the type of groups
+ * @param dir the source directory
+ * @return true
  */
-//global define boolean ReadGroups (list sets, string dir) ``{
 global define boolean ReadGroups (symbol type, string dir) ``{
 
     string stringtype = symbol_to_string[type]:"";
@@ -202,18 +208,9 @@ global define boolean ReadGroups (symbol type, string dir) ``{
         stringtype + ".ycp");
     groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
         + stringtype + "_itemlist.ycp");
-    /*
-    gidlist = SCR::Read (.target.ycp, dir + "/gidlist.ycp");
-    groupnamelists = SCR::Read (.target.ycp, dir + "/groupnamelists.ycp");
 
-    foreach (`type, sets, ``{
-        groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
-            + symbol_to_string [type]:"" + "_itemlist.ycp");
-    });
-    */
+    return true;
 }
-
-
 
 
 /**
@@ -229,7 +226,9 @@ global define void EmptyStructures () ``{
 }
 
 /**
- * Builds the list of homedirectories
+ * Builds the list of home directories of given users
+ * @param usersmap map of users of one type
+ * @return list of homedirs
  */
 global define list BuildHomeList(map usersmap) ``{
 
@@ -243,6 +242,8 @@ global define list BuildHomeList(map usersmap) ``{
 
 /**
  * Builds the list of user names
+ * @param usersmap map of users of one type
+ * @return list of names
  */
 global define list BuildUsernameList(map usersmap) ``{
 
@@ -256,6 +257,8 @@ global define list BuildUsernameList(map usersmap) ``{
 
 /**
  * Builds the list of group names
+ * @param groupsmap map of groups of one type
+ * @return list of names
  */
 global define list BuildGroupnameList(map groupsmap) ``{
 
@@ -270,6 +273,8 @@ global define list BuildGroupnameList(map groupsmap) ``{
 
 /**
  * Builds the list of uid's
+ * @param usersset map of users of one type
+ * @return list of id's
  */
 global define list BuildUIDList(map usersset) ``{
 
@@ -282,14 +287,14 @@ global define list BuildUIDList(map usersset) ``{
 
 /**
  * Builds the list of gid's
+ * @param groupsset map of groups of one type
+ * @return list of id's
  */
-global define list BuildGIDList(map allgroups) ``{
+global define list BuildGIDList(map groupsset) ``{
 
     list ret = [];
-    foreach (`type, `groupsset, allgroups, ``{
-        foreach (`gid, `groupsmap, groupsset, ``{
+    foreach (`gid, `groupsmap, groupsset, ``{
             ret = add (ret, gid);
-        });
     });
     return ret;
 }
@@ -314,6 +319,8 @@ define string addBlanks(integer count ) ``{
 
 /**
  * Builds item list for the user table
+ * @param map_of_users users of one type
+ * @return list of items for table widget
  */
 global define list BuildUserItemList(map map_of_users) ``{
 
@@ -370,6 +377,8 @@ global define string Uncoding( string fullname ) ``{
 
 /**
  * Builds item list for the group table
+ * @param map_of_groups groups of one type
+ * @return list of items for table widget
  */
 global define list BuildGroupItemList(map map_of_groups) ``{
 
@@ -405,11 +414,6 @@ global define list BuildGroupItemList(map map_of_groups) ``{
             }
             userlist = userlist + "...";
         }
-        /*
-        userlist_l = splitstring(userlist, ",");
-        if (!contains (userlist_l, all_users[i]) //this is for "nobody"
-        {
-*/
         a = add(a, userlist);
 
         items = add( items, a );
@@ -417,7 +421,9 @@ global define list BuildGroupItemList(map map_of_groups) ``{
     return items;
 }
 
-/*
+/**
+ * Merge the users's item lists of types included in "custom view" to one list
+ * @return new table itemlist
  */
 global define list MergeUserTableItems() ``{
 
@@ -428,7 +434,9 @@ global define list MergeUserTableItems() ``{
     return items;
 }
 
-/*
+/**
+ * Merge the groups's item lists of types included in "custom view" to one list
+ * @return new table itemlist
  */
 global define list MergeGroupTableItems() ``{
 
@@ -439,6 +447,10 @@ global define list MergeGroupTableItems() ``{
     return items;
 }
 
+/**
+ * Change the list defining user's "custom view"
+ * @param new new customized list
+ */
 global define void ChangeUserCustoms (list new) ``{
 
     user_custom_sets = new;
@@ -447,6 +459,10 @@ global define void ChangeUserCustoms (list new) ``{
         user_itemlist = users_itemlists [`custom]:[];
 }
 
+/**
+ * Change the list defining group's "custom view"
+ * @param new new customized list
+ */
 global define void ChangeGroupCustoms (list new) ``{
 
     group_custom_sets = new;
@@ -456,7 +472,10 @@ global define void ChangeGroupCustoms (list new) ``{
 }
 
 
-/* -- check for nis names???
+/**
+ * Check if username already exists
+ * @param username username
+ * @return true if exists
  */
 global define boolean UsernameExists(string username) ``{
 
@@ -467,7 +486,10 @@ global define boolean UsernameExists(string username) ``{
     return ret;
 }
 
-/* -- check for nis homes???
+/**
+ * Check if homedir doesn't exist for another user
+ * @param home the name
+ * @return true if exists
  */
 global define boolean HomeExists(string home) ``{
 
@@ -478,7 +500,10 @@ global define boolean HomeExists(string home) ``{
     return ret;
 }
 
-/*
+/**
+ * Check if UID doesn't already exist
+ * @param uid UID
+ * @return true if exists
  */
 global define boolean UIDExists(integer uid) ``{
 
@@ -489,7 +514,10 @@ global define boolean UIDExists(integer uid) ``{
     return ret;
 }
 
-/*
+/**
+ * Check if GID doesn't already exist
+ * @param gid GID
+ * @return true if exists
  */
 global define boolean GIDExists(integer gid) ``{
 
@@ -500,7 +528,10 @@ global define boolean GIDExists(integer gid) ``{
     return ret;
 }
 
-/* -- check for nis names???
+/**
+ * Check if groupname already exists
+ * @param groupname groupname
+ * @return true if exists
  */
 global define boolean GroupnameExists(string groupname) ``{
 
@@ -597,6 +628,8 @@ define void UpdateGroupItemlist () ``{
 
 /**
  * Update the cache after changing user
+ * @param what the action done with the user
+ * @param user the user's map
  */
 global define void ChangeUser(symbol what, map user) ``{
 
@@ -656,6 +689,8 @@ global define void ChangeUser(symbol what, map user) ``{
 
 /**
  * Update the cache after changing group
+ * @param what the action done with the group
+ * @param group the group's map
  */
 global define void ChangeGroup (symbol what, map group) ``{
 
@@ -711,7 +746,10 @@ global define void ChangeGroup (symbol what, map group) ``{
     }
 }
 
-// debug function
+/**
+ * Speed debug function - prints current time to log
+ * @param message debug message
+ */
 global define void PrintDate(string message) ``{
 
 //    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));

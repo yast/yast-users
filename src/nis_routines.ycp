@@ -10,33 +10,50 @@
 {
 textdomain "users";
 
-/*
+/**
  * Reads the prepared map of NIS users
+ * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
  */
 global define map ReadNISUsers(string dir)``{
 
     return SCR::Read(.target.ycp, dir + "/nis.ycp");
 }
 
+/**
+ * Reads the prepared map of NIS users
+ * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
+ */
 global define map ReadNISUsersByName(string dir)``{
 
     return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
 }
 
+/**
+ * Reads the prepared map of NIS groups
+ * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
+ */
 global define map ReadNISGroups(string dir)``{
 
     return SCR::Read(.target.ycp, dir + "/group_nis.ycp");
 }
 
+/**
+ * Reads the prepared map of NIS groups
+ * @param dir directory, where prebuilded map is stored as a file
+ * @return map of users
+ */
 global define map ReadNISGroupsByName(string dir)``{
 
     return SCR::Read(.target.ycp, dir + "/group_nis_byname.ycp");
 }
 
 /**
-  * Check whether host is NIS master
-  * @return boolean true if is master
-  */
+ * Check whether host is NIS master
+ * @return result
+ */
 global define boolean IsNISMaster () ``{
     boolean helper = 0 == SCR::Execute (.target.bash, "test -f /usr/lib/yp/yphelper");
     if (! helper)
@@ -46,8 +63,10 @@ global define boolean IsNISMaster () ``{
 }
 
 /**
-  * Checks if set of NIS users is available
-  */
+ * Checks if set of NIS users is available
+ * @param passwd_source the list of sources (e.g. ["compat", "ldap"])
+ * @return result
+ */
 global define boolean IsNISAvailable (list passwd_source) ``{
 
     if (contains (passwd_source, "nis") ||
@@ -63,7 +82,7 @@ global define boolean IsNISAvailable (list passwd_source) ``{
 /**
  * If we can ask and are a NIS server, ask which set of users
  * to administer and set UserWriteStack accordingly.
- * @param interactive true if can ask user via popup
+ * @param basedir the directory, where the data are stored
  * @return success?
  */
 global define boolean ReadNISConfigurationType (string basedir)``{

@@ -80,6 +80,9 @@ You can configure these settings by running appropriate modules. Select the modu
 
     //    list supported_users_sources = [ "nis", "ldap", "files", "compat" ];
 
+    /**
+     * Realoads the configuration and updates the widget contents
+     */
     define void reload_config() ``{
 
         // checking /etc/nsswitch.conf
