@@ -1,8 +1,8 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-pam yast2-packager cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client yast2-perl-bindings
+# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-pam yast2-packager cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client yast2-perl-bindings perl-Digest-SHA1 perl-gettext
 
 @HEADER@
-Requires:	yast2 yast2-country yast2-pam yast2-security yast2-packager yast2-mail-aliases cracklib
+Requires:	yast2 yast2-country yast2-pam yast2-security yast2-packager yast2-mail-aliases cracklib perl-Digest-SHA1 perl-gettext
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 
