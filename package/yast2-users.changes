@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Nov 15 16:43:48 CET 2004 - jsuchome@suse.cz
+
+- fix of creating custom user/group filter (#45263)
+- fix of initializing LDAP in YaPI (#45898)
+- 2.11.2
+
+-------------------------------------------------------------------
 Thu Nov  4 13:43:41 CET 2004 - jsuchome@suse.cz
 
 - lookup's and select's replaced by brackets

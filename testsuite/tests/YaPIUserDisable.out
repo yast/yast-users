@@ -80,6 +80,6 @@ Write	.passwd.users $["local":$["500":$["disabled":true, "encrypted":true, "modi
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$["hh":$["userpassword":"!password"]], "system":$[]] true
 Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
-Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["ldap"], "custom_users":["ldap"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
+Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ disable user 'hh' - done ====================
