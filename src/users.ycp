@@ -135,7 +135,6 @@ define boolean UsersShowHandler (map options ) ``{
  */
 define boolean UsersAddHandler (map <string, any> options ) ``{
 
-    y2internal ("options: %1", options);
     if (options["username"]:"" == "")
     {
 	y2error ("You must specify username");
@@ -154,12 +153,20 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
     ];
     foreach (string key, any value, options, ``{
 	if (key == "no_home")
-	    value = false;//FIXME doesn't work yet!
+	    value = false;
 	user [ keys[key]:key ] = value;
     });
 
+    Users::AddUser ($[]);
     Users::AddUser (user);
-    Users::CheckUser ($[]);
+
+    string error = Users::CheckUser ($[]);
+    if (error != "")
+    {
+	CommandLine::Print (error);
+	return false;
+    }
+
     return Users::CommitUser ();
 }
 
@@ -244,20 +251,24 @@ map cmdline = $[
 	    // translators: command line help text for list nis option
 	    "help"	: _("List of NIS users"),
 	],
-
 	"uid"		:$[
 	    // translators: command line help text for show uid option
-	    "help"	: _("UID of selected user"),
+	    "help"	: _("UID of the user"),
 	    "type"	: "string"
 	],
 	"username"	:$[
-	    // translators: command line help text for show username/add option
-	    "help"	: _("Name of selected user"),
+	    // translators: command line help text for username option
+	    "help"	: _("Login Name of the user"),
 	    "type"	: "string"
 	],
 	"cn"		:$[ //TODO enable aliases?
 	    // translators: command line help text for add option
-	    "help"	: _("Full name of the user"),
+	    "help"	: _("Full Name of the user"),
+	    "type"	: "string"
+	],
+	"home"	:$[
+	    // translators: command line help text for username option
+	    "help"	: _("Home directory of the user"),
 	    "type"	: "string"
 	],
 	"no_home"	:$[
@@ -273,10 +284,10 @@ map cmdline = $[
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
 	"show"  : [ "uid", "username"],
-	"add"	: [ "username", "cn", "password", "no_home" ],
+	"add"	: [ "username", "uid", "cn", "password", "home", "no_home" ],
 	"delete": [ "username" ],
 //	"read"	: [ "nis", "ldap" ] TODO
-// TODO set the default values
+// TODO set the default values ("useradd")
     ]
 ];
 

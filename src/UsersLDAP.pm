@@ -886,10 +886,11 @@ sub WriteUsers {
             next; 
 	}
         my $home	= $user->{"homeDirectory"} || "";
-        my $org_home	= $user->{"org_homeDirectory"} || $home;
+        my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
         my $gid		= $user->{"gidNumber"} || GetDefaultGID ();
 	my $create_home	= $user->{"create_home"} || 0;
 	my $delete_home	= $user->{"delete_home"} || 0;
+y2internal ("delete: ", $user->{"delete_home"} || 0);#FIXME boolean??
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
