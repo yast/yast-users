@@ -2103,7 +2103,7 @@ global define boolean ReadSystemDefaults()``{
     sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
     obscure_checks = (sec == "yes") ? true: false;
 
-    y2debug ("encryption: %1", Users::encryptionMethod)
+    y2debug ("encryption: %1", Users::encryptionMethod);
 
 	// set maximal password length -- is 128 right value??
 	if ("des" != encryptionMethod)
