@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug 17 14:32:45 CEST 2004 - jsuchome@suse.cz
+
+- correctly check if NIS server is present (#43889)
+- adapted testsuite
+
+-------------------------------------------------------------------
 Wed Aug 11 15:49:23 CEST 2004 - jsuchome@suse.cz
 
 - fix: wrong call of Message module from perl

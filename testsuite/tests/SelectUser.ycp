@@ -132,7 +132,7 @@
 	    "init"	: true
 	],
 	"target" : $[
-	    "bash"		: 0,
+	    "bash"		: -1,
 	    "bash_output"	: $[]
 	],
     ];

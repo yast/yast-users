@@ -129,6 +129,9 @@
 		    "EVMS_CONFIG"		: "no"
 		]
 	],
+	"target": $[
+	    "size":	-1
+	],
     ];
 
     map WRITE = $[];

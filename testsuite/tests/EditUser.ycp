@@ -130,7 +130,7 @@
 	    "stat"	: $[
 		"isdir"	: true
 	    ],
-	    "size"	: 0,
+	    "size"	: -1,
 	    "tmpdir"	: "/tmp/YaST"
 	],
 	"product": $[

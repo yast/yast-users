@@ -142,6 +142,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash"	: -1,
 	],
     ];
 
