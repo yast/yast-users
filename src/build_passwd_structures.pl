@@ -176,13 +176,14 @@ open GROUP, "< $group_input";
 
 foreach (<GROUP>)
 {
+    chop $_;
     my ($groupname, $pass, $gid, $users) = split (/:/,$_);
 
     my $first = substr ($groupname, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
-        # change last "\n" to ":"
-        substr($_, - 1, 1, ":");
+        $_ .= ":";
+        $groupmap{$gid} = $_;
 
         # for each user generate list of groups, where the user is contained
         my @userlist = split(/,/,$users);
@@ -197,11 +198,9 @@ foreach (<GROUP>)
                 $users_groups{$u} = $groupname;
             }
         }
-        $groupmap{$gid} = $_;
     }
     else # save the possible "+"/"-" entries
     {
-        chop $_;
         open PLUS_GROUP, "> $plus_group_file";
         print PLUS_GROUP "\"$_\"\n";
         close PLUS_GROUP;
@@ -379,10 +378,8 @@ foreach $user (<PASSWD>)
 
         print $YCP_PASSWD_BYNAME "\t\"$username\" : $uid,\n";
 
-        # this doesn't look good...
-        @l_grouplist = split (/,/, $grouplist);
-        $filtered = grep ($groupname, @l_grouplist);
-        if ( $filtered == 0 )
+        # check for duplicates !
+        if ( $groupname ne "" )
         {
             if ($grouplist eq "")
             {
@@ -390,7 +387,7 @@ foreach $user (<PASSWD>)
             }
             else
             {
-                $all_groups = "$groupname, $grouplist";
+                $all_groups = "$groupname,$grouplist";
             }
         }
         else
@@ -409,8 +406,6 @@ foreach $user (<PASSWD>)
                 "SystemUsers[\"$username\"]:\"$full\", \"$uid_wide\", ".
                 "\"$all_groups\"),\n";
         } 
-                
-
     }
     else # the "+" entry
     {
