@@ -101,7 +101,7 @@ my $max_pass_length		= 8;
 # purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
-     "org_uid", "plugins",
+     "org_uid", "plugins", "text_userpassword",
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
@@ -111,23 +111,6 @@ my @group_internal_keys		=
      "dn", "org_dn", "org_groupname", "org_gidnumber", "removed_userlist",
      "what", "org_cn", "plugins");
 
-# conversion table from parameter names used in yast (passwd-style) to
-# correct LDAP schema atrributes	TODO DO NOT USE
-my %ldap_attrs_conversion	= (
-    # user:
-    "username"	=> "uid",
-    # group:
-    "groupname"	=> "cn"
-);
-
-# LDAP attrs -> yast inner values	TODO DO NOT USE
-my %ldap2yast_user_attrs	= (
-    "uid"		=> "username"
-);
-    
-my %ldap2yast_group_attrs	= (
-    "cn"		=> "groupname"
-);
 
 # defualt scope for searching, set it by SetUserScope
 my $user_scope			= 2;
@@ -571,15 +554,6 @@ sub GetUserInternal {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetUserAttrsLDAP2YaST} = ["function",
-    ["map", "string", "string"]];
-}
-sub GetUserAttrsLDAP2YaST {
-# OBSOLETE!
-    return \%ldap2yast_user_attrs;
-}
-
-##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultUserFilter} = ["function", "string"];}
 sub GetDefaultUserFilter {
     return $default_user_filter;
@@ -636,14 +610,6 @@ sub GetGroupInternal {
     return \@group_internal_keys;
 }
 
-##------------------------------------
-BEGIN { $TYPEINFO{GetGroupAttrsLDAP2YaST} = ["function",
-    ["map", "string", "string"]];
-}
-sub GetGroupAttrsLDAP2YaST {
-# OBSOLETE!
-    return \%ldap2yast_group_attrs;
-}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGroupFilter} = ["function", "string"];}

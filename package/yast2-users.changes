@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Mar 23 10:04:56 CET 2004 - jsuchome@suse.cz
+
+- autoyast fix: do not import groups with gid -1, do not forget to
+  create user home directories
+  (+ probably fixed #35600)
+- 2.9.21
+
+-------------------------------------------------------------------
 Mon Mar 22 17:27:24 CET 2004 - jsuchome@suse.cz
 
 - use only lowercase user/group attribute names

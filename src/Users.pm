@@ -895,7 +895,6 @@ sub GetGroupByName {
     if ($type ne "") {
 	unshift @types_to_look, $type;
     }
-    
     foreach my $type (@types_to_look) {
 	if (defined $groups_by_name{$type}{$groupname}) {
 	    return $self->GetGroup ($groups_by_name{$type}{$groupname}, $type);
@@ -4327,7 +4326,6 @@ sub ImportGroup {
 	    $gid	= $existing->{"gidnumber"};
 	}
     }
-
     if (($gid <= UsersCache->GetMaxGID ("system") ||
         $groupname eq "nobody" || $groupname eq "nogroup") &&
         $groupname ne "users")
@@ -4395,7 +4393,7 @@ sub Import {
     $users_by_name{"local"}	= {};
 
     if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
-        $users_modified	= 1;
+        $users_modified		= 1;
     }
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
         $groups_modified	= 1;
@@ -4420,6 +4418,7 @@ sub Import {
 		$users{$type}{$uid}		= \%user;
 		$users_by_name{$type}{$username}= $uid;
 		$shadow{$type}{$username} = $self->CreateShadowMap (\%user);
+		$modified_users{$type}{$uid}	= \%user;
 	    }
 	}
 
@@ -4453,13 +4452,14 @@ sub Import {
 	foreach my $imp_group (@{$settings{"groups"}}) {
 	    my %group	= %{$self->ImportGroup ($imp_group)};
 	    my $gid 	= $group{"gidnumber"};
-	    if (!defined $gid) {
+	    if (!defined $gid || $gid == -1) {
 		next;
 	    }
 	    my $type				= $group{"type"} || "local";
 	    my $groupname 			= $group{"cn"} || "";
 	    $groups{$type}{$gid}		= \%group;
 	    $groups_by_name{$type}{$groupname}	= $gid;
+	    $modified_groups{$type}{$gid}	= \%group;
 	}
     }
 
