@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Sep  2 17:31:23 CEST 2003 - jsuchome@suse.cz
+
+- fixed helptexts
+
+-------------------------------------------------------------------
 Mon Sep  1 17:02:58 CEST 2003 - jsuchome@suse.cz
 
 - LDAP users: chek for object class existence

@@ -203,7 +203,7 @@ An additional dialog will inform you whether it is safe to do so.
 	// help text 1/6
       return ( help_main_start() + _("
 <p>
-In this dialog, you can get information about existing <b>users</b>.
+In this dialog, you can get information about existing <b>Users</b>.
 </p>
 ") +
 
@@ -248,7 +248,7 @@ users, or LDAP client configuration.
 	// help text 1/4
       return ( help_main_start() +  _("
 <p>
-In this dialog, you can get information about existing <b>groups</b>.
+In this dialog, you can get information about existing <b>Groups</b>.
 </p>
 ") +
 	// help text 2/4
@@ -290,7 +290,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
 	help = _("<p>
 If you fill out the fields <b>First Name</b>, <b>Last Name</b>, and
 <b>User Login</b>, a new user account is created with the
-<b>password</b> given in the corresponding field.
+<b>Password</b> given in the corresponding field.
 </p>
 ");
     }
@@ -299,7 +299,7 @@ If you fill out the fields <b>First Name</b>, <b>Last Name</b>, and
 	// alternative help text 1/7
 	help = _("<p>
 If you fill out the fields <b>Full User Name</b> and <b>User Login</b>, a new
-user account is created with the <b>password</b> given in
+user account is created with the <b>Password</b> given in
 the corresponding field.
 </p>
 ");
