@@ -540,16 +540,7 @@ define void SummaryTableInit (string widget_id) ``{
     string current_summary	= UsersCache::GetCurrentSummary ();
     if (current_summary == "users")
     {
-	items = maplist (string s_item, UsersCache::GetUserItems (), ``{
-	list l_item = splitstring (s_item, "\"");
-	term t_item = `item (
-	    `id (tointeger ((string)(l_item[5]:"0"))),
-	    l_item[1]:"",
-	    l_item[3]:"",
-	    l_item[5]:"",
-	    l_item[7]:"");
-	return t_item;
-	});
+	items = UsersCache::GetUserItems ();
 	UI::ReplaceWidget (`id(`rptable),
 	    `Table (`id("table"), `opt(`notify), `header(
 		// table header
@@ -564,15 +555,7 @@ define void SummaryTableInit (string widget_id) ``{
     }
     else
     {
-	items = maplist (string s_item, UsersCache::GetGroupItems (), ``{
-	list l_item = splitstring (s_item, "\"");
-	term t_item = `item (
-	    `id (tointeger ((string)(l_item[3]:"0"))),
-	    l_item[1]:"",
-	    l_item[3]:"",
-	    l_item[5]:"");
-	return t_item;
-	});
+	items = UsersCache::GetGroupItems ();
 	UI::ReplaceWidget (`id(`rptable),
 	    `Table (`id("table"), `opt(`notify), `header(
 		// table header
@@ -711,6 +694,7 @@ define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
                 GetSetsItems (UsersCache::GetCurrentSummary ()))
 	));
     }
+    RadioButtonsUsersGroupsInit (widget_id);
 }
 
 define void AdvancedButtonsInit (string widget_id) ``{
@@ -778,14 +762,6 @@ map widgets = $[
         "widget"		: `custom,
         "help"			: _("Help for radio buttons"),
 	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox ()),
-	 /*
-	 `RadioButtonGroup (`HBox(
-	    // radiobutton
-	    `RadioButton (`id ("users"), `opt(`notify), _("&Users")),
-	    // radiobutton
-	    `RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
-	)),
-	*/
         "init"			: RadioButtonsUsersGroupsInit,
         "handle"		: RadioButtonsUsersGroupsHandler,
 	"handle_events"		: [ "users", "groups" ]
@@ -824,51 +800,6 @@ map widgets = $[
 	    "local", "system", "ldap", "nis", "custom",
 	    `defaults, `customize, `enc, `auth, `autologinconf, `ldapfilter ]
     ],
-    /*
-    "user_name_entries": $[
-        "widget"		: `custom,
-	"help"			: "some help",
-	"custom_widget"		: `VBox (
-	    // text entry
-	    `TextEntry (`id(`cn), _("&Full User Name"), "")
-	),
-    ],
-    "user_fields": $[
-        "widget"		: `custom,
-        "help"			: _("help for add/edit user"),
-	"custom_widget"		: `VBox (
-	    `VSquash (`HBox(
-		// input field for login name
-		`Bottom (`TextEntry(`id(`username), _("&User Login"), "")),
-		(what != "add_user")
-		    ? `HSpacing (0)
-		    // push button to generate login from first and last name
-		    : `Bottom (`PushButton(`id(`propose), _("&Suggestion")))
-		)
-	    ),
-	    // first version of user password
-	    `Password (`id(`pw1), _("P&assword"), ""),
-	    // second version of user password, retyped to avoid typos
-	    `Password (`id(`pw2), _("&Verify Password:"), "")
-	)
-    ],
-    "user_options": $[
-        "widget"		: `custom,
-        "help"			: _("help for add/edit user"),
-	"custom_widget"		: `HVCenter (
-	    `HSquash (
-		`VBox(
-		    `PushButton(`id(`passwordsettings),`opt(`key_F7, `hstretch),
-			// push button label
-			_("&Password Settings...")),
-		    `PushButton(`id(`details),`opt(`key_F2, `hstretch),
-			// push button label
-			_("&Details..."))
-		)
-	    )
-	)
-    ],
-    */
 ];
 
 }//EOF

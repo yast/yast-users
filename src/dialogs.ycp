@@ -133,7 +133,6 @@ define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
-y2warning ("user: %1", user);
 
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
@@ -1327,7 +1326,7 @@ Are you sure?"), req)))
  * @param what "add_group" or "edit_group"
  * @return symbol for wizard sequencer
  */
-define symbol EditGroupDialog(string what ) ``{
+define symbol EditGroupDialog (string what ) ``{
 
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
@@ -1345,19 +1344,11 @@ define symbol EditGroupDialog(string what ) ``{
     string new_type		= group_type;
     string dn			= group["dn"]:"";
     string new_dn		= dn;
-    map additional_users	= $[];
+    list additional_users	= [];
     list removed		= [];
 
-    /* FIXME - we need to get Term from Perl...
-    // now, the additional userlist should be builded:
-    if (group_type == "ldap")
-    {
-	additional_users = Users::BuildAdditionalLDAP (uniqueMember,more_users);
-	list_userlist = uniqueMember;
-    }
-    else
-        additional_users = Users::BuildAdditional (userlist, more_users);
-    */
+    additional_users = UsersCache::BuildAdditional (group);
+
     integer i = 0;
     list more_users_items	= [];
     foreach (string u, integer val, more_users, ``{
@@ -1367,6 +1358,7 @@ define symbol EditGroupDialog(string what ) ``{
 	    more_users_items = add (more_users_items,
 		`item (`id("-"), "...", false ));
 	i = i + 1;
+// FIXME: go out from foreach when i>42!
     });
 
 
@@ -1414,7 +1406,7 @@ define symbol EditGroupDialog(string what ) ``{
             `VSpacing(1),
             // selection box label
             `MultiSelectionBox( `id(`userlist), _("&Members of this Group"),
-                additional_users [`ulist]:[]),
+                additional_users),
             more ? `VSpacing(1) : `VSpacing (0),
             // selection box label
             more ? `MultiSelectionBox ( `id(`more_users), "",
@@ -1934,13 +1926,13 @@ define symbol AuthentizationDialog() ``{
 	    Nisplus::Read();
 	    ret = Nisplus::ShortSummary();
 	}
+	*/
 	else if (client == "kerberos")
 	{
 	    import "Kerberos";
 	    Kerberos::Read();
 	    ret = Kerberos::ShortSummary();
 	}
-	*/
 	else if (client == "samba")
 	{
 	    import "Samba";

@@ -55,7 +55,6 @@ define symbol ReadDialog (boolean useUI ) ``{
     return ret; FIXME
     */
     symbol ret = Users::Read () ? `next : `back;
-y2internal ("term: %1", Users::GetTerm ());
     return ret;
 }
 
