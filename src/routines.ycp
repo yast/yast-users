@@ -10,8 +10,6 @@
 {
 include "users/passwd.ycp";
 
-// TODO: remove files after read?
-
 /**
  * Reads prebuilded gshadow data
  * @param dir the input directory
@@ -19,10 +17,13 @@ include "users/passwd.ycp";
  */
 global define map ReadGshadow(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
     ];
+    SCR::Execute (.target.remove, dir + "/gshadow_local.ycp");
+    SCR::Execute (.target.remove, dir + "/gshadow_system.ycp");
+    return ret;
 }
 
 /**
@@ -32,10 +33,13 @@ global define map ReadGshadow(string dir)``{
  */
 global define map ReadShadow(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
     ];
+    SCR::Execute (.target.remove, dir + "/shadow_local.ycp");
+    SCR::Execute (.target.remove, dir + "/shadow_system.ycp");
+    return ret;
 }
 
 /**
@@ -45,10 +49,13 @@ global define map ReadShadow(string dir)``{
  */
 global define map ReadGroups(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/group_local.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/group_system.ycp")
     ];
+    SCR::Execute (.target.remove, dir + "/group_local.ycp");
+    SCR::Execute (.target.remove, dir + "/group_system.ycp");
+    return ret;
 }
 
 /**
@@ -58,10 +65,13 @@ global define map ReadGroups(string dir)``{
  */
 global define map ReadGroupsByName(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
     ];
+    SCR::Execute (.target.remove, dir + "/group_local_byname.ycp");
+    SCR::Execute (.target.remove, dir + "/group_system_byname.ycp");
+    return ret;
 }
 
 /**
@@ -71,11 +81,14 @@ global define map ReadGroupsByName(string dir)``{
  */
 global define map ReadPasswd(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
         // this is due to translations of fullnames in users/passwd.ycp
         `system: eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
     ];
+    SCR::Execute (.target.remove, dir + "/passwd_local.ycp");
+    SCR::Execute (.target.remove, dir + "/passwd_system.ycp");
+    return ret;
 }
 
 /**
@@ -85,10 +98,13 @@ global define map ReadPasswd(string dir)``{
  */
 global define map ReadPasswdByName(string dir)``{
 
-    return $[
+    map ret = $[
         `local: SCR::Read(.target.ycp, dir + "/passwd_local_byname.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/passwd_system_byname.ycp")
     ];
+    SCR::Execute (.target.remove, dir + "/passwd_local_byname.ycp");
+    SCR::Execute (.target.remove, dir + "/passwd_system_byname.ycp");
+    return ret;
 }
 
 /**
@@ -112,7 +128,6 @@ global define string PlusFile (string file) ``{
 global define string ReadPlusGshadow(string dir)``{
 
     return PlusFile (dir + "/plus_gshadow.ycp");
-//    return SCR::Read(.target.ycp, dir + "/plus_gshadow.ycp");
 }
 
 /**
@@ -143,6 +158,55 @@ global define string ReadPlusGroup(string dir)``{
 global define string ReadPlusPasswd(string dir)``{
 
     return PlusFile (dir + "/plus_passwd.ycp");
+}
+
+/**
+ * Error messages for errors detected during reading
+ * @param returned map returned as the output of target.bash_output
+ * @return error message
+ */
+global define string GetErrorMessage (map returned) ``{
+
+    string stdout = returned["stdout"]:"";
+    string last =
+// error message 2/2 (= next sentence)
+_("Correct them manualy before running YaST2 users module again.");
+
+    map read_error = $[
+
+    1: sformat(
+// error message 1/2: %1 is file name, %2 is uid, %3 is next sentence (2/2)
+_("There are more users with the same UID (\"%2\") in the file %1.
+%3"), "/etc/passwd", stdout, last),
+
+    2: sformat(
+// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
+_("There are more users with the same name (\"%2\") in the file %1.
+%3"), "/etc/passwd", stdout, last),
+
+    3: sformat(
+// error message 1/2: %1 is file name, %2 is username, %3 is next sentence (2/2)
+_("There are more users with the same name (\"%2\") in the file %1.
+%3"), "/etc/shadow", stdout, last),
+
+    4: sformat(
+// error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
+_("There are more groups with the same name (\"%2\") in the file %1.
+%3"), "/etc/gshadow", stdout, last),
+
+    5: sformat(
+// error message 1/2: %1 is file name, %2 is gid, %3 is next sentence (2/2)
+_("There are more groups with the same GID (\"%2\") in the file %1.
+%3"), "/etc/group", stdout, last),
+
+    6: sformat(
+// error message 1/2: %1 is file name, %2 is groupname, %3 next sentence (2/2)
+_("There are more groups with the same name (\"%2\") in the file %1.
+%3"), "/etc/group", stdout, last)
+];
+
+    // default error message
+    return read_error[returned["exit"]:0]: _("Cannot run preparation script.");
 }
 
 /**
@@ -358,7 +422,6 @@ global define void BackupConfFiles(string dir)``{
         sformat ("/bin/cp %1/group %1/group.YaST2save", dir));
 }
 
-// FIXME: move to some other include!
 /**
  * Split fullname in forename and surname.
  * @param what `surname or `forename

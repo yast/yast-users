@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Mar 25 11:08:35 CET 2003 - jsuchome@suse.de
+
+- adapted to Require interface
+- change ownership only when necessary (#25200)
+- check for duplicate values in /etc/passwd and other files (#25394)
+- remove temporary files with user data directly after reading
+
+-------------------------------------------------------------------
 Mon Mar 24 17:35:15 CET 2003 - jsuchome@suse.de
 
 - corrected texts (#25130)

@@ -83,9 +83,12 @@ $last_system     =   $output_dir."/last_system_uid.ycp";
 %shadowmap = ();
 %gshadowmap = ();
 
-%uids = ();
-
 %groupnamelists = ();
+
+# used for check if values like uid,username are unique:
+%uids = ();
+%usernames = ();
+%groupnames = ();
 
 $last_local_uid = $max_system_uid + 1;
 $last_system_uid = 0;
@@ -131,6 +134,12 @@ foreach my $shadow_entry (<SHADOW>)
     {
         my @list = split(/:/,$shadow_entry);
         my $username = $list[0];
+        if (defined $shadowmap{$username})
+        {
+            print STDERR "duplicated username in /etc/shadow! Exiting...\n";
+            print STDOUT "$username";
+            exit 3;
+        }
         $shadowmap{$username} = $shadow_entry;
     }
     else
@@ -158,6 +167,12 @@ foreach (<GSHADOW>)
     my $first = substr ($groupname, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
+        if (defined $gshadowmap{$groupname})
+        {
+            print STDERR "duplicated groupname in /etc/gshadow! Exiting...\n";
+            print STDOUT "$groupname";
+            exit 4;
+        }
         $gshadowmap{$groupname} = $_;
     }
     else
@@ -185,6 +200,24 @@ foreach (<GROUP>)
     my $first = substr ($groupname, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
+        # check for duplicates...
+        if (defined $groupmap{$gid})
+        {
+            print STDERR "duplicated gid in /etc/group! Exiting...\n";
+            print STDOUT "$gid";
+            exit 5;
+        }
+        if (defined $groupnames{$groupname})
+        {
+            print STDERR "duplicated groupname in /etc/group! Exiting...\n";
+            print STDOUT "$groupname";
+            exit 6;
+        }
+        else
+        {
+            $groupnames{$groupname} = 1;
+        }
+
         $groupmap{$gid} = $_;
 
         # for each user generate list of groups, where the user is contained
@@ -338,14 +371,26 @@ foreach my $user (<PASSWD>)
         print $YCP_PASSWD_USERNAMES "\"$username\", ";
         print $YCP_PASSWD_UIDLIST " $uid,";
 
+        # check for duplicates in /etc/passwd:
         if (defined $uids{$uid})
         {
-            print STDERR "Duplicated UID:$uid! Exiting...\n";
+            print STDERR "duplicated UID in /etc/passwd! Exiting...\n";
+            print STDOUT "$uid";
             exit 1;
         }
         else
         {
             $uids{$uid} = 1;
+        }
+        if (defined $usernames{$username})
+        {
+            print STDERR "duplicated username in /etc/passwd! Exiting...\n";
+            print STDOUT "$username";
+            exit 2;
+        }
+        else
+        {
+            $usernames{$username} = 1;
         }
     
         # YCP maps are generated...
@@ -370,19 +415,26 @@ foreach my $user (<PASSWD>)
 
         print $YCP_PASSWD_BYNAME "\t\"$username\" : $uid,\n";
 
-        my ($uname, $pass, $last_change, $min, $max, $warn, $inact,
-         $expire, $flag) = split(/:/,$shadowmap{$username});  
+        if (defined $shadowmap{$username})
+        {
+            my ($uname, $pass, $last_change, $min, $max, $warn, $inact,
+                $expire, $flag) = split(/:/,$shadowmap{$username});  
 
-        print $YCP_SHADOW "\t\"$uname\": \$[\n";
-        print $YCP_SHADOW "\t\t\"password\": \"$pass\",\n";
-        print $YCP_SHADOW "\t\t\"last_change\": \"$last_change\",\n";
-        print $YCP_SHADOW "\t\t\"min\": \"$min\",\n";
-        print $YCP_SHADOW "\t\t\"max\": \"$max\",\n";
-        print $YCP_SHADOW "\t\t\"warn\": \"$warn\",\n";
-        print $YCP_SHADOW "\t\t\"inact\": \"$inact\",\n";
-        print $YCP_SHADOW "\t\t\"expire\": \"$expire\",\n";
-        print $YCP_SHADOW "\t\t\"flag\": \"$flag\"\n";
-        print $YCP_SHADOW "\t],\n";
+            print $YCP_SHADOW "\t\"$uname\": \$[\n";
+            print $YCP_SHADOW "\t\t\"password\": \"$pass\",\n";
+            print $YCP_SHADOW "\t\t\"last_change\": \"$last_change\",\n";
+            print $YCP_SHADOW "\t\t\"min\": \"$min\",\n";
+            print $YCP_SHADOW "\t\t\"max\": \"$max\",\n";
+            print $YCP_SHADOW "\t\t\"warn\": \"$warn\",\n";
+            print $YCP_SHADOW "\t\t\"inact\": \"$inact\",\n";
+            print $YCP_SHADOW "\t\t\"expire\": \"$expire\",\n";
+            print $YCP_SHADOW "\t\t\"flag\": \"$flag\"\n";
+            print $YCP_SHADOW "\t],\n";
+        }
+        else
+        {
+            print STDERR "There is no shadow entry for the user $username.\n";
+        }
 
         # check for duplicates !
         if ( $groupname ne "" )

@@ -16,8 +16,7 @@ import "Wizard";
 import "Users";
 import "Lan";
 import "Internet";
-
-include "require.ycp";
+import "Require";
 
 /* Check if lan is configured */
 list lan_devices = Lan::GetDevices("all");
@@ -61,15 +60,15 @@ map button_labels = $[
     // radiobutton to select nis+ user auth.
     `nisplus:	_("NI&S+"),
     // radiobutton to select ldap user auth.
-	    `ldap:      _("&LDAP")
+	`ldap:      _("&LDAP")
 ];
 
 // check if nis+/ldap are available (there are not in personal edition)
 list available_clients = [`nis];
 
-if (IsPackageAvailable("yast2-ldap-client"))
+if (Require::IsPackageAvailable("yast2-ldap-client"))
     available_clients = add (available_clients, `ldap);
-if (IsPackageAvailable("yast2-nisplus-client"))
+if (Require::IsPackageAvailable("yast2-nisplus-client"))
     available_clients = add (available_clients, `nisplus);
 
 term net_buttons = `VBox (`VSpacing(0.5));
