@@ -23,75 +23,6 @@ include "users/complex.ycp";
 include "users/dialogs.ycp";
 
 
-
-/**
- * Whole configuration of users/groups
- * @param start the first dialog
- * @return sequence result
- */
-global define symbol UsersSequence(string start) ``{
-
-    map aliases = $[
-    "read"  : [ ``( ReadDialog(!Mode::cont)), true ],
-	"main"	:   ``( MainSequence( start ) ),
-	"write" : [ ``( WriteDialog( true )), true ]// true as parameter ??
-    ];
-
-    map sequence = $[
-	"ws_start" : "read",
-	"read" : $[
-	    `abort	: `abort,
-	    `next	: "main",
-        `nextmodule: `next // this is for skiping users conf during install,
-                           // see Users::CheckHomeMounted() or bug #20365
-	],
-	"main" : $[
-	    `abort	: `abort,
-	    `next	: "write",
-        `nosave : `next
-	],
-	"write" : $[
-	    `abort	: `abort,
-	    `next	: `next
-	]
-    ];
-
-    string caption = _("User and Group Configuration");
-    term contents = `Label(_("Initializing ..."));
-
-    if( ! Mode::cont )
-    {
-	Wizard::CreateDialog();
-    }
-
-    any ret = WizardSequencer(aliases, sequence);
-
-    if( ! Mode::cont )
-	UI::CloseDialog();
-
-    return ret;
-}
-
-/**
- * Whole configuration of users/groups but without reading and writing.
- * For use with autoinstallation.
- * @param start the first dialog
- * @return sequence result
- */
-global define symbol AutoSequence(string start) ``{
-    string caption = _("User and Group Configuration");
-    term contents = `Label(_("Initializing ..."));
-
-    Wizard::CreateDialog();
-    Wizard::SetContentsButtons(caption, contents, "",
-	    Label::BackButton(), Label::NextButton());
-
-    any ret = MainSequence(start);
-
-    UI::CloseDialog();
-    return ret;
-}
-
 /**
  * Main workflow of the users/groups configuration
  * @param start the first dialog
@@ -231,6 +162,75 @@ global define symbol MainSequence(string start) ``{
 
     return WizardSequencer(aliases, main_sequence);
 }
+
+/**
+ * Whole configuration of users/groups
+ * @param start the first dialog
+ * @return sequence result
+ */
+global define symbol UsersSequence(string start) ``{
+
+    map aliases = $[
+    "read"  : [ ``( ReadDialog(!Mode::cont)), true ],
+	"main"	:   ``( MainSequence( start ) ),
+	"write" : [ ``( WriteDialog( true )), true ]// true as parameter ??
+    ];
+
+    map sequence = $[
+	"ws_start" : "read",
+	"read" : $[
+	    `abort	: `abort,
+	    `next	: "main",
+        `nextmodule: `next // this is for skiping users conf during install,
+                           // see Users::CheckHomeMounted() or bug #20365
+	],
+	"main" : $[
+	    `abort	: `abort,
+	    `next	: "write",
+        `nosave : `next
+	],
+	"write" : $[
+	    `abort	: `abort,
+	    `next	: `next
+	]
+    ];
+
+    string caption = _("User and Group Configuration");
+    term contents = `Label(_("Initializing ..."));
+
+    if( ! Mode::cont )
+    {
+	Wizard::CreateDialog();
+    }
+
+    any ret = WizardSequencer(aliases, sequence);
+
+    if( ! Mode::cont )
+	UI::CloseDialog();
+
+    return (symbol) ret;
+}
+
+/**
+ * Whole configuration of users/groups but without reading and writing.
+ * For use with autoinstallation.
+ * @param start the first dialog
+ * @return sequence result
+ */
+global define symbol AutoSequence(string start) ``{
+    string caption = _("User and Group Configuration");
+    term contents = `Label(_("Initializing ..."));
+
+    Wizard::CreateDialog();
+    Wizard::SetContentsButtons(caption, contents, "",
+	    Label::BackButton(), Label::NextButton());
+
+    symbol ret = MainSequence(start);
+
+    UI::CloseDialog();
+    return ret;
+}
+
 
 /* EOF */
 }

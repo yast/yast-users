@@ -7,8 +7,6 @@
  *
  * $Id$
  *
- * Important! It is supposed that this file is included from Users.ycp,
- * some variables are used from here... FIXME: check which ones...
  */
 {
 textdomain "users";
@@ -125,7 +123,7 @@ global define map ReadPasswdByName(string dir)``{
 global define string PlusFile (string file) ``{
 
     if (SCR::Execute (.target.bash, sformat("/usr/bin/test -e %1", file)) == 0)
-        return SCR::Read(.target.ycp, file);
+        return (string) SCR::Read(.target.ycp, file);
     else
         return "";
 }
@@ -231,7 +229,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
 
     string conf_path = basedir + "/group";
     list modified_list = [];
-    list list_to_save = maplist (`gid, `group, system_groups, ``{
+    list list_to_save = maplist (integer gid, map group, system_groups, ``{
 	string pass = group["password"]:"x";
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
@@ -240,7 +238,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             group["userlist"]:"");
         return to_save;
     });
-    list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
+    list_to_save = merge(list_to_save, maplist (integer gid, map group, local_groups, ``{
         string to_save = sformat("%1:%2:%3:%4",
             group["groupname"]:"",
             "x",
@@ -264,22 +262,22 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
  * @param system_users map of users
  * @param local_users map of users
  * @param plus the line begining with +/-
- * @return succes
+ * @return modified map or nil
  */
-global define map WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
+global define any WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
 
     string conf_path = basedir + "/passwd";
     map modified_map = $[];
-    list list_to_save = maplist (`uid, `user, system_users, ``{
+    list list_to_save = maplist (integer uid, map user, system_users, ``{
         string gecos = user["cn"]:"";
         if (user["addit_data"]:"" != "")
             gecos = gecos + "," + user["addit_data"]:"";
-        gecos = UI::Recode ("UTF-8", encoding, gecos);
+        gecos = (string) UI::Recode ("UTF-8", Users::encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",
             uid,
-            user["gid"]:max_gid[user["type"]:"local"]:60000,
+            user["gid"]:Users::max_gid[user["type"]:"local"]:60000,
             gecos,
             user["home"]:"",
             user["shell"]:"");
@@ -287,16 +285,16 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
             modified_map = add (modified_map, uid, user);
         return to_save;
     });
-    list_to_save = merge(list_to_save, maplist (`uid, `user, local_users, ``{
+    list_to_save = merge(list_to_save, maplist (integer uid, map user, local_users, ``{
         string gecos = user["cn"]:"";
         if (user["addit_data"]:"" != "")
             gecos = gecos + "," + user["addit_data"]:"";
-        gecos = UI::Recode ("UTF-8", encoding, gecos);
+        gecos = (string) UI::Recode ("UTF-8", Users::encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",
             uid,
-            user["gid"]:max_gid[user["type"]:"local"]:60000,
+            user["gid"]:Users::max_gid[user["type"]:"local"]:60000,
             gecos,
             user["home"]:"",
             user["shell"]:"");
@@ -329,7 +327,7 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
 
     string conf_path = basedir + "/shadow";
 
-    list list_to_save = maplist (`username, `entry, system_shadow, ``{
+    list list_to_save = maplist (string username, map entry, system_shadow, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
             username,
             entry["password"]:"",
@@ -342,7 +340,7 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
             entry["flag"]:"");
         return to_save;
     });
-    list_to_save = merge(list_to_save, maplist (`username, `entry, local_shadow, ``{
+    list_to_save = merge(list_to_save, maplist (string username, map entry, local_shadow, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
             username,
             entry["password"]:"",
@@ -376,7 +374,7 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
 global define boolean WriteGshadow(string basedir, map system_gshadow, map local_gshadow, string plus) ``{
 
     string conf_path = basedir + "/gshadow";
-    list list_to_save = maplist (`groupname, `entry, system_gshadow, ``{
+    list list_to_save = maplist (string groupname, map entry, system_gshadow, ``{
         string to_save = sformat("%1:%2:%3:%4",
             groupname,
             entry["password"]:"",
@@ -384,7 +382,7 @@ global define boolean WriteGshadow(string basedir, map system_gshadow, map local
             entry["userlist"]:"");
         return to_save;
     });
-    list_to_save = merge(list_to_save, maplist (`groupname, `entry, local_gshadow, ``{
+    list_to_save = merge(list_to_save, maplist (string groupname, map entry, local_gshadow, ``{
         string to_save = sformat("%1:%2:%3:%4",
             groupname,
             entry["password"]:"",
@@ -433,7 +431,7 @@ global define boolean CreateHome (string skeleton, string home) ``{
     // skeleton not exist or should not be copied
     if (SCR::Read(.target.stat, skeleton) == $[])// || !copy TODO
     {
-	if (!SCR::Execute(.target.mkdir, home))
+	if (!(boolean) SCR::Execute(.target.mkdir, home))
 	{
 	    y2error ("error creating %1", home);
 	    return false;
@@ -443,7 +441,7 @@ global define boolean CreateHome (string skeleton, string home) ``{
     else
     {
 	string command = sformat("/bin/cp -r %1 %2", skeleton, home);
-	map out = SCR::Execute(.target.bash_output, command);
+	map out = (map) SCR::Execute(.target.bash_output, command);
 	if (out["stderr"]:"" != "")
 	{
 	    y2error ("error calling %1: %2", command, out["stderr"]:"");
@@ -464,12 +462,12 @@ global define boolean CreateHome (string skeleton, string home) ``{
 global define boolean ChownHome (integer uid, integer gid, string home)``{
 
     // directory already exists and chown is needed
-    if (uid == lookup (SCR::Read(.target.stat, home), "uid", -1) &&
-	gid == lookup (SCR::Read(.target.stat, home), "gid", -1))
+    if (uid == lookup ((map)SCR::Read(.target.stat, home), "uid", -1) &&
+	gid == lookup ((map)SCR::Read(.target.stat, home), "gid", -1))
 	return true;
 
     string command = sformat("/bin/chown -R %1:%2 %3", uid, gid, home);
-    map out = SCR::Execute(.target.bash_output, command);
+    map out = (map) SCR::Execute(.target.bash_output, command);
     if (out["stderr"]:"" != "")
     {
 	y2error ("error calling %1: %2", command, out["stderr"]:"");
@@ -494,7 +492,7 @@ global define boolean MoveHome (string org_home, string home) ``{
         SCR::Execute(.target.mkdir, home_path);
 
     string command = sformat("/bin/mv %1 %2", org_home, home);
-    map out = SCR::Execute(.target.bash_output, command);
+    map out = (map)SCR::Execute(.target.bash_output, command);
     if (out["stderr"]:"" != "")
     {
 	y2error ("error calling %1: %2", command, out["stderr"]:"");
@@ -513,7 +511,7 @@ global define boolean MoveHome (string org_home, string home) ``{
 global define boolean DeleteHome (string home) ``{
 
     string command = sformat("/bin/rm -rf %1", home);
-    map out = SCR::Execute(.target.bash_output, command);
+    map out = (map)SCR::Execute(.target.bash_output, command);
     if (out["stderr"]:"" != "")
     {
 	y2error ("error calling %1: %2", command, out["stderr"]:"");
@@ -547,7 +545,7 @@ global define string SplitFullName(symbol what,string cn) ``{
     string sn  = "";
     string givenName = "";
 
-    foreach( `str, strs, ``{
+    foreach(string str, strs, ``{
         if ( i < size( strs) )
         {
         if( givenName == "" ) givenName = str;
@@ -650,16 +648,19 @@ As a general rule of thumb, use DES if you are unsure.
 	  }
 	  else if ( button == `ok )
 	  {
-	      if      ( UI::QueryWidget( `id(`des), `Value ) )	method = "des";
-	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	method = "md5";
-	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) method = "blowfish";
+	      if      ( (boolean) UI::QueryWidget( `id(`des), `Value ) )
+		  method = "des";
+	      else if ( (boolean) UI::QueryWidget( `id(`md5), `Value ) )
+		  method = "md5";
+	      else if ( (boolean) UI::QueryWidget( `id(`blowfish), `Value ) )
+		  method = "blowfish";
 	      y2milestone( "Changing encryption method to %1", method );
 	  }
       } while ( button != `ok && button != `cancel );
 
       UI::CloseDialog();
       return method;
-  };
+};
 
 /**
  * Checks if password is not too long
@@ -728,10 +729,10 @@ global define string CrackPassword (string username, string pw) ``{
 
     string ret = "OK";
     if (SCR::Read (.target.size, Users::cracklib_dictpath + ".pwd") == -1)
-	ret = SCR::Execute(.crack, pw);
+	ret = (string) SCR::Execute(.crack, pw);
     else
-	ret = SCR::Execute(.crack, pw, Users::cracklib_dictpath);
-    return UI::Recode(Console::encoding,"UTF-8", ret);
+	ret = (string) SCR::Execute(.crack, pw, Users::cracklib_dictpath);
+    return (string) UI::Recode(Console::encoding,"UTF-8", ret);
 }
 
 

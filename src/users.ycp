@@ -40,14 +40,14 @@ any	ret		= nil;
 integer arg		= 0;
 list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
 
-while ( arg < size( Args() ) )
+while ( arg < size( WFM::Args() ) )
 {
-	any a = Args( arg );
-	if ( is (a, string) && contains( possible_start_dialogs, a))
-	{
-	    start_dialog = Args( arg );
-	}
-	arg = arg + 1;
+    any a = WFM::Args( arg );
+    if ( is (a, string) && contains( possible_start_dialogs, a))
+    {
+	start_dialog = (string) WFM::Args( arg );
+    }
+    arg = arg + 1;
 }
 
 if (start_dialog != "users")
@@ -60,11 +60,11 @@ if (start_dialog != "users")
 }
 
 // else parse arguments in cmdline
-y2milestone( "Starting with arguments: %1", Args() );
+y2milestone( "Starting with arguments: %1", WFM::Args() );
 
 
 // --------------------------------------------------------------------------
-// --------------------------------- cmd-line handlers FIXME separate file!
+// --------------------------------- cmd-line handlers
 
 /**
  * List users
@@ -186,13 +186,15 @@ global define boolean UsersDeleteHandler (map options ) ``{
 global define boolean UsersRead () ``{
 
     // TODO UI should be used some way...
-    return (Users::Read(``{ return false; }, false) == `next);
+    block<boolean> abort =``{ return false;};
+    return (Users::Read(abort, false) == `next);
 }
 
 global define boolean UsersWrite () ``{
 
     // TODO UI should be used some way...
-    return (Users::Write(``{ return false; }, false) == `next);
+    block<boolean> abort =``{ return false;};
+    return (Users::Write(abort, false) == `next);
 }
 
 /* the command line description map */

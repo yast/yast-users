@@ -32,10 +32,10 @@
     string func = "";
     map param = $[];
     /* Check arguments */
-    if(size(Args()) > 0 && is(Args(0), string)) {
-	func = WFM::Args(0);
-	if(size(Args()) > 1 && is(Args(1), map))
-	    param = WFM::Args(1);
+    if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
+	func = (string) WFM::Args(0);
+	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
+	    param = (map)WFM::Args(1);
     }
     y2debug("func=%1", func);
     y2debug("param=%1", param);
@@ -62,6 +62,8 @@
 
 //    param = $["users": users];
 
+    block<boolean> abort_block = ``{ return false; };
+
     if (func == "Import") {
 	ret = Users::Import(param);
     }
@@ -81,9 +83,6 @@
 	Wizard::CreateDialog();
 	ret = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
-//list ex = Users::Export(); // for debug...
-//y2warning ("all export: %1", ex);
-//y2warning ("local users: %1", ex[0,`local]:$[]);
     }
     else if (func == "Export") {
 	ret = Users::Export();
@@ -93,14 +92,14 @@
 	import "Progress";
 	Users::ExportAll = true;
 	Progress::off();
-	ret = Users::Read(``{}, false);
+	ret = Users::Read (abort_block, false);
 	Progress::on();
     }
     else if (func == "Write") {
 	import "Progress";
 	Users::write_only = true;
 	Progress::off();
-	ret = Users::Write ( ``{ return false;}, false);
+	ret = Users::Write (abort_block, false);
 	Progress::on();
     }
     /* unknown function */
