@@ -62,7 +62,7 @@ special characters (e.g., accented characters).
       
       help_text = help_text + _("<p>
 Valid password characters are letters, digits, blanks, and
-<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}</tt>.
+<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
   
       
@@ -243,14 +243,11 @@ here. You don't need to fill out this entry.
 <b>Repeat password:</b>
 The password has to be entered a second time to avoid typos.
 </p>
-"); /*+
-       FIXME TODO  - add new help text for members of this group
+") +
 		_("<p>
 <b>Members of this group:</b>
-Here the user names of all group members are listed. The single names have to be
-separated by commas. Example:
-peter,anna,book,news
-</p>");*/
+Select users which shall be members of this group.
+</p>");
 
   }
 
@@ -313,8 +310,17 @@ Save the current user and group settings to system
 
   global define string  usersEditUserPasswordHelp() ``{
       return _("<p>
-TODO
-</p>");
+<b>Warning before expiration</B><BR>
+User can be warned before expiration of it's password. You can set how many days before gets user warned. Set -1 to disable warning.
+</p>")
++
+_("<P><B>Logging in after expiration</B><BR>
+User can log in after expiration of his password. Set how many days after expiration it will be posisble. Set -1 to unlimited.
+</P>")
++
+_("<P><B>Lifitime of password</B><BR> Set how many days can user use the same password before it expires.</P>")
++
+_("<P><B>Minimal age of password</B><BR>Set the minimal age of password when user will be allowed to change it.</P>");
   }
 
   

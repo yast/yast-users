@@ -40,16 +40,18 @@
     integer arg 		   = 0;
     list    possible_start_dialogs = ["user_add", "group_add", "groups", "users" ];
 
-    
+    y2error ("argsize: %1", size( Args() ));
     while ( arg < size( Args() ) )
     {
 	// TODO .test in Mode
-	y2debug( "arg #%1: %2", arg, Args( arg ) );
-	
-	if ( contains( possible_start_dialogs, Args( arg )  ))
+	y2error( "arg #%1: %2", arg, Args( arg ) );
+	string a = Args( arg );
+	if ( contains( possible_start_dialogs, a))
 	{
+	    y2error ("Contains");
 	    start_dialog = Args( arg );
 	}
+	else y2error ("Doesn't contain %1", a);
 	arg = arg + 1;
     }
 

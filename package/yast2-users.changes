@@ -1,3 +1,6 @@
+- Added testsuite
+- Now allowed "=" in password (#15646)
+
 -------------------------------------------------------------------
 Tue Jul  2 13:47:57 CEST 2002 - jsrain@suse.cz
 

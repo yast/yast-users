@@ -633,16 +633,12 @@ Please try again."));
 				      `VStretch ()),
 			       `HSpacing (3));
 	   
-		    
-	    
 	Wizard::SetContentsButtons(_("Password settings for user ") + username +":",
 		                     contents,
 				     usersEditUserPasswordHelp(),
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
 
-
-	
 	// user input
 	symbol ret = `next;
 	repeat
@@ -653,7 +649,6 @@ Please try again."));
 		{
 		    foreach(`autosymbol, UserSettings::auto_shadow_symbols, ``{
 			shadow[autosymbol] =  UI::QueryWidget(`id(autosymbol), `Value);
-			
 		    });
 		    user_in_work["shadow"] = shadow;
 
@@ -778,7 +773,6 @@ Please try again."));
 
   }
 
-    
     /**
      * Function that adds or edits a user.
      * @param what `add_user or `edit_user
@@ -798,8 +792,8 @@ Please try again."));
 	string  home           = lookup( user_in_work, "home"    , UserAddDefs::GetDefaultHome());
 	string  shell          = lookup( user_in_work, "shell"   , UserAddDefs::GetDefaultShell());
 	integer uid            = lookup( user_in_work, "uid"     , UserDefs::max_uid );
-	string  surname        = lookup( user_in_work, "surname" , "empty" ); 
-	string  forename       = lookup( user_in_work, "forename", "empty" ); 
+	string  surname        = lookup( user_in_work, "surname" , "empty" );
+	string  forename       = lookup( user_in_work, "forename", "empty" );
 	string  password       = lookup( user_in_work, "password", "");
 	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
 	if ( grouplist == "empty" && what == `edit_user)  grouplist = UserSettings::FindGroupsBelongUser(username);
@@ -808,8 +802,7 @@ Please try again."));
 	if ( forename  == "empty" ) forename =  usersSplitFullName(`forename, fullname, uid);
 	if ( uid ==  UserDefs::max_uid )  uid = UserSettings::NextFreeUid();
 
-	
-	map shadow 	       = $[];
+	map shadow	       = $[];
 	if (user_in_work["shadow"]:$[] == $[] && what == `add_user )
 	{
 	    shadow = UserDefs::GetDefaultShadow();
@@ -841,14 +834,13 @@ Please try again."));
 				 `TextEntry(`id(`forename), _("&First name:"), forename),
 				 `TextEntry(`id(`surname),  _("&Last name:"),  surname )
 				 ),
-	       
 			   `VSquash(`HBox
 				    (
 				     // input field for login name
 				     `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
 				     // push button to generate a login name from first and last name
 				     `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-				     )),	
+				     )),
 			   // User account information, first version of user password, both versions must match
 			   `Password(`id(`pw1), _("&Enter a password:"), ""),
 			   // User account information, second version of user password, retyped to avoid typos
@@ -858,13 +850,12 @@ Please try again."));
 			   detailsmorebox
 			   ));
 
-	
 	Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditUserHelp(),
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
-
+	UI::ChangeWidget (`id (`username), `ValidChars, UserDefs::valid_logname_chars);
 	// Modify the dialog
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
 	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
@@ -884,7 +875,6 @@ Please try again."));
 	    UI::ChangeWidget(`id(`pw2), `Value, UserDefs::default_pw);
 	}
 
-	
 	symbol ret = `next;	
 	repeat
 	    {
@@ -966,15 +956,15 @@ Is this system a network client?
 			    //  input).
 			    Report::Error(_("You didn't enter a username.
 Please try again.
-"));	
+"));
 			    UI::SetFocus(`id(`username));
 			    continue;
 			}
-		    }	
-		    
+		    }
+
 		    if  (  ( size( username ) < 2 || size( username ) > 32 ) )
 		    {
-			
+
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username must have a size
 			// between 2 and 32 characters.
@@ -1005,7 +995,6 @@ Please try again.
 			continue;
 		    }
 
-		    
 		    // check login against passwd contents
 		    if ( (username != lookup( user_in_work , "username", "")) &&
 			 contains( UserSettings::UsersRead(`usernamelist, view_all_users ), username ) )
@@ -1022,7 +1011,6 @@ Please try another one.
 			continue;
 		    }
 
-		    
 		    if (  pw1 != pw2 )
 		    {
 			

@@ -197,6 +197,12 @@ Do not forget this \"root\" password!
 
 
   Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+
+  if ("" == UI::QueryWidget(`id(`pw1), `Value))
+	UI::SetFocus (`id (`pw1));
+  else if ("" == UI::QueryWidget(`id(`pw2), `Value))
+	UI::SetFocus (`id (`pw2));
+
   any ret = nil;
 
   repeat

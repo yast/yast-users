@@ -23,6 +23,7 @@
     global map  current_users   = $[];
     global map  current_groups  = $[];
     global list current_gshadow = [];
+    global map current_shadow = $[];
 
     path gshadow_path = .etc.gshadow;
     path passwd_path  = .etc.passwd;
@@ -124,6 +125,7 @@
     global define boolean ReadShadowFromDisk( ) ``{
 
       list shadow  = SCR::Read( shadow_path );
+      current_shadow = $[];
 
       if( shadow == [] || shadow == nil )
       {
@@ -133,7 +135,6 @@
       else
       {
 	  // add shadow entries to current_users
-	  map current_shadow = $[];
 	  foreach(`entry, shadow , ``{
 	      string username =  entry["username"]:"";
 	      map new_entry   = $[];
@@ -595,14 +596,12 @@
      */
     global define void SetGroup( integer gid , map group )``{
 	current_groups[ gid ] = group;
-
     }
 
 
     global define void DelGroup( integer gid ) ``{
 	UserSettings::current_groups = filter( `key, `group, UserSettings::current_groups, ``( gid != key));
     }
-    
     
     global define boolean SetGroupname( integer gid, string groupname) ``{
 	map current_group = current_groups[gid]:$[];
@@ -619,7 +618,6 @@
 	}
     }
 
-    
     global define string GetGroupname( integer gid )``{
 	map current_group = current_groups[gid]:$[];
 	if ( current_group == $[] )
@@ -631,7 +629,6 @@
 	{
 	    return current_group["groupname"]:"";
 	}
-	
     }
 
     global define boolean SetUserlist( integer gid, string userlist ) ``{
@@ -650,7 +647,6 @@
 	}
     }
 
-    
     global define string GetUserlist( integer gid )``{
 	map current_group = current_groups[gid]:$[];
 	if ( current_group == $[] )
@@ -662,13 +658,12 @@
 	{
 	    return current_group["userlist"]:"";
 	}
-	
     }
     
     /**
      * Add a group password entry.
      * @param gshadow new entry for gshadow
-     * 
+     *
      */
     global define void AddGshadowEntry( map gshadow )``{
 	current_gshadow = add( current_gshadow , gshadow );
@@ -901,8 +896,6 @@
 	SetGroup( gid, current_group );
     }
 
-
-    
     global define Test()``{
 
 	UserDefs::Read();
@@ -919,29 +912,4 @@
 	y2milestone(sformat("%1",current_gshadow));
 
     }
-    
-    
-    /**
-    * Return the groupId of a groupname.
-    * Not used 
-    * @param groupname string
-    * @return integer 
-    */
-    /*
-   global define integer GroupNameToId( string groupname) ``{
-
-	integer ret =  UserDefs::max_gid;
-	foreach( `key, `group, current_groups, ``{
-	    if( (lookup(group, "groupname", "") == groupname) &&
-		(lookup(group, "todo", "" ) != `delete) )
-		{
-		    ret = key;
-		}
-	});
-	return ret;
-    }
-    */
-
-
-    
 }

@@ -126,7 +126,7 @@
      * @return symbol
      */
     global define symbol UserSave(map user_in_work, boolean save_directly ) ``{
-
+y2error ("user: %1", user_in_work);
 	symbol  what     = lookup( user_in_work , "what"      , `nix );
 	string  fullname = lookup( user_in_work , "fullname"  , ""   );
 	integer gid      = lookup( user_in_work , "gid"       ,  UserDefs::max_gid );

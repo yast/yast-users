@@ -19,7 +19,7 @@
    
     // ===== global values=============================================
     global string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz-_";
-    global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
+    global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}=";
     global string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-";
     global string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
