@@ -144,15 +144,23 @@ sub GUIClient {
 }
 
 ##------------------------------------
-# Type of users and groups this plugin is restricted to.
-# If this function doesn't exist, plugin is applied for all user (group) types.
+# Type of objects this plugin is restricted to.
+# It defines:
+#	1. type of objects which it should be applied to (ldap/nis/local/system)
+#	2. type of objects at all (user/group)
+# If this function doesn't exist, plugin is applied for all users of all types
 BEGIN { $TYPEINFO{Restriction} = ["function",
     ["map", "string", "any"], "any", "any"];}
 sub Restriction {
 
     my $self	= shift;
-    # this plugin applies only for LDAP users and groups
-    return { "ldap"	=> 1 };
+    return {
+	    # This plugin applies only for LDAP entries,
+	    "ldap"	=> 1,
+	    # both for users and groups:
+	    "user"	=> 1,
+	    "group"	=> 1
+    };
 }
 
 

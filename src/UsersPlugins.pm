@@ -95,6 +95,11 @@ sub Apply {
 	$type	= $config->{"type"};
     }
 
+    my $what	= "user";
+    if (defined $config->{"what"}) {
+	$what	= $config->{"what"};
+    }
+
     my @plugins_to_call	= @available_plugins;
 
     # Apply only for selected plugins; if not present, apply for all
@@ -114,7 +119,15 @@ sub Apply {
 	    next;
 	}
 
-	y2milestone ("action to call on plugins: $action");
+	y2debug ("action to call on plugins: $action");
+
+	if (defined $plugins{$module}{"Restriction"} 		&&
+	    ref ($plugins{$module}{"Restriction"}) eq "HASH" 	&&
+	    !defined $plugins{$module}{"Restriction"}{$what}) {
+
+	    y2debug ("plugin '$module' not defined for $what");
+	    next;
+	}
 
 	# check if plugin function is allowed for current user/group type
 	if (defined $plugins{$module}{"Restriction"} 		&&
