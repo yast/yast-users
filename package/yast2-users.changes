@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Sep 18 14:04:28 CEST 2003 - jsuchome@suse.cz
+
+- disable also login without passwords if there are more users (#31141)
+- recode error messages from cracklib to UTF-8
+- 2.8.17
+
+-------------------------------------------------------------------
 Wed Sep 17 14:10:21 CEST 2003 - jsuchome@suse.cz
 
 - disable autologin when there are more users (#31141)

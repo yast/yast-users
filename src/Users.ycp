@@ -1076,6 +1076,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		size (UsersCache::usernamelists["local"]:[]) != 1)
 
 	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN, "");
+	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN, "no");
 	    SCR::Write(.sysconfig.displaymanager, nil);
 	}
     }

@@ -18,6 +18,7 @@ import "Wizard";
 import "Label";
 import "Popup";
 import "Users";
+import "Console";
 
 /**
  * Reads prebuilded gshadow data
@@ -715,10 +716,12 @@ This is not good security practice. Are you sure?");
  */
 global define string CrackPassword (string username, string pw) ``{
 
+    string ret = "OK";
     if (SCR::Read (.target.size, Users::cracklib_dictpath + ".pwd") == -1)
-	return SCR::Execute(.crack, pw);
+	ret = SCR::Execute(.crack, pw);
     else
-	return SCR::Execute(.crack, pw, Users::cracklib_dictpath);
+	ret = SCR::Execute(.crack, pw, Users::cracklib_dictpath);
+    return UI::Recode(Console::encoding,"UTF-8", ret);
 }
 
 
