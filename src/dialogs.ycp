@@ -64,8 +64,13 @@ global define symbol EditUserDialog(string what) ``{
 
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
-    string fullname	= user["fullname"]:"";
-    string tmp_fullname	= fullname; // for login proposing
+    string cn		= "";
+    // in LDAP, cn is list of strings...
+    if (is (user["cn"]:"", list))
+	cn	= user["cn",0]:"";
+    else
+	cn	= user["cn"]:"";
+    string tmp_fullname	= cn; // for login proposing
     string default_home = Users::GetDefaultHome(true, user_type);
     string home		= user["home"]:default_home;
     string org_home	= user["org_home"]:home;
@@ -84,8 +89,8 @@ global define symbol EditUserDialog(string what) ``{
     }
 
     // only for LDAP users:
-    string sn = user["sn"]:SplitFullName(`sn, fullname);
-    string givenName = user["givenName"]:SplitFullName(`givenName, fullname);
+    string sn = user["sn"]:SplitFullName(`sn, cn);
+    string givenName = user["givenName"]:SplitFullName(`givenName, cn);
 
     boolean do_not_edit = (user_type == "nis");
 
@@ -112,7 +117,7 @@ global define symbol EditUserDialog(string what) ``{
 
     term name_entries =
         // text entry
-	`TextEntry (`id(`fullname), _("&Full User Name"), fullname);
+	`TextEntry (`id(`cn), _("&Full User Name"), cn);
     if (user_type == "ldap")
     {
 	name_entries = `VBox(
@@ -225,7 +230,7 @@ can be changed for non-local users.
     // TODO edit values for NIS users
     if (do_not_edit)
     {
-        UI::ChangeWidget (`id(`fullname), `Enabled, false);
+        UI::ChangeWidget (`id(`cn), `Enabled, false);
         UI::ChangeWidget (`id(`username), `Enabled, false);
         UI::ChangeWidget (`id(`pw1), `Enabled, false);
         UI::ChangeWidget (`id(`pw2), `Enabled, false);
@@ -252,7 +257,7 @@ can be changed for non-local users.
 	if (user_type == "ldap")
 	    UI::SetFocus(`id(`givenName));
 	else
-	    UI::SetFocus(`id(`fullname));
+	    UI::SetFocus(`id(`cn));
     }
 
     if( password != "")
@@ -298,15 +303,15 @@ can be changed for non-local users.
 		}
 		if (!(haskey (Users::ldap_user_defaults, "cn") &&
 		      what == "add_user")
-		    && fullname == "")
-		    fullname = givenName + ((givenName != "") ? " " : "") + sn;
+		    && cn == "")
+		    cn = givenName + ((givenName != "") ? " " : "") + sn;
 		UI::ChangeWidget(`id(`givenName), `Value, givenName);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
 	    }
 	    else
 	    {
-		fullname	= UI::QueryWidget(`id(`fullname), `Value);
-		if (findfirstof(fullname, Users::invalid_gecos_chars) != nil)
+		cn	= UI::QueryWidget(`id(`cn), `Value);
+		if (findfirstof(cn, Users::invalid_gecos_chars) != nil)
 		{
 		    // error message
 		    Report::Error(_("
@@ -314,11 +319,11 @@ The full user name cannot contain
 : or , characters.
 Try again.
 "));
-		    UI::SetFocus(`id(`fullname));
+		    UI::SetFocus(`id(`cn));
 		    continue;
 		}
 	    }
-	    user ["fullname"]	= fullname;
+	    user ["cn"]	= cn;
 	    user ["givenName"] = givenName;
 	    user ["sn"] = sn;
 	}
@@ -326,8 +331,8 @@ Try again.
         // generate a login name from first and last name
         if (ret == `propose)
         {
-	    string to_propose = issubstring (fullname, "%") ?
-		givenName + " " + sn : fullname;
+	    string to_propose = issubstring (cn, "%") ?
+		givenName + " " + sn : cn;
 	    if (tmp_fullname != to_propose)
 	    {
 		UsersCache::proposal_count = -1;
@@ -344,7 +349,7 @@ Try again.
             if (UI::QueryWidget(`id(`pw1), `Value) == "" &&
                 UI::QueryWidget(`id(`pw2),`Value) == ""  &&
                 UI::QueryWidget(`id(`username), `Value) == "" &&
-                UI::QueryWidget(`id(`fullname), `Value) == "")
+                UI::QueryWidget(`id(`cn), `Value) == "")
             ret = `nosave;
         }
 
@@ -735,7 +740,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     string user_type      = Users::user_in_work["type"]:"local";
     string what           = Users::user_in_work["what"]:"no";
     string username       = Users::user_in_work["username"]:"";
-    string fullname       = Users::user_in_work["fullname"]:"";
+    string cn		  = Users::user_in_work["cn"]:"";
     string home           = Users::user_in_work["home"]:"";
     string org_home       = Users::user_in_work["org_home"]:"";
     boolean create_home   = Users::user_in_work["create_home"]:true;
@@ -847,8 +852,8 @@ global define symbol EditUserDetailsDialog( ) ``{
 	// textentry label
 	`TextEntry( `id(`home), _("&Home Directory"), home ),
 	(skel_check)
-	    // checkbox label
-	    ? `Left (`CheckBox (_("Copy Skeleton"), user_type != "system"))
+	    // checkbox label FIXME no checking
+	    ? `Left (`CheckBox (_("&Copy Skeleton"), user_type != "system"))
 	    : `Empty()
     );
 
@@ -1406,7 +1411,7 @@ global define symbol LDAPSettingsDialog(string what) ``{
     // ldap2yast, because no "translation to yast names" is needed.)
     list already_edited_keys = (what == "user") ?
 	[ "username", "uid", "home", "givenName", "sn",
-	"fullname", "password", "objectClass", "shell", "gid",
+	"password", "objectClass", "shell", "gid",
 	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
 	"shadowMin", "shadowMax", "shadowFlag" ] :
 	// and now for groups

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Oct  3 12:59:43 CEST 2003 - jsuchome@suse.cz
+
+- 'fullname' attribute renamed to 'cn' to follow LDAP specifications
+
+-------------------------------------------------------------------
 Wed Oct  1 10:38:18 CEST 2003 - jsuchome@suse.cz
 
 - autologin: added configuration popup (initial), used Autologin module

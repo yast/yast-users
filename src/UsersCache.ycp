@@ -370,7 +370,7 @@ global define list BuildUserItemList(map map_of_users) ``{
     list items = [];
     foreach ( `key, `user,  map_of_users, ``{
         string username = user["username"]:"";
-        string full = user["fullname"]:"";
+        string full	= user["cn"]:"";
         string  s_uid = sformat("%1", key );
         term    a     = `item(`id(key));
 
@@ -407,15 +407,15 @@ global define list BuildUserItemList(map map_of_users) ``{
 
 /**
  * Uncode the string.
- * @param fullname string
+ * @param from string
  * @return string string recoded to UTF
  */
-global define string Uncoding( string fullname ) ``{
+global define string Uncoding( string from ) ``{
 
-    if (fullname == "" || fullname == nil)
+    if (from == "" || from == nil)
         return "";
     else
-        return UI::Recode( encoding, "UTF-8",  fullname );
+        return UI::Recode( encoding, "UTF-8",  from );
 
 }
 
@@ -960,21 +960,21 @@ global define boolean IsUsernameUnique (string username) ``{
 
 /**
  * Propose a username.
- * @param fullname fullname
+ * @param cn fullname
  * @return string proposed login name
  */
-global define string ProposeUsername( string fullname ) ``{
+global define string ProposeUsername( string cn ) ``{
 
     string default_login  = "lxuser";
     string login = "";
 
     if (proposal_count == -1)
     {
-	// generate new list of possible usernames each time fullname is changed
+	// generate new list of possible usernames each time cn is changed
 
 	proposed_usernames = [];
 	// do not propose username with uppercase (problematic: #26409)
-	list parts = splitstring (tolower(fullname), " ");
+	list parts = splitstring (tolower(cn), " ");
 	list tested_usernames = eval (parts);
 
 	// 1st: add some interesting modifications...
