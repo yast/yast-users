@@ -3,7 +3,7 @@ Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Execute	.target.bash "/bin/cp /etc/gshadow /etc/gshadow.YaST2save" 0
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Execute	.target.bash "test -f /usr/lib/yp/yphelper" 0
-Execute	.target.bash "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname" 0
+Execute	.target.bash "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2/&1" 0
 Execute	.target.bash_output "/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa" $["exit":0, "stderr":"stderr", "stdout":"stdout"]
 Execute	.target.bash_output "/usr/bin/make -C /var/yp" $["exit":0, "stderr":"stderr", "stdout":"stdout"]
 Execute	.target.bash_output "/usr/sbin/useradd.local aaa" $["exit":0, "stderr":"stderr", "stdout":"stdout"]

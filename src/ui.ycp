@@ -737,9 +737,18 @@ Please try again."));
 
 	integer last_changed = shadow["last_change"]:0;
 	integer expires = shadow["expire"]:-1;
-	map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_changed));
-	// label
-	string last_change = UI::Recode(UserDefs::encoding, "UTF-8", lookup (out, "stdout", _("unknown")));
+	string last_change = "";
+	if (last_changed != 0)
+	{
+	    map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_changed));
+	    // label
+	    last_change = UI::Recode(UserDefs::encoding, "UTF-8", lookup (out, "stdout", _("unknown")));
+	}
+	else
+	{
+	    // label
+	    last_change = _("never");
+	}
 	string exp_date = "";
 	if (expires != -1)
 	    exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");

@@ -31,7 +31,7 @@
   import "Mode";
   include "ui/common_messages.ycp";
 
-    if (Mode::cont)
+    if (Mode::cont && ! Mode::usessh)
     {
 	SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
     }

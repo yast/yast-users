@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Aug 30 12:35:36 CEST 2002 - jsrain@suse.cz
+
+- not removing /var/lib/YaST2/runme_at_boot in case of ssh
+  installation (Bug #18580)
+- redirecting output of yphelper (Bug #18621)
+- dixed last p[assword change date for new user (Bug #18601)
+- 2.6.24
+
+-------------------------------------------------------------------
 Thu Aug 29 14:45:15 CEST 2002 - jsrain@suse.cz
 
 - fixed building

@@ -756,7 +756,9 @@
 		    a = add(a, s_uid );
 
 		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0),$[]), "groupname","");
-		    string more_groups = substring (lookup (user, "more groups", ","), 1);
+		    string more_groups = lookup (user, "more groups", ",");
+		    if (size (more_groups) > 0)
+			more_groups = substring (more_groups, 1);
 
 //FindGroupsBelongUser( username );
 
@@ -1239,7 +1241,7 @@
 	boolean helper = 0 == SCR::Execute (.target.bash, "test -f /usr/lib/yp/yphelper");
 	if (! helper)
 	    return false;
-	boolean master = 0 == SCR::Execute (.target.bash, "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname");
+	boolean master = 0 == SCR::Execute (.target.bash, "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2/&1");
 	return master;
     }
 }
