@@ -852,7 +852,7 @@ sub BuildGroupItem {
     }
 
     my @all_users	= ();
-    my @userlist	= keys %userlist;
+    my @userlist	= sort keys %userlist;
     my $i		= 0;
 
     while ($i < $the_answer && defined $userlist[$i]) {
@@ -862,7 +862,7 @@ sub BuildGroupItem {
     }
     
     my $count		= @all_users;
-    my @more_users	= keys %more_users;
+    my @more_users	= sort keys %more_users;
     my $j		= 0;
 
     while ($count + $j < $the_answer && defined $more_users[$j]) {

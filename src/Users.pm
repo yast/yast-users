@@ -1629,7 +1629,7 @@ sub EditUser {
     if (!defined $user_in_work{"org_user"} &&
 	($user_in_work{"what"} || "") ne "add_user") {
 
-	# password we have read was real
+	# password we have read was real -> set "encrypted" flag
 	my $pw	= $user_in_work{"userPassword"} || "";
 	if ($pw ne "" && $pw ne "x" &&
 	    (!defined $user_in_work{"encrypted"} ||
@@ -1650,6 +1650,30 @@ sub EditUser {
 	    $user_in_work{"userPassword"} = "";
 	}
     }
+
+    # -------------------------- now call EditBefore function from plugins
+    if (!defined $user_in_work{"plugins"}) {
+	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
+    }
+    my $plugins		= $user_in_work{"plugins"};
+    
+    if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
+	$plugins	= $data{"plugins"};
+    }
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%data);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %data	= %{$result->{$plugin}};
+	}
+    }
+    # ----------------------------------------------------------------
+
+    
     # update the settings which should be changed
     foreach my $key (keys %data) {
 	if ($key eq "uid" || $key eq "homeDirectory" ||
@@ -1725,6 +1749,19 @@ sub EditUser {
     }
     $user_in_work{"what"}	= "edit_user";
     UsersCache->SetUserType ($type);
+    # --------------------------------- now call Edit function from plugins
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
+    # ---------------------------------------------------------------------
     # now handle possible login disabling
     if (defined $user_in_work{"disabled"} &&
 	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
@@ -1764,6 +1801,27 @@ sub EditGroup {
 	my %org_group			= %group_in_work;
 	$group_in_work{"org_group"}	= \%org_group;
     }
+    # -------------------------- now call EditBefore function from plugins
+    if (!defined $group_in_work{"plugins"}) {
+	$group_in_work{"plugins"}	= $self->GetUserPlugins ($type);
+    }
+    my $plugins		= $group_in_work{"plugins"};
+    
+    if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
+	$plugins	= $data{"plugins"};
+    }
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "group",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%data);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %data	= %{$result->{$plugin}};
+	}
+    }
+    # ----------------------------------------------------------------
 
     # update the settings which should be changed
     foreach my $key (keys %data) {
@@ -1829,8 +1887,20 @@ sub EditGroup {
 	$group_in_work{$key}	= $data{$key};
     }
     $group_in_work{"what"}	= "edit_group";
-
     UsersCache->SetGroupType ($type);
+    # --------------------------------- now call Edit function from plugins
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "group",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    # ---------------------------------------------------------------------
     return 1;
 }
 
@@ -1873,7 +1943,7 @@ sub AddUser {
 	}
     }
 
-    # now call AddBefore function from plugins
+    # -------------------------- now call AddBefore function from plugins
     if (!defined $user_in_work{"plugins"}) {
 	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
@@ -1893,6 +1963,7 @@ sub AddUser {
 	    %data	= %{$result->{$plugin}};
 	}
     }
+    # ----------------------------------------------------------------
 
     # now copy the data to map of current user
     foreach my $key (keys %data) {
@@ -1975,6 +2046,7 @@ sub AddUser {
 		$user_in_work{$attr}	= $ldap_defaults{$attr};
 	    }
 	};
+	# created DN if not present yet
 	if (!defined $user_in_work{"dn"}) {
 	    my $dn = UsersLDAP->CreateUserDN (\%data);
 	    if (defined $dn) {
@@ -1982,7 +2054,7 @@ sub AddUser {
 	    }
 	}
     }
-    # now call Add function from plugins...
+    # --------------------------------- now call Add function from plugins
     foreach my $plugin (sort @{$plugins}) {
 	my $result = UsersPlugins->Apply ("Add", {
 	    "what"	=> "user",
@@ -1994,6 +2066,8 @@ sub AddUser {
 	    %user_in_work= %{$result->{$plugin}};
 	}
     }
+    # ---------------------------------------------------------------------
+
     # now handle possible login disabling
     # FIXME should it really be called from Add/Edit functions...?
     if (defined $user_in_work{"disabled"} &&
@@ -2073,6 +2147,28 @@ sub AddGroup {
 	}
     }
 
+    # ----------------------- now call AddBefore function from plugins
+    if (!defined $group_in_work{"plugins"}) {
+	$group_in_work{"plugins"}	= $self->GetUserPlugins ($type);
+    }
+    my $plugins		= $group_in_work{"plugins"};
+    
+    if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
+	$plugins	= $data{"plugins"};
+    }
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("AddBefore", {
+	    "what"	=> "group",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%data);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %data	= %{$result->{$plugin}};
+	}
+    }
+    # ----------------------------------------------------------------
+
     foreach my $key (keys %data) {
 	if ($key eq "userPassword" &&
 	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
@@ -2095,11 +2191,6 @@ sub AddGroup {
     }
     
     if ($type eq "ldap") {
-	# add default object classes
-	if (!defined $group_in_work{"objectClass"}) {
-	    my @classes = @{UsersLDAP->GetGroupClass()};
-	    $group_in_work{"objectClass"} = \@classes;
-	}
         # add other default values
 	my %ldap_defaults	= %{UsersLDAP->GetGroupDefaults()};
 	foreach my $attr (keys %ldap_defaults) {
@@ -2107,6 +2198,7 @@ sub AddGroup {
 		$group_in_work{$attr}	= $ldap_defaults{$attr};
 	    }
 	};
+	# created DN if not present yet
 	if (!defined $group_in_work{"dn"}) {
 	    my $dn = UsersLDAP->CreateGroupDN (\%data);
 	    if (defined $dn) {
@@ -2114,6 +2206,19 @@ sub AddGroup {
 	    }
 	}
     }
+    # --------------------------------- now call Add function from plugins
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins->Apply ("Add", {
+	    "what"	=> "group",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    # ---------------------------------------------------------------------
     return 1;
 }
 

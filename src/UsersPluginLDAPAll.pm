@@ -272,7 +272,7 @@ sub EditBefore {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $data	= $_[1];
+    my $data	= $_[1]; # only new data that will be copied to current user map
 
     $data	= update_object_classes ($config, $data);
 
@@ -289,7 +289,7 @@ sub Edit {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $data	= $_[1];
+    my $data	= $_[1]; # the whole map of current user/group after Users::Edit
 
     y2internal ("Edit LDAPAll called");
     return $data;
@@ -305,7 +305,7 @@ sub WriteBefore {
     my $config	= $_[0];
     my $data	= $_[1];
 
-    # this means what was done with a user: added/edited/deleted
+    # this means what was done with a user/group: added/edited/deleted
     my $action = $config->{"modified"} || "";
     
     y2internal ("WriteBefore LDAPAll called");
