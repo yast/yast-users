@@ -21,7 +21,6 @@
 
 {
     textdomain "users";
-    
     import "Mode";
     Mode::config = true;
     import "Users";
@@ -30,11 +29,19 @@
     include "users/wizards.ycp";
     include "wizard/sequencer.ycp";
 
-    string func = WFM::Args(0);
-    list param = WFM::Args(1);
+    any ret = nil;
+    string func = "";
+    list param = $[];
+    /* Check arguments */
+    if(size(Args()) > 0 && is(Args(0), string)) {
+	func = WFM::Args(0);
+	if(size(Args()) > 1 && is(Args(1), map))
+	    param = WFM::Args(1);
+    }
+    y2debug("func=%1", func);
+    y2debug("param=%1", param);
 
 
-    
     // settings form /etc/default/useradd:
     // can be set the new ones here:
     map useradd_defaults  = $[
@@ -97,35 +104,39 @@
      ]];
 
 
-    param = [ users, groups, shadow, gshadow, $[] ];
+    // param = [ users, groups, shadow, gshadow, $[] ];
 
     /* create a  summary*/
     if (func == "Summary") {
 	Users::Import(param);
-	return ( Users::Summary());
+	ret =  Users::Summary();
     }
     else if (func == "Reset") {
-	Users::Import([]);	
-	return ([]);
-    }	
+	Users::Import([]);
+	ret = [];
+    }
     else if (func == "Change") {
-	Users::Import(param);	
+	Users::Import(param);
 	string start_dialog = "users"; //look to users.ycp for possible values
 	Wizard::CreateDialog();
-	any res = AutoSequence(start_dialog);
+	ret = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
 //list ex = Users::Export(); // for debug...
 //y2warning ("local users: %1", ex[0,`local]:$[]);
-	return res;
     }
     else if (func == "Result") {
-	return(Users::Export());
+	ret = Users::Export();
     }
     /* unknown function */
     else {
 	y2error("unknown function: %1", func);
-	return false;
+	ret = false;
     }
 
+    y2debug("ret=%1", ret);
+    y2milestone("users auto finished");
+    y2milestone("----------------------------------------");
+
+    return ret;
 
 }
