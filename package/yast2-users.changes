@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep 10 12:56:13 CEST 2004 - jsuchome@suse.cz
+
+- exit with warning when creating backup files failed
+  (this can happen when there is no space left: #44784)
+- 2.10.7
+
+-------------------------------------------------------------------
 Mon Sep  6 13:03:50 CEST 2004 - jsuchome@suse.cz
 
 - adapted for new autoyast behaviour (#44660)
