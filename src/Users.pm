@@ -1049,7 +1049,7 @@ sub ReadLocal {
     my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
-	"base_directory"	=> "/tmp"
+	"base_directory"	=> "/etc"
     );
     # id limits are necessary for differ local and system users
     my $init = SCR::Execute (".passwd.init", \%configuration);
