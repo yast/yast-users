@@ -1943,12 +1943,25 @@ sub EditUser {
 	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
 
+	# check thi initial enabled/disabled status
+	if ($pw =~ m/^\!/) {
+	    $user_in_work{"enabled"}	= YaST::YCP::Boolean (0);
+	}
+
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
 	# grouplist wasn't fully generated while reading nis & ldap users
 	if ($type eq "nis" || $type eq "ldap") {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
+	    # set 'groupname' if default group is not LDAP (#43433)
+	    if (!defined $user_in_work{"groupname"}) {
+		my %g	= %{$self->GetGroup ($user_in_work{"gidnumber"}, "")};
+		if (%g && defined ($g{"cn"})) {
+	            $user_in_work{"groupname"}  		= $g{"cn"};
+		    # TODO adapt the 'more_users' entry of this group?
+		}
+	    }
 	}
 	# empty password entry for autoinstall config (do not want to
 	# read password from disk: #30573)
@@ -3059,7 +3072,6 @@ sub UserReallyModified {
 	bool ($user{"disabled"}) || bool ($user{"enabled"})) {
         return 1;
     }
-
     my $ret = 0;
 
     my %org_user	= ();

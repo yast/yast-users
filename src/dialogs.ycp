@@ -645,18 +645,22 @@ Please try again."));
             }
 	    // -------------------------------------- enable/disable checks
 
-	    enabled	= ! (boolean) UI::QueryWidget(`id(`ena), `Value);
-	    if (enabled)
+	    boolean new_enabled	= !(boolean) UI::QueryWidget(`id(`ena), `Value);
+	    if (enabled	!= new_enabled)
 	    {
-		user["enabled"]		= true;
-		if (haskey (user,"disabled"))
-		    user ["disabled"]	= false;
-	    }
-	    else
-	    {
-		user["disabled"]	= true;
-		if (haskey (user,"enabled"))
-		    user ["enabled"]	= false;
+		enabled	= new_enabled;
+		if (enabled)
+		{
+		    user["enabled"]		= true;
+		    if (haskey (user,"disabled"))
+			user ["disabled"]	= false;
+		}
+		else
+		{
+		    user["disabled"]	= true;
+		    if (haskey (user,"enabled"))
+			user ["enabled"]	= false;
+		}
 	    }
 
 	    // ------------------------- last check of all (because of plugins)
@@ -742,7 +746,6 @@ define symbol EditUserDetailsDialog( ) ``{
     integer uid	= GetInt (user, "uidnumber", UsersCache::GetMaxUID (user_type));
     integer gid	= GetInt (user, "gidnumber", UsersCache::GetMaxGID (user_type));
     string defaultgroup = user["groupname"]:"";
-
     // additional parts of GECOS (shown by `finger <username>`) (passwd only)
     string addit_data	= user["addit_data"]:"";
 
@@ -752,7 +755,8 @@ define symbol EditUserDetailsDialog( ) ``{
     list additional_ldap_groups	= [];
     list removed = [];
     string grouplist		= "";
-    boolean no_skel	= user["no_skeleton"]:false;
+    boolean no_skel		= user["no_skeleton"]:false;
+    boolean defaultgroup_shown	= false;
 
     string new_type = user_type;
 
@@ -760,7 +764,8 @@ define symbol EditUserDetailsDialog( ) ``{
 	UsersCache::GetAllGroupnames ();
 
     // fill the list available_groups and set the user default group true
-    foreach (string grouptype, map<string,integer> groupmap, all_groupnames, ``{
+    foreach (string grouptype, map<string,integer> groupmap, all_groupnames,
+    {
         if (grouptype == "local" || grouptype == "system" ||
             (grouptype == "ldap" && user_type == "ldap"))
 	{
@@ -771,8 +776,11 @@ define symbol EditUserDetailsDialog( ) ``{
                 if (grouptype == "ldap")
                 {
                     if ( group == defaultgroup )
+		    {
                         available_groups = add (available_groups,
                             `item( `id(group), group, true));
+			defaultgroup_shown	= true;
+		    }
                     else
                         available_groups = add (available_groups,
                             `item( `id(group), group));
@@ -800,8 +808,11 @@ define symbol EditUserDetailsDialog( ) ``{
             else
             {
                 if ( group == defaultgroup )
+		{
                     available_groups = add (available_groups,
                         `item( `id(group), group, true));
+		    defaultgroup_shown	= true;
+		}
                 else
                     available_groups = add (available_groups,
                         `item( `id(group), group));
@@ -815,6 +826,16 @@ define symbol EditUserDetailsDialog( ) ``{
           });
 	}
     });
+    // show default group, even if the type is 'wrong' (#43433)
+    if (!defaultgroup_shown)
+    {
+        if (all_groupnames ["local", defaultgroup]:0 == 1 ||
+	    all_groupnames ["system", defaultgroup]:0 == 1)
+	{
+	    available_groups = add (available_groups,
+		`item( `id(defaultgroup), defaultgroup, true));
+	}
+    }
     // backup NIS groups of user (they are not shown in dialog)
     map<string,integer> nis_groups	= $[];
     foreach (string group, integer val, groups, ``{
