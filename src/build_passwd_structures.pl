@@ -88,12 +88,29 @@ $last_local_uid = $max_system_uid + 1;
 $last_system_uid = 0;
 
 $the_answer = 42; # ;-)
+$max_length_id = length("60000");
 
+# for debugging
 sub print_date {
 
     my ($message) = @_;
     $date = `date +%X`;
 #    print STDERR "$message: $date";
+}
+        
+# addBlanks to uid entry in table
+sub addBlanks {
+
+    my ($id) = @_;
+    $missing = $max_length_id - length ($id);
+    if ($missing > 0)
+    {
+        for ($i = 0; $i < $missing; $i++)
+        {
+            $id = " ".$id;
+        }
+    }
+    return $id;
 }
     
 
@@ -184,6 +201,7 @@ foreach (<GROUP>)
     }
     else # save the possible "+"/"-" entries
     {
+        chop $_;
         open PLUS_GROUP, "> $plus_group_file";
         print PLUS_GROUP "\"$_\"\n";
         close PLUS_GROUP;
@@ -380,15 +398,16 @@ foreach $user (<PASSWD>)
             $all_groups = $grouplist;
         }
 
+        $uid_wide = addBlanks ($uid);
         if ($user_type eq "local")
         {
-            print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-                "\"$full\", \"$uid\", \"$all_groups\"),\n";
+            print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", \"$full\", \"$uid_wide\", \"$all_groups\"),\n";
         }
         else
         {
             print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-                "SystemUsers[\"$username\"]:\"$full\", \"$uid\", \"$all_groups\"),\n";
+                "SystemUsers[\"$username\"]:\"$full\", \"$uid_wide\", ".
+                "\"$all_groups\"),\n";
         } 
                 
 
@@ -551,8 +570,9 @@ foreach (values %groupmap)
         $all_users .= "...";
     }
 
+    $gid_wide = addBlanks ($gid);
     print $YCP_GROUP_ITEMLIST "\t`item(`id($gid), \"$groupname\", ".
-            "\"$gid\", \"$all_users\"),\n";
+            "\"$gid_wide\", \"$all_users\"),\n";
 }
 
 print YCP_GROUP_LOCAL "]\n";
