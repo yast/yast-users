@@ -147,8 +147,10 @@ BEGIN { $TYPEINFO{ReadAvailable} = ["function", "boolean"];}
 sub ReadAvailable {
 
     my $passwd_source = SCR::Read (".etc.nsswitch_conf.passwd");
-    foreach my $source (split (/ /, $passwd_source)) {
-	if ($source eq "ldap") { return 1; }
+    if (defined $passwd_source) {
+	foreach my $source (split (/ /, $passwd_source)) {
+	    if ($source eq "ldap") { return 1; }
+	}
     }
     return 0;
 }
@@ -872,7 +874,7 @@ sub WriteUsers {
     foreach my $uid (keys %{$users}) {
 
 	my $user		= $users->{$uid};
-
+UsersCache::DebugMap ($user);
         my $action      = $user->{"modified"};
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
