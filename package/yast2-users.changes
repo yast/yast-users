@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Apr 14 09:15:46 CEST 2003 - jsuchome@suse.de
+
+- new "agent-uid" for testing uid/username existence
+- proposed some layout changes: separate dialogs for auth and encryption
+- new "agent-ldap" for LDAP user/group operations (don't use "cpu" more)
+- adapted testsuite
+
+-------------------------------------------------------------------
 Thu Mar 27 10:55:34 CET 2003 - jsuchome@suse.de
 
 - fixes in LDAP users management:

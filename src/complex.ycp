@@ -30,7 +30,7 @@ include "users/helps.ycp";
  */
 global define boolean Modified() ``{
     return (Users::users_modified || Users::groups_modified ||
-        Users::customs_modified ||
+        Users::customs_modified || Users::ldap_modified ||
         Users::defaults_modified);
 }
 
@@ -119,150 +119,39 @@ global define symbol ReallyAbort() ``{
     else return `back;
 }
 
-/** TODO: only one dialog for users and groups
- *
-global define symbol SummaryDialog(symbol what) ``{
-//    Users::start_dialog              ="users";
-
-    term contents = `VBox(
-        rbUsersGroup(what),
-        table (what),
-        `HBox (
-            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
-            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
-            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
-            `HStretch()),
-        `HBox(
-            // MenuButton label
-            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
-                Users::available_usersets_items),
-            // PushButon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
-            // PushButon
-            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
-            (Mode::config || what == `group) ? `HSpacing(0):
-            // PushButon
-            `PushButton(`id(`expert), _("E&xpert options...")),
-            `HStretch())
-    );
-
-    string lastbutton =  UI::FinishButtonLabel() ;
-    if( Mode::cont )
-        lastbutton =  UI::NextButtonLabel() ;
-
-    Wizard::SetContentsButtons(
-                    // dialog caption
-                    _("User and group administration"),
-                    contents,
-                    UsersDialogHelp(),
-                    UI::BackButtonLabel(),
-                    lastbutton );
-
-    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
-
-    UsersCache::PrintDate("table shown");
-
-    if( UsersCache::focusline_user != nil)
-        UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
-
-    symbol ret = `next;
-    repeat
-    {
-        ret = UI::UserInput();
-
-        if ( contains (Users::available_usersets, ret) )
-        {
-            if (Users::ChangeCurrentUsers (ret))
-            {
-            UsersCache::user_itemlist = UsersCache::users_itemlists [ret]:[];
-
-            UI::ChangeWidget(`id(`user_table),`Items,UsersCache::user_itemlist);
-            if (ret == `custom)
-                UsersCache::customized_usersview = true;
-            else
-                UsersCache::customized_usersview = false;
-            }
-
-            ret = `not_next;
-        }
-        if ( ret == `switch_users)
-        {
-            ret = `not_next;
-        }
-        if ( ret == `customize)
-        {
-            if ( CustomizePopup ("user") && UsersCache::customized_usersview)
-                UI::ChangeWidget(`id(`user_table), `Items,
-                    UsersCache::user_itemlist);
-            ret = `not_next;
-        }
-        if ( ret == `expert)
-        {
-            ret = `not_next;
-            if (CallFunction(`expert_login()) == `next)
-            {
-                // check the sources, they could be modified
-                Users::ReadSourcesSettings();
-                Users::BuildMenuButtonItems();
-                ret = `users;
-            }
-        }
-        if ( ret == `user_table )
-            ret = `edit;
-        if ( ret == `edit  || ret == `delete )
-        {
-            any selected = UI::QueryWidget(`id(`user_table), `CurrentItem);
-            if (selected != nil)
-            {
-                Users::SelectUser( selected );
-                UsersCache::user_type = Users::user_in_work["type"]:`local;
-                if (ret == `delete)
-                    ret = DeleteUserPopup();
-            }
-            else
-            {
-                // error popup
-                Report::Message(_("Please select an entry in the user table"));
-                ret = `not_next;
-            }
-        }
-        if ( ret == `new )
-        {
-            Users::user_in_work = $[];
-            if (Users::kerberos_auth == "required")// only this ??
-            {
-                // error popup
-                Report::Message (_("As you are using only Kerberos for authentication, you cannot add local users."));
-                ret = `not_next;
-            }
-        }
-    } until ( ret != `not_next );
-
-    if (ret == `back)
-    {
-        if (Mode::cont)
-        {
-            Users::start_dialog = "user_add";
-            Users::StartAgain ();
-        }
-        Users::use_next_time = true;
-    }
-    save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
-
-    if (!Mode::cont && ret == `next && !Modified())
-        ret = `nosave;
-
-    return ret;
-}
-*/
-
 /**
  * The first of the two main (summary) dialogs -- list of the users.
  * @return symbol for wizard sequencer
  */
 global define symbol UsersDialog() ``{
 
-    Users::start_dialog              ="users";
+    //FIXME enable part of expert tools for Mode::config...
+    list expert_list = [
+        `item(`id(`defaults), _("De&faults for New Users")),
+        `item(`id(`enc), _("Password &Encryption")),
+        `item(`id(`auth), _("&Authentication and User Sources")),
+        `item(`id(`ldapconf), _("L&DAP Settings"))
+    ];
+
+    /*
+    // FIXME: just testing combobox...
+    ymbol current_filter = "local";//FIXME: current users!
+    list available_filters = [];
+    foreach (`type, Users::available_usersets, ``{
+	if (current_filter == type)
+	    available_filters = add (available_filters, `item(`id(type),
+		deletechars (Users::userset_to_string[type]:"", "&"), true));
+	else
+	    available_filters = add (available_filters,	`item(`id(type),
+		deletechars (Users::userset_to_string[type]:"", "&"), false));
+    });
+
+    available_filters = add (available_filters,
+        // PushButon
+	`item (`id(`customize), _("Customize Filter..."), false));
+    */
+
+    Users::start_dialog = "users";
     term contents = `VBox(
         `ReplacePoint (`id(`rp), rbUsersGroup(`users)),
         `Table(`id(`user_table), `opt(`notify),
@@ -279,6 +168,19 @@ global define symbol UsersDialog() ``{
             `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
             `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
             `HStretch()),
+	/*
+	`VSquash(
+	`HBox(
+	    `ComboBox(`id(`usersets), `opt(`notify, `key_F2), _("Filter"),
+		    available_filters),
+	    `VBox (`VStretch(),
+                // PushButon
+	        `MenuButton(`id(`expertlist), _("E&xpert options..."),
+	            expert_list)
+	    ),
+            `HStretch()
+	))
+	*/
         `HBox(
             // MenuButton label
             `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
@@ -286,11 +188,12 @@ global define symbol UsersDialog() ``{
             // PushButon
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
-            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
-            Mode::config ? `HSpacing(0):
+            Mode::config ? `HSpacing(0): //FIXME enable part of expert tools
             // PushButon
-            `PushButton(`id(`expert), _("E&xpert options...")),
-            `HStretch())
+            `MenuButton(`id(`expertlist), _("E&xpert options..."),
+                expert_list),
+            `HStretch()
+	)
     );
 
     string lastbutton =  UI::FinishButtonLabel() ;
@@ -299,7 +202,7 @@ global define symbol UsersDialog() ``{
 
     Wizard::SetContentsButtons(
                     // dialog caption
-                    _("User and group administration"),
+                    _("User and Group administration"),
                     contents,
                     UsersDialogHelp(),
                     UI::BackButtonLabel(),
@@ -312,11 +215,24 @@ global define symbol UsersDialog() ``{
     if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
 
-    symbol ret = `next;
+    any ret = `next;
     repeat
     {
         ret = UI::UserInput();
 
+	// FIXME combobox:
+	/*
+	if (ret == `usersets)
+	{
+	    ret = `not_next;
+	    if (current_filter != UI::QueryWidget (`id(`usersets), `Value))
+	    {
+		y2internal ("new value: %1", UI::QueryWidget (`id(`usersets), `Value));
+		current_filter = UI::QueryWidget (`id(`usersets), `Value);
+		ret = current_filter;
+	    }
+	}
+	*/
         if ( contains (Users::available_usersets, ret) )
         {
             if (Users::ChangeCurrentUsers (ret))
@@ -325,7 +241,7 @@ global define symbol UsersDialog() ``{
 
                 UI::ChangeWidget(`id(`user_table),`Items,
                     UsersCache::user_itemlist);
-                if (ret == `custom)
+                if (ret == "custom")
                     UsersCache::customized_usersview = true;
                 else
                     UsersCache::customized_usersview = false;
@@ -344,16 +260,33 @@ global define symbol UsersDialog() ``{
                     UsersCache::user_itemlist);
             ret = `not_next;
         }
-        if ( ret == `expert)
+
+        if ( ret == `ldapconf )
+        {
+// TODO run whole LDAP client from here??
+            if (CallFunction(`cpu_configure(false)) == `next)
+                Ldap::WriteCpuSettings();
+            ret = `not_next;
+        }
+	/*
+        if ( ret == `auth)
         {
             ret = `not_next;
-            if (CallFunction(`expert_login()) == `next)
+            // if (CallFunction(`expert_login()) == `next)
+            if (AuthentizationDialog() == `next)
             {
                 // check the sources, they could be modified
                 Users::ReadSourcesSettings();
                 Users::BuildMenuButtonItems();
                 ret = `users;
             }
+        }
+	*/
+        if ( ret == `enc)
+        {
+            ret = `not_next;
+            Users::encryptionMethod = EncryptionDialog();
+            // FIXME: do Security::Save!!!
         }
         if ( ret == `user_table )
             ret = `edit;
@@ -363,7 +296,7 @@ global define symbol UsersDialog() ``{
             if (selected != nil)
             {
                 Users::SelectUser( selected );
-                UsersCache::user_type = Users::user_in_work["type"]:`local;
+                UsersCache::user_type = Users::user_in_work["type"]:"local";
                 if (ret == `delete)
                     ret = DeleteUserPopup();
             }
@@ -451,7 +384,7 @@ global define symbol GroupsDialog() ``{
         lastbutton =  UI::NextButtonLabel();
 
     // dialog caption
-    Wizard::SetContentsButtons(_("User and group administration"),
+    Wizard::SetContentsButtons(_("User and Group administration"),
                         contents,
                         GroupsDialogHelp(),
                         UI::BackButtonLabel(),
@@ -463,7 +396,7 @@ global define symbol GroupsDialog() ``{
         UI::ChangeWidget(`id(`group_table), `CurrentItem, UsersCache::focusline_group );
 
     // save marked table entry to group_in_work
-    symbol ret = `next;
+    any ret = `next;
     repeat
     {
         ret = UI::UserInput();
@@ -476,7 +409,7 @@ global define symbol GroupsDialog() ``{
 
                 UI::ChangeWidget(`id(`group_table), `Items,
                     UsersCache::group_itemlist);
-                if (ret == `custom)
+                if (ret == "custom")
                     UsersCache::customized_groupsview = true; // already set
                 else
                     UsersCache::customized_groupsview = false;
@@ -507,8 +440,8 @@ global define symbol GroupsDialog() ``{
             if( selected != nil )
             {
                 Users::SelectGroup( selected );
-                UsersCache::group_type = Users::group_in_work["type"]:`local;
-                if (UsersCache::group_type == `nis)
+                UsersCache::group_type = Users::group_in_work["type"]:"local";
+                if (UsersCache::group_type == "nis")
                 {
                     // error popup
                     Report::Message (_("To edit or delete a NIS group,
@@ -552,7 +485,7 @@ global define symbol DeleteUserPopup() ``{
     string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
     integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid;
 
-    if (UsersCache::user_type == `nis)
+    if (UsersCache::user_type == "nis")
     {
         // error popup
         Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
@@ -571,13 +504,13 @@ Please log off the user first."));
     }
 
     boolean no_home = false;
-    if ((UsersCache::user_type == `ldap && !Users::is_ldap_server) ||
+    if ((UsersCache::user_type == "ldap" && !Users::ldap_file_server) ||
         // check if dir exists with this owner
         (lookup (SCR::Read(.target.stat, home), "uid", -1) != uid) )
         no_home = true;
 
     // if the user want to delete a system user
-    if ( UsersCache::user_type == `system )
+    if ( UsersCache::user_type == "system" )
     {
         // yes-no popup headline
         if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."),
@@ -595,7 +528,7 @@ Please log off the user first."));
             `HSpacing(3),
             `VBox(`VSpacing(1),
                 // question popup. %^1 is username
-                `Left(`Heading(sformat(_("Delete the user %1"), username ))),
+                `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
                 `VSpacing(0.5),
                 no_home ? `VSpacing (0) :
                 // checkbox
@@ -604,15 +537,15 @@ Please log off the user first."));
                 `VSpacing(1),
                 `HBox(
                     `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
-                        OKButtonLabel()  )),
+                        YesButtonLabel()  )),
                     `Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
-                        CancelButtonLabel()))
+                        NoButtonLabel()))
                 )
             ),
             `HSpacing(3));
 
         UI::OpenDialog(`opt( `decorated ), contents );
-        symbol ret  = UI::UserInput();
+        any ret  = UI::UserInput();
         delete_home = no_home ? false : UI::QueryWidget(`id(`delete_home), `Value);
 
         UI::CloseDialog();
@@ -636,7 +569,7 @@ Do you really want to delete the user %1?
 
     if (delete)
     {
-        Users::user_in_work["what"] = `delete_user;
+        Users::user_in_work["what"] = "delete_user";
         Users::user_in_work["delete_home"] = delete_home;
         return `delete;
     }
@@ -659,7 +592,7 @@ global define symbol DeleteGroupPopup() ``{
         Users::group_in_work["more_users"]:"" == "")
     {
         //if the group is a system group ask the user ..
-        if ( UsersCache::group_type == `system )
+        if ( UsersCache::group_type == "system" )
         {
             // yes-no popup headline
             if(!UI::YesNoHeadlinePopup(_("The marked group is a system group."),
@@ -688,7 +621,7 @@ Remove these users from the group first.
         return `not_next;
     }
 
-    Users::group_in_work["what"] = `delete_group;
+    Users::group_in_work["what"] = "delete_group";
     return `delete;
 }
 
@@ -707,7 +640,7 @@ global define boolean CustomizePopup(string what) ``{
 
     if (what == "user")
     {
-        sets = filter (`set, Users::available_usersets, ``(set != `custom));
+        sets = filter (`set, Users::available_usersets, ``(set != "custom"));
         custom_sets = Users::user_custom_sets;
         set_to_string = Users::userset_to_string;
 		// Frame label
@@ -715,7 +648,7 @@ global define boolean CustomizePopup(string what) ``{
     }
     else
     {
-        sets = filter (`set, Users::available_groupsets, ``(set != `custom));
+        sets = filter (`set, Users::available_groupsets, ``(set != "custom"));
         custom_sets = Users::group_custom_sets;
         set_to_string = Users::groupset_to_string;
 		// Frame label
@@ -742,10 +675,10 @@ global define boolean CustomizePopup(string what) ``{
             `VSpacing(1),
 	        `HBox(
 	            `HSpacing(1),
-	            `Left(`PushButton(`id(`cancel), `opt(`key_F9),
-                    CancelButtonLabel())),
 	            `Right(`PushButton(`id(`ok), `opt(`default, `key_F10),
                     OKButtonLabel())),
+	            `Left(`PushButton(`id(`cancel), `opt(`key_F9),
+                    CancelButtonLabel())),
 	            `HSpacing(1)
 	            ),
             `VSpacing(1)),
@@ -777,31 +710,6 @@ global define boolean CustomizePopup(string what) ``{
 }
 
 /**
- * Just giving paramaters for commiting user
- * @return symbol for wizard sequencer
- */
-global define symbol UserSave() ``{
-
-    Users::Commit("user", true);
-    // adding only one user during install
-    if (Mode::cont && Users::start_dialog == "user_add" )
-        return `save;
-    else
-    return `next;
-}
-
-/**
- * Just giving paramaters for commiting group
- * @return symbol for wizard sequencer
- */
-global define symbol GroupSave() ``{
-
-    Users::Commit("group", true);
-
-    return `next;
-}
-
-/**
  * Define the switch between Users and Groups administration.
  * This is used in UsersDialog and GroupsDialog.
  * @param what what can be `users or `groups
@@ -812,16 +720,16 @@ global define term rbUsersGroup(symbol what) ``{
     if (what == `users)
     {
         if (size (Users::current_users) == 1)
-            curr = Users::userset_to_string[Users::current_users[0]:`custom]:"";
+            curr = Users::userset_to_string[Users::current_users[0]:"custom"]:"";
         else
-            curr = Users::userset_to_string[`custom]:"";
+            curr = Users::userset_to_string["custom"]:"";
     }
     else
     {
         if (size (Users::current_groups) == 1)
-            curr = Users::groupset_to_string[Users::current_groups[0]:`custom]:"";
+            curr = Users::groupset_to_string[Users::current_groups[0]:"custom"]:"";
         else
-            curr = Users::groupset_to_string[`custom]:"";
+            curr = Users::groupset_to_string["custom"]:"";
     }
     curr = deletechars (curr, "&");
     return
@@ -829,10 +737,11 @@ global define term rbUsersGroup(symbol what) ``{
         `Left(`RadioButtonGroup(`HBox(
             `RadioButton(`id(`switch_users), `opt(`notify),
                 // pushbutton
-                _("&Users administration"), what == `users),
+                _("&Users Administration"), what == `users),
             `RadioButton(`id(`switch_groups), `opt(`notify),
                 // pushbutton
-                _("&Groups administration"), what == `groups)
+                _("&Groups Administration"), what == `groups)
+//	))));
         ))),
         `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
         );
@@ -845,7 +754,7 @@ global define term rbUsersGroup(symbol what) ``{
  * @param what symbol
  */
 global define void save_focus(integer table_input, any ret, symbol what) ``{
-// when uid || gid was changed, the focus is invalid !!!
+//TODO when uid || gid was changed, the focus is invalid !!!
 
     integer l_focusline = 0;
 

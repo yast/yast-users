@@ -29,9 +29,7 @@ y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
 import "Mode";
-//    import "./Users";
 
-//include "wizard/sequencer.ycp";
 include "users/wizards.ycp";
 
 string  start_dialog	   = "users";

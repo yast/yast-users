@@ -1,11 +1,11 @@
 Dump	current state of testgroup:
-Dump	 $["gid":501, "groupname":"testgroup", "more_users":"cc", "password":"x", "type":`local, "userlist":""]
+Dump	 $["gid":501, "groupname":"testgroup", "more_users":"cc", "password":"x", "type":"local", "userlist":""]
 Dump	==========================================================
 Dump	user "cc" has testgroup as default group:
-Dump	 $["forename":"", "fullname":"", "gid":501, "grouplist":"audio", "groupname":"testgroup", "home":"/home/cc", "org_home":"/home/cc", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"cc"]
+Dump	 $["forename":"", "fullname":"", "gid":501, "grouplist":"audio", "groupname":"testgroup", "home":"/home/cc", "org_home":"/home/cc", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":"local", "uid":500, "username":"cc"]
 Dump	==========================================================
 Dump	user "ab" has nothing to do with testgroup now:
-Dump	 $["forename":"", "fullname":"", "gid":100, "grouplist":"audio", "groupname":"users", "home":"/home/ab", "org_home":"/home/ab", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"ab"]
+Dump	 $["forename":"", "fullname":"", "gid":100, "grouplist":"audio", "groupname":"users", "home":"/home/ab", "org_home":"/home/ab", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":"local", "uid":500, "username":"ab"]
 Dump	==========================================================
 Dump	testgroup was modified:
 Dump		 - changed gid: 501 -> 777
@@ -16,10 +16,10 @@ Dump	===== Commiting change... ================================
 Dump	==========================================================
 Return	true
 Dump	changed map of local groups:
-Dump	 $[777:$["gid":777, "groupname":"testgroup_changed", "modified":`edited, "more_users":"cc", "org_gid":501, "org_groupname":"testgroup_changed", "password":"x", "type":`local, "userlist":"ab", "what":`edit_group]]
+Dump	 $[777:$["gid":777, "groupname":"testgroup_changed", "modified":"edited", "more_users":"cc", "org_gid":501, "org_groupname":"testgroup_changed", "password":"x", "type":"local", "userlist":"ab", "what":"edit_group"]]
 Dump	==========================================================
 Dump	user "cc":
-Dump	 $["forename":"", "fullname":"", "gid":777, "grouplist":"audio", "groupname":"testgroup_changed", "home":"/home/cc", "org_home":"/home/cc", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"cc", "what":`group_change]
+Dump	 $["forename":"", "fullname":"", "gid":777, "grouplist":"audio", "groupname":"testgroup_changed", "home":"/home/cc", "org_home":"/home/cc", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":"local", "uid":500, "username":"cc", "what":"group_change"]
 Dump	==========================================================
 Dump	user "ab":
-Dump	 $["forename":"", "fullname":"", "gid":100, "grouplist":"audio,testgroup_changed", "groupname":"users", "home":"/home/ab", "org_home":"/home/ab", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"ab", "what":`group_change]
+Dump	 $["forename":"", "fullname":"", "gid":100, "grouplist":"audio,testgroup_changed", "groupname":"users", "home":"/home/ab", "org_home":"/home/ab", "password":"x", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":"local", "uid":500, "username":"ab", "what":"group_change"]

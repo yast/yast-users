@@ -23,7 +23,7 @@
 	"forename":"",
 	"fullname":"",
 	"gid":100,
-    "groupname": "users",
+	"groupname": "users",
 	"grouplist":"audio",
 	"home":"/home/aaa",
 	"org_home":"/home/aaa",
@@ -33,16 +33,16 @@
 	"surname":"",
 	"uid":500,
 	"username":"aaa",
-    "type":`local,
-	"what":`delete_user];
+	"type":"local",
+	"what":"delete_user"];
 
-    Users::users_by_name [`local ] = $[ "aaa": 500 ];
+    Users::users_by_name ["local" ] = $[ "aaa": 500 ];
 
-    Users::users [`local] = $[
+    Users::users ["local"] = $[
         500:  $[ "forename":"",
-    "fullname":"",
+	"fullname":"",
 	"gid":100,
-    "groupname":"users",
+	"groupname":"users",
 	"grouplist":"audio",
 	"home":"/home/aaa",
 	"org_home":"/home/aaa",
@@ -52,11 +52,11 @@
 	"surname":"",
 	"uid":500,
 	"username":"aaa",
-    "type":`local]
+	"type":"local"]
     ];
 
     Users::shadow = $[
-        `local : $[
+        "local" : $[
             "aaa":  $[
                 "inact":-1,
                 "max":99999,
@@ -66,41 +66,41 @@
         ]
     ];
 
-    Users::groups [`local ] = $[
-        100: $[ "groupname": "users", "userlist":"", "more_users": "hh,aaa","type": `local ],
-        17:  $[ "groupname": "audio", "userlist":"aaa,hh", "more_users": "","type": `local ]
+    Users::groups ["local" ] = $[
+        100: $[ "groupname": "users", "userlist":"", "more_users": "hh,aaa","type": "local" ],
+        17:  $[ "groupname": "audio", "userlist":"aaa,hh", "more_users": "","type": "local" ]
     ];
 
     Users::groups_by_name = $[
-     `local: $[
-        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh,aaa", "type": `local ]
+     "local": $[
+        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh,aaa", "type": "local" ]
       ],
-      `system: $[
-        "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"aaa,hh", "more_users": "", "type": `local ]
+      "system": $[
+        "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"aaa,hh", "more_users": "", "type": "local" ]
       ]
     ];
 
-    UsersCache::users_itemlists [`local] =
+    UsersCache::users_itemlists ["local"] =
         [`item (`id (500), "aaa", "", "500", "users,audio")];
 
     DUMP ( sformat ("local user itemlist:\n %1",
-        UsersCache::users_itemlists [ `local ]:[]) );
+        UsersCache::users_itemlists [ "local" ]:[]) );
 
-    DUMP ( sformat ("local groups:\n %1\n", Users::groups [ `local ]:$[]) );
+    DUMP ( sformat ("local groups:\n %1\n", Users::groups [ "local" ]:$[]) );
 
-    DUMP ( sformat ("local users:\n %1", Users::users [ `local ]:$[]) );
+    DUMP ( sformat ("local users:\n %1", Users::users [ "local" ]:$[]) );
 
     DUMP ("==================== running delete ======================");
 
     TEST(``(Users::Commit ("user", true)), [], 0);
 
     DUMP ( sformat ("local users modified:\n %1",
-        Users::users [ `local ]:$[]) );
+        Users::users [ "local" ]:$[]) );
 
     DUMP ( sformat ("local groups modified:\n %1\n",
-        Users::groups [ `local ]:$[]) );
+        Users::groups [ "local" ]:$[]) );
 
     DUMP ( sformat ("local user itemlist modified:\n %1",
-        UsersCache::users_itemlists [ `local ]:[]) );
+        UsersCache::users_itemlists [ "local" ]:[]) );
 
 }

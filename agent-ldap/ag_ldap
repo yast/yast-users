@@ -1,0 +1,517 @@
+#!/usr/bin/perl
+
+use lib "/usr/lib/YaST2/agents_non_y2";
+use ycp;
+use strict;
+use Net::LDAP;
+use Net::LDAP::Entry;
+use Net::LDAP::Util qw( ldap_error_name ldap_error_text);# LDAP error messages
+#use Net::LDAP::Schema;
+
+#use open ':utf8'; # TODO not needed?
+
+# --------------------------------------------------------------------
+# --------- global values, initialized by calling Execute (.ldap.init)
+# TODO comment them
+
+my $ldap;			# ---- main object for LDAP database
+my $user_base;
+my $group_base;
+my @user_object_class;
+my @group_object_class;
+my $bind_dn;			# ---- DN for binding to server
+my $hash = "CRYPT";		# ---- how to crypt user passwords
+
+my %users = ();
+my %users_by_name = ();
+my @uids = ();			# ---- list of all LDAP UID's
+my @usernames = ();		# ---- list of all LDAP user names
+my @homes = ();			# ---- list of all LDAP home directories
+my %groups = ();
+my %groups_by_name = ();
+my @gids = ();			# ---- list of all LDAP GID's
+my @groupnames = ();		# ---- list of all LDAP group names
+
+my $last_ldap_uid = 1;		# ---- UID last used
+my $the_answer = 42;		# ---- Definitely: this is the answer. ;-)
+my $max_length_id = 5;
+
+# --------------------------------------------------------------------
+# ---------- retrieve the error type
+sub LDAPerror {
+    (my $code) = @_;
+    if ($code == 0) {
+	return "";
+    }
+    my $error = ldap_error_name ($code);
+    y2error ("LDAP error: $error");
+    return $error;
+}
+
+# ---------- addBlanks to uid entry in table
+sub addBlanks {
+    (my $id) = @_;
+    my $missing = $max_length_id - length ($id);
+    if ($missing > 0)
+    {
+        for (my $i = 0; $i < $missing; $i++)
+        {
+            $id = " ".$id;
+        }
+    }
+    return $id;
+}
+
+# ---------- form DN from username/groupname
+sub get_dn {
+    (my $name, my $type) = @_;
+    my $search = "uid";			# TODO: configurable!!
+    if ($type eq "group") {
+	return "cn=$name,$group_base";
+    }
+    else {
+	return "uid=$name,$user_base";
+    }
+}
+
+# --------------------------------------------------------------------
+
+while ( <STDIN> )
+{
+    my ($command, $path, $argument) = ycp::ParseCommand ($_);
+
+    y2milestone ("path: $path");
+    
+    if ( $command eq "Execute" )
+    {
+	if ( $path eq '.init' && ref ($argument) eq "HASH" ) {
+	    
+	    # ------------------------------
+	    # ---------- initialization
+	    
+	    my %ldap_conf 	= %{$argument};
+
+	    my $host 		= $ldap_conf{"host"};
+	    $bind_dn 		= $ldap_conf{'bind_dn'};
+	    $user_base 		= $ldap_conf{"user_base"};
+	    $group_base 	= $ldap_conf{"group_base"};
+	    @user_object_class 	= $ldap_conf{"user_class"};
+	    @group_object_class = $ldap_conf{"group_class"};
+	    $hash 		= $ldap_conf{"pw_hash"};
+	    
+	    $ldap = Net::LDAP->new($host) or ycp::Return ("initialize");
+
+	    ycp::Return("");
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.bind' && ! ref ($argument) ) {
+	    
+	    # ------------------------------
+	    # ---------- bind to LDAP server
+	    
+	    my $res;
+	    
+	    my $pass = $argument;
+	    if ($pass eq "") {
+		$res = $ldap->bind ();
+	    }
+	    else {
+		$res = $ldap->bind ($bind_dn, password => $pass);
+	    }
+
+	    ycp::Return (LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.search' && ref ($argument) eq "HASH" ) {
+
+	    # ------------------------------
+	    # ---------- read users and groups from server
+
+	    my $user_filter = $argument->{"user_filter"};
+	    my $group_filter = $argument->{"group_filter"};
+	    my $output_dir = $argument->{"output_dir"}; # FIXME not needed
+	    my %more_usersmap = ();
+
+	    # --- get LDAP groups 
+	    my $mesg = $ldap->search(
+		base => $group_base,
+		filter => $group_filter,
+		attrs => [ "cn", "gidNumber", "memberUid" ] );
+
+	    if ($mesg->code) {
+		ycp::Return (LDAPerror ($mesg->code));
+	    }
+		
+	    foreach my $entry ($mesg->all_entries)
+	    { 
+		my $gid = $entry->get_value("gidNumber");
+	        $groups{$gid} = {
+		    "gid"	=> $gid,
+		    "groupname"	=> $entry->get_value("cn"),
+		    "type"	=> "ldap"
+		};
+	        # TODO userlist -> memberUid
+#		if (defined $entry->get_value("memberUid")) {
+#		    $groups{$gid}{"userlist"} =
+#			join (',', $entry->get_value("memberUid"));
+#		}
+	    }
+
+	    # --- get LDAP users
+
+	    $mesg = $ldap->search(
+		base => $user_base,
+		filter => $user_filter,
+		attrs => [
+		    "uid", "uidNumber", "gidNumber", "homeDirectory",
+		    "loginShell", "cn", "mail", "sn", "givenName"]);
+	    
+	    if ($mesg->code) {
+		ycp::Return (LDAPerror ($mesg->code));
+	    }
+
+	    open YCP_LDAP_ITEMLIST, "> $output_dir/itemlist_ldap.ycp";
+	    print YCP_LDAP_ITEMLIST "[\n";
+
+	    # --- build users structures
+	    foreach my $entry ($mesg->all_entries) { 
+   
+		my $uid = $entry->get_value("uidNumber");
+    
+    		if (! defined ($uid)) { # for admin?? 
+		    next;
+		}
+		
+		my $username = $entry->get_value("uid");
+		my $fullname = $entry->get_value("cn");
+		my $gid = $entry->get_value("gidNumber");
+		my $groupname = $groups{$gid}{"groupname"};
+		if (! defined ($groupname)) {
+		    $groupname = "";
+		}
+		my $grouplist = "";
+
+		$users{$uid} = {
+		    "surname"	=> $entry->get_value("sn"),
+		    "home"	=> $entry->get_value("homeDirectory"),
+		    "username"	=> $username,
+		    "uid"	=> $uid,
+		    "gid"	=> $gid,
+		    "fullname"	=> $fullname,
+		    "groupname"	=> $groupname,
+		    "grouplist"	=> $grouplist,
+		    "password"	=> "x",
+		    "type"	=> "ldap"
+		};
+
+		if (defined $entry->get_value("givenName")) {
+		    $users{$uid}{"forename"} = $entry->get_value("givenName");
+		}
+		if (defined $entry->get_value("mail")) {
+		    $users{$uid}{"mail"} = $entry->get_value("mail");
+		}
+		if (defined $entry->get_value("loginShell")) {
+		    $users{$uid}{"shell"} = $entry->get_value("loginShell");
+		}
+
+		$users_by_name{$username} = $uid;
+		push @uids, $uid;
+   		push @usernames, $username;
+		push @homes, $entry->get_value("homeDirectory");
+
+		# TODO: grouplist!!!
+		my $all_groups = $groupname;
+		if ($groupname ne "") {
+		    $all_groups .= ",...";
+		}
+	        my $uid_wide = addBlanks ($uid);
+
+	        print YCP_LDAP_ITEMLIST "\t`item(`id($uid), \"$username\", \"$fullname\", \"$uid_wide\", \"$all_groups\"),\n";
+
+		if ($last_ldap_uid < $uid) {
+		    $last_ldap_uid = $uid;
+		}
+
+		# modify default group's more_users entry
+		if (defined $more_usersmap{$gid}) {
+		    $more_usersmap{$gid} .= ",$username";
+		}
+		else {
+		    $more_usersmap{$gid} = $username;
+		}
+	    }
+
+	    print YCP_LDAP_ITEMLIST "]\n";
+	    close YCP_LDAP_ITEMLIST;
+	    
+	    open YCP_LDAPGROUP_ITEMLIST, ">$output_dir/group_ldap_itemlist.ycp";
+	    print YCP_LDAPGROUP_ITEMLIST "[\n";
+	    
+	    foreach my $gid (keys %groups)
+	    {
+		my $groupname = $groups{$gid}{"groupname"};
+		my $userlist = "";
+		my $more_users = "";
+		if (defined $more_usersmap{$gid}) {
+		    $more_users = $more_usersmap{$gid};
+		    $groups{$gid}{"more_users"} = $more_users;
+		}
+		# TODO: userlist
+ 
+		push @groupnames, $groupname;
+		push @gids, $gid;   
+           
+		my $all_users = $userlist;
+		if ($userlist ne "" && $more_users ne "") {
+		    $all_users .= ",";
+		}
+		$all_users .= $more_users;
+
+		# shorten the list, if it is too long
+	        my @users_list = split (/,/,$all_users);
+	        if (@users_list > $the_answer) {
+	            $all_users = "";
+	            for (my $i=0; $i < $the_answer; $i++) {
+	                $all_users .= "$users_list[$i],";
+	            }
+	            $all_users .= "...";
+	        }
+
+		my $gid_wide = addBlanks ($gid);
+	        print YCP_LDAPGROUP_ITEMLIST "\t`item(`id($gid), \"$groupname\", \"$gid_wide\", \"$all_users\"),\n";
+	    }
+
+	    print YCP_LDAPGROUP_ITEMLIST "]\n";
+	    close YCP_LDAPGROUP_ITEMLIST;
+
+	    ycp::Return("");
+	    # ------------------------------
+	}
+	else {
+	    y2error ("wrong path ($path) or argument: ", ref ($argument));
+	    ycp::Return("false");
+	}
+    }
+    elsif ( $command eq "Read")
+    {
+	if ( $path eq '.users' ) {
+
+	    ycp::Return (\%users);
+	}
+	elsif ( $path eq '.users.by_name' ) {
+
+	    ycp::Return (\%users_by_name);
+	}
+	elsif ( $path eq '.users.homes' ) {
+
+	    ycp::Return (\@homes);
+	}
+	elsif ( $path eq '.users.uids' ) {
+
+	    ycp::Return (\@uids);
+	}
+	elsif ( $path eq '.users.usernames' ) {
+
+	    ycp::Return (\@usernames);
+	}
+	# FIXME: cannot return as YCP value...
+#	elsif ( $path eq '.users.items' ) {
+#
+#	    ycp::Return (\@user_items);
+#	}
+	elsif ( $path eq '.users.last_uid' ) {
+
+	    ycp::Return ($last_ldap_uid);
+	}
+	elsif ( $path eq '.groups' ) {
+
+	    ycp::Return (\%groups);
+	}
+	elsif ( $path eq '.groups.by_name' ) {
+
+	    ycp::Return (\%groups_by_name);
+	}
+	elsif ( $path eq '.groups.gids' ) {
+
+	    ycp::Return (\@gids);
+	}
+	elsif ( $path eq '.groups.groupnames' ) {
+
+	    ycp::Return (\@groupnames);
+	}
+	else {
+	    y2error ("wrong path ($path) or argument: ", ref ($argument));
+	    ycp::Return("false");
+	}
+    }
+    elsif ( $command eq "Write" )
+    {
+	if ( $path eq '.group.add' && ref ($argument) eq "HASH" ) {
+
+	    # ------------------------------
+	    # ---------- add a new LDAP group
+
+	    my %group = %{$argument};
+	    my $dn = get_dn($group{"groupname"}, "group");
+
+	    # ---------- form an entry with mandatory parameters
+	    my $entry = Net::LDAP::Entry->new;
+	    $entry->dn ($dn);
+	    $entry->add (
+		    "gidNumber" => $group{"gid"},
+		    "cn" => $group{"groupname"},
+		    "objectClass" => @group_object_class
+	    );
+	    # ---------- add optional parameters:
+	    # TODO: memberUid, userPassword
+	   
+	    my $res = $ldap->add ($entry);
+ 
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( ($path eq '.group.modify' || $path eq '.group.edit') &&
+		 ref ($argument) eq "HASH" ) {
+	    
+	    # ---------------------------------------
+	    # ---------- modify an existing LDAP group
+
+	    my %group = %{$argument};
+	    my $dn = get_dn($group{"groupname"}, "group");
+	    
+	    # ---------- modify required parameters
+	    my %replace = (
+		    "gidNumber" => $group{"gid"},
+		    "cn" => $group{"groupname"},
+	    );
+
+	    # ---------- modify optional parameters
+	    # TODO: memberUid, userPassword
+	   
+	    my $res = $ldap->modify ($dn, replace => \%replace);
+	    
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.group.delete' && ref ($argument) eq "HASH" ) {
+	    
+	    # ---------------------------------------
+	    # ---------- delete an existing LDAP group
+
+	    my $groupname = $argument->{"groupname"};
+	    my $res = $ldap->delete (get_dn($groupname, "group"));
+
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.add' && ref ($argument) eq "HASH" ) {
+
+	    # ------------------------------
+	    # ---------- add a new LDAP user
+
+	    my %user = %{$argument};
+	    my $username = $user{"username"};
+	    my $dn = get_dn($username, "user");
+
+	    # ---------- form an entry with mandatory parameters
+	    my $entry = Net::LDAP::Entry->new;
+	    $entry->dn ($dn);
+	    $entry->add (
+		    "uid" => $username,
+		    "uidNumber" => $user{"uid"},
+		    "gidNumber" => $user{"gid"},
+		    "homeDirectory" => $user{"home"},
+		    "cn" => $user{"fullname"},
+		    "sn" => $user{"surname"},
+		    "objectClass" => @user_object_class
+	    );
+	    # ---------- add optional parameters
+	    # TODO: mail, etc.
+	    if (defined $user{"forename"} && $user{"forename"} ne "") {
+		$entry->add ("givenName" => $user{"forename"});
+	    }
+	    
+	    if (defined $user{"shell"} && $user{"shell"} ne "") {
+		$entry->add ("loginShell" => $user{"shell"});
+	    }
+
+	    if (defined $user{"password"} && $user{"password"} ne "x") {
+		$entry->add ("userPassword" => "{$hash}".$user{"password"});
+	    }
+	   
+	    my $res = $ldap->add ($entry);
+ 
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( ($path eq '.modify' || $path eq '.edit') &&
+		 ref ($argument) eq "HASH" ) {
+	    
+	    # ---------------------------------------
+	    # ---------- modify an existing LDAP user
+
+	    my %user = %{$argument};
+	    my $dn = get_dn($user{"username"}, "user");
+	    
+	    # ---------- modify required parameters
+	    my %replace = (
+		    "uid" => $user{"username"},
+		    "uidNumber" => $user{"uid"},
+		    "gidNumber" => $user{"gid"},
+		    "homeDirectory" => $user{"home"},
+		    "cn" => $user{"fullname"},
+		    "sn" => $user{"surname"},
+	    );
+	    # ---------- modify optional parameters
+	    if (defined $user{"forename"} && $user{"forename"} ne "") {
+		$replace{"givenName"} = $user{"forename"};
+	    }
+	    else {
+		$replace{"givenName"} = [];
+	    }
+	    if (defined $user{"shell"} && $user{"shell"} ne "") {
+		$replace{"loginShell"} = $user{"shell"};
+	    }
+	    else {
+		$replace{"loginShell"} = [];
+	    }
+	    if (defined $user{"password"} && $user{"password"} ne "x") {
+		$replace{"userPassword"} = "{$hash}".$user{"password"};
+	    }
+	   
+	    my $res = $ldap->modify ($dn, replace => \%replace);
+
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.delete' && ref ($argument) eq "HASH" ) {
+	    
+	    # ---------------------------------------
+	    # ---------- delete an existing LDAP user
+
+	    my $username = $argument->{"username"};
+	    my $res = $ldap->delete (get_dn($username, "user"));
+
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	else {
+	    y2error ("wrong path ($path) or argument:", ref ($argument));
+	    ycp::Return("wrong path ($path) or argument");
+	}
+    }
+    elsif ($command eq "result")
+    {
+	if (defined $ldap) {
+	    $ldap->unbind;
+	}
+	exit;
+    }
+    else
+    {
+	y2error ("wrong command: ", $command);
+	ycp::Return("wrong command ($command)");
+    }
+}
+
+# end

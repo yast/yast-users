@@ -124,7 +124,7 @@ You can configure these settings by running appropriate modules. Select the modu
         boolean auth_krb = false;
         boolean auth_unix = false;
         foreach (`line, pam_auth_list, ``{
-            if (issubstring (line["module"]:"", "pam_krb5.so") &&
+            if (issubstring (line["module"]:"", "pam_krb5") &&
                 line["type"]:"" == "auth")
                 auth_krb = true;
             if (issubstring (line["module"]:"", "pam_unix") &&

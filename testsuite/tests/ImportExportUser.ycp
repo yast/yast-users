@@ -19,22 +19,22 @@
     import "Users";
 
     map importing = $[
-	    "encrypted": true,
-	    "forename":"aa",
-	    "surname":"A",
-	    "uid":500,
+	"encrypted": true,
+	"forename":"aa",
+	"surname":"A",
+	"uid":500,
         "gid":500,
-	    "home":"/home/aaa",
-	    "user_password":"5OkhN2nLxMfEY",
-	    "password_settings":$[
-            "inact":-1,
-            "max":99999,
-            "min":0,
-            "warn":7
+	"home":"/home/aaa",
+	"user_password":"5OkhN2nLxMfEY",
+	"password_settings":$[
+        "inact":-1,
+        "max":99999,
+        "min":0,
+        "warn":7
         ],
         "grouplist":"audio",
-	    "shell":"/bin/bash",
-	    "username":"aaa"
+	"shell":"/bin/bash",
+	"username":"aaa"
     ];
 
     DUMP ( sformat ("importing:\n %1", importing) );

@@ -39,6 +39,8 @@ include "ui/common_messages.ycp";
         SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
   }
 
+   // FIXME : use EncryptionDialog()!
+
   /**
    * "Expert" dialog for root password:
    * Let user choose the encryption method.
@@ -73,46 +75,41 @@ to encrypt passwords.
 As a general rule of thumb, use DES if you are unsure.
 </p>");
 
-      UI::OpenDialog(
-		     `VBox(
-				// Label
-			   `Heading( _("Password Expert Options") ),
-			   `VSpacing( 0.7 ),
-			   `HBox(
-				 `HSpacing( 2 ),
-				 `RadioButtonGroup(
-							// frame
-						   `Frame( _("Password Encryption"),
-							   `VBox(
-								 `VSpacing( 0.5 ),
-
-								 // Radio buttons for password encryption: DES-crypt
-								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-										    encryptionMethod == "des" ) ),
-
-								 // Radio buttons for password encryption: MD5-crypt
-								 `Left(`RadioButton(`id(`md5), _("&MD5"),
-										    encryptionMethod == "md5" ) ),
-								 // Radio buttons for password encryption: blowfish-crypt
-                                                                 `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-                                                                                    encryptionMethod == "blowfish" ) )
-								 )
-							   )
-						   ),
-				 `HSpacing( 2 )
-				 ),
-			   `VSpacing( 0.5 ),
-			   `HBox(
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
-				 `HStretch()
-				 )
-			   )
-		     );
+      UI::OpenDialog( `VBox(
+	// Label
+	`Heading( _("Password Expert Options") ),
+	`VSpacing( 0.7 ),
+	    `HBox(
+	    `HSpacing( 2 ),
+	    `RadioButtonGroup(
+		// frame
+		`Frame( _("Password Encryption"),
+		`VBox(
+		    `VSpacing( 0.5 ),
+		    // Radio buttons for password encryption: DES-crypt
+		    `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+			    encryptionMethod == "des" ) ),
+		    // Radio buttons for password encryption: MD5-crypt
+		    `Left(`RadioButton(`id(`md5), _("&MD5"),
+			    encryptionMethod == "md5" ) ),
+		    // Radio buttons for password encryption: blowfish-crypt
+		    `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
+			    encryptionMethod == "blowfish" ) )
+		))
+	    ),
+	    `HSpacing( 2 )
+	    ),
+	`VSpacing( 0.5 ),
+	`HBox(
+	    `HStretch(),
+	    `HWeight( 1, `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
+	    `HStretch(),
+	    `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
+	    `HStretch(),
+	    `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
+	    `HStretch()
+	)
+    ));
 
       symbol button = nil;
 

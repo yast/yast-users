@@ -157,7 +157,7 @@ foreach my $user (@ypcat)
     print YCP_NIS "\t\t\"shell\": \"$shell\",\n";
     print YCP_NIS "\t\t\"groupname\": \"$groupname\",\n";
     print YCP_NIS "\t\t\"grouplist\": \"$grouplist\",\n";
-    print YCP_NIS "\t\t\"type\": `nis\n";
+    print YCP_NIS "\t\t\"type\": \"nis\"\n";
     print YCP_NIS "\t],\n";
 
     print YCP_NIS_BYNAME "\t\"$username\" : $uid,\n";
@@ -231,7 +231,7 @@ foreach (values %groupmap)
     print YCP_NISGROUP "\t\t\"gid\": $gid,\n";
     print YCP_NISGROUP "\t\t\"userlist\": \"$userlist\",\n";
     print YCP_NISGROUP "\t\t\"more_users\": \"$more_users\",\n";
-    print YCP_NISGROUP "\t\t\"type\": `$group_type\n";
+    print YCP_NISGROUP "\t\t\"type\": \"$group_type\"\n";
     print YCP_NISGROUP "\t],\n";
 
     print YCP_NISGROUP_BYNAME "\t\"$groupname\": \$[\n";
@@ -240,7 +240,7 @@ foreach (values %groupmap)
     print YCP_NISGROUP_BYNAME "\t\t\"gid\": $gid,\n";
     print YCP_NISGROUP_BYNAME "\t\t\"userlist\": \"$userlist\",\n";
     print YCP_NISGROUP_BYNAME "\t\t\"more_users\": \"$more_users\",\n";
-    print YCP_NISGROUP_BYNAME "\t\t\"type\": `$group_type\n";
+    print YCP_NISGROUP_BYNAME "\t\t\"type\": \"$group_type\"\n";
     print YCP_NISGROUP_BYNAME "\t],\n";
            
     print YCP_NISGROUPNAMELIST "\"$groupname\",";

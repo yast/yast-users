@@ -104,48 +104,50 @@ global define symbol MainSequence(string start) ``{
 
     map aliases = $[
 	"users":            ``(UsersDialog()),
-    "user_add":         ``(EditUserDialog(`add_user)),
-	"user_add_inst":    ``(EditUserDialog(`add_user)),
+	"user_add":         ``(EditUserDialog("add_user")),
+	"user_add_inst":    ``(EditUserDialog("add_user")),
 	"user_inst_start":  [``(usersInstStart ()), true],
-    "user_edit":        ``(EditUserDialog(`edit_user)),
+	"user_edit":        ``(EditUserDialog("edit_user")),
 	"user_details":     ``(EditUserDetailsDialog()),
 	"user_password":    ``(EditUserPasswordDialog()),
 	"user_save":        [``(UserSave()), true],
 	"user_setup":	    [ ``(userSetup ()), true],
 
 	"groups":           ``(GroupsDialog()),
-    "group_add":        ``(EditGroupDialog(`add_group)),
-    "group_edit":       ``(EditGroupDialog(`edit_group)),
+	"group_add":        ``(EditGroupDialog("add_group")),
+	"group_edit":       ``(EditGroupDialog("edit_group")),
 	"group_save":       [``(GroupSave()), true],
 
-    "defaults":         ``(DefaultsDialog()),
+	"defaults":         ``(DefaultsDialog()),
+	"auth":			``(AuthentizationDialog()),
 	"without_save":     ``(ReallyAbort()),
     ];
 
     map main_sequence = $[
     "ws_start":             start,
     "users":$[
-            `switch_groups: "groups",
-            `users:         "users",
-		    `new:           "user_add",
-	        `edit:          "user_edit",
-	        `delete:        "user_save",
-            `defaults:      "defaults",
-	        `next:          `next,
-		    `abort:         "without_save",
-		    `cancel:        "without_save",
-            `nosave:        `nosave,
-		    `exit:          `abort ],
+            `switch_groups:	"groups",
+            `users:		"users",
+	    `new:		"user_add",
+	    `edit:		"user_edit",
+	    `delete:		"user_save",
+            `defaults:		"defaults",
+	    `auth:		"auth",
+	    `next:		`next,
+	    `abort:		"without_save",
+	    `cancel:		"without_save",
+            `nosave:		`nosave,
+	    `exit:		`abort ],
 	"user_add": $[
             `nextmodule:    `next,
-			`nosave:        "users",
-			`additional:    "user_setup", // only install
-			`next:          "user_save",  // -> Commit
-			`details:       "user_details",
-			`passwordsettings: "user_password",
-			`abort:         "without_save",
-			`cancel:        "without_save",
-			`back:          "users" ],
+	    `nosave:        "users",
+	    `additional:    "user_setup", // only install
+	    `next:          "user_save",  // -> Commit
+	    `details:       "user_details",
+	    `passwordsettings: "user_password",
+	    `abort:         "without_save",
+	    `cancel:        "without_save",
+	    `back:          "users" ],
 	"user_add_inst": $[
             `nextmodule:    `next, // no user and next pressed (install)
             `nosave:        "users", // no "first user" was added (install)
@@ -163,38 +165,38 @@ global define symbol MainSequence(string start) ``{
 	"user_details": $[
             `abort:         "without_save",
     // next is predefined to add or edit
-			`add_user:      "user_add",
-			`cancel:        "without_save",
-			`edit_user:     "user_edit"],
+	    `add_user:      "user_add",
+	    `cancel:        "without_save",
+	    `edit_user:     "user_edit"],
 	"user_password": $[
             `abort:         "without_save",
-			`add_user:      "user_add",
-			`cancel:        "without_save",
-			`edit_user:     "user_edit"],
+	    `add_user:      "user_add",
+	    `cancel:        "without_save",
+	    `edit_user:     "user_edit"],
 	"user_edit": $[
             `next:          "user_save",
-			`details:       "user_details",
-			`passwordsettings: "user_password",
-			`cancel:        "without_save",
-	        `abort:         "without_save" ],
+	    `details:       "user_details",
+	    `passwordsettings: "user_password",
+	    `cancel:        "without_save",
+	    `abort:         "without_save" ],
 	"user_save": $[
             `next:	        "users",
-			`save:          `next], // this should be write - during install ??
+	    `save:          `next], // this should be write - during install ??
     "groups": $[
             `switch_users:  "users",
-	        `new:           "group_add",
-	        `edit:          "group_edit",
+	    `new:           "group_add",
+	    `edit:          "group_edit",
             `delete:        "group_save",
-		    `next:          `next,
-		    `abort:         "without_save",
-			`cancel:        "without_save",
+	    `next:          `next,
+	    `abort:         "without_save",
+	    `cancel:        "without_save",
             `nosave:        `nosave,
-			`exit:          `abort ],
+	    `exit:          `abort ],
 	"group_add": $[
             `next:          "group_save",
             `abort:         "without_save",
-			`cancel:        "without_save",
-			`back:          "groups" ],
+	    `cancel:        "without_save",
+	    `back:          "groups" ],
 	"group_edit": $[
             `next:          "group_save",
             `cancel:        "without_save",
@@ -202,13 +204,16 @@ global define symbol MainSequence(string start) ``{
 	"group_save"  : $[
             `next:          "groups"],
 //			`save:          "write" ],
-    "defaults": $[
-			`abort:         "without_save",
+	"defaults": $[
+	    `abort:         "without_save",
+            `next:          "users"],
+        "auth": $[
+	    `abort:         "without_save",
             `next:          "users"],
 	"without_save": $[
             `next  :        `next,
-			`abort :        `abort,
-			`back  :        `back   ],
+	    `abort :        `abort,
+	    `back  :        `back   ],
     ];
 
     return WizardSequencer(aliases, main_sequence);

@@ -18,50 +18,21 @@
     import "Users";
     import "Require";
 
-
     // no user for imap server cd, y2c_imap will create it
     if (Product::imap_server || Product::openteam_server || Product::fwadmin_host)
         return `auto;
 
-    /**
-     * Helper function for check if package is present
-     * @param package the package to check
-     * @return the answer
-     */
-    define boolean check_for_package (string package) ``{
-
-        return Require::RequireAndConflictButtons ( [package], [],
+    // what to call after inst_auth dialog
+    if (Users::after_auth != "users")
+    {
+        string package = sformat("yast2-%1-client", Users::after_auth);
+	if (Require::RequireAndConflictButtons ( [package], [],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
 Install it now?
-"), package), UI::OKButtonLabel(), UI::CancelButtonLabel());
-
-    }
-
-    // what to call after inst_auth dialog
-    if (Users::after_auth == `nis)
-    {
-        if (check_for_package ("yast2-nis-client"))
+"), package), UI::OKButtonLabel(), UI::CancelButtonLabel()))
         {
-            return CallFunction ("nis", WFM::Args ());
-        }
-        else
-            return `back;
-    }
-    else if (Users::after_auth == `nisplus)
-    {
-        if (check_for_package ("yast2-nisplus-client"))
-        {
-            return CallFunction ("nisplus", WFM::Args ());
-        }
-        else
-            return `back;
-    }
-    else if (Users::after_auth == `ldap)
-    {
-        if (check_for_package ("yast2-ldap-client"))
-        {
-            return CallFunction ("ldap", WFM::Args ());
+            return CallFunction (Users::after_auth, WFM::Args ());
         }
         else
             return `back;

@@ -410,7 +410,7 @@ foreach my $user (<PASSWD>)
         print $YCP_PASSWD "\t\t\"shell\": \"$shell\",\n";
         print $YCP_PASSWD "\t\t\"groupname\": \"$groupname\",\n";
         print $YCP_PASSWD "\t\t\"grouplist\": \"$grouplist\",\n";
-        print $YCP_PASSWD "\t\t\"type\": `$user_type\n";
+        print $YCP_PASSWD "\t\t\"type\": \"$user_type\"\n";
         print $YCP_PASSWD "\t],\n";
 
         print $YCP_PASSWD_BYNAME "\t\"$username\" : $uid,\n";
@@ -605,7 +605,7 @@ foreach (values %groupmap)
     print $YCP_GROUP "\t\t\"gid\": $gid,\n";
     print $YCP_GROUP "\t\t\"userlist\": \"$userlist\",\n";
     print $YCP_GROUP "\t\t\"more_users\": \"$more_users\",\n";
-    print $YCP_GROUP "\t\t\"type\": `$group_type\n";
+    print $YCP_GROUP "\t\t\"type\": \"$group_type\"\n";
     print $YCP_GROUP "\t],\n";
 
     print $YCP_GROUP_BYNAME "\t\"$groupname\": \$[\n";
@@ -614,7 +614,7 @@ foreach (values %groupmap)
     print $YCP_GROUP_BYNAME "\t\t\"gid\": $gid,\n";
     print $YCP_GROUP_BYNAME "\t\t\"userlist\": \"$userlist\",\n";
     print $YCP_GROUP_BYNAME "\t\t\"more_users\": \"$more_users\",\n";
-    print $YCP_GROUP_BYNAME "\t\t\"type\": `$group_type\n";
+    print $YCP_GROUP_BYNAME "\t\t\"type\": \"$group_type\"\n";
     print $YCP_GROUP_BYNAME "\t],\n";
            
     print $YCP_GROUPNAMELIST "\"$groupname\",";

@@ -4,81 +4,81 @@
     import "Users";
     import "UsersCache";
 
-    Users::groups [`local] = $[
+    Users::groups ["local"] = $[
         501: $[
-	        "gid":501,
+	    "gid":501,
             "groupname": "testgroup",
-	        "userlist":"",
+	    "userlist":"",
             "more_users":"cc",
-	        "password":"x",
-            "type":`local
+	    "password":"x",
+            "type":"local"
         ]
 	];
-    Users::groups_by_name [`local] = $[
+    Users::groups_by_name ["local"] = $[
         "testgroup": $[
-	        "gid":501,
+	    "gid":501,
             "groupname": "testgroup",
-	        "userlist":"",
+	    "userlist":"",
             "more_users":"cc",
-	        "password":"x",
-            "type":`local
+	    "password":"x",
+            "type":"local"
         ]
     ];
 
-    Users::gshadow [`local] = $[
+    Users::gshadow ["local"] = $[
         "testgroup": $[]];
 
-    Users::users [`local] = $[
+    Users::users ["local"] = $[
         510: $[         // cc - default group is testgroup
             "forename":"",
             "fullname":"",
-	        "gid":501,
+	    "gid":501,
             "groupname":"testgroup",
-	        "grouplist":"audio",
-	        "home":"/home/cc",
-	        "org_home":"/home/cc",
-	        "password":"x",
-	        "shadow":$[
-                "inact":-1, "max":99999, "min":0, "warn":7 ],
-	        "shell":"/bin/bash",
-	        "surname":"",
-	        "uid":500,
-	        "username":"cc",
-            "type":`local],
+	    "grouplist":"audio",
+	    "home":"/home/cc",
+	    "org_home":"/home/cc",
+	    "password":"x",
+	    "shadow":$[
+            "inact":-1, "max":99999, "min":0, "warn":7 ],
+	    "shell":"/bin/bash",
+	    "surname":"",
+	    "uid":500,
+	    "username":"cc",
+            "type":"local"],
         520: $[         // ab - nothing with testgroup
             "forename":"",
             "fullname":"",
-	        "gid":100,
+	    "gid":100,
             "groupname":"users",
-	        "grouplist":"audio",
-	        "home":"/home/ab",
-	        "org_home":"/home/ab",
-	        "password":"x",
-	        "shadow":$[
-                "inact":-1, "max":99999, "min":0, "warn":7 ],
-	        "shell":"/bin/bash",
-	        "surname":"",
-	        "uid":500,
-	        "username":"ab",
-            "type":`local],
+	    "grouplist":"audio",
+	    "home":"/home/ab",
+	    "org_home":"/home/ab",
+	    "password":"x",
+	    "shadow":$[
+            "inact":-1, "max":99999, "min":0, "warn":7 ],
+	    "shell":"/bin/bash",
+	    "surname":"",
+	    "uid":500,
+	    "username":"ab",
+            "type":"local"],
     ];
 
-    Users::users_by_name [`local ] = $[
+    Users::users_by_name ["local" ] = $[
         "cc": 510,
         "ab": 520
     ];
 
 
     DUMP ( sformat ("current state of testgroup:\n %1",
-        Users::groups [`local, 501]:$[]) );
+        Users::groups ["local", 501]:$[]) );
     DUMP ("==========================================================");
 
     DUMP ( sformat ("user \"cc\" has testgroup as default group:\n %1",
-        Users::users [`local, 510]:$[]) );
+        Users::users ["local", 510]:$[]) );
     DUMP ("==========================================================");
 
     DUMP ( sformat ("user \"ab\" has nothing to do with testgroup now:\n %1",
-        Users::users [`local, 520]:$[]) );
+        Users::users ["local", 520]:$[]) );
     DUMP ("==========================================================");
 
     DUMP ( "testgroup was modified:");
@@ -89,14 +89,14 @@
     // changed gid, name, added "ab"
     Users::group_in_work = $[
         "org_gid": 501,
-	    "gid":777,
+	"gid":777,
         "org_groupname": "testgroup",
         "groupname": "testgroup_changed",
-	    "userlist":"ab",
+	"userlist":"ab",
         "more_users":"cc",
-	    "password":"x",
-        "type":`local,
-	    "what":`edit_group
+	"password":"x",
+        "type":"local",
+	"what":"edit_group"
     ];
 
     DUMP ("===== Commiting change... ================================");
@@ -105,15 +105,15 @@
     TEST(``(Users::Commit ("group", false)), [], 0);
 
     DUMP ( sformat ("changed map of local groups:\n %1",
-        Users::groups [`local]:$[]) );
+        Users::groups ["local"]:$[]) );
     DUMP ("==========================================================");
 
     DUMP ( sformat ("user \"cc\":\n %1",
-        Users::users [`local, 510]:$[]) );
+        Users::users ["local", 510]:$[]) );
     DUMP ("==========================================================");
 
     DUMP ( sformat ("user \"ab\":\n %1",
-        Users::users [`local, 520]:$[]) );
+        Users::users ["local", 520]:$[]) );
 
 
 }

@@ -1,0 +1,14 @@
+/**
+ * File:	uid.scr
+ * Summary:	Agent for testing if UID and/or username exists in system
+ * Access:	read
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ * Example:
+ *	Read (.uid.username, "root");
+ *	(true)
+ *
+ * $Id$
+ */
+.uid
+
+`ag_uid ()

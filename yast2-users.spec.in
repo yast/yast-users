@@ -30,4 +30,6 @@ Summary:	Configuration of users
 @scrconfdir@/*.scr
 @yncludedir@/users/*
 @ybindir@/*.pl
+@agentdir@/ag_uid
+@agentdir@/ag_ldap
 %doc @docdir@

@@ -24,7 +24,7 @@ Icon = sysadmin.png
 Helptext = _("Edit and create users")
 
 ; arguments, seperated by space
-Arguments =  users
+Arguments = users
 
 ; whether root privileges are required to run this module
 RequiresRoot = true
