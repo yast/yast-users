@@ -23,12 +23,12 @@ ynclude_DATA =		\
 #    ldap_routines.ycp
 
 client_DATA = 		\
-    users.ycp
+    users.ycp		\
+    groups.ycp
 #    users_auto.ycp	\
 #    inst_root.ycp	\
 #    inst_user.ycp   	\
 #    inst_auth.ycp	\
-#    groups.ycp
 
 #config_DATA =		\
 #    users.y2cc		\

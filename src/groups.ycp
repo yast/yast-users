@@ -22,15 +22,15 @@ textdomain "users";
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
-import "Mode";
+import "UsersCache";
 
 include "users/wizards.ycp";
 
-string  start_dialog	= "groups";
-
+string  start_dialog	= "summary";
 any	ret		= nil;
 integer arg		= 0;
-list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
+list    possible_start_dialogs =
+	    ["user_add", "group_add", "summary", "user_inst_start" ];
 
 while ( arg < size( WFM::Args() ) )
 {
@@ -42,7 +42,12 @@ while ( arg < size( WFM::Args() ) )
     arg = arg + 1;
 }
 
-y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
+if (start_dialog == "summary")
+{
+    UsersCache::SetCurrentSummary ("groups");
+}
+
+y2milestone( "Starting with %1", start_dialog);
 ret = UsersSequence(start_dialog);
 
 y2milestone("Users module finished with %1", ret);
