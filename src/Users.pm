@@ -4248,7 +4248,7 @@ sub CheckUIDUI {
 # popup question, %i are numbers
 __("The selected user ID is not from a range
 defined for LDAP users (%i-%i).
-Are you sure?"),
+Really use it?"),
 		UsersCache->GetMinUID ("ldap"), UsersCache->GetMaxUID ("ldap"));
 	    return \%ret;
 	}
@@ -4542,9 +4542,9 @@ Really use it?"), $error);
     if (($ui_map{"short"} || 0) != 1) {
 	if (length ($pw) < $min_length) {
 	    $ret{"question_id"}	= "short";
-	    # popup questionm, %1 is number
+	    # popup questionm, %i is number
 	    $ret{"question"}	= sprintf (__("The password should have at least %i characters.
-Are you sure?"), $min_length);
+Really use it?"), $min_length);
 	}
     }
     
@@ -4834,7 +4834,7 @@ sub CheckGIDUI {
 # popup question, %i are numbers
 __("The selected group ID is not from a range
 defined for LDAP groups (%i-%i).
-Are you sure?"),
+Really use it?"),
 		UsersCache->GetMinGID ("ldap"), UsersCache->GetMaxGID ("ldap"));
 	    return \%ret;
 	}

@@ -34,7 +34,7 @@ define boolean bind_and_read_LDAP (string pw) {
 	    if (pw == "")
 	    {
 		// password entering label
-		pw = CommandLine::PasswordInput (_("Enter the Password for LDAP Server:"));
+		pw = CommandLine::PasswordInput (_("LDAP Server Password:"));
 	    }
 	    Ldap::SetBindPassword (pw);
 	    // TODO check bind...
@@ -263,7 +263,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
     if (!haskey(user,"userpassword"))
     {
 	// question label
-	string pw = CommandLine::PasswordInput (_("Enter the Password for new user:"));
+	string pw = CommandLine::PasswordInput (_("Password for New User:"));
 	user["userpassword"]	= pw;
     }
 

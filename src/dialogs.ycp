@@ -897,7 +897,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 			`HBox ( home_w, browse),
 			what != "add_user" ? `VSpacing (0) :
 			`Left (
-			    `CheckBox (`id(`skel), _("&Empty home"), no_skel)
+			    `CheckBox (`id(`skel), _("&Empty Home"), no_skel)
 			)
 		    )),
                     additional_data,
@@ -1357,7 +1357,7 @@ extensions of user and group configuration.</p>") +
 is currently in use.") +
 
 	// helptext for plugin dialog 3/3
-	_("<p>Start the detailed configuration of particular plug-in by pushing the <b>Launch</b>.</p>");
+	_("<p>Start the detailed configuration of particular plug-in by selecting <b>Launch</b>.</p>");
 
 	list items = [];
 	foreach (string cl, clients, ``{
@@ -1425,7 +1425,7 @@ is currently in use.") +
 		if (haskey (out, plugin) && ! (out[plugin]:false))
 		{
 		    // popup message
-		    Popup::Message (_("This Plug-In cannot be removed."));
+		    Popup::Message (_("This plug-in cannot be removed."));
 		    ret = `not_next;
 		    continue;
 		}
