@@ -94,17 +94,18 @@ global define string ReadPlusPasswd(string dir)``{
 
 /*
  * Check if authentication with pam_krb5 is used
+ * @return type of authentication: required/optional/sufficient/[empty string]
  */
-global define boolean KerberosAuth () ``{
+global define string KerberosAuth () ``{
 
     list pam_auth_list = SCR::Read (.pam.login);
-    boolean auth_krb = false;
+    string ret = "";
     foreach (`line, pam_auth_list, ``{
         if (issubstring (line["module"]:"", "pam_krb5.so") &&
-            line["type"]:"" == "auth")
-            auth_krb = true;
+            line["type"]:"" == "auth" && ret == "")
+                ret = line["control"]:"";
     });
-    return auth_krb;
+    return ret;
 }
 
 /**
@@ -137,6 +138,7 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
+    string_to_save = string_to_save + "\n";
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
@@ -180,6 +182,7 @@ global define list WritePasswd(string basedir, map system_users, map local_users
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
+    string_to_save = string_to_save + "\n";
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
 
@@ -225,6 +228,7 @@ global define boolean WriteShadow(string basedir, map system_shadow, map local_s
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
+    string_to_save = string_to_save + "\n";
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
@@ -256,6 +260,7 @@ global define boolean WriteGshadow(string basedir, map system_gshadow, map local
     string string_to_save = mergestring (list_to_save, "\n");
     if (plus != "" && plus != nil)
         string_to_save = string_to_save + "\n" + plus;
+    string_to_save = string_to_save + "\n";
     boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
     return ret;
