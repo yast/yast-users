@@ -361,7 +361,8 @@ global define map ConvertUserToLDAP (map user, list attributes) ``{
 	{
 	    if  (contains (["x","*","!"], value))
 		return;
-	    if (ldap_encryption != "clear")
+	    if (ldap_encryption != "clear" &&
+		!issubstring (value, sformat("{%1}",toupper (ldap_encryption))))
 		val = sformat ("{%1}%2", toupper (ldap_encryption), value);
 	}
 
@@ -409,7 +410,8 @@ global define map ConvertGroupToLDAP (map group, list attributes) ``{
 	{
 	    if (contains (["x","*","!"], value))
 		return;
-	    if (ldap_encryption != "clear")
+	    if (ldap_encryption != "clear" &&
+		!issubstring (value, sformat("{%1}",toupper (ldap_encryption))))
 		val = sformat ("{%1}%2", ldap_encryption, value);
 	}
 	if (is (value, integer))
@@ -498,10 +500,17 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
         }
         else if (action == "edited")
         {
+	    // if there are some attributes with empty values, agent should
+	    // care of them - it will either:
+	    // 1. delete the attribute (if there was a value before) or
+	    // 2. ignore given attribute (when it doesn't exist)
+	    arg_map = add (arg_map, "check_attrs", true);
+
 	    // DN doesn't differ in case
 	    if (tolower (dn) != tolower (org_dn))
 		arg_map = add (arg_map, "rdn", rdn);
 		// TODO enable moving in tree (editing the whole dn)
+
 	    if (! SCR::Write (.ldap.modify, arg_map, user))
 		ret = Ldap::LDAPErrorMap();
 	    else
@@ -606,6 +615,8 @@ global define map WriteLDAPGroups(map ldap_groups)``{
         }
         else if (action == "edited")
         {
+	    arg_map = add (arg_map, "check_attrs", true);
+
 	    if (tolower (dn) != tolower (org_dn))
 		arg_map = add (arg_map, "rdn", rdn);
 	    if (! SCR::Write (.ldap.modify, arg_map, group))
