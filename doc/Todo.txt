@@ -1,0 +1,14 @@
+# $Id$
+
+NIS:
+- edit fields
+- add/delete (server only)
+
+LDAP:
+- show users [done]
+- edit fields
+- add/delete (server)
+- add/delete (client)
+
+Kerberos:
+- edit fields (password only)
