@@ -31,8 +31,9 @@ include "users/wizards.ycp";
 string  start_dialog	= "summary";
 any	ret		= nil;
 integer arg		= 0;
-list    possible_start_dialogs =
-	    ["user_add", "group_add", "summary", "user_inst_start" ];
+list    possible_start_dialogs = ["group_add", "summary", "users", "groups" ];
+// do not pass arguments to cmd-line interpreter
+boolean no_cmdline	= false;
 
 while ( arg < size( WFM::Args() ) )
 {
@@ -40,16 +41,33 @@ while ( arg < size( WFM::Args() ) )
     if ( is (a, string) && contains( possible_start_dialogs, a))
     {
 	start_dialog = (string) WFM::Args( arg );
+	no_cmdline		= true;
     }
     arg = arg + 1;
 }
 
-if (start_dialog == "summary")
+// default for this client
+UsersCache::SetCurrentSummary ("groups");
+
+if (start_dialog == "users" || start_dialog == "groups")
 {
-    UsersCache::SetCurrentSummary ("groups");
+    UsersCache::SetCurrentSummary (start_dialog);
+    start_dialog	= "summary";
 }
 
-y2milestone( "Starting with %1", start_dialog);
+if (no_cmdline)
+{
+    y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
+    Users::SetStartDialog (start_dialog);
+    ret = UsersSequence (start_dialog);
+    y2milestone("Users module finished with %1", ret);
+    y2milestone("----------------------------------------");
+    return ret;
+}
+
+// else parse arguments in cmdline
+y2milestone( "Starting with arguments: %1", WFM::Args() );
+
 
 // --------------------------------------------------------------------------
 // --------------------------------- cmd-line handlers
@@ -198,7 +216,6 @@ map cmdline = $[
 ];
 
 ret = CommandLine::Run (cmdline);
-
 
 y2milestone("Users module finished with %1", ret);
 y2milestone("----------------------------------------");
