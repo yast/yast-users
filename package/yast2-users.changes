@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Feb 21 10:27:34 CET 2003 - jsuchome@suse.de
+
+- changed text for no user during installation
+- fix: LDAP/NIS user cannot be added to local group (#24022)
+- function ReadNewSet is now global (used by phone-services, #23961)
+- 2.7.15
+
+-------------------------------------------------------------------
 Thu Feb 20 13:57:37 CET 2003 - jsuchome@suse.de
 
 - added label with current filter (bug #23920)

@@ -103,9 +103,10 @@ global define symbol EditUserDialog(symbol what) ``{
     ];
 
     // grouplist wasnt fully generated while reading nis & ldap users
-    if ( user_type == `nis || user_type == `ldap &&
+    if ( (user_type == `nis || user_type == `ldap) &&
          !Users::user_in_work["grouplist_read"]:false)
     {
+        // this set is necessary for `nis users
         Users::user_in_work["grouplist_read"] = true;
         grouplist = Users::FindGroupsBelongUser (username);
         Users::user_in_work["grouplist"] = grouplist;
@@ -339,7 +340,6 @@ Try again.
             // The first string is the title of the popup.
 
             if (Mode::cont && ret == `next && Users::start_dialog == "user_add")
-//            if( Mode::cont && Users::start_dialog == "user_add" )
             {
                 // yes-no popup headline
                 if (  UI::YesNoHeadlinePopup(_("Empty user login"),
@@ -348,10 +348,13 @@ Try again.
                  _("Leaving the user name empty only makes sense
 in a network environment with a NIS server.
 
+Are you sure?
+")))
+/*
 Is this system a network client?
 ")))
+*/
                 {
-//                    start_sequencer_again = false; there is on use of this !!
                     ret = `nextmodule;
                     break;
                 }
@@ -633,7 +636,8 @@ Please try again."));
                      "surname"     :  surname,
                      "shadow"      :  shadow,
                      "create_home" :  create_home,
-                     "type"        :  user_type
+                     "type"        :  user_type,
+                     "grouplist_read": true // usable for `nis or `ldap
             ];
 
             // something has changed -> new entry
@@ -1025,13 +1029,23 @@ may be unable to log in. Continue?
             if( nil == findfirstnotof( new_grouplist,
                     Users::valid_grouplist_chars ) )
             {
-                // remove last,"" -- why??
                 foreach (`group, list_grouplist, ``{
-                    if (! contains (new_list_grouplist, group) && group!="")
-                        removed = add (removed, group);
+                    // is not in new grouplist:
+                    if (!contains (new_list_grouplist, group))
+                    {
+                        // but is in initial one:
+                        if (contains (additional_groups,
+                            `item (`id (group), group, true)))
+                            // -> so is removed:
+                            removed = add (removed, group);
+                        else
+                            // -> probably NIS group (= no change):
+                            new_list_grouplist = add (new_list_grouplist,group);
+                    }
                 });
+            new_grouplist = mergestring( new_list_grouplist, ",");
             }
-            else
+            else // this will never be reached... ?
             {
                 // error popup
                 Report::Error(_("The groupfield may contain only
@@ -1068,7 +1082,6 @@ Please try again."));
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
     if ( ret == `next ) ret = what;
-
     return ret;
 }
 
