@@ -39,3 +39,9 @@ Dialogs behaviour:
 System users:
 
 - script to gather all system users from rpms
+
+
+Performance:
+
+- writing with perl script
+- read scripts change to perl agents

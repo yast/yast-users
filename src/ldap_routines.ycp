@@ -52,6 +52,36 @@ global define map ReadLDAPGroupsByName(string dir)``{
 }
 
 /**
+ * Error messages for errors detected during LDAP operation
+ * @param returned map returned as the output of target.bash_output
+ * @return error message
+ */
+global define string GetLDAPErrorMessage (map returned) ``{
+
+    string stdout = returned["stdout"]:"";
+
+    map ldap_error = $[
+    "LDAP_INAPPROPRIATE_AUTH":
+// original description:
+//"The server requires the client which had attempted to bind anonymously or without supplying credentials to provide some form of credentials"
+
+// error message:
+_("Wrong password was entered or anonymous access is restricted."),
+
+    "LDAP_INVALID_CREDENTIALS":
+// error message:
+_("Wrong password was entered."),
+
+    ];
+
+
+    // default error message, %1 is more specific description
+    return sformat (_("There was a problem with connecting the LDAP server:
+%1"), ldap_error[stdout]:stdout);
+}
+
+
+/**
  * Tries to check, if cpu.cfg is configured or just installed with default
  * values
  * @param host LDAP server
@@ -67,6 +97,38 @@ global define boolean CpuConfigured (string host, string base) ``{
     return (cpu_host == host || cpu_basedn == base || cpu_userbase == base);
 }
 
+/**
+ * Gets the bind password to LDAP database
+ * @return password
+ */
+global define string GetLDAPPassword() ``{
+
+    UI::OpenDialog (`opt(`decorated),
+        `VBox(
+            `HSpacing(40),
+            // password entering label
+            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
+            `CheckBox (`id(`anon), `opt(`notify),
+                // checkbox label
+                _("Use &anonymous Access")),
+            `HBox(
+              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel()),
+              // button label
+            //  `PushButton (`id(`anon), _("&Anonymous Access")),
+
+              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
+            )
+            )
+    );
+    any ret = UI::UserInput();
+    string pw = "";
+    if (ret == `ok)
+        pw = UI::QueryWidget(`id(`pw), `Value);
+    if (ret == `cancel)
+        pw = nil; // FIXME: do not use nil here!
+    UI::CloseDialog();
+    return pw;
+}
 
 /**
  * Prepare the configuration file for LDAP users/groups modifications
@@ -107,37 +169,6 @@ global define boolean WriteLDAPPrepare (string dir, string pass)``{
 }
 
 /**
- * Gets the bind password to LDAP database
- * @return password
- */
-global define string GetLDAPPassword() ``{
-
-    UI::OpenDialog (`opt(`decorated),
-        `VBox(
-            `HSpacing(36),
-            // password entering label
-            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
-            `CheckBox (`id(`anon), `opt(`notify),
-                // checkbox label
-                _("Use &anonymous Access")),
-            `HBox(
-              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel()),
-              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
-            )
-            )
-    );
-    any ret = UI::UserInput();
-    string pw = "";
-    if (ret == `ok)
-        pw = UI::QueryWidget(`id(`pw), `Value);
-    if (ret == `cancel)
-        pw = nil; // FIXME: do not use nil here!
-    UI::CloseDialog();
-    return pw;
-}
-
-
-/**
  * Remove the configuration file used for LDAP users/groups modifications
  * @param dir temporary directory with config and secret data files
  * @return success
@@ -163,6 +194,8 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
     string shadow_file = dir + "/shadowfile";
     string path_to_cfg = dir + "/cpu.cfg";
     string skel = SCR::Read(.tmp.cpu_cfg."skel_dir");
+    map cpu_out = $[];
+    boolean ret = true;
 
     foreach (`uid, `user, ldap_users, ``{
 
@@ -183,11 +216,13 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
         string  groupname   = user["groupname"]:"";
         string  email       = user["email"]:"";
 
-        string command = "/usr/bin/cpu -v";
+        string command = "/usr/bin/cpu";
 
         // save password to shadowfile (check the encryption?)
         SCR::Write(.target.string, shadow_file,
             sformat("%1:%2", org_username, password));
+
+        // TODO: modify shadow settings
 
         if (action == `added)
         {
@@ -196,11 +231,11 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
             command, path_to_cfg, uid, gid, home, shell, username);
 
             if (forename != "")
-                command = command + " -F " + forename;
+                command = sformat ("%1 -F \"%2\"", command, forename);
             if (surname != "")
-                command = command + " -L " + surname;
+                command = sformat ("%1 -L \"%2\"", command, surname);
             if (fullname != "")
-                command = command + " -c " + fullname;
+                command = sformat ("%1 -c \"%2\"", command, fullname);
             if (email != "")
                 command = command + " -M " + email;
 
@@ -232,11 +267,11 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
             command, path_to_cfg, uid, shell, gid, org_username);
 
             if (forename != "")
-                command = command + " -F " + forename;
+                command = sformat ("%1 -F \"%2\"", command, forename);
             if (surname != "")
-                command = command + " -L " + surname;
+                command = sformat ("%1 -L \"%2\"", command, surname);
             if (fullname != "")
-                command = command + " -c " + fullname;
+                command = sformat ("%1 -c \"%2\"", command, fullname);
             if (email != "")
                 command = command + " -M " + email;
 
@@ -249,10 +284,12 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)
                 command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
             }
         }
-        y2debug ("cpu: %1",
-            SCR::Execute(.target.bash_output, command));
+//        y2warning ("command: %1", command);
+        cpu_out = SCR::Execute(.target.bash_output, command);
+//        y2internal ("cpu: %1", cpu_out); -- log errors?
+        ret = ret && (cpu_out["stderr"]:"" == "");
     });
-    return true; // TODO check for success
+    return ret;
 }
 
 /**

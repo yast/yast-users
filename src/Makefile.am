@@ -33,12 +33,7 @@ config_DATA =			\
 	users.y2cc		\
 	groups.y2cc
 
-#ydata_DATA = accounts.ycp# FIXME: not used any more
-
-#noinst_DATA = passwd.sh# FIXME: not used any more
-
 #passwd.ycp: passwd.sh /etc/passwd
 #	./passwd.sh > passwd.ycp
 
 EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA)
-#$(ydata_DATA) $(noinst_DATA)

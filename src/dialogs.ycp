@@ -32,6 +32,9 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(symbol what) ``{
 
+    y2internal ("user: %1", Users::user_in_work);
+    map org_user = Users::user_in_work["org_user"]:eval(Users::user_in_work);
+
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
         Users::user_in_work = Users::saved_user;
@@ -155,6 +158,20 @@ global define symbol EditUserDialog(symbol what) ``{
                  _("&Password settings")),
             `VStretch());
 
+    /*
+    // FIXME global:
+    boolean create_ldap_dirs = false;
+    // TODO: helptext!
+    // TODO: only for adding???
+    if (user_type == `ldap)
+        detailsmorebox = `VBox (
+            // checkbox label
+            `CheckBox (`id (`create_dirs),_("&Home directory is here"),
+                create_ldap_dirs ),
+            `VStretch (),
+            detailsmorebox);
+    */
+
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
         detailsmorebox = add(detailsmorebox,
@@ -235,6 +252,13 @@ can be changed for non-local users.
     }
 
     UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
+
+    // LDAP users: cpu cannot use accented characters, TODO:check later
+    if (user_type == `ldap)
+    {
+      UI::ChangeWidget (`id (`forename),`ValidChars,Users::valid_logname_chars);
+      UI::ChangeWidget (`id (`surname), `ValidChars,Users::valid_logname_chars);
+    }
 
     // Next button is default (only for adding) - is it OK??
     if ( what == `add_user )
@@ -423,7 +447,6 @@ Please try another one.
             }
 
             // build default home dir - when could be home empty string??
-            // TODO Fixme
             if ( home == Users::default_home || home == "")
             {
                 home = home + username;
@@ -659,6 +682,9 @@ Please try again."));
                 }
                 if ( removed_grouplist != [] )
                     Users::user_in_work["removed_grouplist"]=removed_grouplist;
+                // save original map (for check if something has realy changed)
+                if ( user_type != `nis)
+                    Users::user_in_work ["org_user"] = org_user;
             }
             if ( email != "")
                 Users::user_in_work ["email"] = email;
@@ -687,6 +713,7 @@ Please try again."));
         // (to show it when clicking `back from Summary dialog)
         Users::saved_user = Users::user_in_work;
     }
+    y2warning ("user: %1", Users::user_in_work);
     return ret;
 }
 
@@ -917,7 +944,6 @@ Remove the surplus.
             integer new_i_uid    = tointeger( new_uid );
 
             // check the uid -- only for adding??
-//            if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
             if (new_i_uid != uid)
             {
             if( ! ( new_i_uid >= 0  && new_i_uid <= Users::max_uid )  ||
@@ -928,6 +954,15 @@ Remove the surplus.
 Select a valid integer between 0 and %1.
 "),  Users::max_uid );
                 Report::Error( error );
+                UI::SetFocus(`id(`uid));
+                continue;
+            }
+            if( UsersCache::UIDExists( new_i_uid ) )
+            {
+                // error popup
+                Report::Error(_("The user ID entered is reserved.
+Select a another user ID.
+"));
                 UI::SetFocus(`id(`uid));
                 continue;
             }
@@ -946,15 +981,6 @@ Really create a new system user?
                 }
                 // change user_type
                 user_type = `system;
-            }
-            if( UsersCache::UIDExists( new_i_uid ) )
-            {
-                // error popup
-                Report::Error(_("The user ID entered is reserved.
-Select a another user ID.
-"));
-                UI::SetFocus(`id(`uid));
-                continue;
             }
             } // end of uid checks
 

@@ -23,6 +23,8 @@
 
 # LDAP library
 use Net::LDAP;
+# LDAP error messages
+use Net::LDAP::Util qw( ldap_error_name ldap_error_text) ;
 
 # for encoding the fullnames
 use Encode 'from_to';
@@ -70,7 +72,17 @@ sub addBlanks {
     return $id;
 }
 
+
+# retrieve the error type
+sub LDAPerror {
+    my ($code) = @_;
+    my $error = ldap_error_name ($code);
+    print STDOUT "$error"; # this is for yast
+    print STDERR "Something has failed ($error). Exiting...\n";
+}
+
 #--- get settings from cpu.cfg
+
 
 open CPU_CFG, "< $cpu_cfg";
 
@@ -122,15 +134,20 @@ $ldap = Net::LDAP->new($host) or die;
 
 if ($binding eq "anonymous")
 {
-    $ldap->bind;
+    $mesg = $ldap->bind;
+    if ($mesg->code != 0)
+    {
+        LDAPerror ($mesg->code);
+        $ldap->unbind;
+        exit $mesg->code;
+    }
 }
 else
 {
     $mesg = $ldap->bind ($bind_dn, password => $bind_pw);
     if ($mesg->code != 0)
     {
-        $error = $mesg->error;
-        print STDERR "binding to LDAP server: $error\n";
+        LDAPerror ($mesg->code);
         $ldap->unbind;
         exit $mesg->code;
     }
@@ -163,7 +180,9 @@ $mesg = $ldap->search(
      base => $user_base,
      filter => $user_filter,
      attrs => [ "uid", "uidNumber", "gidNumber", "homeDirectory",
-                "loginShell", "cn", "mail"]);
+                "loginShell", "cn", "mail"]);# "sn", "givenName"]);
+
+$ldap->unbind;          
 
 open YCP_LDAP, "> $ldap_output";
 open YCP_LDAP_BYNAME, "> $ldap_byname_output";
@@ -182,7 +201,7 @@ print YCP_LDAP "\$[\n";
 print YCP_LDAP_BYNAME "\$[\n";
 print YCP_LDAP_UIDLIST "[\n";
 
- 
+
 foreach $entry ($mesg->all_entries)
 { 
     my $uid = $entry->get_value("uidNumber");
@@ -217,7 +236,7 @@ foreach $entry ($mesg->all_entries)
 #        my $surname = $entry->get_value("sn");
 #        print YCP_LDAP "\t\"surname\": \"$surname\",\n";
 #        
-#        my $forename = $entry->get_value("givenname");
+#        my $forename = $entry->get_value("givenName");
 #        print YCP_LDAP "\t\"forename\": \"$forename\",\n";
     
     my $home = $entry->get_value("homeDirectory");
@@ -270,7 +289,6 @@ foreach $entry ($mesg->all_entries)
     }
 }
 
-$ldap->unbind;          
 
 print YCP_LDAP "]";
 print YCP_LDAP_BYNAME "]\n";

@@ -834,13 +834,14 @@ global define symbol Write (block abort, boolean useUI)``{
         if (ldap_bind_pass == "" && useUI)
             ldap_bind_pass = GetLDAPPassword();
 
-        if (useUI)
+        if (useUI && ldap_bind_pass != nil)
         {
-            while (ldap_bind_pass != nil && !LDAPBindCheck())
+            map check_bind = LDAPBindCheck();
+            while (ldap_bind_pass != nil && check_bind["exit"]:0 != 0)
             {
-                // error popup (probably bad password)
-                UI::ErrorPopup(_("There was a problem with connecting the LDAP server."));
+                UI::ErrorPopup (GetLDAPErrorMessage (check_bind));
                 ldap_bind_pass = GetLDAPPassword();
+                check_bind = LDAPBindCheck();
             }
         }
 
@@ -861,11 +862,9 @@ global define symbol Write (block abort, boolean useUI)``{
 
             if (!succ)
             {
-                if (useUI)
-                    // error popup
-	                Report::Error (_("Cannot write LDAP users."));
-                else
-                    y2error ("Cannot write ldap users.");
+                // error popup
+                if (useUI) Report::Error (_("Cannot write LDAP users."));
+                else y2error ("Cannot write ldap users.");
             }
 
             succ = true;
@@ -880,11 +879,9 @@ global define symbol Write (block abort, boolean useUI)``{
 
             if (!succ)
             {
-                if (useUI)
-                    // error popup
-	                Report::Error (_("Cannot write LDAP groups."));
-                else
-                    y2error ("Cannot write ldap groups.");
+                // error popup
+                if (useUI) Report::Error (_("Cannot write LDAP groups."));
+                else y2error ("Cannot write ldap groups.");
             }
 
             WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
@@ -1459,7 +1456,25 @@ global define boolean Delete (string what, map data)``{
     return true;
 }
 
+/**
+ * Checks if commited user is really modified and has to be saved
+ */
+global define boolean UserReallyModified () ``{
 
+    if (user_in_work["what"]:`nothing == `group_change)
+        return false;
+    if (user_in_work["what"]:`nothing != `edit_user)
+        return true;
+
+    boolean ret = false;
+
+    // grouplist can be ignered, it is a modification of groups
+    // TODO: check for LDAP users!
+    foreach (`key, `value, user_in_work["org_user"]:$[], ``{
+        if (key != "grouplist" && user_in_work[key]:nil != value) ret = true;
+    });
+    return ret;
+}
 /**
  * Update the global user and/or group map with current
  * user_in work or group_in_work
@@ -1472,9 +1487,6 @@ global define boolean Commit (string object, boolean cache)``{
 
     if (object == "user")
     {
-//y2warning("user : %1", user_in_work );
-        users_modified = true;
-
         integer uid = user_in_work ["uid"]:max_uid;
         integer org_uid = user_in_work ["org_uid"]:uid;
         symbol what_user = user_in_work ["what"]:`nothing;
@@ -1486,7 +1498,9 @@ global define boolean Commit (string object, boolean cache)``{
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
-        if (type == `ldap && what_user != `group_change)
+        if ((type == `local || type == `system) &&
+            !users_modified && UserReallyModified()) users_modified = true;
+        if (type == `ldap && !ldap_modified && UserReallyModified())
             ldap_modified = true;
 
         // the action
@@ -1708,8 +1722,6 @@ global define boolean Commit (string object, boolean cache)``{
     }
     else if ( object == "group" )
     {
-        groups_modified = true;
-
         integer gid = group_in_work ["gid"]:max_gid;
         integer org_gid = group_in_work ["org_gid"]:gid;
         symbol what_group = group_in_work ["what"]:`nothing;
@@ -1719,13 +1731,16 @@ global define boolean Commit (string object, boolean cache)``{
         string org_groupname = group_in_work ["org_groupname"]:groupname;
         string userlist = group_in_work ["userlist"]:"";
         list l_userlist = splitstring (userlist, ",");
-//y2warning("group: %1", group_in_work);
 
         if (org_groupname == "")
             org_groupname = groupname;
 
+        if (type == `system || type == `local)
+            groups_modified = true;
+
         if (type == `ldap)
             ldap_modified = true;
+
         if ( what_group == `add_group )
         {
             group_in_work ["modified"] = `added;
@@ -2484,7 +2499,7 @@ Install it now?"),
         if (!CpuConfigured (ldap_host, ldap_base))
         {
             // popup text
-            if (UI::YesNoPopup(_("Your <b>cpu</b> program does not appear to be configured. 
+            if (UI::YesNoPopup(_("Your \"cpu\" program does not appear to be configured. 
 It is used for updating LDAP users and groups.
 Configure it now?
 ")))
@@ -2510,11 +2525,9 @@ Configure it now?
 
         // run preparation script for geting users and groups from server:
         map ldap_prepare = RunPrepare ("ldap");
-        // TODO check the return values!
         if (ldap_prepare["exit"]:0 != 0)
         {
-            // error Popup text (bad password?):
-            UI::ErrorPopup(_("There was a problem with connecting the LDAP server."));
+            UI::ErrorPopup (GetLDAPErrorMessage(ldap_prepare));
             UI::CloseDialog(); // close the wait popup
             return false;
         }
@@ -2717,16 +2730,16 @@ global define map RunPrepare(string type) ``{
 
 /**
  * Tries to bind to LDAP server with current password
- * @return success
+ * @return map returned by target.bash_output
  */
-global define boolean LDAPBindCheck () ``{
+global define map LDAPBindCheck () ``{
 
     WriteLDAPPrepare (tmpdir, ldap_bind_pass);
-    integer ret = SCR::Execute(.target.bash, sformat(
+    map ret = SCR::Execute(.target.bash_output, sformat(
         "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
         tmpdir, encoding, "check"));
     WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
-    return (ret == 0);
+    return ret;
 }
 
 /**
@@ -3018,4 +3031,5 @@ global define string CrackPassword (string username, string pw) ``{
 
     return out;
 }
+
 }// EOF

@@ -29,6 +29,5 @@ Summary:	Configuration of users
 @moduledir@/*.ycp
 @scrconfdir@/*.scr
 @yncludedir@/users/*
-@ydatadir@/accounts.ycp
 @ybindir@/*.pl
 %doc @docdir@

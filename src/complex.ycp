@@ -105,17 +105,7 @@ global define symbol ReallyAbort() ``{
     if ( ! Mode::cont )
     {
         if (Modified())
-            ret =  UI::AnyQuestionPopup (
-                // message box label
-                _("Exit without saving"),
-                // message box text
-                _("All your changes in the setup procedure\nwill be lost if you continue."),
-                // push button
-                _("&Exit without saving"),
-                // push button
-                _("&Cancel abort"),
-                `focus_yes
-                );
+            ret = UI::ReallyAbortPopup (true);
     }
     else
     {
@@ -559,9 +549,8 @@ global define symbol DeleteUserPopup() ``{
     boolean delete        = true;
     boolean delete_home   = false;
     string username       = Users::user_in_work["username"]:"";
-    string home           = Users::user_in_work["home"]:"";
-    string org_home = Users::user_in_work["home"]:home;
-    integer uid = Users::user_in_work["uid"]:Users::max_uid;
+    string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
+    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid;
 
     if (UsersCache::user_type == `nis)
     {
@@ -582,7 +571,9 @@ Please log off the user first."));
     }
 
     boolean no_home = false;
-    if (UsersCache::user_type == `ldap && !Users::is_ldap_server)
+    if ((UsersCache::user_type == `ldap && !Users::is_ldap_server) ||
+        // check if dir exists with this owner
+        (lookup (SCR::Read(.target.stat, home), "uid", -1) != uid) )
         no_home = true;
 
     // if the user want to delete a system user
@@ -598,7 +589,7 @@ Please log off the user first."));
     }
     else
     {
-        if( org_home != "")
+        if( home != "")
         {
         term contents = `HBox(
             `HSpacing(3),
@@ -609,7 +600,7 @@ Please log off the user first."));
                 no_home ? `VSpacing (0) :
                 // checkbox
                 `Left (`CheckBox(`id(`delete_home), sformat(_("delete &home directory
-%1"), org_home ) )),
+%1"), home ) )),
                 `VSpacing(1),
                 `HBox(
                     `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
