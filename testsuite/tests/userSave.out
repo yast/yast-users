@@ -1,7 +1,0 @@
-Read	.target.size "/usr/sbin/useradd.local" 0
-Return	`next
-Dump	[$["error":"Can't create the new user aaa", "id":500, "todo":"/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa", "type":`user, "what":`add_user], $["error":"Can't execute /usr/sbin/useradd.local", "id":500, "todo":"/usr/sbin/useradd.local aaa", "type":`user, "what":`add_user_local]]
-Dump	==========================================================
-Read	.target.size "/usr/sbin/useradd.local" 0
-Return	`next
-Dump	[$["error":"Can't create the new user aaa", "id":500, "todo":"/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa", "type":`user, "what":`add_user], $["error":"Can't execute /usr/sbin/useradd.local", "id":500, "todo":"/usr/sbin/useradd.local aaa", "type":`user, "what":`add_user_local], $["error":"Can't create the new user aaa", "id":500, "todo":"/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa", "type":`user, "what":`add_user], $["error":"Can't execute /usr/sbin/useradd.local", "id":500, "todo":"/usr/sbin/useradd.local aaa", "type":`user, "what":`add_user_local], $["error":"Cannot chown home directory.", "id":500, "todo":"/bin/chown -R aaa: /home/aaa", "type":`user, "what":`chown_home]]
