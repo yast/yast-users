@@ -35,7 +35,6 @@
 	    return `auto;
     }
 
-
     // caption for dialog "User Authentication Method"
     string caption = _("User Authentication Method");
 
@@ -51,23 +50,30 @@ Here you can choose the authentication method of users on your system.
     // helptext 3/3
     _("<p>If you are using NIS, NIS+, or LDAP server to store user data, select <b>Network  Client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
 
+    map button_labels = $[
+        // radiobutton to select nis user auth.
+        `nis:       _("N&IS"),
+        // radiobutton to select nis+ user auth.
+        `nisplus:	_("NI&S+"),
+        // radiobutton to select ldap user auth.
+		`ldap:      _("&LDAP")
+    ];
 
-    term net_buttons =
-	`RadioButtonGroup (`VBox (
-				  `VSpacing(0.5),
-				  `Left(`RadioButton(`id(`nis),
-						     // radiobutton to select nis user auth.
-						     _("N&IS"))),
-				  `Left(`RadioButton(`id(`nisplus),
-						     // radiobutton to select nis+ user auth.
-						     _("NI&S+"))),
-				  `Left(`RadioButton(`id(`ldap),
-						     // radiobutton to select ldap user auth.
-						     _("&LDAP"))),
-				  `VSpacing(0.5)
-				  )
-			   );
+    // check if nis+/ldap are available (there are not in personal edition)
+    list available_clients = [`nis];
 
+    if (IsPackageAvailable("yast2-ldap-client"))
+        available_clients = add (available_clients, `ldap);
+    if (IsPackageAvailable("yast2-nisplus-client"))
+        available_clients = add (available_clients, `nisplus);
+
+    term net_buttons = `VBox (`VSpacing(0.5));
+
+    foreach (`client, available_clients, ``{
+        net_buttons = add (net_buttons,
+			`Left(`RadioButton(`id(client), button_labels[client]:"")));
+    });
+    net_buttons = add (net_buttons, `VSpacing(0.5));
 
     term buttons =
 	`RadioButtonGroup (`VBox (
@@ -82,8 +88,8 @@ Here you can choose the authentication method of users on your system.
 					 `HSpacing (4),
 					 // frame title for network authentication methods
 					 `Frame (_("Network Authentication Method"),
-						 net_buttons
-						 )
+                         `RadioButtonGroup( net_buttons )
+					    )
 					 )
 				  )
 			   );
@@ -100,14 +106,6 @@ Here you can choose the authentication method of users on your system.
 
     Wizard::SetContents (caption, contents, help, Args(0), Args(1));
 
-    // check if nis+/ldap are available (there are not in personal edition)
-    list available_clients = [`nis];
-
-    if (IsPackageAvailable("yast2-ldap-client"))
-        available_clients = add (available_clients, `ldap);
-    if (IsPackageAvailable("yast2-nisplus-client"))
-        available_clients = add (available_clients, `nisplus);
-
     // select and enable to correct buttons
     if (Users::after_auth == `users)
     {
@@ -115,9 +113,9 @@ Here you can choose the authentication method of users on your system.
 	    UI::ChangeWidget (`id(`network), `Value, false);
 	    UI::ChangeWidget (`id(`nis), `Value, true);
 
-	    UI::ChangeWidget (`id(`nis), `Enabled, false);
-	    UI::ChangeWidget (`id(`nisplus), `Enabled, false);
-	    UI::ChangeWidget (`id(`ldap), `Enabled, false);
+        foreach (`client, available_clients, ``{
+            UI::ChangeWidget (`id(client), `Enabled, false);
+        });
     }
     else
     {

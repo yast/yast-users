@@ -252,7 +252,7 @@ string ldap_base = "";
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
 global string start_dialog = "users";
-global boolean use_next_time = true; // what is it for ??
+global boolean use_next_time = false;
 
 // if anything was done
 global boolean modified = false;
@@ -910,6 +910,14 @@ global define symbol Write (block abort, boolean useUI)``{
 
 	// increase the progress to "finish"
 	if( useUI ) Progress::NextStage ();
+
+    // do not show user in first dialog when all has been writen
+    if (Mode::cont)
+    {
+        use_next_time = false;
+        saved_user = $[];
+        user_in_work = $[]; // TODO: move to Commit?
+    }
 
 	return `next;
 }

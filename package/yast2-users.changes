@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Feb 27 18:26:37 CET 2003 - jsuchome@suse.de
+
+- added popup for confirmation of short root's password (#24294)
+- inst_auth: ldap/nisplus options not greyed, but removed if package
+    is not available (#24358)
+- fix: first user is displayed more times after multiple next & back
+    (during installation, bug #24441)
+- 2.7.18
+
+-------------------------------------------------------------------
 Wed Feb 26 17:54:25 CET 2003 - arvin@suse.de
 
 - removed calling of kbuildsycoca since it's now done in

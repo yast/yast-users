@@ -36,6 +36,7 @@ global define symbol EditUserDialog(symbol what) ``{
     {
         Users::user_in_work = Users::saved_user;
         Users::use_next_time = false;
+        // TODO:change what to `edit_user?
     }
     boolean create_home = Users::user_in_work["create_home"]:true;
     string  username    = Users::user_in_work["username"]:"";
@@ -675,8 +676,10 @@ Please try again."));
         Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
             ? username : "";
     }
-    if( ret == `additional ||  ret == `nosave ) // -- ??
+    if( ret == `additional ||  ret == `nosave )
     {
+        // suring installation the first user is stored
+        // (to show it when clicking `back from Summary dialog)
         Users::saved_user = Users::user_in_work;
     }
     return ret;

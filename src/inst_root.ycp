@@ -289,14 +289,21 @@ Please try again."));
 
          if (size (pw1) < 5)
          {
-            // explain how a password has to be formed
-            UI::MessagePopup(_("The password must have at least 5 characters.
-Try again.
-"));
-            rpassword = "";
-            // Invalidate any old password
-            Users::rootPassword = rpassword;
+            // yes/no popup text
+            if (!UI::YesNoPopup(_("The password should have at least five characters.
+Are you sure?")))
+            {
+                // (bug 24294)
+                rpassword = "";
+                // Invalidate any old password
+                Users::rootPassword = rpassword;
+                continue;
+            }
+         }
 
+         /*
+            // FIXME: the test wasn't used before!
+            // integer ret2 = findfirstnotof( pw1, Users::valid_password_chars );
             if ( ret2 != nil )
             {
                // There is a check whether the information from the UI is
@@ -309,6 +316,7 @@ Try again.
                continue;
             }
          }
+         */
 
         if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
         {
