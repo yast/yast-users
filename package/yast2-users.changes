@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Sep  5 11:48:14 CEST 2002 - jsrain@suse.cz
+
+- fixed help text for root password setting
+- 2.6.25
+
+-------------------------------------------------------------------
 Fri Aug 30 12:35:36 CEST 2002 - jsrain@suse.cz
 
 - not removing /var/lib/YaST2/runme_at_boot in case of ssh

@@ -201,7 +201,7 @@ least 5 characters and, as a rule, not contain any special characters
 "));
 
   // help text, continued 4/5
-  help_text = help_text + _("<p>
+  helptext = helptext + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
