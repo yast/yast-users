@@ -33,7 +33,6 @@ Summary:	Configuration of users
 @scrconfdir@/*.scr
 @agentdir@/ag_nis
 @agentdir@/ag_uid
-@agentdir@/ag_passwd
 @plugindir@/libpy2ag_crack.so.*
 @plugindir@/libpy2ag_crack.so
 @plugindir@/libpy2ag_crack.la
