@@ -306,7 +306,7 @@ warns you if you try to use an already set one.
 	// help text 4/6
 		_("<p>
 <b>Enter a Password:</b>
-To require the non-members of the group to identify themselves while
+To require the users who are not members of the group to identify themselves while
 switching to this new group (see man page of <tt>newgrp</tt>), assign a
 password to this group. For security reasons, this password is not shown
 here. This entry is not required.
@@ -417,7 +417,7 @@ from the list of all groups existing on your system.
 </p>") +
 	// help text 8/8
 		_("<p>
-<b>Group membership:</b>
+<b>Group Membership:</b>
 All additional memberships in groups for the user.
 </p>
 ");
@@ -430,8 +430,9 @@ All additional memberships in groups for the user.
   define string PluginDialogHelp () {
 
     // helptxt for plugin dialog 1/2
-    return _("<p>Here, see the list of 'Plug-ins' -- the
-extensions of user and group configuration.</p>") +
+    return _("<p>Here, see the list of plug-ins--the
+extensions of user and group configuration.</p>
+") +
 
     // helptext for plugin dialog 2/3
     _("The check mark in the left part of the table indicates that plug-in

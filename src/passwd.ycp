@@ -114,13 +114,13 @@ global map SystemUsers = $[
     "Bitlbee Daemon User"	: _("Bitlbee Daemon User"),
 
     /* User name for user: "dhcpd" */
-    "DHCP server daemon"	: _("DHCP server daemon"),
+    "DHCP server daemon"	: _("DHCP Server Daemon"),
 
     /* User name for user: "distcc" */
     "Distcc Daemon"		: _("Distcc Daemon"),
 
     /* User name for user: "dovecot" */
-    "Dovecot imap daemon"	: _("Dovecot imap daemon"),
+    "Dovecot imap daemon"	: _("Dovecot IMAP Daemon"),
 
     /* User name for user: "fax" */
     "Facsimile agent"		: _("Facsimile agent"),
