@@ -920,7 +920,7 @@ can be changed for non-local users.")) : `VSpacing (0),
     );
 
     // dialog caption
-    Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
+    Wizard::SetContentsButtons(_("Detail User Properties"),
                     contents,
                     EditUserDetailsDialogHelp (user_type, what),
                     Label::BackButton(),
@@ -973,7 +973,11 @@ can be changed for non-local users.")) : `VSpacing (0),
             string  new_defaultgroup = (string)
 		UI::QueryWidget(`id(`defaultgroup),`Value);
             string  new_home	= (string) UI::QueryWidget(`id(`home),  `Value);
-            boolean no_skel	= (boolean) UI::QueryWidget(`id(`skel),`Value);
+
+	    if (what == "add_user")
+	    {
+		no_skel	= (boolean) UI::QueryWidget(`id(`skel),`Value);
+	    }
 	    if ((findlastof (new_home, "/") + 1) == size (new_home))
 	    {
 		new_home = substring (new_home, 0, size(new_home)-1);
