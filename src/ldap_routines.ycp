@@ -357,8 +357,6 @@ global define map ConvertUserToLDAP (map user, list attributes) ``{
 	any val = value;
 	if (contains (user_internal_keys, key))
 	    return;
-	if (is (value, string) && value == "")
-	    return;
 	if (key == "password")
 	{
 	    if  (contains (["x","*","!"], value))
@@ -406,8 +404,6 @@ global define map ConvertGroupToLDAP (map group, list attributes) ``{
     foreach (`key, `value, group, ``{
 	any val = value;
 	if (contains (group_internal_keys, key))
-	    return;
-	if (is (value, string) && value == "")
 	    return;
 	if (key == "password")
 	{
