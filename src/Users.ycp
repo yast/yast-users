@@ -105,13 +105,18 @@
 			gid = lookup(group, "gid", max_gid);
 		    }
 		});
-		
+		string mod_password = "";
+		if (! u["encrypted"]:false) {
+		    mod_password = crypt( u["user_password"]:"");
+		} else {
+		    mod_password = u["user_password"]:"";
+		}
 		user_in_work = $[
 				 "what"        :  `add_user ,
 				 "fullname"    :  u["fullname"]:fullname,
 				 "gid"         :  u["gid"]:gid,
 				 "home"        :  u["home"]:def_home,
-				 "password"    :  u["user_password"]:"", 
+				 "password"    :  mod_password,
 				 "shell"       :  u["shell"]:getDefaultShell(),
 				 "uid"         :  u["uid"]:usersFreeUid(current_users),
 				 "username"    :  u["username"]:"lx_user",
