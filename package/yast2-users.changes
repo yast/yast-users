@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Sep  8 16:14:12 CEST 2003 - jsuchome@suse.cz
+
+- check if NIS was enabled while module is running (#30256) 
+
+-------------------------------------------------------------------
 Mon Sep  8 13:02:08 CEST 2003 - jsuchome@suse.cz
 
 - do not create root's home direcotry in autoyast install (#30186)

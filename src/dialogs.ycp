@@ -2371,9 +2371,21 @@ Install it now?
         }
     } while ( !contains ([`next, `abort, `back, `cancel], button) );
 
-    if (button == `next)
+    if (button == `next || button == `back)//TODO `back? (client was changed)
     {
+	boolean was_nis_available = Users::is_nis_available;
 	Users::ReadSourcesSettings();
+	// enabling NIS could add + lines!
+	// TODO what about some general solution?
+	if (was_nis_available != Users::is_nis_available)
+	{
+	    if (Users::is_nis_available) // nis enabled now
+	    {
+		Users::plus_passwd	= "+::::::";
+		Users::plus_group	= "+:::";
+		Users::plus_shadow	= "+";
+	    }
+	}
         Users::BuildMenuButtonItems();
     }
     return button;

@@ -294,10 +294,10 @@ global list all_shells = [];
 global list all_shells_items = [];
 
 // the +/- entries in config files:
-string plus_passwd = "";
-string plus_group = "";
-string plus_shadow = "";
-string plus_gshadow = "";
+global string plus_passwd = "";
+global string plus_group = "";
+global string plus_shadow = "";
+global string plus_gshadow = "";
 
 global string ldap_user_base = "";
 global string ldap_group_base = "";
