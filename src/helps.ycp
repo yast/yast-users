@@ -116,7 +116,7 @@ after expiration login is allowed. Use -1 for unlimited access.
 }
 
 
-      /**
+     /**
      * Help for the ReadDialog () dialog.
      * @return string The help text.
      */
@@ -134,6 +134,10 @@ button now.
 </P>");
     }
 
+     /**
+     * Help for the WriteDialog () dialog.
+     * @return string The help text.
+     */
     global define string WriteDialogHelp () ``{
     return
 	    // For translators: read dialog help, part 1 of 2
@@ -154,36 +158,42 @@ An additional dialog will inform you whether it is safe to do so.
    * @return string help text
    */
   global define string UsersDialogHelp() ``{
-	// help text 1/5
+	// help text 1/6
       return ( help_main_start() + _("
 <p>
 In this dialog, you can get information about existing <b>users</b>.
 </p>
 ") +
 
-	// help text 2/5
+	// help text 2/6
 		_("<p>
 To shift to the group dialog push the radio button <b>Groups administration</b>.
 </p>
 ") +
 
-	// help text 3/5
+	// help text 3/6
 		_("
 <p>
 To create a new user, push the button <b>Add</b>.
 </p>
 ") +
 
-	// help text 4/5
+	// help text 4/6
 		_("<p>
 To edit or delete an existing user, select one user from the list and
 click <b>Edit</b> or <b>Delete</b>.
 </p>
 ") +
 
-	// help text 5/5
+	// help text 5/6
 		_("<p>
-To change the default settings used for new users, select the <b>Set defaults</b> button.") + help_main_end() );
+To change the default settings used for new users, select the <b>Set defaults</b> button.") +
+
+	// help text 6/6
+    _("<p>
+If you want to change passwords encryption or user authentication, push the <b>Expert options...</b> button") +
+
+     help_main_end() );
   }
 
 

@@ -121,6 +121,7 @@ global define symbol MainSequence(string start) ``{
     "ws_start":             start,
     "users":$[
             `switch_groups: "groups",
+            `users:         "users",
 		    `new:           "user_add",
 	        `edit:          "user_edit",
 	        `delete:        "user_save",
