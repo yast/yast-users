@@ -101,7 +101,7 @@ define boolean GroupsListHandler (map<string,string> options ) ``{
 define boolean GroupsShowHandler (map options ) ``{
 
     map<string,any> group = $[];
-    integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
+    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
     string groupname = options ["groupname"]:"";
 
     if (gid != -1)
@@ -124,7 +124,7 @@ define boolean GroupsShowHandler (map options ) ``{
 	// label shown at command line (user attribute)
 	"cn"		: _("Group Name:"),
 	// label shown at command line (user attribute)
-	"gidNumber"	: _("GID:"),
+	"gidnumber"	: _("GID:"),
 	// label shown at command line (user attribute)
 	"userlist"	: _("List of Members:"),
     ];

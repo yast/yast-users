@@ -154,12 +154,12 @@ define symbol EditUserDialog (string what) ``{
 	cn	= user["cn"]:"";
     string tmp_fullname	= cn; // for login proposing
     string default_home = Users::GetDefaultHome (user_type);
-    string home		= user["homeDirectory"]:default_home;
-    string org_home	= user["org_homeDirectory"]:home;
-    string password	= user["userPassword"]:"x";
+    string home		= user["homedirectory"]:default_home;
+    string org_home	= user["org_homedirectory"]:home;
+    string password	= user["userpassword"]:"x";
     string org_username = user["org_uid"]:username;
     boolean create_home	= user["create_home"]:true;
-    integer uid		= GetInt (user, "uidNumber", nil);
+    integer uid		= GetInt (user, "uidnumber", nil);
     string dn		= user["dn"]:"";
 
     // only for LDAP users:
@@ -168,11 +168,11 @@ define symbol EditUserDialog (string what) ``{
 	sn	= user["sn",0]:SplitFullName(`sn, cn);
     else
 	sn	= user["sn"]:SplitFullName(`sn, cn);
-    string givenName		= "";
-    if (is (user["givenName"]:nil, list))
-	givenName	= user["givenName",0]:SplitFullName(`givenName, cn);
-    else
-	givenName	= user["givenName"]:SplitFullName(`givenName, cn);
+    string givenname		= "";
+    if (is (user["givenname"]:nil, list))
+	givenname	= user["givenname",0]:SplitFullName(`givenname, cn);
+    else if (is (user["givenname"]:nil, string))
+	givenname	= user["givenname"]:SplitFullName(`givenname, cn);
 
     boolean do_not_edit = (user_type == "nis");
 
@@ -205,7 +205,7 @@ define symbol EditUserDialog (string what) ``{
     {
 	name_entries = `VBox(
             // text entry
-            `TextEntry(`id(`givenName), _("F&irst Name"), givenName),
+            `TextEntry(`id(`givenname), _("F&irst Name"), givenname),
             // text entry
             `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
     }
@@ -359,7 +359,7 @@ log in, check <b>Disable User Login</b> option.</p>");
 	if (user_type == "system")
 	    UI::ChangeWidget(`id(`propose), `Enabled, false );
 	if (user_type == "ldap")
-	    UI::SetFocus(`id(`givenName));
+	    UI::SetFocus(`id(`givenname));
 	else
 	    UI::SetFocus(`id(`cn));
     }
@@ -406,7 +406,7 @@ log in, check <b>Disable User Login</b> option.</p>");
 		// Form the fullname for LDAP user
 		// sn (surname) and cn (fullname) are required attributes,
 		// they cannot be empty
-		givenName = (string) UI::QueryWidget(`id(`givenName), `Value);
+		givenname = (string) UI::QueryWidget(`id(`givenname), `Value);
 		sn	  = (string) UI::QueryWidget(`id(`sn ), `Value);
 
 		map ldap_user_defaults = UsersLDAP::GetUserDefaults ();
@@ -415,14 +415,14 @@ log in, check <b>Disable User Login</b> option.</p>");
 		    (what == "edit_user" ||
 		    !haskey (ldap_user_defaults, "sn")))
 		{
-		    if (givenName == "")
+		    if (givenname == "")
 		    {
 			sn = username;
 		    }
 		    else
 		    {
-			sn = givenName;
-			givenName = "";
+			sn = givenname;
+			givenname = "";
 		    }
 		}
 		if (cn == "" &&
@@ -431,15 +431,15 @@ log in, check <b>Disable User Login</b> option.</p>");
 		    // cn should not be substitued:
 		    !haskey (ldap_user_defaults, "cn")))
 		{
-		    // if 'givenName' or 'sn' should be substitued, wait for it
+		    // if 'givenname' or 'sn' should be substitued, wait for it
 		    // and do not create cn now:
 		    if (!haskey (ldap_user_defaults, "sn") &&
-			!haskey (ldap_user_defaults, "givenName"))
+			!haskey (ldap_user_defaults, "givenname"))
 		    {
-			cn = givenName + ((givenName != "") ? " " : "") + sn;
+			cn = givenname + ((givenname != "") ? " " : "") + sn;
 		    }
 		}
-		UI::ChangeWidget(`id(`givenName), `Value, givenName);
+		UI::ChangeWidget(`id(`givenname), `Value, givenname);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
 	    }
 	    else
@@ -456,7 +456,7 @@ log in, check <b>Disable User Login</b> option.</p>");
 	    }
 	    // TODO the lists should remain
 	    user ["cn"]	= cn;
-	    user ["givenName"] = givenName;
+	    user ["givenname"] = givenname;
 	    user ["sn"] = sn;
 	}
 
@@ -464,7 +464,7 @@ log in, check <b>Disable User Login</b> option.</p>");
         if (ret == `propose)
         {
 	    string to_propose = (issubstring (cn, "%") || cn == "") ?
-		givenName + " " + sn : cn;
+		givenname + " " + sn : cn;
 	    if (tmp_fullname != to_propose)
 	    {
 		UsersCache::ResetProposing ();
@@ -486,9 +486,9 @@ log in, check <b>Disable User Login</b> option.</p>");
         details = (contains ([`details,`passwordsettings], ret));
 
 	if (ret == `passwordsettings && user_type == "ldap" &&
-	    !contains (user["objectClass"]:[], "shadowAccount"))
+	    !contains (user["objectclass"]:[], "shadowaccount"))
 	{
-	    // error, do not translate 'shadowAccount' (LDAP user parameter)
+	    // error, do not translate 'shadowaccount' (LDAP user parameter)
 	    Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
 so the password settings cannot be edited.
 "));
@@ -600,18 +600,18 @@ Please try again."));
 		// if "encryted" flag is present, password won't be encrypted
 		if (user["encrypted"]:false)
 		    user["encrypted"]	= false;
-		user ["userPassword"]		= pw1;
-		user ["shadowLastChange"]	= Users::LastChangeIsNow();
+		user ["userpassword"]		= pw1;
+		user ["shadowlastchange"]	= Users::LastChangeIsNow();
 	    }
 
             // build default home dir
             if (home == "" || home == default_home || issubstring (home,"%"))
             {
-		// LDAP: maybe value of homeDirectory should be substituted?
+		// LDAP: maybe value of homedirectory should be substituted?
 		if ( user_type == "ldap" && issubstring (home, "%") )
 		{
 		    user = UsersLDAP::SubstituteValues ("user", user);
-		    home = user["homeDirectory"]:default_home;
+		    home = user["homedirectory"]:default_home;
 		}
 		if ( home == default_home  || home == "")
                     home = home + username;
@@ -645,7 +645,7 @@ Please try again."));
 		    continue;
 		}
 	    }
-	    user["homeDirectory"]	= home;
+	    user["homedirectory"]	= home;
 
 	    // --------------------------------- username checks, part 2/2
             if (what == "add_user" || username != org_username)
@@ -726,13 +726,13 @@ define symbol EditUserDetailsDialog( ) ``{
     string what         = user["what"]:"no";
     string username     = user["uid"]:"";
     string cn		= user["cn"]:"";
-    string home         = user["homeDirectory"]:"";
-    string org_home     = user["org_homeDirectory"]:"";
+    string home         = user["homedirectory"]:"";
+    string org_home     = user["org_homedirectory"]:"";
     boolean create_home = user["create_home"]:true;
-    string shell        = user["loginShell"]:"";
+    string shell        = user["loginshell"]:"";
     map<string,integer> groups		= user["grouplist"]:$[];
-    integer uid	= GetInt (user, "uidNumber", UsersCache::GetMaxUID (user_type));
-    integer gid	= GetInt (user, "gidNumber", UsersCache::GetMaxGID (user_type));
+    integer uid	= GetInt (user, "uidnumber", UsersCache::GetMaxUID (user_type));
+    integer gid	= GetInt (user, "gidnumber", UsersCache::GetMaxGID (user_type));
     string defaultgroup = user["groupname"]:"";
 
     // additional parts of GECOS (shown by `finger <username>`) (passwd only)
@@ -999,7 +999,7 @@ can be changed for non-local users.")) : `VSpacing (0),
             if ( defaultgroup != new_defaultgroup )
             {
                 gid = lookup (Users::GetGroupByName (new_defaultgroup,new_type),
-		    "gidNumber", gid);
+		    "gidnumber", gid);
             }
 
             // check the homedirectory
@@ -1065,10 +1065,10 @@ can be changed for non-local users.")) : `VSpacing (0),
 
             // update Users::user_in_work
 	    map<string,any> user = $[
-		"homeDirectory"		: new_home,
-		"loginShell"		: new_shell,
-		"gidNumber"		: gid,
-		"uidNumber"		: new_i_uid,
+		"homedirectory"		: new_home,
+		"loginshell"		: new_shell,
+		"gidnumber"		: gid,
+		"uidnumber"		: new_i_uid,
 		"grouplist"		: new_groups,
 		"groupname"		: new_defaultgroup,
 		"type"			: new_type,
@@ -1103,18 +1103,18 @@ define symbol EditUserPasswordDialog() ``{
     string username	= user["uid"]:"";
     string user_type	= user["type"]:"local";
     list<string> shadow_symbols =
-	["shadowWarning", "shadowMax", "shadowMin", "shadowInactive"];
+	["shadowwarning", "shadowmax", "shadowmin", "shadowinactive"];
 
-    string last_change	= GetString (user, "shadowLastChange", "0");
-    string expires	= GetString (user, "shadowExpire", "0");
+    string last_change	= GetString (user, "shadowlastchange", "0");
+    string expires	= GetString (user, "shadowexpire", "0");
     if (expires == "")
 	expires = "0";
 
     //TODO correct default values
-    integer inact = GetInt (user, "shadowInactive", 0);
-    integer max	= GetInt (user, "shadowMax", 0);
-    integer min = GetInt (user, "shadowMin", 0);
-    integer warn = GetInt (user, "shadowWarning", 0);
+    integer inact = GetInt (user, "shadowinactive", 0);
+    integer max	= GetInt (user, "shadowmax", 0);
+    integer min = GetInt (user, "shadowmin", 0);
+    integer warn = GetInt (user, "shadowwarning", 0);
 
     if (last_change != "0")
     {
@@ -1143,27 +1143,27 @@ define symbol EditUserPasswordDialog() ``{
 		    _("Date of the last password change: %1"), last_change )))),
                 `VSpacing (1),
                 `HSquash(`VBox(
-                    `IntField (`id ("shadowWarning"),
+                    `IntField (`id ("shadowwarning"),
 			// intfield label
 			_("Days before Password Expiration to Issue &Warning"),
 			-1, 99999, warn),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowInactive"),
+                    `IntField (`id ("shadowinactive"),
 			// intfield label
 			_("Days &after Password Expires with Usable Login"),
 			-1, 99999, inact),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowMax"),
+                    `IntField (`id ("shadowmax"),
 			// intfield label
 			_("Ma&ximum number of days for the same password"),
 			-1, 99999, max),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowMin"),
+                    `IntField (`id ("shadowmin"),
 			// intfield label
 			_("&Minimum number of days for the same password"),
 			-1, 99999, min),
                     `VSpacing (0.5),
-                    `TextEntry (`id ("shadowExpire"),
+                    `TextEntry (`id ("shadowexpire"),
 			// textentry label
 			_("&Expiration date"), exp_date)
                 )),
@@ -1185,7 +1185,7 @@ define symbol EditUserPasswordDialog() ``{
         ret = UI::UserInput();
         if( ret == `next )
         {
-            string exp = (string)UI::QueryWidget (`id ("shadowExpire"), `Value);
+            string exp = (string)UI::QueryWidget (`id ("shadowexpire"), `Value);
             if (exp != "" &&
                 !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
             {
@@ -1206,12 +1206,12 @@ define symbol EditUserPasswordDialog() ``{
 		}
             });
             string new_exp_date = (string)
-		UI::QueryWidget(`id("shadowExpire"),`Value);
+		UI::QueryWidget(`id("shadowexpire"),`Value);
             if (new_exp_date != exp_date)
             {
                 if (new_exp_date == "")
 		    // TODO why it is different for LDAP?
-                    shadow["shadowExpire"] = user_type == "ldap" ? "" : "0";
+                    shadow["shadowexpire"] = user_type == "ldap" ? "" : "0";
                 else
                 {
                     map out = (map)SCR::Execute(.target.bash_output,
@@ -1220,7 +1220,7 @@ define symbol EditUserPasswordDialog() ``{
                     if (seconds_s != "")
                     {
 			integer days = (tointeger(seconds_s))/ (60*60*24);
-                        shadow["shadowExpire"] = sformat("%1", days);
+                        shadow["shadowexpire"] = sformat("%1", days);
                     }
                 }
             }
@@ -1359,8 +1359,8 @@ define symbol EditGroupDialog (string what ) ``{
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
     string  groupname		= group["cn"]:"";
-    string  password		= group["userPassword"]:"x";
-    integer gid			= GetInt (group, "gidNumber", -1);
+    string  password		= group["userpassword"]:"x";
+    integer gid			= GetInt (group, "gidnumber", -1);
     // these are the users with this group as a default:
     map<string,integer> more_users	= group["more_users"]:$[];
     // these are users from /etc/group:
@@ -1577,9 +1577,9 @@ Please try again.")) ;
 
 	    // --------------------------------- now everything should be OK
             group["cn"]			= new_groupname;
-            group["userPassword"]	= password;
+            group["userpassword"]	= password;
             group["more_users"]		= more_users;
-            group["gidNumber"]		= new_i_gid;
+            group["gidnumber"]		= new_i_gid;
             group["type"]		= new_type;
 	    if (group_type == "ldap")
 	    {
@@ -1892,7 +1892,7 @@ Try again.
             "shell": new_shell,
             "skel": new_skel,
             "group": sformat ("%1", lookup (
-                Users::GetGroupByName (new_defgroup, "local"),"gidNumber",gid)),
+                Users::GetGroupByName (new_defgroup, "local"),"gidnumber",gid)),
             "inactive": sformat("%1", new_inact),
             "expire": new_expire,
 	    "groups": new_grouplist

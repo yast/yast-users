@@ -62,7 +62,7 @@ sub read_group () {
 	    }
 	    $groups{$group_type}{$gid} = {
 		"cn"		=> $groupname,
-		"gidNumber" 	=> $gid,
+		"gidnumber" 	=> $gid,
 		"userlist"	=> \%userlist,
 		"type"		=> $group_type,
 		"more_users"	=> {}
@@ -147,14 +147,14 @@ sub read_passwd () {
 	    # such map we would like to export from the read script...
 	    $users{$user_type}{$uid} = {
 		"cn"		=> $full,
-		"homeDirectory"	=> $home,
+		"homedirectory"	=> $home,
 		"uid"		=> $username,
-		"uidNumber"	=> $uid,
-		"gidNumber"	=> $gid,
-		"loginShell"	=> $shell,
+		"uidnumber"	=> $uid,
+		"gidnumber"	=> $gid,
+		"loginshell"	=> $shell,
 		"groupname"	=> $groupname,
 		"grouplist"	=> \%grouplist,
-		"userPassword"	=> "x",
+		"userpassword"	=> "x",
 		"type"		=> $user_type
 	    };
 	    $users_by_name{$user_type}{$username} = $uid;

@@ -88,7 +88,7 @@ define boolean UsersListHandler (map<string,any> options ) ``{
 define boolean UsersShowHandler (map options ) ``{
 
     map<string,any> user = $[];
-    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
+    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
     if (uid != -1)
@@ -113,11 +113,11 @@ define boolean UsersShowHandler (map options ) ``{
 	// label shown at command line (user attribute)
 	"uid"		: _("Login Name:"),
 	// label shown at command line (user attribute)
-	"homeDirectory"	: _("Home Directory:"),
+	"homedirectory"	: _("Home Directory:"),
 	// label shown at command line (user attribute)
-	"loginShell"	: _("Login Shell:"),
+	"loginshell"	: _("Login Shell:"),
 	// label shown at command line (user attribute)
-	"uidNumber"	: _("UID:"),
+	"uidnumber"	: _("UID:"),
 	// label shown at command line (user attribute)
 	"groupname"	: _("Default Group:"),
 	// label shown at command line (user attribute)
@@ -154,12 +154,12 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
     map <string, any> user = $[];
     map keys = $[
 	"username"	: "uid",
-	"password"	: "userPassword",
-	"home"		: "homeDirectory",
-	"shell"		: "loginShell",
+	"password"	: "userpassword",
+	"home"		: "homedirectory",
+	"shell"		: "loginshell",
 	"fullname"	: "cn",
-	"gid"		: "gidNumber",
-	"uid"		: "uidNumber",
+	"gid"		: "gidnumber",
+	"uid"		: "uidnumber",
 	"no_home"	: "create_home",
 	"groups"	: "grouplist"
     ];
@@ -167,7 +167,7 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
 	string new_key	= keys[key]:key;
 	if (new_key == "create_home")
 	    value = false;
-	if (new_key == "gidNumber")
+	if (new_key == "gidnumber")
 	{
 	    // check group existence!
 	    if (!UsersCache::GIDExists (tointeger ((string)value)))
@@ -200,7 +200,7 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
  */
 define boolean UsersDeleteHandler (map  <string, any>options ) ``{
 
-    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
+    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
     boolean delete_home = haskey (options, "delete_home");
 

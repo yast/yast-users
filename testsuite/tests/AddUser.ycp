@@ -131,12 +131,12 @@
 
     DUMP (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
     map<string,any> user = $[
-	"gidNumber":100,
+	"gidnumber":100,
 	"cn": "users",
 	"grouplist": $[ "audio" : 1 ],
-	"homeDirectory":"/local/home/aaa",
-	"userPassword":"qqqqq",
-	"uidNumber":501,
+	"homedirectory":"/local/home/aaa",
+	"userpassword":"qqqqq",
+	"uidnumber":501,
 	"uid":"aaa",
 	"type":"local",
     ];
