@@ -711,6 +711,12 @@ global define symbol Read (block abort, boolean useUI) ``{
 	autologin_available = false;
 	autologin_used = false;
     }
+    if (!Mode::cont && autologin_used)
+    {
+	string auto_user = SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN);
+	if (auto_user == nil || auto_user == "")
+	    autologin_used = false;
+    }
 
     return `next;
 }
@@ -1044,12 +1050,32 @@ global define symbol Write (block abort, boolean useUI)``{
 
 	if (autologin_available)
 	{
+	    if (autologin != "" &&
+		(is_nis_available || is_ldap_available ||
+		size (UsersCache::usernamelists["local"]:[]) != 1))
+	    {
+		autologin = "";
+	    }
+
 	    // write autologin information
 	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN,
 		autologin);
-	    SCR::Write(.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
+	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
 		autologin == "" ? "no" : "yes");
 	    // flush changes (#30124)
+	    SCR::Write(.sysconfig.displaymanager, nil);
+	}
+    }
+    else // not installation
+    {
+	// FIXME this should be handled with some warning popup...
+	if (autologin_available && autologin_used)
+	{
+	    // disable autologin when there are more users (bug #31141)
+	    if (is_nis_available || is_ldap_available ||
+		size (UsersCache::usernamelists["local"]:[]) != 1)
+
+	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN, "");
 	    SCR::Write(.sysconfig.displaymanager, nil);
 	}
     }

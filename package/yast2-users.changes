@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Sep 17 14:10:21 CEST 2003 - jsuchome@suse.cz
+
+- disable autologin when there are more users (#31141)
+- 2.8.16
+
+-------------------------------------------------------------------
 Mon Sep 15 16:18:25 CEST 2003 - jsuchome@suse.cz
 
 - in autoyast config mode, clear password entries for system users (#30573)
