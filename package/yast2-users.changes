@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Feb  5 13:06:09 CET 2003 - jsuchome@suse.de
+
+- inst_user: calling modules after inst_auth dialog
+- defaults dialog: small widgets moving
+- 2.7.12
+
+-------------------------------------------------------------------
 Tue Feb  4 09:24:01 CET 2003 - jsuchome@suse.cz
 
 - autoinst: fixed importing user (missing shadow map)
