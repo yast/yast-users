@@ -1,0 +1,59 @@
+[Desktop Entry]
+Type=Application
+Categories=Qt;X-SuSE-YaST-Security;
+
+X-KDE-ModuleType=Library
+X-KDE-RootOnly=true
+X-KDE-HasReadOnlyMode=true
+X-KDE-Library=yast2
+X-KDE-FactoryName=users_users
+
+X-SuSE-YaST-Group=Security
+X-SuSE-YaST-Argument=users
+X-SuSE-YaST-RootOnly=true
+X-SuSE-YaST-AutoInst=all
+X-SuSE-YaST-Geometry=
+X-SuSE-YaST-SortKey=
+X-SuSE-YaST-AutoinstResource=
+
+Icon=sysadmin
+Exec=/sbin/yast2 users users
+
+Name=Edit and create users
+GenericName=Edit and create users
+Name[cs]=Správce uživatelů
+GenericName[cs]=Správce uživatelů
+Name[de]=Benutzer bearbeiten und anlegen
+GenericName[de]=Benutzer bearbeiten und anlegen
+Name[es]=Editar y crear usuarios
+GenericName[es]=Editar y crear usuarios
+Name[hu]=Felhasználók létrehozása és módosítása
+GenericName[hu]=Felhasználók létrehozása és módosítása
+Name[it]=Modifica e crea utenti
+GenericName[it]=Modifica e crea utenti
+Name[ko]=사용자 편집/생성
+GenericName[ko]=사용자 편집/생성
+Name[nl]=Wijzigen en aanmaken van gebruikers
+GenericName[nl]=Wijzigen en aanmaken van gebruikers
+Name[pt]=Editar e criar usuários
+GenericName[pt]=Editar e criar usuários
+Name[sk]=Úprava a vytváranie používateľov
+GenericName[sk]=Úprava a vytváranie používateľov
+Name[sv]=Redigera och skapa användare
+GenericName[sv]=Redigera och skapa användare
+Name[bg]=Редактиране и създаване на потребители
+GenericName[bg]=Редактиране и създаване на потребители
+Name[da]=Redigér og opret brugere
+GenericName[da]=Redigér og opret brugere
+Name[el]=Επεξεργαστείτε και δημιουργήστε χρήστες
+GenericName[el]=Επεξεργαστείτε και δημιουργήστε χρήστες
+Name[fr]=Modifier et créer des utilisateurs
+GenericName[fr]=Modifier et créer des utilisateurs
+Name[ja]=ユーザを作成あるいは編集する
+GenericName[ja]=ユーザを作成あるいは編集する
+Name[lt]=Keisti ir sukurti vartotojus
+GenericName[lt]=Keisti ir sukurti vartotojus
+Name[sl]=Uredi in kreiraj uporabnike
+GenericName[sl]=Uredi in kreiraj uporabnike
+Name[tr]=Kullanıcı ekle ve düzenle
+GenericName[tr]=Kullanıcı ekle ve düzenle
