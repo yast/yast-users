@@ -358,7 +358,7 @@ a password before a user is allowed to change it.</P>
 ")
 +
 // Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
-("<P><B>Expiration date</B><BR>Set the date when this account expires. 
+_("<P><B>Expiration date</B><BR>Set the date when this account expires. 
 Date must be in format YYYY-MM-DD. 
 Leave empty if this account never expires.</P>");
   }

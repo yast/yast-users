@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep  6 16:28:47 CEST 2002 - jsrain@suse.cz
+
+- fixed provides/obsoletes
+- fixed translation of expiration date help (Bug #18601)
+- 2.6.26
+
+-------------------------------------------------------------------
 Thu Sep  5 11:48:14 CEST 2002 - jsrain@suse.cz
 
 - fixed help text for root password setting
