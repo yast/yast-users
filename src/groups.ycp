@@ -148,7 +148,7 @@ map cmdline = $[
 	],
 	"userlist"	:$[
 	    // translators: command line help text for 'user' option
-	    "help"	: _("List of group members (separated by commas)"),
+	    "help"	: _("List of group members - usualy user names, separated by commas. The list of LDAP user DN's must be separated by colons."),
 	    "type"	: "string"
 	],
 	"new_groupname"	:$[
@@ -166,8 +166,8 @@ map cmdline = $[
 	    "help"	: _("Type of the group (local/system/nis/ldap)"),
 	    "type"	: "string"
 	],
-	"ldap_pw"	:$[
-	    // translators: command line help text for ldap_pw option
+	"ldap_password"	:$[
+	    // translators: command line help text for ldap_password option
 	    "help"	: _("Password to LDAP server"),
 	    "type"	: "string"
 	],
@@ -175,9 +175,9 @@ map cmdline = $[
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
 	"show"  : [ "gid", "groupname", "type"],
-	"delete": [ "groupname", "gid", "type", "ldap_pw" ],
-	"add"	: [ "groupname", "gid", "password", "userlist", "type", "ldap_pw"],
-	"edit"	: [ "groupname", "gid", "password", "new_gid", "userlist", "new_groupname", "type", "ldap_pw" ],
+	"delete": [ "groupname", "gid", "type", "ldap_password" ],
+	"add"	: [ "groupname", "gid", "password", "userlist", "type", "ldap_password"],
+	"edit"	: [ "groupname", "gid", "password", "new_gid", "userlist", "new_groupname", "type", "ldap_password" ],
     ]
 ];
 

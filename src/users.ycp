@@ -175,8 +175,8 @@ map cmdline = $[
 	    "help"	: _("Type of the user (local/system/nis/ldap)"),
 	    "type"	: "string"
 	],
-	"ldap_pw"	:$[
-	    // translators: command line help text for ldap_pw option
+	"ldap_password"	:$[
+	    // translators: command line help text for ldap_password option
 	    "help"	: _("Password to LDAP server"),
 	    "type"	: "string"
 	],
@@ -194,9 +194,9 @@ map cmdline = $[
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis", ],// + "custom"
 	"show"  : [ "uid", "username", "type" ],
-	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "grouplist", "type", "ldap_pw" ],
-	"edit"	: [ "username", "uid", "cn", "password", "home", "shell", "gid", "grouplist", "new_username", "new_uid", "type", "ldap_pw" ],
-	"delete": [ "username", "uid", "delete_home", "type", "ldap_pw" ],
+	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "grouplist", "type", "ldap_password" ],
+	"edit"	: [ "username", "uid", "cn", "password", "home", "shell", "gid", "grouplist", "new_username", "new_uid", "type", "ldap_password" ],
+	"delete": [ "username", "uid", "delete_home", "type", "ldap_password" ],
     ]
 ];
 

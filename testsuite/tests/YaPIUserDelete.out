@@ -86,12 +86,12 @@ Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["100":$["cn":"users", "gidnumber":"100", "more_users":$[], "org_cn":"users", "org_gidnumber":"100", "type":"local", "what":"user_change_default"], "1000":$["cn":"gg", "gidnumber":"1000", "type":"local", "userlist":$["hh":"1"]], "1001":$["cn":"gr", "gidnumber":"1001", "type":"local"], "by_name":$["gg":"1000", "gr":"1001", "users":"100"], "gids":$["100":"1", "1000":"1", "1001":"1"], "groupnames":$["gg":"1", "gr":"1", "users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "by_name":$["root":"0"], "gids":$["0":"1"], "groupnames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$[], "system":$["root":$[]]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Return	
 Dump	============ delete user by uid number: ================
 Read	.target.tmpdir "/tmp/YaST"
@@ -137,10 +137,10 @@ Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["100":$["cn":"users", "gidnumber":"100", "more_users":$[], "org_cn":"users", "org_gidnumber":"100", "type":"local", "what":"user_change_default"], "1000":$["cn":"gg", "gidnumber":"1000", "type":"local", "userlist":$["hh":"1"]], "1001":$["cn":"gr", "gidnumber":"1001", "type":"local"], "by_name":$["gg":"1000", "gr":"1001", "users":"100"], "gids":$["100":"1", "1000":"1", "1001":"1"], "groupnames":$["gg":"1", "gr":"1", "users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "by_name":$["root":"0"], "gids":$["0":"1"], "groupnames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$[], "system":$["root":$[]]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Return	

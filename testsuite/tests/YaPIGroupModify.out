@@ -134,12 +134,12 @@ Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["777":$["cn":"users", "gidnumber":"777", "modified":"edited", "more_users":$["hh":"1"], "org_cn":"users", "org_gidnumber":"777", "org_group":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"], "plugins":[], "removed_userlist":$[], "type":"local", "what":"edit_group"], "by_name":$["users":"100"], "gids":$["100":"1"], "groupnames":$["users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "17":$["cn":"audio", "gidnumber":"17", "type":"system"], "by_name":$["audio":"17", "root":"0"], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["500":$["gidnumber":"777", "groupname":"users", "modified":"edited", "org_uid":"hh", "org_uidnumber":"500", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x", "what":"group_change_default"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["type":"system", "uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$[], "system":$[]] true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Return	
 Dump	============ edit done ========================================
 Dump	============ edit group 'users' (gid conflict): ===============
