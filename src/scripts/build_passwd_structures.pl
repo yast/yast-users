@@ -83,6 +83,8 @@ $last_system     =   $output_dir."/last_system_uid.ycp";
 %shadowmap = ();
 %gshadowmap = ();
 
+%uids = ();
+
 %groupnamelists = ();
 
 $last_local_uid = $max_system_uid + 1;
@@ -335,6 +337,16 @@ foreach my $user (<PASSWD>)
         print $YCP_PASSWD_HOMES "\"$home\", ";
         print $YCP_PASSWD_USERNAMES "\"$username\", ";
         print $YCP_PASSWD_UIDLIST " $uid,";
+
+        if (defined $uids{$uid})
+        {
+            print STDERR "Duplicated UID:$uid! Exiting...\n";
+            exit 1;
+        }
+        else
+        {
+            $uids{$uid} = 1;
+        }
     
         # YCP maps are generated...
         print $YCP_PASSWD "\t$uid : \$[\n";
