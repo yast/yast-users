@@ -9,7 +9,8 @@ yncludedir = @yncludedir@/users
 
 module_DATA =		\
     Users.pm		\
-    UsersCache.pm
+    UsersCache.pm	\
+    UsersLDAP.pm
 
 ynclude_DATA =		\
     complex.ycp		\
