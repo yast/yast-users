@@ -23,7 +23,8 @@ ynclude_DATA =		\
     helps.ycp		\
     wizards.ycp		\
     widgets.ycp		\
-    routines.ycp
+    routines.ycp	\
+    cmdline.ycp
 
 client_DATA = 		\
     users.ycp		\
