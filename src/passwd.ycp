@@ -41,7 +41,7 @@ global map SystemUsers = $[
     /* User name for user: "ftp" */
     "FTP account" : _("FTP account"),
     /* User name for user: "named" */
-    "Nameserver daemon" : _("Name server daemon"),
+    "Name server daemon" : _("Name server daemon"),
     /* User name for user: "gdm" */
     "Gnome Display Manager daemon" : _("Gnome Display Manager daemon"),
     /* User name for user: "postfix" */
@@ -109,6 +109,25 @@ global map SystemUsers = $[
 
     /* User name for user: "icecream" */
     "Icecream Daemon" : _("Icecream Daemon"),
+
+    /* User name for user: "bitlbee" */
+    "Bitlbee Daemon User"	: _("Bitlbee Daemon User"),
+
+    /* User name for user: "dhcpd" */
+    "DHCP server daemon"	: _("DHCP server daemon"),
+
+    /* User name for user: "distcc" */
+    "Distcc Daemon"		: _("Distcc Daemon"),
+
+    /* User name for user: "dovecot" */
+    "Dovecot imap daemon"	: _("Dovecot imap daemon"),
+
+    /* User name for user: "fax" */
+    "Facsimile agent"		: _("Facsimile agent"),
+
+    /* User name for user: "partimag" */
+    "Partimage Daemon User"	: _("Partimage Daemon User"),
+
 
 ];
 

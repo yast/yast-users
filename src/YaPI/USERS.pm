@@ -130,6 +130,7 @@ sub InitializeConfiguration {
     else {
 	Ldap->bind_dn ("");
     }
+# FIXME FIXME bind_dn cannot be changed...
 
     if (defined $config->{"bind_pw"}) {
 	Ldap->SetBindPassword ($config->{"bind_pw"});
