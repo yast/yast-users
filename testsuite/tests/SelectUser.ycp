@@ -113,7 +113,14 @@
 	"target": $[
 	    "stat"	: $[],
 	    "size"	: 0
-	]
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
     ];
     map WRITE = $[];
     map EXEC = $[

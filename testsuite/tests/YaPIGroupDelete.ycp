@@ -127,7 +127,14 @@
 	    "stat"	: $[],
 	    "size"	: 0,
 	    "tmpdir"	: "/tmp/YaST"
-	]
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKSTOP_SCHEDULER"	: "no",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
     ];
     map W = $[];
     map E = $[
