@@ -998,7 +998,7 @@ define void RadioButtonsUsersGroupsInit (string widget_id) ``{
     );
 }
 
-define any RadioButtonsUsersGroupsHandler (string widget_id) ``{
+define any RadioButtonsUsersGroupsHandler (string widget_id, map event) ``{
 
     if (!(boolean)
 	UI::QueryWidget (`id (UsersCache::GetCurrentSummary ()),`Value))
