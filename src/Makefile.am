@@ -24,7 +24,7 @@ client_DATA = 		\
 	users_write.ycp	\
 	inst_root.ycp	\
 	inst_user.ycp   \
-    auth.ycp
+    expert_login.ycp
 
 config_DATA =			\
 	users.y2cc		\
