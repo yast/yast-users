@@ -520,11 +520,12 @@ define void UpdateGroupItemlist () ``{
 global define void ChangeUser(symbol what, map user) ``{
 
     integer uid = user["uid"]:nil;
+    integer org_uid = user["org_uid"]:uid;
     string home = user["home"]:nil;
     string org_home = user["org_home"]:nil;
     string username = user["username"]:nil;
     string org_username = user["org_username"]:username;
-    symbol type = user["type"]:`local; // we have global user_type!
+    symbol type = user["type"]:`local;
 
     if (what == `add_user)
     {
@@ -537,25 +538,26 @@ global define void ChangeUser(symbol what, map user) ``{
     }
     else if (what == `edit_user || what == `group_change)
     {
-//        uidlist = prepend (uidlist, uid); was uid changed? -> org_uid
+        if (uid != org_uid)
+        {
+            uidlists [type] = filter (`u, uidlists [type]:[], ``(u != org_uid));
+            uidlists [type] = prepend (uidlists [type]:[], uid);
+        }
         if (home != org_home)
         {
             homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
             homelists [type] = prepend (homelists [type]:[], home);
         }
-        if (username != org_username) // was username changed?
+        if (username != org_username)
         {
             usernamelists [type] = filter (`u, usernamelists [type]:[],
                 ``(u != org_username));
             usernamelists [type] = prepend (usernamelists [type]:[], username);
         }
-        // could be done faster?  use add/merge/prepend?
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
             ``(select(item,1,"") != org_username));
         users_itemlists [type] = prepend (users_itemlists [type]:[],
             select (BuildUserItemList( $[ uid : user ] ), 0, []));
-/*        users_itemlists [type] = merge (users_itemlists [type]:[],
-            BuildUserItemList( $[ uid : user ] ));*/
         UpdateUserItemlist ();
     }
     else if (what == `delete_user)
@@ -578,7 +580,7 @@ global define void ChangeGroup (symbol what, map group) ``{
     integer org_gid = group["gid"]:gid;
     string groupname = group["groupname"]:nil;
     string org_groupname = group["org_groupname"]:groupname;
-    symbol type = group["type"]:`local; // we have global group_type!
+    symbol type = group["type"]:`local;
 
     if (what == `add_group)
     {
@@ -595,13 +597,12 @@ global define void ChangeGroup (symbol what, map group) ``{
             gidlist = filter (`g, gidlist, ``(g != org_gid));
             gidlist = prepend (gidlist, gid);
         }
-        if (groupname != org_groupname) // was groupname changed?
+        if (groupname != org_groupname)
         {
             groupnamelists [type] = filter (`u, groupnamelists [type]:[],
                 ``(u != org_groupname));
             groupnamelists [type] = prepend (groupnamelists[type]:[],groupname);
         }
-        // could be done faster?  use add/merge/prepend?
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
         groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?

@@ -14,4 +14,4 @@ Dump	local group itemlist:
 Dump	 []
 Return	true
 Dump	local group itemlist modified:
-Dump	 [`item (`id (501), "testgroup", "  501", "hh")]
+Dump	 [`item (`id (501), "testgroup", "  501", "hh")]
