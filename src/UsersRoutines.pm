@@ -34,7 +34,7 @@ sub CreateHome {
 
     my $skel	= $_[0];
     my $home	= $_[1];
-    
+
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
     if (!%{SCR::Read (".target.stat", $home_path)}) {
@@ -42,7 +42,7 @@ sub CreateHome {
     }
 
     # if skeleton does not exist, do not copy it
-    if (!%{SCR::Read (".target.stat", $skel)}) {
+    if ($skel eq "" || !%{SCR::Read (".target.stat", $skel)}) {
 	if (! SCR::Execute (".target.mkdir", $home)) {
 	    y2error ("error creating $home");
 	    return 0;
@@ -156,7 +156,7 @@ sub DeleteHome {
     my %stat	= %{SCR::Read (".target.stat", $home)};
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning("home directory does not exist or is not a directory: no rm");
-	return 0;
+	return 1;
     }
     my $command	= "/bin/rm -rf $home";
     my %out	= %{SCR::Execute (".target.bash_output", $command)};

@@ -1538,7 +1538,7 @@ sub EditUser {
 		$user_in_work{"removed_grouplist"} = \%removed;
 	    }
 	}
-	if ($key eq "create_home" || $key eq "encrypted") {
+	if ($key eq "create_home" || $key eq "encrypted" || $key eq "no_skeleton") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	    next;
 	}
@@ -1689,7 +1689,7 @@ sub AddUser {
     }
 
     foreach my $key (keys %data) {
-	if ($key eq "create_home" || $key eq "encrypted") {
+	if ($key eq "create_home" || $key eq "encrypted" || $key eq "no_skeleton") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
 	# crypt password only once
@@ -1776,6 +1776,7 @@ sub AddUser {
 	    }
 	}
     }
+DebugMap (\%user_in_work);
     return 1;
 }
 
@@ -2430,7 +2431,9 @@ sub DeleteUsers {
     my $ret = 1;
 
     foreach my $type ("system", "local") {
-	if (!defined $removed_users{$type}) { next; }
+	if (!defined $removed_users{$type} || $userdel_precmd eq "") {
+	    next;
+	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$uid}};
 	    my $cmd = "$userdel_precmd $user{\"username\"} $uid $user{\"gidNumber\"} $user{\"homeDirectory\"}";
@@ -2443,7 +2446,9 @@ sub DeleteUsers {
     };
 
     foreach my $type ("system", "local") {
-	if (!defined $removed_users{$type}) { next; }
+	if (!defined $removed_users{$type} || $userdel_postcmd eq "") {
+	    next;
+	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$uid}};
 	    my $cmd = "$userdel_postcmd $user{\"username\"} $uid $user{\"gidNumber\"} $user{\"homeDirectory\"}";
@@ -2524,8 +2529,8 @@ sub Write {
     if ($users_modified) {
         if (!DeleteUsers ()) {
        	    # error popup
-	    Report::Error (_("Error while removing users."));
-	    return 0;
+	    Report::Error (_("There was an error while removing users."));
+#	    return 0; TODO -- should be 'continue/abort'
 	}
     }
 
@@ -2564,10 +2569,16 @@ sub Write {
 		my $create_home	= $user{"create_home"} || YaST::YCP::Boolean(0);
        
 		if ($user_mod eq "imported" || $user_mod eq "added") {
+		    my $skel	= $useradd_defaults{"skel"};
+		    if (defined $user{"no_skeleton"} &&
+			ref ($user{"no_skeleton"}) eq "YaST::YCP::Boolean" &&
+			$user{"no_skeleton"}->value) {
+			$skel 	= "";
+		    }
 		    if (($create_home->value || $user_mod eq "imported")
 			&& !%{SCR::Read (".target.stat", $home)})
 		    {
-			UsersRoutines::CreateHome ($useradd_defaults{"skel"},$home);
+			UsersRoutines::CreateHome ($skel, $home);
 		    }
 		    UsersRoutines::ChownHome ($uid, $gid, $home);
 		    # call the useradd.local

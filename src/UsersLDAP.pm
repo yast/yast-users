@@ -96,7 +96,7 @@ my $max_pass_length		= 8;
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
      "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
-     "org_type", "what", "encrypted",
+     "org_type", "what", "encrypted", "no_skeleton",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
 
 my @group_internal_keys		=
