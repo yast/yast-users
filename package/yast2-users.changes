@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Mon Mar 29 13:37:28 CEST 2004 - jsuchome@suse.cz
+
+- plugins: check if plugin is defined for given user/group ('PluginPresent')
+- plugins: use 'plugins_to_remove' flag
+- 2.9.22
+
+-------------------------------------------------------------------
+Thu Mar 25 16:03:37 CET 2004 - jsuchome@suse.cz
+
+- autoyast: properly handle 'shadowlastchange' value (#36804)
+
+-------------------------------------------------------------------
 Wed Mar 24 16:25:11 CET 2004 - jsuchome@suse.cz
 
 - YaPI: UserModify
