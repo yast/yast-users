@@ -474,13 +474,13 @@ global define symbol Read (block abort, boolean useUI) ``{
 
 	if ( groups [`local]:nil == nil )
     {
-		// error popup
+		// error popup (settings of local groups)
 	    Report::Error (_("Cannot read the local group settings."));
         groups [`local] = $[];
     }
     if ( groups [`system]:nil == nil)
     {
-		// error popup
+		// error popup (settings of system groups)
 	    Report::Error (_("Cannot read the system group settings."));
         groups [`system] = $[];
     }
@@ -2459,7 +2459,7 @@ Configure it now?
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
-            `Label(_("Reading sets of users and groups.  Please wait...")));
+            `Label(_("Reading sets of users and groups. Please wait...")));
 
         // run preparation script for geting users and groups from server:
         if (!RunPrepare ("ldap"))

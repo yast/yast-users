@@ -916,7 +916,7 @@ Remove the surplus.
             {
                 // error popup, %1 is integer
                 string error = sformat(_("The selected User Id is not allowed.
-Please select a valid integer between 0 and %1"),  Users::max_uid );
+Please select a valid integer between 0 and %1."),  Users::max_uid );
                 Report::Error( error );
                 UI::SetFocus(`id(`uid));
                 continue;
@@ -926,7 +926,7 @@ Please select a valid integer between 0 and %1"),  Users::max_uid );
                 // tell the max_system_uid
                 // error popup
                 string error = sformat(_("The selected User Id is a system Id,
-because the Id is smaller than %1. \nDo you really want to create a new system user"),  Users::max_system_uid );
+because the Id is smaller than %1. \nDo you really want to create a new system user?"),  Users::max_system_uid );
                 if( ! UI::YesNoPopup( error ))
                 {
                 UI::SetFocus(`id(`uid));
@@ -939,7 +939,7 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
             {
                 // error popup
                 Report::Error(_("The inputted User Id is reserved.
-Please select a another User Id"));
+Please select a another User Id."));
                 UI::SetFocus(`id(`uid));
                 continue;
             }

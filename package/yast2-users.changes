@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Feb 14 13:35:17 CET 2003 - jsuchome@suse.de
+
+- fixed typos in texts
+
+-------------------------------------------------------------------
 Thu Feb 13 17:23:45 CET 2003 - jsuchome@suse.de
 
 - inst_user: use CallFunction, not CallModule
