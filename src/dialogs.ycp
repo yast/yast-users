@@ -490,12 +490,6 @@ can be changed for non-local users.
 	    list ocs = maplist (string oc, user["objectclass"]:[], ``(tolower (oc)));
 	    if (!contains (ocs, "shadowaccount"))
 	    {
-		/*
-		// error, do not translate 'shadowaccount' (LDAP user parameter)
-		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
-so the password settings cannot be edited.
-"));
-		*/
 		ocs = add (ocs, "shadowaccount");
 		user["objectclass"]	= ocs;
 		foreach (string k, any v, Users::GetDefaultShadow ("ldap"), ``{
