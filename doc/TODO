@@ -1,0 +1,32 @@
+Users module Todo
+-----------------
+
+NIS:
+- edit fields
+    - only adding users to local groups
+    - others currently not possible on client (yp-tools are interactive)
+- add/delete (server only) [done]
+
+LDAP:
+- show users [done] 
+    - necessary conditions:
+        - perl-ldap installed
+        - anonymous read access to LDAP server
+- edit fields
+    - adding users to local groups is easy (only local change) [done]
+- add/delete (server)
+- add/delete (client)
+    - same actions on client and server
+    - requires correctly configured cpu (/etc/cpu.cfg)
+    - add user [done]
+        - creating home directory only on server
+    - delete user [done]
+        - removing home directory only on server
+    - edit user
+        - password changing is strange
+        - changing homedir works on server
+
+Kerberos:
+- edit fields (password only)
+
+Auth dialog during installation
