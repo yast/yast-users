@@ -4,6 +4,7 @@
  * Summary:	LDAP users manipulation routines
  * Authors:	Jiri Suchomel <jsuchome@suse.cz>
  *
+ * $Id$
  */
 
 {

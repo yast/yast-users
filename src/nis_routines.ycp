@@ -4,6 +4,7 @@
  * Summary:	NIS server test and read routines
  * Authors:	Johannes Buchhold <jbuch@suse.de>
  *
+ * $Id$
  */
 
 {
