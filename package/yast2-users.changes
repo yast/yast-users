@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Mar  2 17:21:25 CET 2004 - jsuchome@suse.cz
+
+- call LDAP configuration from Users
+- enable writing without finish
+
+-------------------------------------------------------------------
 Mon Mar  1 17:36:19 CET 2004 - jsuchome@suse.cz
 
 - merged texts from proofread
