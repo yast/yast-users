@@ -8,7 +8,7 @@ package UsersCache;
 use strict;
 
 use ycp;
-use YaST::YCP;
+use YaST::YCP qw(Term);
 
 our %TYPEINFO;
 
@@ -91,6 +91,9 @@ my @current_groups	= ();
 my $customized_usersview	= 1;
 my $customized_groupsview	= 1;
 
+# the final answer ;-)
+my $the_answer			= 42;
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -153,8 +156,8 @@ sub ProposeUsername {
 	    push @proposed_usernames, $name;
 	};
 
-	if (!UsernameExists ("42") && @proposed_usernames > 11) {
-	    push @proposed_usernames, "42";
+	if (!UsernameExists ("$the_answer") && @proposed_usernames > 11) {
+	    push @proposed_usernames, "$the_answer";
 	}
 	$proposal_count = 0;
     }
@@ -218,7 +221,6 @@ BEGIN { $TYPEINFO{SetCurrentGroups} = ["function", "void", ["list", "string"]];}
 sub SetCurrentGroups {
 
     @current_groups	= @{$_[0]}; # e.g. ("local", "system")
-y2warning ("--------------- current g: ", @current_groups);
 
     @current_group_items = ();
     foreach my $type (@current_groups) {
@@ -451,16 +453,14 @@ sub GetUsernames {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetUserItems} = ["function", ["list", "string"]];}
+BEGIN { $TYPEINFO{GetUserItems} = ["function", ["list", "term"]];}
 sub GetUserItems {
 
-# ( pointer to local hash, pointer to system hash, ...)
+# @current_user_items: ( pointer to local hash, pointer to system hash, ...)
 
     my @items;
     foreach my $itemref (@current_user_items) {
-#y2internal ("ref: $itemref");
 	foreach my $id (sort keys %{$itemref}) {
-#y2internal ("id: $id");
 	    push @items, $itemref->{$id};
 	}
     }
@@ -468,7 +468,7 @@ sub GetUserItems {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetGroupItems} = ["function", ["list", "string"]];}
+BEGIN { $TYPEINFO{GetGroupItems} = ["function", ["list", "term"]];}
 sub GetGroupItems {
 
     my @items;
@@ -501,9 +501,6 @@ BEGIN { $TYPEINFO{GetMinUID} = ["function",
 }
 sub GetMinUID {
 
-#TODO min_uid etc.:
-# 1. common with Users 
-# 2. always look to Security::settings or evan config file?
     if (defined $min_uid{$_[0]}) {
 	return $min_uid{$_[0]};
     }
@@ -608,7 +605,7 @@ sub SetGroupType {
 }
 
 
-##------------------------------------ TODO return term
+##------------------------------------
 # build item for one user
 sub BuildUserItem {
 
@@ -616,54 +613,42 @@ sub BuildUserItem {
 
     my $uid		= $user{"uidNumber"};
     my $username	= $user{"username"} || "";
-    my $full	= $user{"cn"} || "";
+    my $full		= $user{"cn"} || "";
 
-#        term    a     = `item(`id(key)); TODO
-#
-#        if( size(s_uid) !=  max_length_uid )
-#            s_uid = addBlanks(max_length_uid - size(s_uid)) + s_uid;
-#
-#        a = add(a, username );
-#
-#        if (user{"type"}:"local" == "system")
-#            a = add(a, SystemUsers {full}:full );
-#        else
-#            a = add(a, full );
-#
-#        a = add(a, s_uid );
+#    if ($user_type eq "system") {
+#	$full		= SystemUsers (full); FIXME translated names!
+#    }
+
     my $groupname	= $user{"groupname"} || "";
-#    my @grouplist	= @{$user{"grouplist"}};
     my %grouplist	= %{$user{"grouplist"}};
 
-    if (!defined $grouplist{$groupname} && $groupname ne "") {
-#    	push @grouplist, $groupname;
+    if ($groupname ne "") {
     	$grouplist{$groupname}	= 1;
     }
     my $all_groups	= join (",", keys %grouplist);
 
-    return
-	"`item(`id($uid), \"$username\", \"$full\", \"$uid\", \"$all_groups\")";
+    my $id = YaST::YCP::Term ("id", $uid);
+    my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
+
+    return $t;
 }
 
-
-##------------------------------------
-# Builds item list for the user table
-# @param map_of_users users of one type, hash of type uid => user
-# @return list of items for table widget
 BEGIN { $TYPEINFO{BuildUserItemList} = ["function",
-    ["list", "string"],
-    ["map", "string", "any" ]];
+    "void",
+    "string",
+    ["map", "integer", [ "map", "string", "any"]] ];
 }
 sub BuildUserItemList {
 
-    my @items		= ();
-    my %map_of_users	= %{$_[1]}; #TODO do not eval -work with pointer ?
+    my $type		= $_[0];
+    my %map_of_users	= %{$_[1]};
+    $user_items{$type}	= {};
 
-    foreach my $uid (sort keys %map_of_users) {
-        push @items, BuildUserItem ($map_of_users{$uid});
+    foreach my $uid (keys %map_of_users) {
+        $user_items{$type}{$uid}	= BuildUserItem ($map_of_users{$uid});
     };
-    return \@items;
 }
+
 
 ##------------------------------------
 # Update the proper itemlist shown in table
@@ -681,12 +666,61 @@ sub BuildGroupItem {
     my $gid		= $group{"gidNumber"};
     my $groupname	= $group{"groupname"} || "";
 
-    my $all_users	= join (",", keys %{$group{"userlist"}});
-#TODO merge with more_users
+    my %userlist	= %{$group{"userlist"}};
+    my %more_users	= %{$group{"more_users"}};
 
-    return
-    "`item(`id($gid), \"".$group{"groupname"}."\", \"$gid\", \"$all_users\")";
+    if ($group_type eq "ldap") {
+	%userlist	= %{$group{"uniqueMember"}};
+    }
+
+    my @all_users	= ();
+    my @userlist	= keys %userlist;
+    my $i		= 0;
+
+    while ($i < $the_answer && defined $userlist[$i]) {
+
+	push @all_users, $userlist[$i];
+	$i++;
+    }
+    
+    my $count		= @all_users;
+    my @more_users	= keys %more_users;
+    my $j		= 0;
+
+    while ($count + $j < $the_answer && defined $more_users[$j]) {
+
+	push @all_users, $more_users[$j];
+	$j++;
+    }
+    if (defined $more_users[$j] || defined $userlist[$i]) {
+	push @all_users, "...";
+    }
+
+    my $all_users	= join (",", @all_users);
+
+    my $id = YaST::YCP::Term ("id", $gid);
+    my $t = YaST::YCP::Term ("item", $id, $groupname, $gid, $all_users);
+
+    return $t;
 }
+
+##------------------------------------
+BEGIN { $TYPEINFO{BuildGroupItemList} = ["function",
+    "void",
+    "string",
+    ["map", "integer", [ "map", "string", "any"]] ];
+}
+sub BuildGroupItemList {
+
+    my $type		= $_[0];
+    my %map_of_groups	= %{$_[1]};
+    $group_items{$type}	= {};
+
+    foreach my $uid (keys %map_of_groups) {
+        $group_items{$type}{$uid}	= BuildGroupItem ($map_of_groups{$uid});
+    };
+}
+
 
 sub UpdateGroupItemlist {
 
@@ -882,6 +916,7 @@ sub ReadUsers {
     if ($type eq "ldap") {
 	$path 		= ".ldap";
         %userdns	= %{SCR::Read (".ldap.users.userdns")};
+	$user_items{$type}	= \%{SCR::Read ("$path.users.items")};
     }
     elsif ($type eq "nis") {
 	$path		= ".nis";
@@ -893,7 +928,6 @@ sub ReadUsers {
     $homes{$type} 	= \%{SCR::Read ("$path.users.homes")};
     $usernames{$type}	= \%{SCR::Read ("$path.users.usernames")};
     $uids{$type}	= \%{SCR::Read ("$path.users.uids")};
-    $user_items{$type}	= \%{SCR::Read ("$path.users.items")};
 
 #TODO NIS
     return 1;
@@ -904,13 +938,16 @@ sub ReadGroups {
 
     my $type	= $_[0];
     my $path 	= ".passwd.$type";
-    if ($type eq "ldap" || $type eq "nis") {
+    if ($type eq "ldap") {
+	$path 	= ".$type";
+	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
+    }
+    elsif ($type eq "nis") {
 	$path 	= ".$type";
     }
-
     $gids{$type}	= \%{SCR::Read ("$path.groups.gids")};
     $groupnames{$type}	= \%{SCR::Read ("$path.groups.groupnames")};
-    $group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
+#    $group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
 }
 
 
@@ -918,13 +955,52 @@ sub ReadGroups {
 BEGIN { $TYPEINFO{Read} = ["function", "void"];}
 sub Read {
 
-    # read data for local & system: passwd agent:
+    # read cache data for local & system: passwd agent:
     ReadUsers ("local");
     ReadUsers ("system");
-   # FIXME translate system names: SystemUsers in passwd.ycp
 
     ReadGroups ("local");
     ReadGroups ("system");
 }
+
+##-------------------------------------------------------------------------
+
+BEGIN { $TYPEINFO{BuildAdditional} = ["function",
+    ["list", "term"],
+    ["map", "string", "any"]];
+}
+sub BuildAdditional {
+
+    my $group		= $_[0];
+    my @additional 	= ();
+    my $true		= YaST::YCP::Boolean (1);
+    my $false		= YaST::YCP::Boolean (0);
+    
+    foreach my $type (keys %usernames) {
+
+	# LDAP groups can contain only LDAP users...
+	if ($group_type eq "ldap" && $type ne "ldap") {
+	    next;
+	    # TODO LDAP users are identified by DN's, not by names!
+	}
+
+	foreach my $user (keys %{$usernames{$type}}) {
+	
+	    my $id = YaST::YCP::Term ("id", $user);
+	    
+	    if (defined $group->{"userlist"}{$user}) {
+
+		push @additional, YaST::YCP::Term ("item", $id, $user, $true);
+	    }
+	    elsif (!defined $group->{"more_users"}{$user}) {
+		push @additional, YaST::YCP::Term ("item", $id, $user, $false);
+	    }
+	}
+    }
+
+    return @additional;
+
+}
+
 
 # EOF

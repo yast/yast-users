@@ -10,7 +10,7 @@ package Users;
 use strict;
 
 use ycp;
-use YaST::YCP qw(Boolean Term);
+use YaST::YCP qw(Boolean);
 
 #use io_routines;
 #use check_routines;
@@ -102,6 +102,13 @@ my $is_nis_available 		= 0;
 my $is_ldap_available 		= 0;
 my $is_nis_master		= 0;
 
+# nis users are not read by default, but could be read on demand:
+my $nis_not_read 		= 1;
+
+# ldap users are not read by default, but could be read on demand:
+my $ldap_not_read 		= 1;
+
+# paths to commands that should be run before (after) adding (deleting) a user
 my $useradd_cmd 		= "";
 my $userdel_precmd 		= "";
 my $userdel_postcmd 		= "";
@@ -279,23 +286,19 @@ sub ChangeCurrentUsers {
         @current_users = ( $new );
     }
 
-#    if (contains (current_users, "ldap") && ldap_not_read)
-#    {
-#        if (!ReadNewSet ("ldap"))
-#        {
-#            current_users = backup;
-#            return false;
-#        }
-#    }
-#
-#    if (contains (current_users, "nis") && nis_not_read)
-#    {
-#        if (!ReadNewSet ("nis"))
-#        {
-#            current_users = backup;
-#            return false;
-#        }
-#    } TODO LDAP, NIS
+    if (contains (\@current_users, "ldap") && $ldap_not_read) {
+        if (!ReadNewSet ("ldap")) {
+            @current_users = @backup;
+            return 0;
+        }
+    }
+
+    if (contains (\@current_users, "nis") && $nis_not_read) {
+        if (!ReadNewSet ("nis")) {
+            @current_users = @backup;
+            return 0;
+        }
+    }
 
     # correct also possible change in custom itemlist
     if ($new eq "custom") {
@@ -322,23 +325,19 @@ sub ChangeCurrentGroups {
         @current_groups = ( $new );
     }
 
-#    if (contains (current_groups, "ldap") && ldap_not_read)
-#    {
-#        if (!ReadNewSet ("ldap"))
-#        {
-#            current_groups = backup;
-#            return false;
-#        }
-#    }
-#
-#    if (contains (current_groups, "nis") && nis_not_read)
-#    {
-#        if (!ReadNewSet ("nis"))
-#        {
-#            current_groups = backup;
-#            return false;
-#        }
-#    } TODO LDAP, NIS
+    if (contains (\@current_groups, "ldap") && $ldap_not_read) {
+        if (!ReadNewSet ("ldap")) {
+            @current_groups = @backup;
+            return 0;
+        }
+    }
+
+    if (contains (\@current_groups, "nis") && $nis_not_read) {
+        if (!ReadNewSet ("nis")) {
+            @current_groups = @backup;
+            return 0;
+        }
+    }
 
     # correct also possible change in custom itemlist
     if ($new eq "custom") {
@@ -970,7 +969,7 @@ sub ReadNewSet {
     my $type	= $_[0];
     if ($type eq "nis") {
 
-#        $nis_not_read = 0;
+        $nis_not_read = 0;
 #        users ["nis"] = ReadNISUsers (tmpdir);
 #        users_by_name ["nis"] = ReadNISUsersByName (tmpdir);
 #        groups ["nis"] = ReadNISGroups (tmpdir);
@@ -989,7 +988,7 @@ sub ReadNewSet {
 #	    # TODO error as return value?
 #            return 0;
 #        }
-#        $ldap_not_read = 0;
+        $ldap_not_read = 0;
 
 	# ---------------------- testing (without using Ldap module):
 	
@@ -1036,6 +1035,7 @@ sub ReadNewSet {
     }
     UsersCache::ReadUsers ($type);
     UsersCache::ReadGroups ($type);
+#TODO BuildUserItems for nis users
 
     return 1;
 }
@@ -1045,17 +1045,13 @@ sub ReadNewSet {
 BEGIN { $TYPEINFO{ReadLocal} = ["function", "void"]; }
 sub ReadLocal {
 
-    my %id_limits = (
+    my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
+	"base_directory"	=> "/etc"
     );
     # id limits are necessary for differ local and system users
-    SCR::Execute (".passwd.init", \%id_limits);
-#    %users		= %{SCR::Read (".passwd.users")};
-#    %users_by_name	= %{SCR::Read (".passwd.users.by_name")};
-#    %shadow		= %{SCR::Read (".passwd.shadow")};
-#    %groups		= %{SCR::Read (".passwd.groups")};
-#    %groups_by_name	= %{SCR::Read (".passwd.groups.by_name")};
+    SCR::Execute (".passwd.init", \%configuration);
 
     foreach my $type ("local", "system") {
 	$users{$type}		= \%{SCR::Read (".passwd.$type.users")};
@@ -1064,6 +1060,21 @@ sub ReadLocal {
 	$groups{$type}		= \%{SCR::Read (".passwd.$type.groups")};
 	$groups_by_name{$type}	= \%{SCR::Read(".passwd.$type.groups.by_name")};
     }
+
+}
+
+sub ReadUsersCache {
+    
+    UsersCache::Read ();
+
+    UsersCache::BuildUserItemList ("local", $users{"local"});
+    UsersCache::BuildUserItemList ("system", $users{"system"});
+
+    UsersCache::BuildGroupItemList ("local", $groups{"local"});
+    UsersCache::BuildGroupItemList ("system", $groups{"system"});
+
+    UsersCache::SetCurrentUsers (\@user_custom_sets);
+    UsersCache::SetCurrentGroups (\@group_custom_sets);
 
 }
 
@@ -1087,9 +1098,7 @@ sub Read {
 
     ReadLocal ();
 
-    UsersCache::Read ();
-    UsersCache::SetCurrentUsers (\@user_custom_sets);
-    UsersCache::SetCurrentGroups (\@group_custom_sets);
+    ReadUsersCache ();
 
     Autologin::Read ();
 
@@ -1476,7 +1485,6 @@ sub AddUser {
     }
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
-	# FIXME always false!
     }
     if (!defined $user_in_work{"userPassword"}) {
 	$user_in_work{"userPassword"}	= "";
@@ -3095,10 +3103,4 @@ sub CryptRootPassword {
     $root_password = CryptPassword ($root_password, "system");
 }
 
-BEGIN { $TYPEINFO{GetTerm} = ["function", "term"];}
-sub GetTerm {
-    
-    return YaST::YCP::Term ("CzechBox", "Accept spam", YaST::YCP::Boolean (0));
-
-}
-
+# EOF
