@@ -52,8 +52,6 @@ define symbol string_to_symbol (string to_convert) ``{
     return to_symbol [to_convert]:`back;
 }
 
-// FIXME check performance!
-// could be problem when large group is passed to GetInt...
 define integer GetInt (map data, string key, integer default_value) {
 
     if (is (data[key]:nil, integer))
@@ -69,7 +67,6 @@ define string GetString (map data, string key, string default_value) {
 	return sformat ("%1", data[key]:nil);
     return default_value;
 }
-
 
 /**
  * Upperase letters were used in username! (see bug #26409)
@@ -140,7 +137,6 @@ define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
-//y2internal ("user: %1", user);
 
     if (user == $[])
     {
@@ -577,8 +573,7 @@ Please try again."));
             }
 
 	    // -------------------------------------- directory checks
-	    if (!details && (what == "add_user" || home != org_home)) {
-		//FIXME Home is checked twice, (from Details, and back from here
+	    if (!details && home != org_home) {
 		error = Users::CheckHome (home);
 		if (error != "")
 		{
@@ -639,8 +634,7 @@ Please try again."));
 		Users::AddUser (user);
 	    }
 	}
-	if ((ret == `abort || ret == `cancel) &&
-	    !Popup::ReallyAbort (Users::Modified()))
+	if ((ret == `abort || ret == `cancel) && ReallyAbort () != `abort)
 	{
 	    ret = `notnext;
 	}
@@ -1406,9 +1400,7 @@ define symbol EditGroupDialog (string what ) ``{
 	    more_users_items = add (more_users_items,
 		`item (`id("-"), "...", false ));
 	i = i + 1;
-// FIXME: go out from foreach when i>42!
     });
-
 
     boolean more = size (more_users) > 0;
 
@@ -1431,7 +1423,6 @@ define symbol EditGroupDialog (string what ) ``{
         ]
     ];
 
-
     // make dialog
     term contents = `HBox(
         `Left(`VBox(
@@ -1452,9 +1443,11 @@ define symbol EditGroupDialog (string what ) ``{
         `HSpacing(2),
         `VBox(
             `VSpacing(1),
-            // selection box label
-            `MultiSelectionBox( `id(`userlist), _("&Members of this Group"),
-                additional_users),
+	    `ReplacePoint (`id(`rpuserlist),
+		// selection box label
+		`MultiSelectionBox( `id(`userlist), _("&Members of this Group"),
+		    [])
+	    ),
             more ? `VSpacing(1) : `VSpacing (0),
             // selection box label
             more ? `MultiSelectionBox ( `id(`more_users), "",
@@ -1484,6 +1477,14 @@ define symbol EditGroupDialog (string what ) ``{
 	// the group of users having this group as default - cannot be edited!
         UI::ChangeWidget (`id(`more_users), `Enabled, false);
     }
+    // add items later (when there is a huge amount of them, it takes long
+    // time to display, so display at least the rest of the dialog)
+    if (size (additional_users) > 0)
+    {
+	UI::ReplaceWidget (`id(`rpuserlist),
+	    `MultiSelectionBox( `id(`userlist), _("&Members of this Group"),
+		additional_users));
+    }
 
     any ret = `next;
 
@@ -1502,8 +1503,7 @@ define symbol EditGroupDialog (string what ) ``{
     {
         ret = UI::UserInput();
 
-	if ((ret == `abort || ret == `cancel) &&
-	    !Popup::ReallyAbort (Users::Modified()))
+	if ((ret == `abort || ret == `cancel) && ReallyAbort () != `abort)
 	{
 	    ret = `notnext;
 	}
