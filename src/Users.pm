@@ -1161,10 +1161,11 @@ sub ReadSystemDefaults {
 
     my $self		= shift;
 
-    Progress->off ();
-    Security->Read ();
-
-    if ($use_gui) { Progress->on (); }
+    if (! Security->GetModified ()) {
+	Progress->off ();
+	Security->Read ();
+	if ($use_gui) { Progress->on (); }
+    }
 
     my %security	= %{Security->Export ()};
     $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
