@@ -1695,6 +1695,11 @@ sub DeleteUser {
     if (%user_in_work) {
 	$user_in_work{"what"}		= "delete_user";
 	$user_in_work{"delete_home"}	= YaST::YCP::Boolean (bool ($_[0]));
+    
+	# disable autologin when user is deleted #45261
+	if (Autologin->user () eq ($user_in_work{"uid"} || "")) {
+	    Autologin->Disable ();
+	}
 	return 1;
     }
     y2warning ("no such user");
