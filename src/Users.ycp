@@ -24,6 +24,7 @@ import "MailAliases";
 import "Directory";
 import "Console";
 import "Security";
+import "Require";
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
@@ -294,6 +295,7 @@ global map groupset_to_string = $[
 ];
 
 
+
 /**
  * Read all the settings
  * @param abort the abort block
@@ -426,12 +428,13 @@ global define symbol Read (block abort, boolean useUI) ``{
     tmpdir = SCR::Read(.target.tmpdir);
     UsersCache::PrintDate ("bef run prepare");
 
-    if ( !RunPrepare("passwd") )
+    map prepare = RunPrepare("passwd");
+    if ( prepare["exit"]:0 != 0 )
     {
-	    Report::Error (_("Cannot run preparation script."));
-        // TODO add some popup if there are duplicate uids (#25394)
+        Report::Error (GetErrorMessage(prepare));
         return `abort;
     }
+
     UsersCache::PrintDate ("after run prepare");
 
 	// read password settings
@@ -460,7 +463,7 @@ global define symbol Read (block abort, boolean useUI) ``{
     {
 		// error popup
 	    Report::Error (_("Cannot read the password settings."));
-	    //return `abort;
+	    return `abort;
     }
 
 	// read group settings
@@ -608,6 +611,7 @@ global define symbol Write (block abort, boolean useUI)``{
 			// final progress step label
 			_("Finished") ],
 			    "" );
+// TODO: LDAP in progress only when available
 
 	// backup
 	if ( useUI )
@@ -706,6 +710,7 @@ global define symbol Write (block abort, boolean useUI)``{
         string username = user["username"]:"";
         string command = "";
         symbol user_mod = user["modified"]:`nothing;
+        integer gid = user["gid"]:default_gid;
         if (user_mod == `imported || user_mod == `added)
         {
             if (user["create_home"]:true ||
@@ -723,9 +728,15 @@ global define symbol Write (block abort, boolean useUI)``{
             }
             // change the rights
             string groupname = user["groupname"]:default_groupname;
-            command = sformat("/bin/chown -R %1:%2 %3",username,groupname,home);
-            y2debug("chown (%1) return value: %2", command,
-                SCR::Execute(.target.bash, command));
+            // chown only when necessary:
+            if (uid != lookup (SCR::Read(.target.stat, home), "uid", -1) ||
+                gid != lookup (SCR::Read(.target.stat, home), "gid", -1))
+            {
+                command = sformat("/bin/chown -R %1:%2 %3", username, groupname,
+                    home);
+                y2debug("chown (%1) return value: %2", command,
+                    SCR::Execute(.target.bash, command));
+            }
             // call the useradd.local (-- check the existence ??)
             command = sformat("/usr/sbin/useradd.local %1", username);
             y2debug("useradd.local return value: %1",
@@ -747,22 +758,13 @@ global define symbol Write (block abort, boolean useUI)``{
                     y2debug("mv (%1) return value: %2", command,
                         SCR::Execute(.target.bash, command));
                 }
-                else // directory already exists
-                {
-                    // change the rights
-                    string groupname = user["groupname"]:default_groupname;
-                    command = sformat("/bin/chown -R %1:%2 %3", username,
-                        groupname, home);
-                    y2debug("chown (%1) return value: %2", command,
-                        SCR::Execute(.target.bash, command));
-                }
             }
-            integer org_uid = user["org_uid"]:uid;
             string groupname = user["groupname"]:default_groupname;
-            if (uid != org_uid)
+            // directory already exists and chown is needed
+            if (uid != lookup (SCR::Read(.target.stat, home), "uid", -1) ||
+                gid != lookup (SCR::Read(.target.stat, home), "gid", -1))
             {
-                // change the rights of user's files
-                y2milestone ("UID of user %1 was changed, changing rights of files in %2", username, home);
+                y2milestone ("changing owner of files in %2 to %1", username, home);
                 command = sformat("/bin/chown -R %1:%2 %3", username,
                     groupname, home);
                 y2debug("chown (%1) return value: %2", command,
@@ -940,7 +942,6 @@ global define symbol Write (block abort, boolean useUI)``{
 global define string Summary() ``{
 
     string ret = "";
-    //"Summary of users and groups:<br>";
 
     // show only modified system and all local ones
     ret = ret + "<h3>Users</h3>";
@@ -965,6 +966,8 @@ global define string Summary() ``{
 
 /**
  * Converts autoyast's user's map for users module usage
+ * @param user map with user data provided by users_auto client
+ * @return map with user data as defined in Users module
  */
 define map ImportUser (map user) ``{
 
@@ -1074,6 +1077,8 @@ define map ImportUser (map user) ``{
 
 /**
  * Converts autoyast's group's map for groups module usage
+ * @param group map with group data provided by users_auto client
+ * @return map with group data as defined in Users module
  */
 define map ImportGroup (map group) ``{
 
@@ -1098,9 +1103,8 @@ define map ImportGroup (map group) ``{
 /**
  * Get all the user configuration from the list of maps.
  * Is called users_auto (preparing autoinstallation data).
- * @param settings	A list of maps of type:
- * [ users, groups, useradds_defaults ]
- * to be added to the system.
+ * @param settings	A map with keys: "users", "groups", "user_defaults"
+ * and values to be added to the system.
  * @return true
  */
 global define boolean Import (map settings) ``{
@@ -1251,7 +1255,7 @@ global define boolean Import (map settings) ``{
     ReadAllShells();
     ReadDefaultGroup(false);
 
-    // define more_users (for groups), grouplist and groupname (for users)
+    // create more_users (for groups), grouplist and groupname (for users)
     // TODO move this block to ReadCache?
     foreach (`type, [`system, `local], ``{
 
@@ -1285,33 +1289,10 @@ global define boolean Import (map settings) ``{
     return true;
 }
 
-
-/**
- * Reseting the values (probably to empty set) - to use for autoinstallation
- * @param settings same as in Import
- */
-global define void Set (list settings) ``{
-
-    // what about system users/groups ??
-
-    users [`local] = settings[0, `local]:$[];
-    users_by_name [`local] = UsersByName (users [`local]:$[]);
-
-    groups [`local] = settings[1, `local]:$[];
-    groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
-
-    shadow [`local] = settings[2, `local]:$[];
-    gshadow [`local] = settings[3, `local]:$[];
-
-    if (settings[4]:$[] != $[])
-        useradd_defaults = settings[4]:$[];
-
-    UsersCache::EmptyStructures();
-    ReadUsersCache(false);
-}
-
 /**
  * Converts user's map for autoyast usage
+ * @param user map with user data as defined in Users module
+ * @return map with user data in format used by autoyast
  */
 define map ExportUser (map user) ``{
 
@@ -1342,6 +1323,8 @@ define map ExportUser (map user) ``{
 
 /**
  * Converts group's map for autoyast usage
+ * @param group map with group data as defined in Users module
+ * @return map with group data in format used by autoyast
  */
 define map ExportGroup (map group) ``{
 
@@ -1718,7 +1701,7 @@ global define boolean Commit (string object, boolean cache)``{
             users [ type, uid ] = eval (user_in_work);
 
             // this has to be done due to multiple changes of username -- ??
-            // and what about the home and others??
+            // and what about the home and others?? TODO
             if (type != `ldap) // for changing ldap username old one is needed
                 users [type, uid, "org_username"] = username;
         }
@@ -2213,8 +2196,9 @@ global define list GetAllShells(symbol todo ) ``{
 	return available_shells;
 }
 
-
-
+/**
+ * Reads the set of values in "Custom" filter from disk
+ */
 global define void ReadCustomSets() ``{
 
     string file = Directory::vardir + "/users_customs.ycp";
@@ -2230,6 +2214,10 @@ global define void ReadCustomSets() ``{
         group_custom_sets = [`local];
 }
 
+/**
+ * Writes the set of values in "Custom" filter to disk
+ * @return writing success
+ */
 global define boolean WriteCustomSets() ``{
 
     map customs = $[
@@ -2239,7 +2227,6 @@ global define boolean WriteCustomSets() ``{
     return
     SCR::Write (.target.ycp, Directory::vardir + "/users_customs.ycp", customs);
 }
-
 
 /**
  * Helper for building items of MenuButton in users/groups summary dialog
@@ -2296,7 +2283,6 @@ global define void ReadUsersCache(boolean read_prebuilded) ``{
     }
     else
         UsersCache::Read (users, groups, current_users, current_groups);
-
 }
 
 /**
@@ -2486,28 +2472,24 @@ global define boolean ReadNewSet (symbol type) ``{
     else if (type == `ldap)
     {
         // first: check for required packages:
-        if (SCR::Execute(.target.bash, "rpm -q perl-ldap cpu yast2-ldap-client") !=0)
-        {
-            include "require.ycp"; // is it possible to have it here??
-            if (RequireAndConflict (["perl-ldap","cpu","yast2-ldap-client"], [],
-                // Popup text (required application):
-                _("For managing LDAP users, the packages
-\"perl-ldap\", \"cpu\", and \"yast2-ldap-client\"
-are necessary, but some of them are not present.
-Install them now?
-")) == false)
+        if (!Require::RequireAndConflict (["perl-ldap","cpu","yast2-ldap-client"], [], sformat (
+// Popup text (%1 are required packages):
+_("For managing LDAP users, these packages are necessary:
+<br>%1<br>
+At least one of them is not present.
+Install it now?"),
+"<b>cpu</b>,<b>perl-ldap</b>,<b>yast2-ldap-client</b>.")))
                 return false;
-        }
         // check for cpu.cfg
         if (!CpuConfigured (ldap_host, ldap_base))
         {
             // popup text
-            if (UI::YesNoPopup(_("Your \"cpu\" program does not appear to be configured. 
+            if (UI::YesNoPopup(_("Your <b>cpu</b> program does not appear to be configured. 
 It is used for updating LDAP users and groups.
 Configure it now?
 ")))
             {
-                import "Ldap"; // could it be here ??
+                import "Ldap";
                 Ldap::Read();
                 if (CallFunction(`cpu_configure(true)) == `next)
                     Ldap::WriteCpuSettings();
@@ -2527,7 +2509,9 @@ Configure it now?
             `Label(_("Reading sets of users and groups. Please wait...")));
 
         // run preparation script for geting users and groups from server:
-        if (!RunPrepare ("ldap"))
+        map ldap_prepare = RunPrepare ("ldap");
+        // TODO check the return values!
+        if (ldap_prepare["exit"]:0 != 0)
         {
             // error Popup text (bad password?):
             UI::ErrorPopup(_("There was a problem with connecting the LDAP server."));
@@ -2558,7 +2542,7 @@ global define void CorrectUsers(symbol type) ``{
 
     list new_users = UsersCache::usernamelists [type]:[];
 
-    /* 2 possible solutions:
+    /* TODO 2 possible solutions:
     1. walk through set of new users and call FindGroupsBelongUser -> too slow
     2. walk through all groups (maybe except "users") and check the correctness
         of its userlist entry -> bit strange
@@ -2701,21 +2685,21 @@ global define string LastChangeIsNow () ``{
 /**
  * Runs a script, preparing the data structures
  * @param type type of user/group set to load, can be "passwd", "nis", "ldap"
- * @return true on success
+ * @return map with return value, stdout and stderr
  */
-global define boolean RunPrepare(string type) ``{
+global define map RunPrepare(string type) ``{
 
-    integer ret = 1;
+    map ret = $[];
 
     if (type == "passwd")
     {
-        ret = SCR::Execute(.target.bash, sformat(
+        ret = SCR::Execute(.target.bash_output, sformat(
         "%1/build_passwd_structures.pl %2 %3 %4 %5 %6", Directory::bindir,
         base_dir, tmpdir, max_system_uid, max_system_gid, encoding));
     }
     else if (type == "nis")
     {
-        ret = SCR::Execute(.target.bash, sformat(
+        ret = SCR::Execute(.target.bash_output, sformat(
         "%1/build_nis_structures.pl %2 %3", Directory::bindir, tmpdir,
         encoding));
     }
@@ -2724,11 +2708,11 @@ global define boolean RunPrepare(string type) ``{
         string binding = "password";
         if (ldap_bind_pass == "")
             binding = "anonymous";
-        ret = SCR::Execute(.target.bash, sformat(
+        ret = SCR::Execute(.target.bash_output, sformat(
         "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
         tmpdir, encoding, binding));
     }
-    return (ret == 0);
+    return ret;
 }
 
 /**
@@ -2977,8 +2961,8 @@ after you mount correctly. Continue user configuration?
 
 /**
  * Just some simple checks for password contens
- * @param username
- * @param pw
+ * @param username user name
+ * @param pw password
  * @return error message (password too sumple) or empty string (OK)
  */
 global define string CheckObscurity (string username, string pw) ``{
@@ -3014,8 +2998,8 @@ This is not good security practice. Are you sure?");
 /**
  * Try to crack password using cracklib
  * TODO: postponed until tranltation of error messages
- * @param username
- * @param pw
+ * @param username user name
+ * @param pw password
  * @return utility output: ether "OK" or error message
  */
 global define string CrackPassword (string username, string pw) ``{

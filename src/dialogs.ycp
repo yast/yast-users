@@ -447,10 +447,19 @@ Please press button Details and edit home directory."));
                     !Mode::config && create_home &&
                     SCR::Read(.target.size, home ) != -1)
                 {
-                    // yes-no popup
-                    if (! UI::YesNoPopup(_("The home directory selected already exists.
-Use it and change its owner?
-")))
+                    integer dir_uid = lookup (SCR::Read(.target.stat, home), "uid", -1);
+                    string question = sformat(
+// yes-no popup, %1 is home directory
+_("The home directory selected (%1) already exists.
+Use it and change its owner?"), home);
+                    if (uid == dir_uid) // chown is not needed (#25200)
+                        question = sformat(
+// yes-no popup
+_("The home directory selected (%1)
+already exists and is owned by currently edited user.
+Use this directory?"), home);
+
+                    if (! UI::YesNoPopup(question))
                     {
                         home = Users::default_home;
                         continue;
@@ -1004,10 +1013,18 @@ Please try again."));
                 // do not check local directories in autoinst config
                 if (SCR::Read(.target.size, new_home ) != -1 && !Mode::config)
                 {
-                    // yes-no popup
-                    if (! UI::YesNoPopup(_("The home directory selected already exists.
-Use it and change its owner?
-")))
+                    integer dir_uid = lookup (SCR::Read(.target.stat, new_home), "uid", -1);
+                    string question =
+// yes-no popup
+_("The home directory selected already exists.
+Use it and change its owner?");
+                    if (new_i_uid == dir_uid) // chown is not needed (#25200)
+                        question =
+// yes-no popup
+_("The home directory selected already exists
+and is owned by currently edited user.
+Use this directory?");
+                    if (! UI::YesNoPopup(question))
                     {
                         UI::SetFocus(`id(`home));
                         continue;

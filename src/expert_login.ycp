@@ -17,9 +17,9 @@ import "Mode";
 import "Security";
 import "Progress";
 import "Runlevel";
+import "Require";
 
 include "ui/common_messages.ycp";
-include "require.ycp";
 
 
     string help_text = _("<p>
@@ -163,9 +163,9 @@ You can configure these settings by running appropriate modules. Select the modu
 
     // read the encryption settings
     Progress::off();
-    Security::Read(); // TODO: not needed when calling from users module?
+    Security::Read();
     Progress::on();
-    y2debug ("sec: %1", Security::Settings);
+    y2debug ("security settings: %1", Security::Settings);
 
     string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
 
@@ -245,7 +245,7 @@ You can configure these settings by running appropriate modules. Select the modu
             string module_name = to_module [button]:"nis";
             string package = sformat ("yast2-%1-client", module_name);
 
-            if ( RequireAndConflictButtons ( [package], [],
+            if ( Require::RequireAndConflictButtons ( [package], [],
                 // popup label (%1 is package to install)
                 sformat (_("Package %1 is not installed.
 Install it now?
