@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jul 22 12:34:25 CEST 2002 - jsrain@suse.cz
+
+- removed yast2-mail from list of required packages
+- fixed root password during installation (Bug #17126)
+
+-------------------------------------------------------------------
 Fri Jul 19 15:50:03 CEST 2002 - jsrain@suse.cz
 
 - Removed yast2-nis from list of required packages

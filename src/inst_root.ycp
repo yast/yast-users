@@ -296,7 +296,7 @@ Try again.
 
 
 	     Users::removeOldConf();
-	     Users::cryptRootPassword();
+	     Users::cryptRootPassword(pw1);
 	     if ( this_is_for_real && ! Users::SetRootPassword())
 	     {
 		 // Error msg

@@ -78,7 +78,7 @@
      * Crypt the root password according to method defined in encryptionMethod
      * @return void
      */
-    global define void cryptRootPassword()
+    global define void cryptRootPassword(string pw1)
 	``{
 	if (Mode::test) {
 	    return;

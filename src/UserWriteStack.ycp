@@ -20,7 +20,7 @@
   import "Mode";
   import "UserDefs";
   import "UserSettings";
-  import "Mail";
+  import "MailAliases";
 
   include "users/help.ycp";
   include "users/ui.ycp";
@@ -557,7 +557,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 
 	if (Mode::cont && root_mail != "")
         {
-            boolean ret = Mail::SetRootAlias (root_mail);
+            boolean ret = MailAliases::SetRootAlias (root_mail);
 	    if (! ret)
 		Report::Error(_("There was an error while setting forwarding root's mail"));
 	    ok = ok & ret;
