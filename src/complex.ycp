@@ -81,8 +81,13 @@ define symbol WriteDialog (boolean useUI) ``{
     };
 
     Users::SetGUI (useUI);
-    return Users::Write () == "" ? `next : `abort;
+    symbol ret = `next;
+    if (!Users::Write ())
+    {
+	if (!Mode::cont) ret = `abort;
+    }
     Users::SetGUI (true);
+    return ret;
 }
 
 /**
