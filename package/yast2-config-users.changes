@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Aug  9 11:02:45 CEST 2001 - jbuch@suse.de
+
+- add crypt md5 password 
+
+-------------------------------------------------------------------
 Mon Aug  6 16:35:17 CEST 2001 - jbuch@suse.de
 
 - edit user/group with double click
