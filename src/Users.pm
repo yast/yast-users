@@ -1,6 +1,6 @@
 #! /usr/bin/perl -w
 #
-# Users module written in Perl
+# Users module
 #
 
 #TODO do not dereference large maps if not necessary...
@@ -19,7 +19,7 @@ our %TYPEINFO;
 
 # If YaST UI (Qt,ncurses should be used). When this is off, some helper
 # UI-related structures won't be generated.
-my $use_ui			= 1;
+my $use_gui			= 1;
 
 # What client to call after authentication dialog during installation:
 # could be "users","nis","nisplus" or "ldap", for more see inst_auth.ycp
@@ -101,9 +101,9 @@ my $defaults_modified 		= 0;
 my $security_modified 		= 0;
 
 # variables describing available users sets:
-my $is_nis_available 		= 0;
-my $is_ldap_available 		= 0;
-my $is_nis_master		= 0;
+my $nis_available 		= 1;
+my $ldap_available 		= 1;
+my $nis_master			= 0;
 
 # nis users are not read by default, but could be read on demand:
 my $nis_not_read 		= 1;
@@ -165,8 +165,10 @@ YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Security");
+YaST::YCP::Import ("Service");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersLDAP");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -209,10 +211,21 @@ sub Modified {
     return $ret;
 }
 
-BEGIN { $TYPEINFO{IsNISAvailable} = ["function", "boolean"]; }
-sub IsNISAvailable {
-    return $is_nis_available;
+BEGIN { $TYPEINFO{NISAvailable} = ["function", "boolean"]; }
+sub NISAvailable {
+    return $nis_available;
 }
+
+BEGIN { $TYPEINFO{LDAPAvailable} = ["function", "boolean"]; }
+sub LDAPAvailable {
+    return $ldap_available;
+}
+
+BEGIN { $TYPEINFO{LDAPModified} = ["function", "boolean"]; }
+sub LDAPModified {
+    return $ldap_modified;
+}
+
 
 BEGIN { $TYPEINFO{GetRootMail} = ["function", "string"]; }
 sub GetRootMail {
@@ -894,15 +907,15 @@ sub ReadSourcesSettings {
     @available_usersets		= ( "local", "system" );
     @available_groupsets	= ( "local", "system" );
 
-    $is_nis_available		= 0;#FIXME ReadNISAvailable ();
-    $is_nis_master 		= 0;#ReadNISMaster ();
-    $is_ldap_available 		= 0;#ReadLDAPAvailable ();
+    $nis_available		= ReadNISAvailable ();
+    $nis_master 		= ReadNISMaster ();
+    $ldap_available 		= UsersLDAP::ReadAvailable ();
 
-    if (!$is_nis_master && $is_nis_available) {
+    if (!$nis_master && $nis_available) {
         push @available_usersets, "nis";
         push @available_groupsets, "nis";
     }
-    if ($is_ldap_available) {
+    if ($ldap_available) {
         push @available_usersets, "ldap";
         push @available_groupsets, "ldap";
     }
@@ -939,7 +952,8 @@ sub ReadSystemDefaults {
     $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"};
     $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"};
 
-#FIXME    $max_pass_length{"local"}	= $Security::PasswordMaxLengths{$encryption_method};
+    my %max_lengths		= %{Security::PasswordMaxLengths ()};
+    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
     $max_pass_length{"system"}	= $max_pass_length{"local"};
 
     UsersCache::InitConstants (\%security);
@@ -974,72 +988,41 @@ sub ReadNewSet {
     if ($type eq "nis") {
 
         $nis_not_read = 0;
-#        users ["nis"] = ReadNISUsers (tmpdir);
-#        users_by_name ["nis"] = ReadNISUsersByName (tmpdir);
-#        groups ["nis"] = ReadNISGroups (tmpdir);
-#        groups_by_name ["nis"] = ReadNISGroupsByName (tmpdir);
+	
+	$users{$type}		= \%{SCR::Read (".$type.users")};
+	$users_by_name{$type}	= \%{SCR::Read (".$type.users.by_name")};
+	$groups{$type}		= \%{SCR::Read (".$type.groups")};
+	$groups_by_name{$type}	= \%{SCR::Read(".$type.groups.by_name")};
+
+	UsersCache::BuildUserItemList ($type, $users{$type});
+	UsersCache::BuildGroupItemList ($type, $groups{$type});
     }
     elsif ($type eq "ldap") {
 
-#	# read all needed LDAP settings now:
-#	if (!ReadLDAPSettings ()) {
-#	    return 0;
-#	}
-#
-#	my $ldap_mesg = ReadLDAP();
-#	if ($ldap_mesg ne "") {
-#            Ldap::LDAPErrorMessage ("read", $ldap_mesg);
-#	    # TODO error as return value?
-#            return 0;
-#        }
+	# read all needed LDAP settings now:
+	if (!UsersLDAP::ReadSettings ()) {
+	    return 0;
+	}
+
+	my $ldap_mesg = UsersLDAP::Read();
+	if ($ldap_mesg ne "") {
+            Ldap::LDAPErrorMessage ("read", $ldap_mesg);
+	    # FIXME error as return value?
+            return 0;
+        }
         $ldap_not_read = 0;
 
-	# ---------------------- testing (without using Ldap module):
-	
-	# init:
-	my %args = ( "hostname" => "localhost" );
-	SCR::Execute (".ldap", \%args);
-	
-	# bind:
-	%args = (
-	    "bind_dn"	=> "uid=jirka,dc=suse,dc=cz",
-	    "bind_pw"	=> "q"
-	);
-	SCR::Execute (".ldap.bind", \%args);
+	$users{$type}		= \%{SCR::Read (".$type.users")};
+	$users_by_name{$type}	= \%{SCR::Read (".$type.users.by_name")};
+	$groups{$type}		= \%{SCR::Read (".$type.groups")};
+	$groups_by_name{$type}	= \%{SCR::Read(".$type.groups.by_name")};
 
-	%args = (
-	    "base_dn"		=> "ou=ldapconfig,dc=suse,dc=cz",
-	    "filter"		=> "objectClass=objectTemplate",
-	    "scope"		=> 2, # sub: all templates under config DN
-	    "map"		=> 1, #true, FIXME how to pass boolean value?
-	    "not_found_ok"	=> 1, #true,
-	);
-#	my @templates = @{SCR::Read (".ldap.search", \%args)};
-	my %templates = %{SCR::Read (".ldap.search", \%args)};
-#	DebugMap (\%{$templates[0]});
-#	DebugMap (\%templates);
-
-	# generate users structures:
-	%args =	(
-	    "user_base"	=> "ou=Users,dc=suse,dc=cz",
-	    "group_base"	=> "ou=Groups,dc=suse,dc=cz",
-	    "user_filter"	=> "objectClass=posixAccount",
-	    "group_filter"	=> "objectClass=posixGroup",
-	    "user_scope"	=> 2,
-	    "group_scope"	=> 2,
-#	    "user_attrs"	=> ldap_user_attrs,
-#	    "group_attrs"	=> ldap_group_attrs,
-	    "itemlists"		=> 1
-	);
-	SCR::Execute (".ldap.users.search", \%args);
-
-	my %lu = %{SCR::Read(".ldap.users")};
-#	DebugMap (\%{$lu{500}});
-#	DebugMap (\%{$lu{510}});
+	# TODO itemlist should be generated by ldap-agent...
+	UsersCache::BuildUserItemList ($type, $users{$type});
+	UsersCache::BuildGroupItemList ($type, $groups{$type});
     }
     UsersCache::ReadUsers ($type);
     UsersCache::ReadGroups ($type);
-#TODO BuildUserItems for nis users
 
     return 1;
 }
@@ -1052,10 +1035,11 @@ sub ReadLocal {
     my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
-	"base_directory"	=> "/etc"
+	"base_directory"	=> "/tmp"
     );
     # id limits are necessary for differ local and system users
     SCR::Execute (".passwd.init", \%configuration);
+    # TODO check for errors like "duplicated uid"
 
     foreach my $type ("local", "system") {
 	$users{$type}		= \%{SCR::Read (".passwd.$type.users")};
@@ -1105,10 +1089,9 @@ sub Read {
 
     Autologin::Read ();
 
-#    if (Mode::cont () ) { # initial configuration
-#	Autologin::used		= true;
-#	Autologin::modified	= true;FIXME SetAutologin...
-#    }
+    if (Mode::cont () ) {
+	Autologin::Use (YaST::YCP::Boolean (1));
+    }
 
     return 1;
 }
@@ -1587,7 +1570,6 @@ sub AddGroup {
 #	    });
 #	    group_in_work ["dn"] = data["dn"]:CreateGroupDN (data);
 #	}
-y2error ("g: ", %group_in_work);
     return 1;
 }
 
@@ -2174,21 +2156,19 @@ sub WriteSecurity {
     my $ret = 1;
     if ($security_modified) {
 	
-y2warning ("Security module should be written...");	
-#    if ( $encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des" )
-#    {
-#	y2milestone( "Changing encryption method to $%encryptionMethod");
-#        Security::modified = true;
-#	Security::Settings["PASSWD_ENCRYPTION"] = encryptionMethod;
-#	Progress::off();
-#	ret = Security::Write();
-#	if (!write_only)
-#	    Progress::on();
-#    } TODO
+	my %security	= (
+	    "PASSWD_ENCRYPTION"	=> $encryption_method
+	);
+	Security::Import (\%security);
+	Progress::off();
+	$ret = Security::Write();
+	if (!$write_only && $use_gui) {
+	    Progress::on();
+	}
     }
+    y2milestone ("Security module settings written: $ret");	
     return $ret;
 }
-
 
 
 ##------------------------------------
@@ -2313,7 +2293,7 @@ sub Write {
     }
 
     # call make on NIS server
-    if (($users_modified || $groups_modified) && $is_nis_master) {
+    if (($users_modified || $groups_modified) && $nis_master) {
         my %out	= %{SCR::Execute (".target.bash_output",
 	    "/usr/bin/make -C /var/yp")};
         if (!defined ($out{"exit"}) || $out{"exit"} != 0) {
@@ -2693,7 +2673,7 @@ sub IsDirWritable {
 
     my $tmpfile = $dir."/tmpfile";
 
-    while (SCR::Execute (".target.size", $tmpfile) != -1) {
+    while (SCR::Read (".target.size", $tmpfile) != -1) {
         $tmpfile .= "0";
     }
 
@@ -3035,12 +3015,11 @@ sub SetEncryptionMethod {
     if ($encryption_method ne $_[0]) {
 	$encryption_method 		= $_[0];
 	$security_modified 		= 1;
-#	$max_pass_length{"local"}	=
-#	    $Security::PasswordMaxLengths{$encryption_method}; FIXME
+	my %max_lengths			= %{Security::PasswordMaxLengths ()};
+	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
 	$max_pass_length{"system"}	= $max_pass_length{"local"};
     }
 }
-
 
 BEGIN { $TYPEINFO{CryptPassword} = ["function", "string", "string", "string"];}
 sub CryptPassword {
@@ -3069,14 +3048,15 @@ sub CryptPassword {
 #	    return crypted;
 #	}
     }
-#    if (lc ($method) eq "md5" ) {
-#	return cryptmd5 (pw);
-#    }
-#    else if (lc ($method) eq "blowfish" )
+    if (lc ($method) eq "md5" ) {
+	return `openssl passwd -1 $pw`;
+    }
+#    elsif (lc ($method) eq "blowfish" ) { TODO
 #	return cryptblowfish (pw);
-#    else
-#	return crypt ($pw);
-    return $pw."FIXME";
+#    }
+    else {
+	return `openssl passwd -crypt $pw`; #TODO require openssl
+    }
 }
 
 
@@ -3110,28 +3090,33 @@ sub CryptRootPassword {
 
 ##-------------------------------------------------------------------------
 ## -------------------------------------------- nis related routines 
+##------- TODO move to some 'include' file! -------------------------------
+
 
 ##------------------------------------
 # Check whether host is NIS master
-BEGIN { $TYPEINFO{IsNISMaster} = ["function", "boolean"];}
-sub IsNISMaster {
+BEGIN { $TYPEINFO{ReadNISMaster} = ["function", "boolean"];}
+sub ReadNISMaster {
     if (SCR::Read (".target.size", "/usr/lib/yp/yphelper") != -1) {
         return 0;
     }
     return (SCR::Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);
 }
 
-# * Checks if set of NIS users is available
-# * @param passwd_source the list of sources (e.g. ["compat", "ldap"])
-#global define boolean IsNISAvailable (list passwd_source) ``{
-#
-#    if (contains (passwd_source, "nis") ||
-#        contains (passwd_source, "compat"))
-#    {
-#        return Service::Enabled ("ypbind");
-#    }
-#    return false;
-#}
+##------------------------------------
+# Checks if set of NIS users is available
+BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
+sub ReadNISAvailable {
+
+    my $passwd_source = SCR::Read (".etc.nsswitch_conf.passwd");
+    foreach my $source (split (/ /, $passwd_source)) {
+
+	if ($source eq "nis" || $source eq "compat") {
+	    return (Service::Status ("ypbind") == 0);
+	}
+    }
+    return 0;
+}
 
 #/**
 #  * Ask user for configuration type (standard or NIS)
@@ -3209,4 +3194,12 @@ sub IsNISMaster {
 #    return ypdir;
 #}
 
+
+##------------------------------------
+# Read user and group filter needed LDAP search
+# Fiters are read from config modules stored in LDAP directory
+BEGIN { $TYPEINFO{ReadLDAPFilters} = ["function", "boolean"];}
+sub ReadLDAPFilters {
+    return UsersLDAP::ReadFilters ();
+}
 # EOF

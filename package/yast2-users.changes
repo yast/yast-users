@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb  3 19:23:14 CET 2004 - jsuchome@suse.cz
+
+- agent for NIS users/groups
+- initial LDAP support (with new Perl backend)
+
+-------------------------------------------------------------------
 Mon Feb  2 14:49:18 CET 2004 - jsuchome@suse.cz
 
 - new backend, written in Perl
