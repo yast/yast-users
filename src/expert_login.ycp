@@ -266,6 +266,8 @@ You can configure these settings by running appropriate modules. Select the modu
         else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
             encryptionMethod = "blowfish";
 
+        Users::encryptionMethod = encryptionMethod;
+
         if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
         {
             y2milestone( "Changing encryption method to %1", encryptionMethod);
