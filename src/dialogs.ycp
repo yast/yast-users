@@ -20,6 +20,9 @@ import "Summary";
 import "Require";
 import "Autologin";
 import "Call";
+import "Ldap";
+import "LdapPopup";
+
 
 import "Users";
 import "UsersCache";
@@ -49,12 +52,13 @@ define symbol string_to_symbol (string to_convert) ``{
     return to_symbol [to_convert]:`back;
 }
 
-// FIXME Perl should return correctly integer/string...
+// FIXME check performance!
+// could be problem when large group is passed to GetInt...
 define integer GetInt (map data, string key, integer default_value) {
 
     if (is (data[key]:nil, integer))
 	return data[key]:default_value;
-    if (is (data[key]:nil, string))
+    if (is (data[key]:nil, string) && data[key]:nil != "")
 	return tointeger (data[key]:sformat ("%1", default_value));
     return default_value;
 }
@@ -68,7 +72,7 @@ define string GetString (map data, string key, string default_value) {
 
 
 // upperase letters were used in username! bug #26409
-// FIXME -> CheckUsername!
+// FIXME -> CheckUsernameUI!
 define symbol AskForUppercasePopup (string username) ``{
 
     symbol ret = `ok;
@@ -150,7 +154,7 @@ define symbol EditUserDialog (string what) ``{
     string password	= user["userPassword"]:"x";
     string org_username = user["org_username"]:username;
     boolean create_home	= user["create_home"]:true;
-    integer uid		= GetInt (user, "uidNumber", 1);
+    integer uid		= GetInt (user, "uidNumber", nil);
     string dn		= user["dn"]:"";
 
     // only for LDAP users:
@@ -349,6 +353,8 @@ can be changed for non-local users.
     {
         ret = UI::UserInput();
 
+	if (ret == nil) continue;
+
         username	= (string) UI::QueryWidget(`id(`username), `Value);
 
 	if (! contains ([`back, `cancel, `abort], ret))
@@ -384,7 +390,7 @@ can be changed for non-local users.
 		}
 		UI::ChangeWidget(`id(`givenName), `Value, givenName);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
-// FIXME cn cannot be empty !
+		// FIXME use gecos as default!
 	    }
 	    else
 	    {
@@ -447,6 +453,7 @@ so the password settings cannot be edited.
 	    // map with id's of confirmed questions
 	    map<string,string> ui_map	= $[];
 
+
 	    // --------------------------------- username checks, part 1/2
 	    // FIXME:
 	    // empty username during installation (next module)
@@ -460,6 +467,21 @@ so the password settings cannot be edited.
 	    }
 	    user["username"]		= username;
 
+
+	    // --------------------------------- uid check (for nil value)
+	    if (!details)
+	    {
+		error = Users::CheckUID (uid);
+		if (error != "")
+		{
+		    Report::Error (error);
+		    UI::SetFocus(`id(`details));
+		    ret = `notnext;
+		    continue;
+		}
+	    }
+
+	    // --------------------------------- password checks
             string pw1   = (string) UI::QueryWidget(`id(`pw1), `Value);
             string pw2   = (string) UI::QueryWidget(`id(`pw2), `Value);
 
@@ -473,7 +495,6 @@ Please try again."));
 		clear_password_fields ();
                 continue;
             }
-	    // --------------------------------- password checks
             if (pw1 != "x" && (pw1 != "" || !details) && pw1 != default_pw)
             {
 		error = Users::CheckPassword (pw1);
@@ -561,27 +582,26 @@ Please try again."));
 		    continue;
 		}
             }
+	    if (user_type == "ldap" && !details)
+	    {
+		error = Users::CheckLDAPAttributes (user);
+		if (error != "")
+		{
+		    Report::Error (error);
+		    ret = `notnext;
+		    continue;
+		}
+	    }
 
 	    // --------------------------------- now everything should be OK:
 	    // --------------------------------- save the settings
             if ( what == "edit_user" )
             {
-		if (user_type == "ldap" && org_username != username &&
-		    org_username !="")
-		{
-		    user ["dn"]	= Users::CreateUserDN (user);
-		}
 		Users::EditUser (user);
             }
-	    else // add_user
+	    else
 	    {
-		if (user_type == "ldap")
-		{
-		    user ["dn"] = Users::CreateUserDN (user);
-		    if (details)
-			user = Users::SubstituteValues ("user", user);
-		}
-		Users::AddUser (user);
+		Users::AddUser (user);// FIXME must contain SubstituteValues
 	    }
 	}
 	if ((ret == `abort || ret == `cancel) &&
@@ -804,14 +824,9 @@ can be changed for non-local users.")) : `VSpacing (0),
         UI::ChangeWidget (`id (`defaultgroup), `Enabled, false);
         UI::ChangeWidget (`id (`browse), `Enabled, false);
     }
-    if (user_type == "ldap")
+    if (user_type == "ldap" && !Ldap::file_server)
     {
-	/* TODO
-        if (!Users::ldap_file_server)
-	{
-            UI::ChangeWidget (`id (`browse), `Enabled, false);
-	}
-	*/
+        UI::ChangeWidget (`id (`browse), `Enabled, false);
     }
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
@@ -1040,7 +1055,7 @@ define symbol EditUserPasswordDialog() ``{
         last_change = _("never");
     }
     string exp_date = "";
-    if (expires != "0" && expires != "-1" )
+    if (expires != "0" && expires != "-1" && expires != "")
     {
         exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -1159,9 +1174,6 @@ define symbol EditUserPasswordDialog() ``{
  */
 define symbol LDAPSettingsDialog (string what) ``{
 
-    import "Ldap";
-    import "LdapPopup";
-
     map<string, any> object	= (what == "user") ?
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
     map<string, any> tmp_object	= $[];
@@ -1211,20 +1223,10 @@ define symbol LDAPSettingsDialog (string what) ``{
 	items = add (items, `item (`id(attr), attr, mergestring(value,",")));
     });
 
-    // conversion table from parameter names used in LDAP to ones used in
-    // yast (passwd-style) FIXME get from Users
-    map ldap2yast_user_attrs = $[
-	"uid":		"username",
-    ];
-    map ldap2yast_group_attrs = $[
-	"cn":		"groupname",
-        "uniqueMember":	"userlist" //??FIXME
-    ];
-
     // generate table items with empty values (not set for this user/group yet)
     // we need to read available attributes from Ldap
     map ldap2yast = (what == "user") ?
-	ldap2yast_user_attrs : ldap2yast_group_attrs;
+	UsersLDAP::GetUserAttrsLDAP2YaST(): UsersLDAP::GetGroupAttrsLDAP2YaST();
 
     foreach (string class, object["objectClass"]:[], ``{
 	foreach (string at, Ldap::GetAllAttributes (class), ``{
@@ -1558,8 +1560,6 @@ Please try again.")) ;
 	    if (group_type == "ldap")
 	    {
 		group["uniqueMember"]	= new_userlist;
-		group ["dn"]		= Users::CreateGroupDN (group);
-		group = Users::SubstituteValues ("group", group);
 		ret			= `ldap; // additional settings
 	    }
 	    else
