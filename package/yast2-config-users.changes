@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sat Feb  9 17:31:28 PST 2002 - nashif@suse.de
+
+- Adapted for auto-installation
+- 2.5.2
+
+-------------------------------------------------------------------
 Fri Feb  8 20:14:31 MET 2002 - tom@suse.de
 
 - Now the config module is being called from the installation workflow.
