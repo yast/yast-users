@@ -12,14 +12,13 @@
 
 textdomain "users";
 
-import "Wizard";
 import "Mode";
 import "Label";
+import "Sequencer";
+import "Wizard";
 
 import "UsersCache";
 import "Users";
-
-include "wizard/sequencer.ycp";
 
 include "users/complex.ycp";
 include "users/dialogs.ycp";
@@ -165,10 +164,11 @@ define symbol MainSequence(string start) ``{
 	    // next is predefined to add or edit
             `abort:		"without_save",
 	    `cancel:		"without_save",
-	    `add_user:		"user_add",
-	    `edit_user:		"user_edit",
+//	    `add_user:		"user_add",
+//	    `edit_user:		"user_edit",
 //	    `ldap:		"user_ldap",
-	    `ldap:		"user_plugin",
+//	    `ldap:		"user_plugin",
+	    `next:		"user_plugin",
 	],
 	"user_password": $[
             `abort:		"without_save",
@@ -242,7 +242,7 @@ define symbol MainSequence(string start) ``{
 	],
     ];
 
-    return WizardSequencer(aliases, main_sequence);
+    return Sequencer::Run (aliases, main_sequence);
 }
 
 /**
@@ -285,7 +285,7 @@ define symbol UsersSequence(string start) ``{
 	Wizard::CreateDialog();
     }
 
-    any ret = WizardSequencer(aliases, sequence);
+    any ret = Sequencer::Run (aliases, sequence);
 
     if( ! Mode::cont )
 	UI::CloseDialog();
