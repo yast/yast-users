@@ -224,6 +224,7 @@ global define symbol UsersDialog() ``{
                 // check the sources, they could be modified
                 Users::ReadSourcesSettings();
                 Users::BuildMenuButtonItems();
+                // the encryption could be changed!!
                 ret = `users;
             }
         }
@@ -605,7 +606,6 @@ global define boolean CustomizePopup(string what) ``{
 global define symbol UserSave() ``{
 
     Users::Commit("user", true);
-y2milestone ("start: %1", Users::start_dialog);
     // adding only one user during install
     if (Mode::cont && Users::start_dialog == "user_add" )
         return `save;

@@ -125,18 +125,13 @@ global define symbol EditUserDialog(symbol what) ``{
     }
     integer org_uid         = Users::user_in_work["org_uid"]:uid;
 
-    map shadow = $[];
-    if (Users::user_in_work["shadow"]:$[] == $[] && what == `add_user )
+    map shadow = Users::user_in_work["shadow"]:$[];
+    if (shadow == $[] && what == `add_user )
     {
         shadow = Users::GetDefaultShadow();//default_shadow??
     }
-    else
+    else if (shadow == $[])
     {
-        /*
-        foreach( `key, `value, Users::user_in_work["shadow"]:$[], ``{
-            shadow[key] = value;
-        });
-        */
         shadow = eval (Users::shadow[user_type, username]:$[]);
     }
     Users::user_in_work["what"] = what; // is it necessary here ??
@@ -919,14 +914,12 @@ global define symbol EditUserPasswordDialog() ``{
 
     string username  = Users::user_in_work["username"]:"";
     map shadow       = Users::user_in_work["shadow"]:$[];
-//    boolean pwd_chng = Users::user_in_work["pwd_chng"]:false;
     list auto_shadow_symbols = ["warn", "max", "min"];
 
     string last_changed = shadow["last_change"]:"0";
     string last_change = "";
     string expires = shadow["expire"]:"0";
     if (expires == "") expires = "0";
-
 
     string work = shadow["inact"]:"";
     if( work == "" ) work = sformat("%1", Users::pass_inact_days);
@@ -1020,6 +1013,7 @@ global define symbol EditUserPasswordDialog() ``{
             UI::SetFocus(`id("expire"));
             continue;
             }
+            // update the values in shadow map
             foreach(`autosymbol, auto_shadow_symbols, ``{
                 if ( shadow[autosymbol]:-2 != UI::QueryWidget (
                         `id(autosymbol), `Value))
@@ -1055,6 +1049,9 @@ global define symbol EditUserPasswordDialog() ``{
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
     if ( ret == `next ) ret = Users::user_in_work["what"]:`back;
+
+    Users::user_in_work["shadow"] = shadow;
+
     return ret;
 }
 

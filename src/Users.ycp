@@ -31,7 +31,7 @@ include "users/ldap_routines.ycp";
 
 
 // Encryption method: "des", "md5" - for future use: "blowfish"
-global string encryptionMethod = "des";
+global string encryptionMethod = "des"; // -- should be loaded from Security
 
 // The root's password
 global string rootPassword = "";
@@ -1536,12 +1536,6 @@ global define boolean ReadSystemDefaults()``{ //SecurityDef?
 	if(pam_list != [] && pam_list != nil)
 	    pam_check_map = select(pam_list,0,$[]);
 
-	// md5 support
-	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
-        " "), "md5");
-	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
-        ""), " "), "blowfish");
-
 	// set defaults
 	max_uid = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
 	if (nil == max_uid)
@@ -1573,8 +1567,15 @@ global define boolean ReadSystemDefaults()``{ //SecurityDef?
     if (nil == pass_warn_age)
         pass_warn_age = 7;
 
+	// password encryption
+	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
+        " "), "md5");
+	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
+        ""), " "), "blowfish");
+
 	encryption = md5 ? `md5 : blowfish ? `blowfish : `des;
 
+    y2debug ("encryption: %1", Users::encryption);
 	// set maximal password length
 	if (`des != encryption)
 	    max_length_pas = 128;
@@ -1898,7 +1899,7 @@ Do you want to install them now?")))
         // read the LDAP users now
         users [`ldap ] = ReadLDAPUsers (tmpdir);
         users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
-        UsersCache::BuildUsers (users [`ldap]:$[], `ldap, tmpdir);
+        UsersCache::ReadUsers (`ldap, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
         // correct also possible change in custom itemlist
@@ -1913,7 +1914,7 @@ Do you want to install them now?")))
         // read NIS users now
         users [`nis] = ReadNISUsers (tmpdir);
         users_by_name [`nis] = ReadNISUsersByName (tmpdir);
-        UsersCache::BuildUsers (users [`nis]:$[], `nis, tmpdir);
+        UsersCache::ReadUsers (`nis, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
         // correct also possible change in custom itemlist
