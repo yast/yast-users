@@ -85,7 +85,8 @@ global integer proposal_count = -1;
 // map of last uid used for new user (to fasten searching of free uid)
 map last_uid = $[
     "system": 1,
-    "local": 500];
+    "local": 500,
+    "ldap": 500];
 
 /**
  * Build the cache structures, used for fasten operations
@@ -187,10 +188,12 @@ global define boolean ReadUsers (string type, string dir) ``{
         usernamelists [type] = SCR::Read(.ldap.users.usernames);
 
 	users_itemlists [type] =
-	    SCR::Read (.target.ycp, dir + "/itemlist_ldap.ycp");
+	    SCR::Read (.ldap.users.itemlist);
 
 	uidlists [type] = SCR::Read (.ldap.users.uids);
-        last_uid [type] = SCR::Read (.ldap.users.last_uid);
+//FIXME        last_uid [type] = SCR::Read (.ldap.users.last_uid);
+// get from Ldap module (nextUniqueId)
+	last_uid [type] = 1;
 
 	return true;
     }
@@ -224,6 +227,7 @@ global define boolean ReadGroups (string type, string dir) ``{
     {
         gidlists [type] = SCR::Read (.ldap.groups.gids);
 	groupnamelists [type] = SCR::Read (.ldap.groups.groupnames);
+	groups_itemlists [type] = SCR::Read(.ldap.groups.itemlist);
     }
     else
     {
@@ -231,9 +235,9 @@ global define boolean ReadGroups (string type, string dir) ``{
 	    type + ".ycp");
 	groupnamelists [type] = SCR::Read (.target.ycp, dir + "/groupnamelist_"
 	    + type + ".ycp");
+	groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
+	    + type + "_itemlist.ycp");
     }
-    groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
-        + type + "_itemlist.ycp");
 
     return true;
 }
@@ -890,7 +894,6 @@ global define string ProposeUsername( string fullname ) ``{
 	// generate new list of possible usernames each time fullname is changed
 
 	proposed_usernames = [];
-	fullname = filterchars (fullname, Users::valid_logname_chars + " ");
 	// do not propose username with uppercase (problematic: #26409)
 	list parts = splitstring (tolower(fullname), " ");
 	list tested_usernames = eval (parts);
@@ -921,7 +924,7 @@ global define string ProposeUsername( string fullname ) ``{
 	// 2nd: check existence
 	foreach (`name, tested_usernames, ``{
 	    integer name_count = 0;
-	    while (UsersCache::UsernameExists (name))
+	    while (UsernameExists (name))
 	    {
 		name = name + sformat ("%1", name_count);
 		name_count = name_count + 1;
@@ -931,7 +934,7 @@ global define string ProposeUsername( string fullname ) ``{
 	    proposed_usernames = add (proposed_usernames, name);
 	});
 
-	if (!UsersCache::UsernameExists ("42") && size (proposed_usernames)> 11)
+	if (!UsernameExists ("42") && size (proposed_usernames)> 11)
 	{
 	    proposed_usernames = add (proposed_usernames, "42");
 	}

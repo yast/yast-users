@@ -15,8 +15,8 @@ textdomain "users";
 import "Wizard";
 import "Mode";
 
-include "ui/common_popups.ycp";
-include "ui/common_messages.ycp";
+import "Popup";
+import "Label";
 include "wizard/sequencer.ycp";
 
 include "users/complex.ycp";
@@ -65,7 +65,7 @@ global define symbol UsersSequence(string start) ``{
     }
 
     Wizard::SetContentsButtons(caption, contents, "",
-	    BackButtonLabel(), NextButtonLabel());
+	    Label::BackButton(), Label::NextButton());
 
     any ret = WizardSequencer(aliases, sequence);
 
@@ -87,7 +87,7 @@ global define symbol AutoSequence(string start) ``{
 
     Wizard::CreateDialog();
     Wizard::SetContentsButtons(caption, contents, "",
-	    BackButtonLabel(), NextButtonLabel());
+	    Label::BackButton(), Label::NextButton());
 
     any ret = MainSequence(start);
 

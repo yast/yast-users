@@ -222,7 +222,7 @@ global boolean is_ldap_available = false;
 global boolean is_ldap_server = false; // TODO currently not used
 // if ldap home directiories are on this machine
 global boolean ldap_file_server = false;
-global string ldap_encryption = "crypt";// TODO read from Ldap!
+global string ldap_encryption = "crypt";
 global integer ldap_version = 3;
 global integer ldap_port = 389;
 
@@ -341,6 +341,38 @@ global map groupset_to_string = $[
     // the type of group set
     "custom":    _("&Custom")
 ];
+
+// keys in user's map which are not saved anywhere (internal use only :-))
+list user_internal_keys = [ "create_home", "grouplist","groupname", "modified",
+    "org_username", "org_uid", "org_home","org_user", "org_groupname",
+    "type", "what", "dn", "removed_grouplist" ];
+
+list group_internal_keys = [ "modified", "type", "what", "more_users", "dn",
+    "org_groupname", "org_gid", "removed_userlist" ];
+
+// conversion table of parameter names used in yast (passwd-style) and
+// in LDAP schema
+global map ldap_param_conv = $[
+    // user:
+    "username":		"uid",
+    "uid":		"uidNumber",
+    "gid":		"gidNumber",
+    "home":		"homeDirectory",
+    "fullname":		"cn",
+    "password":		"userPassword",
+    "shell":		"loginShell",
+    // shadow settings:
+    "last_change":	"shadowLastChange",
+    "warn":		"shadowWarning",
+    "inact":		"shadowInactive",
+    "expire":		"shadowExpire",
+    "min":		"shadowMin",
+    "max":		"shadowMax",
+    // group:
+    "userlist":		"memberUid",
+    "groupname":	"cn"
+];
+
 
 
 
@@ -805,7 +837,7 @@ global define symbol Write (block abort, boolean useUI)``{
 
     if (ldap_modified)
     {
-	string error = "";
+	map error = $[];
 
 	// TODO do not ask again when anonymous was set?
         if ((ldap_anonymous || ldap_bind_pass == nil) && useUI)
@@ -823,10 +855,10 @@ global define symbol Write (block abort, boolean useUI)``{
 		{
 		    error = WriteLDAPUsers (modified_users ["ldap"]:$[],
 			ldap_file_server);
-		    if (error != "" && useUI)
+		    if (error != $[] && useUI)
 		    {
-			LDAPErrorMessage ("users", error);
-			if (error == "LDAP_STRONG_AUTH_REQUIRED")
+			Ldap::LDAPErrorMessage ("users", error["msg"]:"");
+			if (error["code"]:0 == 8)
 			{
 			    ldap_bind_pass = LDAPAskAndBind();
 			}
@@ -835,25 +867,22 @@ global define symbol Write (block abort, boolean useUI)``{
 	    }
 	    // when anonymous is set, bind is OK, but writing not
 	    // error LDAP_STRONG_AUTH_REQUIRED is returned after LDAP command
-	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
-		    && useUI);
+	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
 
             // 2nd: now write all other user modifications (add/edit)
 	    do
 	    {
 		error = WriteLDAPUsers ( users ["ldap"]:$[], ldap_file_server);
-		if (error != "" && useUI)
+		if (error != $[] && useUI)
 		{
-		    LDAPErrorMessage ("users", error);
-		    if (error == "LDAP_STRONG_AUTH_REQUIRED")
+		    Ldap::LDAPErrorMessage ("users", error["msg"]:"");
+		    if (error["code"]:0 == 8)
 		    {
 			ldap_bind_pass = LDAPAskAndBind();
 		    }
 		}
 	    }
-	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
-		    && useUI);
-
+	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
 
             // 3rd: there are deleted groups in modified_groups ["ldap"]
 	    do
@@ -861,34 +890,32 @@ global define symbol Write (block abort, boolean useUI)``{
 		if (size (modified_groups ["ldap"]:$[]) > 0)
 		{
 		    error = WriteLDAPGroups (modified_groups ["ldap"]:$[]);
-		    if (error != "" && useUI)
+		    if (error != $[] && useUI)
 		    {
-			LDAPErrorMessage ("users", error);
-			if (error == "LDAP_STRONG_AUTH_REQUIRED")
+			Ldap::LDAPErrorMessage ("users", error["msg"]:"");
+			if (error["code"]:0 == 8)
 			{
 			    ldap_bind_pass = LDAPAskAndBind();
 			}
 		    }
 		}
 	    }
-	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
-		    && useUI);
+	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
 
 	    // 4th: now write all other groups modifications
 	    do
 	    {
 		error = WriteLDAPGroups (groups ["ldap"]:$[]);
-		if (error != "" && useUI)
+		if (error != $[] && useUI)
 		{
-		    LDAPErrorMessage ("users", error);
-		    if (error == "LDAP_STRONG_AUTH_REQUIRED")
+		    Ldap::LDAPErrorMessage ("users", error["msg"]:"");
+		    if (error["code"]:0 == 8)
 		    {
 			ldap_bind_pass = LDAPAskAndBind();
 		    }
 		}
 	    }
-	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
-		    && useUI);
+	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
 	}
     }
 
@@ -1490,7 +1517,11 @@ global define boolean Add (string what, map data)``{
 	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
 	user_in_work["gid"]	= data["gid"]:GetDefaultGid (true, type);
 	user_in_work["shell"]	= data["shell"]:GetDefaultShell(type);
-	user_in_work["shadow"]	= data["shadow"]:GetDefaultShadow(type);
+	map user_shadow		= data["shadow"]:GetDefaultShadow(type);
+	if (type == "ldap")
+	    user_in_work = union (user_in_work, user_shadow);
+	else
+	    user_in_work["shadow"] = user_shadow;
 	user_in_work["password"] = data["password"]:""; // TODO: how to enter/check?
 	user_in_work["create_home"] = data["create_home"]:true;
 	user_in_work["what"] = "add_user";
@@ -1547,8 +1578,14 @@ global define boolean Edit (string what, map data)``{
 	    if (type == "ldap")
 	    {
 		// convert values with wrong type to string
-		user_in_work = CorrectLDAPValues(data);
+// 		user_in_work = CorrectLDAPValues(data);TODO not needed any more?
 		data = eval (user_in_work);
+	    }
+	    // local users have to load shadow settings from global map
+	    if (user_in_work["shadow"]:$[] == $[] && type != "ldap")
+	    {
+		user_in_work["shadow"] = eval
+		    (shadow[type, username]:GetDefaultShadow(type));
 	    }
 	    // save first map for later checks of modification...
 	    user_in_work["org_user"] = eval (data);
@@ -1556,12 +1593,6 @@ global define boolean Edit (string what, map data)``{
 	    if (type == "nis" || type == "ldap")
 	    {
 		user_in_work["grouplist"] = FindGroupsBelongUser (username);
-	    }
-	    // local users have to load shadow settings from global map
-	    if (user_in_work["shadow"]:$[] == $[])
-	    {
-		user_in_work["shadow"] = eval
-		    (shadow[type, username]:GetDefaultShadow(type));
 	    }
 	}
 	user_in_work["what"] = "edit_user";
@@ -1599,12 +1630,30 @@ global define boolean UserReallyModified () ``{
 
     boolean ret = false;
 
-    // grouplist can be ignered, it is a modification of groups
-    foreach (`key, `value, user_in_work["org_user"]:$[], ``{
-        if (key != "grouplist" && user_in_work[key]:nil != value)
+    if (user_in_work["type"]:"local" != "ldap")
+    {
+	// grouplist can be ignored, it is a modification of groups
+	foreach (`key, `value, user_in_work["org_user"]:$[], ``{
+	    if (key != "grouplist" && user_in_work[key]:nil != value)
+	    {
+		ret = true;
+		y2debug ("old value:%1, changed to:%2",
+		    value, user_in_work[key]:nil);
+	    }
+	});
+	return ret;
+    }
+    // for LDAP users, it is possible thet some values were not present in
+    // search result: we must test different way
+    foreach (`key, `value, user_in_work, ``{
+
+	if (contains (user_internal_keys, key) || is (value, map))
+	    return;
+        if (user_in_work["org_user",key]:"" != value)
 	{
 	    ret = true;
-	    y2debug ("old value:%1, changed to:%2",value,user_in_work[key]:nil);
+	    y2debug ("old value:%1, changed to:%2",
+		user_in_work["org_user",key]:"", value);
 	}
     });
     return ret;
@@ -1842,10 +1891,10 @@ global define boolean Commit (string object, boolean cache)``{
             if (type != "ldap")
                 shadow [type] = remove (shadow [type]:$[], org_username);
         }
-        else if ( what_user == "group_change")
-        {
-//            if (type == "ldap")
-//		user_in_work ["modified"] = "edited";// why?
+        else if ( what_user == "group_change_default")
+	{
+	    // gid of default group was chnaged!
+	    user_in_work ["modified"] = "edited";
         }
         // change the cache variables
         if (cache)
@@ -1987,7 +2036,10 @@ global define boolean Commit (string object, boolean cache)``{
                     {
                         user_in_work["groupname"] = groupname;
                         user_in_work["gid"] = gid;
-                        user_in_work["what"] = "group_change";
+			if (gid != org_gid)
+			    user_in_work["what"] = "group_change_default";
+			else
+			    user_in_work["what"] = "group_change";
                         Commit("user", cache);
                     }
                 });
@@ -2288,7 +2340,7 @@ global define boolean ReadSystemDefaults()``{
     cracklib_dictpath = SCR::Read(.etc.login_defs.CRACKLIB_DICTPATH);
 
     max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
-    y2debug ("encryption: %1", Users::encryptionMethod);
+    y2debug ("encryption: %1", encryptionMethod);
 
     encoding = Console::encoding;
 
@@ -2308,13 +2360,14 @@ global define map GetDefaultShadow(string type)``{
 	"inact"	: default_inactive,
 	"max"	: sformat("%1", pass_max_days),
 	"min"	: sformat("%1", pass_min_days),
-	"warn"	: sformat("%1", pass_warn_age)
+	"warn"	: sformat("%1", pass_warn_age),
+	"last_change": LastChangeIsNow()
     ];
     if (type == "ldap")
     {
 	ret = eval (ldap_shadow);
+	ret ["shadowLastChange"] = LastChangeIsNow();
     }
-    ret ["last_change"] = LastChangeIsNow();
     return ret;
 }
 
@@ -2338,7 +2391,7 @@ global define string GetDefaultHome(boolean useUI, string type)``{
     if (SCR::Read(.target.size, def_home ) == -1 && useUI)
     {
         // Popup tex
-        if (UI::YesNoPopup(sformat (_("The default home directory \"%1\" does not exist.
+        if (Popup::YesNo(sformat (_("The default home directory \"%1\" does not exist.
 Create it now?
 "), def_home)))
             SCR::Execute (.target.mkdir, def_home);
@@ -2715,16 +2768,16 @@ global define boolean ReadNewSet (string type) ``{
         groups ["nis"] = ReadNISGroups (tmpdir);
         groups_by_name ["nis"] = ReadNISGroupsByName (tmpdir);
     }
-    else if (type == "ldap") //FIXME: perl-ldap not needed to check->agent-ldap
+    else if (type == "ldap")
     {
         // first: check for required packages:
-        if (!Require::RequireAndConflict (["perl-ldap","yast2-ldap-client"], [], sformat (
+        if (!Require::RequireAndConflict (["yast2-ldap-client"], [], sformat (
 // Popup text (%1 are required packages):
-_("For managing LDAP users, these packages are necessary:
+_("For managing LDAP users, package
 <br>%1<br>
-At least one of them is not present.
+is necessary, but is not present.
 Install it now?"),
-"<b>perl-ldap</b>,<b>yast2-ldap-client</b>.")))
+"<b>yast2-ldap-client</b>")))
                 return false;
 
 	// read all needed LDAP settings now:
@@ -2736,7 +2789,7 @@ Install it now?"),
 	    ldap_mesg = LDAPInit ();
 	    if ( ldap_mesg != "")
 	    {
-		LDAPErrorMessage("init", ldap_mesg);
+		Ldap::LDAPErrorMessage("init", ldap_mesg);
 		return false;
 	    }
 	    ldap_initialized = true;
@@ -2756,7 +2809,7 @@ Install it now?"),
 	ldap_mesg = ReadLDAP();
 	if (ldap_mesg != "")
 	{
-            LDAPErrorMessage("read", ldap_mesg);
+            Ldap::LDAPErrorMessage("read", ldap_mesg);
             UI::CloseDialog(); // close the wait popup
             return false;
         }
@@ -3176,7 +3229,7 @@ global define boolean CheckHomeMounted() ``{
         });
 
         if (!mounted)
-            return UI::YesNoPopup(
+            return Popup::YesNo(
 // Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
 // For more info, look at the bug #20365
 sformat(_("In %2, there is a mount point for the directory
@@ -3200,7 +3253,7 @@ after you mount correctly. Continue user configuration?
  * @return converted map
  */
 global define map CorrectLDAPValues (map data) ``{
-
+// FIXME is not needed with c++ agent?
     map ret = eval (data);
     foreach (`key, `val, data, ``{
 	// when we want to leave integer or boolean
