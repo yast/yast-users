@@ -1,0 +1,284 @@
+/**
+ *
+ * $Id$
+ *
+ * Module:
+ *
+ * Author:
+ *
+ * Purpose:
+ */
+
+{
+
+textdomain "users";
+
+import "Wizard";
+import "Users";
+import "Mode";
+import "Security";
+import "Progress";
+
+include "ui/common_messages.ycp";
+
+    string help_text = _("<p>
+<b>This is for experts only.</b>
+</p>");
+
+    // Help text for password expert dialog 2/5
+    help_text = help_text + _("<p>
+Choose a password encryption method.
+<b>DES</b>, the Linux default method, works in all network environments, but it
+restricts you to passwords no longer than eight characters.
+</p>");
+
+    // Help text for password expert dialog 3/5
+    help_text = help_text + _("<p>
+<b>MD5</b> allows longer passwords, thus provides more security, but some
+network protocols don't support this, and you may have problems with NIS.
+</p>");
+
+    // Help text for password expert dialog 4/5
+    help_text = help_text + _("<p>
+<b>Blowfish</b> is similar to MD5, but uses a different algorithm
+to encrypt passwords.
+</P>");
+    // Help text for password expert dialog 5/5
+    help_text = help_text + _("<p>
+As a general rule of thumb, use DES if you are unsure.
+</p>");
+
+    // Help text 1/5
+    help_text = help_text + _("<p>
+<b>User sources</b><br>
+Here you can see the sources of user's accounts. The possible values here can be:
+</p>");
+    // help text 2/5  - do not translate Compat
+    help_text = help_text + _("<p>
+<b>Local files</b> - data are stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
+<b>NIS</b> - user data can be retrieved from NIS server<br>
+<b>Compat</b> - both previous sources can be used<br>
+<b>LDAP</b> - user database is on the LDAP server
+</p>");
+    // help text 3/5
+    help_text = help_text + _("<p>
+For more information, look at the file <i>/etc/nsswitch.conf</i> and its documentation.
+</p>");
+
+    // help text 4/5
+    help_text = help_text + _("<p>
+<b>Additional authentication</b>
+This is the partial list of your PAM settings. It shows the authentication types, which can be used by users on your system. As a default, users are authenticated by comparing their passwords with the ones saved in local files or on the NIS server.<br>
+Other possibility for authenication is using the LDAP server or Kerberos.
+</p>");
+
+    // help text 5/5
+    help_text = help_text + _("<p>
+<b>Changing the values</b><br>
+You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
+</p>");
+
+    //    list supported_users_sources = [ "nis", "ldap", "files", "compat" ];
+
+    define void reload_config() ``{
+
+        // checking /etc/nsswitch.conf
+        list users_sources = Users::GetUsersSources ();
+        map to_string = $[
+            // just the name (do not translate)
+            "nis"   : _("NIS"),
+            // just the name (do not translate)
+            "ldap"  : _("LDAP"),
+            // the source of users sets
+            "files" : _("Local files"),
+            // the source of users sets (do not translate)
+            "compat": _("Compat"),
+            // just the name (do not translate)
+            "krb5"  : _("Kerberos")
+         ];
+
+        string sources_text = "<b>Summary</b>
+<p><i>The sources of user data are:</i><br>";
+        foreach (`source, users_sources, ``{
+
+            sources_text = sources_text + to_string [source]:"" + "<br>";
+        });
+
+        sources_text = sources_text + "</p>
+<p><i>Users are authenticated using:</i><br>";
+
+        // this looks to /etc/pam.d/login ...
+        string auth_text = sources_text;
+
+        list pam_auth_list = SCR::Read (.pam.login);
+        boolean auth_krb = false;
+        boolean auth_unix = false;
+        foreach (`line, pam_auth_list, ``{
+            if (issubstring (line["module"]:"", "pam_krb5.so") &&
+                line["type"]:"" == "auth")
+                auth_krb = true;
+            if (issubstring (line["module"]:"", "pam_unix") &&
+                line["type"]:"" == "auth")
+                auth_unix = true;
+        });
+        if (auth_krb)
+            auth_text = auth_text + to_string ["krb5"]:"" + "<br>";
+
+        if (auth_unix)
+        {
+            auth_text = auth_text + to_string ["files"]:"" + "<br>";
+
+            // check for pam settings (/etc/security/pam_unix2.conf)
+            map pam_auth_map = $[];
+            pam_auth_list = SCR::Read (.pam.all.auth.pam_unix);
+            if (pam_auth_list != [] && pam_auth_list != nil)
+                pam_auth_map = select (pam_auth_list,0,$[]);
+
+            list pam_args = splitstring ( pam_auth_map ["arguments"]:"", " ");
+
+            if ( contains (pam_args, "use_ldap"))
+                auth_text = auth_text + to_string ["ldap"]:"" + "<br>";
+        }
+
+        auth_text = auth_text + "</p>";
+
+        UI::ChangeWidget(`id(`summary), `Value, auth_text);
+
+    }
+
+    // read the encryption settings
+    Progress::off();
+    Security::Read();
+    Progress::on();
+    y2milestone ("sec: %1", Security::Settings);
+
+    string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
+
+    term contents = `HBox(
+        `HSpacing(4),
+        `VBox(
+            `VSpacing( 1 ),
+            // frame label
+            `Frame( _("Password Encryption"),
+            `HBox(
+            `HSpacing (0.5),
+            `RadioButtonGroup(
+            `VBox(
+                `VSpacing( 0.5 ),
+                // Radio buttons for password encryption: DES-crypt
+                `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+                      encryptionMethod == "des" ) ),
+                // Radio buttons for password encryption: MD5-crypt
+                `Left(`RadioButton(`id(`md5), _("&MD5"),
+                      encryptionMethod == "md5" ) ),
+                // Radio buttons for password encryption: blowfish-crypt
+                `Left(`RadioButton(`id(`blowfish), _("B&lowfish"),
+                      encryptionMethod == "blowfish" ) ),
+                `VSpacing( 0.5 )
+            )),
+            `HSpacing (0.5))),
+            `VSpacing( 1 ),
+            // frame label
+            `Frame( _("User sources and authentication"),
+            `HBox(
+            `HSpacing (1),
+            `VBox(
+                `VSpacing( 0.5 ),
+                `RichText (`id(`summary), ""),
+                `VSpacing( 0.5 ),
+                // button label
+                `MenuButton(_("&Configure ..."), [
+                    `item(`id(`conf_nis), "&NIS"),
+                    `item(`id(`conf_ldap), "&LDAP"),
+                    `item(`id(`conf_krb), "&Kerberos")]),
+                `VSpacing (0.5)
+            ),
+            `HSpacing (1))),
+            `VSpacing( 1 )
+        ),
+        `HSpacing(4)
+    );
+
+    // dialog title
+    string title = _("Expert Login Options");
+
+    if (!Mode::cont)
+    {
+        Wizard::CreateDialog();
+        Wizard::SetContentsButtons (title, contents, help_text,
+            UI::BackButtonLabel(), UI::FinishButtonLabel());
+        Wizard::ReplaceAbortButton(`Empty ());
+    }
+    else
+// Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+        Wizard::SetContents (title, contents, help_text, true, true);
+
+    reload_config();
+
+    symbol button = nil;
+
+    do
+    {
+        button = UI::UserInput();
+
+        if ( button == `conf_nis)
+        {
+            WFM::CallModule("nis", []);
+            reload_config ();
+        }
+
+        if ( button == `conf_ldap)
+        {
+            WFM::CallModule("ldap", []);
+            reload_config ();
+        }
+
+        if ( button == `conf_krb)
+        {
+            WFM::CallModule("kerberos", []);
+            reload_config ();
+        }
+
+        if ( button == `conf_krb)
+        {
+
+        }
+
+        if ( button == `abort )
+        {
+            if (Mode::cont)
+            {
+                if (CallFunction(`inst_confirm_abort(`incomplete)))
+                    return `abort;
+            }
+            else
+                return `abort;
+        }
+
+    } while ( button != `next && button != `abort && button != `back );
+
+    if (button == `next)
+    {
+        if ( UI::QueryWidget( `id(`des), `Value ) )
+            encryptionMethod = "des";
+        else if ( UI::QueryWidget( `id(`md5), `Value ) )
+            encryptionMethod = "md5";
+        else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
+            encryptionMethod = "blowfish";
+
+        if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
+        {
+            y2milestone( "Changing encryption method to %1", encryptionMethod);
+            Security::modified = true;
+            Security::Settings["PASSWD_ENCRYPTION"] = encryptionMethod;
+            Progress::off();
+            Security::Write();
+            Progress::on();
+        }
+    }
+
+    if (!Mode::cont)
+        UI::CloseDialog();
+
+    return button;
+}
