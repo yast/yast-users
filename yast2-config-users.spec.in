@@ -1,0 +1,61 @@
+#
+# spec file for package @RPMNAME@
+# 
+# Copyright  (c)  2000  SuSE GmbH  Nuernberg, Germany.
+#
+# please send bugfixes or comments to @MAINTAINER@
+#
+
+# neededforbuild  autoconf automake ycpdoc
+
+Vendor:       SuSE GmbH, Nuernberg, Germany
+Distribution: SuSE Linux 6.4 (i386)
+Name:         @RPMNAME@
+Release:      1
+Copyright:    (c) 2000 SuSE GmbH
+Requires:     y2d_prnt >= 2.1.22 aps netcat yast2
+Group:        System Environment/YaST
+BuildArchitectures: noarch
+Provides:     y2c_prnt
+Obsoletes:    y2c_prnt
+
+Packager:     @MAINTAINER@
+
+Summary:      YaST2 Modules for installation
+Version:      @VERSION@
+Source0:      @RPMNAME@-@VERSION@.tar.bz2
+
+%description
+-
+
+%prep
+
+%setup -n @RPMNAME@-@VERSION@
+
+%build
+
+./configure
+make
+
+%install
+
+make install
+
+%{?suse_check}
+
+%files
+
+%dir @YAST2DIR@
+%dir @YAST2DIR@/bin
+%dir @YAST2DIR@/clients
+%dir @YAST2DIR@/include
+%dir @YAST2DIR@/menuentries
+%dir @DOCDIR@
+%dir @DOCDIR@/yast2-config-printer
+@YAST2DIR@/clients/printconf*
+@YAST2DIR@/include/printconf/*
+@YAST2DIR@/menuentries/menu*.ycp
+@YAST2DIR@/bin/test_device
+@YAST2DIR@/bin/test_remote_lpd
+@YAST2DIR@/suse_testpg.*
+@DOCDIR@/yast2-config-printer/*
