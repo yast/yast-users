@@ -479,8 +479,6 @@ Press Details and edit the home directory."), home_path));
             }
             }
 
-            if (!details) //password check not necessary now
-            {
             if ( pw1 != pw2 )
             {
                 // There is a check whether the information from the UI is
@@ -504,7 +502,7 @@ Please try again."));
             // only check pw1 here, its identical with pw2 as checked before
             if ( (pw1 !=  Users::default_pw) && (pw2 != Users::default_pw ))
             {
-            if ( pw1 == "" )
+            if ( pw1 == "" && !details)
             {
                 // There is a check whether the information from the
                 // UI is correct and complete.  The first user password
@@ -520,7 +518,7 @@ Please try again."));
                 UI::SetFocus(`id(`pw1));
                 continue;
             }
-            if (size (pw1) < Users::min_length_pas)
+            if (size (pw1) < Users::min_length_pas && pw1 != "")
             {
 
                 // There is a check whether the information from the
@@ -553,7 +551,6 @@ Please try again."));
                 }
             }
             if ( size(pw1) >=  Users::min_length_pas )
-
             {
                 if ( nil != findfirstnotof( pw1, Users::valid_password_chars ))
                 {
@@ -608,17 +605,17 @@ Please try again."));
                     }
                 }
             }
-            // to use with autoinst.
-            if (Users::user_in_work["encrypted"]:true)
-                password = Users::CryptPassword (pw1);
-            }
-
-            if (password != "x" && password != "")
+            if (pw1 != "x" && pw1 != "")
             {
+                // to use with autoinst.
+                if (Users::user_in_work["encrypted"]:true)
+                    password = Users::CryptPassword (pw1);
+                }
+                else password = pw1;
+
                 shadow["password"] = password;
                 shadow["last_change"] = Users::LastChangeIsNow();
             }
-            } //end of pw checks
 
             // use Users::Add/Edit?
             Users::user_in_work = $[
