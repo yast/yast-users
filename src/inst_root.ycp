@@ -42,25 +42,30 @@
    **/
   define void expert_dialog() ``{
 
-      // Help text for password expert dialog 1/4
+      // Help text for password expert dialog 1/5
       string help_text = _("<p>
 <b>This is for experts only.</b>
 </p>");
 
-      // Help text for password expert dialog 2/4
+      // Help text for password expert dialog 2/5
       help_text = help_text + _("<p>
 Choose a password encryption method.
 <b>DES</b>, the Linux default method, works in all network environments, but it
 restricts you to passwords no longer than eight characters.
 </p>");
 
-      // Help text for password expert dialog 3/4
+      // Help text for password expert dialog 3/5
       help_text = help_text + _("<p>
 <b>MD5</b> allows longer passwords, thus provides more security, but some
 network protocols don't support this, and you may have problems with NIS.
 </p>");
 
-      // Help text for password expert dialog 4/4
+      // Help text for password expert dialog 4/5
+      help_text = help_text + _("<p>
+<b>Blowfish</b> is similar to MD5, but uses a different algorithm
+to encrypt passwords.
+</P>");
+      // Help text for password expert dialog 5/5
       help_text = help_text + _("<p>
 As a general rule of thumb, use DES if you are unsure.
 </p>");
