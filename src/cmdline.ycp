@@ -304,7 +304,7 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
 	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
-    if (uid != -1)
+    if (uid != -1 && uid != nil)
     {
 	Users::SelectUser (uid);
     }
@@ -347,7 +347,7 @@ define boolean UserEditHandler (map<string,any> options) {
 	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
-    if (uid != -1)
+    if (uid != -1 && uid != nil)
     {
 	Users::SelectUser (uid);
     }
@@ -519,7 +519,7 @@ define boolean GroupDeleteHandler (map<string,any> options ) {
 	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
-    if (gid != -1)
+    if (gid != -1 && gid != nil)
     {
 	Users::SelectGroup (gid);
     }
@@ -609,7 +609,7 @@ define boolean GroupEditHandler (map<string,any> options) {
 	if (!bind_and_read_LDAP (options["ldap_password"]:""))
 	    return false;
     }
-    if (gid != -1)
+    if (gid != -1 && gid != nil)
     {
 	Users::SelectGroup (gid);
     }
