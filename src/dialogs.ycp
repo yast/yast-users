@@ -161,7 +161,7 @@ global define symbol EditUserDialog(symbol what) ``{
                 _("Additional users/&groups")));
         detailsmorebox = `VBox (
             // checkbox label
-            `CheckBox (`id (`root_mail),_("Recieve S&ystem Mail"),
+            `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
                 Users::root_mail != ""),
             `VStretch (),
             detailsmorebox);
