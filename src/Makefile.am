@@ -32,4 +32,8 @@ config_DATA =		\
     users.y2cc		\
     groups.y2cc
 
-EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA)
+desktop_DATA =		\
+    users.desktop	\
+    groups.desktop
+
+EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
