@@ -201,7 +201,7 @@ global define symbol UsersDialog() ``{
             // PushButon
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
-            `MenuButton(`id(`expertlist), _("E&xpert options..."),
+            `MenuButton(`id(`expertlist), _("E&xpert Options..."),
                 expert_list),
             `HStretch()
 	)

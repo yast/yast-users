@@ -2493,73 +2493,41 @@ define boolean ReadDefaultGroup(boolean useUI)``{
 }
 
 /**
- * Read the security settings from the system, sets the encoding and various
- * variables
- * @return boolean true on success
+ * Read the security settings from the system (using the Security module),
+ * sets the encoding and various variables
+ * @return boolean true on succes
  */
 global define boolean ReadSystemDefaults()``{
 
-    // TODO: read all settings from Security module...
-
-    // pam stuff
-    map pam_unix_map = $[];
-    list pam_list = SCR::Read(.pam.all.password.pam_unix2);
-    if(pam_list != [] && pam_list != nil)
-	pam_unix_map = select(pam_list,0,$[]);
-
-    map pam_check_map = $[];
-    pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
-    if(pam_list != [] && pam_list != nil)
-        pam_check_map = select(pam_list,0,$[]);
-
-    // set defaults
-    max_uid ["local"] = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
-    if (nil == max_uid ["local"]:nil)
-        max_uid ["local"] = 60000;
-    max_gid ["local"] = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
-    if (nil == max_gid ["local"]:nil)
-	max_gid ["local"] = 60000;
-    max_uid ["system"] = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
-    if (nil == max_uid ["system"]:nil)
-        max_uid ["system"] = 499;
-    max_gid ["system"] = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
-    if (nil == max_gid ["system"]:nil)
-        max_gid ["system"] = 99;
-    max_length_uid = size(sformat("%1", max_uid ["local"]:60000));
-    max_length_gid = size(sformat("%1", max_gid ["local"]:60000));
-
-    pass_max_days = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
-    if (nil ==  pass_max_days)
-        pass_max_days = 99999;
-    pass_min_days = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_DAYS));
-    if (nil == pass_min_days)
-        pass_min_days = 0;
-    pass_warn_age = tointeger (SCR::Read (.etc.login_defs.PASS_WARN_AGE));
-    if (nil == pass_warn_age)
-        pass_warn_age = 7;
-
-    pass_length ["local", "min"] =
-	tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
-    if (nil ==  pass_length ["local", "min"]:nil)
-	pass_length ["local", "min"] = 5;
-
-    // TODO add a progress for ReadSecurity
     Progress::off();
     Security::Read();
     Progress::on();
 
+    max_uid ["local"] = tointeger (Security::Settings["UID_MAX"]:"60000");
+    max_gid ["local"] = tointeger (Security::Settings["GID_MAX"]:"60000");
+    max_uid ["system"] = tointeger (Security::Settings ["UID_MIN"]:"500") - 1;
+    max_gid ["system"] = tointeger (Security::Settings ["GID_MIN"]:"500") - 1;
+    max_length_uid = size(sformat("%1", max_uid ["local"]:60000));
+    max_length_gid = size(sformat("%1", max_gid ["local"]:60000));
+
+    pass_max_days = tointeger (Security::Settings ["PASS_MAX_DAYS"]:"99999");
+    pass_min_days = tointeger (Security::Settings ["PASS_MIN_DAYS"]:"0");
+    pass_warn_age = tointeger (Security::Settings ["PASS_WARN_AGE"]:"7");
+
     encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
 
-    string sec = Security::Settings["PASSWD_USE_CRACKLIB"]:"no";
-    use_cracklib = (sec == "yes") ? true: false;
-    sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
-    obscure_checks = (sec == "yes") ? true: false;
+    use_cracklib = (Security::Settings["PASSWD_USE_CRACKLIB"]:"no" == "yes");
+    cracklib_dictpath=Security::Settings["CRACKLIB_DICTPATH"]:cracklib_dictpath;
 
-    cracklib_dictpath = SCR::Read(.etc.login_defs.CRACKLIB_DICTPATH);
+    obscure_checks = (Security::Settings["OBSCURE_CHECKS_ENAB"]:"no" == "yes");
 
-//    max_length_pas = Security::PasswordMaxLengths[encryptionMethod]:8;
-    pass_length ["local", "max"] =
-	Security::PasswordMaxLengths [encryptionMethod]:8;
+    pass_length ["local", "min"] =
+	tointeger (Security::Settings ["PASS_MIN_LEN"]:"5");
+
+    pass_length ["local", "max"] = (encryptionMethod != "des") ?
+	    Security::PasswordMaxLengths [encryptionMethod]:8 :
+	    tointeger (Security::Settings ["PASS_MAX_LEN"]:"8");
+
     y2debug ("encryption: %1", encryptionMethod);
 
     encoding = Console::encoding;
@@ -3508,26 +3476,5 @@ global define string CreateGroupDN (map group) ``{
     return sformat ("%1=%2,%3", dn_attr, group[group_attr]:"", ldap_group_base);
 }
 
-
-global define void debug (any object) ``{
-
-    y2milestone ("==========================");
-    if (is (object, map))
-    {
-	foreach (`k,`v,object, ``{
-	    y2internal ("key: %1", k);
-	    y2warning ("val: %1", v);
-	    y2milestone ("--------------");
-	});
-    }
-    else if (is (object, list))
-	foreach (`v,object, ``{
-	    y2warning ("val: %1", v);
-	    y2milestone ("--------------");
-	});
-    else
-	y2warning ("val: %1", object);
-    y2milestone ("==========================");
-}
 
 }// EOF
