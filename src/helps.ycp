@@ -256,6 +256,13 @@ To see more details, such as the home directory or the user ID, click
     _("<p>
 To edit various password settings of this user (e.g., expiration date), click <b>Password Settings</b>.</p>
 ");
+
+    if (!Mode::cont && type != "nis")
+    {
+	// help text 7/6
+	help = help + _("<p>To disallow this user to
+log in, check <b>Disable User Login</b> option.</p>");
+    }
     return help;
   }
 
@@ -325,9 +332,10 @@ Here, select which users should be members of this group.
   /**
    * Help for EditUserDetailsDialog.
    * @param user_type type of edited user (local/system/ldap/nis)
+   * @param what what to do with a user (add_user/edit_user)
    * @return string help text
    */
-  define string EditUserDetailsDialogHelp(string user_type) ``{
+  define string EditUserDetailsDialogHelp(string user_type, string what) ``{
 
 	// help text 1/8
     string helptext = _("<p>
@@ -352,7 +360,7 @@ located elsewhere.</p>
 ") +
 
 	// help text 4/8
-		_("<p>
+	_("<p>
 <b>Home Directory:</b>
 The home directory of the user. Normally this is
 /home/username. 
@@ -360,6 +368,15 @@ The home directory of the user. Normally this is
 To select an existing directory, click <b>Browse</b>.
 </p>
 ");
+    if (what == "add_user")
+    {
+	map defaults        = Users::GetLoginDefaults ();
+        helptext = helptext +
+	// alternate helptext 4.5/8; %1 is directory (e.g. '/etc/skel')
+	sformat (_("<p>If you want to create only empty home directory,
+check <b>Empty Home</b>. Otherwise, the new user home directory
+will be created from the default skeleton (%1).</p>"), defaults["skel"]:"");
+    }
 
     if (user_type == "ldap")
         helptext = helptext +

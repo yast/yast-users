@@ -1746,11 +1746,16 @@ sub DisableUser {
 	# TODO not ready? shadowexpire
 	my $pw			= $user{"userpassword"} || "";
 	if ($pw eq "x") { $pw	= ""; } # no not allow "!x"
-	$user{"userpassword"}	= "!".$pw;
+	if ($pw !~ m/^\!/) {
+	    $user{"userpassword"}	= "!".$pw;
+	}
     }
 
     if (!defined $user{"disabled"} || ! bool ($user{"disabled"})) {
 	$user{"disabled"}	= YaST::YCP::Boolean (1);
+    }
+    if (defined $user{"enabled"}) {
+	delete $user{"enabled"};
     }
     if (!defined $user{"what"}) {
 	$user{"what"}		= "edit_user";
@@ -1818,11 +1823,15 @@ sub EnableUser {
 	# no plugins available: local user
 	my $pw	= $user{"userpassword"} || "";
 	$pw	=~ s/^\!//;
+	if ($pw eq "") { $pw	= "x"; }
 	$user{"userpassword"}	= $pw;
     }
 
     if (!defined $user{"enabled"} || ! bool ($user{"enabled"})) {
 	$user{"enabled"}	= YaST::YCP::Boolean (1);
+    }
+    if (defined $user{"disable"}) {
+	delete $user{"disabled"};
     }
     if (!defined $user{"what"}) {
 	$user{"what"}		= "edit_user";
@@ -1964,7 +1973,6 @@ sub EditUser {
 	return $plugin_error;
     }
     # ----------------------------------------------------------------
-
     
     # update the settings which should be changed
     foreach my $key (keys %data) {
@@ -2069,14 +2077,10 @@ sub EditUser {
     }
     # ---------------------------------------------------------------------
     # now handle possible login disabling
-    if (defined $user_in_work{"disabled"} &&
-	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"disabled"}->value) {
+    if (bool ($user_in_work{"disabled"})) {
 	$plugin_error = $self->DisableUser (\%user_in_work);
     }
-    if (defined $user_in_work{"enabled"} &&
-	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"enabled"}->value) {
+    if (bool ($user_in_work{"enabled"})) {
 	$plugin_error = $self->EnableUser (\%user_in_work);
     }
     return $plugin_error;
@@ -2767,6 +2771,9 @@ sub AddUser {
     if (!defined $user_in_work{"userpassword"}) {
 	$user_in_work{"userpassword"}	= "";
     }
+    if (!defined $user_in_work{"no_skeleton"} && $type eq "system") {
+	$user_in_work{"no_skeleton"}	= YaST::YCP::Boolean (1);
+    }
 
     if ($type eq "ldap") {
         # add other default values
@@ -2811,14 +2818,10 @@ sub AddUser {
 
     # now handle possible login disabling
     # should it really be called from Add/Edit functions...?
-    if (defined $user_in_work{"disabled"} &&
-	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"disabled"}->value) {
+    if (bool ($user_in_work{"disabled"})) {
 	$plugin_error = $self->DisableUser (\%user_in_work);
     }
-    if (defined $user_in_work{"enabled"} &&
-	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"enabled"}->value) {
+    if (bool ($user_in_work{"enabled"})) {
 	$plugin_error = $self->EnableUser (\%user_in_work);
     }
     return $plugin_error;
@@ -4450,7 +4453,7 @@ sub CheckPasswordUI {
     if (($ui_map{"empty_pw"} || 0) != 1) {
 	# popup question: user didn't enter password
 	my $error = __("You did not enter a password.
-This user will not be enabled to log in.
+This user will not be able to log in.
 Are you sure?");
 #FIXME do not check when already disabled...
 	if ($pw eq "") {
@@ -4931,7 +4934,13 @@ sub CheckGroup {
 
     my $error = $self->CheckGID ($group{"gidnumber"});
 
-# FIXME CheckPassword!
+    if ($error eq "") {
+	if (defined $group{"userpassword"} && ! bool ($group{"encrypted"}) &&
+	    $group{"userpassword"} ne "" && $group{"userpassword"} ne "x" &&
+	    $group{"userpassword"} ne "!") {
+	    $error	= $self->CheckPassword ($group{"userpassword"});
+	}
+    }
 
     if ($error eq "") {
 	$error = $self->CheckGroupname ($group{"cn"});
