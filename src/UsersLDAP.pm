@@ -39,6 +39,9 @@ my $group_base			= "";
 my $default_user_filter		= "objectClass=posixAccount";
 my $default_group_filter	= "objectClass=posixGroup";
 
+# which attribute have groups for list of members
+my $member_attribute		= "uniqueMember";
+
 # current filters (must be empty on start):
 my $user_filter 		= "";
 my $group_filter 		= "";
@@ -314,6 +317,8 @@ sub ReadSettings {
 
     if (defined $group_config{"defaultObjectClass"}) {
 	@group_class = @{$group_template{"defaultObjectClass"}};
+# FIXME FIXME: check if we have groupOfUniqueNames or whatever!
+# $member_attribute = ...
     }
 
     if (defined $user_template{"default_values"}) {
@@ -424,7 +429,8 @@ sub ReadSettings {
 
 
 ##------------------------------------
-# do the LDAP search command; check the search filters before
+# do the LDAP search command for users and groups;
+# check the search filters before
 sub Read {
 
     my $ret = "";
@@ -432,21 +438,23 @@ sub Read {
     my $user_filter = $user_filter ne "" ? $user_filter: $default_user_filter;
     my $group_filter = $group_filter ne ""? $group_filter:$default_group_filter;
 
+    # TODO use allowed/required attrs from config?
+    # (if yes, objectClass must be in required!)
+    # For now, we get all:
     my @user_attrs	= ();
     my @group_attrs 	= ();
-    # TODO use allowed/required attrs from config?
-    # if yes, objectClass must be in required!
 
     my %args = (
-	"user_base"	=> $user_base,
-	"group_base"	=> $group_base,
-	"user_filter"	=> $user_filter,
-	"group_filter"	=> $group_filter,
-	"user_scope"	=> 2,#sub
-	"group_scope"	=> 2,
-	"user_attrs"	=> @user_attrs,
-	"group_attrs"	=> @group_attrs,
-	"itemlists"	=> YaST::YCP::Boolean (1)
+	"user_base"		=> $user_base,
+	"group_base"		=> $group_base,
+	"user_filter"		=> $user_filter,
+	"group_filter"		=> $group_filter,
+	"user_scope"		=> 2,# = sub - TODO configurable?
+	"group_scope"		=> 2,
+	"user_attrs"		=> @user_attrs,
+	"group_attrs"		=> @group_attrs,
+	"itemlists"		=> YaST::YCP::Boolean (1),
+	"member_attribute"	=> $member_attribute
     );
     if (!SCR::Execute (".ldap.users.search", \%args)) {
 	$ret = Ldap::LDAPError();
