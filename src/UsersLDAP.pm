@@ -275,10 +275,10 @@ sub ReadFilters {
     if ($init ne "") { return $init; }
 
     # get the default filters from config modules (already read)
-    if (defined $user_config{"susesearchfilter"}) {
+    if (defined $user_config{"susesearchfilter"}[0]) {
         $default_user_filter = @{$user_config{"susesearchfilter"}}[0];
     }
-    if (defined $group_config{"susesearchfilter"}) {
+    if (defined $group_config{"susesearchfilter"}[0]) {
         $default_group_filter = @{$group_config{"susesearchfilter"}}[0];
     }
 
@@ -306,7 +306,7 @@ sub ReadSettings {
     my %tmp_group_template	= %group_template;
 
     # every time take the first value from the list...
-    if (defined $user_config{"susedefaultbase"}) {
+    if (defined $user_config{"susedefaultbase"}[0]) {
 	$user_base = $user_config{"susedefaultbase"}[0];
 	# ask to create if not present
 	my $base_map	= Ldap->GetLDAPEntry ($user_base);
@@ -334,7 +334,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	$user_base = Ldap->GetDomain();
     }
 
-    if (defined $group_config{"susedefaultbase"}) {
+    if (defined $group_config{"susedefaultbase"}[0]) {
 	$group_base = $group_config{"susedefaultbase"}[0];
 	my $base_map	= Ldap->GetLDAPEntry ($group_base);
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
@@ -394,7 +394,7 @@ exists on the LDAP server. Create it now?"), $dn)))
     if (defined $user_defaults{"loginshell"}) {
 	$useradd_defaults{"shell"}	= $user_defaults{"loginshell"};
     }
-    if (defined $user_config{"suseskeldir"}) {
+    if (defined $user_config{"suseskeldir"}[0]) {
 	$useradd_defaults{"skel"}	= $user_config{"suseskeldir"}[0];
     }
     # set default secondary groups
@@ -408,15 +408,15 @@ exists on the LDAP server. Create it now?"), $dn)))
     };
 
     # password length (there is no check if it is correct for current hash)
-    if (defined ($user_config{"suseminpasswordlength"})) {
+    if (defined ($user_config{"suseminpasswordlength"}[0])) {
 	$min_pass_length	= $user_config{"suseminpasswordlength"}[0];
     }
-    if (defined ($user_config{"susemaxpasswordlength"})) {
+    if (defined ($user_config{"susemaxpasswordlength"}[0])) {
 	$max_pass_length	= $user_config{"susemaxpasswordlength"}[0];
     }
 
     # last used Id
-    if (defined ($user_config{"susenextuniqueid"})) {
+    if (defined ($user_config{"susenextuniqueid"}[0])) {
 	$last_uid = $user_config{"susenextuniqueid"}[0];
     }
     else {
@@ -424,7 +424,7 @@ exists on the LDAP server. Create it now?"), $dn)))
     }
     UsersCache->SetLastUID ($last_uid, "ldap");
 
-    if (defined ($group_config{"susenextuniqueid"})) {
+    if (defined ($group_config{"susenextuniqueid"}[0])) {
 	$last_gid = $group_config{"susenextuniqueid"}[0];
     }
     else {
@@ -433,34 +433,34 @@ exists on the LDAP server. Create it now?"), $dn)))
     UsersCache->SetLastGID ($last_gid, "ldap");
 
     # naming attributes
-    if (defined ($user_template{"susenamingattribute"})) {
+    if (defined ($user_template{"susenamingattribute"}[0])) {
         $user_naming_attr = $user_template{"susenamingattribute"}[0];
     }
-    if (defined ($group_template{"susenamingattribute"})) {
+    if (defined ($group_template{"susenamingattribute"}[0])) {
         $group_naming_attr = $group_template{"susenamingattribute"}[0];
     }
 
     # max id
-    if (defined ($user_config{"susemaxuniqueid"})) {
+    if (defined ($user_config{"susemaxuniqueid"}[0])) {
 	$max_uid	= $user_config{"susemaxuniqueid"}[0];
     }
-    if (defined ($group_config{"susemaxuniqueid"})) {
+    if (defined ($group_config{"susemaxuniqueid"}[0])) {
 	$max_gid	= $group_config{"susemaxuniqueid"}[0];
     }
     UsersCache->SetMaxUID ($max_uid, "ldap");
     UsersCache->SetMaxGID ($max_gid, "ldap");
 
     # min id
-    if (defined ($user_config{"suseminuniqueid"})) {
+    if (defined ($user_config{"suseminuniqueid"}[0])) {
 	$min_uid	= $user_config{"suseminuniqueid"}[0];
     }
-    if (defined ($group_config{"suseminuniqueid"})) {
+    if (defined ($group_config{"suseminuniqueid"}[0])) {
 	$min_gid	= $group_config{"suseminuniqueid"}[0];
     }
     UsersCache->SetMinUID ($min_uid, "ldap");
     UsersCache->SetMinGID ($min_gid, "ldap");
 
-    if (defined ($user_config{"susepasswordhash"})) {
+    if (defined ($user_config{"susepasswordhash"}[0])) {
 	$encryption 	= $user_config{"susepasswordhash"}[0];
     }
     else {
