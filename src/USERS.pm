@@ -151,10 +151,11 @@ BEGIN{$TYPEINFO{UserAdd} = ["function",
 }
 sub UserAdd {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
     my $user	= {};
+    my $ret	= "";
 
 return "";
     my %new_keys	= {
@@ -184,7 +185,7 @@ return "";
     }
 
     # FIXME do not read local users if not necessary? (LDAP...)
-    Users::Read ();
+    Users->Read ();
 
     # config map could contain: user type, plugins to use, ... (?)
     my $type	= $config->{"type"} || "local";
@@ -195,14 +196,14 @@ return "";
     }
     $user{"type"}	= $type;
 
-    Users::AddUser ($user);
+    Users->AddUser ($user);
 
-    my $ret = Users::CheckUser ({});
+    my $ret = Users->CheckUser ({});
     if ($ret ne "") {
 	return $ret;
     }
-    Users::CommitUser ();
-    if (!Users::Write ()) {
+    Users->CommitUser ();
+    if (!Users->Write ()) {
 	y2internal ("error");
     }
     return $ret;
@@ -240,9 +241,10 @@ BEGIN{$TYPEINFO{UserModify} = ["function",
 }
 sub UserModify {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
+    my $ret	= "";
     my $user	= {};
 
     #TODO
@@ -274,6 +276,7 @@ BEGIN{$TYPEINFO{UserFeatureAdd} = ["function",
 }
 sub UserFeatureAdd {
 
+    my $self	= shift;
     return "";
 }
 
@@ -304,6 +307,7 @@ BEGIN{$TYPEINFO{UserFeatureDelete} = ["function",
 }
 sub UserFeatureDelete {
 
+    my $self	= shift;
     return "";
 }
 
@@ -335,8 +339,9 @@ BEGIN{$TYPEINFO{UserDelete} = ["function",
 }
 sub UserDelete {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= "";
 
     #TODO
     return $ret;
@@ -367,8 +372,9 @@ BEGIN{$TYPEINFO{UserDisable} = ["function",
 }
 sub UserDisable {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= "";
 
     #TODO
     return $ret;
@@ -398,8 +404,9 @@ BEGIN{$TYPEINFO{UserEnable} = ["function",
 }
 sub UserEnable {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= "";
 
     #TODO
     return $ret;
@@ -437,8 +444,9 @@ BEGIN{$TYPEINFO{UserGet} = ["function",
 }
 sub UserGet {
 
-    my $ret	= {};
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= {};
 
     return $ret;
 }
@@ -470,8 +478,9 @@ BEGIN{$TYPEINFO{UsersGet} = ["function",
 }
 sub UsersGet {
 
-    my $ret	= {};
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= {};
 
     return $ret;
 }
@@ -520,10 +529,11 @@ BEGIN{$TYPEINFO{GroupAdd} = ["function",
 }
 sub GroupAdd {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
     my $group	= {};
+    my $ret	= "";
     # TODO
     # TODO conver 'member' from list to hash if necessary
     return $ret;
@@ -574,9 +584,10 @@ BEGIN{$TYPEINFO{GroupModify} = ["function",
 }
 sub GroupModify {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
+    my $ret	= "";
     my $group	= {};
 
     #TODO
@@ -613,6 +624,7 @@ BEGIN{$TYPEINFO{GroupMemberAdd} = ["function",
 }
 sub GroupMemberAdd {
 
+    my $self	= shift;
     return "";
 }
 
@@ -641,6 +653,7 @@ BEGIN{$TYPEINFO{GroupMemberDelete} = ["function",
 }
 sub GroupMemberDelete {
 
+    my $self	= shift;
     return "";
 }
 
@@ -667,8 +680,9 @@ BEGIN{$TYPEINFO{GroupDelete} = ["function",
 }
 sub GroupDelete {
 
-    my $ret	= "";
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= "";
 
     #TODO
     return $ret;
@@ -697,8 +711,9 @@ BEGIN{$TYPEINFO{GroupGet} = ["function",
 }
 sub GroupGet {
 
-    my $ret	= {};
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= {};
 
     return $ret;
 }
@@ -727,8 +742,9 @@ BEGIN{$TYPEINFO{GroupsGet} = ["function",
 }
 sub GroupsGet {
 
-    my $ret	= {};
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= {};
 
     return $ret;
 }
@@ -761,8 +777,9 @@ BEGIN{$TYPEINFO{GroupsGetByUser} = ["function",
 }
 sub GroupsGetByUser {
 
-    my $ret	= {};
+    my $self	= shift;
     my $config	= $_[0];
+    my $ret	= {};
 
     return $ret;
 }

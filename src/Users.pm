@@ -243,15 +243,15 @@ sub bool {
 }
 
 sub DebugMap {
-    UsersCache::DebugMap (@_);
+    UsersCache->DebugMap ($_[0]);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
-    if (Mode::test ()) { return "0";}
+    if (Mode->test ()) { return "0";}
 
-    my %out = %{SCR::Execute (".target.bash_output", "date +%s")};
+    my %out = %{SCR->Execute (".target.bash_output", "date +%s")};
     my $seconds = $out{"stdout"} || "0";
     chomp $seconds;
     return sprintf ("%u", $seconds / (60*60*24));
@@ -297,9 +297,9 @@ sub LDAPNotRead {
 
 BEGIN { $TYPEINFO{SetLDAPNotRead} = ["function", "void", "boolean"]; }
 sub SetLDAPNotRead {
-    $ldap_not_read = $_[0];
+    my $self		= shift;
+    $ldap_not_read	= $_[0];
 }
-
 
 BEGIN { $TYPEINFO{GetRootMail} = ["function", "string"]; }
 sub GetRootMail {
@@ -308,7 +308,8 @@ sub GetRootMail {
 
 BEGIN { $TYPEINFO{SetRootMail} = ["function", "void", "string"]; }
 sub SetRootMail {
-    $root_mail = $_[0];
+    my $self		= shift;
+    $root_mail 		= $_[0];
 }
 
 
@@ -319,12 +320,14 @@ sub GetStartDialog {
 
 BEGIN { $TYPEINFO{StartDialog} = ["function", "boolean", "string"]; }
 sub StartDialog {
+    my $self		= shift;
     return $start_dialog eq $_[0];
 }
 
 BEGIN { $TYPEINFO{SetStartDialog} = ["function", "void", "string"]; }
 sub SetStartDialog {
-    $start_dialog = $_[0];
+    my $self		= shift;
+    $start_dialog	= $_[0];
 }
 
 BEGIN { $TYPEINFO{UseNextTime} = ["function", "boolean"]; }
@@ -334,7 +337,8 @@ sub UseNextTime {
 
 BEGIN { $TYPEINFO{SetUseNextTime} = ["function", "void", "boolean"]; }
 sub SetUseNextTime {
-    $use_next_time = $_[0];
+    my $self		= shift;
+    $use_next_time 	= $_[0];
 }
 
 
@@ -365,6 +369,7 @@ sub GetCurrentGroups {
 BEGIN { $TYPEINFO{ChangeCurrentUsers} = ["function", "boolean", "string"];}
 sub ChangeCurrentUsers {
 
+    my $self	= shift;
     my $new 	= $_[0];
     my @backup	= @current_users;
 
@@ -375,14 +380,14 @@ sub ChangeCurrentUsers {
         @current_users = ( $new );
     }
     if (contains (\@current_users, "ldap") && $ldap_not_read) {
-        if (!ReadNewSet ("ldap")) {
+        if (!$self->ReadNewSet ("ldap")) {
             @current_users = @backup;
             return 0;
         }
     }
 
     if (contains (\@current_users, "nis") && $nis_not_read) {
-        if (!ReadNewSet ("nis")) {
+        if (!$self->ReadNewSet ("nis")) {
             @current_users = @backup;
             return 0;
         }
@@ -390,10 +395,10 @@ sub ChangeCurrentUsers {
 
     # correct also possible change in custom itemlist
     if ($new eq "custom") {
-	UsersCache::SetCustomizedUsersView (1);
+	UsersCache->SetCustomizedUsersView (1);
     }
 
-    UsersCache::SetCurrentUsers (\@current_users);
+    UsersCache->SetCurrentUsers (\@current_users);
     return 1;
 }
 
@@ -403,6 +408,7 @@ sub ChangeCurrentUsers {
 BEGIN { $TYPEINFO{ChangeCurrentGroups} = ["function", "boolean", "string"];}
 sub ChangeCurrentGroups {
 
+    my $self	= shift;
     my $new 	= $_[0];
     my @backup	= @current_groups;
 
@@ -414,14 +420,14 @@ sub ChangeCurrentGroups {
     }
 
     if (contains (\@current_groups, "ldap") && $ldap_not_read) {
-        if (!ReadNewSet ("ldap")) {
+        if (!$self->ReadNewSet ("ldap")) {
             @current_groups = @backup;
             return 0;
         }
     }
 
     if (contains (\@current_groups, "nis") && $nis_not_read) {
-        if (!ReadNewSet ("nis")) {
+        if (!$self->ReadNewSet ("nis")) {
             @current_groups = @backup;
             return 0;
         }
@@ -429,10 +435,10 @@ sub ChangeCurrentGroups {
 
     # correct also possible change in custom itemlist
     if ($new eq "custom") {
-	UsersCache::SetCustomizedGroupsView (1);
+	UsersCache->SetCustomizedGroupsView (1);
     }
 
-    UsersCache::SetCurrentGroups (\@current_groups);
+    UsersCache->SetCurrentGroups (\@current_groups);
     return 1;
 }
 
@@ -444,12 +450,13 @@ BEGIN { $TYPEINFO{ChangeCustoms} = ["function",
 }
 sub ChangeCustoms {
 
+    my $self	= shift;
     my @new	= @{$_[1]};
 
     if ($_[0] eq "users") {
         my @old			= @user_custom_sets;
         @user_custom_sets 	= @new;
-        $customs_modified	= ChangeCurrentUsers ("custom");
+        $customs_modified	= $self->ChangeCurrentUsers ("custom");
         if (!$customs_modified) {
             @user_custom_sets 	= @old;
 	}
@@ -458,7 +465,7 @@ sub ChangeCustoms {
     {
         my @old			= @group_custom_sets;
         @group_custom_sets 	= @new;
-        $customs_modified	= ChangeCurrentGroups ("custom");
+        $customs_modified	= $self->ChangeCurrentGroups ("custom");
         if (!$customs_modified) {
             @group_custom_sets 	= @old;
 	}
@@ -480,6 +487,7 @@ sub AfterAuth {
 
 BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
 sub SetAfterAuth {
+    my $self	= shift;
     $after_auth = $_[0];
 }
 
@@ -490,6 +498,7 @@ sub NotAskUppercase {
 
 BEGIN { $TYPEINFO{SetAskUppercase} = ["function", "void", "boolean"];}
 sub SetAskUppercase {
+    my $self	= shift;
     if ($not_ask_uppercase != $_[0]) {
         $not_ask_uppercase 	= $_[0];
 	$customs_modified	= 1;
@@ -502,18 +511,19 @@ BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
 sub CheckHomeMounted {
 
-    if ( Mode::live_eval() || Mode::test() || Mode::config() ) {
+    if ( Mode->live_eval() || Mode->test() || Mode->config() ) {
 	return "";
     }
 
+    my $self		= shift;
     my $ret 		= "";
     my $mountpoint_in	= "";
-    my $home 		= GetDefaultHome ("local");
+    my $home 		= $self->GetDefaultHome ("local");
     if (substr ($home, -1, 1) eq "/") {
 	chop $home;
     }
 
-    my $fstab = SCR::Read (".etc.fstab");
+    my $fstab = SCR->Read (".etc.fstab");
     if (defined $fstab && ref ($fstab) eq "ARRAY") {
 	foreach my $line (@{$fstab}) {
 	    my %line	= %{$line};
@@ -523,8 +533,8 @@ sub CheckHomeMounted {
 	}
     }
 
-    if (SCR::Read (".target.size", "/etc/cryptotab") != -1) {
-        my $cryptotab = SCR::Read (".etc.cryptotab");
+    if (SCR->Read (".target.size", "/etc/cryptotab") != -1) {
+        my $cryptotab = SCR->Read (".etc.cryptotab");
 	if (defined $cryptotab && ref ($cryptotab) eq "ARRAY") {
 	    foreach my $line (@{$cryptotab}) {
 		my %line	= %{$line};
@@ -537,7 +547,7 @@ sub CheckHomeMounted {
 
     if ($mountpoint_in ne "") {
         my $mounted	= 0;
-        my $mtab	= SCR::Read (".etc.mtab");
+        my $mtab	= SCR->Read (".etc.mtab");
 	if (defined $mtab && ref ($mtab) eq "ARRAY") {
 	    foreach my $line (@{$mtab}) {
 		my %line	= %{$line};
@@ -571,6 +581,8 @@ after you mount correctly. Continue user configuration?"),
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer", "string"]; }
 sub GetMinPasswordLength {
+
+    my $self		= shift;
     if (defined ($min_pass_length{$_[0]})) {
 	return $min_pass_length{$_[0]};
     }
@@ -580,6 +592,7 @@ sub GetMinPasswordLength {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "integer", "string"]; }
 sub GetMaxPasswordLength {
+    my $self		= shift;
     if (defined ($max_pass_length{$_[0]})) {
 	return $max_pass_length{$_[0]};
     }
@@ -593,12 +606,13 @@ BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function",
 }
 sub GetDefaultGrouplist {
 
+    my $self		= shift;
     my $type		= $_[0];
     my %grouplist	= ();
     my $grouplist	= "";
 
     if ($type eq "ldap") {
-	$grouplist	= UsersLDAP::GetDefaultGrouplist ();
+	$grouplist	= UsersLDAP->GetDefaultGrouplist ();
     }
     else {
 	$grouplist	= $useradd_defaults{"groups"};
@@ -613,11 +627,12 @@ sub GetDefaultGrouplist {
 BEGIN { $TYPEINFO{GetDefaultGID} = ["function", "integer", "string"]; }
 sub GetDefaultGID {
 
+    my $self	= shift;
     my $type	= $_[0];
     my $gid	= $useradd_defaults{"group"};
 
     if ($type eq "ldap") {
-	$gid	= UsersLDAP::GetDefaultGID ();
+	$gid	= UsersLDAP->GetDefaultGID ();
     }
     return $gid;
 }
@@ -626,10 +641,11 @@ sub GetDefaultGID {
 BEGIN { $TYPEINFO{GetDefaultShell} = ["function", "string", "string"]; }
 sub GetDefaultShell {
 
-    my $type = $_[0];
+    my $self	= shift;
+    my $type 	= $_[0];
 
     if ($type eq "ldap") {
-	return UsersLDAP::GetDefaultShell ();
+	return UsersLDAP->GetDefaultShell ();
     }
     else {
         return $useradd_defaults{"shell"};
@@ -640,10 +656,11 @@ sub GetDefaultShell {
 BEGIN { $TYPEINFO{GetDefaultHome} = ["function", "string", "string"]; }
 sub GetDefaultHome {
 
-    my $home = $useradd_defaults{"home"} || "";
+    my $self	= shift;
+    my $home 	= $useradd_defaults{"home"} || "";
 
     if ($_[0] eq "ldap") {
-	$home	= UsersLDAP::GetDefaultHome ();
+	$home	= UsersLDAP->GetDefaultHome ();
     }
     if (substr ($home, -1, 1) ne "/") {
 	$home.="/";
@@ -658,6 +675,7 @@ BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
 }
 sub GetDefaultShadow {
 
+    my $self	= shift;
     my $type	= $_[0];
     my %ret 	= (
             "shadowInactive"	=> $useradd_defaults{"inactive"},
@@ -670,7 +688,7 @@ sub GetDefaultShadow {
 	    "userPassword"	=> ""
     );
     if ($type eq "ldap") {
-	%ret	= %{UsersLDAP::GetDefaultShadow()};
+	%ret	= %{UsersLDAP->GetDefaultShadow()};
     }
     return \%ret;
 }
@@ -680,22 +698,23 @@ sub GetDefaultShadow {
 BEGIN { $TYPEINFO{GetDefaultGroupname} = ["function", "string", "string"]; }
 sub GetDefaultGroupname {
 
-    my $type = $_[0];
+    my $self	= shift;
+    my $type 	= $_[0];
 
     if (defined $default_groupname{$type}) {
         return $default_groupname{$type};
     }
 	
-    my $gid	= GetDefaultGID ($type);
+    my $gid	= $self->GetDefaultGID ($type);
     my %group	= ();
     if ($type eq "ldap") {
-	%group	= %{GetGroup ($gid, "ldap")};
+	%group	= %{$self->GetGroup ($gid, "ldap")};
     }
     if (!%group) {
-	%group	= %{GetGroup ($gid, "local")};
+	%group	= %{$self->GetGroup ($gid, "local")};
     }
     if (!%group) {
-	%group	= %{GetGroup ($gid, "system")};
+	%group	= %{$self->GetGroup ($gid, "system")};
     }
     if (%group) {
 	$default_groupname{$type}	= $group{"cn"};
@@ -722,6 +741,7 @@ BEGIN { $TYPEINFO{SetLoginDefaults} = ["function",
 }
 sub SetLoginDefaults {
 
+    my $self			= shift;
     my %data			= %{$_[0]};
     $default_groupname{"local"}	= $_[1];
     $default_groupname{"system"}= $_[1];
@@ -745,11 +765,12 @@ BEGIN { $TYPEINFO{GetUser} = [ "function",
 }
 sub GetUser {
 
+    my $self		= shift;
     my $uid		= $_[0];
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = keys %users;
-	unshift @types_to_look, UsersCache::GetUserType ();
+	unshift @types_to_look, UsersCache->GetUserType ();
     }
 
     foreach my $type (@types_to_look) {
@@ -808,21 +829,22 @@ BEGIN { $TYPEINFO{GetUserByName} = [ "function",
 }
 sub GetUserByName {
 
+    my $self		= shift;
     my $username	= $_[0];
     if ($username =~ m/=/) {
-	$username = UsersCache::get_first ($username);
+	$username = UsersCache->get_first ($username);
 # TODO maybe we should have users_by_dn set!
     }
 
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = keys %users_by_name;
-	unshift @types_to_look, UsersCache::GetUserType ();
+	unshift @types_to_look, UsersCache->GetUserType ();
     }
     
     foreach my $type (@types_to_look) {
 	if (defined $users_by_name{$type}{$username}) {
-	    return GetUser ($users_by_name{$type}{$username}, $type);
+	    return $self->GetUser ($users_by_name{$type}{$username}, $type);
 	}
     }
     return {};
@@ -836,11 +858,12 @@ BEGIN { $TYPEINFO{GetGroup} = [ "function",
 }
 sub GetGroup {
 
+    my $self		= shift;
     my $gid		= $_[0];
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = sort keys %groups;
-	unshift @types_to_look, UsersCache::GetGroupType ();
+	unshift @types_to_look, UsersCache->GetGroupType ();
     }
 
     foreach my $type (@types_to_look) {
@@ -859,6 +882,7 @@ BEGIN { $TYPEINFO{GetGroupByName} = [ "function",
 }
 sub GetGroupByName {
 
+    my $self		= shift;
     my $groupname	= $_[0];
     my $type		= $_[1];
 
@@ -873,7 +897,7 @@ sub GetGroupByName {
     
     foreach my $type (@types_to_look) {
 	if (defined $groups_by_name{$type}{$groupname}) {
-	    return GetGroup ($groups_by_name{$type}{$groupname}, $type);
+	    return $self->GetGroup ($groups_by_name{$type}{$groupname}, $type);
 	}
     }
     return {};
@@ -901,7 +925,7 @@ sub FindGroupsBelongUser {
 	    my $group	= $groups{$type}{$gid};
             my $userlist = $group->{"userlist"};
 	    if ($type eq "ldap") { 
-		my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+		my $member_attribute	= UsersLDAP->GetMemberAttribute ();
 		$userlist = $group->{$member_attribute};
 	    }
             if (defined $userlist->{$uname}) {
@@ -930,13 +954,13 @@ sub GetGroupCustomSets {
 # variables ("not_ask")
 sub ReadCustomSets {
 
-    my $file = Directory::vardir()."/users.ycp";
-    if (SCR::Read (".target.size", $file) == -1) {
-	SCR::Execute (".target.bash", "/bin/touch $file");
+    my $file = Directory->vardir()."/users.ycp";
+    if (SCR->Read (".target.size", $file) == -1) {
+	SCR->Execute (".target.bash", "/bin/touch $file");
 	$customs_modified	= 1;
     }
     else {
-	my $customs = SCR::Read (".target.ycp", $file);
+	my $customs = SCR->Read (".target.ycp", $file);
 
 	if (defined $customs && ref ($customs) eq "HASH") {
 	    my %custom_map	= %{$customs};
@@ -975,7 +999,7 @@ BEGIN { $TYPEINFO{ReadAllShells} = ["function", "void"]; }
 sub ReadAllShells {
 
     my @available_shells	= ();
-    my $shells_s = SCR::Read (".target.string", "/etc/shells");
+    my $shells_s = SCR->Read (".target.string", "/etc/shells");
     my @shells_read = split (/\n/, $shells_s);
 
     foreach my $shell_entry (@shells_read) {
@@ -983,7 +1007,7 @@ sub ReadAllShells {
 	if ($shell_entry eq "" || $shell_entry =~ m/^passwd|bash1$/) {
 	    next;
 	}
-	if (SCR::Read (".target.size", $shell_entry) != -1) {
+	if (SCR->Read (".target.size", $shell_entry) != -1) {
 	    $all_shells{$shell_entry} = 1;
 	}
     };
@@ -999,7 +1023,7 @@ sub ReadSourcesSettings {
 
     $nis_available		= ReadNISAvailable ();
     $nis_master 		= ReadNISMaster ();
-    $ldap_available 		= UsersLDAP::ReadAvailable ();
+    $ldap_available 		= UsersLDAP->ReadAvailable ();
 
     if (!$nis_master && $nis_available) {
         push @available_usersets, "nis";
@@ -1018,13 +1042,15 @@ sub ReadSourcesSettings {
 BEGIN { $TYPEINFO{ReadSystemDefaults} = ["function", "void"]; }
 sub ReadSystemDefaults {
 
-    if (Mode::test ()) { return; }
+    if (Mode->test ()) { return; }
 
-    Progress::off ();
-    Security::Read ();
-    if ($use_gui) { Progress::on (); }
+    my $self		= shift;
 
-    my %security	= %{Security::Export ()};
+    Progress->off ();
+    Security->Read ();
+    if ($use_gui) { Progress->on (); }
+
+    my %security	= %{Security->Export ()};
     $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
     $pass_min_days	= $security{"PASS_MIN_DAYS"}	|| $pass_min_days;
     $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
@@ -1042,21 +1068,22 @@ sub ReadSystemDefaults {
     $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
     $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
 
-    my %max_lengths		= %{Security::PasswordMaxLengths ()};
+    my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
 	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
 	$max_pass_length{"system"}	= $max_pass_length{"local"};
     }
 
-    UsersCache::InitConstants (\%security);
+    UsersCache->InitConstants (\%security);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{ReadLoginDefaults} = ["function", "boolean"]; }
 sub ReadLoginDefaults {
 
+    my $self		= shift;
     foreach my $key (sort keys %useradd_defaults) {
-        my $entry = SCR::Read (".etc.default.useradd.$key");
+        my $entry = SCR->Read (".etc.default.useradd.$key");
         if (!$entry) {
 	    $entry = "";
 	}
@@ -1064,7 +1091,7 @@ sub ReadLoginDefaults {
         $useradd_defaults{$key} = $entry;
     }
 
-    UsersLDAP::InitConstants (\%useradd_defaults);
+    UsersLDAP->InitConstants (\%useradd_defaults);
 
     if (%useradd_defaults) {
         return 1;
@@ -1079,56 +1106,54 @@ sub ReadLoginDefaults {
 BEGIN { $TYPEINFO{ReadNewSet} = ["function", "boolean", "string"]; }
 sub ReadNewSet {
 
+    my $self	= shift;
     my $type	= $_[0];
     if ($type eq "nis") {
 
         $nis_not_read = 0;
 	
-	$users{$type}		= \%{SCR::Read (".$type.users")};
-	$users_by_name{$type}	= \%{SCR::Read (".$type.users.by_name")};
-	$groups{$type}		= \%{SCR::Read (".$type.groups")};
-	$groups_by_name{$type}	= \%{SCR::Read(".$type.groups.by_name")};
+	$users{$type}		= \%{SCR->Read (".$type.users")};
+	$users_by_name{$type}	= \%{SCR->Read (".$type.users.by_name")};
+	$groups{$type}		= \%{SCR->Read (".$type.groups")};
+	$groups_by_name{$type}	= \%{SCR->Read(".$type.groups.by_name")};
 
-	UsersCache::BuildUserItemList ($type, $users{$type});
-	UsersCache::BuildGroupItemList ($type, $groups{$type});
+	UsersCache->BuildUserItemList ($type, $users{$type});
+	UsersCache->BuildGroupItemList ($type, $groups{$type});
     }
     elsif ($type eq "ldap") {
 
-	UsersLDAP::SetGUI ($use_gui);
+	UsersLDAP->SetGUI ($use_gui);
 
 	# read all needed LDAP settings now:
-	if (!UsersLDAP::ReadSettings ()) {
+	if (!UsersLDAP->ReadSettings ()) {
 	    return 0;
 	}
 
 	# generate ldap users/groups list in the agent:
-	my $ldap_mesg = UsersLDAP::Read();
+	my $ldap_mesg = UsersLDAP->Read();
 	if ($ldap_mesg ne "") {
-            Ldap::LDAPErrorMessage ("read", $ldap_mesg);
+            Ldap->LDAPErrorMessage ("read", $ldap_mesg);
             return 0;
         }
 
 	# read the LDAP data (users, groups, items)
-	$users{$type}		= \%{SCR::Read (".$type.users")};
-	$users_by_name{$type}	= \%{SCR::Read (".$type.users.by_name")};
-	$groups{$type}		= \%{SCR::Read (".$type.groups")};
-	$groups_by_name{$type}	= \%{SCR::Read(".$type.groups.by_name")};
+	$users{$type}		= \%{SCR->Read (".$type.users")};
+	$users_by_name{$type}	= \%{SCR->Read (".$type.users.by_name")};
+	$groups{$type}		= \%{SCR->Read (".$type.groups")};
+	$groups_by_name{$type}	= \%{SCR->Read(".$type.groups.by_name")};
 
 	# read the necessary part of LDAP user configuration
-	$min_pass_length{"ldap"}= UsersLDAP::GetMinPasswordLength ();
-	$max_pass_length{"ldap"}= UsersLDAP::GetMaxPasswordLength ();
-
-#	%ldap2yast_user_attrs	= %{UsersLDAP::GetUserAttrsLDAP2YaST ()};
-#	%ldap2yast_group_attrs	= %{UsersLDAP::GetGroupAttrsLDAP2YaST ()};
+	$min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
+	$max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
 
 	# TODO itemlist should be generated by ldap-agent...
-	UsersCache::BuildUserItemList ($type, $users{$type});
-	UsersCache::BuildGroupItemList ($type, $groups{$type});
+	UsersCache->BuildUserItemList ($type, $users{$type});
+	UsersCache->BuildGroupItemList ($type, $groups{$type});
 
         $ldap_not_read = 0;
     }
-    UsersCache::ReadUsers ($type);
-    UsersCache::ReadGroups ($type);
+    UsersCache->ReadUsers ($type);
+    UsersCache->ReadGroups ($type);
 
     return 1;
 }
@@ -1138,67 +1163,70 @@ sub ReadNewSet {
 BEGIN { $TYPEINFO{ReadLocal} = ["function", "string"]; }
 sub ReadLocal {
 
-    my %configuration = (
-	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
-	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
+    my $self		= shift;
+    my %configuration 	= (
+	"max_system_uid"	=> UsersCache->GetMaxUID ("system"),
+	"max_system_gid"	=> UsersCache->GetMaxGID ("system"),
 	"base_directory"	=> $base_directory
     );
     # id limits are necessary for differ local and system users
-    my $init = SCR::Execute (".passwd.init", \%configuration);
+    my $init = SCR->Execute (".passwd.init", \%configuration);
     if (!$init) {
-	my $error 	= SCR::Read (".passwd.error");
-	my $error_info	= SCR::Read (".passwd.error.info");
-	return UsersUI::GetPasswdErrorMessage ($error, $error_info);
+	my $error 	= SCR->Read (".passwd.error");
+	my $error_info	= SCR->Read (".passwd.error.info");
+	return UsersUI->GetPasswdErrorMessage ($error, $error_info);
     }
     $passwd_not_read 		= 0;
     $shadow_not_read 		= 0;
     $group_not_read 		= 0;
 
     foreach my $type ("local", "system") {
-	$users{$type}		= \%{SCR::Read (".passwd.$type.users")};
-	$users_by_name{$type}	= \%{SCR::Read (".passwd.$type.users.by_name")};
-	$shadow{$type}		= \%{SCR::Read (".passwd.$type.shadow")};
-	$groups{$type}		= \%{SCR::Read (".passwd.$type.groups")};
-	$groups_by_name{$type}	= \%{SCR::Read(".passwd.$type.groups.by_name")};
+	$users{$type}		= \%{SCR->Read (".passwd.$type.users")};
+	$users_by_name{$type}	= \%{SCR->Read (".passwd.$type.users.by_name")};
+	$shadow{$type}		= \%{SCR->Read (".passwd.$type.shadow")};
+	$groups{$type}		= \%{SCR->Read (".passwd.$type.groups")};
+	$groups_by_name{$type}	= \%{SCR->Read(".passwd.$type.groups.by_name")};
     }
 
-    $plus_passwd	= SCR::Read (".passwd.passwd.plusline");
-    $plus_shadow	= SCR::Read (".passwd.shadow.plusline");
-    $plus_group		= SCR::Read (".passwd.group.plusline");
+    $plus_passwd	= SCR->Read (".passwd.passwd.plusline");
+    $plus_shadow	= SCR->Read (".passwd.shadow.plusline");
+    $plus_group		= SCR->Read (".passwd.group.plusline");
     return "";
 }
 
 sub ReadUsersCache {
     
-    UsersCache::Read ();
+    UsersCache->Read ();
 
-    UsersCache::BuildUserItemList ("local", $users{"local"});
-    UsersCache::BuildUserItemList ("system", $users{"system"});
+    UsersCache->BuildUserItemList ("local", $users{"local"});
+    UsersCache->BuildUserItemList ("system", $users{"system"});
 
-    UsersCache::BuildGroupItemList ("local", $groups{"local"});
-    UsersCache::BuildGroupItemList ("system", $groups{"system"});
+    UsersCache->BuildGroupItemList ("local", $groups{"local"});
+    UsersCache->BuildGroupItemList ("system", $groups{"system"});
 
-    UsersCache::SetCurrentUsers (\@user_custom_sets);
-    UsersCache::SetCurrentGroups (\@group_custom_sets);
+    UsersCache->SetCurrentUsers (\@user_custom_sets);
+    UsersCache->SetCurrentGroups (\@group_custom_sets);
 }
 
 sub ReadAvailablePlugins {
 
-    if (Mode::test ()) { return; }
+    if (Mode->test ()) { return; }
 
-    UsersPlugins::Read ();
+    UsersPlugins->Read ();
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
+    my $self		= shift;
+
     # progress caption
     my $caption 	= _("Initializing user and group configuration");
     my $no_of_steps 	= 5;
 
     if ($use_gui) {
-	Progress::New ($caption, " ", $no_of_steps,
+	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
 		_("Read the default login settings"),
@@ -1231,34 +1259,34 @@ sub Read {
 	    ], "" );
     }
 
-    $tmpdir = SCR::Read (".target.tmpdir");
+    $tmpdir = SCR->Read (".target.tmpdir");
     my $error_msg = "";
 
     # default login settings
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    ReadLoginDefaults ();
+    $self->ReadLoginDefaults ();
 
-    $error_msg = CheckHomeMounted();
+    $error_msg = $self->CheckHomeMounted();
 
-    if ($use_gui && $error_msg ne "" && !Popup::YesNo ($error_msg)) {
+    if ($use_gui && $error_msg ne "" && !Popup->YesNo ($error_msg)) {
 	return 0; # problem with home directory: do not continue
     }
 
     # default system settings
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    ReadSystemDefaults();
+    $self->ReadSystemDefaults();
 
-    ReadAllShells();
+    $self->ReadAllShells();
 
     # configuration type
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    ReadSourcesSettings();
+    $self->ReadSourcesSettings();
 
-    if ($nis_master && $use_gui && !Mode::cont()) {
-	my $directory = UsersUI::ReadNISConfigurationType ($base_directory);
+    if ($nis_master && $use_gui && !Mode->cont()) {
+	my $directory = UsersUI->ReadNISConfigurationType ($base_directory);
 	if (!defined ($directory)) {
 	    return 0; # aborted in NIS server dialog
 	}
@@ -1268,33 +1296,33 @@ sub Read {
     }
 
     # custom settings
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    ReadCustomSets();
+    $self->ReadCustomSets();
 
     # users and group
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    $error_msg = ReadLocal ();
+    $error_msg = $self->ReadLocal ();
     if ($error_msg) {
-	Report::Error ($error_msg);
+	Report->Error ($error_msg);
 	return 0; # problem with reading config files ( /etc/passwd etc.)
 	# TODO enable to continue at "users risk"?
     }
 
     # Build the cache structures
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
-    ReadUsersCache ();
+    $self->ReadUsersCache ();
 
-    Autologin::Read ();
+    Autologin->Read ();
 
-    if (Mode::cont () && Autologin::available () &&
-	ProductFeatures::enable_autologin ()) {
-	Autologin::Use (YaST::YCP::Boolean (1));
+    if (Mode->cont () && Autologin->available () &&
+	ProductFeatures->enable_autologin ()) {
+	Autologin->Use (YaST::YCP::Boolean (1));
     }
 
-    ReadAvailablePlugins ();
+    $self->ReadAvailablePlugins ();
 
     return 1;
 }
@@ -1310,10 +1338,11 @@ BEGIN { $TYPEINFO{CreateShadowMap} = ["function",
 }
 sub CreateShadowMap {
     
+    my $self		= shift;
     my %user		= %{$_[0]};
     my %shadow_map	= ();
     
-    my %default_shadow = %{GetDefaultShadow ($user{"type"} || "local")};
+    my %default_shadow = %{$self->GetDefaultShadow ($user{"type"} || "local")};
     foreach my $shadow_item (keys %default_shadow) {
 	if (defined $user{$shadow_item}) {
 	    $shadow_map{$shadow_item}	= $user{$shadow_item};
@@ -1327,8 +1356,9 @@ sub CreateShadowMap {
 BEGIN { $TYPEINFO{RemoveUserFromGroup} = ["function", "boolean", "string"]; }
 sub RemoveUserFromGroup {
 
-    my $ret		= 0;
+    my $self		= shift;
     my $user		= $_[0];
+    my $ret		= 0;
     my $group_type	= $group_in_work{"type"};
 
     if ($group_type eq "ldap") {
@@ -1336,7 +1366,7 @@ sub RemoveUserFromGroup {
 	if (defined $user_in_work{"org_dn"}) {
 	    $user	= $user_in_work{"org_dn"};
 	}
-	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
 	if (defined $group_in_work{$member_attribute}{$user}) {
 	    delete $group_in_work{$member_attribute}{$user};
 	    $ret			= 1;
@@ -1356,13 +1386,14 @@ sub RemoveUserFromGroup {
 BEGIN { $TYPEINFO{AddUserToGroup} = ["function", "boolean", "string"]; }
 sub AddUserToGroup {
 
+    my $self		= shift;
     my $ret		= 0;
     my $user		= $_[0];
     my $group_type	= $group_in_work{"type"};
 
     if ($group_type eq "ldap") {
         $user           = $user_in_work{"dn"};
-	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
 	if (!defined $group_in_work{$member_attribute}{$user}) {
             $group_in_work{$member_attribute}{$user}	= 1;
 	    $group_in_work{"what"}			= "user_change";
@@ -1403,7 +1434,8 @@ BEGIN { $TYPEINFO{SelectUserByName} = [ "function",
 }
 sub SelectUserByName {
 
-    %user_in_work	= %{GetUserByName ($_[0], "")};
+    my $self		= shift;
+    %user_in_work	= %{$self->GetUserByName ($_[0], "")};
     LoadShadow ();
 }
 
@@ -1414,9 +1446,10 @@ BEGIN { $TYPEINFO{SelectUser} = [ "function",
 }
 sub SelectUser {
 
-    %user_in_work = %{GetUser ($_[0], "")};
+    my $self		= shift;
+    %user_in_work 	= %{$self->GetUser ($_[0], "")};
     LoadShadow ();
-    UsersCache::SetUserType ($user_in_work{"type"});
+    UsersCache->SetUserType ($user_in_work{"type"});
 }
 
 ##------------------------------------
@@ -1426,7 +1459,8 @@ BEGIN { $TYPEINFO{SelectGroupByName} = [ "function",
 }
 sub SelectGroupByName {
 
-    %group_in_work = %{GetGroupByName($_[0], "local")};
+    my $self		= shift;
+    %group_in_work	= %{$self->GetGroupByName($_[0], "local")};
 }
 
 ##------------------------------------
@@ -1436,8 +1470,9 @@ BEGIN { $TYPEINFO{SelectGroup} = [ "function",
 }
 sub SelectGroup {
 
-    %group_in_work = %{GetGroup ($_[0], "")};
-    UsersCache::SetGroupType ($group_in_work{"type"});
+    my $self		= shift;
+    %group_in_work 	= %{$self->GetGroup ($_[0], "")};
+    UsersCache->SetGroupType ($group_in_work{"type"});
 }
 
 
@@ -1446,6 +1481,7 @@ sub SelectGroup {
 BEGIN { $TYPEINFO{DeleteUser} = ["function", "boolean", "boolean" ]; }
 sub DeleteUser {
 
+    my $self		= shift;
     if (%user_in_work) {
 	$user_in_work{"what"}		= "delete_user";
 	$user_in_work{"delete_home"}	= YaST::YCP::Boolean ($_[0]);
@@ -1458,6 +1494,7 @@ sub DeleteUser {
 BEGIN { $TYPEINFO{DeleteGroup} = ["function", "boolean" ]; }
 sub DeleteGroup {
 
+    my $self		= shift;
     if (%group_in_work) {
 	$group_in_work{"what"}	= "delete_group";
 	return 1;
@@ -1469,8 +1506,9 @@ sub DeleteGroup {
 BEGIN { $TYPEINFO{GetUserPlugins} = ["function", ["list", "string"], "string"]};
 sub GetUserPlugins {
 
+    my $self		= shift;
     if ($_[0] eq "ldap") {
-	return UsersLDAP::GetUserPlugins ();
+	return UsersLDAP->GetUserPlugins ();
     }
     else {
 	return \@local_plugins;
@@ -1484,9 +1522,10 @@ BEGIN { $TYPEINFO{DisableUser} = ["function",
 }
 sub DisableUser {
     
+    my $self		= shift;
     my $user		= $_[0];
     my $type		= $user->{"type"} || "";
-    my $plugins		= GetUserPlugins ($type);
+    my $plugins		= $self->GetUserPlugins ($type);
     my $no_plugin	= 1;
     
     if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
@@ -1494,7 +1533,7 @@ sub DisableUser {
     }
 
     foreach my $plugin (sort @{$plugins}) {
-	my $result = UsersPlugins::Apply ("Disable", {
+	my $result = UsersPlugins->Apply ("Disable", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
@@ -1527,9 +1566,10 @@ BEGIN { $TYPEINFO{EnableUser} = ["function",
 }
 sub EnableUser {
     
+    my $self		= shift;
     my $user		= $_[0];
     my $type		= $user->{"type"} || "";
-    my $plugins		= GetUserPlugins ($type);
+    my $plugins		= $self->GetUserPlugins ($type);
     my $no_plugin	= 1;
     
     if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
@@ -1537,7 +1577,7 @@ sub EnableUser {
     }
 
     foreach my $plugin (sort @{$plugins}) {
-	my $result = UsersPlugins::Apply ("Enable", {
+	my $result = UsersPlugins->Apply ("Enable", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
@@ -1576,6 +1616,7 @@ sub EditUser {
 
     if (!%user_in_work) { return 0; }
 
+    my $self		= shift;
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
 
@@ -1605,7 +1646,7 @@ sub EditUser {
 	}
 	# empty password entry for autoinstall config (do not want to
 	# read password from disk: #30573)
-	if (Mode::config () && $user_in_work{"userPassword"} eq "x") {
+	if (Mode->config () && $user_in_work{"userPassword"} eq "x") {
 	    $user_in_work{"userPassword"} = "";
 	}
     }
@@ -1627,7 +1668,7 @@ sub EditUser {
 	# change of DN requires special handling:
 	if ($type eq "ldap" && $key eq "dn") {
 
-	    my $new_dn	= UsersLDAP::CreateUserDN (\%data);
+	    my $new_dn	= UsersLDAP->CreateUserDN (\%data);
 	    if (defined $new_dn && ($user_in_work{$key} ne $new_dn ||
 				    !defined $user_in_work{"org_dn"})) {
 		$user_in_work{"org_dn"} = $user_in_work{$key}; 	
@@ -1674,7 +1715,7 @@ sub EditUser {
 	    $data{$key} ne $user_in_work{$key}) {
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
-		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
 		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
@@ -1683,17 +1724,17 @@ sub EditUser {
 	$user_in_work{$key}	= $data{$key};
     }
     $user_in_work{"what"}	= "edit_user";
-    UsersCache::SetUserType ($type);
+    UsersCache->SetUserType ($type);
     # now handle possible login disabling
     if (defined $user_in_work{"disabled"} &&
 	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"disabled"}->value) {
-	DisableUser (\%user_in_work);
+	$self->DisableUser (\%user_in_work);
     }
     if (defined $user_in_work{"enabled"} &&
 	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"enabled"}->value) {
-	EnableUser (\%user_in_work);
+	$self->EnableUser (\%user_in_work);
     }
     return 1;
 }
@@ -1707,6 +1748,7 @@ sub EditGroup {
 
     if (!%group_in_work) { return 0; }
 
+    my $self	= shift;
     my %data	= %{$_[0]};
     my $type	= $group_in_work{"type"};
 
@@ -1739,7 +1781,7 @@ sub EditGroup {
 	# change of DN requires special handling:
 	if ($type eq "ldap" && $key eq "dn") {
 
-	    my $new_dn	= UsersLDAP::CreateGroupDN (\%data);
+	    my $new_dn	= UsersLDAP->CreateGroupDN (\%data);
 	    if (defined $new_dn && ($group_in_work{$key} ne $new_dn ||
 				    !defined $group_in_work{"org_dn"}))
 	    {
@@ -1761,7 +1803,7 @@ sub EditGroup {
 	    }
 	}
 	# same, but for LDAP groups
-	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
 	if ($key eq $member_attribute &&
 	    defined $group_in_work{$member_attribute})
 	{
@@ -1779,7 +1821,7 @@ sub EditGroup {
 	    && $data{$key} ne "!") {
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
-		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		next;
 	    }
@@ -1788,7 +1830,7 @@ sub EditGroup {
     }
     $group_in_work{"what"}	= "edit_group";
 
-    UsersCache::SetGroupType ($type);
+    UsersCache->SetGroupType ($type);
     return 1;
 }
 
@@ -1802,6 +1844,7 @@ BEGIN { $TYPEINFO{AddUser} = ["function",
 }
 sub AddUser {
 
+    my $self	= shift;
     my %data	= %{$_[0]};
     my $type;
 
@@ -1832,7 +1875,7 @@ sub AddUser {
 
     # now call AddBefore function from plugins
     if (!defined $user_in_work{"plugins"}) {
-	$user_in_work{"plugins"}	= GetUserPlugins ($type);
+	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
     my $plugins		= $user_in_work{"plugins"};
     
@@ -1840,7 +1883,7 @@ sub AddUser {
 	$plugins	= $data{"plugins"};
     }
     foreach my $plugin (sort @{$plugins}) {
-	my $result = UsersPlugins::Apply ("AddBefore", {
+	my $result = UsersPlugins->Apply ("AddBefore", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
@@ -1863,7 +1906,7 @@ sub AddUser {
 	      (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) &&
 	      $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!")
 	{
-	    $user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+	    $user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
 	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
 	else {
@@ -1873,10 +1916,10 @@ sub AddUser {
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
-    UsersCache::SetUserType ($type);
+    UsersCache->SetUserType ($type);
 
     if (!defined $user_in_work{"uidNumber"}) {
-	$user_in_work{"uidNumber"} = UsersCache::NextFreeUID ();
+	$user_in_work{"uidNumber"} = UsersCache->NextFreeUID ();
     }
     my $username		= $data{"uid"} || $data{"username"};
     if (defined $username) {
@@ -1887,30 +1930,30 @@ sub AddUser {
 	$user_in_work{"cn"}	= "";
     }
     if (!defined $user_in_work{"gidNumber"}) {
-	$user_in_work{"gidNumber"}	= GetDefaultGID ($type);
+	$user_in_work{"gidNumber"}	= $self->GetDefaultGID ($type);
     }
     if (!defined $user_in_work{"groupname"}) {
-	my %group	= %{GetGroup ($user_in_work{"gidNumber"}, "")};
+	my %group	= %{$self->GetGroup ($user_in_work{"gidNumber"}, "")};
 	if (%group) {
 	    $user_in_work{"groupname"}	= $group{"cn"};
 	}
 	else {
-	    $user_in_work{"groupname"}	= GetDefaultGroupname ($type);
+	    $user_in_work{"groupname"}	= $self->GetDefaultGroupname ($type);
 	}
     }
     if (!defined $user_in_work{"grouplist"}) {
-	$user_in_work{"grouplist"}	= GetDefaultGrouplist ($type);
+	$user_in_work{"grouplist"}	= $self->GetDefaultGrouplist ($type);
     }
     if (!defined $user_in_work{"homeDirectory"} && defined ($username)) {
-	$user_in_work{"homeDirectory"} = GetDefaultHome ($type).$username;
+	$user_in_work{"homeDirectory"} = $self->GetDefaultHome ($type).$username;
     }
     if (!defined $user_in_work{"loginShell"}) {
-	$user_in_work{"loginShell"}	= GetDefaultShell ($type);
+	$user_in_work{"loginShell"}	= $self->GetDefaultShell ($type);
     }
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
     }
-    my %default_shadow = %{GetDefaultShadow ($type)};
+    my %default_shadow = %{$self->GetDefaultShadow ($type)};
     foreach my $shadow_item (keys %default_shadow) {
 	if (!defined $user_in_work{$shadow_item}) {
 	    $user_in_work{$shadow_item}	= $default_shadow{$shadow_item};
@@ -1926,14 +1969,14 @@ sub AddUser {
 
     if ($type eq "ldap") {
         # add other default values
-	my %ldap_defaults	= %{UsersLDAP::GetUserDefaults()};
+	my %ldap_defaults	= %{UsersLDAP->GetUserDefaults()};
 	foreach my $attr (keys %ldap_defaults) {
 	    if (!defined ($user_in_work{$attr})) {
 		$user_in_work{$attr}	= $ldap_defaults{$attr};
 	    }
 	};
 	if (!defined $user_in_work{"dn"}) {
-	    my $dn = UsersLDAP::CreateUserDN (\%data);
+	    my $dn = UsersLDAP->CreateUserDN (\%data);
 	    if (defined $dn) {
 		$user_in_work{"dn"} = $dn;
 	    }
@@ -1941,7 +1984,7 @@ sub AddUser {
     }
     # now call Add function from plugins...
     foreach my $plugin (sort @{$plugins}) {
-	my $result = UsersPlugins::Apply ("Add", {
+	my $result = UsersPlugins->Apply ("Add", {
 	    "what"	=> "user",
 	    "type"	=> $type,
 	    "plugins"	=> [ $plugin ]
@@ -1956,12 +1999,12 @@ sub AddUser {
     if (defined $user_in_work{"disabled"} &&
 	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"disabled"}->value) {
-	DisableUser (\%user_in_work);
+	$self->DisableUser (\%user_in_work);
     }
     if (defined $user_in_work{"enabled"} &&
 	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
 	$user_in_work{"enabled"}->value) {
-	EnableUser (\%user_in_work);
+	$self->EnableUser (\%user_in_work);
     }
     return 1;
 }
@@ -1975,6 +2018,7 @@ BEGIN { $TYPEINFO{UpdateUser} = ["function",
 }
 sub UpdateUser {
 
+    my $self	= shift;
     my %data	= %{$_[0]};
     foreach my $key (keys %data) {
 	# FIXME how to save Integer/Boolean values?
@@ -1989,6 +2033,7 @@ BEGIN { $TYPEINFO{UpdateGroup} = ["function",
 }
 sub UpdateGroup {
 
+    my $self	= shift;
     my %data	= %{$_[0]};
     foreach my $key (keys %data) {
 	$group_in_work{$key}	= $data{$key};
@@ -2004,6 +2049,7 @@ BEGIN { $TYPEINFO{AddGroup} = ["function",
 }
 sub AddGroup {
 
+    my $self	= shift;
     my %data	= %{$_[0]};
     my $type;
 
@@ -2032,7 +2078,7 @@ sub AddGroup {
 	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
 	    # crypt password only once
 	    if (!defined ($data{"encrypted"}) || !bool ($data{"encrypted"})) {
-		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$group_in_work{$key} = $self->CryptPassword ($data{$key},$type);
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	    }
 	}
@@ -2042,27 +2088,27 @@ sub AddGroup {
     $group_in_work{"type"}		= $type;
     $group_in_work{"what"}		= "add_group";
 	
-    UsersCache::SetGroupType ($type);
+    UsersCache->SetGroupType ($type);
 
     if (!defined $group_in_work{"gidNumber"}) {
-	$group_in_work{"gidNumber"}	= UsersCache::NextFreeGID ($type);
+	$group_in_work{"gidNumber"}	= UsersCache->NextFreeGID ($type);
     }
     
     if ($type eq "ldap") {
 	# add default object classes
 	if (!defined $group_in_work{"objectClass"}) {
-	    my @classes = @{UsersLDAP::GetGroupClass()};
+	    my @classes = @{UsersLDAP->GetGroupClass()};
 	    $group_in_work{"objectClass"} = \@classes;
 	}
         # add other default values
-	my %ldap_defaults	= %{UsersLDAP::GetGroupDefaults()};
+	my %ldap_defaults	= %{UsersLDAP->GetGroupDefaults()};
 	foreach my $attr (keys %ldap_defaults) {
 	    if (!defined ($group_in_work{$attr})) {
 		$group_in_work{$attr}	= $ldap_defaults{$attr};
 	    }
 	};
 	if (!defined $group_in_work{"dn"}) {
-	    my $dn = UsersLDAP::CreateGroupDN (\%data);
+	    my $dn = UsersLDAP->CreateGroupDN (\%data);
 	    if (defined $dn) {
 		$group_in_work{"dn"} = $dn;
 	    }
@@ -2076,6 +2122,7 @@ sub AddGroup {
 # Checks if commited user is really modified and has to be saved
 sub UserReallyModified {
 
+    my $self	= shift;
     my %user	= %{$_[0]};
 
     if (($user{"what"} || "") eq "group_change") {
@@ -2122,7 +2169,7 @@ sub UserReallyModified {
 	return $ret;
     }
     # search result, because some attributes were not filled yet
-    my @internal_keys	= @{UsersLDAP::GetUserInternal ()};
+    my @internal_keys	= @{UsersLDAP->GetUserInternal ()};
     foreach my $key (keys %user) {
 
 	my $value = $user{$key};
@@ -2154,6 +2201,7 @@ sub UserReallyModified {
 BEGIN { $TYPEINFO{CommitUser} = ["function", "boolean"] }
 sub CommitUser {
 
+    my $self	= shift;
     if (!%user_in_work) { return 0; }
     if (defined $user_in_work{"check_error"}) {
         y2error ("commit is forbidden: ", $user_in_work{"check_error"});
@@ -2172,15 +2220,15 @@ sub CommitUser {
     my $org_uid		= $user{"org_uidNumber"} || $uid;
     my $username	= $user{"uid"};
     my $org_username	= $user{"org_uid"} || $username;
-    my $groupname	= $user{"groupname"} || GetDefaultGroupname ($type);
+    my $groupname	= $user{"groupname"} || $self->GetDefaultGroupname ($type);
     my $home		= $user{"homeDirectory"};
     my %grouplist	= %{$user{"grouplist"}};
 
     if (($type eq "local" || $type eq "system") &&
-	!$users_modified && UserReallyModified (\%user)) {
+	!$users_modified && $self->UserReallyModified (\%user)) {
 	    $users_modified = 1;
     }
-    if ($type eq "ldap" && !$ldap_modified && UserReallyModified (\%user)) {
+    if ($type eq "ldap" && !$ldap_modified && $self->UserReallyModified (\%user)) {
         $ldap_modified = 1;
     }
 
@@ -2192,22 +2240,25 @@ sub CommitUser {
         $user{"modified"}	= "added";
 
 	if ($type eq "ldap") {
-	    %user = %{UsersLDAP::SubstituteValues ("user", \%user)};
+	    my $substituted = UsersLDAP->SubstituteValues ("user", \%user);
+	    if (defined $substituted && ref ($substituted) eq "HASH") {
+		%user = %{$substituted};
+	    }
 	}
 
         # update the affected groups
         foreach my $group (keys %grouplist) {
-            %group_in_work = %{GetGroupByName ($group, $type)};
-            if (%group_in_work && AddUserToGroup ($username)) {
-                CommitGroup ();
+            %group_in_work = %{$self->GetGroupByName ($group, $type)};
+            if (%group_in_work && $self->AddUserToGroup ($username)) {
+                $self->CommitGroup ();
 	    }
         };
         # add user to his default group (updating only cache variables)
-        %group_in_work = %{GetGroupByName ($groupname, $type)};
+        %group_in_work = %{$self->GetGroupByName ($groupname, $type)};
         if (%group_in_work) {
             $group_in_work{"what"}	= "user_change_default";
             $group_in_work{"more_users"}{$username}	= 1;
-            CommitGroup ();
+            $self->CommitGroup ();
         }
 
         # check if home directory for this user doesn't already exist
@@ -2216,7 +2267,7 @@ sub CommitUser {
         }
 
         # add new entry to global shadow map:
-        $shadow{$type}{$username}	= CreateShadowMap (\%user);
+        $shadow{$type}{$username}	= $self->CreateShadowMap (\%user);
     }
     elsif ( $what_user eq "edit_user" ) {
 
@@ -2226,14 +2277,14 @@ sub CommitUser {
         # check the change of additional group membership
         foreach my $group (keys %grouplist) {
 
-            %group_in_work = %{GetGroupByName ($group, $type)};
+            %group_in_work = %{$self->GetGroupByName ($group, $type)};
             if (%group_in_work) {
 	        # username changed - remove org_username
 	        if ($org_username ne $username) {
-		   RemoveUserFromGroup ($org_username);
+		   $self->RemoveUserFromGroup ($org_username);
 	        }
-	        if (AddUserToGroup ($username)) {
-		   CommitGroup ();
+	        if ($self->AddUserToGroup ($username)) {
+		   $self->CommitGroup ();
 	        }
 	    }
         };
@@ -2241,10 +2292,10 @@ sub CommitUser {
         # check if user was removed from some additional groups
 	if (defined $user{"removed_grouplist"}) {
             foreach my $group (keys %{$user{"removed_grouplist"}}) {
-	        %group_in_work = %{GetGroupByName ($group, $type)};
+	        %group_in_work = %{$self->GetGroupByName ($group, $type)};
 	        if (%group_in_work &&
-		    RemoveUserFromGroup ($org_username)) {
-		    CommitGroup ();
+		    $self->RemoveUserFromGroup ($org_username)) {
+		    $self->CommitGroup ();
 	        }
 	    };
 	}
@@ -2256,29 +2307,29 @@ sub CommitUser {
 	}
         if ($username ne $org_username && $groupname eq $org_groupname) {
             # change the user's name in his default group
-            %group_in_work	= %{GetGroupByName ($groupname, $type)};
+            %group_in_work	= %{$self->GetGroupByName ($groupname, $type)};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 delete $group_in_work{"more_users"}{$org_username};
                 $group_in_work{"more_users"}{$username}	= 1;
-                CommitGroup ();
+                $self->CommitGroup ();
             }
         }
         elsif ($groupname ne $org_groupname) {
             # note: username could be also changed!
             # 1. remove the name from original group ...
-            %group_in_work	= %{GetGroupByName ($org_groupname, $type)};
+            %group_in_work = %{$self->GetGroupByName ($org_groupname, $type)};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 delete $group_in_work{"more_users"}{$org_username};
-                CommitGroup ();
+                $self->CommitGroup ();
             }
             # 2. and add it to the new one:
-            %group_in_work	= %{GetGroupByName ($groupname, $type)};
+            %group_in_work	= %{$self->GetGroupByName ($groupname, $type)};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 $group_in_work{"more_users"}{$username}	= 1;
-                CommitGroup ();
+                $self->CommitGroup ();
             }
         }
 
@@ -2293,7 +2344,7 @@ sub CommitUser {
                 defined $shadow{$type}{$org_username}) {
                 delete $shadow{$type}{$org_username};
 	    }
-            $shadow{$type}{$username} = CreateShadowMap (\%user);
+            $shadow{$type}{$username} = $self->CreateShadowMap (\%user);
         }
     }
     elsif ( $what_user eq "group_change_default") {
@@ -2310,23 +2361,22 @@ sub CommitUser {
 
         # check the change of group membership
         foreach my $group (keys %grouplist) {
-            %group_in_work = %{GetGroupByName ($group, $type)};
+            %group_in_work = %{$self->GetGroupByName ($group, $type)};
             if (%group_in_work &&
-	        RemoveUserFromGroup ($org_username)) {
-                CommitGroup();
+	        $self->RemoveUserFromGroup ($org_username)) {
+                $self->CommitGroup();
 	    }
         };
         # remove user from his default group -- only cache structures
-        %group_in_work			= %{GetGroupByName ($groupname, $type)};
+        %group_in_work		= %{$self->GetGroupByName ($groupname, $type)};
 	if (%group_in_work) {
 	    $group_in_work{"what"}	= "user_change_default";
             delete $group_in_work{"more_users"}{$username};
-	    CommitGroup ();
+	    $self->CommitGroup ();
 	}
 
 	# store deleted directories... someone could want to use them
-	my $delete_home = bool ($user{"delete_home"});
-	if ($type ne "ldap" && $delete_home->value) {
+	if ($type ne "ldap" && bool ($user{"delete_home"})) {
 	    my $h	= $home;
 	    if (defined $user{"org_user"}{"homeDirectory"}) {
 	        $h	= $user{"org_user"}{"homeDirectory"};
@@ -2337,7 +2387,7 @@ sub CommitUser {
 
     # --- 2. and now do the common changes
 
-    UsersCache::CommitUser (\%user);
+    UsersCache->CommitUser (\%user);
 	
     if ($what_user eq "delete_user") {
         delete $users{$type}{$uid};
@@ -2380,6 +2430,8 @@ sub CommitUser {
 BEGIN { $TYPEINFO{CommitGroup} = ["function", "boolean"]; }
 sub CommitGroup {
 
+    my $self	= shift;
+
     if (!%group_in_work || !defined $group_in_work{"gidNumber"} ||
 	!defined $group_in_work{"cn"}) {
 	return 0;
@@ -2415,7 +2467,7 @@ sub CommitGroup {
     }
     if ($type eq "ldap" && $what_group ne "") {
 	$ldap_modified	= 1;
-	my $member_attribute	= UsersLDAP::GetMemberAttribute ();
+	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
 	if (defined $group{$member_attribute}) {
 	    %userlist	= %{$group{$member_attribute}};
 	}
@@ -2427,11 +2479,11 @@ sub CommitGroup {
 	$group{"modified"} = "added";
         # update users's grouplists (only cache structures)
         foreach my $user (keys %userlist) {
-            %user_in_work = %{GetUserByName ($user, "")};
+            %user_in_work = %{$self->GetUserByName ($user, "")};
 	    if (%user_in_work) {
                 $user_in_work{"grouplist"}{$groupname}	= 1;
 	        $user_in_work{"what"} = "group_change";
-	        CommitUser ();
+	        $self->CommitUser ();
 	    }
         };
     }
@@ -2441,7 +2493,7 @@ sub CommitGroup {
 	}
         # update users's grouplists (mainly cache structures)
         foreach my $user (keys %userlist) {
-            %user_in_work = %{GetUserByName ($user, "")};
+            %user_in_work = %{$self->GetUserByName ($user, "")};
             if (%user_in_work) {
                 my $commit_user	= 0;
                 # new user added to group
@@ -2458,18 +2510,18 @@ sub CommitGroup {
 
                 if ($commit_user) {
                     $user_in_work{"what"}	= "group_change";
-                    CommitUser ();
+                    $self->CommitUser ();
                 }
             }
         };
         # check the additional users removed from our group
         foreach my $user (keys %{$group{"removed_userlist"}}) {
-            %user_in_work = %{GetUserByName ($user, "")};
+            %user_in_work = %{$self->GetUserByName ($user, "")};
             if (%user_in_work) {
                 if (defined $user_in_work{"grouplist"}{$org_groupname}) {
 		    delete $user_in_work{"grouplist"}{$org_groupname};
                     $user_in_work{"what"}	= "group_change";
-                    CommitUser ();
+                    $self->CommitUser ();
                 }
             }
 	};
@@ -2477,7 +2529,7 @@ sub CommitGroup {
 	# having this group as default
         if ($groupname ne $org_groupname || $gid != $org_gid) {
             foreach my $user (keys %{$group{"more_users"}}) {
-                %user_in_work = %{GetUserByName ($user, "")};
+                %user_in_work = %{$self->GetUserByName ($user, "")};
                 if (%user_in_work) {
 		    $user_in_work{"groupname"}	= $groupname;
                     $user_in_work{"gidNumber"}	= $gid;
@@ -2485,7 +2537,7 @@ sub CommitGroup {
 		    if ($gid != $org_gid) {
 			$user_in_work{"what"} 	= "group_change_default";
 		    }
-                    CommitUser ();
+                    $self->CommitUser ();
                 }
             };
         }
@@ -2510,7 +2562,7 @@ sub CommitGroup {
     }
 
     # 2. common action: update groups
-    UsersCache::CommitGroup (\%group);
+    UsersCache->CommitGroup (\%group);
     if ($what_group ne "delete_group") { # also for "user_change"
         
 	if ($gid != $org_gid) {
@@ -2550,13 +2602,14 @@ sub CommitGroup {
 # Writes the set of values in "Custom" filter and other internal variables
 sub WriteCustomSets {
 
+    my $self	= shift;
     my %customs = (
         "custom_users"			=> \@user_custom_sets,
         "custom_groups"			=> \@group_custom_sets,
     );
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
-    my $ret = SCR::Write (".target.ycp", Directory::vardir()."/users.ycp", \%customs);
+    my $ret = SCR->Write (".target.ycp", Directory->vardir()."/users.ycp", \%customs);
 
     y2milestone ("Custom user information written: ", $ret);
     return $ret;
@@ -2566,12 +2619,17 @@ sub WriteCustomSets {
 # Writes settings to /etc/defaults/useradd
 sub WriteLoginDefaults {
 
-    my $ret = 1;
+    my $self	= shift;
+    my $ret 	= 1;
 
-    while ( my ($key, $value) = each %useradd_defaults) {
-	$ret = $ret && SCR::Write (".etc.default.useradd.$key", $value);
+    foreach my $key (keys %useradd_defaults) {
+	my $value	= $useradd_defaults{$key};
+	$ret = $ret && SCR->Write (".etc.default.useradd.$key", $value);
     }
 
+    if ($ret) {
+	SCR->Write (".etc.default.useradd", "force");
+    }
     y2milestone ("Succesfully written useradd defaults: $ret");
     return $ret;
 }
@@ -2581,17 +2639,18 @@ sub WriteLoginDefaults {
 BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
 
+    my $self	= shift;
     my $ret = 1;
     if ($security_modified) {
 	
 	my %security	= (
 	    "PASSWD_ENCRYPTION"	=> $encryption_method
 	);
-	Security::Import (\%security);
-	Progress::off();
-	$ret = Security::Write();
+	Security->Import (\%security);
+	Progress->off();
+	$ret = Security->Write();
 	if (!$write_only && $use_gui) {
-	    Progress::on();
+	    Progress->on();
 	}
     }
     y2milestone ("Security module settings written: $ret");	
@@ -2603,23 +2662,23 @@ sub WriteSecurity {
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
-    SCR::Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save");
-    return SCR::Write (".passwd.groups", \%groups);
+    SCR->Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save");
+    return SCR->Write (".passwd.groups", \%groups);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
-    SCR::Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save");
-    return SCR::Write (".passwd.users", \%users);
+    SCR->Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save");
+    return SCR->Write (".passwd.users", \%users);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
     
-    SCR::Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save");
-    return SCR::Write (".passwd.shadow", \%shadow);
+    SCR->Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save");
+    return SCR->Write (".passwd.shadow", \%shadow);
 }
 
 ##------------------------------------
@@ -2633,13 +2692,14 @@ sub DeleteUsers {
 	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$uid}};
-	    my $cmd = "$userdel_precmd $user{\"username\"} $uid $user{\"gidNumber\"} $user{\"homeDirectory\"}";
-	    SCR::Execute (".target.bash", $cmd);
+	    my $cmd = sprintf ("$userdel_precmd %s $uid %i %s",
+		$user{"uid"}, $user{"gidNumber"}, $user{"homeDirectory"});
+	    SCR->Execute (".target.bash", $cmd);
 	};
     };
 
     foreach my $home (keys %removed_homes) {
-	$ret = $ret && UsersRoutines::DeleteHome ($home);
+	$ret = $ret && UsersRoutines->DeleteHome ($home);
     };
 
     foreach my $type ("system", "local") {
@@ -2648,8 +2708,9 @@ sub DeleteUsers {
 	}
 	foreach my $uid (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$uid}};
-	    my $cmd = "$userdel_postcmd $user{\"username\"} $uid $user{\"gidNumber\"} $user{\"homeDirectory\"}";
-	    SCR::Execute (".target.bash", $cmd);
+	    my $cmd = sprintf ("$userdel_postcmd %s $uid %i %s",
+		$user{"uid"}, $user{"gidNumber"}, $user{"homeDirectory"});
+	    SCR->Execute (".target.bash", $cmd);
 	};
     };
     return $ret;
@@ -2659,12 +2720,14 @@ sub DeleteUsers {
 BEGIN { $TYPEINFO{Write} = ["function", "boolean"]; }
 sub Write {
 
+    my $self		= shift;
+
     # progress caption
     my $caption 	= _("Writing user and group configuration...");
-    my $no_of_steps = 8;
+    my $no_of_steps 	= 8;
 
     if ($use_gui) {
-	Progress::New ($caption, " ", $no_of_steps,
+	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
 		_("Write groups"),
@@ -2701,53 +2764,53 @@ sub Write {
     } 
 
     # Write groups 
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($groups_modified) {
 	if ($group_not_read) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/group"));
+            Report->Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/group"));
 	    return 0;
 	}
         if (! WriteGroup ()) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/group"));
+            Report->Error (sprintf (_("Cannot write %s file."), "$base_directory/group"));
 	    return 0;
         }
 	if (!$write_only) {
 	    # remove the group cache for nscd (bug 24748)
-	    SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
+	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
 	}
     }
 
     # Check for deleted users
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($users_modified) {
         if (!DeleteUsers ()) {
        	    # error popup
-	    Report::Error (_("There was an error while removing users."));
+	    Report->Error (_("There was an error while removing users."));
 #	    return 0; TODO -- should be 'continue/abort'
 	}
     }
 
     # Write users
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($users_modified) {
 	if ($passwd_not_read) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/passwd"));
+            Report->Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/passwd"));
 	    return 0;
 	}
         if (!WritePasswd ()) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/passwd"));
+            Report->Error (sprintf (_("Cannot write %s file."), "$base_directory/passwd"));
 	    return 0;
 	}
 	if (!$write_only) {
 	    # remove the passwd cache for nscd (bug 24748)
-	    SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i passwd");
 	}
 
 	# check for homedir changes
@@ -2773,56 +2836,56 @@ sub Write {
 			$skel 	= "";
 		    }
 		    if ((bool ($create_home) || $user_mod eq "imported")
-			&& !%{SCR::Read (".target.stat", $home)})
+			&& !%{SCR->Read (".target.stat", $home)})
 		    {
-			UsersRoutines::CreateHome ($skel, $home);
+			UsersRoutines->CreateHome ($skel, $home);
 		    }
-		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		    # call the useradd.local
 		    $command = sprintf ("%s %s", $useradd_cmd, $username);
 		    y2milestone ("'$command' return value: ", 
-			SCR::Execute (".target.bash", $command));
+			SCR->Execute (".target.bash", $command));
 		}
 		elsif ($user_mod eq "edited") {
 		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
 		    if ($home ne $org_home) {
 			# move the home directory
 			if ($create_home->value) {
-			    UsersRoutines::MoveHome ($org_home, $home);
+			    UsersRoutines->MoveHome ($org_home, $home);
 			}
 		    }
-		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
 	    }
 	}
     }
 
     # Write passwords
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($users_modified) {
 	if ($shadow_not_read) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/shadow"));
+            Report->Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/shadow"));
 	    return 0;
 	}
         if (! WriteShadow ()) {
 	    # error popup (%s is a file name)
-            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/shadow"));
+            Report->Error (sprintf (_("Cannot write %s file."), "$base_directory/shadow"));
 	    return 0;
         }
     }
 
     # Write LDAP users and groups
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($ldap_modified) {
 	my $error_msg	= "";
 
 	if (defined ($removed_users{"ldap"})) {
-	    $error_msg	= UsersLDAP::WriteUsers ($removed_users{"ldap"});
+	    $error_msg	= UsersLDAP->WriteUsers ($removed_users{"ldap"});
 	    if ($error_msg ne "") {
-		Ldap::LDAPErrorMessage ("users", $error_msg);
+		Ldap->LDAPErrorMessage ("users", $error_msg);
 	    }
 	    else {
 		delete $removed_users{"ldap"};
@@ -2830,9 +2893,9 @@ sub Write {
 	}
 		
 	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
-	    $error_msg	= UsersLDAP::WriteUsers ($modified_users{"ldap"});
+	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
 	    if ($error_msg ne "") {
-		Ldap::LDAPErrorMessage ("users", $error_msg);
+		Ldap->LDAPErrorMessage ("users", $error_msg);
 	    }
 	    else {
 		delete $modified_users{"ldap"};
@@ -2840,9 +2903,9 @@ sub Write {
 	}
 
 	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP::WriteGroups ($removed_groups{"ldap"});
+	    $error_msg	= UsersLDAP->WriteGroups ($removed_groups{"ldap"});
 	    if ($error_msg ne "") {
-		Ldap::LDAPErrorMessage ("groups", $error_msg);
+		Ldap->LDAPErrorMessage ("groups", $error_msg);
 	    }
 	    else {
 		delete $removed_groups{"ldap"};
@@ -2850,9 +2913,9 @@ sub Write {
 	}
 
 	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP::WriteGroups ($modified_groups{"ldap"});
+	    $error_msg	= UsersLDAP->WriteGroups ($modified_groups{"ldap"});
 	    if ($error_msg ne "") {
-		Ldap::LDAPErrorMessage ("groups", $error_msg);
+		Ldap->LDAPErrorMessage ("groups", $error_msg);
 	    }
 	    else {
 		delete $modified_groups{"ldap"};
@@ -2866,7 +2929,7 @@ sub Write {
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {
-        my %out	= %{SCR::Execute (".target.bash_output",
+        my %out	= %{SCR->Execute (".target.bash_output",
 	    "/usr/bin/make -C /var/yp")};
         if (!defined ($out{"exit"}) || $out{"exit"} != 0) {
             y2error ("Cannot make NIS database: ", %out);
@@ -2874,42 +2937,42 @@ sub Write {
     }
 
     # Write the custom settings
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($customs_modified) {
-        if (WriteCustomSets()) {
+        if ($self->WriteCustomSets()) {
 	    $customs_modified = 0;
 	}
     }
 
     # Write the default login settings
-    if ($use_gui) { Progress::NextStage (); }
+    if ($use_gui) { Progress->NextStage (); }
 
     if ($defaults_modified) {
-        if (WriteLoginDefaults()) {
+        if ($self->WriteLoginDefaults()) {
 	    $defaults_modified	= 0;
 	}
     }
 
     if ($security_modified) {
-	if (WriteSecurity()) {
+	if ($self->WriteSecurity()) {
 	    $security_modified	= 0;
 	}
     }
 
     # mail forward from root
-    if (Mode::cont () && $root_mail ne "" &&
-	!MailAliases::SetRootAlias ($root_mail)) {
+    if (Mode->cont () && $root_mail ne "" &&
+	!MailAliases->SetRootAlias ($root_mail)) {
         
 	# error popup
-        Report::Error (_("There was an error while setting forwarding for root's mail."));
+        Report->Error (_("There was an error while setting forwarding for root's mail."));
 	return 0;
     }
 
-    Autologin::Write (Mode::cont () || $write_only);
+    Autologin->Write (Mode->cont () || $write_only);
 
     # do not show user in first dialog when all has been writen
-    if (Mode::cont ()) {
+    if (Mode->cont ()) {
         $use_next_time	= 0;
         undef %saved_user;
         undef %user_in_work;
@@ -2943,10 +3006,11 @@ sub ValidLognameChars {
 BEGIN { $TYPEINFO{CheckUID} = ["function", "string", "integer"]; }
 sub CheckUID {
 
+    my $self	= shift;
     my $uid	= $_[0];
-    my $type	= UsersCache::GetUserType ();
-    my $min	= UsersCache::GetMinUID ($type);
-    my $max	= UsersCache::GetMaxUID ($type);
+    my $type	= UsersCache->GetUserType ();
+    my $min	= UsersCache->GetMinUID ($type);
+    my $max	= UsersCache->GetMaxUID ($type);
 
     if (!defined $uid) {
 	# error popup
@@ -2958,7 +3022,7 @@ sub CheckUID {
 	(defined $user_in_work{"org_uidNumber"} && 
 		 $user_in_work{"org_uidNumber"} != $uid)) {
 
-	if (UsersCache::UIDExists ($uid)) {
+	if (UsersCache->UIDExists ($uid)) {
 	    # error popup
 	    return _("The user ID entered is already in use.
 Select another user ID.");
@@ -2969,7 +3033,7 @@ Select another user ID.");
     if ($type eq "system" && $username eq "nobody" && $uid == 65534) {
 	return "";
     }
-    if ($type eq "system" && $uid< UsersCache::GetMinUID("system") && $uid >=0){
+    if ($type eq "system" && $uid< UsersCache->GetMinUID("system") && $uid >=0){
 	# system id's 0..100 are ok
 	return "";
     }
@@ -2979,10 +3043,10 @@ Select another user ID.");
 	# allow change of type: "local" <-> "system"
 	(($type eq "system" || $type eq "local") &&
 	 (
-	    ($uid < UsersCache::GetMinUID ("local") &&
-	    $uid < UsersCache::GetMinUID ("system")) ||
-	    ($uid > UsersCache::GetMaxUID ("local") &&
-	     $uid > UsersCache::GetMaxUID ("system"))
+	    ($uid < UsersCache->GetMinUID ("local") &&
+	    $uid < UsersCache->GetMinUID ("system")) ||
+	    ($uid > UsersCache->GetMaxUID ("local") &&
+	     $uid > UsersCache->GetMaxUID ("system"))
 	 )
 	)) 
     {
@@ -3001,35 +3065,36 @@ BEGIN { $TYPEINFO{CheckUIDUI} = ["function",
 }
 sub CheckUIDUI {
 
+    my $self	= shift;
     my $uid	= $_[0];
     my %ui_map	= %{$_[1]};
-    my $type	= UsersCache::GetUserType ();
+    my $type	= UsersCache->GetUserType ();
     my %ret	= ();
 
     if (($ui_map{"local"} || 0) != 1) {
 	if ($type eq "system" &&
-	    $uid > UsersCache::GetMinUID ("local") &&
-	    $uid < UsersCache::GetMaxUID ("local") + 1)
+	    $uid > UsersCache->GetMinUID ("local") &&
+	    $uid < UsersCache->GetMaxUID ("local") + 1)
 	{
 	    $ret{"question_id"}	= "local";
 	    # popup question
 	    $ret{"question"}	= sprintf(_("The selected user ID is a local ID,
 because the ID is greater than %i.
-Really change type of user to 'local'?"), UsersCache::GetMinUID ("local"));
+Really change type of user to 'local'?"), UsersCache->GetMinUID ("local"));
 	    return \%ret;
 	}
     }
 
     if (($ui_map{"system"} || 0) != 1) {
 	if ($type eq "local" &&
-	    $uid > UsersCache::GetMinUID ("system") &&
-	    $uid < UsersCache::GetMaxUID ("system") + 1)
+	    $uid > UsersCache->GetMinUID ("system") &&
+	    $uid < UsersCache->GetMaxUID ("system") + 1)
 	{
 	    $ret{"question_id"}	= "system";
 	    # popup question
 	    $ret{"question"}	= sprintf (_("The selected user ID is a system ID,
 because the ID is smaller than %i.
-Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system") + 1);
+Really change type of user to 'system'?"), UsersCache->GetMaxUID ("system") + 1);
 	    return \%ret;
 	}
     }
@@ -3042,6 +3107,7 @@ Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system") + 1)
 BEGIN { $TYPEINFO{CheckUsername} = ["function", "string", "string"]; }
 sub CheckUsername {
 
+    my $self		= shift;
     my $username	= $_[0];
 
     if (!defined $username || $username eq "") {
@@ -3049,13 +3115,14 @@ sub CheckUsername {
         return _("You didn't enter a user name.
 Try again.");
     }
-    
-    if (length ($username) < $UsersCache::min_length_login ||
-	length ($username) > $UsersCache::max_length_login ) {
+    my $min		= UsersCache->GetMinLoginLength ();
+    my $max		= UsersCache->GetMaxLoginLength ();
+
+    if (length ($username) < $min || length ($username) > $max) {
 
 	# error popup
 	return sprintf (_("The user name must be between %i and %i characters in length.
-Try again."), $UsersCache::min_length_login, $UsersCache::max_length_login);
+Try again."), $min, $max);
     }
 	
     my $filtered = $username;
@@ -3075,7 +3142,7 @@ Try again.");
 	(defined $user_in_work{"org_uid"} && 
 		 $user_in_work{"org_uid"} ne $username)) {
 
-	if (UsersCache::UsernameExists ($username)) {
+	if (UsersCache->UsernameExists ($username)) {
 	    # error popup
 	    return _("There is a conflict between the entered
 user name and an existing user name.
@@ -3091,6 +3158,7 @@ Try another one.");
 BEGIN { $TYPEINFO{CheckFullname} = ["function", "string", "string"]; }
 sub CheckFullname {
 
+    my $self		= shift;
     my $fullname	= $_[0];
 
     if ($fullname =~ m/[:,]/) {
@@ -3107,6 +3175,7 @@ Try again.");
 BEGIN { $TYPEINFO{CheckGECOS} = ["function", "string", "string"]; }
 sub CheckGECOS {
 
+    my $self		= shift;
     my $gecos		= $_[0];
 
     if (!defined $gecos) {
@@ -3134,8 +3203,9 @@ Remove the surplus.");
 BEGIN { $TYPEINFO{CheckPassword} = ["function", "string", "string"]; }
 sub CheckPassword {
 
+    my $self		= shift;
     my $pw 		= $_[0];
-    my $type		= UsersCache::GetUserType ();
+    my $type		= UsersCache->GetUserType ();
     my $min_length 	= $min_pass_length{$type};
     my $max_length 	= $max_pass_length{$type};
 
@@ -3182,15 +3252,15 @@ sub CrackPassword {
 	return $ret;
     }
     if (!defined $cracklib_dictpath || $cracklib_dictpath eq "" ||
-	SCR::Read (".target.size", "$cracklib_dictpath.pwd") == -1) {
-	$ret = SCR::Execute (".crack", $pw);
+	SCR->Read (".target.size", "$cracklib_dictpath.pwd") == -1) {
+	$ret = SCR->Execute (".crack", $pw);
     }
     else {
-	$ret = SCR::Execute (".crack", $pw, $cracklib_dictpath);
+	$ret = SCR->Execute (".crack", $pw, $cracklib_dictpath);
     }
     if (!defined ($ret)) { $ret = ""; }
 
-    return UsersUI::RecodeUTF ($ret);
+    return UsersUI->RecodeUTF ($ret);
 }
 
 ##------------------------------------
@@ -3234,8 +3304,9 @@ This is not good security practice. Are you sure?");
 # @param pw password
 sub CheckPasswordMaxLength {
 
+    my $self		= shift;
     my $pw 		= $_[0];
-    my $type		= UsersCache::GetUserType ();
+    my $type		= UsersCache->GetUserType ();
     my $max_length 	= $max_pass_length{$type};
     my $ret		= "";
 
@@ -3255,6 +3326,7 @@ BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
 }
 sub CheckPasswordUI {
 
+    my $self		= shift;
     my $username	= $_[0];
     my $pw 		= $_[1];
     my %ui_map		= %{$_[2]};
@@ -3299,7 +3371,7 @@ Really use it?"), $error);
     }
     
     if (($ui_map{"truncate"} || 0) != 1) {
-	my $error = CheckPasswordMaxLength ($pw);
+	my $error = $self->CheckPasswordMaxLength ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "truncate";
 	    $ret{"question"}	= $error;
@@ -3315,22 +3387,23 @@ Really use it?"), $error);
 # @return empty string on success or name of directory which is not writable
 sub IsDirWritable {
 
-    my $dir = $_[0];
+    my $self	= shift;
+    my $dir 	= $_[0];
 
     # maybe more directories in path don't exist
-    while ($dir ne "" && !%{SCR::Read (".target.stat", $dir)}) {
+    while ($dir ne "" && !%{SCR->Read (".target.stat", $dir)}) {
 	$dir = substr ($dir, 0, rindex ($dir, "/"));
     }
 
     my $tmpfile = $dir."/tmpfile";
 
-    while (SCR::Read (".target.size", $tmpfile) != -1) {
+    while (SCR->Read (".target.size", $tmpfile) != -1) {
         $tmpfile .= "0";
     }
 
-    my %out = %{SCR::Execute (".target.bash_output", "/bin/touch $tmpfile")};
+    my %out = %{SCR->Execute (".target.bash_output", "/bin/touch $tmpfile")};
     if (defined $out{"exit"} && $out{"exit"} == 0) {
-        SCR::Execute (".target.bash", "/bin/rm $tmpfile");
+        SCR->Execute (".target.bash", "/bin/rm $tmpfile");
         return "";
     }
     return $dir;
@@ -3342,12 +3415,13 @@ sub IsDirWritable {
 BEGIN { $TYPEINFO{CheckHome} = ["function", "string", "string"]; }
 sub CheckHome {
 
+    my $self		= shift;
     my $home		= $_[0];
     if ($home eq "") {
 	return "";
     }
 
-    my $type		= UsersCache::GetUserType ();
+    my $type		= UsersCache->GetUserType ();
     my $first 		= substr ($home, 0, 1);
     my $filtered 	= $home;
     $filtered 		=~ s/$valid_home_chars//g;
@@ -3360,9 +3434,9 @@ Try again.");
     }
 
     # check if directory is writable
-    if (!Mode::config () && ($type ne "ldap" || Ldap::file_server () )) {
+    if (!Mode->config () && ($type ne "ldap" || Ldap->file_server () )) {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
-        $home_path = IsDirWritable ($home_path);
+        $home_path = $self->IsDirWritable ($home_path);
         if ($home_path ne "") {
 	    # error popup
             return sprintf (_("The directory %s is not writable.
@@ -3370,7 +3444,7 @@ Choose another path for the home directory."), $home_path);
 	}
     }
 
-    if ($home eq GetDefaultHome ($type)) {
+    if ($home eq $self->GetDefaultHome ($type)) {
 	return "";
     }
 
@@ -3379,7 +3453,7 @@ Choose another path for the home directory."), $home_path);
 	(defined $user_in_work{"org_homeDirectory"} && 
 		 $user_in_work{"org_homeDirectory"} ne $home)) {
 
-	if (UsersCache::HomeExists ($home)) {
+	if (UsersCache->HomeExists ($home)) {
 	    # error message
 	    return _("The home directory is used from another user.
 Please try again.");
@@ -3396,21 +3470,22 @@ BEGIN { $TYPEINFO{CheckHomeUI} = ["function",
 }
 sub CheckHomeUI {
 
+    my $self		= shift;
     my $uid		= $_[0];
     my $home		= $_[1];
     my %ui_map		= %{$_[2]};
-    my $type		= UsersCache::GetUserType ();
+    my $type		= UsersCache->GetUserType ();
     my %ret		= ();
     my $create_home	= $user_in_work{"create_home"};
 
-    if ($home eq "" || !bool ($create_home) || Mode::config()) {
+    if ($home eq "" || !bool ($create_home) || Mode->config()) {
 	return \%ret;
     }
-    if ($type eq "ldap" && !Ldap::file_server ()) {
+    if ($type eq "ldap" && !Ldap->file_server ()) {
 	return \%ret;
     }
 	
-    my %stat 	= %{SCR::Read (".target.stat", $home)};
+    my %stat 	= %{SCR->Read (".target.stat", $home)};
     
     if ((($ui_map{"not_dir"} || 0) != 1)	&&
 	%stat && !($stat{"isdir"} || 0))	{
@@ -3459,6 +3534,7 @@ BEGIN { $TYPEINFO{CheckShellUI} = ["function",
 }
 sub CheckShellUI {
 
+    my $self	= shift;
     my $shell	= $_[0];
     my %ui_map	= %{$_[1]};
     my %ret	= ();
@@ -3481,10 +3557,11 @@ Are you sure?");
 BEGIN { $TYPEINFO{CheckGID} = ["function", "string", "integer"]; }
 sub CheckGID {
 
+    my $self	= shift;
     my $gid	= $_[0];
-    my $type	= UsersCache::GetGroupType ();
-    my $min 	= UsersCache::GetMinGID ($type);
-    my $max	= UsersCache::GetMaxGID ($type);
+    my $type	= UsersCache->GetGroupType ();
+    my $min 	= UsersCache->GetMinGID ($type);
+    my $max	= UsersCache->GetMaxGID ($type);
 
     if (!defined $gid) {
 	# error popup
@@ -3496,7 +3573,7 @@ sub CheckGID {
 	(defined $group_in_work{"org_gidNumber"} && 
 		 $group_in_work{"org_gidNumber"} != $gid)) {
 
-	if (UsersCache::GIDExists ($gid)) {
+	if (UsersCache->GIDExists ($gid)) {
 	    # error popup
 	    return _("The group ID entered is already in use.
 Select another group ID.");
@@ -3509,7 +3586,7 @@ Select another group ID.");
 	($groupname eq "nogroup" && $gid == 65534)) {
 	return "";
     }
-    if ($type eq "system" && $gid< UsersCache::GetMinGID("system") && $gid >=0){
+    if ($type eq "system" && $gid< UsersCache->GetMinGID("system") && $gid >=0){
 	# system id's 0..100 are ok
 	return "";
     }
@@ -3519,10 +3596,10 @@ Select another group ID.");
 	# allow change of type: "local" <-> "system"
 	(($type eq "system" || $type eq "local") &&
 	 (
-	    ($gid < UsersCache::GetMinGID ("local") &&
-	    $gid < UsersCache::GetMinGID ("system")) ||
-	    ($gid > UsersCache::GetMaxGID ("local") &&
-	     $gid > UsersCache::GetMaxGID ("system"))
+	    ($gid < UsersCache->GetMinGID ("local") &&
+	    $gid < UsersCache->GetMinGID ("system")) ||
+	    ($gid > UsersCache->GetMaxGID ("local") &&
+	     $gid > UsersCache->GetMaxGID ("system"))
 	 )
 	)) 
     {
@@ -3541,35 +3618,36 @@ BEGIN { $TYPEINFO{CheckGIDUI} = ["function",
 }
 sub CheckGIDUI {
 
+    my $self	= shift;
     my $gid	= $_[0];
     my %ui_map	= %{$_[1]};
-    my $type	= UsersCache::GetGroupType ();
+    my $type	= UsersCache->GetGroupType ();
     my %ret	= ();
 
     if (($ui_map{"local"} || 0) != 1) {
 	if ($type eq "system" &&
-	    $gid > UsersCache::GetMinGID ("local") &&
-	    $gid < UsersCache::GetMaxGID ("local"))
+	    $gid > UsersCache->GetMinGID ("local") &&
+	    $gid < UsersCache->GetMaxGID ("local"))
 	{
 	    $ret{"question_id"}	= "local";
 	    # popup question
 	    $ret{"question"}	= sprintf (_("The selected group ID is a local ID,
 because the ID is greater than %i.
-Really change type of group to 'local'?"), UsersCache::GetMinGID ("local"));
+Really change type of group to 'local'?"), UsersCache->GetMinGID ("local"));
 	    return \%ret;
 	}
     }
 
     if (($ui_map{"system"} || 0) != 1) {
 	if ($type eq "local" &&
-	    $gid > UsersCache::GetMinGID ("system") &&
-	    $gid < UsersCache::GetMaxGID ("system"))
+	    $gid > UsersCache->GetMinGID ("system") &&
+	    $gid < UsersCache->GetMaxGID ("system"))
 	{
 	    $ret{"question_id"}	= "system";
 	    # popup question
 	    $ret{"question"}	= sprintf(_("The selected group ID is a system ID,
 because the ID is smaller than %i.
-Really change type of group to 'system'?"), UsersCache::GetMaxGID ("system"));
+Really change type of group to 'system'?"), UsersCache->GetMaxGID ("system"));
 	    return \%ret;
 	}
     }
@@ -3581,6 +3659,7 @@ Really change type of group to 'system'?"), UsersCache::GetMaxGID ("system"));
 BEGIN { $TYPEINFO{CheckGroupname} = ["function", "string", "string"]; }
 sub CheckGroupname {
 
+    my $self		= shift;
     my $groupname	= $_[0];
 
     if (!defined $groupname || $groupname eq "") {
@@ -3589,13 +3668,14 @@ sub CheckGroupname {
 Try again.");
     }
     
-    if (length ($groupname) < $UsersCache::min_length_groupname ||
-	length ($groupname) > $UsersCache::max_length_groupname ) {
+    my $min	= UsersCache->GetMinGroupnameLength ();
+    my $max	= UsersCache->GetMaxGroupnameLength ();
+
+    if (length ($groupname) < $min || length ($groupname) > $max) {
 
 	# error popup
 	return sprintf (_("The group name must be between %i and %i characters in length.
-Try again."), $UsersCache::min_length_groupname,
-	     $UsersCache::max_length_groupname);
+Try again."), $min, $max);
     }
 	
     my $filtered = $groupname;
@@ -3615,7 +3695,7 @@ Try again.");
 	(defined $group_in_work{"org_cn"} && 
 		 $group_in_work{"org_cn"} ne $groupname)) {
 
-	if (UsersCache::GroupnameExists ($groupname)) {
+	if (UsersCache->GroupnameExists ($groupname)) {
 	    # error popup
 	    return _("There is a conflict between the entered
 group name and an existing group name.
@@ -3631,39 +3711,44 @@ Try another one.");
 BEGIN { $TYPEINFO{CheckUser} = ["function", "string", ["map", "string","any"]];}
 sub CheckUser {
 
-    my %user	= %{$_[0]};
-    if (!%user) {
-	%user = %user_in_work;
+    my $self	= shift;
+    my %user;
+    if (!defined $_[0] || ref ($_[0]) ne "HASH" || !%{$_[0]}) {
+	%user 	= %user_in_work;
     }
+    else {
+	%user	= %{$_[0]};
+    }
+
     my $type	= $user{"type"} || "";
 
-    my $error	= CheckUID ($user{"uidNumber"});
+    my $error	= $self->CheckUID ($user{"uidNumber"});
 
     if ($error eq "") {
-	$error	= CheckUsername ($user{"uid"});
+	$error	= $self->CheckUsername ($user{"uid"});
     }
 
     if ($error eq "") {
 	# do not check pw when it wasn't changed - must be tested directly
 	if ($user{"userPassword"} ne "x" || $user{"what"} ne "edit_user") {
-	    $error	= CheckPassword ($user{"userPassword"});
+	    $error	= $self->CheckPassword ($user{"userPassword"});
 	}
     }
     
     if ($error eq "") {
-	$error	= CheckHome ($user{"homeDirectory"});
+	$error	= $self->CheckHome ($user{"homeDirectory"});
     }
 
     if ($error eq "" && $type ne "ldap") {
-	$error	= CheckFullname ($user{"cn"});
+	$error	= $self->CheckFullname ($user{"cn"});
     }
 
     if ($error eq "" && $type ne "ldap") {
-	$error	= CheckGECOS ($user{"addit_data"});
+	$error	= $self->CheckGECOS ($user{"addit_data"});
     }
 
     my $error_map	=
-	UsersPlugins::Apply ("Check", {
+	UsersPlugins->Apply ("Check", {
 	    "what" 	=> "user",
 	    "type"	=> $type,
 	    "modified"	=> $user{"modified"} || ""
@@ -3697,21 +3782,26 @@ sub CheckUser {
 BEGIN { $TYPEINFO{CheckGroup} = ["function", "string", ["map","string","any"]];}
 sub CheckGroup {
 
-    my %group	= %{$_[0]};
-    if (!%group) {
-	%group = %group_in_work;
+    my $self	= shift;
+    my %group;
+    if (!defined $_[0] || ref ($_[0]) ne "HASH" || !%{$_[0]}) {
+	%group 	= %group_in_work;
+    }
+    else {
+	%group	= %{$_[0]};
     }
 
-    my $error = CheckGID ($group{"gidNumber"});
+
+    my $error = $self->CheckGID ($group{"gidNumber"});
 
 # FIXME CheckPassword!
 
     if ($error eq "") {
-	$error = CheckGroupname ($group{"cn"});
+	$error = $self->CheckGroupname ($group{"cn"});
     }
 
     my $error_map	=
-	UsersPlugins::Apply ("Check", {
+	UsersPlugins->Apply ("Check", {
 	    "what"	=> "group",
 	    "type"	=> $group{"type"} || "",
 	    "modified"	=> $group{"modified"} || ""
@@ -3749,10 +3839,13 @@ sub EncryptionMethod {
 ##------------------------------------
 BEGIN { $TYPEINFO{SetEncryptionMethod} = ["function", "void", "string"];}
 sub SetEncryptionMethod {
+
+    my $self	= shift;
+
     if ($encryption_method ne $_[0]) {
 	$encryption_method 		= $_[0];
 	$security_modified 		= 1;
-	my %max_lengths			= %{Security::PasswordMaxLengths ()};
+	my %max_lengths			= %{Security->PasswordMaxLengths ()};
 	if (defined $max_lengths{$encryption_method}) {
 	    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
 	    $max_pass_length{"system"}	= $max_pass_length{"local"};
@@ -3811,6 +3904,7 @@ BEGIN { $TYPEINFO{CryptPassword} = ["function",
     "string", "string"];}
 sub CryptPassword {
 
+    my $self	= shift;
     my $pw	= $_[0];
     my $type	= $_[1];
     my $method	= lc ($encryption_method);
@@ -3818,19 +3912,19 @@ sub CryptPassword {
     if (!defined $pw || $pw eq "") {
 	return $pw;
     }
-    if (Mode::test ()) {
+    if (Mode->test ()) {
 	return "crypted_".$pw;
     }
 
     if ($type eq "ldap") {
-	$method = lc (UsersLDAP::GetEncryption ());
+	$method = lc (UsersLDAP->GetEncryption ());
 	if ($method eq "clear") {
 	    return $pw;
 	}
 	return _hashPassword ($method, $pw);
     }
     # TODO crypt using some perl function...
-    return UsersUI::HashPassword ($method, $pw);
+    return UsersUI->HashPassword ($method, $pw);
 }
 
 
@@ -3838,7 +3932,8 @@ sub CryptPassword {
 BEGIN { $TYPEINFO{SetRootPassword} = ["function", "void", "string"];}
 sub SetRootPassword {
 
-    $root_password = $_[0];
+    my $self		= shift;
+    $root_password 	= $_[0];
 }
 
 ##------------------------------------
@@ -3847,7 +3942,8 @@ sub SetRootPassword {
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
 
-    return SCR::Write (".target.passwd.root", $root_password);
+    my $self		= shift;
+    return SCR->Write (".target.passwd.root", $root_password);
 }
 
 ##------------------------------------
@@ -3856,8 +3952,9 @@ sub WriteRootPassword {
 BEGIN { $TYPEINFO{CryptRootPassword} = ["function", "void"];}
 sub CryptRootPassword {
 
-    if (!Mode::test ()) {
-	$root_password = CryptPassword ($root_password, "system");
+    my $self	= shift;
+    if (!Mode->test ()) {
+	$root_password = $self->CryptPassword ($root_password, "system");
     }
 }
 
@@ -3870,10 +3967,10 @@ sub CryptRootPassword {
 # Check whether host is NIS master
 BEGIN { $TYPEINFO{ReadNISMaster} = ["function", "boolean"];}
 sub ReadNISMaster {
-    if (SCR::Read (".target.size", "/usr/lib/yp/yphelper") != -1) {
+    if (SCR->Read (".target.size", "/usr/lib/yp/yphelper") != -1) {
         return 0;
     }
-    return (SCR::Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);
+    return (SCR->Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);
 }
 
 ##------------------------------------
@@ -3881,12 +3978,12 @@ sub ReadNISMaster {
 BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
 sub ReadNISAvailable {
 
-    my $passwd_source = SCR::Read (".etc.nsswitch_conf.passwd");
+    my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
     if (defined $passwd_source) {
 	foreach my $source (split (/ /, $passwd_source)) {
 
 	    if ($source eq "nis" || $source eq "compat") {
-		return (Service::Status ("ypbind") == 0);
+		return (Service->Status ("ypbind") == 0);
 	    }
 	}
     }
@@ -3931,6 +4028,7 @@ sub RemoveDiskUsersFromGroups {
 # @return map with user data as defined in Users module
 sub ImportUser {
 
+    my $self	= shift;
     my $user	= $_[0];
     my %ret	= ();
 
@@ -3969,12 +4067,12 @@ sub ImportUser {
 
     my $type	= "local";
     if ($uid != -1 &&
-	($uid < UsersCache::GetMaxUID ("system") || $username eq "nobody")) {
+	($uid < UsersCache->GetMaxUID ("system") || $username eq "nobody")) {
         $type = "system";
     }
 
     # if empty, set to default, might be changed later..
-    my %user_shadow	= %{GetDefaultShadow ($type)};
+    my %user_shadow	= %{$self->GetDefaultShadow ($type)};
     if (defined $user->{"password_settings"}) {
 	%user_shadow	= %{$user->{"password_settings"}};
     }
@@ -3985,15 +4083,15 @@ sub ImportUser {
     }
     # FIXME when the password will be crypted?
     my $pass		= $user->{"user_password"}	|| "x";
-y2internal ("password: $pass, encrypted: ", bool ($encrypted), "config mode: ", Mode::config());
+y2internal ("password: $pass, encrypted: ", bool ($encrypted), "config mode: ", Mode->config());
     if ((!defined $encrypted || !bool ($encrypted)) &&
-	$pass ne "x" && !Mode::config ())
+	$pass ne "x" && !Mode->config ())
     {
-	$pass 		= CryptPassword ($pass, $type);
+	$pass 		= $self->CryptPassword ($pass, $type);
 y2internal ("encrypted pass: $pass");
 	$encrypted	= YaST::YCP::Boolean (1);
     }
-    my $home	= GetDefaultHome($type).$username;
+    my $home	= $self->GetDefaultHome($type).$username;
 
     my %grouplist	= ();
     if (defined $user->{"grouplist"}) {
@@ -4009,7 +4107,7 @@ y2internal ("encrypted pass: $pass");
 
     if ($uid == -1) {
 	# check for existence of this user (and change it with given values)
-	my %existing 	= %{GetUserByName ($username, "")};
+	my %existing 	= %{$self->GetUserByName ($username, "")};
 	if (%existing) {
 	
 	    y2milestone("Existing user:", $existing{"uid"} || "");
@@ -4018,7 +4116,7 @@ y2internal ("encrypted pass: $pass");
 
 	    if (!defined $user->{"password_settings"}) {
 		LoadShadow ();
-		%user_shadow	= %{CreateShadowMap (\%user_in_work)};
+		%user_shadow	= %{$self->CreateShadowMap (\%user_in_work)};
 	    }
 	    my $finalpw 	= "";
 	    if ($pass ne "x") {
@@ -4042,7 +4140,7 @@ y2internal ("encrypted pass: $pass");
 		"encrypted"	=> $encrypted,
 		"cn"		=> $cn,
 		"uidNumber"	=> $existing{"uidNumber"},
-		"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || GetDefaultShell ($type),
+		"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || $self->GetDefaultShell ($type),
 
 		"gidNumber"	=> $gid,
 		"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $existing{"homeDirectory"} || $home,
@@ -4052,7 +4150,7 @@ y2internal ("encrypted pass: $pass");
 	}
     }
     if ($gid == -1) {
-	$gid = GetDefaultGID ($type);
+	$gid = $self->GetDefaultGID ($type);
     }
 
     if (!%ret) {
@@ -4063,7 +4161,7 @@ y2internal ("encrypted pass: $pass");
 	"cn"		=> $cn,
 	"uidNumber"	=> $uid,
 	"gidNumber"	=> $gid,
-	"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || GetDefaultShell ($type),
+	"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $self->GetDefaultShell ($type),
 
 	"grouplist"	=> \%grouplist,
 	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
@@ -4097,6 +4195,7 @@ DebugMap (\%ret);
 # @return map with group data as defined in Users module
 sub ImportGroup {
 
+    my $self		= shift;
     my %group		= %{$_[0]};
     my $type 		= "local";
     my $groupname 	= $group{"groupname"};# Import could use old kay names
@@ -4114,13 +4213,13 @@ sub ImportGroup {
     }
     if ($gid == -1) {
 	# check for existence of this group (and change it with given values)
-	my $existing 	= GetGroupByName ($groupname, "");
+	my $existing 	= $self->GetGroupByName ($groupname, "");
 	if (ref ($existing) eq "HASH" && %{$existing}) {
 	    $gid	= $existing->{"gidNumber"};
 	}
     }
 
-    if (($gid <= UsersCache::GetMaxGID ("system") ||
+    if (($gid <= UsersCache->GetMaxGID ("system") ||
         $groupname eq "nobody" || $groupname eq "nogroup") &&
         $groupname ne "users")
     {
@@ -4160,23 +4259,24 @@ BEGIN { $TYPEINFO{Import} = ["function",
 }
 sub Import {
     
+    my $self		= shift;
     my %settings	= %{$_[0]};
 
     y2debug ("importing: ", %settings);
 
     if (!defined $settings{"user_defaults"} || !%{$settings{"user_defaults"}}) {
-        ReadLoginDefaults ();
+        $self->ReadLoginDefaults ();
     }
     else {
         %useradd_defaults 	= %{$settings{"user_defaults"}};
         $defaults_modified	= 1;
     }
 
-    ReadSystemDefaults();
+    $self->ReadSystemDefaults();
 
-    $tmpdir	= SCR::Read (".target.tmpdir");
+    $tmpdir	= SCR->Read (".target.tmpdir");
 
-    my $error_msg = ReadLocal ();
+    my $error_msg = $self->ReadLocal ();
     if ($error_msg) {
 	return 0; #TODO do not return, just read less
     }
@@ -4199,7 +4299,7 @@ sub Import {
 
 	foreach my $imp_user (@{$settings{"users"}}) {
 	    ResetCurrentUser ();
-	    my %user		= %{ImportUser ($imp_user)};
+	    my %user		= %{$self->ImportUser ($imp_user)};
 	    my $type		= $user{"type"} || "local";
 	    my $username 	= $user{"uid"} || "";
 	    my $uid 		= $user{"uidNumber"};
@@ -4210,16 +4310,16 @@ sub Import {
 	    else {
 		$users{$type}{$uid}		= \%user;
 		$users_by_name{$type}{$username}= $uid;
-		$shadow{$type}{$username}      	= CreateShadowMap (\%user);
+		$shadow{$type}{$username} = $self->CreateShadowMap (\%user);
 	    }
 	}
 
 	foreach my $user (@without_uid) {
 	    y2milestone ("no UID for this user:", $user->{"uid"} || "");
-	    ResetCurrentUser ();
-	    AddUser ($user);
-	    if (CheckUser (GetCurrentUser()) eq "") {
-		CommitUser ();
+	    $self->ResetCurrentUser ();
+	    $self->AddUser ($user);
+	    if ($self->CheckUser ($self->GetCurrentUser()) eq "") {
+		$self->CommitUser ();
 	    }
 	}
     }
@@ -4242,7 +4342,7 @@ sub Import {
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
 
 	foreach my $imp_group (@{$settings{"groups"}}) {
-	    my %group	= %{ImportGroup ($imp_group)};
+	    my %group	= %{$self->ImportGroup ($imp_group)};
 	    my $gid 	= $group{"gidNumber"};
 	    if (!defined $gid) {
 		next;
@@ -4254,10 +4354,10 @@ sub Import {
 	}
     }
 
-    my %group_u = %{GetGroupByName ("users", "local")};
+    my %group_u = %{$self->GetGroupByName ("users", "local")};
     if (!%group_u) {
         # group users must be created
-	my $gid		= GetDefaultGID ("local");
+	my $gid		= $self->GetDefaultGID ("local");
         %group_u	= (
              "gidNumber"		=> $gid,
 	     "cn"			=> "users",
@@ -4272,7 +4372,7 @@ sub Import {
     @available_usersets		= ( "local", "system", "custom" );
     @available_groupsets	= ( "local", "system", "custom" );
 
-    ReadAllShells ();
+    $self->ReadAllShells ();
 
     # create more_users (for groups), grouplist and groupname (for users)
     foreach my $type ("system", "local") {
@@ -4288,13 +4388,13 @@ sub Import {
             my $username 	= $user->{"uid"}	|| "";
             my $gid 		= $user->{"gidNumber"};
 	    if (!defined $gid) {
-		$gid		= GetDefaultGID($type);
+		$gid		= $self->GetDefaultGID($type);
 	    }
             $users{$type}{$uid}{"grouplist"} = FindGroupsBelongUser ($user);
 
             # hack: change of default group's gid
 	    # (e.g. user 'games' has gid 100, but there is only group 500 now!)
-            my %group 		= %{GetGroup ($gid, "")};
+            my %group 		= %{$self->GetGroup ($gid, "")};
 	    if (!%group) {
 		if ($gid == 100) {
 		    $gid 	= 500;
@@ -4303,7 +4403,7 @@ sub Import {
 		    $gid	= 100;
 		}
 		# one more chance...
-		%group		= %{GetGroup ($gid, "")};
+		%group		= %{$self->GetGroup ($gid, "")};
 		# adapt user's gid to new one:
 		if (%group) {
 		    $users{$type}{$uid}{"gidNumber"}	= $gid;
@@ -4322,21 +4422,21 @@ sub Import {
     }
 
     # initialize UsersCache: 1. system users and groups:
-    UsersCache::ReadUsers ("system");
-    UsersCache::ReadGroups ("system");
+    UsersCache->ReadUsers ("system");
+    UsersCache->ReadGroups ("system");
 
-    UsersCache::BuildUserItemList ("system", $users{"system"});
-    UsersCache::BuildGroupItemList ("system", $groups{"system"});
+    UsersCache->BuildUserItemList ("system", $users{"system"});
+    UsersCache->BuildGroupItemList ("system", $groups{"system"});
 
     # 2. and local ones (probably empty or imported)
-    UsersCache::BuildUserLists ("local", $users{"local"});
-    UsersCache::BuildUserItemList ("local", $users{"local"});
+    UsersCache->BuildUserLists ("local", $users{"local"});
+    UsersCache->BuildUserItemList ("local", $users{"local"});
 
-    UsersCache::BuildGroupLists ("local", $groups{"local"});
-    UsersCache::BuildGroupItemList ("local", $groups{"local"});
+    UsersCache->BuildGroupLists ("local", $groups{"local"});
+    UsersCache->BuildGroupItemList ("local", $groups{"local"});
 
-    UsersCache::SetCurrentUsers (\@user_custom_sets);
-    UsersCache::SetCurrentGroups (\@group_custom_sets);
+    UsersCache->SetCurrentUsers (\@user_custom_sets);
+    UsersCache->SetCurrentGroups (\@group_custom_sets);
 
     return 1;
 }
@@ -4347,7 +4447,8 @@ sub Import {
 # @return map with user data in format used by autoyast
 sub ExportUser {
 
-    my $user	= $_[0];
+    my $self		= shift;
+    my $user		= $_[0];
     my $type		= $user->{"type"} || "local";
     my $username 	= $user->{"uid"} || "";
     my %user_shadow	= ();
@@ -4361,7 +4462,7 @@ sub ExportUser {
 	"shadowLastChange"	=> "last_change",
 	"userPassword"		=> "password"
     );
-    my %shadow_map	= %{CreateShadowMap ($user)};
+    my %shadow_map	= %{$self->CreateShadowMap ($user)};
     my %org_user	= ();
     if (defined $user->{"org_user"}) {
 	%org_user	= %{$user->{"org_user"}};
@@ -4433,7 +4534,8 @@ DebugMap (\%ret);
 # @return map with group data in format used by autoyast
 sub ExportGroup {
 
-    my $group	= $_[0];
+    my $self		= shift;
+    my $group		= $_[0];
     my $userlist	= "";
     if (defined $group->{"userlist"}) {
 	$userlist	= join (",", keys %{$group->{"userlist"}});
@@ -4468,12 +4570,13 @@ BEGIN { $TYPEINFO{Export} = ["function",
 }
 sub Export {
 
+    my $self		= shift;
     my @exported_users	= ();
     # local users when modified
     if (defined $users{"local"}) {
 	foreach my $user (values %{$users{"local"}}) {
 	    if ($export_all || defined $user->{"modified"}) {
-		push @exported_users, ExportUser ($user);
+		push @exported_users, $self->ExportUser ($user);
 	    }
 	}
     }
@@ -4482,7 +4585,7 @@ sub Export {
     if (defined $users{"system"}) {
 	foreach my $user (values %{$users{"system"}}) {
             if ($export_all || defined $user->{"modified"}) {
-	        push @exported_users, ExportUser ($user);
+	        push @exported_users, $self->ExportUser ($user);
 	    }
 	}
     }
@@ -4492,7 +4595,7 @@ sub Export {
     if (defined $groups{"local"}) {
 	foreach my $group (values %{$groups{"local"}}) {
 	    if ($export_all || defined $group->{"modified"}) {
-		push @exported_groups, ExportGroup ($group);
+		push @exported_groups, $self->ExportGroup ($group);
 	    }
 	}
     }
@@ -4501,7 +4604,7 @@ sub Export {
     if (defined $groups{"system"}) {
 	foreach my $group (values %{$groups{"system"}}) {
             if ($export_all || defined $group->{"modified"}) {
-	        push @exported_groups, ExportGroup ($group);
+	        push @exported_groups, $self->ExportGroup ($group);
 	    }
 	}
     }
@@ -4519,7 +4622,8 @@ sub Export {
 BEGIN { $TYPEINFO{Summary} = ["function", "string"];}
 sub Summary {
     
-    my $ret = "";
+    my $self	= shift;
+    my $ret 	= "";
 
     # summary label
     $ret = _("<h3>Users</h3>");
@@ -4549,26 +4653,30 @@ sub Summary {
 
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}
 sub SetExportAll {
-    $export_all = $_[0];
+    my $self	= shift;
+    $export_all	= $_[0];
 }
 
 
 BEGIN { $TYPEINFO{SetWriteOnly} = ["function", "void", "boolean"];}
 sub SetWriteOnly {
+    my $self	= shift;
     $write_only = $_[0];
 }
 
 BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
 sub SetGUI {
-    $use_gui = $_[0];
-    UsersLDAP::SetGUI ($use_gui);
+    my $self	= shift;
+    $use_gui 	= $_[0];
+    UsersLDAP->SetGUI ($use_gui);
 }
 
 # --- 
 BEGIN { $TYPEINFO{SetPlusPasswd} = ["function", "void", "string"];}
 sub SetPlusPasswd {
+    my $self	= shift;
     $plus_passwd = $_[0];
-    if (SCR::Write (".passwd.passwd.plusline", $plus_passwd)) {
+    if (SCR->Write (".passwd.passwd.plusline", $plus_passwd)) {
 	$users_modified 	= 1;
 #TODO not necessary to write all passwd...
     }
@@ -4577,8 +4685,9 @@ sub SetPlusPasswd {
 # ---
 BEGIN { $TYPEINFO{SetPlusShadow} = ["function", "void", "string"];}
 sub SetPlusShadow {
+    my $self	= shift;
     $plus_shadow = $_[0];
-    if (SCR::Write (".passwd.shadow.plusline", $plus_shadow)) {
+    if (SCR->Write (".passwd.shadow.plusline", $plus_shadow)) {
 	$groups_modified	= 1;
     }
 }
@@ -4586,8 +4695,9 @@ sub SetPlusShadow {
 # --- 
 BEGIN { $TYPEINFO{SetPlusGroup} = ["function", "void", "string"];}
 sub SetPlusGroup {
+    my $self	= shift;
     $plus_group = $_[0];
-    if (SCR::Write (".passwd.group.plusline", $plus_group)) {
+    if (SCR->Write (".passwd.group.plusline", $plus_group)) {
 	$users_modified 	= 1;
     }
 }

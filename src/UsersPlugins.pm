@@ -31,9 +31,9 @@ YaST::YCP::Import ("SCR");
 BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
-    my $find = "/usr/bin/find ".Directory::moduledir();
+    my $find = "/usr/bin/find ".Directory->moduledir();
     $find .= " -name UsersPlugin*.*"; #TODO use some variable for the name
-    my $out     = SCR::Execute (".target.bash_output", $find);
+    my $out     = SCR->Execute (".target.bash_output", $find);
     my $modules = $out->{"stdout"} || "";
 
     foreach my $module (split (/\n/, $modules)) {
@@ -49,7 +49,7 @@ sub Read {
     foreach my $module (@available_plugins) {
 	YaST::YCP::Import ($module); # we could use 'eval (use $module)'
 	my $func        = $module."::Interface";
-	my $list 	= &$func ({}, {});
+	my $list 	= &$func ($module, {}, {});
 	if (defined $list && ref ($list) eq "ARRAY") {
 	    # save the plugins interface
 	    foreach my $action (@{$list}) {
@@ -57,7 +57,7 @@ sub Read {
 		# save the plugin restrictions
 		if ($action eq "Restriction") {
 		    $func       = $module."::$action";
-		    $plugins{$module}{$action}	= &$func ({}, {});
+		    $plugins{$module}{$action}	= &$func ($module, {}, {});
 		}
 	    }
 	}
@@ -79,6 +79,7 @@ BEGIN { $TYPEINFO{Apply} = ["function",
 }
 sub Apply {
 
+    my $self	= shift;
     my $action	= $_[0];
     my $config	= $_[1];
     my $data	= $_[2];
@@ -117,7 +118,7 @@ sub Apply {
 	}
 		
 	my $func	= $module."::$action";
-	$ret{$module}	= &$func ($config, $data);
+	$ret{$module}	= &$func ($module, $config, $data);
     }
     return \%ret;
 }

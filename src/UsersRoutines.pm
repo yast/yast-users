@@ -32,31 +32,32 @@ BEGIN { $TYPEINFO{CreateHome} = ["function",
 }
 sub CreateHome {
 
+    my $self	= shift;
     my $skel	= $_[0];
     my $home	= $_[1];
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
-    if (!%{SCR::Read (".target.stat", $home_path)}) {
-	SCR::Execute (".target.mkdir", $home_path);
+    if (!%{SCR->Read (".target.stat", $home_path)}) {
+	SCR->Execute (".target.mkdir", $home_path);
     }
 
     # if skeleton does not exist, do not copy it
-    if ($skel eq "" || !%{SCR::Read (".target.stat", $skel)}) {
-	if (! SCR::Execute (".target.mkdir", $home)) {
+    if ($skel eq "" || !%{SCR->Read (".target.stat", $skel)}) {
+	if (! SCR->Execute (".target.mkdir", $home)) {
 	    y2error ("error creating $home");
 	    return 0;
 	}
     }
     # now copy homedir from skeleton
     else {
-	my %stat	= %{SCR::Read (".target.stat", $home)};
+	my %stat	= %{SCR->Read (".target.stat", $home)};
 	if (%stat) {
 	    y2error ("some directory already exists at this place: no mkdir");
 	    return 0;
 	}
 	my $command	= "/bin/cp -r $skel $home";
-	my %out		= %{SCR::Execute (".target.bash_output", $command)};
+	my %out		= %{SCR->Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
 	    y2error ("error calling $command: ", $out{"stderr"} || "");
 	    return 0;
@@ -78,11 +79,12 @@ BEGIN { $TYPEINFO{ChownHome} = ["function",
 }
 sub ChownHome {
 
+    my $self	= shift;
     my $uid	= $_[0];
     my $gid	= $_[1];
     my $home	= $_[2];
 
-    my %stat	= %{SCR::Read (".target.stat", $home)};
+    my %stat	= %{SCR->Read (".target.stat", $home)};
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning ("directory does not exist or is not a directory: no chown");
 	return 0;
@@ -94,7 +96,7 @@ sub ChownHome {
     }
 
     my $command = "/bin/chown -R $uid:$gid $home";
-    my %out	= %{SCR::Execute (".target.bash_output", $command)};
+    my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
 	return 0;
@@ -114,28 +116,29 @@ BEGIN { $TYPEINFO{MoveHome} = ["function",
 }
 sub MoveHome {
 
+    my $self		= shift;
     my $org_home	= $_[0];
     my $home		= $_[1];
 
     # create a path to new home directory, if it not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
-    if (!%{SCR::Read (".target.stat", $home_path)}) {
-	SCR::Execute (".target.mkdir", $home_path);
+    if (!%{SCR->Read (".target.stat", $home_path)}) {
+	SCR->Execute (".target.mkdir", $home_path);
     }
-    my %stat	= %{SCR::Read (".target.stat", $org_home)};
+    my %stat	= %{SCR->Read (".target.stat", $org_home)};
     if (!($stat{"isdir"} || 0)) {
 	y2warning ("new 'home directory' is not a directory: no moving");
 	return 0;
     }
 
-    %stat	= %{SCR::Read (".target.stat", $org_home)};
+    %stat	= %{SCR->Read (".target.stat", $org_home)};
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning ("old home does not exist or is not a directory: no moving");
 	return 0;
     }
 
     my $command = "/bin/mv $org_home $home";
-    my %out	= %{SCR::Execute (".target.bash_output", $command)};
+    my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
 	return 0;
@@ -151,15 +154,16 @@ sub MoveHome {
 BEGIN { $TYPEINFO{DeleteHome} = ["function", "boolean", "string"];}
 sub DeleteHome {
 
-    my $home		= $_[0];
+    my $self	= shift;
+    my $home	= $_[0];
 
-    my %stat	= %{SCR::Read (".target.stat", $home)};
+    my %stat	= %{SCR->Read (".target.stat", $home)};
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning("home directory does not exist or is not a directory: no rm");
 	return 1;
     }
     my $command	= "/bin/rm -rf $home";
-    my %out	= %{SCR::Execute (".target.bash_output", $command)};
+    my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
 	return 0;

@@ -69,11 +69,11 @@ my %last_gid		= (
     "system"		=> 100,
 );
 
-our $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
-our $min_length_login 	= 2;
+my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
+my $min_length_login 	= 2;
 
-our $max_length_groupname 	= 8; # TODO:why only 8?
-our $min_length_groupname	= 2;
+my $max_length_groupname 	= 8; # TODO:why only 8?
+my $min_length_groupname	= 2;
 
 # UI-related (summary table) variables:
 my $focusline_user;
@@ -106,8 +106,6 @@ my $the_answer			= 42;
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
-YaST::YCP::Import ("Security");
-YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("UsersUI");
 
 ##-------------------------------------------------------------------------
@@ -115,6 +113,7 @@ YaST::YCP::Import ("UsersUI");
 
 BEGIN { $TYPEINFO{ResetProposing} = ["function", "void"]; }
 sub ResetProposing {
+    my $self		= shift;
     $proposal_count	= -1;
 }
 
@@ -122,6 +121,7 @@ sub ResetProposing {
 BEGIN { $TYPEINFO{ProposeUsername} = ["function", "string", "string"]; }
 sub ProposeUsername {
 
+    my $self		= shift;
     my $cn		= $_[0];
     my $default_login  	= "lxuser";
 
@@ -154,7 +154,7 @@ sub ProposeUsername {
 	# 2nd: check existence
 	foreach my $name (sort keys %tested_usernames) {
 	    my $name_count = 0;
-	    while (UsernameExists ($name)) {
+	    while ($self->UsernameExists ($name)) {
 		$name .= "$name_count";
 		$name_count ++;
 	    }
@@ -165,7 +165,7 @@ sub ProposeUsername {
 	    push @proposed_usernames, $name;
 	};
 
-	if (!UsernameExists ("$the_answer") && @proposed_usernames > 11) {
+	if (!$self->UsernameExists ("$the_answer") && @proposed_usernames > 11){
 	    push @proposed_usernames, "$the_answer";
 	}
 	$proposal_count = 0;
@@ -183,6 +183,8 @@ sub ProposeUsername {
 
 BEGIN { $TYPEINFO{DebugMap} = ["function", "void", "any"];}
 sub DebugMap {
+
+    my $self		= shift;
 
     if (!defined $_[0]) { return; }
     my %map = %{$_[0]};
@@ -208,6 +210,7 @@ sub DebugMap {
 BEGIN { $TYPEINFO{SetCurrentUsers} = ["function", "void", ["list", "string"]];}
 sub SetCurrentUsers {
 
+    my $self		= shift;
     @current_users	= @{$_[0]}; # e.g. ("local", "system")
 
     @current_user_items = ();
@@ -216,13 +219,14 @@ sub SetCurrentUsers {
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
     undef $focusline_user;
-    SetUserType ($current_users[0]);
+    $self->SetUserType ($current_users[0]);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetCustomizedUsersView} = ["function", "void", "boolean"];}
 sub SetCustomizedUsersView {
-    $customized_usersview = $_[0];
+    my $self			= shift;
+    $customized_usersview 	= $_[0];
 }
 
 ##------------------------------------
@@ -236,6 +240,7 @@ sub CustomizedUsersView {
 BEGIN { $TYPEINFO{SetCurrentGroups} = ["function", "void", ["list", "string"]];}
 sub SetCurrentGroups {
 
+    my $self		= shift;
     @current_groups	= @{$_[0]}; # e.g. ("local", "system")
 
     @current_group_items = ();
@@ -244,13 +249,14 @@ sub SetCurrentGroups {
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
     undef $focusline_group;
-    SetGroupType ($current_groups[0]);
+    $self->SetGroupType ($current_groups[0]);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetCustomizedGroupsView} = ["function", "void", "boolean"];}
 sub SetCustomizedGroupsView {
-    $customized_groupsview = $_[0];
+    my $self			= shift;
+    $customized_groupsview 	= $_[0];
 }
 
 ##------------------------------------
@@ -266,7 +272,7 @@ sub CustomizedGroupsView {
 ##------------------------------------
 sub UIDConflicts {
 
-    my $ret = SCR::Read (".uid.uid", $_[0]);
+    my $ret = SCR->Read (".uid.uid", $_[0]);
     return !$ret;
 }
  
@@ -274,14 +280,15 @@ sub UIDConflicts {
 BEGIN { $TYPEINFO{UIDExists} = ["function", "boolean", "integer"]; }
 sub UIDExists {
 
-    my $ret	= 0;
+    my $self	= shift;
     my $uid	= $_[0];
+    my $ret	= 0;
 
     foreach my $type (keys %uids) {
 	if (defined $uids{$type}{$uid}) { $ret = 1; }
     };
     # for autoyast, check only loaded sets
-    if ($ret || Mode::config () || Mode::test ()) {
+    if ($ret || Mode->config () || Mode->test ()) {
 	return $ret;
     }
     # not found -> check all sets via agent...
@@ -304,7 +311,7 @@ sub UIDExists {
 
 sub UsernameConflicts {
 
-    my $ret = SCR::Read (".uid.username", $_[0]);
+    my $ret = SCR->Read (".uid.username", $_[0]);
     return !$ret;
 }
 
@@ -312,13 +319,14 @@ sub UsernameConflicts {
 BEGIN { $TYPEINFO{UsernameExists} = ["function", "boolean", "string"]; }
 sub UsernameExists {
 
-    my $ret		= 0;
+    my $self		= shift;
     my $username	= $_[0];
+    my $ret		= 0;
 
     foreach my $type (keys %usernames) {
 	if (defined $usernames{$type}{$username}) { $ret = 1; }
     };
-    if ($ret || Mode::config () || Mode::test ()) {
+    if ($ret || Mode->config () || Mode->test ()) {
 	return $ret;
     }
     $ret = UsernameConflicts ($username);
@@ -341,8 +349,9 @@ sub UsernameExists {
 BEGIN { $TYPEINFO{GIDExists} = ["function", "boolean", "integer"]; }
 sub GIDExists {
 
-    my $ret	= 0;
+    my $self	= shift;
     my $gid	= $_[0];
+    my $ret	= 0;
     
     if ($group_type eq "ldap") {
 	$ret = defined $gids{$group_type}{$gid};
@@ -358,8 +367,9 @@ sub GIDExists {
 BEGIN { $TYPEINFO{GroupnameExists} = ["function", "boolean", "string"]; }
 sub GroupnameExists {
 
-    my $ret		= 0;
+    my $self		= shift;
     my $groupname	= $_[0];
+    my $ret		= 0;
     
     if ($group_type eq "ldap") {
 	$ret = defined $groupnames{$group_type}{$groupname};
@@ -379,11 +389,12 @@ sub GroupnameExists {
 BEGIN { $TYPEINFO{HomeExists} = ["function", "boolean", "string"]; }
 sub HomeExists {
 
+    my $self		= shift;
     my $home		= $_[0];
     my $ret		= 0;
     my @sets_to_check	= ("local", "system");
 
-    if (Ldap::file_server ()) {
+    if (Ldap->file_server ()) {
 	push @sets_to_check, "ldap";
     }
     elsif ($user_type eq "ldap") { #ldap client only
@@ -422,6 +433,7 @@ sub GetCurrentFocus {
 BEGIN { $TYPEINFO{SetCurrentFocus} = ["function", "void", "integer"]; }
 sub SetCurrentFocus {
 
+    my $self		= shift;
     if ($current_summary eq "users") {
 	$focusline_user = $_[0];
     }
@@ -440,7 +452,8 @@ sub GetCurrentSummary {
 #------------------------------------
 BEGIN { $TYPEINFO{SetCurrentSummary} = ["function", "void", "string"]; }
 sub SetCurrentSummary {
-    $current_summary = $_[0];
+    my $self		= shift;
+    $current_summary 	= $_[0];
 }
 
 #------------------------------------
@@ -469,7 +482,8 @@ sub GetAllGroupnames {
 BEGIN { $TYPEINFO{GetGroupnames} = ["function", ["list", "string"], "string"];}
 sub GetGroupnames {
 
-    my @ret = sort keys %{$groupnames{$_[0]}};
+    my $self	= shift;
+    my @ret 	= sort keys %{$groupnames{$_[0]}};
     return \@ret;
 }
 
@@ -478,7 +492,8 @@ sub GetGroupnames {
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
-    my @ret = sort keys %{$usernames{$_[0]}};
+    my $self	= shift;
+    my @ret 	= sort keys %{$usernames{$_[0]}};
     return \@ret;
 }
 
@@ -525,12 +540,41 @@ sub GetGroupType {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetMinLoginLength} = ["function", "integer" ]; }
+sub GetMinLoginLength {
+    my $self	= shift;
+    return $min_length_login;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMaxLoginLength} = ["function", "integer" ]; }
+sub GetMaxLoginLength {
+    my $self	= shift;
+    return $max_length_login;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMinGroupnameLength} = ["function", "integer" ]; }
+sub GetMinGroupnameLength {
+    my $self	= shift;
+    return $min_length_groupname;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMaxGroupnameLength} = ["function", "integer" ]; }
+sub GetMaxGroupnameLength {
+    my $self	= shift;
+    return $max_length_groupname;
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetMinUID} = ["function",
     "integer",
     "string"]; #user type
 }
 sub GetMinUID {
 
+    my $self	= shift;
     if (defined $min_uid{$_[0]}) {
 	return YaST::YCP::Integer ($min_uid{$_[0]})->value;
     }
@@ -544,6 +588,7 @@ BEGIN { $TYPEINFO{GetMaxUID} = ["function",
 }
 sub GetMaxUID {
 
+    my $self	= shift;
     if (defined $max_uid{$_[0]}) {
 	return YaST::YCP::Integer ($max_uid{$_[0]})->value;
     }
@@ -551,15 +596,36 @@ sub GetMaxUID {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetLastUID} = ["function", "integer", "string"]; }
+sub GetLastUID {
+    my $self	= shift;
+    if (defined $last_uid{$_[0]}) {
+	return $last_uid{$_[0]};
+    }
+    return 1;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetLastGID} = ["function", "integer", "string"]; }
+sub GetLastGID {
+    my $self	= shift;
+    if (defined $last_gid{$_[0]}) {
+	return $last_gid{$_[0]};
+    }
+    return 1;
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{NextFreeUID} = ["function", "integer"]; }
 sub NextFreeUID {
 
-    my $ret;
-    my $max	= GetMaxUID ($user_type);
+    my $self	= shift;
+    my $max	= $self->GetMaxUID ($user_type);
     my $uid	= $last_uid{$user_type};
+    my $ret;
 
     do {
-        if (UIDExists ($uid)) {
+        if ($self->UIDExists ($uid)) {
             $uid++;
 	}
         else {
@@ -577,6 +643,7 @@ BEGIN { $TYPEINFO{GetMinGID} = ["function",
 }
 sub GetMinGID {
 
+    my $self	= shift;
     if (defined $min_gid{$_[0]}) {
 	return YaST::YCP::Integer ($min_gid{$_[0]})->value;
     }
@@ -589,6 +656,7 @@ BEGIN { $TYPEINFO{GetMaxGID} = ["function",
 }
 sub GetMaxGID {
 
+    my $self	= shift;
     if (defined $max_gid{$_[0]}) {
 	return YaST::YCP::Integer ($max_gid{$_[0]})->value;
     }
@@ -600,11 +668,12 @@ sub GetMaxGID {
 BEGIN { $TYPEINFO{NextFreeGID} = ["function", "integer"]; }
 sub NextFreeGID {
 
+    my $self	= shift;
     my $ret;
-    my $max	= GetMaxGID ($group_type);
+    my $max	= $self->GetMaxGID ($group_type);
     my $gid	= 500;
     do {
-        if (GIDExists ($gid)) {
+        if ($self->GIDExists ($gid)) {
             $gid++;
 	}
         else {
@@ -626,6 +695,7 @@ BEGIN { $TYPEINFO{SetMaxUID} = ["function",
     "string"];#user type
 }
 sub SetMaxUID {
+    my $self	= shift;
     $max_uid{$_[1]}	= $_[0];
 }
 
@@ -636,24 +706,28 @@ BEGIN { $TYPEINFO{SetMaxGID} = ["function",
     "string"];#user type
 }
 sub SetMaxGID {
+    my $self	= shift;
     $max_gid{$_[1]}	= $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetMinUID} = ["function", "void", "integer", "string"]; }
 sub SetMinUID {
+    my $self	= shift;
     $min_uid{$_[1]}	= $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetMinGID} = ["function", "void", "integer", "string"]; }
 sub SetMinGID {
+    my $self	= shift;
     $min_gid{$_[1]}	= $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetLastUID} = ["function", "void", "integer", "string"]; }
 sub SetLastUID {
+    my $self	= shift;
     if ($_[0] >= $min_uid{$_[1]} && $_[0] <= $max_uid{$_[1]}) {
 	$last_uid{$_[1]}	= $_[0];
     }
@@ -662,6 +736,7 @@ sub SetLastUID {
 ##------------------------------------
 BEGIN { $TYPEINFO{SetLastGID} = ["function", "void", "integer", "string"]; }
 sub SetLastGID {
+    my $self	= shift;
     if ($_[0] >= $min_gid{$_[1]} && $_[0] <= $max_gid{$_[1]}) {
 	$last_gid{$_[1]}	= $_[0];
     }
@@ -671,13 +746,15 @@ sub SetLastGID {
 BEGIN { $TYPEINFO{SetUserType} = ["function", "void", "string"]; }
 sub SetUserType {
 
-    $user_type = $_[0];
+    my $self	= shift;
+    $user_type	= $_[0];
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SetGroupType} = ["function", "void", "string"]; }
 sub SetGroupType {
 
+    my $self	= shift;
     $group_type = $_[0];
 }
 
@@ -685,6 +762,7 @@ sub SetGroupType {
 # build item for one user
 sub BuildUserItem {
     
+    my $self		= shift;
     my %user		= %{$_[0]};
     my $uid		= $user{"uidNumber"};
     my $username	= $user{"uid"} || "";
@@ -694,7 +772,7 @@ sub BuildUserItem {
     }
 
     if ($user{"type"} eq "system") {
-	$full		= UsersUI::SystemUserName ($full);
+	$full		= UsersUI->SystemUserName ($full);
     }
     if (ref ($full) eq "ARRAY") {
 	$full	= $full->[0];
@@ -721,22 +799,25 @@ BEGIN { $TYPEINFO{BuildUserItemList} = ["function",
 }
 sub BuildUserItemList {
 
-    if (Mode::test ()) { return; }
+    if (Mode->test ()) { return; }
 
+    my $self		= shift;
     my $type		= $_[0];
     my %map_of_users	= %{$_[1]};
     $user_items{$type}	= {};
 
     foreach my $uid (keys %map_of_users) {
-        $user_items{$type}{$uid}	= BuildUserItem ($map_of_users{$uid});
+        $user_items{$type}{$uid} = $self->BuildUserItem ($map_of_users{$uid});
     };
 }
 
 ##------------------------------------
 # Get first value from DN (e.g. "group" for "cn=group,dc=suse,dc=cz")
+BEGIN { $TYPEINFO{get_first} = ["function", "string", "string"];}
 sub get_first {
 
-    my @dn_list = split (",", $_[0]);
+    my $self	= shift;
+    my @dn_list	= split (",", $_[0]);
     my $ret = substr ($dn_list[0], index ($dn_list[0], "=") + 1);
 
     if (!defined $ret || $ret eq "") { $ret = $_[0]; }
@@ -747,6 +828,7 @@ sub get_first {
 # build item for one group
 sub BuildGroupItem {
 
+    my $self		= shift;
     my %group		= %{$_[0]};
     my $gid		= $group{"gidNumber"};
     my $groupname	= $group{"cn"} || "";
@@ -760,11 +842,11 @@ sub BuildGroupItem {
 	%more_users	= %{$group{"more_users"}};
     }
     # which attribute have groups for list of members
-    my $ldap_member_attribute	= Ldap::member_attribute ();
+    my $ldap_member_attribute	= Ldap->member_attribute ();
 
     if ($group{"type"} eq "ldap" && defined ($group{$ldap_member_attribute})) {
 	foreach my $dn (keys %{$group{$ldap_member_attribute}}) {
-	    my $user		= get_first ($dn);
+	    my $user		= $self->get_first ($dn);
 	    $userlist{$user}	= 1;	
 	}
     }
@@ -808,14 +890,15 @@ BEGIN { $TYPEINFO{BuildGroupItemList} = ["function",
 }
 sub BuildGroupItemList {
 
-    if (Mode::test ()) { return; }
+    if (Mode->test ()) { return; }
 
+    my $self		= shift;
     my $type		= $_[0];
     my %map_of_groups	= %{$_[1]};
     $group_items{$type}	= {};
 
     foreach my $id (keys %map_of_groups) {
-        $group_items{$type}{$id}	= BuildGroupItem ($map_of_groups{$id});
+        $group_items{$type}{$id} = $self->BuildGroupItem ($map_of_groups{$id});
     };
 }
 
@@ -829,6 +912,7 @@ BEGIN { $TYPEINFO{CommitUser} = ["function",
 }
 sub CommitUser {
 
+    my $self		= shift;
     my %user		= %{$_[0]};
     my $what		= $user{"what"};
     my $type		= $user{"type"};
@@ -857,7 +941,7 @@ sub CommitUser {
 	if (defined $removed_usernames{$type}{$username}) {
 	    delete $removed_usernames{$type}{$username};
 	}
-	$user_items{$type}{$uid}	= BuildUserItem (\%user);
+	$user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
 
 	$focusline_user = $uid;
     }
@@ -887,7 +971,7 @@ sub CommitUser {
 	    }
         }
         delete $user_items{$org_type}{$org_uid};
-        $user_items{$type}{$uid}	= BuildUserItem (\%user);
+        $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
 
 	if ($what ne "group_change") {
 	    $focusline_user = $uid;
@@ -921,6 +1005,7 @@ BEGIN { $TYPEINFO{CommitGroup} = ["function",
 }
 sub CommitGroup {
 
+    my $self		= shift;
     my %group		= %{$_[0]};
     my $what		= $group{"what"} || "";
     my $type		= $group{"type"} || ""; 
@@ -934,7 +1019,7 @@ sub CommitGroup {
     if ($what eq "add_group") {
         $gids{$type}{$gid}		= 1;
         $groupnames{$type}{$groupname}	= 1;
-	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
+	$group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
 	$focusline_group = $gid;
     }
     if ($what eq "edit_group") {
@@ -953,7 +1038,7 @@ sub CommitGroup {
 
 	delete $group_items{$org_type}{$org_gid};
 	
-	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
+	$group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
 	if ($org_type ne $type) {
 	    undef $focusline_group;
 	}
@@ -978,7 +1063,12 @@ BEGIN { $TYPEINFO{InitConstants} = ["function",
 }
 sub InitConstants {
 
-    my $security = $_[0];
+    my $self		= shift;
+    my $security	= $_[0];
+    if (ref ($security) ne "HASH") {
+	return undef;
+    }
+
     $min_uid{"local"}	= $security->{"UID_MIN"}	|| $min_uid{"local"};
     $max_uid{"local"}	= $security->{"UID_MAX"}	|| $max_uid{"local"};
 
@@ -1001,6 +1091,7 @@ BEGIN { $TYPEINFO{BuildUserLists} = ["function",
 }
 sub BuildUserLists {
 
+    my $self		= shift;
     my $type		= $_[0];
     my %map_of_users	= %{$_[1]};
     $uids{$type}	= {};
@@ -1029,6 +1120,7 @@ BEGIN { $TYPEINFO{BuildGroupLists} = ["function",
 }
 sub BuildGroupLists {
 
+    my $self		= shift;
     my $type		= $_[0];
     my %map_of_groups	= %{$_[1]};
     $gids{$type}	= {};
@@ -1047,43 +1139,45 @@ sub BuildGroupLists {
 ##------------------------------------
 sub ReadUsers {
 
+    my $self	= shift;
     my $type	= $_[0];
 
     my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
 	$path 		= ".ldap";
-        %userdns	= %{SCR::Read (".ldap.users.userdns")};
-#	$user_items{$type}	= \%{SCR::Read ("$path.users.items")};
+        %userdns	= %{SCR->Read (".ldap.users.userdns")};
+#	$user_items{$type}	= \%{SCR->Read ("$path.users.items")};
 # FIXME looks like Perl cannot recognize YCPTerm... (?)
     }
     elsif ($type eq "nis") {
 	$path		= ".nis";
     }
     else { # only local/system
-	SetLastUID (SCR::Read ("$path.users.last_uid"), $type);
+	$self->SetLastUID (SCR->Read ("$path.users.last_uid"), $type);
     }
 
-    $homes{$type} 	= \%{SCR::Read ("$path.users.homes")};
-    $usernames{$type}	= \%{SCR::Read ("$path.users.usernames")};
-    $uids{$type}	= \%{SCR::Read ("$path.users.uids")};
-
+    $homes{$type} 	= \%{SCR->Read ("$path.users.homes")};
+    $usernames{$type}	= \%{SCR->Read ("$path.users.usernames")};
+    $uids{$type}	= \%{SCR->Read ("$path.users.uids")};
+#FIXME \%{} is not necessary...
     return 1;
 }
 
 ##------------------------------------
 sub ReadGroups {
 
+    my $self	= shift;
     my $type	= $_[0];
     my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
 	$path 	= ".$type";
-#	$group_items{$type}	= \%{SCR::Read ("$path.groups.items")};
+#	$group_items{$type}	= \%{SCR->Read ("$path.groups.items")};
     }
     elsif ($type eq "nis") {
 	$path 	= ".$type";
     }
-    $gids{$type}	= \%{SCR::Read ("$path.groups.gids")};
-    $groupnames{$type}	= \%{SCR::Read ("$path.groups.groupnames")};
+    $gids{$type}	= \%{SCR->Read ("$path.groups.gids")};
+    $groupnames{$type}	= \%{SCR->Read ("$path.groups.groupnames")};
 }
 
 
@@ -1091,12 +1185,14 @@ sub ReadGroups {
 BEGIN { $TYPEINFO{Read} = ["function", "void"];}
 sub Read {
 
-    # read cache data for local & system: passwd agent:
-    ReadUsers ("local");
-    ReadUsers ("system");
+    my $self	= shift;
 
-    ReadGroups ("local");
-    ReadGroups ("system");
+    # read cache data for local & system: passwd agent:
+    $self->ReadUsers ("local");
+    $self->ReadUsers ("system");
+
+    $self->ReadGroups ("local");
+    $self->ReadGroups ("system");
 }
 
 ##-------------------------------------------------------------------------
@@ -1107,6 +1203,7 @@ BEGIN { $TYPEINFO{BuildAdditional} = ["function",
 }
 sub BuildAdditional {
 
+    my $self		= shift;
     my $group		= $_[0];
     my @additional 	= ();
     my %additional	= ();
@@ -1128,7 +1225,7 @@ sub BuildAdditional {
 	    foreach my $dn (keys %userdns) {
 	    
 		my $id = YaST::YCP::Term ("id", $dn);
-		if (defined $group->{Ldap::member_attribute ()}{$dn}) {
+		if (defined $group->{Ldap->member_attribute ()}{$dn}) {
 		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn, $true);
 		}
 		elsif (!defined $group->{"more_users"}{$dn}) {
