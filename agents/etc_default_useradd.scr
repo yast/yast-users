@@ -11,7 +11,7 @@
 .etc.default.useradd
 
 `ag_ini(
-  IniAgent(
+  `IniAgent(
     "/etc/default/useradd",
     $[ "options" : ["ignore_case", "prefer_uppercase", "global_values", "flat"],
        "comments" : [ "^#.*", "^[ \t]*$", ],
