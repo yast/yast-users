@@ -112,6 +112,7 @@ Valid password characters are letters, digits, blanks, and
 Do not forget this \"root\" password!
 </p>");
 
+    Wizard::SetDesktopIcon("users");
     Wizard::SetContents (title, contents, helptext,
 	(boolean) WFM::Args(0),
 	(boolean) WFM::Args(1));
