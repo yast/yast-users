@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 20 13:57:37 CET 2003 - jsuchome@suse.de
+
+- added label with current filter (bug #23920)
+
+-------------------------------------------------------------------
 Wed Feb 19 09:23:47 CET 2003 - jsuchome@suse.de
 
 - inst_auth: check if {ldap,nisplus}-client is available (#23762)

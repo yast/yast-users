@@ -272,7 +272,7 @@ global define symbol UsersDialog() ``{
 
     Users::start_dialog              ="users";
     term contents = `VBox(
-        rbUsersGroup(`users),
+        `ReplacePoint (`id(`rp), rbUsersGroup(`users)),
         `Table(`id(`user_table), `opt(`notify),
             // table header
             `header( _("Login"),
@@ -337,6 +337,7 @@ global define symbol UsersDialog() ``{
             else
                 UsersCache::customized_usersview = false;
 
+            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
             ret = `not_next;
         }
         if ( ret == `switch_users)
@@ -418,7 +419,7 @@ global define symbol UsersDialog() ``{
 global define symbol GroupsDialog() ``{
 
     term contents = `VBox(
-        rbUsersGroup(`groups),
+        `ReplacePoint (`id(`rp), rbUsersGroup(`groups)),
         `Table(`id(`group_table ), `opt(`notify),
             // table header
              `header(_("Group name"),
@@ -474,6 +475,7 @@ global define symbol GroupsDialog() ``{
                 UsersCache::customized_groupsview = true; // already set
             else
                 UsersCache::customized_groupsview = false;
+            UI::ReplaceWidget (`id(`rp), rbUsersGroup (`groups));
             ret = `not_next;
         }
         if( ret == `customize)
@@ -799,7 +801,24 @@ global define symbol GroupSave() ``{
  * @return term RadioButtonGroup widget
  */
 global define term rbUsersGroup(symbol what) ``{
+    string curr = "";
+    if (what == `users)
+    {
+        if (size (Users::current_users) == 1)
+            curr = Users::userset_to_string[Users::current_users[0]:`custom]:"";
+        else
+            curr = Users::userset_to_string[`custom]:"";
+    }
+    else
+    {
+        if (size (Users::current_groups) == 1)
+            curr = Users::groupset_to_string[Users::current_groups[0]:`custom]:"";
+        else
+            curr = Users::groupset_to_string[`custom]:"";
+    }
+    curr = deletechars (curr, "&");
     return
+        `HBox(
         `Left(`RadioButtonGroup(`HBox(
             `RadioButton(`id(`switch_users), `opt(`notify),
                 // pushbutton
@@ -807,7 +826,9 @@ global define term rbUsersGroup(symbol what) ``{
             `RadioButton(`id(`switch_groups), `opt(`notify),
                 // pushbutton
                 _("&Groups administration"), what == `groups)
-        )));
+        ))),
+        `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
+        );
 }
 
 /**
