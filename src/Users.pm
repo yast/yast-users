@@ -1780,7 +1780,6 @@ BEGIN { $TYPEINFO{EditUser} = ["function",
 sub EditUser {
 
     if (!%user_in_work) { return 0; }
-
     my $self		= shift;
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
@@ -2127,6 +2126,141 @@ sub EditGroup {
     return 1;
 }
 
+##------------------------------------
+# Adds a plugin to the user
+BEGIN { $TYPEINFO{AddUserPlugin} = ["function", "boolean", "string"];}
+sub AddUserPlugin {
+
+    my $self	= shift;
+    my $plugin	= shift;
+   
+    my $plugins = $user_in_work{"plugins"};
+    if (!defined $plugins) {
+	$plugins	= [];
+    }
+    push @$plugins, $plugin;
+    $user_in_work{"plugins"}	= $plugins;
+
+    if (($user_in_work{"what"} || "") eq "add_user") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Add", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
+    else {
+	y2internal ("edit");
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
+    return 1;
+}
+
+##------------------------------------
+# Removes a plugin from the user
+BEGIN { $TYPEINFO{RemoveUserPlugin} = ["function", "boolean", "string"];}
+sub RemoveUserPlugin {
+
+    my $self	= shift;
+    my $plugin	= shift;
+   
+    my $plugins = $user_in_work{"plugins"};
+    if (defined $plugins && contains ($plugins, $plugin)) {
+
+	my @new_plugins	= ();
+	foreach my $p (@$plugins) {
+	    if ($p ne $plugin) {
+		push @new_plugins, $p;
+	    }
+	}
+	$user_in_work{"plugins"}	= \@new_plugins;
+    }
+
+    my $plugins_to_remove = $user_in_work{"plugins_to_remove"};
+    if (!defined $plugins_to_remove) {
+	$plugins_to_remove	= [];
+    }
+    push @$plugins_to_remove, $plugin;
+    $user_in_work{"plugins_to_remove"}	= $plugins;
+
+    if (($user_in_work{"what"} || "") eq "add_user") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Add", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
+    else {
+	y2internal ("edit");
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "user",
+	    "type"	=> $user_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
+    return 1;
+}
 
 ##------------------------------------
 # Initializes user_in_work map with default values

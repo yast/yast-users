@@ -1272,7 +1272,6 @@ define symbol PluginDialog (string what) ``{
 	(map<string,string>) plugin_clients, ``(client != ""));
 
     symbol ret			= `not_next;
-
     if (size (plugin_clients) == 0)
     {
 	ret = `next;
@@ -1301,6 +1300,8 @@ define symbol PluginDialog (string what) ``{
 	string help	= _("<p>Here you can see the list of 'Plug-ins' - the 
 extensions of User and Group configuration.</p>") +
 
+	"FIXME" +
+
 	// helptxt for plugin dialog 2/2
 	_("<p>You can start particular plug-in by pushing the <b>Launch</b> button.</p>");
 
@@ -1308,36 +1309,107 @@ extensions of User and Group configuration.</p>") +
 	foreach (string cl, clients, ``{
 	    any summary = WFM::CallFunction (cl,
 		["Summary", $[ "what" : what ] ]);
+	    string pl  = client2plugin[cl]:cl;
 	    if (is (summary, string))
-		items = add (items, `item(`id(cl), summary));
+		items = add (items, `item(`id(cl),
+		    contains (object["plugins"]:[], pl) ?
+			UI::Glyph (`CheckMark) : " ",
+		    summary)
+		);
 	});
 	term contents = `VBox(
-	    `SelectionBox (`id(`table), `opt(`notify),
-	        _("A&vailable Plug-ins:"), items),
+	    `Table (`id(`table), `opt(`notify), `header (
+		" ",
+		// table header
+	        _("Plug-in Description")), items),
 	    `HBox (
 		// pushbutton label
-		`Right (`PushButton(`id(`run), `opt(`key_F4), _("&Launch")))
+		`PushButton (`id(`change), `opt(`key_F3), _("&Add/Remove Plugin")),
+		// pushbutton label
+		`Right (`PushButton(`id(`run), `opt(`key_F6), _("&Launch")))
 	    ),
-	    `VSpacing()
+	    `VSpacing (0.5)
 	);
 
 	// dialog caption
 	Wizard::SetContentsButtons(caption, contents, help,
 	    Label::BackButton(), Label::NextButton());
-
 	UI::ChangeWidget (`id(`table),`CurrentItem, client);
 	repeat
 	{
-	    ret = (symbol) UI::UserInput();
-	    if (ret == `run || ret == `table)
+	    ret		= (symbol) UI::UserInput();
+	    client	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
+	    plugin	= client2plugin[client]:client;
+
+	    if (ret == `table || ret == `change)
 	    {
-		client	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
-		plugin	= client2plugin[client]:client;
+		ret = contains (object["plugins"]:[], plugin) ? `del : `add;
+	    }
+	    if (ret == `add)
+	    {
+		UI::ChangeWidget (`id(`table), `Item (client,0), UI::Glyph (`CheckMark));
+		if (what == "user")
+		{
+		    Users::AddUserPlugin (plugin);
+		    object = Users::GetCurrentUser ();
+		}
+		else
+		{
+//FIXME		    Users::AddGroupPlugin (plugin);
+		    object = Users::GetCurrentGroup ();
+		}
+	    }
+	    if (ret == `del)
+	    {
+		map out	= UsersPlugins::Apply ("PluginRemovable",
+		    $[ "what"	: what,
+		       "type"	: object["type"]:"",
+		       "plugins": [ plugin ],
+		    ], $[]);
+		// check if plugin _could_ be deleted!
+		if (haskey (out, plugin) && ! (out[plugin]:false))
+		{
+		    // popup message
+		    Popup::Message (_("This Plug-in cannot be removed."));
+		    ret = `not_next;
+		    continue;
+		}
+		UI::ChangeWidget (`id(`table), `Item (client,0), " ");
+		if (what == "user")
+		{
+		    Users::RemoveUserPlugin (plugin);
+		    object = Users::GetCurrentUser ();
+		}
+		/* TODO
+		else
+		{
+		    Users::RemoveGroupPlugin (plugin);
+		    object = Users::GetCurrentGroup ();
+		}
+		*/
+	    }
+	    if (ret == `run)
+	    {
+		// first, add the plugin if necessary
+		if (!contains (object["plugins"]:[], plugin))
+		{
+		    if (what == "user")
+		    {
+			Users::AddUserPlugin (plugin);
+			object = Users::GetCurrentUser ();
+		    }
+		    else
+		    {
+//FIXME			Users::AddGroupPlugin (plugin);
+			object = Users::GetCurrentGroup ();
+		    }
+
+		}
 		any plugin_ret = WFM::CallFunction (client, ["Dialog", $[
 		    "what"	: what ], object ]);
 		if (plugin_ret == `next)
 		{
-		    // TODO plugin can take the object directly from Users...
+		    // update the map of changed object
 		    object	= (what == "user") ?
 			Users::GetCurrentUser (): Users::GetCurrentGroup ();
 		}

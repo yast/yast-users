@@ -63,18 +63,6 @@
 	map<string, any> tmp_data	= $[];
 	list<string> object_class = (list<string>)sort (data["objectclass"]:[]);
 
-	// if this plugin wasn't present in default plugin set, we have to call
-	// BeforeAdd/BeforeEdit e.g. to get object class!
-	if (!contains (data["plugins"]:[], "UsersPluginLDAPAll"))
-	{
-	    if (action == "add_user" || action == "add_group")
-		data = UsersPluginLDAPAll::AddBefore (config, data);
-	    else if (action == "edit_user" || action == "edit_group")
-		data = UsersPluginLDAPAll::EditBefore (config, data);
-	    object_class = (list<string>)sort (data["objectclass"]:[]);
-	    tmp_data["objectclass"]	= object_class;
-	}
-
 	// helptext 1/3
 	string help_text = _("<p>
 Here, see the table of all allowed attributes for the current LDAP entry that were not set in previous dialogs.</p>") +

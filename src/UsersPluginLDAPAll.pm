@@ -77,6 +77,7 @@ sub Interface {
 	    "Interface",
 	    "Disable",
 	    "PluginPresent",
+	    "PluginRemovable",
 #	    "InternalAttributes",
     );
     return \@interface;
@@ -91,7 +92,8 @@ sub Name {
     return _("LDAP Attributes");
 }
 
-# return plugin summary
+##------------------------------------
+# return plugin summary (to be shown in table with all plugins)
 BEGIN { $TYPEINFO{Summary} = ["function", "string", "any", "any"];}
 sub Summary {
 
@@ -106,6 +108,7 @@ sub Summary {
     return $ret;
 }
 
+##------------------------------------
 # return plugin internal attributes (which shouldn't be shown to user)
 BEGIN { $TYPEINFO{InternalAttributes} = ["function",
     [ "list", "string" ], "any", "any"];
@@ -121,6 +124,7 @@ sub InternalAttributes {
     return \@ret;
 }
 
+##------------------------------------
 # checks the current data map of user/group (2nd parameter) and returns
 # true if given user (group) has our plugin
 BEGIN { $TYPEINFO{PluginPresent} = ["function", "boolean", "any", "any"];}
@@ -130,11 +134,19 @@ sub PluginPresent {
 
     # Yes, all LDAP users/groups have this plugin as default
     # (and this plugin is used only for LDAP objects, see Restriction function)
-    return 1;
+    return YaST::YCP::Boolean (1);
+}
+
+##------------------------------------
+# Is it possible to remove this plugin from user/group?
+BEGIN { $TYPEINFO{PluginRemovable} = ["function", "boolean", "any", "any"];}
+sub PluginRemovable {
+    # No, this plugin must be present for all LDAP objects
+    return YaST::YCP::Boolean (0);
 }
 
 
-
+##------------------------------------
 # return name of YCP client defining YCP GUI
 BEGIN { $TYPEINFO{GUIClient} = ["function", "string", "any", "any"];}
 sub GUIClient {
@@ -225,11 +237,14 @@ sub Disable {
     my $config	= $_[0];
     my $data	= $_[1];
 
-    y2internal ("Disable LDAPAll called");
+    y2debug ("Disable LDAPAll called");
     return $data;
 }
 
 
+# internal function:
+# check if given key (second parameter) is contained in a list (1st parameter)
+# if 3rd parameter is true (>0), ignore case
 sub contains {
     my ( $list, $key, $ignorecase ) = @_;
     if ( $ignorecase ) {
@@ -244,6 +259,7 @@ sub contains {
     return 0;
 }
 
+# update the list of current object classes
 sub update_object_classes {
 
     my $config	= $_[0];
@@ -284,7 +300,7 @@ sub AddBefore {
 
     $data	= update_object_classes ($config, $data);
 
-    y2internal ("AddBefore LDAPAll called");
+    y2debug ("AddBefore LDAPAll called");
     return $data;
 }
 
@@ -298,7 +314,7 @@ sub Add {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1]; # the whole map of current user/group after Users::Edit
-    y2internal ("Add LDAPAll called");
+    y2debug("Add LDAPAll called");
     return $data;
 }
 
@@ -318,7 +334,7 @@ sub EditBefore {
     # in $data hash, there could be "plugins_to_remove": list of plugins which
     # has to be removed from the user
 
-    y2internal ("EditBefore LDAPAll called");
+    y2debug ("EditBefore LDAPAll called");
     return $data;
 }
 
@@ -336,7 +352,7 @@ sub Edit {
     # in $data hash, there could be "plugins_to_remove": list of plugins which
     # has to be removed from the user
 
-    y2internal ("Edit LDAPAll called");
+    y2debug ("Edit LDAPAll called");
     return $data;
 }
 
