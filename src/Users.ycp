@@ -43,6 +43,10 @@ global string encryptionMethod = "des";
 // The root's password
 global string rootPassword = "";
 
+
+// Export all settings, not only modified
+global boolean ExportAll = false;
+
 /**
  *  keys from /etc/defaults/useradd:
  **/
@@ -949,6 +953,7 @@ global define string Summary() ``{
     return ret;
 }
 
+
 /**
  * Converts autoyast's user's map for users module usage
  */
@@ -973,20 +978,23 @@ define map ImportUser (map user) ``{
 
     map user_shadow = user ["password_settings"]:$[];
     string pass = user ["user_password"]:"x";
+
+	if (!user["encrypted"]:true && pass != "x" && !Mode::config)
+	{
+		// encrypt password for shadow
+		if (encryptionMethod == "md5")
+			pass = cryptmd5 (pass);
+		else if (encryptionMethod == "blowfish")
+			pass = cryptblowfish (pass);
+		else
+			pass = crypt (pass);
+	}
+
     if (user_shadow != $[])
     {
-        if (!user["encrypted"]:true && pass != "x")
-        {
-            // encrypt password for shadow
-            if (encryptionMethod == "md5")
-                pass = cryptmd5 (pass);
-            else if (encryptionMethod == "blowfish")
-                pass = cryptblowfish (pass);
-            else
-                pass = crypt (pass);
-        }
         user_shadow = add (user_shadow, "password", pass);
     }
+
 
     if (uid == -1)
     {
@@ -1002,11 +1010,17 @@ define map ImportUser (map user) ``{
 				user_shadow["password"] =
                     user ["user_password"]:shadow[type,username,"password"]:"x";
 		    }
+			string finalpw = "";
+			if (pass != "x")
+				finalpw = pass;
+			else
+				finalpw = existing["password"]:"x";
+
             if (!haskey (user,"forename") && !haskey (user, "surname"))
                 fullname = existing["fullname"]:"";
             map ret = $[
                 "encrypted":    user ["encrypted"]:existing["encrypted"]:true,
-                "password":     user ["user_password"]:existing["password"]:"x",
+                "password":     finalpw,
                 "username":     username,
                 "forename":     user["forename"]:existing["forename"]:"",
                 "surname":      user["surname"]:existing["surname"]:"",
@@ -1079,11 +1093,11 @@ global define boolean Import (map settings) ``{
 
     y2debug("importing: %1", settings);
 
-    if (settings["userdefaults"]:$[] == $[])
+    if (settings["user_defaults"]:$[] == $[])
         ReadLoginDefaults(false);
     else
     {
-        useradd_defaults = settings["userdefaults"]:$[];
+        useradd_defaults = settings["user_defaults"]:$[];
         defaults_modified = true;
     }
 
@@ -1333,7 +1347,7 @@ global define map Export() ``{
     // local users when modified
     foreach (`uid, `user, users[`local]:$[], ``{
 
-        if (user ["modified"]:`nothing != `nothing)
+        if (user ["modified"]:`nothing != `nothing || ExportAll)
         {
             exported_users = add (exported_users, ExportUser(user));
         }
@@ -1346,7 +1360,7 @@ global define map Export() ``{
     // modified system users:
     foreach (`uid, `user, users[`system]:$[], ``{
 
-        if (user["modified"]:`nothing != `nothing)
+        if (user["modified"]:`nothing != `nothing || ExportAll)
         {
             exported_users = add (exported_users, ExportUser(user));
         }
@@ -1356,7 +1370,7 @@ global define map Export() ``{
     // modified local system groups:
     foreach (`uid, `group, groups[`local]:$[], ``{
 
-        if (group ["modified"]:`nothing != `nothing)
+        if (group ["modified"]:`nothing != `nothing || ExportAll)
         {
             exported_groups = add (exported_groups, ExportGroup(group));
         }
@@ -1369,7 +1383,7 @@ global define map Export() ``{
     // modified system groups:
     foreach (`uid, `group, groups[`system]:$[], ``{
 
-        if (group ["modified"]:`nothing != `nothing)
+        if (group ["modified"]:`nothing != `nothing || ExportAll)
         {
             exported_groups = add (exported_groups, ExportGroup(group));
         }
@@ -1378,7 +1392,7 @@ global define map Export() ``{
     return $[
         "users": exported_users,
         "groups": exported_groups,
-        "userdefaults": useradd_defaults
+        "user_defaults": useradd_defaults
     ];
 
 }
