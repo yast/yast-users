@@ -55,6 +55,14 @@ To save the modified user and group setting to your system push the button
    */
   global define string help_password()``{
     string password_length = "";
+    map enc_to_string = $[
+	// encryption type
+	"des" :	_("DES"),
+	// encryption type
+	"md5" :	_("MD5"),
+	// encryption type
+	"blowfish" : _("Blowfish")
+    ];
 
 	// help text 1/4
     string help_text =  _("<p>
@@ -64,26 +72,25 @@ special characters (e.g., accented characters).
 </p>
 ");
 
-    if (Users::encryptionMethod == "des")
-        // help text 2/4, do not translate "DES"
-        help_text = help_text + _("<p>
-With the current password encryption (DES), the maximum password length is 8 characters.
-</p>");
+    // help text 2/4
+    help_text = help_text + sformat(_("<p>
+With the current password encryption (%1), the maximum password length is %2 characters.
+</p>"), enc_to_string[Users::encryptionMethod]:"", Users::max_length_pas);
 
-      // help text 3/4
-      help_text = help_text + _("<p>
+    // help text 3/4
+    help_text = help_text + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
 </p>");
 
-      //help text 4/4
-      help_text = help_text + _("<p>
+    //help text 4/4
+    help_text = help_text + _("<p>
 It's enough to use a password with a length of approximately 8 alpha-numeric
 characters. To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
 </p>
 ");
-      return help_text;
+    return help_text;
 
   }
 

@@ -263,7 +263,7 @@ global define symbol UsersDialog() ``{
 
         if ( ret == `ldapconf )
         {
-// TODO run whole LDAP client from here??
+	    // TODO run whole LDAP client from here??
             if (CallFunction(`cpu_configure(false)) == `next)
                 Ldap::WriteCpuSettings();
             ret = `not_next;
@@ -272,6 +272,9 @@ global define symbol UsersDialog() ``{
         {
             ret = `not_next;
             Users::encryptionMethod = EncryptionDialog();
+	    // TODO do this inside EncryptionDialog!
+	    Users::max_length_pas = Security::PasswordMaxLengths [
+		Users::encryptionMethod]:8;
 	    Users::security_modified = true;
         }
         if ( ret == `user_table )

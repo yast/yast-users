@@ -1,9 +1,11 @@
 -------------------------------------------------------------------
-Tue Apr 15 16:29:02 CEST 2003 - jsuchome@suse.de
+Thu Apr 17 13:35:25 CEST 2003 - jsuchome@suse.de
 
+- check passwords max length (#13291)
 - home directories (enable re-using of directories marked for deletion)
 - managing group mambership of ldap users
 - ldap error messages
+- 2.8.2
 
 -------------------------------------------------------------------
 Mon Apr 14 09:15:46 CEST 2003 - jsuchome@suse.de
