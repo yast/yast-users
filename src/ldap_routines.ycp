@@ -120,13 +120,18 @@ global define string GetLDAPPassword() ``{
             `CheckBox (`id(`anon), `opt(`notify),
                 // checkbox label
                 _("Use &anonymous Access")),
-            `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
+            `HBox(
+              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel()),
+              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
+            )
             )
     );
     any ret = UI::UserInput();
     string pw = "";
     if (ret == `ok)
         pw = UI::QueryWidget(`id(`pw), `Value);
+    if (ret == `cancel)
+        pw = nil; // FIXME: do not use nil here!
     UI::CloseDialog();
     return pw;
 }
@@ -142,7 +147,7 @@ global define boolean WriteLDAPFinish (string dir) ``{
     // remove the cfg and shadowfile files
     string path_to_cfg = dir + "/cpu.cfg";
     string shadow_file = dir + "/shadowfile";
-    return SCR::Execute(.target.bash_output,
+    return SCR::Execute(.target.bash,
         "/bin/rm -f " + path_to_cfg + " " + shadow_file);
 }
 

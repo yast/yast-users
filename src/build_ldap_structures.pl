@@ -14,7 +14,7 @@
 #       (making it inside YaST is toooo slow)
 #
 #  Usage:
-#   build_ldap.structures.pl output_directory encoding use_anonymous_access
+#   build_ldap.structures.pl output_directory encoding binding
 #
 #  Example:
 #   build_ldap_structures.pl /tmp iso-8859-2 true
@@ -31,7 +31,7 @@ use Encode 'from_to';
 
 $output_dir     = $ARGV[0]; # also directory with cpu.cfg
 $encod          = $ARGV[1];
-$anonymous      = $ARGV[2]; # if we have anonymous access
+$binding        = $ARGV[2]; # we have anonymous access or only check is wanted
 
 $ldap_output                    = $output_dir."/ldap.ycp";
 $ldap_byname_output             = $output_dir."/ldap_byname.ycp";
@@ -52,7 +52,6 @@ $groupnamelist_ldap  = $output_dir."/groupnamelist_ldap.ycp";
 $cpu_cfg             = $output_dir."/cpu.cfg";
 
 $last_ldap_uid = 1;
-
 $the_answer = 42; # ;-)
 $max_length_id = length("60000");
 
@@ -121,13 +120,25 @@ system "rm -f $cpu_cfg";
 
 $ldap = Net::LDAP->new($host) or die;
 
-if ($anonymous eq "true")
+if ($binding eq "anonymous")
 {
     $ldap->bind;
 }
 else
 {
-    $ldap->bind ($bind_dn, password => $bind_pw);
+    $mesg = $ldap->bind ($bind_dn, password => $bind_pw);
+    if ($mesg->code != 0)
+    {
+        $error = $mesg->error;
+        print STDERR "binding to LDAP server: $error\n";
+        $ldap->unbind;
+        exit $mesg->code;
+    }
+    if ($binding eq "check")
+    {
+        $ldap->unbind;
+        exit $mesg->code;
+    }
 }
 
 #--- get LDAP groups
