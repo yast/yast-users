@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 #
-# Users module TODO comment
-## -------------------------------------------- ldap related routines 
+# UsersLDAP module:
+# -- routines for handling LDAP users and groups
 #
 
 package UsersLDAP;
@@ -56,7 +56,8 @@ my $file_server			= 0;
 my %shadow 			= ();
 
 # other default settings (home, shell, etc.) for LDAP users
-my %defaults 			= ();
+# (has the same structure as Users::useradd_defaults)
+my %useradd_defaults		= ();
 
 # some default values for LDAP users
 my $default_groupname 		= "";
@@ -67,11 +68,11 @@ my $encryption			= "crypt";
 
 # default object classes of LDAP users (read from Ldap module)
 my @user_class 			=
-    ["top","posixAccount","shadowAccount", "inetOrgPerson"];
+    ("top","posixAccount","shadowAccount", "inetOrgPerson");
 
 # default object classes of LDAP groups (read from Ldap module)
 my @group_class 		=
-    [ "top", "posixGroup", "groupOfUniqueNames"];
+    ( "top", "posixGroup", "groupOfUniqueNames");
 
 # naming attrributes (to be used when creating DN)
 my $user_naming_attr 		= "uid";
@@ -81,8 +82,17 @@ my $group_naming_attr 		= "cn";
 my $last_uid 			= 0;
 my $last_gid 			= 0;
 
-# password to LDAP server
-my $password			= "";
+# max uid/gid allowed
+my $max_uid 			= 60000;
+my $max_gid 			= 60000;
+
+# min uid/gid allowed
+my $min_uid 			= 1000;
+my $min_gid 			= 1000;
+
+# user password lengt
+my $min_pass_length		= 5;
+my $max_pass_length		= 8;
 
 ##------------------------------------
 ##------------------- global imports
@@ -132,17 +142,18 @@ sub Initialize {
 	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
 	return 0;
     }
-
-    if (!defined (Ldap::bind_pass ()) && !Ldap::anonymous ()) {
-#	Ldap::bind_pass = Ldap::LDAPAskAndBind(true); FIXME
-	$password = "q";
-	Ldap::SetBindPassword ($password);
-    }
-    if (!defined (Ldap::bind_pass ())) {
-	return 0; # canceled
+    if (!Ldap::anonymous () && !defined (Ldap::bind_pass ())) {
+	y2error ("no password to LDAP - cannot bind!");
+	return 0;
     }
 
-    Ldap::InitSchema ();
+    $ldap_mesg = Ldap::LDAPBind (Ldap::bind_pass ());
+    if ($ldap_mesg ne "") {
+	# FIXME: how to solve UI-related routines?
+	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
+	return 0;
+    }
+    Ldap::InitSchema ();#FIXME -> should return error message...
 
     my %modules = %{Ldap::ReadConfigModules ()};
     while ( my ($dn, $config_module) = each %modules) {
@@ -311,31 +322,27 @@ sub ReadSettings {
     # default shadow (for new LDAP users)
     foreach my $key ("shadowWarning", "shadowInactive", "shadowExpire", "shadowMin", "shadowMax", "shadowFlag") {
 	if (defined $user_defaults{$key}) {
-	    $shadow{"key"}	= $user_defaults{$key};
+	    $shadow{$key}	= $user_defaults{$key};
 	}
 	else {
-	    $shadow{"key"}	= "";
+	    $shadow{$key}	= "";
 	}
     }
 	
-#    # other defaults (for new users)
-#    Users::ldap_defaults	= $[
-#	"skel": user_config ["skelDir",0]:Users::default_skel,
-#	"home": user_defaults ["homeDirectory"]:
-#	    Users::GetDefaultHome(false,"local"),
-#	"group": user_defaults["gidNumber"]:sformat ("%1",Users::default_gid),
-#	"shell": user_defaults["loginShell"]:Users::GetDefaultShell("local"),
-#    ];
-#
-#    # password length (there is no check if it is correct for curr. encryption)
-#    if (user_config ["minPasswordLength"]:[] != [])
-#	Users::pass_length ["ldap", "min"] =
-#	    tointeger (user_config ["minPasswordLength",0]:"5");
-#    if (user_config ["maxPasswordLength"]:"" != "")
-#	Users::pass_length ["ldap", "max"] =
-#	    tointeger (user_config ["maxPasswordLength",0]:"8");
-#
-#    # set default secondary groups
+    if (defined $user_defaults{"homeDirectory"}) {
+	$useradd_defaults{"home"}	= $user_defaults{"homeDirectory"}[0];
+    }
+    if (defined $user_defaults{"gidNumber"}) {
+	$useradd_defaults{"group"}	= $user_defaults{"gidNumber"};
+    }
+    if (defined $user_defaults{"loginShell"}) {
+	$useradd_defaults{"shell"}	= $user_defaults{"loginShell"};
+    }
+    if (defined $user_config{"skelDir"}) {
+	$useradd_defaults{"skel"}	= $user_config{"skelDir"};
+    }
+
+#    # set default secondary groups FIXME
 #    # WARNING: there are DN's, but we expect only names...
 #    string grouplist = Users::ldap_default_grouplist;
 #    foreach (string dn, user_template ["secondaryGroup"]:[], ``{
@@ -344,7 +351,15 @@ sub ReadSettings {
 #	grouplist = grouplist + get_first (dn);
 #    });
 #    Users::ldap_default_grouplist = grouplist;
-#
+
+    # password length (there is no check if it is correct for current hash)
+    if (defined ($user_config{"minPasswordLength"})) {
+	$min_pass_length	= $user_config{"minPasswordLength"}[0];
+    }
+    if (defined ($user_config{"maxPasswordLength"})) {
+	$max_pass_length	= $user_config{"maxPasswordLength"}[0];
+    }
+
     # last used Id
     if (defined ($user_config{"nextUniqueId"})) {
 	$last_uid = $user_config{"nextUniqueId"}[0];
@@ -352,7 +367,7 @@ sub ReadSettings {
     else {
 	$last_uid = UsersCache::last_uid{"local"};
     }
-#    UsersCache::last_uid ["ldap"] = Users::ldap_last_uid;
+    UsersCache::SetLastUID ($last_uid, "ldap");
 
     if (defined ($group_config{"nextUniqueId"})) {
 	$last_gid = $group_config{"nextUniqueId"}[0];
@@ -360,7 +375,7 @@ sub ReadSettings {
     else {
 	$last_gid = UsersCache::last_gid{"local"};
     }
-#    UsersCache::last_gid ["ldap"] = Users::ldap_last_gid;
+    UsersCache::SetLastGID ($last_gid, "ldap");
 
     # naming attributes
     if (defined ($user_template{"namingAttribute"})) {
@@ -370,34 +385,26 @@ sub ReadSettings {
         $group_naming_attr = $group_template{"namingAttribute"}[0];
     }
 
-#    # max id
-#    if (user_config ["maxUniqueId"]:[] != [])
-#    {
-#	Users::max_uid ["ldap"] = tointeger (
-#	    user_config ["maxUniqueId",0]:"60000");
-#    }
-#    if (group_config ["maxUniqueId"]:[] != [])
-#    {
-#	Users::max_gid ["ldap"] = tointeger (
-#	    group_config ["maxUniqueId",0]:"60000");
-#    }
-#    UsersCache::max_uid = Users::max_uid;
-#    UsersCache::max_gid = Users::max_gid;
-#
-#    # min id
-#    if (user_config ["minUniqueId"]:[] != [])
-#    {
-#	Users::min_uid ["ldap"] = tointeger (
-#	    user_config ["minUniqueId",0]:"1000");
-#	UsersCache::min_uid ["ldap"] = Users::min_uid ["ldap"]:1000;
-#    }
-#    if (group_config ["minUniqueId"]:[] != [])
-#    {
-#	Users::min_gid ["ldap"] = tointeger (
-#	    group_config ["minUniqueId",0]:"1000");
-#	UsersCache::min_gid ["ldap"] = Users::min_gid ["ldap"]:1000;
-#    }
-#
+    # max id
+    if (defined ($user_config{"maxUniqueId"})) {
+	$max_uid	= $user_config{"maxUniqueId"}[0];
+    }
+    if (defined ($group_config{"maxUniqueId"})) {
+	$max_gid	= $group_config{"maxUniqueId"}[0];
+    }
+    UsersCache::SetMaxUID ($max_uid, "ldap");
+    UsersCache::SetMaxGID ($max_gid, "ldap");
+
+    # min id
+    if (defined ($user_config{"minUniqueId"})) {
+	$min_uid	= $user_config{"minUniqueId"}[0];
+    }
+    if (defined ($group_config{"minUniqueId"})) {
+	$min_gid	= $group_config{"minUniqueId"}[0];
+    }
+    UsersCache::SetMinUID ($min_uid, "ldap");
+    UsersCache::SetMinGID ($min_gid, "ldap");
+
     if (defined ($user_config{"passwordHash"})) {
 	$encryption 	= $user_config{"passwordHash"}[0];
     }
@@ -442,5 +449,103 @@ sub Read {
     return $ret;
 }
 
+##------------------------------------
+# initialize constants with the values from Users
+BEGIN { $TYPEINFO{InitConstants} = ["function",
+    "void",
+    ["map", "string", "string" ]];
+}
+sub InitConstants {
+    %useradd_defaults	= %{$_[0]};
+}
+
+###------------------------------------
+#BEGIN { $TYPEINFO{GetLoginDefaults} = ["function",
+#    ["map", "string", "string"]];
+#}
+#sub GetLoginDefaults {
+#    return \%useradd_defaults;
+#}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultGID} = ["function", "integer"];}
+sub GetDefaultGID {
+    return $useradd_defaults{"group"};
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultShell} = ["function", "string"]; }
+sub GetDefaultShell {
+    return $useradd_defaults{"shell"};
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultHome} = ["function", "string"]; }
+sub GetDefaultHome {
+    return $useradd_defaults{"home"};
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "string"]; }
+sub GetMinPasswordLength {
+    return $min_pass_length;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "string"]; }
+sub GetMaxPasswordLength {
+    return $max_pass_length;
+}
+
+##------------------------------------
+# return list of attributesm required for LDAP user
+BEGIN { $TYPEINFO{GetUserRequiredAttributes} = ["function", ["list","string"]];}
+sub GetUserRequiredAttributes {
+    if (defined ($user_template{"requiredAttribute"})) {
+	return $user_template{"requiredAttribute"};
+    }
+    return ();
+}
+
+# return list of attributesm required for LDAP group
+BEGIN {$TYPEINFO{GetGroupRequiredAttributes} = ["function", ["list","string"]];}
+sub GetGroupRequiredAttributes {
+    if (defined ($group_template{"requiredAttribute"})) {
+	return $group_template{"requiredAttribute"};
+    }
+    return ();
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
+    [ "map", "string", "string"]];
+}
+sub GetDefaultShadow {
+    return \%shadow;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetUserClass} = ["function", ["list", "string"]];}
+sub GetUserClass {
+    return @user_class;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetUserDefaults} = ["function", ["map", "string","string"]];}
+sub GetUserDefaults {
+    return \%user_defaults;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetUserNamingAttr} = ["function", "string"];}
+sub GetUserNamingAttr {
+    return $user_naming_attr;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetUserBase} = ["function", "string"];}
+sub GetUserBase {
+    return $user_base;
+}
 
 # EOF

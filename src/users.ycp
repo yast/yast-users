@@ -13,9 +13,9 @@ y2milestone ("Users module started");
 import "Users";
 import "Mode";
 import "Ldap"; //FIXME workaround to initialize variables
+import "CommandLine";
 
 include "users/wizards.ycp";
-include "commandline/commandline.ycp";
 
 string  start_dialog	= "summary";
 
@@ -229,7 +229,7 @@ map cmdline = $[
     ]
 ];
 
-ret = CommandLineRun( cmdline );
+ret = CommandLine::Run (cmdline);
 
 /* Finish */
 y2milestone("Users module finished with %1", ret);

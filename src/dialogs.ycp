@@ -23,6 +23,7 @@ import "Call";
 
 import "Users";
 import "UsersCache";
+import "UsersLDAP";
 
 import "Label";
 import "Popup";
@@ -133,7 +134,7 @@ define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
-
+y2internal ("user: %1", user);
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
     string cn		= "";
@@ -354,6 +355,7 @@ can be changed for non-local users.
 	{
 	    if (user_type == "ldap")
 	    {
+y2internal ("FIXME");
 		/* FIXME LDAP defaults
 		// Form the fullname for LDAP user
 		// sn (surname) and cn (fullname) are required attributes,
@@ -424,7 +426,7 @@ can be changed for non-local users.
             ret = `nosave;
         }
 
-        details = (contains ([`details,`passwordsettings,`ldap], ret));
+        details = (contains ([`details,`passwordsettings], ret));
 
 	if (ret == `passwordsettings && user_type == "ldap" &&
 	    !contains (user["objectClass"]:[], "shadowAccount"))
@@ -597,7 +599,7 @@ Please try again."));
 	    ret = `notnext;
 	}
     }
-    until ( contains ([`next,`abort,`back,`cancel,`additional,`nosave,`ldap],
+    until ( contains ([`next,`abort,`back,`cancel,`additional,`nosave],
 	    ret) || (details && ret != `notnext) );
 
     if (Users::StartDialog ("user_add") && Mode::cont)
@@ -1163,16 +1165,15 @@ define symbol EditUserPasswordDialog() ``{
  * Dialog for additional settings for LDAP users
  * @return symbol for wizard sequencer
  */
-define symbol LDAPSettingsDialog(string what) ``{
+define symbol LDAPSettingsDialog (string what) ``{
 
-return `next;
-    /*
     import "Ldap";
     import "LdapPopup";
 
-    // use local copy here
-    map object	= (map) eval (
-	(what == "user")? Users::user_in_work: Users::group_in_work);
+    map<string, any> object	= (what == "user") ?
+	Users::GetCurrentUser (): Users::GetCurrentGroup ();
+    map<string, any> tmp_object	= $[];
+
     list items			= [];
     list used_attributes	= [];
     list new_attributes		= [];
@@ -1183,20 +1184,26 @@ return `next;
     // (There are LDAP names for shadow* in this list -> they cannot be in
     // ldap2yast, because no "translation to yast names" is needed.)
     list already_edited_keys = (what == "user") ?
-	[ "username", "uidNumber", "home", "givenName", "sn",
-	"userPassword", "objectClass", "shell", "gidNumber",
+	[ "username", "uidNumber", "homeDirectory", "givenName", "sn",
+	"userPassword", "objectClass", "loginShell", "gidNumber",
 	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
 	"shadowMin", "shadowMax", "shadowFlag" ] :
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
 	"uniqueMember" ];
 
-    list internal_keys = (what == "user") ? Users::user_internal_keys :
-	Users::group_internal_keys;
+    // keys in user's map which are not saved anywhere (internal use only :-))
+    list internal_keys = (what == "user") ?
+	[ "create_home", "grouplist", "groupname", "modified", "org_username",
+	"org_uid", "org_home","org_user", "type", "org_groupname", "what",
+	"dn", "org_dn", "removed_grouplist", "delete_home", "addit_data"
+	] :
+	[ "modified", "type", "what", "more_users", "s_userlist",
+	"dn", "org_dn", "org_groupname", "org_gid", "removed_userlist" ];
 
     list required_attrs = (what == "user") ?
-	Users::ldap_user_template["requiredAttribute"]:[] :
-	Users::ldap_group_template["requiredAttribute"]:[];
+	UsersLDAP::GetUserRequiredAttributes () :
+	UsersLDAP::GetGroupRequiredAttributes ();
 
     // generate table items from already existing values
     foreach (string attr, any val, object, ``{
@@ -1204,30 +1211,41 @@ return `next;
 	    return;
 	if (contains (already_edited_keys, attr))
 	    return;
-	if (is (val, map))
+	if (is (val, map) || val == nil)
 	    return;
-	list value = [];
+	list<string> value = [];
 	if (is (val, string))
 	{
-	    value = [ val ];
+	    value = [ (string)val ];
 	    object [attr] = value;
 	}
-	else value = (list)val;
+	else value = (list<string>)val;
 	used_attributes = add (used_attributes, attr);
 	items = add (items, `item (`id(attr), attr, mergestring(value,",")));
     });
 
+    // conversion table from parameter names used in LDAP to ones used in
+    // yast (passwd-style) FIXME in Users
+    map ldap2yast_user_attrs = $[
+	"uid":		"username",
+    ];
+    map ldap2yast_group_attrs = $[
+	"cn":		"groupname",
+        "uniqueMember":	"userlist" //??FIXME
+    ];
+
     // generate table items with empty values (not set for this user/group yet)
     // we need to read available attributes from Ldap
-    map ldap2yast = (what == "user") ? Users::ldap2yast_user_attrs :
-	Users::ldap2yast_group_attrs;
+    map ldap2yast = (what == "user") ?
+	ldap2yast_user_attrs : ldap2yast_group_attrs;
+
     foreach (string class, object["objectClass"]:[], ``{
 	foreach (string at, Ldap::GetAllAttributes (class), ``{
 	    // remove already used (uid, uidNumber, homeDirectory etc.)
 	    if (!haskey (object, ldap2yast [at]:at) &&
 		!contains (already_edited_keys, ldap2yast [at]:at))
 	    {
-		object = add (object, at, []);
+		object[at] = [];
 		new_attributes = add (new_attributes, at);
 		items = add (items, `item (`id(at), at, ""));
 	    }
@@ -1264,16 +1282,16 @@ return `next;
 	if ( ret == `edit || ret == `table)
 	{
 	    string attr	= (string) UI::QueryWidget (`id(`table), `CurrentItem);
-	    list value		= object [attr]:[];
+	    list<string> value		= tmp_object [attr]:object[attr]:[];
 	    value = LdapPopup::EditAttribute (attr, value, [],
 		Ldap::SingleValued (attr), []);
-	    if (value == object [attr]:[])
+	    if (value == tmp_object [attr]:object[attr]:[])
 	    {
 		ret = `notnext;
 		continue;
 	    }
-	    UI::ChangeWidget (`id(`table),`Item(attr,1),mergestring(value,","));
-	    object [attr] = value;
+	    UI::ChangeWidget (`id(`table),`Item(attr,0),mergestring(value,","));
+	    tmp_object [attr] = value;
 	}
         if ( ret == `next )
         {
@@ -1282,28 +1300,38 @@ return `next;
 		if (ret == `notnext) return;
 		if ((contains (used_attributes, req) ||
 		     contains (new_attributes, req)) &&
-		    object [req]:[] == [])
+		    tmp_object[req]:object[req]:[] == [])
 		    // question, %1 is attribute name
-		    if (!Popup::YesNo (sformat (
-_("The attribute '%1' is required for this object according
+		    if (!Popup::YesNo (sformat (_(
+"The attribute '%1' is required for this object according
 to its LDAP configuration, but it is currently empty.
 Are you sure?"), req)))
+		    {
 			ret = `notnext;
+		    }
 	    });
 	    if (ret == `notnext) continue;
 	    // update global variables
-	    foreach (string k, list v, object, ``{
-		if (v != [] || contains (used_attributes, k))
-		{
-		    if (what == "user")
-			Users::user_in_work [k] = v;
-		    else if (Users::group_in_work[k]:[] != v)
-		    {
-			modified = true;
-			Users::group_in_work [k] = v;
-		    }
-		}
-	    });
+	    if (tmp_object == $[])
+	    {
+		break;
+	    }
+	    if (object["what"]:"" == "edit_user")
+	    {
+		Users::EditUser (tmp_object);
+	    }
+	    else if (object["what"]:"" == "add_user")
+	    {
+		Users::AddUser (tmp_object);
+	    }
+	    else if (object["what"]:"" == "edit_group")
+	    {
+		Users::EditGroup (tmp_object);
+	    }
+	    else if (object["what"]:"" == "add_group")
+	    {
+		Users::AddGroup (tmp_object);
+	    }
          }
     } until (contains ([`next, `abort, `back, `cancel], ret));
 
@@ -1312,15 +1340,8 @@ Are you sure?"), req)))
 	if ( what == "user")
 	    // go to the forst user edit/add dialog
 	    ret = string_to_symbol (object["what"]:"back");
-	else if (modified && object["what"]:"" != "add_group")
-	{
-	    // if there was no change in previous dialog,
-	    // "edit_group" was not set
-	    Users::group_in_work ["what"] = "edit_group";
-	}
     }
     return (symbol)ret;
-    */
 }
 
 
@@ -1333,7 +1354,6 @@ define symbol EditGroupDialog (string what ) ``{
 
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
-
     string  groupname		= group["groupname"]:"";
     string  password		= group["userPassword"]:"x";
     integer gid			= GetInt (group, "gidNumber", -1);
@@ -1341,8 +1361,6 @@ define symbol EditGroupDialog (string what ) ``{
     map more_users		= group["more_users"]:$[];
     // these are users from /etc/group:
     map userlist		= group["userlist"]:$[];
-    // and these are members of LDAP group:
-    map uniqueMember		= group["uniqueMember"]:$[];
     string group_type		= group["type"]:"";
     string new_type		= group_type;
     string dn			= group["dn"]:"";
@@ -1350,7 +1368,11 @@ define symbol EditGroupDialog (string what ) ``{
     list additional_users	= [];
     list removed		= [];
 
-    additional_users = UsersCache::BuildAdditional (group);
+    if (group_type == "ldap")
+    {
+	userlist		= group["uniqueMember"]:$[];
+    }
+    additional_users		= UsersCache::BuildAdditional (group);
 
     integer i = 0;
     list more_users_items	= [];
