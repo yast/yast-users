@@ -283,7 +283,7 @@ define symbol UsersSequence(string start) ``{
 
     if( ! Mode::cont )
     {
-	Wizard::SetDesktopIcon("ldap");
+	Wizard::SetDesktopIcon("users");
 	Wizard::CreateDialog();
     }
 
