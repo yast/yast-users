@@ -6,6 +6,6 @@ SUBDIRS = autodocs
 
 htmldir = @docdir@
 
-html_DATA = User.txt
+html_DATA = users.html
 
 EXTRA_DIST = $(html_DATA)

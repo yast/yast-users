@@ -1,0 +1,116 @@
+<html><head><title>YaST2 Users module docuentation</title></head>
+<body>
+<h1>YaST2: Users configuration module</h1>
+
+<h2>Features (SL 8.2)</h2>
+
+<p>
+Basic module abilities:
+<ul>
+<li>add, remove and edit local users
+<li>add, remove and edit local groups
+<li>read NIS users and groups
+<li>add, remove and (partial) edit of LDAP users and groups
+<li>configure password encryption type
+<li>configure authentication type
+<li>edit defaults from /etc/defaults/useradd
+<li>password changing and warning limits
+</ul>
+
+User attributes:
+<ul>
+<li>name
+<li>password
+<li>uid (UID currently cannot be changed)
+<li>GECOS
+<li>group (groups)
+<li>shell
+<li>home directory
+<li>password settings (warning limits etc.)
+</ul>
+
+Group attributes:
+<ul>
+<li>name
+<li>gid
+<li>users
+<li>password access
+</ul>
+
+<h2>Changes from 8.1</h2>
+
+<ul>
+<li>major speedup, see <a href="benchmark.txt">benchmark</a>
+<li>LDAP support
+<li>editing defaults (
+<a href="http://bugzilla.suse.de/show_bug.cgi?id=14129">bug #14129</a>)
+<li>expert dialog (authentication and password encryption)
+<li>editing UID (
+<a href="http://bugzilla.suse.de/show_bug.cgi?id=16084">bug #16084</a>)
+</ul>
+
+<h2>TODO</h2>
+
+<ul>
+<li>
+If it makes some sense, there could be a possibility for creating own group for
+a new user by checking checkbox in "Add user dialog".
+<li><a href="Todo.txt">TODO file</a>
+</ul>
+
+<hr>
+<h2>Implementation</h2>
+
+<h3>1. The workflow</h3>
+
+Current workflow (can be found at 
+<a href="http://lide.suse.cz/~~jsuchome/users/workflow.png">
+http://lide.suse.cz/~~jsuchome/users/workflow.png</a>):
+
+<p>
+<img src="workflow.png">
+<p>
+
+<h4>1.1 Dialogs</h4>
+
+<ul>
+<li>
+Summary dialog (<a href="http://lide.suse.cz/~~jsuchome/users/01-summary_users.png">current screenshot</a>):
+<p>
+<img src="summary-dialog.png">
+<p>
+This dialog provides multiple views to sets of users (local/system/...).
+So there is a Menubutton for seting such view. New "Customize view" button
+will open the Customize popup. 
+
+<li>
+Defaults dialog
+(<a href="http://lide.suse.cz/~~jsuchome/users/09-useradd_defaults.png">
+current screenshot</a>)
+<p>
+<img src="defaults-dialog.png">
+<p>
+
+Here the deafault settings for new users, such as default group, default shell,
+etc. are editable
+(<a href="http://bugzilla.suse.de/show_bug.cgi?id=14129">bug #14129</a>).
+
+<li>
+Customize popup
+(<a href="http://lide.suse.cz/~~jsuchome/users/08-customize_filter.png">
+current screenshot</a>)
+<p>
+<img src="customize-popup.png">
+<p>
+
+In this popup user can customize the view of the users set. (He can e.g. set to
+view only local and NIS users.)
+</ul>
+<p>
+Other screenshots should be found at
+<a href="http://lide.suse.cz/~~jsuchome/users/">http://lide.suse.cz/~~jsuchome/users</a>
+
+<h3>2. The files</h3>
+
+For more, see <a href="autodocs/index.html">developer's documentation</a>.
+</body></html>
