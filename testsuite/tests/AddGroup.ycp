@@ -21,15 +21,15 @@
 
     Users::group_in_work = $[
 	"gid":501,
-    "groupname": "testgroup",
+	"groupname": "testgroup",
 	"userlist":"hh",
 	"password":"x",
-    "type":`local,
-	"what":`add_group];
+	"type": "local",
+	"what": "add_group"];
 
-    Users::users_by_name [`local ] = $[ "hh": 500 ];
+    Users::users_by_name ["local" ] = $[ "hh": 500 ];
 
-    Users::users [`local] = $[
+    Users::users ["local"] = $[
         500:  $[ "forename":"",
     "fullname":"",
 	"gid":100,
@@ -43,31 +43,31 @@
 	"surname":"",
 	"uid":500,
 	"username":"hh",
-    "type":`local]
+    "type":"local"]
     ];
 
-    Users::groups_by_name [`local] = $[];
+    Users::groups_by_name ["local"] = $[];
 
-    DUMP ( sformat ("local groups:\n %1", Users::groups [ `local ]:$[]) );
+    DUMP ( sformat ("local groups:\n %1", Users::groups [ "local" ]:$[]) );
 
-    DUMP ( sformat ("local users:\n %1\n", Users::users [ `local ]:$[]) );
+    DUMP ( sformat ("local users:\n %1\n", Users::users [ "local" ]:$[]) );
 
     TEST(``(Users::Commit ("group", false)), [], 0);
 
     DUMP ( sformat ("local groups modified:\n %1",
-        Users::groups [ `local ]:$[]) );
+        Users::groups [ "local" ]:$[]) );
 
     DUMP ( sformat ("local users modified:\n %1\n",
-        Users::users [ `local ]:$[]) );
+        Users::users [ "local" ]:$[]) );
 
     DUMP ("==========================================================");
 
     // with rebuilding the cache:
     DUMP ( sformat ("local group itemlist:\n %1",
-        UsersCache::groups_itemlists [ `local ]:[]) );
+        UsersCache::groups_itemlists [ "local" ]:[]) );
 
     TEST(``(Users::Commit ("group", true)), [], 0);
 
     DUMP ( sformat ("local group itemlist modified:\n %1",
-        UsersCache::groups_itemlists [ `local ]:[]) );
+        UsersCache::groups_itemlists [ "local" ]:[]) );
 }

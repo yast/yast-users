@@ -10,10 +10,10 @@
 
     map WRITE = $[ "target": $[ "string": true ]];
 
-    UsersCache::group_type = `local;
+    UsersCache::group_type = "local";
     UsersCache::usernamelists = $[
-        `local: [ "aa", "bb", "hh" ],
-        `ldap:  [ "ldap1", "ldap2" ]
+        "local": [ "aa", "bb", "hh" ],
+        "ldap":  [ "ldap1", "ldap2" ]
     ];
 
     string userlist = "aa";

@@ -3,8 +3,8 @@ Dump	 [`item (`id (500), "aaa", "", "500", "users,audio")]
 Dump	==========================================================
 Dump	===== adding nis users, not known -> read via script =====
 Dump	==========================================================
-Dump	actual user customs: [`local]
-Dump	new user customs: [`local, `nis]
+Dump	actual user customs: ["local"]
+Dump	new user customs: ["local", "nis"]
 Dump	= testing ================================================
 Execute	.target.bash_output "/usr/lib/YaST2/bin/build_nis_structures.pl /tmp " $[]
 Read	.target.ycp "/tmp/nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
@@ -24,8 +24,8 @@ Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (5000), "j
 Dump	==========================================================
 Dump	===== adding system users, already known =================
 Dump	==========================================================
-Dump	actual user customs: [`local, `nis]
-Dump	new user customs: [`local, `system]
+Dump	actual user customs: ["local", "nis"]
+Dump	new user customs: ["local", "system"]
 Dump	= testing ================================================
 Return	true
 Dump	new user itemlist:
@@ -33,8 +33,8 @@ Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (0), "root
 Dump	==========================================================
 Dump	===== adding nis users, already known ====================
 Dump	==========================================================
-Dump	actual user customs: [`local, `system]
-Dump	new user customs: [`local, `nis]
+Dump	actual user customs: ["local", "system"]
+Dump	new user customs: ["local", "nis"]
 Return	true
 Dump	new user itemlist:
 Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]

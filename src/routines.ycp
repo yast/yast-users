@@ -18,8 +18,8 @@ include "users/passwd.ycp";
 global define map ReadGshadow(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
+        "local": SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
+        "system": SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
     ];
     SCR::Execute (.target.remove, dir + "/gshadow_local.ycp");
     SCR::Execute (.target.remove, dir + "/gshadow_system.ycp");
@@ -34,8 +34,8 @@ global define map ReadGshadow(string dir)``{
 global define map ReadShadow(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
+        "local": SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
+        "system": SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
     ];
     SCR::Execute (.target.remove, dir + "/shadow_local.ycp");
     SCR::Execute (.target.remove, dir + "/shadow_system.ycp");
@@ -50,8 +50,8 @@ global define map ReadShadow(string dir)``{
 global define map ReadGroups(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/group_local.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/group_system.ycp")
+        "local": SCR::Read(.target.ycp, dir + "/group_local.ycp"),
+        "system": SCR::Read(.target.ycp, dir + "/group_system.ycp")
     ];
     SCR::Execute (.target.remove, dir + "/group_local.ycp");
     SCR::Execute (.target.remove, dir + "/group_system.ycp");
@@ -66,8 +66,8 @@ global define map ReadGroups(string dir)``{
 global define map ReadGroupsByName(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
+        "local": SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
+        "system": SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
     ];
     SCR::Execute (.target.remove, dir + "/group_local_byname.ycp");
     SCR::Execute (.target.remove, dir + "/group_system_byname.ycp");
@@ -82,9 +82,9 @@ global define map ReadGroupsByName(string dir)``{
 global define map ReadPasswd(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
+        "local": SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
         // this is due to translations of fullnames in users/passwd.ycp
-        `system: eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
+        "system": eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
     ];
     SCR::Execute (.target.remove, dir + "/passwd_local.ycp");
     SCR::Execute (.target.remove, dir + "/passwd_system.ycp");
@@ -99,8 +99,8 @@ global define map ReadPasswd(string dir)``{
 global define map ReadPasswdByName(string dir)``{
 
     map ret = $[
-        `local: SCR::Read(.target.ycp, dir + "/passwd_local_byname.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/passwd_system_byname.ycp")
+        "local": SCR::Read(.target.ycp, dir + "/passwd_local_byname.ycp"),
+        "system": SCR::Read(.target.ycp, dir + "/passwd_system_byname.ycp")
     ];
     SCR::Execute (.target.remove, dir + "/passwd_local_byname.ycp");
     SCR::Execute (.target.remove, dir + "/passwd_system_byname.ycp");
@@ -429,7 +429,7 @@ global define void BackupConfFiles(string dir)``{
  * @param type user type
  * @return string selected part of user name
  */
-global define string SplitFullName(symbol what,string fullname, symbol type) ``{
+global define string SplitFullName(symbol what,string fullname, string type) ``{
 
     if( fullname == nil )
         fullname = "";
@@ -439,7 +439,7 @@ global define string SplitFullName(symbol what,string fullname, symbol type) ``{
     string surname  = "";
     string forename = "";
 
-    if (type == `system)
+    if (type == "system")
     {
         if ( what == `surname  ) return fullname;
         if ( what == `forename ) return "";
@@ -457,6 +457,102 @@ global define string SplitFullName(symbol what,string fullname, symbol type) ``{
     if ( what == `surname  ) return surname;
     if ( what == `forename ) return forename;
 }
+
+/** TODO: move to dialogs.ycp?
+ * Let user choose the encryption method.
+ **/
+global define string EncryptionDialog() ``{
+
+      string method = Users::encryptionMethod;
+
+      // Help text for password expert dialog 1/5
+      string help_text = _("<p>
+<b>This is for experts only.</b>
+</p>");
+
+      // Help text for password expert dialog 2/5
+      help_text = help_text + _("<p>
+Choose a password encryption method.
+<b>DES</b>, the Linux default method, works in all network environments, but it
+restricts you to passwords no longer than eight characters.
+</p>");
+
+      // Help text for password expert dialog 3/5
+      help_text = help_text + _("<p>
+<b>MD5</b> allows longer passwords, thus provides more security, but some
+network protocols don't support this, and you may have problems with NIS.
+</p>");
+
+      // Help text for password expert dialog 4/5
+      help_text = help_text + _("<p>
+<b>Blowfish</b> is similar to MD5, but uses a different algorithm
+to encrypt passwords.
+</P>");
+      // Help text for password expert dialog 5/5
+      help_text = help_text + _("<p>
+As a general rule of thumb, use DES if you are unsure.
+</p>");
+
+      UI::OpenDialog(
+	`VBox(
+	  // Label
+	  `Heading( _("Set Password Encryption") ),
+	  `VSpacing( 0.7 ),
+	  `HBox(
+		`HSpacing( 2 ),
+		`RadioButtonGroup(
+		// frame label
+		`Frame( _("Encryption Type"),
+		  `VBox(
+		  `VSpacing( 0.5 ),
+		  // Radio buttons for password encryption: DES-crypt
+		  `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+			method == "des" ) ),
+		  // Radio buttons for password encryption: MD5-crypt
+		  `Left(`RadioButton(`id(`md5), _("&MD5"),
+			method == "md5" ) ),
+		  // Radio buttons for password encryption: blowfish-crypt
+		  `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
+			method == "blowfish" ) )
+		  )
+		)),
+		`HSpacing( 2 )
+	  ),
+	  `VSpacing( 0.5 ),
+	  `HBox(
+		`HStretch(),
+		`HWeight(1,
+		  `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() )),
+		`HStretch(),
+		`HWeight(1, `PushButton(`id(`cancel), UI::CancelButtonLabel())),
+		`HStretch(),
+		`HWeight(1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
+		`HStretch()
+	  )
+	));
+
+      any button = nil;
+
+      do
+      {
+	  button = UI::UserInput();
+
+	  if ( button == `help )
+	  {
+	      Wizard::ShowHelp( help_text );
+	  }
+	  else if ( button == `ok )
+	  {
+	      if      ( UI::QueryWidget( `id(`des), `Value ) )	method = "des";
+	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	method = "md5";
+	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) method = "blowfish";
+	      y2milestone( "Changing encryption method to %1", method );
+	  }
+      } while ( button != `ok && button != `cancel );
+
+      UI::CloseDialog();
+      return method;
+  };
 
 
 } // EOF

@@ -30,8 +30,8 @@ $output_more       = $dir."/additional_more.ycp";
 sub print_date {
 
     my ($message) = @_;
-    $date = `date +%X`;
-    print STDERR "$message: $date";
+#    $date = `date +%X`;
+#    print STDERR "$message: $date";
 }
 
 open USERLIST, "< $userlist_file";

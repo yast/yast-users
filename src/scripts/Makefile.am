@@ -6,7 +6,6 @@
 ybin_SCRIPTS =  \
     build_passwd_structures.pl  \
     build_nis_structures.pl     \
-    build_ldap_structures.pl    \
     build_additional_users.pl
 
 EXTRA_DIST = $(ybin_SCRIPTS)

@@ -1,10 +1,10 @@
 /**
  * File:	modules/UsersCache.ycp
- * Package: Configuration of users and groups
+ * Package:	Configuration of users and groups
  * Summary:	Helper functions and cache structures for use from Users module
  *
- * Authors: Johannes Buchhold <jbuch@suse.de>,
- *          Jiri Suchomel <jsuchome@suse.cz>
+ * Authors:	Johannes Buchhold <jbuch@suse.de>,
+ *		Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  */
@@ -21,6 +21,10 @@ include "users/passwd.ycp";
 global map homelists = $[];
 // map of list of usernames
 global map usernamelists = $[];
+/**
+ * map of lists of usernames removed so far
+ */
+global map removed_usernamelists = $[];
 // map of list of groupnames
 global map groupnamelists = $[];
 // map of list of all items in user table
@@ -34,7 +38,11 @@ global list group_itemlist = [];
 // item list of all users used in edit group dialog
 global list additional_users = [];
 // map of list of uid's
-map uidlists = $[];
+global map uidlists = $[];
+/**
+ * map of lists of usernames removed so far
+ */
+global map removed_uidlists = $[];
 // map of list of gid's
 global map gidlists = $[];
 global list current_users = [];
@@ -43,18 +51,20 @@ global list user_custom_sets = [];
 global list group_custom_sets = [];
 
 // type of current user/group
-global symbol user_type = `local;
-global symbol group_type = `local;
+global string user_type = "local";
+global string group_type = "local";
 
 global integer focusline_group = nil;
 global integer focusline_user  = nil;
 
-global integer max_uid  = 0; // no !!!
-global integer max_gid  = 0;
-global integer max_system_uid = 0;
-global integer max_system_gid = 0;
-global integer max_length_uid = 0;
-global integer max_length_gid = 0;
+// TODO move elsewhere...
+global integer max_uid  = 60000;
+global integer max_gid  = 60000;
+global integer max_system_uid = 500-1;
+global integer max_system_gid = 100-1;//TODO will be changed to 500...
+global integer max_length_uid = 5;
+global integer max_length_gid = 5;
+global boolean ldap_file_server = false;
 
 // if currrent view is "customized"
 global boolean customized_usersview = true;
@@ -64,17 +74,8 @@ global string encoding = "";
 
 // map of last uid used for new user (to fasten searching of free uid)
 map last_uid = $[
-    `system: 1,
-    `local: 500];
-
-map symbol_to_string = $[
-    `local: "local",
-    `system:"system",
-    `nis:   "nis",
-    `ldap:  "ldap",
-    `kerb:  "kerb",
-    `smb:   "smb"
-];
+    "system": 1,
+    "local": 500];
 
 /**
  * Build the cache structures, used for fasten operations
@@ -92,16 +93,16 @@ global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) 
     foreach (`type, `usersmap, usermap, ``{
         BuildUsers (usersmap, type);
     });
-    users_itemlists [ `custom ] = MergeUserTableItems();
-    user_itemlist = users_itemlists [ `custom ]:[];
+    users_itemlists [ "custom" ] = MergeUserTableItems();
+    user_itemlist = users_itemlists [ "custom" ]:[];
 
     current_groups = group_custom_sets;
 
     foreach (`type, `groupsmap, groupmap, ``{
         BuildGroups (groupsmap, type);
     });
-    groups_itemlists [ `custom ] = MergeGroupTableItems();
-    group_itemlist = groups_itemlists [ `custom ]:[];
+    groups_itemlists [ "custom" ] = MergeGroupTableItems();
+    group_itemlist = groups_itemlists [ "custom" ]:[];
 
     return true;
 }
@@ -117,20 +118,20 @@ global define void ReadFromFiles (string dir) ``{
     PrintDate ("read cache start");
 
     // could be the sets here explicitly?
-    list start_sets = [`local, `system];
+    list start_sets = ["local", "system"];
     foreach (`type, start_sets , ``{
         ReadUsers (type, dir);
     });
     PrintDate ("before merge");
-    users_itemlists [ `custom ] = MergeUserTableItems();
-    user_itemlist = users_itemlists [ `custom ]:[];
+    users_itemlists [ "custom" ] = MergeUserTableItems();
+    user_itemlist = users_itemlists [ "custom" ]:[];
     PrintDate ("after merge");
 
     foreach (`type, start_sets , ``{
         ReadGroups (type, dir);
     });
-    groups_itemlists [ `custom ] = MergeGroupTableItems();
-    group_itemlist = groups_itemlists [ `custom ]:[];
+    groups_itemlists [ "custom" ] = MergeGroupTableItems();
+    group_itemlist = groups_itemlists [ "custom" ]:[];
 
     PrintDate ("read cache end");
 }
@@ -140,7 +141,7 @@ global define void ReadFromFiles (string dir) ``{
  * @param usersmap map of users of one type
  * @param type the users type
  */
-global define void BuildUsers (map usersmap, symbol type) ``{
+global define void BuildUsers (map usersmap, string type) ``{
 
     PrintDate ("build users start");
 
@@ -149,7 +150,7 @@ global define void BuildUsers (map usersmap, symbol type) ``{
     users_itemlists = add (users_itemlists, type,
         BuildUserItemList(usersmap));
     uidlists [type] = BuildUIDList(usersmap);
-    if (type != `system)
+    if (type != "system")
         last_uid [type] = max_system_uid + 1;
     else
         last_uid [type] = 1;
@@ -160,7 +161,7 @@ global define void BuildUsers (map usersmap, symbol type) ``{
  * @param groupsmap map of groups of one type
  * @param type the groups type
  */
-global define void BuildGroups (map groupsmap, symbol type) ``{
+global define void BuildGroups (map groupsmap, string type) ``{
 
     if (groupnamelists [type]:nil == nil)
         groupnamelists [type] = BuildGroupnameList (groupsmap);
@@ -175,28 +176,42 @@ global define void BuildGroups (map groupsmap, symbol type) ``{
  * @param dir the source directory
  * @return true
  */
-global define boolean ReadUsers (symbol type, string dir) ``{
-
-    string stringtype = symbol_to_string[type]:"";
+global define boolean ReadUsers (string type, string dir) ``{
 
     PrintDate ("build users start");
 
-    homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +
-        stringtype + ".ycp");
+    if (type == "ldap")
+    {
+	homelists [type] = SCR::Read(.ldap.users.homes);
+        usernamelists [type] = SCR::Read(.ldap.users.usernames);
+
+	PrintDate ("homelist");
+
+	users_itemlists [type] =
+	    SCR::Read (.target.ycp, dir + "/itemlist_ldap.ycp");
+
+        PrintDate ("itemlists");
+	uidlists [type] = SCR::Read (.ldap.users.uids);
+        last_uid [type] = SCR::Read (.ldap.users.last_uid);
+
+	return true;
+    }
+    homelists [type] = SCR::Read(.target.ycp, dir + "/homelist_" +type+ ".ycp");
     usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
-        stringtype + ".ycp");
+        type + ".ycp");
 
     PrintDate ("homelist");
     // eval due to translation of system user names
     users_itemlists [type] = eval (
-        SCR::Read(.target.ycp, dir + "/itemlist_" + stringtype + ".ycp"));
+        SCR::Read(.target.ycp, dir + "/itemlist_" + type + ".ycp"));
 
     PrintDate ("itemlists");
-    uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" +
-        stringtype + ".ycp");
-    if (type != `nis)
+    uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" + type + ".ycp");
+    if (type != "nis")
+    {
         last_uid [type] = SCR::Read (.target.ycp, dir + "/last_" +
-            stringtype + "_uid.ycp");
+            type + "_uid.ycp");
+    }
 
     return true; // TODO: test for errors while reading
 }
@@ -207,16 +222,22 @@ global define boolean ReadUsers (symbol type, string dir) ``{
  * @param dir the source directory
  * @return true
  */
-global define boolean ReadGroups (symbol type, string dir) ``{
+global define boolean ReadGroups (string type, string dir) ``{
 
-    string stringtype = symbol_to_string[type]:"";
-
-    gidlists [type] = SCR::Read (.target.ycp, dir + "/gidlist_" +
-        stringtype + ".ycp");
-    groupnamelists [type] = SCR::Read (.target.ycp, dir + "/groupnamelist_" +
-        stringtype + ".ycp");
+    if (type == "ldap")
+    {
+        gidlists [type] = SCR::Read (.ldap.groups.gids);
+	groupnamelists [type] = SCR::Read (.ldap.groups.groupnames);
+    }
+    else
+    {
+	gidlists [type] = SCR::Read (.target.ycp, dir + "/gidlist_" +
+	    type + ".ycp");
+	groupnamelists [type] = SCR::Read (.target.ycp, dir + "/groupnamelist_"
+	    + type + ".ycp");
+    }
     groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
-        + stringtype + "_itemlist.ycp");
+        + type + "_itemlist.ycp");
 
     return true;
 }
@@ -345,7 +366,7 @@ global define list BuildUserItemList(map map_of_users) ``{
 
         a = add(a, username );
 
-        if (user["type"]:`local == `system)
+        if (user["type"]:"local" == "system")
             a = add(a, SystemUsers [full]:full );
         else
             a = add(a, full );
@@ -399,8 +420,8 @@ global define list BuildGroupItemList(map map_of_groups) ``{
         string  s_gid = sformat("%1", key   );
         term    a     = `item(`id(key));
 
-        if( size( s_gid) != Users::max_length_gid )
-            s_gid = addBlanks( Users::max_length_gid - size(s_gid)) + s_gid;
+        if( size( s_gid) != max_length_gid )
+            s_gid = addBlanks( max_length_gid - size(s_gid)) + s_gid;
 
         a = add(a, group["groupname"]:"" );
         a = add(a, s_gid);
@@ -464,9 +485,9 @@ global define list MergeGroupTableItems() ``{
 global define void ChangeUserCustoms (list new) ``{
 
     user_custom_sets = new;
-    users_itemlists [`custom] = MergeUserTableItems();
+    users_itemlists ["custom"] = MergeUserTableItems();
     customized_usersview = true;
-    user_itemlist = users_itemlists [`custom]:[];
+    user_itemlist = users_itemlists ["custom"]:[];
 }
 
 /**
@@ -476,11 +497,37 @@ global define void ChangeUserCustoms (list new) ``{
 global define void ChangeGroupCustoms (list new) ``{
 
     group_custom_sets = new;
-    groups_itemlists [`custom] = MergeGroupTableItems();
+    groups_itemlists ["custom"] = MergeGroupTableItems();
     customized_groupsview = true;
-    group_itemlist = groups_itemlists [`custom]:[];
+    group_itemlist = groups_itemlists ["custom"]:[];
 }
 
+/**
+ * Check if homedir doesn't exist for another user
+ * Doesn't check directory existence, only looks to set of used directories
+ * @param home the name
+ * @return true if directory is used as another user's home directory
+ */
+global define boolean HomeExists(string home) ``{
+
+    boolean ret = false;
+
+    list sets_to_check = ["local", "system"];
+    if (ldap_file_server)
+    {
+	sets_to_check = add (sets_to_check, "ldap");
+    }
+    else if (user_type == "ldap") //ldap, client only
+    {
+	sets_to_check = ["ldap"];
+    }
+
+    foreach (`type, sets_to_check, ``{
+        if ( contains (homelists[type]:[], home)) ret = true;
+    });
+
+    return ret;
+}
 
 /**
  * Check if username already exists
@@ -491,22 +538,25 @@ global define boolean UsernameExists(string username) ``{
 
     boolean ret = false;
     foreach (`type, `usernames, usernamelists, ``{
-        if ( contains (usernames, username)) ret = true;
+	if ( !ret && contains (usernames, username)) ret = true;
     });
-    return ret;
-}
-
-/**
- * Check if homedir doesn't exist for another user
- * @param home the name
- * @return true if exists
- */
-global define boolean HomeExists(string home) ``{
-
-    boolean ret = false;
-    foreach (`type, `homes, homelists, ``{
-        if ( contains (homes, home)) ret = true;
-    });
+    // for autoyast, check only loaded sets
+    if (Mode::config || ret)
+	return ret;
+    // not found -> check all sets via agent...
+    ret = !IsUsernameUnique (username);
+    if (ret)
+    {
+	// check if username wasn't just deleted...
+	list sets_to_check = ["local", "system"];
+	if (user_type != "ldap")
+	{
+	    sets_to_check = add (sets_to_check, "ldap");
+	}
+	foreach (`type, sets_to_check, ``{
+	    if (contains (removed_usernamelists[type]:[],username)) ret = false;
+	});
+    }
     return ret;
 }
 
@@ -519,8 +569,28 @@ global define boolean UIDExists(integer uid) ``{
 
     boolean ret = false;
     foreach (`type, `uids, uidlists, ``{
-        if ( !ret && contains (uids, uid)) ret = true;
+	if ( !ret && contains (uids, uid)) ret = true;
     });
+    // for autoyast, check only loaded sets
+    if (Mode::config || ret)
+	return ret;
+    // not found -> check all sets via agent...
+    ret = !IsIDUnique (uid);
+    if (ret)
+    {
+	// check if uid wasn't just deleted...
+	list sets_to_check = ["local", "system"];
+	// LDAP: do not allow change uid of one user and use old one by
+	// another user - because users are saved by calling extern tool
+	// and colisions can be hardly avoided
+	if (user_type != "ldap")
+	{
+	    sets_to_check = add (sets_to_check, "ldap");
+	}
+	foreach (`type, sets_to_check, ``{
+	    if (contains (removed_uidlists[type]:[], uid)) ret = false;
+	});
+    }
     return ret;
 }
 
@@ -531,11 +601,13 @@ global define boolean UIDExists(integer uid) ``{
  */
 global define boolean GIDExists(integer gid) ``{
 
-    boolean ret = false;
-    foreach (`type, `gids, gidlists, ``{
-        if ( !ret && contains (gids, gid)) ret = true;
-    });
-    return ret;
+    // TODO: display warning if GID exists in other set?
+    if (group_type == "ldap")
+    {
+	return contains (gidlists [group_type]:[], gid);
+    }
+    return (contains (gidlists ["local"]:[], gid) ||
+	contains (gidlists ["system"]:[], gid));
 }
 
 /**
@@ -545,11 +617,13 @@ global define boolean GIDExists(integer gid) ``{
  */
 global define boolean GroupnameExists(string groupname) ``{
 
-    boolean ret = false;
-    foreach (`type, `groupnames, groupnamelists, ``{
-        if ( contains (groupnames, groupname)) ret = true;
-    });
-    return ret;
+    // TODO: display warning if groupname exists in some other set?
+    if (group_type == "ldap")
+    {
+	return contains (groupnamelists [group_type]:[], groupname);
+    }
+    return (contains (groupnamelists ["local"]:[], groupname) ||
+	 contains (groupnamelists ["system"]:[], groupname));
 }
 
 /**
@@ -558,9 +632,9 @@ global define boolean GroupnameExists(string groupname) ``{
  */
 global define integer NextFreeUid() ``{
 
-    integer uid = last_uid [user_type]:last_uid [`local]:1;
+    integer uid = (last_uid [user_type]:last_uid ["local"]:0) + 1;
     integer max = max_uid;
-    if (user_type == `system)
+    if (user_type == "system")
         max = max_system_uid;
     repeat
     {
@@ -580,15 +654,12 @@ global define integer NextFreeUid() ``{
  * @return integer free gid
  */
 global define integer NextFreeGid() ``{
-    // can't delete gid 101 with groupdel ????
-    // FIXME ERROR
-    //if ( gid == 101 ) gid = 102;
 
     integer min = 1;
     integer max = max_gid;
-    if (group_type == `system)
+    if (group_type == "system")
         max = max_system_gid;
-    else // beware !! what about LDAP etc.??
+    else
         min = max_system_gid + 1;
     integer gid = min;
     repeat
@@ -606,14 +677,14 @@ global define integer NextFreeGid() ``{
 define void UpdateUserItemlist () ``{
 
     if (contains (user_custom_sets, user_type))
-        users_itemlists [`custom] = MergeUserTableItems();
+        users_itemlists ["custom"] = MergeUserTableItems();
     if (! (customized_usersview))
     {
-        symbol type = current_users[0]:user_type;
+        string type = current_users[0]:user_type;
         user_itemlist = users_itemlists [type]:[];
     }
     else
-        user_itemlist = users_itemlists [`custom]:[];
+        user_itemlist = users_itemlists ["custom"]:[];
 
     user_itemlist = sort (user_itemlist);
 }
@@ -624,24 +695,24 @@ define void UpdateUserItemlist () ``{
 define void UpdateGroupItemlist () ``{
 
     if (contains (group_custom_sets, group_type))
-        groups_itemlists [`custom] = MergeGroupTableItems();
+        groups_itemlists ["custom"] = MergeGroupTableItems();
     if (! (customized_groupsview))
     {
-        symbol type = current_groups[0]:group_type;
+        string type = current_groups[0]:group_type;
         group_itemlist = groups_itemlists [type]:[];
     }
     else
-        group_itemlist = groups_itemlists [`custom]:[];
+        group_itemlist = groups_itemlists ["custom"]:[];
 
     group_itemlist = sort (group_itemlist);
 }
 
 /**
- * Update the cache after changing user
+ * Update the cache after changing user // TODO:change to Commit?
  * @param what the action done with the user
  * @param user the user's map
  */
-global define void ChangeUser(symbol what, map user) ``{
+global define void ChangeUser(string what, map user) ``{
 
     integer uid = user["uid"]:nil;
     integer org_uid = user["org_uid"]:uid;
@@ -649,24 +720,34 @@ global define void ChangeUser(symbol what, map user) ``{
     string org_home = user["org_home"]:nil;
     string username = user["username"]:nil;
     string org_username = user["org_username"]:username;
-    symbol type = user["type"]:`local;
+    string type = user["type"]:"local";
 
-    if (what == `add_user)
+    if (what == "add_user")
     {
         uidlists [type] = prepend (uidlists [type]:[], uid);
+	removed_uidlists = mapmap (`type, `uids, removed_uidlists, ``{
+	    return [ type, filter (`u, uids, ``(u != uid))];
+	});
         homelists [type] = add (homelists [type]:[], home);
         usernamelists [type] = add (usernamelists [type]:[], username);
+	removed_usernamelists=mapmap(`type,`usernames,removed_usernamelists, ``{
+	    return [ type, filter (`u, usernames, ``(u != username))];
+	});
         users_itemlists [type] = merge (users_itemlists [type]:[],
             BuildUserItemList( $[ uid : user ] ));
         UpdateUserItemlist ();
     }
-    else if (what == `edit_user || what == `group_change)
+    else if (what == "edit_user" || what == "group_change")
     {
         if (uid != org_uid)
         {
             uidlists [type] = filter (`u, uidlists [type]:[], ``(u != org_uid));
             uidlists [type] = prepend (uidlists [type]:[], uid);
-        }
+	    removed_uidlists [type] = add (removed_uidlists [type]:[], org_uid);
+	    removed_uidlists = mapmap (`type, `uids, removed_uidlists, ``{
+		return [ type, filter (`u, uids, ``(u != uid))];
+	    });
+	}
         if (home != org_home)
         {
             homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
@@ -676,6 +757,12 @@ global define void ChangeUser(symbol what, map user) ``{
         {
             usernamelists [type] = filter (`u, usernamelists [type]:[],
                 ``(u != org_username));
+	    removed_usernamelists = mapmap
+		(`type, `usernames, removed_usernamelists, ``{
+		return [ type, filter (`u, usernames, ``(u != username))];
+	    });
+	    removed_usernamelists [type] = add (removed_usernamelists [type]:[],
+		org_username);
             usernamelists [type] = prepend (usernamelists [type]:[], username);
         }
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
@@ -684,12 +771,15 @@ global define void ChangeUser(symbol what, map user) ``{
             select (BuildUserItemList( $[ uid : user ] ), 0, []));
         UpdateUserItemlist ();
     }
-    else if (what == `delete_user)
+    else if (what == "delete_user")
     {
         uidlists [type] = filter (`u, uidlists [type]:[], ``(u != uid));
         homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
         usernamelists [type] = filter (`u, usernamelists [type]:[],
                 ``(u != username));
+	removed_uidlists [type] = add (removed_uidlists [type]:[], uid);
+	removed_usernamelists [type] = add (removed_usernamelists [type]:[],
+	    username);
         users_itemlists [type] = filter (`item, users_itemlists [type]:[],
             ``(select(item,1,"") != username));
         UpdateUserItemlist ();
@@ -702,15 +792,15 @@ global define void ChangeUser(symbol what, map user) ``{
  * @param what the action done with the group
  * @param group the group's map
  */
-global define void ChangeGroup (symbol what, map group) ``{
+global define void ChangeGroup (string what, map group) ``{
 
     integer gid = group["gid"]:nil;
     integer org_gid = group["org_gid"]:gid;
     string groupname = group["groupname"]:nil;
     string org_groupname = group["org_groupname"]:groupname;
-    symbol type = group["type"]:`local;
+    string type = group["type"]:"local";
 
-    if (what == `add_group)
+    if (what == "add_group")
     {
         gidlists [type] = prepend (gidlists [type]:[], gid);
         groupnamelists [type] = add (groupnamelists [type]:[], groupname);
@@ -718,7 +808,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
-    if (what == `edit_group)
+    if (what == "edit_group")
     {
         if (gid != org_gid)
         {
@@ -732,8 +822,8 @@ global define void ChangeGroup (symbol what, map group) ``{
             groupnamelists [type] = prepend (groupnamelists[type]:[],groupname);
         }
     }
-    if (what == `edit_group || what == `user_change ||
-             what == `user_change_default)
+    if (what == "edit_group" || what == "user_change" ||
+             what == "user_change_default")
     {
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
@@ -741,7 +831,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
-    if (what == `delete_group)
+    if (what == "delete_group")
     {
         gidlists [type] = filter (`g, gidlists [type]:[], ``(g != gid));
         groupnamelists [type] = filter (`g, groupnamelists [type]:[],
@@ -750,7 +840,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             ``(select(item,1,"") != groupname));
         UpdateGroupItemlist ();
     }
-    if (what == `itemlist)
+    if (what == "itemlist")
     {
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
@@ -767,6 +857,26 @@ global define void ChangeGroup (symbol what, map group) ``{
 global define void PrintDate(string message) ``{
 
 //    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
+}
+
+/**
+ * Asks agent if given ID is not UID of any user in system
+ * @param uid ID to check
+ * @return false when UID already exists
+ */
+global define boolean IsIDUnique (integer uid) ``{
+
+    return SCR::Read (.uid.uid, uid);
+}
+
+/**
+ * Asks agent if given name is not username of any user in system
+ * @param username name to check
+ * @return false when username already exists
+ */
+global define boolean IsUsernameUnique (string username) ``{
+
+    return SCR::Read (.uid.username, username);
 }
 
 

@@ -33,10 +33,10 @@
 	"surname":"",
 	"uid":500,
 	"username":"aaa",
-    "type":`local,
-	"what":`add_user];
+    "type":"local",
+	"what":"add_user"];
 
-    DUMP ( sformat ("local users:\n %1", Users::users [ `local ]:$[]) );
+    DUMP ( sformat ("local users:\n %1", Users::users [ "local" ]:$[]) );
     DUMP ( sformat ("shadow:\n %1\n", Users::shadow) );
 
     // without any groups present:
@@ -44,41 +44,41 @@
 
     DUMP ( sformat ("shadow:\n %1\n", Users::shadow) );
 
-    DUMP ( sformat ("local users:\n %1", Users::users [ `local ]:$[]) );
+    DUMP ( sformat ("local users:\n %1", Users::users [ "local" ]:$[]) );
 
     DUMP ("==========================================================");
 
     // groups are ok:
-    Users::groups [`local ] = $[
-        100: $[ "groupname": "users", "userlist":"", "more_users": "hh","type": `local ],
-        17:  $[ "groupname": "audio", "userlist":"hh", "more_users": "","type": `local ]
+    Users::groups ["local" ] = $[
+        100: $[ "groupname": "users", "userlist":"", "more_users": "hh","type": "local" ],
+        17:  $[ "groupname": "audio", "userlist":"hh", "more_users": "","type": "local" ]
     ];
 
     Users::groups_by_name = $[
-     `local: $[
-        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh", "type": `local ]
+     "local": $[
+        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh", "type": "local" ]
       ],
-      `system: $[
-        "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"hh", "more_users": "", "type": `local ]
+      "system": $[
+        "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"hh", "more_users": "", "type": "local" ]
       ]
     ];
 
-    DUMP ( sformat ("local groups:\n %1\n", Users::groups [ `local ]:$[]) );
+    DUMP ( sformat ("local groups:\n %1\n", Users::groups [ "local" ]:$[]) );
 
     TEST(``(Users::Commit ("user", false)), [], 0);
 
     DUMP ( sformat ("local groups modified:\n %1\n",
-        Users::groups [ `local ]:$[]) );
+        Users::groups [ "local" ]:$[]) );
 
     DUMP ("==========================================================");
 
     // with rebuilding the cache:
     DUMP ( sformat ("local user itemlist:\n %1",
-        UsersCache::users_itemlists [ `local ]:[]) );
+        UsersCache::users_itemlists [ "local" ]:[]) );
 
     TEST(``(Users::Commit ("user", true)), [], 0);
 
     DUMP ( sformat ("local user itemlist modified:\n %1",
-        UsersCache::users_itemlists [ `local ]:[]) );
+        UsersCache::users_itemlists [ "local" ]:[]) );
 
 }

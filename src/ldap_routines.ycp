@@ -18,7 +18,7 @@ textdomain "users";
  */
 global define map ReadLDAPUsers(string dir) ``{
 
-    return (SCR::Read(.target.ycp, dir + "/ldap.ycp"));
+    return (SCR::Read(.ldap.users));
 }
 
 /**
@@ -28,7 +28,7 @@ global define map ReadLDAPUsers(string dir) ``{
  */
 global define map ReadLDAPUsersByName(string dir) ``{
 
-    return (SCR::Read(.target.ycp, dir + "/ldap_byname.ycp"));
+    return (SCR::Read(.ldap.users.by_name));
 }
 
 /**
@@ -38,7 +38,7 @@ global define map ReadLDAPUsersByName(string dir) ``{
  */
 global define map ReadLDAPGroups(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/group_ldap.ycp");
+    return (SCR::Read(.ldap.groups));
 }
 
 /**
@@ -48,53 +48,55 @@ global define map ReadLDAPGroups(string dir)``{
  */
 global define map ReadLDAPGroupsByName(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/group_ldap_byname.ycp");
+    return (SCR::Read(.ldap.groups.by_name));
 }
 
 /**
  * Error messages for errors detected during LDAP operation
- * @param returned map returned as the output of target.bash_output
+ * @param type error type: binding/reading/writing
+ * @param error name of error (constant from perl-ldap)
  * @return error message
  */
-global define string GetLDAPErrorMessage (map returned) ``{
-
-    string stdout = returned["stdout"]:"";
+global define string GetLDAPErrorMessage (string type, string error) ``{
 
     map ldap_error = $[
     "LDAP_INAPPROPRIATE_AUTH":
 // original description:
 //"The server requires the client which had attempted to bind anonymously or without supplying credentials to provide some form of credentials"
 
-// error message:
+// error message:FIXME
 _("Wrong password was entered or anonymous access is restricted."),
 
     "LDAP_INVALID_CREDENTIALS":
 // error message:
 _("Wrong password was entered."),
 
+//LDAP_INVALID_SYNTAX
+//LDAP_PARAM_ERROR
+
+    "initialize":
+// error message:
+_("Possible reason: server is down or unreachable."),
     ];
 
+    map error_type = $[
+        // error message, more specific description follows
+	"init": _("Connection to LDAP server can not be established."),
+        // error message, more specific description follows
+	"bind":_("There was a problem with connecting to the LDAP server:"),
+        // error message, more specific description follows
+	"read":_("There was a problem with reading data from the LDAP server:"),
+        // error message, more specific description follows
+	"users": _("There was a problem with writing LDAP users:"),
+        // error message, more specific description follows
+	"groups":  _("There was a problem with writing LDAP groups:")];
 
-    // default error message, %1 is more specific description
-    return sformat (_("There was a problem with connecting the LDAP server:
-%1"), ldap_error[stdout]:stdout);
-}
+    return sformat ("%1
+%2",
+    // default error message (should not be used)
+    error_type[type]:_("LDAP error:"), ldap_error[error]:error);
 
-
-/**
- * Tries to check, if cpu.cfg is configured or just installed with default
- * values
- * @param host LDAP server
- * @param base LDAP base
- * @return answer
- */
-global define boolean CpuConfigured (string host, string base) ``{
-
-    string cpu_userbase = SCR::Read(.etc.cpu_cfg."user_base");
-    string cpu_basedn = SCR::Read(.etc.cpu_cfg."base_dn");
-    string cpu_host = SCR::Read(.etc.cpu_cfg."ldap_host");
-    // check if cpu.cfg is configured -- maybe compare times?
-    return (cpu_host == host || cpu_basedn == base || cpu_userbase == base);
+    // TODO: add some "More..." button to show specific error messages
 }
 
 /**
@@ -112,11 +114,11 @@ global define string GetLDAPPassword() ``{
                 // checkbox label
                 _("Use &anonymous Access")),
             `HBox(
-              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel()),
+              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel()),
+              `PushButton (`id(`cancel),`opt(`key_F9), UI::CancelButtonLabel())
               // button label
             //  `PushButton (`id(`anon), _("&Anonymous Access")),
 
-              `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
             )
             )
     );
@@ -130,219 +132,127 @@ global define string GetLDAPPassword() ``{
     return pw;
 }
 
+
 /**
- * Prepare the configuration file for LDAP users/groups modifications
- * @param dir temporary directory to store config and secret data
- * @param pass LDAP bind password
- * @return true
+ * read ldap users and groups...
  */
-global define boolean WriteLDAPPrepare (string dir, string pass)``{
+global define string ReadLDAP () ``{
 
-    // register agent for manipulating with temporary changed cpu.cfg
-    path agent_path = .tmp.cpu_cfg;
-    string path_to_cfg = dir + "/cpu.cfg";
-    string tmpfile = dir + "/etc_cpu_cfg";
-    SCR::Execute(.target.bash, sformat("/bin/cp /etc/cpu.cfg %1", path_to_cfg));
-
-    string agent_data = sformat ("%1
-
-`ag_ini(
-  IniAgent(
-    \"%2\",
-    $[ \"options\" : [ \"ignore_case\", \"global_values\", \"flat\" ],
-       \"comments\" : [ \"^#.*\", \"^[ \\t]*$\", ],
-       \"params\" : [
-		 $[ \"match\" : [ \"^[ \\t]*([^::]*[^ \\t::])[ \\t]*::[ \\t]*(.*[^ \\t]|)[ \\t]*$\" , \"%%s::%%s\"],],
-       ]
-	]
-))", agent_path, path_to_cfg);
-    SCR::Write (.target.string, tmpfile, agent_data);
-    SCR::RegisterAgent (agent_path, tmpfile);
-
-    // change the cfg file
-    SCR::Write(.tmp.cpu_cfg."shadow_file", dir + "/shadowfile");
-    if (pass != "" && pass != nil)
-        SCR::Write(.tmp.cpu_cfg."bind_pass", pass);
-
-    // save the cfg file now
-    SCR::Write (.tmp.cpu_cfg, "force");
+    string ret = SCR::Execute (.ldap.search, $[
+	"output_dir": tmpdir,
+	"user_filter": "objectClass=person", // FIXME
+	"group_filter": "objectClass=posixGroup" ]
+    );
+    return ret;
 }
 
 /**
- * Remove the configuration file used for LDAP users/groups modifications
- * @param dir temporary directory with config and secret data files
- * @return success
- */
-global define boolean WriteLDAPFinish (string dir) ``{
-
-    // remove the cfg and shadowfile files
-    string path_to_cfg = dir + "/cpu.cfg";
-    string shadow_file = dir + "/shadowfile";
-    return SCR::Execute(.target.bash,
-        "/bin/rm -f " + path_to_cfg + " " + shadow_file);
-}
-
-/**
- * Writing modified LDAP users with cpu
+ * Writing modified LDAP users with
  * @param ldap_users map of all ldap users
- * @param server true if this machine is LDAP server
- * @param dir temporary directory to store config and secret data
- * @return true
+ * @param server true if this machine is file for LDAP //FIXME: not here!
+ * @return empty string on success, error message otherwise
  */
-global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)``{
+global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
 
-    string shadow_file = dir + "/shadowfile";
-    string path_to_cfg = dir + "/cpu.cfg";
-    string skel = SCR::Read(.tmp.cpu_cfg."skel_dir");
-    map cpu_out = $[];
-    boolean ret = true;
+    string ret = "";
 
+    // TODO: modify shadow settings
     foreach (`uid, `user, ldap_users, ``{
 
-        symbol  action      = user["modified"]:`nothing;
-        if (action == `nothing)
+        string  action      = user["modified"]:"no";
+        if (action == "no") // TODO || ret != ""
             return;
 
-        integer gid         = user["gid"]:nil; // default values??
-        string  username    = user["username"]:"";
-        string  org_username = user["org_username"]:username;
-        string  forename    = user["forename"]:"";
-        string  surname     = user["surname"]:"";
-        string  fullname    = user["fullname"]:"";
-        string  home        = user["home"]:"";
-        string  org_home    = user["org_home"]:home;
-        string  shell       = user["shell"]:"";
-        string  password    = user["password"]:"";
-        string  groupname   = user["groupname"]:"";
-        string  email       = user["email"]:"";
+        string home		= user["home"]:"";
+        string org_home		= user["org_home"]:home;
+        string username		= user["username"]:"";
+        string groupname	= user["groupname"]:"";
+	string command		= "";
+	string ldap_ret = "";
 
-        string command = "/usr/bin/cpu";
-
-        // save password to shadowfile (check the encryption?)
-        SCR::Write(.target.string, shadow_file,
-            sformat("%1:%2", org_username, password));
-
-        // TODO: modify shadow settings
-
-        if (action == `added)
+        if (action == "added")
         {
-            command = sformat (
-            "%1 useradd -f %2 -u %3 -g %4 -d %5 -s %6 -S %7",
-            command, path_to_cfg, uid, gid, home, shell, username);
-
-            if (forename != "")
-                command = sformat ("%1 -F \"%2\"", command, forename);
-            if (surname != "")
-                command = sformat ("%1 -L \"%2\"", command, surname);
-            if (fullname != "")
-                command = sformat ("%1 -c \"%2\"", command, fullname);
-            if (email != "")
-                command = command + " -M " + email;
-
+	    ldap_ret = SCR::Write (.ldap.add, user);
             // on server, we can create the home
             if (server)
             {
-                command = sformat("%1; /bin/cp -r %2 %3", command, skel, home);
-                command = sformat("%1; /bin/chown -R %2:%3 %4",
-                command, username, groupname, home);
+		// FIXME: skeleton is missing!
+                command = sformat("/bin/cp -r %1 %2", skel, home);
+                command = sformat("%1; /bin/chown -R %2:%3 %4", command,
+		    username, groupname, home);
             }
         }
-        else if (action == `deleted)
+        else if (action == "deleted")
         {
-            command = sformat ("%1 userdel -f %2 %3",
-                command, path_to_cfg, username);
+	    ldap_ret = SCR::Write (.ldap.delete, user);
             if (server && user["delete_home"]:false)
             {
-                y2milestone ("The directory %1 is beeing deleted", home);
-                command = sformat("%1 ; /bin/rm -rf %2", command, home);
+                y2milestone ("The directory %1 is deleted", home);
+                command = sformat("/bin/rm -rf %1", home);
             }
         }
-        else if (action == `edited)
+        else if (action == "edited")
         {
-
-            // password for command-line cannot be crypted ??
-            // FIXME -S works as "do not change password" !!
-            command = sformat (
-            "%1 usermod -f %2 -u %3 -s %4 -g %5 %6 -S",
-            command, path_to_cfg, uid, shell, gid, org_username);
-
-            if (forename != "")
-                command = sformat ("%1 -F \"%2\"", command, forename);
-            if (surname != "")
-                command = sformat ("%1 -L \"%2\"", command, surname);
-            if (fullname != "")
-                command = sformat ("%1 -c \"%2\"", command, fullname);
-            if (email != "")
-                command = command + " -M " + email;
-
-            if (org_username != username)
-                command = sformat ("%1 -l %2", command, username);
+	    ldap_ret = SCR::Write (.ldap.modify, user);
 
             if (server && home != org_home)
             {
                 y2milestone ("The directory %1 is moved to %2", org_home, home);
-                command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
+                command = sformat("/bin/mv %1 %2", org_home, home);
             }
         }
-//        y2warning ("command: %1", command);
-        cpu_out = SCR::Execute(.target.bash_output, command);
-//        y2internal ("cpu: %1", cpu_out); -- log errors?
-        ret = ret && (cpu_out["stderr"]:"" == "");
+	if (ldap_ret != "")
+	{
+	    ret = GetLDAPErrorMessage ("users", ldap_ret);
+	}
+	else if (command != "")
+	{
+	    // FIXME: directory operation in Write, together with local users
+	    map out = SCR::Execute(.target.bash_output, command);
+	    if (out["stderr"]:"" != "")
+		y2error ("error calling %1: %2", command, out["stderr"]:"");
+	}
     });
     return ret;
 }
 
 /**
- * Writing modified LDAP groups using cpu
+ * Writing modified LDAP groups
  * @param ldap_groups map of all ldap groups
- * @param dir temporary directory to store config and secret data
- * @return true
+ * @return empty string on success, error message otherwise
  */
-global define boolean WriteLDAPGroups(map ldap_groups, string dir)``{
+global define string WriteLDAPGroups(map ldap_groups)``{
 
-    string path_to_cfg = dir + "/cpu.cfg";
+    string ret = "";
 
     foreach (`gid, `group, ldap_groups, ``{
 
-        string  groupname   = group["groupname"]:"";
-        string  org_groupname = group["org_groupname"]:groupname;
-        symbol  action      = group["modified"]:`nothing;
-
-        if (action == `nothing)
+        string action = group["modified"]:"no";
+        if (action == "no")
+	{
             return;
+	}
+	string ldap_ret = "";
 
-        if (org_groupname == "")
-            org_groupname = groupname;
-
-        string command = "/usr/bin/cpu";
-
-        if (action == `added)
+        if (action == "added")
         {
-            command = sformat (
-            "%1 groupadd -f %2 -g %3 %4",
-            command, path_to_cfg, gid, groupname);
-
+	    ldap_ret = SCR::Write (.ldap.group.add, group);
         }
-        else if (action == `deleted)
+        else if (action == "deleted")
         {
-            command = sformat ("%1 groupdel -f %2 %3",
-                command, path_to_cfg, groupname);
+	    ldap_ret = SCR::Write (.ldap.group.delete, group);
         }
-        else if (action == `edited)
+        else if (action == "edited")
         {
-            command = sformat (
-            "%1 groupmod -f %2 -g %3 %4",
-            command, path_to_cfg, gid, org_groupname);
-
-            if (org_groupname != groupname)
-                command = sformat ("%1 -n %2", command, groupname);
+	    ldap_ret = SCR::Write (.ldap.group.modify, group);
         }
-
-        y2debug ("cpu: %1",
-            SCR::Execute(.target.bash_output, command));
+	if (ldap_ret != "")
+	{
+	    ret = GetLDAPErrorMessage ("groups", ldap_ret);
+	    //FIXME: this is last error message!
+	}
     });
-
-    return true;
+    return ret;
 }
 
 /**

@@ -1,0 +1,63 @@
+#!/usr/bin/perl
+
+use lib "/usr/lib/YaST2/agents_non_y2";
+use ycp;
+use strict;
+use User::pwent;
+
+while ( <STDIN> )
+{
+    my ($command, $path, $argument) = ycp::ParseCommand ($_);
+
+    #----------------------------------------------------------
+    #  Expected calls:
+    #  Read(.uid.uid, id)
+    #	-> returns true if no user has "id" as UID 
+    #  Read(.uid.username, name) 
+    #	-> returns true if there is no user with "name" as username
+    #----------------------------------------------------------
+
+    if ( $command eq "Read" )
+    {
+	if ( $path eq '.uid' ) {
+	    my $id = $argument;
+	    my $pw = getpwuid($id);
+	    my $result = "true";
+
+	    if (defined $pw) {
+		my $name = $pw->name;
+		y2debug ("$id is UID of user $name");
+		$result = "false";
+	    }
+	    ycp::Return($result);
+	}
+	elsif ( $path eq '.username' ) {
+	    my $username = $argument;
+	    my $pw = getpwnam($username);
+	    my $result = "true";
+	   
+	    if (defined $pw) {
+		my $uid = $pw->uid;
+		y2debug ("used with uid", $uid);
+		$result = "false";
+	    }
+	    ycp::Return($result);
+	}
+	else {
+	    y2error ("wrong path ($path) or argument: ", ref ($argument));
+	    ycp::Return("wrong path or argument");
+	}
+       #TODO: check gid/groupname?
+    }
+    elsif ($command eq "result")
+    {
+	exit;
+    }
+    else
+    {
+	y2error ("wrong command ($command), only Read is accepted");
+	ycp::Return("wrong command, only Read is accepted");
+    }
+}
+
+# end

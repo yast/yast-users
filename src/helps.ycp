@@ -79,7 +79,7 @@ Valid password characters are letters, digits, blanks, and
       //help text 4/4
       help_text = help_text + _("<p>
 It's enough to use a password with a length of approximately 8 alpha-numeric
-characters. %1To ensure that the password was entered correctly, you are asked to
+characters. To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
 </p>
 ");
@@ -181,7 +181,7 @@ In this dialog, you can get information about existing <b>users</b>.
 
 	// help text 2/6
 		_("<p>
-To shift to the group dialog push the radio button <b>Groups administration</b>.
+To shift to the group dialog push the radio button <b>Groups Administration</b>.
 </p>
 ") +
 
@@ -227,7 +227,7 @@ In this dialog, you can get information about existing <b>groups</b>.
 ") +
 	// help text 2/4
 		_("<p>
-To shift to the user dialog, push the radio button <b>Users administration</b>.
+To shift to the user dialog, push the radio button <b>Users Administration</b>.
 </p>
 ") +
 

@@ -1,3 +1,13 @@
+/*
+ * File:
+ *   etc_shells.scr
+ * Summary:
+ *   SCR Agent for reading/writing /etc/defaults/useradd
+ * Access:
+ *   r/w
+ *
+ * $Id$
+ */
 .etc.default.useradd
 
 `ag_ini(
