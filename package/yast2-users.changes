@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jul 26 15:22:49 CEST 2002 - jsrain@suse.cz
+
+- yast2-security now not needed for running
+- 2.6.13
+
+-------------------------------------------------------------------
 Mon Jul 22 12:34:25 CEST 2002 - jsrain@suse.cz
 
 - removed yast2-mail from list of required packages
