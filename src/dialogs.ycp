@@ -272,6 +272,10 @@ can be changed for non-local users.
 	optionbox = `HVCenter ( `HSquash( buttonbox  ) );
 	if (what == "edit_user" && !do_not_edit)
 	{
+	    // helptext
+	    string enable_help	= _("<p>If you want to disallow this user to
+log in, check <b>Disable User Login</b> option.</p>");
+
 	    enable_term = `VBox (
 		`VSpacing (1),
 		// check box label
@@ -582,6 +586,12 @@ Please try again."));
 		    }
 		} while (error_map != $[] && !failed);
 
+		// FIXME use some checkbox... !
+		if (pw1 == "")
+		{
+		    user["user_disabled"]	= true;
+		}
+
 		if (failed)
 		{
 		    clear_password_fields ();
@@ -589,7 +599,7 @@ Please try again."));
 		}
 		// if "encryted" flag is present, password won't be encrypted
 		if (user["encrypted"]:false)
-		    user = (map<string,any>) remove (user, "encrypted");
+		    user["encrypted"]	= false;
 		user ["userPassword"]		= pw1;
 		user ["shadowLastChange"]	= Users::LastChangeIsNow();
 	    }
@@ -1602,7 +1612,7 @@ Please try again.")) ;
 		}
 		password = pw1;
 		if (group["encrypted"]:false)
-		    group = (map<string,any>) remove (group, "encrypted");
+		    group["encrypted"]	= false;
             }
 
 	    // --------------------------------- gid checks
