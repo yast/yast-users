@@ -4147,7 +4147,7 @@ Select another user ID.");
 
     if ($type eq "ldap" && $uid >=0 && $uid <= $max) {
 	# LDAP uid could be from any range (#38556)
-	return ""; # FIXME question in CheckUIDUI
+	return "";
     }
 
     if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
@@ -4182,6 +4182,21 @@ sub CheckUIDUI {
     my %ui_map	= %{$_[1]};
     my $type	= UsersCache->GetUserType ();
     my %ret	= ();
+
+    if (($ui_map{"ldap_range"} || 0) != 1) {
+	if ($type eq "ldap" &&
+	    $uid < UsersCache->GetMinUID ("ldap"))
+	{
+	    $ret{"question_id"}	= "ldap_range";
+	    $ret{"question"}	= sprintf(
+# popup question, %i are numbers
+__("The selected user ID is not from a range
+defined for LDAP users (%i-%i).
+Are you sure?"),
+		UsersCache->GetMinUID ("ldap"), UsersCache->GetMaxUID ("ldap"));
+	    return \%ret;
+	}
+    }
 
     if (($ui_map{"local"} || 0) != 1) {
 	if ($type eq "system" &&
@@ -4450,19 +4465,6 @@ sub CheckPasswordUI {
     my %ui_map		= %{$_[2]};
     my %ret		= ();
 
-    if (($ui_map{"empty_pw"} || 0) != 1) {
-	# popup question: user didn't enter password
-	my $error = __("You did not enter a password.
-This user will not be able to log in.
-Are you sure?");
-#FIXME do not check when already disabled...
-	if ($pw eq "") {
-	    $ret{"question_id"}	= "empty_pw";
-	    $ret{"question"}	= $error;
-	    return \%ret;
-	}
-    }
-
     if ($pw eq "") {
 	return \%ret;
     }
@@ -4725,8 +4727,8 @@ Select another group ID.");
     }
 
     if ($type eq "ldap" && $gid >=0 && $gid <= $max) {
-	# LDAP uid could be from any range (#38556)
-	return ""; # FIXME question in CheckGIDUI
+	# LDAP gid could be from any range (#38556)
+	return "";
     }
 
     if (($type ne "system" && $type ne "local" && ($gid < $min || $gid > $max))
@@ -4761,6 +4763,21 @@ sub CheckGIDUI {
     my %ui_map	= %{$_[1]};
     my $type	= UsersCache->GetGroupType ();
     my %ret	= ();
+
+    if (($ui_map{"ldap_range"} || 0) != 1) {
+	if ($type eq "ldap" &&
+	    $gid < UsersCache->GetMinGID ("ldap"))
+	{
+	    $ret{"question_id"}	= "ldap_range";
+	    $ret{"question"}	= sprintf(
+# popup question, %i are numbers
+__("The selected group ID is not from a range
+defined for LDAP groups (%i-%i).
+Are you sure?"),
+		UsersCache->GetMinGID ("ldap"), UsersCache->GetMaxGID ("ldap"));
+	    return \%ret;
+	}
+    }
 
     if (($ui_map{"local"} || 0) != 1) {
 	if ($type eq "system" &&

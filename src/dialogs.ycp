@@ -1022,8 +1022,11 @@ can be changed for non-local users.")) : `VSpacing (0),
 			UI::SetFocus(`id(`uid));
 			continue;
 		    }
-		    new_type = error_map["question_id"]:"local";
-		    UsersCache::SetUserType (new_type);
+		    if(contains(["local","system"],error_map["question_id"]:""))
+		    {
+			new_type = error_map["question_id"]:"local";
+			UsersCache::SetUserType (new_type);
+		    }
 		}
             } // end of uid checks
 
@@ -1708,8 +1711,11 @@ Please try again.")) ;
 			UI::SetFocus(`id(`gid));
 			continue;
 		    }
-		    new_type = error_map["question_id"]:"local";
-		    UsersCache::SetGroupType (new_type);
+		    if(contains(["local","system"],error_map["question_id"]:""))
+		    {
+			new_type = error_map["question_id"]:"local";
+			UsersCache::SetGroupType (new_type);
+		    }
 		}
 	    }
 
