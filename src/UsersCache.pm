@@ -190,6 +190,9 @@ sub DebugMap {
     
     y2internal ("--------------------------- start of output");
     foreach my $key (sort keys %map) {
+	if (!defined $map{$key}) {
+	    next;
+	}
     	if (ref ($map{$key}) eq "ARRAY") {
 	    y2warning ("$key ---> (list)\n", join ("\n", sort @{$map{$key}}));
 	}
@@ -213,6 +216,7 @@ sub SetCurrentUsers {
 	push @current_user_items, $user_items{$type};
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
+    undef $focusline_user;
 }
 
 ##------------------------------------
@@ -239,6 +243,7 @@ sub SetCurrentGroups {
 	push @current_group_items, $group_items{$type};
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
+    undef $focusline_group;
 }
 
 ##------------------------------------
@@ -879,8 +884,7 @@ sub CommitUser {
 	if ($what ne "group_change") {
 	    $focusline_user = $uid;
 	}
-	if ($org_type ne $type)
-	{
+	if ($org_type ne $type) {
 	    undef $focusline_user;
 	}
     }
