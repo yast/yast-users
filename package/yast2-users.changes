@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 21 18:26:33 CET 2005 - jsuchome@suse.cz
+
+- adapted testsuite for new ProductFeatures variable
+- 2.11.14
+
+-------------------------------------------------------------------
 Mon Feb 21 13:43:56 CET 2005 - jsuchome@suse.cz
 
 - 2.11.13 

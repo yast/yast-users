@@ -33,6 +33,7 @@
 		    "IO_SCHEDULER"		: "",
 		    "EVMS_CONFIG"		: "no",
 		    "UI_MODE"			: "simple",
+		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
 		]
 	],
 	"passwd": $[
