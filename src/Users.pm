@@ -1862,8 +1862,10 @@ sub CommitUser {
 
     if (!%user_in_work) { return 0; }
     if (defined $user_in_work{"check_error"}) {
+        y2error ("commit is forbidden: ", $user_in_work{"check_error"});
 	return 0;
     }
+DebugMap (\%user_in_work);
 
     # create local copy of current user
     my %user	= %user_in_work;
@@ -2710,6 +2712,9 @@ sub CheckGECOS {
 
     my $gecos		= $_[0];
 
+    if (!defined $gecos) {
+	return "";
+    }
     if ($gecos =~ m/:/) {
         return _("The \"Additional User Information\" entry cannot
 contain a colon (:).  Try again.");
@@ -3392,6 +3397,7 @@ sub ReadNISAvailable {
     }
     return 0;
 }
+##-------------------------------------------------------------------------
 
 BEGIN { $TYPEINFO{Import} = ["function",
     "boolean",
