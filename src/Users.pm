@@ -803,7 +803,7 @@ sub GetUsers {
     }
     return $ret;
     # error message
-    my $msg = _("There are more users satisfying the input conditions");
+    my $msg = _("There are multiple users satisfying the input conditions.");
 }
 
 ##------------------------------------
@@ -1005,6 +1005,12 @@ sub ReadCustomSets {
     if (SCR->Read (".target.size", $file) == -1) {
 	SCR->Execute (".target.bash", "/bin/touch $file");
 	$customs_modified	= 1;
+
+	if ($ldap_available && !Mode->config ()) {
+	    @user_custom_sets	= ("ldap");
+	    @group_custom_sets	= ("ldap");
+#TODO only on SLES?
+	}
     }
     else {
 	my $customs = SCR->Read (".target.ycp", $file);
@@ -1281,6 +1287,7 @@ sub ReadUsersCache {
     $self->ChangeCurrentGroups ("custom");
 }
 
+# initialize list of available plugins
 sub ReadAvailablePlugins {
 
     if (Mode->test ()) { return; }
@@ -1818,7 +1825,6 @@ sub EditUser {
 	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
     my $plugins		= $user_in_work{"plugins"};
-    
     # --------- call PluginPresent: check which plugins are in use for this user
     my $result = UsersPlugins->Apply ("PluginPresent", {
 	"what"	=> "user",
@@ -1826,8 +1832,6 @@ sub EditUser {
     }, \%user_in_work);
     if (defined ($result) && ref ($result) eq "HASH") {
         $plugins = [];
-#FIXME it is not possible to add new plugin via this function!
-#similar problem when calling from dialogs...
 	foreach my $plugin (keys %{$result}) {
 	    # check if plugin has done the 'PluginPresent' action
 	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
@@ -2127,6 +2131,69 @@ sub EditGroup {
 }
 
 ##------------------------------------
+# Adds a plugin to the group
+BEGIN { $TYPEINFO{AddGroupPlugin} = ["function", "boolean", "string"];}
+sub AddGroupPlugin {
+
+    my $self	= shift;
+    my $plugin	= shift;
+   
+    my $plugins = $group_in_work{"plugins"};
+    if (!defined $plugins) {
+	$plugins	= [];
+    }
+    push @$plugins, $plugin;
+    $group_in_work{"plugins"}	= $plugins;
+
+    if (($group_in_work{"what"} || "") eq "add_group") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Add", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    else {
+	y2internal ("edit");
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    return 1;
+}
+
+
+##------------------------------------
 # Adds a plugin to the user
 BEGIN { $TYPEINFO{AddUserPlugin} = ["function", "boolean", "string"];}
 sub AddUserPlugin {
@@ -2189,6 +2256,80 @@ sub AddUserPlugin {
 }
 
 ##------------------------------------
+# Removes a plugin from the group
+BEGIN { $TYPEINFO{RemoveGroupPlugin} = ["function", "boolean", "string"];}
+sub RemoveGroupPlugin {
+
+    my $self	= shift;
+    my $plugin	= shift;
+   
+    my $plugins = $group_in_work{"plugins"};
+    if (defined $plugins && contains ($plugins, $plugin)) {
+
+	my @new_plugins	= ();
+	foreach my $p (@$plugins) {
+	    if ($p ne $plugin) {
+		push @new_plugins, $p;
+	    }
+	}
+	$group_in_work{"plugins"}	= \@new_plugins;
+    }
+
+    my $plugins_to_remove = $group_in_work{"plugins_to_remove"};
+    if (!defined $plugins_to_remove) {
+	$plugins_to_remove	= [];
+    }
+    push @$plugins_to_remove, $plugin;
+    $group_in_work{"plugins_to_remove"}	= $plugins_to_remove;
+
+    if (($group_in_work{"what"} || "") eq "add_group") {
+
+	my $result = UsersPlugins->Apply ("AddBefore", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Add", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'AddBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    else {
+	y2internal ("edit");
+	my $result = UsersPlugins->Apply ("EditBefore", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+
+	$result = UsersPlugins->Apply ("Edit", {
+	    "what"	=> "group",
+	    "type"	=> $group_in_work{"type"},
+	    "plugins"	=> [ $plugin ]
+	}, \%group_in_work);
+	# check if plugin has done the 'EditBefore' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %group_in_work= %{$result->{$plugin}};
+	}
+    }
+    return 1;
+}
+
+##------------------------------------
 # Removes a plugin from the user
 BEGIN { $TYPEINFO{RemoveUserPlugin} = ["function", "boolean", "string"];}
 sub RemoveUserPlugin {
@@ -2213,7 +2354,7 @@ sub RemoveUserPlugin {
 	$plugins_to_remove	= [];
     }
     push @$plugins_to_remove, $plugin;
-    $user_in_work{"plugins_to_remove"}	= $plugins;
+    $user_in_work{"plugins_to_remove"}	= $plugins_to_remove;
 
     if (($user_in_work{"what"} || "") eq "add_user") {
 
