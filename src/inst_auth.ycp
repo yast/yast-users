@@ -13,13 +13,16 @@
 
     import "Wizard";
     import "Users";
+    import "Lan";
 
+    list lan_devices = Lan::GetDevices("all");
+    y2debug ("lan devices: %1", lan_devices);
 
     // check if lan is configured
-    if (false)			// FIXME
+    if (size (lan_devices) == 0)
     {
-	Users::after_auth = `users;
-	return `auto;
+	    Users::after_auth = `users;
+	    return `auto;
     }
 
 
@@ -84,7 +87,6 @@ Here you can choose the authentication method of users on your system.
 				  ),
 			   `VStretch()
 			   );
-
 
     Wizard::SetContentsButtons (caption, contents, help,
 				BackButtonLabel(), NextButtonLabel());
