@@ -168,7 +168,12 @@ global define void ReadLDAPSettings () ``{
     ldap_group_class	= ["posixGroup" ,"top" ];//splitstring Ldap::group_class
     ldap_user_filter	= "objectClass=person"; // FIXME configure, Ldap::
     ldap_group_filter	= "objectClass=posixGroup"; // FIXME configure, Ldap::
-    ldap_skel		= default_skel;// FIXME: configure in Ldap
+    ldap_shadow		= $[];//Ldap::GetDefaultShadow();
+    ldap_defaults	= $[ "skel": default_skel,
+			     "home": "/local/home/",
+			     "group": "100",
+			     "shell":  default_shell ];//Ldap::GetUserDefaults
+    ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
 }
 
 
@@ -280,7 +285,7 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
             if (server && ldap_ret == "")
             {
 		if (user["create_home"]:false)
-		    CreateHome (ldap_skel, home);
+		    CreateHome (ldap_defaults["skel"]:default_skel, home);
 		ChownHome (uid, gid, home);
             }
         }
