@@ -188,6 +188,59 @@ global define string ReadNISConfigurationType (string basedir)``{
     return ypdir;
 }
 
+global define map ChooseTemplates (list user_templates, list group_templates)``{
+
+    string user_template	= user_templates[0]:"";
+    string group_template	= group_templates[0]:"";
+
+    // label above radiobutton box
+    term rbu_buttons = `VBox( `Left(`Label (_("User Templates"))));
+    // label above radiobutton box
+    term rbg_buttons = `VBox( `Left(`Label (_("Group Templates"))));
+	foreach (string templ, user_templates, ``{
+	    rbu_buttons = add (rbu_buttons,
+		`Left(`RadioButton (`id(templ), templ, true)));
+	});
+	foreach (string templ, group_templates, ``{
+	    rbg_buttons = add (rbg_buttons,
+		`Left(`RadioButton (`id(templ), templ, true)));
+	});
+	term rb_users = `RadioButtonGroup (`id(`rbu), rbu_buttons);
+	term rb_groups = `RadioButtonGroup (`id(`rbg), rbg_buttons);
+
+	UI::OpenDialog (`opt(`decorated), `HBox (`HSpacing (1),
+        `VBox(
+            `HSpacing(50),
+	    `VSpacing (0.5),
+	    // label
+            `Label (_("There are multiple templates defined as default. Select the one to read.")),
+	    `VSpacing (0.5),
+	    user_templates == [] ? `Empty(): rb_users,
+	    `VSpacing (0.5),
+	    group_templates == [] ? `Empty() : rb_groups,
+            `HBox(
+              `PushButton (`id(`ok),`opt(`key_F10, `default),
+		Label::OKButton()),
+              // button label
+              `PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
+            )),
+	`HSpacing (1))
+	);
+	any ret = UI::UserInput();
+	if (ret == `ok)
+	{
+	    if (user_templates != [])
+		user_template = (string) UI::QueryWidget (`id(`rbu), `CurrentButton);
+	    if (group_templates != [])
+		group_template = (string)UI::QueryWidget (`id(`rbg), `CurrentButton);
+	}
+	UI::CloseDialog();
+    return $[
+	"user"	: user_template,
+	"group"	: user_template,
+    ];
+}
+
 /**
  * Error messages for errors detected during reading via .passwd agent
  * @param error number returned by passwd-agent
