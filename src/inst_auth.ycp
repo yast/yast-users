@@ -16,6 +16,8 @@
     import "Lan";
     import "Internet";
 
+    include "require.ycp";
+
     list lan_devices = Lan::GetDevices("all");
     y2debug ("lan devices: %1", lan_devices);
 
@@ -99,30 +101,34 @@ Here you can choose the authentication method of users on your system.
     Wizard::SetContentsButtons (caption, contents, help,
 				BackButtonLabel(), NextButtonLabel());
 
+    // check if nis+/ldap are available (there are not in personal edition)
+    list available_clients = [`nis];
+
+    if (IsPackageAvailable("yast2-ldap-client"))
+        available_clients = add (available_clients, `ldap);
+    if (IsPackageAvailable("yast2-nisplus-client"))
+        available_clients = add (available_clients, `nisplus);
 
     // select and enable to correct buttons
-
     if (Users::after_auth == `users)
     {
-	UI::ChangeWidget (`id(`local), `Value, true);
-	UI::ChangeWidget (`id(`network), `Value, false);
+	    UI::ChangeWidget (`id(`local), `Value, true);
+	    UI::ChangeWidget (`id(`network), `Value, false);
+	    UI::ChangeWidget (`id(`nis), `Value, true);
 
-	UI::ChangeWidget (`id(`nis), `Value, true);
-
-	UI::ChangeWidget (`id(`nis), `Enabled, false);
-	UI::ChangeWidget (`id(`nisplus), `Enabled, false);
-	UI::ChangeWidget (`id(`ldap), `Enabled, false);
+	    UI::ChangeWidget (`id(`nis), `Enabled, false);
+	    UI::ChangeWidget (`id(`nisplus), `Enabled, false);
+	    UI::ChangeWidget (`id(`ldap), `Enabled, false);
     }
     else
     {
-	UI::ChangeWidget (`id(`local), `Value, false);
-	UI::ChangeWidget (`id(`network), `Value, true);
+	    UI::ChangeWidget (`id(`local), `Value, false);
+	    UI::ChangeWidget (`id(`network), `Value, true);
 
-	UI::ChangeWidget (`id(`nis), `Value, Users::after_auth == `nis);
-	UI::ChangeWidget (`id(`nisplus), `Value, Users::after_auth == `nisplus);
-	UI::ChangeWidget (`id(`ldap), `Value, Users::after_auth == `ldap);
+        foreach (`client, available_clients, ``{
+            UI::ChangeWidget (`id(client), `Value, Users::after_auth == client);
+        });
     }
-
 
     any ret = nil;
 
@@ -140,15 +146,15 @@ Here you can choose the authentication method of users on your system.
 	}
 	else if (ret == `local)
 	{
-	    UI::ChangeWidget (`id(`nis), `Enabled, false);
-	    UI::ChangeWidget (`id(`nisplus), `Enabled, false);
-	    UI::ChangeWidget (`id(`ldap), `Enabled, false);
+        foreach (`client, available_clients, ``{
+            UI::ChangeWidget (`id(client), `Enabled, false);
+        });
 	}
 	else if (ret == `network)
 	{
-	    UI::ChangeWidget (`id(`nis), `Enabled, true);
-	    UI::ChangeWidget (`id(`nisplus), `Enabled, true);
-	    UI::ChangeWidget (`id(`ldap), `Enabled, true);
+        foreach (`client, available_clients, ``{
+            UI::ChangeWidget (`id(client), `Enabled, true);
+        });
 	}
 	else if ( ret == `help )
 	{
