@@ -21,18 +21,18 @@ Summary:	YaST2 Modules for installation
 
 %files
 %defattr(-,root,root)
-%dir @YAST2DIR@/include/users
-@YAST2DIR@/scrconf/etc_default_useradd.scr
-@YAST2DIR@/scrconf/etc_gshadow.scr
-@YAST2DIR@/scrconf/etc_shells.scr
-@YAST2DIR@/scrconf/etc_group.scr
-@YAST2DIR@/scrconf/run_procfiles.scr
-@YAST2DIR@/clients/users.ycp
-@YAST2DIR@/clients/users_write.ycp
-@YAST2DIR@/modules/Users.ycp
-@YAST2DIR@/include/users/*
-@YAST2DIR@/menuentries/menuentry_users.y2cc
-@YAST2DIR@/menuentries/menuentry_groups.y2cc
-@YAST2DIR@/menuentries/menuentry_add_user.y2cc
-@YAST2DIR@/menuentries/menuentry_add_group.y2cc
-%doc @DOCDIR@
+%dir @yncludedir@/users
+@scrconfdir@/etc_default_useradd.scr
+@scrconfdir@/etc_gshadow.scr
+@scrconfdir@/etc_shells.scr
+@scrconfdir@/etc_group.scr
+@scrconfdir/run_procfiles.scr
+@clientdir@/users.ycp
+@clientdir@/users_write.ycp
+@moduledir@/Users.ycp
+@yncludedir@/users/*
+@configdir@/users.y2cc
+@configdir@/groups.y2cc
+@configdir@/add_user.y2cc
+@configdir@/add_group.y2cc
+%doc @docdir@

@@ -2,30 +2,26 @@
 # Makefile.am for y2c_users/src
 #
 
-menudir = $(YAST2DIR)/menuentries
-includedir = $(YAST2DIR)/include/users
-clientsdir = $(YAST2DIR)/clients
-modulesdir = $(YAST2DIR)/modules
 
-
-modules_DATA =			\
+module_DATA =			\
 	Users.ycp		\
 	UserDefs.ycp		\
 	UserSettings.ycp	\
 	UserWriteStack.ycp	\
 	UserAddDefs.ycp
 
-include_DATA =			\
+ynclude_DATA =			\
 	ui.ycp			\
 	help.ycp
 
-clients_DATA = 			\
+client_DATA = 			\
 	users.ycp		\
+	users_auto.ycp		\
 	users_write.ycp
 
-menu_DATA = menuentry_users.y2cc	\
-	menuentry_groups.y2cc	\
-	menuentry_add_user.y2cc	\
-	menuentry_add_group.y2cc
+config_DATA = users.y2cc	\
+	groups.y2cc	\
+	add_user.y2cc	\
+	add_group.y2cc
 
-EXTRA_DIST = $(clients_DATA) $(menu_DATA) $(include_DATA) $(modules_DATA)
+EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA)

@@ -1,0 +1,106 @@
+/**
+ * File:
+ *   users_auto.ycp
+ *
+ * Package:
+ *   Configuration of Users
+ *
+ * Summary:
+ *   Client for autoinstallation
+ *
+ * Authors:
+ *   Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * This is a client for autoinstallation. It takes its arguments,
+ * goes through the configuration and return the setting.
+ * Does not do any changes to the configuration.
+ */
+
+
+{
+    textdomain "users";
+
+    import "Users";
+    import "Wizard";
+    include "users/ui.ycp";
+    include "users/io.ycp";
+    
+    include "wizard/sequencer.ycp";
+    list args = Args ();
+    if ( size (args) <= 0 )
+    {
+	y2error ("Did not get the settings, probably some mistake...");
+	return false;
+    }
+    if ( !is ( Args (0), list ) )
+    {
+	y2error ("Bad argument for users_auto: %1", Args (0));
+	return false;
+    }
+    list settings = [];
+    {
+	integer i = 0;
+	while (i < size (Args()))
+	{
+	    if (is (Args (i), list) && nil != Args (i))	settings = Args (i);
+	    i = i + 1;
+	}
+    }
+
+    Users::Import ( settings );
+    y2milestone("Imported: (%1)", settings);
+
+    define set_contents()
+	``{
+	term contents =
+	    `VBox(
+		  `VSpacing(1),
+		  `RichText( `id(`summary), Users::Summary()),
+		  `VSpacing(0.5),
+		  `HBox(
+			`PushButton(`id(`configure), _("&Configure Users")),
+			`HStretch(),
+			`PushButton(`id(`reset), _("&Reset Configuration"))
+			),
+		  `VSpacing(1)
+		  );
+	Wizard::SetContents(_("Users Configuration"),
+			    contents, "", true, true);
+    }
+
+
+    string default_pw           = "******";
+    integer focusline_group = 0;
+    integer focusline_user  = 0;
+    boolean view_all_users  = false;
+    boolean view_all_groups = false;
+
+    set_contents();
+    any result = nil;
+    any ret = nil;
+    repeat {
+	ret = UI::UserInput();
+	if (ret == `configure)
+	{
+	    Wizard::CreateDialog();
+	    result = AutoSequence();
+	    Wizard::CloseDialog();
+	    if (result == `next || result == `finish)
+	    {
+		settings = Users::Export ();
+	    }
+	    Users::Set(settings);
+	    set_contents();
+	}
+	else if ( ret == `reset)
+	{
+	    settings= [];
+	    Users::Set(settings);
+	    set_contents();
+	}
+    } until (ret == `back || ret == `next || ret ==`key);
+
+    return [ret, settings];
+}
