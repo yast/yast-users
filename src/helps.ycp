@@ -34,8 +34,9 @@ least belongs to one group.
   global define string help_main_end()``{
 	// help text 1/2
       return _("<p>
-Users and groups are arranged to various sets. You can change the set currently showed in the table with the <b>Set filter</b> button.
-You can also customize your view filter after pushing <b>Customize filter</b>.</p>")
+Users and groups are arranged in various sets. Change the set currently shown in the table with the <b>Set Filter</b> button.
+Also customize your view filter after clicking <b>Customize Filter</b>.</p>
+")
 
 	// help text 1/2
          + _("<p>
@@ -81,30 +82,31 @@ repeat it exactly in a second field. Make sure you don't forget your password!
     global define string DefaultsDialogHelp () ``{
 // Help text 1/6
       return _("<p>
-<b>Default group</b><br>
+<b>Default Group</b><br>
 The group name for a new user's initial group.
 </p>
 ")
 +
 // Help text 2/6
-_("<p><b>Default login shell</b><br>
-The name of the new user's login shell. You can select one from the list or enter your own path to shell.</P>
+_("<p><b>Default Login Shell</b><br>
+The name of the new user's login shell. Select one from the list or enter your own path to the shell.</P>
 ")
 +
 //Help text 3/6
-_("<p><b>Default home</b><br>
-The initial path prefix for a new user's home directory. The user's name will be affixed to the end of this value to create the default name of the user's home directory</P>
+_("<p><b>Default Home</b><br>
+The initial path prefix for a new user's home directory. The user's name will be affixed to the end of this value to create the default name of the user's home directory.</P>
 ")
 +
 // Help text 4/6
-_("<p><b>Skeleton directory</b><br>
-The contents of this directory will be copied to users's home directory when new user is added. </p>
+_("<p><b>Skeleton Directory</b><br>
+The contents of this directory will be copied to a user's home directory when a new user is added. </p>
 ")
 +
 // Help text 5/6:
 // Don't reorder letters YYYY-MM-DD, date must be set in this format
-_("<p><b>Expiration date</b><br>
-The date on which the user account is disabled. Date must be in format YYYY-MM-DD. Leave empty if this account never expires.</P>")
+_("<p><b>Expiration Date</b><br>
+The date on which the user account is disabled. Date must be in the format YYYY-MM-DD. Leave empty if this account never expires.</P>
+")
 +
 // Help text 6/6
 _("<P><B>Logging in after expiration</B><BR>
@@ -141,15 +143,16 @@ button now.
     global define string WriteDialogHelp () ``{
     return
 	    // For translators: read dialog help, part 1 of 2
-_("<P><B><BIG>Saving users configuration</BIG></B><BR>
+_("<P><B><BIG>Saving User Configuration</BIG></B><BR>
 Please wait...
 <BR></P>
 ") +
 	    // For translators: read dialog help, part 2 of 2
-_("<P><B><BIG>Aborting the save:</BIG></B><BR>
-Abort the saving by pressing <B>Abort</B>.
+_("<P><B><BIG>Aborting the Save Process:</BIG></B><BR>
+Abort the save process by pressing <B>Abort</B>.
 An additional dialog will inform you whether it is safe to do so.
-</P>");
+</P>
+");
  }
 
 
@@ -187,11 +190,13 @@ click <b>Edit</b> or <b>Delete</b>.
 
 	// help text 5/6
 		_("<p>
-To change the default settings used for new users, select the <b>Set defaults</b> button.</p>") +
+To change the default settings used for new users, select the <b>Set Defaults</b> button.</p>
+") +
 
 	// help text 6/6
     _("<p>
-If you want to change passwords encryption or user authentication, push the <b>Expert options...</b> button.</p>") +
+To change password encryption or user authentication, click <b>Expert Options...</b>.</p>
+") +
 
      help_main_end() );
   }
@@ -273,7 +278,7 @@ The mail for root will be forwarded to this user, if you check the option \"Reci
 
 	// help text 5/5
     help = help + _("<p>
-To see more details like the home directory or the user ID push
+To see more details, such as the home directory or the user ID, click
 <b>Details</b>.
 </p>
 ");
@@ -338,7 +343,7 @@ Select which users should be members of this group.
     if (more)
         // additional helptext for EditFroup dialog
         helptext = helptext +
-        _("The second list shows users, for which this group is the default group. This list cannot be edited here.");
+        _("The second list shows users for which this group is the default group. This list cannot be edited here.");
 
     return helptext;
   }
@@ -367,10 +372,11 @@ by the system for special purposes and pseudo logins.
 
 	// help text 3/8
  _("<p>
-If you change UID of an existing user, the rights of the files
+If you change the UID of an existing user, the rights of the files
 this user owns must be changed. This will be done automatically
-for the files in user's home directory, but not for the files 
-located on the other places!</p>") +
+for the files in the user's home directory, but not for the files 
+located other places.</p>
+") +
 
 	// help text 4/8
 		_("<p>
@@ -468,8 +474,9 @@ a password before a user is allowed to change it.</P>
 ")
 +
 // Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
-_("<P><B>Expiration date</B><BR>Set the date when this account expires. 
-Date must be in format YYYY-MM-DD. 
-Leave empty if this account never expires.</P>");
+_("<P><B>Expiration Date</B><BR>Set the date when this account expires. 
+The date must be in the format YYYY-MM-DD. 
+Leave empty if this account never expires.</P>
+");
   }
 }

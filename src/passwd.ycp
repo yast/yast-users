@@ -41,7 +41,7 @@ global map SystemUsers = $[
     /* User name for user: "ftp" */
     "FTP account" : _("FTP account"),
     /* User name for user: "named" */
-    "Nameserver daemon" : _("Nameserver daemon"),
+    "Nameserver daemon" : _("Name server daemon"),
     /* User name for user: "gdm" */
     "Gnome Display Manager daemon" : _("Gnome Display Manager daemon"),
     /* User name for user: "postfix" */

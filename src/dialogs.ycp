@@ -84,21 +84,21 @@ global define symbol EditUserDialog(symbol what) ``{
     map dialog_labels = $[
         `add_user: $[
             // dialog caption:
-            `local:     _("Add a new local user"),
+            `local:     _("Add a New Local User"),
             // dialog caption:
-            `system:     _("Add a new system user"),
+            `system:     _("Add a New System User"),
             // dialog caption:
-            `ldap:     _("Add a new LDAP user")
+            `ldap:     _("Add a New LDAP User")
         ],
         `edit_user: $[
             // dialog caption:
-            `local:     _("Edit an existing local user"),
+            `local:     _("Edit an Existing Local User"),
             // dialog caption:
-            `system:     _("Edit an existing system user"),
+            `system:     _("Edit an Existing System User"),
             // dialog caption:
-            `ldap:     _("Edit an existing LDAP user"),
+            `ldap:     _("Edit an Existing LDAP User"),
             // dialog caption:
-            `nis:     _("Edit an existing NIS user")
+            `nis:     _("Edit an Existing NIS User")
         ]
     ];
 
@@ -126,7 +126,7 @@ global define symbol EditUserDialog(symbol what) ``{
         if ( uid == nil )
         {
             // error label
-            Report::Error(_("There is no free UID for this type of user!"));
+            Report::Error(_("There is no free UID for this type of user."));
             return `nosave;
         }
     }
@@ -179,7 +179,7 @@ can be changed for non-local users.
 ")) : `VSpacing (0),
                 do_not_edit ? `VSpacing (1) : `VSpacing (0),
                 // text entry
-                `TextEntry(`id(`forename), _("F&irst name:"), forename),
+                `TextEntry(`id(`forename), _("F&irst Name:"), forename),
                 // text entry
                 `TextEntry(`id(`surname),  _("&Last name:"),  surname )
             ),
@@ -234,10 +234,17 @@ can be changed for non-local users.
 
     UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
 
-    if( what == `add_user && ( ! Mode::cont) )
-        Wizard::ReplaceNextButton(`PushButton (`id (`next),`opt(`key_F10),
-            // change of button label
-            _("&Create")));
+    // Next button is default (only for adding) - is it OK??
+    if ( what == `add_user )
+    {
+        if ( !Mode::cont )
+            Wizard::ReplaceNextButton (`PushButton (`id (`next),
+                // change of button label
+                `opt(`key_F10, `default), _("&Create")));
+        else
+            Wizard::ReplaceNextButton (`PushButton (`id (`next), `opt(`default),
+                UI::NextButtonLabel()));
+    }
 
     if( what == `add_user ) UI::SetFocus(`id(`forename));
 
@@ -293,9 +300,10 @@ can be changed for non-local users.
             if (findfirstof(forename, Users::invalid_gecos_chars) != nil)
             {
                 // error message
-                Report::Error(_("The forename entry can contain
-neither colon nor comma characters.
-Please try again.
+                Report::Error(_("
+The first name cannot contain
+: or , characters.
+Try again.
 "));
                 UI::SetFocus(`id(`forename));
                 continue;
@@ -303,9 +311,9 @@ Please try again.
             if (findfirstof(surname, Users::invalid_gecos_chars) != nil)
             {
                 // error message
-                Report::Error(_("The surname entry can contain
-neither colon nor comma characters.
-Please try again.
+                Report::Error(_("The last name cannot contain
+:  or , characters.
+Try again.
 "));
                 UI::SetFocus(`id(`surname));
                 continue;
@@ -740,13 +748,13 @@ global define symbol EditUserDetailsDialog( ) ``{
     if (user_type == `ldap)
         additional_data =
             // textentry label
-            `Top(`TextEntry( `id(`email), _("&Email adress"), email ));
+            `Top(`TextEntry( `id(`email), _("&E-Mail Address"), email ));
     else if (user_type == `nis)
         additional_data = `Empty();
     else
         additional_data =
             // textentry label
-            `Top(`TextEntry(`id(`addd), _("&Additional user information:"),
+            `Top(`TextEntry(`id(`addd), _("&Additional User Information:"),
                 addit_data));
 
     boolean do_not_edit = (user_type == `nis);
@@ -761,7 +769,7 @@ can be changed for non-local users.")) : `VSpacing (0),
            do_not_edit ? `VSpacing (1) : `VSpacing (0),
            // User account information, forename or first name
            // textentry label
-           `TextEntry(`id(`fullname),_("&Detailed profile for user:"),fullname),
+           `TextEntry(`id(`fullname),_("&Detailed Profile for User:"),fullname),
            `VSpacing(0.5),
            `HBox(
                 `VBox(
@@ -850,8 +858,8 @@ can be changed for non-local users.")) : `VSpacing (0),
                 if (findfirstof(addit_data, ":") != nil)
                 {
                     // error message
-                    Report::Error(_("The \"additional data\" entry cannot contain
-colon. Please try again.
+                    Report::Error(_("The \"Additional User Information\" entry cannot 
+contain a colon (:).  Try again.
 "));
                     UI::SetFocus(`id(`addd));
                     continue;
@@ -860,9 +868,9 @@ colon. Please try again.
                 if (size (add_l) > 3 )
                 {
                     // error message
-                    Report::Error(_("The \"additional data\" entry can consist
+                    Report::Error(_("The \"Additional User Information\" entry can consist
 of up to three sections separated by commas.
-Please remove the surplus.
+Remove the surplus.
 "));
                     UI::SetFocus(`id(`addd));
                     continue;
@@ -928,7 +936,8 @@ Please select a another User Id"));
                 // error popup
                 Report::Error(_("The home directory may only contain the following characters:
 a..zA..Z0..9_-/
-Please try again."));
+Try again.
+"));
                 UI::SetFocus(`id(`home));
                 continue;
             }
@@ -1177,19 +1186,19 @@ global define symbol EditGroupDialog(symbol what ) ``{
     map dialog_labels = $[
         `add_group: $[
             // dialog caption:
-            `local:     _("Add a new local group"),
+            `local:     _("Add a New Local Group"),
             // dialog caption:
-            `system:     _("Add a new system group"),
+            `system:     _("Add a New System Group"),
             // dialog caption:
-            `ldap:     _("Add a new LDAP group")
+            `ldap:     _("Add a New LDAP Group")
         ],
         `edit_group: $[
             // dialog caption:
-            `local:     _("Edit an existing local group"),
+            `local:     _("Edit an Existing Local Group"),
             // dialog caption:
-            `system:     _("Edit an existing system group"),
+            `system:     _("Edit an Existing System Group"),
             // dialog caption:
-            `ldap:     _("Edit an existing LDAP group")
+            `ldap:     _("Edit an Existing LDAP Group")
         ]
     ];
 
@@ -1228,7 +1237,7 @@ global define symbol EditGroupDialog(symbol what ) ``{
         if ( gid == nil )
         {
             // error label
-            Report::Error(_("There is no free GID for this type of group!"));
+            Report::Error(_("There is no free GID for this type of group."));
             return `nosave;
         }
     }
@@ -1611,25 +1620,25 @@ global define symbol DefaultsDialog() ``{
                 `VSpacing(1),
                 `ComboBox(`id(`defaultgroup), `opt(`hstretch),
                     // combobox label
-                    _("D&efault group"), available_groups ),
+                    _("D&efault Group"), available_groups ),
                 `VSpacing(1),
                 // text entry
                 `ComboBox(`id(`shell), `opt(`hstretch, `editable),
                     // combobox label
-                    _("Default &login shell"), available_shells),
+                    _("Default &Login Shell"), available_shells),
                 `VSpacing(1),
                 // text entry
-                `TextEntry( `id(`home), _("Path prefix for &home directory"),
+                `TextEntry( `id(`home), _("Path Prefix for &Home Directory"),
                     home),
                 `VSpacing(1),
                 // text entry
-                `TextEntry( `id(`skel), _("&Skeleton for home directory"),skel),
+                `TextEntry( `id(`skel), _("&Skeleton for Home Directory"),skel),
                 `VSpacing(1),
                 // text entry
-                `TextEntry( `id(`exp), _("Default e&xpiration date"), exp_date),
+                `TextEntry( `id(`exp), _("Default E&xpiration Date"), exp_date),
                 `VSpacing(1),
                 // intfield
-                `IntField (`id (`inact), _("How many days &after password expires is the login usable"), -1, 99999, inact),
+                `IntField (`id (`inact), _("Days &after Password Expiration Login Is Usable"), -1, 99999, inact),
                 `VSpacing(1)
                 ),
               `HSpacing(2))),
@@ -1638,7 +1647,7 @@ global define symbol DefaultsDialog() ``{
 
     Wizard::SetContentsButtons(
             // dialog label
-            _("New users defaults"),
+            _("New User Defaults"),
             contents,
             DefaultsDialogHelp(),
             BackButtonLabel(),
@@ -1679,7 +1688,8 @@ global define symbol DefaultsDialog() ``{
                 if (SCR::Read(.target.dir, new_home ) == nil)
                 {
                     Report::Error(_("The entered path prefix for home is not a directory.
-Please try again."));
+Try again.
+"));
                     UI::SetFocus(`id(`home));
                     continue;
                 }
@@ -1704,7 +1714,8 @@ may be unable to log in. Continue?
                 if (SCR::Read(.target.dir, new_skel ) == nil)
                 {
                     Report::Error(_("The entered home directory skeleton is not a directory.
-Please try again."));
+Try again.
+"));
                     UI::SetFocus(`id(`skel));
                     continue;
                 }

@@ -56,7 +56,7 @@ global define symbol UsersSequence(string start) ``{
 	]
     ];
 
-    string caption = _("Users and groups configuration");
+    string caption = _("User and Group Configuration");
     term contents = `Label(_("Initializing ..."));
 
     if( ! Mode::cont )
@@ -82,7 +82,7 @@ global define symbol UsersSequence(string start) ``{
  * @return sequence result
  */
 global define symbol AutoSequence(string start) ``{
-    string caption = _("Users and groups configuration");
+    string caption = _("User and Group Configuration");
     term contents = `Label(_("Initializing ..."));
 
     Wizard::CreateDialog();
