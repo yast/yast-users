@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Sep 15 10:29:59 CEST 2004 - jsuchome@suse.cz
+
+- disable autologin for deleted user (#45261)
+
+-------------------------------------------------------------------
 Fri Sep 10 12:56:13 CEST 2004 - jsuchome@suse.cz
 
 - exit with warning when creating backup files failed
