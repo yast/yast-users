@@ -17,6 +17,7 @@ import "Mode";
 import "Label";
 
 import "UsersCache";
+import "Users";
 
 include "wizard/sequencer.ycp";
 
@@ -29,6 +30,11 @@ include "users/dialogs.ycp";
 import "CWM";
 include "users/widgets.ycp";
 
+define boolean ReallyBack () ``{
+    if (!Mode::cont)
+	return Popup::ReallyAbort (Users::Modified());
+    else return true;
+}
 
 define symbol SummaryDialog() ``{
 
@@ -45,7 +51,9 @@ define symbol SummaryDialog() ``{
 	// dialog caption
 	_("User and Group Administration"),
 	Label::BackButton (), Label::NextButton (),
-	$[]
+	$[
+	    `back: ReallyBack
+	]
     );
     if (ret != nil && contains ([`new, `edit, `delete], ret))
     {
