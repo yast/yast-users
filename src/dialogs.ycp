@@ -262,7 +262,7 @@ can be changed for non-local users.
     else
     {
 	optionbox = `HVCenter ( `HSquash( buttonbox  ) );
-	if (what == "edit_user" && !do_not_edit)
+	if (what == "edit_user" && !do_not_edit && false)
 	{
 	    // FIXME not ready
 	    enable_term = `VBox (
@@ -440,7 +440,7 @@ can be changed for non-local users.
         // generate a login name from first and last name
         if (ret == `propose)
         {
-	    string to_propose = issubstring (cn, "%") ?
+	    string to_propose = (issubstring (cn, "%") || cn == "") ?
 		givenName + " " + sn : cn;
 	    if (tmp_fullname != to_propose)
 	    {
@@ -628,9 +628,12 @@ Please try again."));
 		    continue;
 		}
             }
-	    if (user_type == "ldap" && !details)
+	    if (!details)
 	    {
-		error = Users::CheckLDAPAttributes (user);
+		// we must call plugin Check function even if plugin dialog
+		// is not opened (= default values)
+		// FIXME FIXME - now in plugin API
+		error = Users::CheckUser (user);
 		if (error != "")
 		{
 		    Report::Error (error);
@@ -641,7 +644,11 @@ Please try again."));
 
 	    // --------------------------------- now everything should be OK:
 	    // --------------------------------- save the settings
-            if ( what == "edit_user" )
+	    if (haskey (user, "check_error"))
+	    {
+		user = remove (user, "check_error");
+	    }
+	    if ( what == "edit_user" )
             {
 		Users::EditUser (user);
             }
@@ -1051,12 +1058,14 @@ can be changed for non-local users.")) : `VSpacing (0),
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
+    /* also enable PluginDIalog for non-ldap users
     if ( ret == `next )
     {
 	ret = string_to_symbol (what); // `back has same effect
 	if (user_type == "ldap")
 	    ret = `ldap;
     }
+    */
     return (symbol)ret;
 }
 
@@ -1220,25 +1229,30 @@ define symbol PluginDialog (string what) ``{
 
     map<string, any> object	= (what == "user") ?
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
-    map<string, any> tmp_object	= $[];
 
-    list plugins	= UsersPlugins::Get ("GUIClient");
-    any ret		= `not_next;
+    // UsersPlugins will filter out plugins we cannot use for given type
+    map plugin_clients		= UsersPlugins::Apply ("GUIClient",
+	$[ "what"	: what ],
+	$[ "type"	: object["type"]:""]
+    );
 
-    // FIXME plugins should be available also for non-ldap users!
+    any ret			= `not_next;
 
-    if (plugins == [])
+    if (size (plugin_clients) == 0)
     {
 	ret = `next;
     }
     else
     {
+	list plugins		=
+	    maplist (string plugin, string client, plugin_clients, ``(client));
+
 	string plugin	= plugins[0]:"";
 
 	// dialog caption (temporary - FIXME)
 	string caption	= _("Plug-ins");
 
-	string help	= "general helptext for plugins FIXME";
+	string help	= _("general helptext for plugins FIXME");
 
 	list items = [];
 	foreach (string plugin, plugins, ``{
@@ -1331,16 +1345,14 @@ define symbol PluginDialog (string what) ``{
 	repeat
 	{
 	    ret = UI::UserInput();
-	    y2internal ("ret: %1", ret);
 	    if (ret == `run || ret == `table)
 	    {
 		plugin	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
 		any plugin_ret = WFM::CallFunction (plugin, ["Dialog", $[
-		    "what"	: what,
-		    "data"	: object
-		]]);
+		    "what"	: what ], object ]);
 		if (plugin_ret == `next)
 		{
+		    // TODO plugin can take the object directly from Users...
 		    object	= (what == "user") ?
 			Users::GetCurrentUser (): Users::GetCurrentGroup ();
 		}

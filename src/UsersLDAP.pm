@@ -305,6 +305,29 @@ sub ReadSettings {
 	@user_class = @{$user_template{"defaultObjectClass"}};
     }
 
+    my @u_required_attrs	= ();
+
+    if (defined ($user_template{"requiredAttribute"})) {
+	@u_required_attrs	= @{$user_template{"requiredAttribute"}};
+    }
+
+    # read the attributes required by schema 
+    foreach my $class (@user_class) {
+	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
+	if (!defined $object_class || ref ($object_class) ne "HASH" ||
+	    ! %{$object_class}) { next; }
+	
+	my $req = $object_class->{"must"};
+	if (defined $req && ref ($req) eq "ARRAY") {
+	    foreach my $r (@{$req}) {
+		if (!contains (\@u_required_attrs, $r)) {
+		    push @u_required_attrs, $r;
+		}
+	    }
+	}
+	$user_template{"requiredAttribute"}	= \@u_required_attrs;
+    }
+
     if (defined $group_config{"defaultBase"}) {
 	$group_base = $group_config{"defaultBase"}[0];
     }
@@ -325,6 +348,29 @@ sub ReadSettings {
 	}
 	UsersCache::SetLDAPMemberAttribute ($member_attribute);
 	# FIXME what about only posixGroup or anything else???
+    }
+
+    my @g_required_attrs	= ();
+
+    if (defined ($group_template{"requiredAttribute"})) {
+	@g_required_attrs	= @{$group_template{"requiredAttribute"}};
+    }
+
+    # read the attributes required by schema 
+    foreach my $class (@group_class) {
+	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
+	if (!defined $object_class || ref ($object_class) ne "HASH" ||
+	    ! %{$object_class}) { next; }
+	
+	my $req = $object_class->{"must"};
+	if (defined $req && ref ($req) eq "ARRAY") {
+	    foreach my $r (@{$req}) {
+		if (!contains (\@g_required_attrs, $r)) {
+		    push @g_required_attrs, $r;
+		}
+	    }
+	}
+	$group_template{"requiredAttribute"}	= \@g_required_attrs;
     }
 
     if (defined $user_template{"default_values"}) {
@@ -536,6 +582,7 @@ sub GetMaxPasswordLength {
 # return list of attributesm required for LDAP user
 BEGIN { $TYPEINFO{GetUserRequiredAttributes} = ["function", ["list","string"]];}
 sub GetUserRequiredAttributes {
+
     if (defined ($user_template{"requiredAttribute"})) {
 	return @{$user_template{"requiredAttribute"}};
     }
