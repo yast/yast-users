@@ -109,33 +109,43 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// show only attributes allowed by schema
 	list allowed_attrs= Ldap::GetObjectAttributes (object_class);
 
+	// do not allow editing of binary values (perl converts them to string)
+	list binary_attrs = [ "jpegphoto", "usercertificate" ];
+
 	// generate table items from already existing values
         foreach (string attr, any val, data, ``{
-	    if (contains (internal_keys, attr))
+	    string at = tolower (attr);
+	    if (contains (internal_keys, at))
 		return;
-	    if (contains (do_not_show_keys, attr))
+	    if (contains (do_not_show_keys, at))
 		return;
-	    if (!contains (allowed_attrs, attr))
+	    if (!contains (allowed_attrs, at))
 		return;
 	    if (is (val, map) || val == nil)
 		return;
 	    list<string> value = [];
-	    if (is (val, string))
+	    if (contains (binary_attrs, at) || is (val, byteblock) ||
+		(is (val, list) && is (select ((list)val,0,nil), byteblock)))
 	    {
-		value = [ (string)val ];
-		data [attr] = value;
+		y2warning ("binary value (%1) cannot be edited", at);
+		return;
 	    }
 	    else if (is (val, integer))
 	    {
 		value = [ sformat ("%1", val) ];
-		data [attr] = value;
+		data [at] = value;
+	    }
+	    else if (is (val, string))
+	    {
+		value = [ (string)val ];
+		data [at] = value;
 	    }
 	    else if (is (val, list))
 	    {
 		value = (list<string>)val;
 	    }
-	    used_attributes = add (used_attributes, attr);
-	    items = add (items,`item (`id(attr), attr, mergestring(value,",")));
+	    used_attributes = add (used_attributes, at);
+	    items = add (items,`item (`id(at), at, mergestring(value,",")));
 	});
 
 	// generate table items with empty values
