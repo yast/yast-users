@@ -476,10 +476,16 @@ can be changed for non-local users.
         }
 
         // only in continue mode
-        if( ret == `additional )
+        if (ret == `additional)
         {
             if (UI::QueryWidget(`id(`username), `Value) == "" &&
-                UI::QueryWidget(`id(`cn), `Value) == "")
+		((user_type == "ldap" &&
+		  UI::QueryWidget(`id(`sn), `Value) == "" &&
+		  UI::QueryWidget(`id(`givenname), `Value) == "")
+		||
+		 (user_type != "ldap" &&
+                  UI::QueryWidget(`id(`cn), `Value) == "")
+	    ))
 		ret = `nosave;
         }
 
