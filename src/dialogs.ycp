@@ -707,10 +707,11 @@ can be changed for non-local users.")) : `VSpacing (0),
         dialog_labels [ what, user_type ]:"",
         dialog_contents,
         EditUserDialogHelp (complex_layout, user_type, what),
-        Label::CancelButton(),
-	complex_layout ?  Label::NextButton () : Label::AcceptButton()
+        complex_layout ? Label::BackButton () : Label::CancelButton(),
+	complex_layout ? Label::NextButton () : Label::AcceptButton()
     );
-    Wizard::HideAbortButton ();
+    if (!complex_layout)
+	Wizard::HideAbortButton ();
 
     symbol ret		= `edit;
     symbol current	= nil;
