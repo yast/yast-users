@@ -46,13 +46,13 @@
 
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
-		  `Table(`header(_("Login"), _("Name")),
+		  `Table(`header(_("State"), _("Login"), _("Name"), _("Groups")),
 		         []),
 	          `HBox
 		  (
 		      `PushButton(`id(`new),       _("&Add")),
 		      `PushButton(`id(`clone),     _("&Clone")),
-		      `PushButton(`id(`clone),     _("&Edit")),
+		      `PushButton(`id(`edit),      _("&Edit")),
 		      `HStretch(),
 		      `PushButton(`id(`delete),    _("&Delete"))
 		  )
@@ -64,7 +64,7 @@
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
-	term ret = UI(`UserInput());
+	symbol ret = UI(`UserInput());
 	
 	/* TODO change the current_user here */
 
@@ -97,7 +97,7 @@
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
-	term ret = UI(`UserInput());
+	symbol ret = UI(`UserInput());
 	
 	/* TODO change the current_group here */
 
@@ -105,36 +105,115 @@
     }
     
     /**
-     * Function that adds or clones a user
+     * Function that adds, clones or edits a user
      * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
      */
-    global define usersEditUser(term what) ``{
+    global define usersEditUser(symbol what) ``{
+	map dialog_labels = $[
+	    `add_user:   UI(_("Add a new user")),
+	    `clone_user: UI(_("Add a new user using cloning")),
+	    `edit_user:  UI(_("Edit an existing user"))
+	];
+
 	string help_text = "TODO HELP Add/Clone/Edit user";
 
+	string username = "";
+	string fullname = "";
+	if (what == `clone_user || what == `edit_user)
+	{
+	    username = lookup(current_user, "username", "");
+	    fullname = lookup(current_user, "fullname", "");
+	}
+	
 	term contents = 
-	    `VBox(rbUsersGroup(`users),
-		  `Table(`header(_("Login"), _("Name")),
-		         []),
-	          `HBox
-		  (
-		      `PushButton(`id(`new),       _("&Add")),
-		      `PushButton(`id(`clone),     _("&Clone")),
-		      `PushButton(`id(`edit),      _("&Edit")),
-		      `HStretch(),
-		      `PushButton(`id(`delete),    _("&Delete"))
-		  )
-	    );
+	    `HSquash(`VBox
+	    (
+	        `VStretch(),
+		
+		// User account information, forename or first name
+		`TextEntry(`id(`forename), _("&Name:"), fullname),
 
-	UI(`SetWizardContentsButtons(_("User and group administration"),
+		`VSquash(`HBox
+		(
+		    // input field for login name
+		    `Bottom(`TextEntry( `id(`loginname), _("&User login:"), username )),
+		    // push button to generate a login name from first and last name
+		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+		)),
+		
+		// User account information, first version of user password, both versions must match
+		`Password(`id(`pw1), _("&Enter a password:"), ""),
+		// User account information, second version of user password, retyped to avoid typos
+		// This is a label, please use newline if it is longer than 48 characters
+		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+		
+	        `VStretch(),
+		/*`Bottom(*/`PushButton(`id(`details), _("&Details..."))//)
+	    ));
+
+	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             help_text,
-			             CancelButtonLabel(),
-				     FinishButtonLabel()));
+			             BackButtonLabel(),
+				     NextButtonLabel()));
 
-	term ret = UI(`UserInput());
+	symbol ret = UI(`UserInput());
 	
 	/* TODO change the current_user here */
 
+	return ret;
+    }
+    
+    /**
+     * Details of adding/cloning/editing dialog
+     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
+     */
+    global define usersEditUserDetails() ``{
+	string help_text = "TODO HELP User Details";
+
+	string username = "";
+	string fullname = "";
+	
+	term contents = 
+	    `HSquash(`VBox
+	    (
+	        `VStretch(),
+		
+		// User account information, forename or first name
+		`TextEntry(`id(`forename), _("&Name:"), fullname),
+
+		`VSquash(`HBox
+		(
+		    // input field for login name
+		    `Bottom(`TextEntry( `id(`loginname), _("&User login:"), username )),
+		    // push button to generate a login name from first and last name
+		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+		)),
+		
+		// User account information, first version of user password, both versions must match
+		`Password(`id(`pw1), _("&Enter a password:"), ""),
+		// User account information, second version of user password, retyped to avoid typos
+		// This is a label, please use newline if it is longer than 48 characters
+		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+		
+	        `VStretch(),
+		/*`Bottom(*/`PushButton(`id(`details), _("&Details..."))//)
+	    ));
+
+	UI(`SetWizardContentsButtons(sformat(UI(_("Detailed profile for user %1")), username),
+		                     contents,
+			             help_text,
+			             BackButtonLabel(),
+				     OKButtonLabel()));
+
+	symbol ret = UI(`UserInput());
+	
+	/* TODO change the current_user here */
+
+	// Every time I want to return to the previous dialog
+	if (ret == `next)
+	    ret = `back;
+	
 	return ret;
     }
     
