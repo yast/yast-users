@@ -32,7 +32,7 @@ BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
     my $find = "/usr/bin/find ".Directory->moduledir();
-    $find .= " -name UsersPlugin*.*"; #TODO use some variable for the name
+    $find .= " -name 'UsersPlugin*.*'"; #TODO use some variable for the name
     my $out     = SCR->Execute (".target.bash_output", $find);
     my $modules = $out->{"stdout"} || "";
 
