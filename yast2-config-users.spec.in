@@ -39,6 +39,7 @@ make install
 %{?suse_check}
 
 %files
+%defattr(-,root,root)
 %dir @YAST2DIR@/include/users
 @YAST2DIR@/clients/users.ycp
 @YAST2DIR@/include/users/*
@@ -46,5 +47,5 @@ make install
 @YAST2DIR@/menuentries/menuentry_groups.y2cc
 @YAST2DIR@/menuentries/menuentry_add_user.y2cc
 @YAST2DIR@/menuentries/menuentry_add_group.y2cc
-%dir @DOCDIR@
+%docdir @DOCDIR@
 @DOCDIR@/*

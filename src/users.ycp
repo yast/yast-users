@@ -24,6 +24,7 @@
 
     textdomain "users";
     import "Wizard";
+    import "Console";
 
     // ===== arguments ================================================
 
@@ -103,16 +104,13 @@
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
     include "wizard/sequencer.ycp";
-    include "font_defines.ycp";
     
     include "users/ui.ycp";
     include "users/io.ycp";
 
    
-    map    settings = $[];
     string language = UI::GetLanguage(true);
-    settings        = SelectConsoleFont( language);
-    string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
+    string encoding = Console::SelectFont( language);
   
     
     usersGroupsShadowReadFromDisk();
