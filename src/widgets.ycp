@@ -923,12 +923,6 @@ you must do it on server.
 	// ask for real LDAP password if reading was anonymous
 	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
     }
-    /*
-    if (ev_id == `back && !Mode::cont && !Popup::ReallyAbort(Users::Modified()))
-    {
-	return `summary;
-    }
-    */
     return ev_id;
 }
 
@@ -1027,11 +1021,16 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	}
         if (Users::ChangeCurrentUsers ((string) ev_id))
         {
-	    if (popup) UI::CloseDialog ();
+	    if (popup)
+	    {
+		UI::CloseDialog ();
+		popup = false;
+	    }
             UsersCache::SetCustomizedUsersView (ev_id == "custom");
 	    SummaryTableInit ("table");
 	    RadioButtonsUsersGroupsInit ("rb_users_groups");
         }
+	if (popup) UI::CloseDialog ();
 	return nil;
     }
     if (current_summary == "groups" &&
@@ -1041,12 +1040,27 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	{
 	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
 	}
+	boolean popup = false;
+	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
+	    (ev_id == "nis" && Users::NISNotRead ()))
+	{
+	    UI::OpenDialog (`opt(`decorated ),
+	        // wait popup
+		`Label(_("Reading sets of users and groups. Please wait...")));
+	    popup = true;
+	}
         if (Users::ChangeCurrentGroups ((string) ev_id))
         {
+	    if (popup)
+	    {
+		UI::CloseDialog ();
+		popup = false;
+	    }
             UsersCache::SetCustomizedGroupsView (ev_id == "custom");
 	    SummaryTableInit ("table");
 	    RadioButtonsUsersGroupsInit ("rb_users_groups");
         }
+	if (popup) UI::CloseDialog ();
 	return nil;
     }
     if (ev_id == `customize)
