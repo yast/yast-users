@@ -1163,9 +1163,15 @@ global define map Export() ``{
         }
     });
 
-    // all local groups:
-    list exported_groups = maplist (`uid, `group, groups [`local]:$[], ``{
-        return ExportGroup (group);
+    list exported_groups = [];
+    // all local groups, "users" only when modified
+    foreach (`uid, `group, groups[`local]:$[], ``{
+
+        if (group ["modified"]:`nothing != `nothing ||
+            group ["groupname"]:"" != "users")
+        {
+            exported_groups = add (exported_groups, ExportGroup(group));
+        }
     });
     /* deleted system groups (??):
     foreach (`uid, `group, modified_groups[`system]:$[], ``{
@@ -1175,13 +1181,20 @@ global define map Export() ``{
     // modified system groups:
     foreach (`uid, `group, groups[`system]:$[], ``{
 
-        if (group["modified"]:`nothing != `nothing)
+        if (group ["modified"]:`nothing != `nothing)
         {
             exported_groups = add (exported_groups, ExportGroup(group));
         }
     });
 
-    return $[ "users":exported_users, "groups": exported_groups, "userdefaults": useradd_defaults ];
+    y2error ("groups: %1", groups[`local]:$[]);
+    y2error ("exp groups: %1", exported_groups);
+
+    return $[
+        "users": exported_users,
+        "groups": exported_groups,
+        "userdefaults": useradd_defaults
+    ];
 
 }
 
@@ -1613,7 +1626,7 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else if (what_group == `delete_group )
         {
-            if (group_in_work["modified"]:`nothing != `added)
+            if (group_in_work ["modified"]:`nothing != `added)
             {
                 group_in_work ["modified"] = `deleted;
                 modified_groups [type] = add (modified_groups [type]:$[],
@@ -1626,9 +1639,12 @@ global define boolean Commit (string object, boolean cache)``{
                 gshadow [type] = remove (gshadow [type]:$[], org_groupname);
             // deleted group had no members -> no user change
         }
-        else if ( what_group == `add_user ) // do not call Commit again
+        else if ( what_group == `user_change ) // do not call Commit again
         {
-
+            if (group_in_work ["modified"]:`nothing != `added)
+            {
+                group_in_work ["modified"] = `edited;
+            }
         }
         // change the cache variables
         if (cache)

@@ -585,7 +585,7 @@ Use it and change its owner?
             if ( email != "")
                 Users::user_in_work ["email"] = email;
 
-            y2warning ("edited user: %1", Users::user_in_work );
+            y2debug ("edited user: %1", Users::user_in_work );
         }
     } until ( ret == `next || details || ret == `abort  || ret == `back ||
               ret == `cancel || ret == `additional || ret == `nosave );
@@ -875,7 +875,8 @@ Please try again."));
                     UI::SetFocus(`id(`home));
                     continue;
                 }
-                if (SCR::Read(.target.size, new_home ) !=-1)
+                // do not check local directories in autoinst config
+                if (SCR::Read(.target.size, home ) != -1 && !Mode::config)
                 {
                     // yes-no popup
                     if (! UI::YesNoPopup(_("The home directory selected already exists.
