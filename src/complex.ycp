@@ -105,8 +105,7 @@ global define symbol ReallyAbort() ``{
 
     if ( ! Mode::cont )
     {
-        if (Modified())
-            ret = Popup::ReallyAbort (true);
+        ret = Popup::ReallyAbort (Modified());
     }
     else
     {
