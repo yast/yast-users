@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 20 13:08:11 CEST 2003 - jsuchome@suse.de
+
+- removed redundant "initialization dialog" (#28779)
+- fixed help text
+
+-------------------------------------------------------------------
 Wed Aug 13 13:53:53 CEST 2003 - jsuchome@suse.de
 
 - added new system user names for translation (passwd.ycp)
