@@ -68,7 +68,7 @@ include "ui/common_messages.ycp";
              ),
         `VStretch(),
         // push button
-        `PushButton(`id(`expert), _("E&xpert Options...") ),
+        `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
         `VStretch()
         );
 

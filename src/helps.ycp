@@ -338,24 +338,24 @@ Select which users should be members of this group.
     if (more)
         // additional helptext for EditFroup dialog
         helptext = helptext +
-        _("The second list shows users, for which this group is the default group. This cannot be edited here.");
+        _("The second list shows users, for which this group is the default group. This list cannot be edited here.");
 
     return helptext;
   }
 
 
-
   /**
    * Help for EditUserDetailsDialog.
+   * @param user_type type of edited user (`local/`system/`ldap/`nis)
    * @return string help text
    */
-  global define string EditUserDetailsDialogHelp() ``{
+  global define string EditUserDetailsDialogHelp(symbol user_type) ``{
 
-	// help text 1/7
-      return _("<p>
+	// help text 1/8
+    string helptext = _("<p>
 The meaning of the fields are described below:
 </p>") +
-	// help text 2/7, %1 is number
+	// help text 2/8, %1 is number
 		sformat(_("<p>
 <b>User ID (uid):</b>
 Each user is known to the system by a unique number,
@@ -365,39 +365,63 @@ by the system for special purposes and pseudo logins.
 </p>
 "), Users::max_system_uid ) +
 
-	// help text 3/7
+	// help text 3/8
  _("<p>
 If you change UID of an existing user, the rights of the files
 this user owns must be changed. This will be done automatically
 for the files in user's home directory, but not for the files 
 located on the other places!</p>") +
 
-	// help text 4/7
-		_("<p>
-<b>Default Group:</b>
-The group to which the user belongs. Select one group
-from the list of all groups existing on your system.
-</p>") +
-	// help text 5/7
+	// help text 4/8
 		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is
 /home/username.
 </p>
-") +
-	// help text 6/7
-		_("<p>
+");
+
+    if (user_type == `ldap)
+        helptext = helptext +
+    // alternate helptext 5/8
+    _("<p>
+The home directory of an LDAP user can be changed only on the
+LDAP server.</p>") +
+
+    // alternate helptext 5.5/8
+    _("<p>
+<b>E-mail:</b>
+You can set user's e-mail adress here.");
+
+    else if (user_type == `system || user_type == `local)
+        helptext = helptext +
+    // alternate helptext 5/8
+    _("<p><b>Additional Information</b>
+Some additional user data could be set here. These field may contain up to
+three parts separated by commas. The standard usage is to write
+<i>office</i>,<i>work phone</i>,<i>home phone</i>. These informations will
+be shown when you use <i>finger</i> command on this user.");
+
+	// help text 6/8
+	helptext = helptext + _("<p>
 <b>Login shell:</b>
 The login shell (\"command interpreter\") for the user.
 Select one shell from the list of all shells installed
 on your system.
 </p>") +
-	// help text 7/7
+
+	// help text 7/8
+		_("<p>
+<b>Default Group:</b>
+The group to which the user belongs. Select one group
+from the list of all groups existing on your system.
+</p>") +
+	// help text 8/8
 		_("<p>
 <b>Additional group membership:</b>
 All additional memberships in groups for the user.
 </p>
 ");
+    return helptext;
   }
 
 

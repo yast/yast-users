@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Jan 20 17:00:40 CET 2003 - jsuchome@suse.cz
+
+- fix in recoding strings
+- function keys (ncurses)
+- new user entry (for finger, bug 18270) + helptext
+- adapted testsuite
+- 2.7.6
+
+-------------------------------------------------------------------
 Fri Jan 17 14:57:03 CET 2003 - jsuchome@suse.cz
 
 - ldap: enabled modification of email, seting gecos,

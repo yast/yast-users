@@ -210,6 +210,10 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
     string conf_path = basedir + "/passwd";
     map modified_map = $[];
     list list_to_save = maplist (`uid, `user, system_users, ``{
+        string gecos = user["fullname"]:"";
+        if (gecos != "" && user["addit_data"]:"" != "")
+            gecos = gecos + "," + user["addit_data"]:"";
+        gecos = UI::Recode ("UTF-8", encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",//user["password"]:"",// write x !!
@@ -223,12 +227,16 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`uid, `user, local_users, ``{
+        string gecos = user["fullname"]:"";
+        if (gecos != "" && user["addit_data"]:"" != "")
+            gecos = gecos + "," + user["addit_data"]:"";
+        gecos = UI::Recode ("UTF-8", encoding, gecos);
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",//user["password"]:"",// write x !!
             uid,
             user["gid"]:max_gid,
-            user["fullname"]:"",
+            gecos,
             user["home"]:"",
             user["shell"]:"");
         if (user["modified"]:`nothing != `nothing)
