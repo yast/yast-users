@@ -223,7 +223,7 @@ sub ChangeCurrentUsers {
 
 BEGIN { $TYPEINFO{CryptPassword} = ["function", "string", "string", "string"];}
 sub CryptPassword {
-    return "FIXME";
+    return $_[0]."FIXME";
 }
 
 BEGIN { $TYPEINFO{EncryptionMethod} = ["function", "string"];}
@@ -1120,18 +1120,31 @@ sub EditGroup {
 
     # update the settings which should be changed
     foreach my $key (keys %data) {
-	if ($key eq "groupname" || $key eq "gidNumber" || $key eq "type")
+	if ($key eq "groupname" || $key eq "gidNumber" ||
+	    $key eq "type" || $key eq "dn")
 	{
 	    # backup the values of important keys (if not already done)
 	    my $org_key = "org_$key";
-	    if (defined $data{$key} && defined $group_in_work{$key} &&
+	    if (defined $group_in_work{$key} &&
 		$data{$key} ne $group_in_work{$key} &&
 		    (!defined $group_in_work{$org_key} ||
 		    $group_in_work{$org_key} ne $group_in_work{$key}))
 	    {
 		$group_in_work{$org_key}	= $group_in_work{$key};
 	    }
-	    # TODO create @removed_user from modified %userlist, %more_users?
+	}
+	# TODO create @removed_user from modified %userlist
+	# compare the differences, create removed_userlist
+	if ($key eq "userlist" && defined $group_in_work{"userlist"}) {
+	    my %removed = ();
+	    foreach my $user (keys %{$group_in_work{"userlist"}}) {
+		if (!defined $data{"userlist"}{$user}) {
+		    $removed{$user} = 1;
+		}
+	    }
+	    if (%removed) {
+		$group_in_work{"removed_userlist"} = \%removed;
+	    }
 	}
 	$group_in_work{$key}	= $data{$key};
     }
@@ -1294,7 +1307,7 @@ BEGIN { $TYPEINFO{SubstituteValues} = ["function",
 }
 sub SubstituteValues {
     
-    return $_[1]; #FIXME
+    return $_[1]; #FIXME - call this from AddUser/Group...?
 
 }
 
@@ -1959,6 +1972,7 @@ sub Write () {
 
 # "-" means range! -> at the begining or at the end!
 my $valid_logname_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._-]";
+
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\[]|]";# the ']' is or-ed...
 
 my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_.-]";
@@ -1977,27 +1991,78 @@ sub CheckUID {
 
     my $uid	= $_[0];
     my $type	= UsersCache::GetUserType ();
+    my $min	= UsersCache::GetMinUID ($type);
+    my $max	= UsersCache::GetMaxUID ($type);
 
     if (!defined $uid) { #FIXME if uid was not defined, it failed before...!
 	return "There is no free UID for this type of user.";
     }
 
-    if ($uid != ($user_in_work{"uidNumber"} || -1) &&
-	UsersCache::UIDExists ($uid) eq "true") {#FIXME translatable strings!
+    if ($uid == $user_in_work{"uidNumber"}) {
+	return "";
+    }
+    if (UsersCache::UIDExists ($uid) eq "true") {#FIXME translatable strings!
 	return "The user ID entered is already in use.
 Select another user ID.";
     }
 
-    if ($uid < UsersCache::GetMinUID ($type) ||
-	$uid > UsersCache::GetMaxUID ($type)) {
-	
+    if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
+	||
+	# allow change of type: "local" <-> "system"
+	(($type eq "system" || $type eq "local") &&
+	 (
+	    ($uid < UsersCache::GetMinUID ("local") &&
+	    $uid < UsersCache::GetMinUID ("system")) ||
+	    ($uid > UsersCache::GetMaxUID ("local") &&
+	     $uid > UsersCache::GetMaxUID ("system"))
+	 )
+	)) 
+    {
 	return sprintf ("The selected user ID is not allowed.
-#Select a valid integer between %i and %i.", UsersCache::GetMinUID($type),
-	    UsersCache::GetMaxUID($type));
-	# TODO check a range and offer change of type
+Select a valid integer between %i and %i.", $min, $max);
+    }
+    return "";
+}
+
+##------------------------------------
+# check the uid of current user - part 2
+BEGIN { $TYPEINFO{CheckUIDUI} = ["function",
+    ["map", "string", "string"],
+    "integer", ["map", "string", "string"]];
+}
+sub CheckUIDUI {
+
+    my $uid	= $_[0];
+    my %ui_map	= %{$_[1]};
+    my $type	= UsersCache::GetUserType (); #TODO maybe type should be an argument?
+    my %ret	= ();
+
+    if (($ui_map{"local"} || 0) != 1) {
+	if ($type eq "system" &&
+	    $uid > UsersCache::GetMinUID ("local") &&
+	    $uid < UsersCache::GetMaxUID ("local"))
+	{
+	    $ret{"question_id"}	= "local";
+	    $ret{"question"}	= sprintf ("The selected user ID is a local ID,
+because the ID is greater than %i.
+Really change type of user to 'local'?", UsersCache::GetMinUID ("local"));
+	    return \%ret;
+	}
     }
 
-    return "";
+    if (($ui_map{"system"} || 0) != 1) {
+	if ($type eq "local" &&
+	    $uid > UsersCache::GetMinUID ("system") &&
+	    $uid < UsersCache::GetMaxUID ("system"))
+	{
+	    $ret{"question_id"}	= "system";
+	    $ret{"question"}	= sprintf ("The selected user ID is a system ID,
+because the ID is smaller than %i.
+Really change type of user to 'system'?", UsersCache::GetMaxUID ("system"));
+	    return \%ret;
+	}
+    }
+    return \%ret;
 }
 
 ##------------------------------------
@@ -2069,8 +2134,8 @@ sub CheckPassword {
 
     my $pw 		= $_[0];
     my $type		= UsersCache::GetUserType ();
-    my $min_length 	= 2;#FIXME$UsersCache::min_pass_length{$type};
-    my $max_length 	= 10;#$UsersCache::max_pass_length{$type};
+    my $min_length 	= $UsersCache::min_pass_length{$type};
+    my $max_length 	= $UsersCache::max_pass_length{$type};
 
     if (($pw || "") eq "") {
             
@@ -2092,22 +2157,121 @@ Please try again.", $max_length, $min_length);
 Please try again.";
     }
             
-#    if ($use_cracklib) {
-#       my %out = CrackPassword ($username, $pw);
-#	# TODO pw is too simple -> should be question...
-#    }
-#    
-#    if ($obscure_checks) {
-#       CheckObscurity ($username, $pw);
-#	# TODO pw is too simple -> should be question...
-#    }
-#    
-#    if (!CheckPasswordMaxLength ($pw1, $type)) {
-#	#TODO - requires yes/no popup (->truncation)
-#    }
-
     return "";
 }
+
+##------------------------------------
+# Try to crack password using cracklib
+# @param username user name
+# @param pw password
+# @return utility output: either "" or error message
+sub CrackPassword {
+
+    my $ret 	= "";
+    my $pw 	= $_[0];
+
+    if (!defined $cracklib_dictpath || $cracklib_dictpath eq "" ||
+	SCR::Read (".target.size", "$cracklib_dictpath.pwd") == -1) {
+	$ret = SCR::Execute (".crack", $pw);
+    }
+    else {
+	$ret = SCR::Execute (".crack", $pw, $cracklib_dictpath);
+    }
+    return $ret;#TODO ret should be recoded!
+}
+
+##------------------------------------
+# Just some simple checks for password contens
+# @param username user name
+# @param pw password
+# @return error message (password too simple) or empty string (OK)
+sub CheckObscurity {
+
+    my $username	= $_[0];
+    my $pw 		= $_[1];
+
+    if ($pw =~ m/$username/) {
+        return "You have used the user name as a part of the password.
+This is not good security practice. Are you sure?";
+    }
+
+    # check for lowercase
+    my $filtered 	= $pw;
+    $filtered 		=~ s/[a-z]//g;
+    if ($filtered eq "") {
+        return "You have used only lowercase letters for the password.
+This is not good security practice. Are you sure?";
+    }
+
+    # check for numbers
+    $filtered 		= $pw;
+    $filtered 		=~ s/[0-9]//g;
+    if ($filtered eq "") {
+        return "You have used only digits for the password.
+This is not good security practice. Are you sure?";
+    }
+    return "";
+}
+
+##------------------------------------
+# Checks if password is not too long
+# @param pw password
+sub CheckPasswordMaxLength {
+
+    my $pw 		= $_[0];
+    my $type		= UsersCache::GetUserType ();
+    my $max_length 	= $UsersCache::max_pass_length{$type};
+
+    if (length ($pw) > $max_length) {
+        return "The password is too long for the current encryption method.
+Truncate it to $max_length characters?";
+    }
+    return "";
+}
+
+##------------------------------------
+# check the password of current user -- part 2
+BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
+    ["map", "string", "string"],
+    "string", "string", ["map", "string", "string"]];
+}
+sub CheckPasswordUI {
+
+    my $username	= $_[0];
+    my $pw 		= $_[1];
+    my %ui_map		= %{$_[2]};
+    my %ret		= ();
+
+    if ($use_cracklib && (($ui_map{"crack"} || 0) != 1)) {
+	my $error = CrackPassword ($pw);
+	if ($error ne "") {
+	    $ret{"question_id"}	= "crack";
+	    $ret{"question"}	= "Password is too simple:
+$error
+Really use it?";
+	    return \%ret;
+	}
+    }
+    
+    if ($obscure_checks && (($ui_map{"obscure"} || 0) != 1)) {
+	my $error = CheckObscurity ($username, $pw);
+	if ($error ne "") {
+	    $ret{"question_id"}	= "obscure";
+	    $ret{"question"}	= $error;
+	    return \%ret;
+	}
+    }
+    
+    if (($ui_map{"truncate"} || 0) != 1) {
+	my $error = CheckPasswordMaxLength ($pw);
+	if ($error ne "") {
+	    $ret{"question_id"}	= "truncate";
+	    $ret{"question"}	= $error;
+	}
+    }
+    return \%ret;
+}
+
 
 ##------------------------------------
 # Check if it is possible to write (=create homes) to given directory
@@ -2143,9 +2307,7 @@ BEGIN { $TYPEINFO{CheckHome} = ["function", "string", "string"]; }
 sub CheckHome {
 
     my $home		= $_[0];
-
-y2warning ("========= home: $home");
-    if ($home eq "") {
+    if ($home eq "" || $home eq ($user_in_work{"homeDirectory"} || "")) {
 	return "";
     }
 
@@ -2161,7 +2323,8 @@ Try again.";
     }
 
     # check if directory is writable
-#    if (!Mode::config && ($type ne "ldap" || Users::ldap_file_server)) TODO
+#    if (!Mode::config && ($type ne "ldap" || $ldap_file_server)) 
+# TODO chould that ldap-check be here or upper (in the function CheckHome is called from)?
     if (1) {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = IsDirWritable ($home_path);
@@ -2177,52 +2340,60 @@ Choose another path for the home directory.";
 Please try again.";
     }
 
-#            if ( (what == "edit_user" && new_home != org_home )
-#                 || what == "add_user" )
-#            {
-#                create_home = Users::user_in_work["create_home"]:true;
-#                // do not check local directories in autoinst config
-#                if (SCR::Read(.target.size, new_home ) != -1 && !Mode::config &&
-#		    (user_type != "ldap" || Users::ldap_file_server))
-#                {
-#                    integer dir_uid = lookup ((map)SCR::Read(.target.stat, new_home), "uidNumber", -1);
-#                    string question =
-#// yes-no popup
-#_("The home directory selected already exists.
-#Use it and change its owner?");
-#                    if (new_i_uid == dir_uid) // chown is not needed (#25200)
-#                        question =
-#// yes-no popup
-#_("The home directory selected already exists
-#and is owned by the currently edited user.
-#Use this directory?
-#");
-#		    // maybe it is home of some user marked to delete...
-#		    else if (contains (Users::removed_homes, home))
-#			question = sformat(
-#// yes-no popup
-#_("The home directory selected (%1)
-#already exists as a former home directory of
-#a user currently marked for deletion.
-#Use this directory?
-#"), home);
-#
-#                    if (! Popup::YesNo(question))
-#                    {
-#                        UI::SetFocus(`id(`home));
-#			ret = `notnext;
-#                        continue;
-#                    }
-#                    create_home = false;
-#                }
-#            }
     return "";
+}
+
+##------------------------------------
+# check the home directory of current user - part 2
+BEGIN { $TYPEINFO{CheckHomeUI} = ["function",
+    ["map", "string", "string"],
+    "integer", "string", ["map", "string", "string"]];
+}
+sub CheckHomeUI {
+
+    my $uid		= $_[0];
+    my $home		= $_[1];
+    my %ui_map		= %{$_[2]};
+    my $type		= UsersCache::GetUserType ();
+    my %ret		= ();
+
+    if ($home eq "" || $home eq ($user_in_work{"homeDirectory"} || "") ||
+	!($user_in_work{"create_home"} || 0)) {
+	return \%ret;
+    }
+
+    if ((($ui_map{"chown"} || 0) != 1) &&
+	(SCR::Read (".target.size", $home) != -1)) {
+#	!Mode::config &&
+#	($user_type ne "ldap" || $ldap_file_server))
+        
+	$ret{"question_id"}	= "chown";
+	$ret{"question"}	= "The home directory selected already exists.
+Use it and change its owner?";
+
+	my %stat 	= %{SCR::Read (".target.stat", $home)};
+	my $dir_uid	= $stat{"uidNumber"} || -1;
+                    
+	if ($uid == $dir_uid) { # chown is not needed (#25200)
+	    $ret{"question"}	= "The home directory selected already exists
+and is owned by the currently edited user.
+Use this directory?";
+	}
+	# maybe it is home of some user marked to delete...
+	elsif (defined $removed_homes{$home}) {
+	    $ret{"question"}	= "The home directory selected ($home)
+already exists as a former home directory of
+a user previously marked for deletion.
+Use this directory?";
+	}
+    }
+    return \%ret;
 }
 
 
 ##------------------------------------
 # check the gid of current group
-BEGIN { $TYPEINFO{CheckGID} = ["function", "string", "string"]; }
+BEGIN { $TYPEINFO{CheckGID} = ["function", "string", "integer"]; }
 sub CheckGID {
 
     my $gid	= $_[0];
@@ -2232,16 +2403,22 @@ sub CheckGID {
 	return "There is no free GID for this type of group.";
     }
 
+    if ($gid == $group_in_work{"gidNumber"}) {
+	return "";
+    }
+
     if (UsersCache::GIDExists ($gid) eq "true") {
 	return "The group ID entered is already in use.
 Select another group ID.";
     }
 
-    if ($gid < GetMinGID ($type) || $gid > GetMaxGID ($type)) {
+    if ($gid < UsersCache::GetMinGID ($type) ||
+	$gid > UsersCache::GetMaxGID ($type)) {
 	
 	return sprintf ("The selected group ID is not allowed.
-Select a valid integer between %i and %i.",GetMinGID($type), GetMaxGID($type));
-    }
+Select a valid integer between %i and %i.",
+	    UsersCache::GetMinGID($type), UsersCache::GetMaxGID($type));
+    }#TODO questin...
     return "";
 }
 
@@ -2251,8 +2428,33 @@ BEGIN { $TYPEINFO{CheckGroupname} = ["function", "string", "string"]; }
 sub CheckGroupname {
 
     my $groupname	= $_[0];
+
+    if (!defined $groupname || $groupname eq "") {
+        return "You didn't enter a groupname.
+Please try again.";
+    }
     
-    if (UsersCache::GroupnameExists ($groupname) eq "true") {
+    if (length ($groupname) < $UsersCache::min_length_groupname ||
+	length ($groupname) > $UsersCache::max_length_groupname ) {
+
+	return sprintf ("The group name must be between %i and %i characters in length.
+Try again.", $UsersCache::min_length_groupname,
+	     $UsersCache::max_length_groupname);
+    }
+	
+    my $filtered = $groupname;
+    $filtered =~ s/$valid_logname_chars//g;
+
+    my $first = substr ($groupname, 0, 1);
+    if ($first lt "A" || $first gt "z" || $filtered ne "") { 
+	return "The group name may contain only
+letters, digits, \"-\", \".\", and \"_\"
+and must begin with a letter.
+Try again.";
+    }
+    
+    if ($groupname ne ($group_in_work{"groupname"} || "") &&
+	UsersCache::GroupnameExists ($groupname) eq "true") {
 	return "There is a conflict between the entered
 group name and an existing group name.
 Try another one."
@@ -2285,6 +2487,8 @@ sub CheckUser {
 	$error	= CheckHome ($user{"homeDirectory"});
     }
 
+#TODO CheckGECOS, CheckFullanme, Check*UI (?)
+
     # disable commit
     if ($error ne "") {
 	$user_in_work{"check_error"} = $error;
@@ -2311,7 +2515,31 @@ sub CheckGroup {
     return $error;
 }
 
+##------------------------------------ LDAP related routines...
+# Creates DN of user
+BEGIN { $TYPEINFO{CreateUserDN} = ["function",
+    ["map", "string", "any"],
+    ["map", "string", "any"]];
+}
+sub CreateUserDN {
 
+    return $_[0]; #FIXME
+#    string dn_attr = ldap_user_naming_attr;
+#    string user_attr = ldap2yast_user_attrs [dn_attr]:dn_attr;
+#    return sformat ("%1=%2,%3", dn_attr, user[user_attr]:"", ldap_user_base);
+}
+
+BEGIN { $TYPEINFO{CreateGroupDN} = ["function",
+    ["map", "string", "any"],
+    ["map", "string", "any"]];
+}
+sub CreateGroupDN {
+
+    return $_[0]; #TODO
+#    string dn_attr = ldap_group_naming_attr;
+#    string group_attr = ldap2yast_group_attrs [dn_attr]:dn_attr;
+#    return sformat ("%1=%2,%3", dn_attr, group[group_attr]:"", ldap_group_base);
+}
 
 
 # EOF
