@@ -283,9 +283,9 @@ define symbol UsersSequence(string start) ``{
 
     if( ! Mode::cont )
     {
-	Wizard::SetDesktopIcon("users");
 	Wizard::CreateDialog();
     }
+    Wizard::SetDesktopIcon("users");
 
     any ret = Sequencer::Run (aliases, sequence);
 
@@ -306,6 +306,7 @@ define symbol AutoSequence(string start) ``{
     term contents = `Label(_("Initializing ..."));
 
     Wizard::CreateDialog();
+    Wizard::SetDesktopIcon("users");
     Wizard::SetContentsButtons(caption, contents, "",
 	    Label::BackButton(), Label::NextButton());
 
