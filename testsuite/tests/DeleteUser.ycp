@@ -56,12 +56,14 @@
     ];
 
     Users::shadow = $[
-        "aaa":  $[
-            "inact":-1,
-            "max":99999,
-            "password": "qwerty",
-            "min":0,
-            "warn":7]
+        `local : $[
+            "aaa":  $[
+                "inact":-1,
+                "max":99999,
+                "password": "qwerty",
+                "min":0,
+                "warn":7]
+        ]
     ];
 
     Users::groups [`local ] = $[

@@ -1,13 +1,13 @@
 Dump	local users:
 Dump	 $[]
 Dump	shadow:
-Dump	 $[]
+Dump	 $[`ldap:$[], `local:$[], `system:$[]]
 Dump	
 Log	Group audio doesn't exist!
 Log	Group users doesn't exist!
 Return	true
 Dump	shadow:
-Dump	 $["aaa":$["inact":-1, "max":99999, "min":0, "warn":7]]
+Dump	 $[`ldap:$[], `local:$["aaa":$["inact":-1, "max":99999, "min":0, "warn":7]], `system:$[]]
 Dump	
 Dump	local users:
 Dump	 $[500:$["create_home":true, "forename":"", "fullname":"", "gid":100, "grouplist":"audio", "groupname":"users", "home":"/home/aaa", "modified":`added, "org_home":"/home/aaa", "org_username":"aaa", "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"aaa", "what":`add_user]]
