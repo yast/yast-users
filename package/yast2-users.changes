@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Sep 11 13:03:52 CEST 2003 - jsuchome@suse.cz
+
+- layout of first dialog (#29389) 
+
+-------------------------------------------------------------------
 Wed Sep 10 17:51:43 CEST 2003 - jsuchome@suse.cz
 
 - check if autologin is available (only works for KDM, bug #30385)

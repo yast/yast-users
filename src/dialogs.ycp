@@ -204,16 +204,15 @@ can be changed for non-local users.
 
     if ( complex_layout )
     {
-	contents = add ( contents,
-	    `HVCenter(`PushButton(`id(`additional), `opt(`key_F3),
+	contents = add ( contents, `VBox (
+	    `VSpacing (0.5),
+	    `HCenter(`PushButton(`id(`additional), `opt(`key_F3),
 		// push button
-		_("User &Management") ) )
+		_("User &Management") ) ),
+	    `VSpacing (0.5))
 	);
     }
-    else
-    {
-	contents = add( contents, `VStretch() );
-    }
+    contents = `VCenter (contents);
 
     Wizard::SetContentsButtons(
             dialog_labels [ what, user_type ]:"",
