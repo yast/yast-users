@@ -367,7 +367,7 @@ can be changed for non-local users.
 
 	if (! contains ([`back, `cancel, `abort], ret))
 	{
-	    if (user_type == "ldap") // TODO into CheckUser
+	    if (user_type == "ldap")
 	    {
 		// Form the fullname for LDAP user
 		// sn (surname) and cn (fullname) are required attributes,
@@ -375,10 +375,11 @@ can be changed for non-local users.
 		givenName = (string) UI::QueryWidget(`id(`givenName), `Value);
 		sn	  = (string) UI::QueryWidget(`id(`sn ), `Value);
 
+		map ldap_user_defaults = UsersLDAP::GetUserDefaults ();
 		// create default cn/sn if they are not marked for substitution
 		if (sn == "" &&
-		    !(haskey (UsersLDAP::GetUserDefaults (), "sn") &&
-		      what == "add_user"))
+		    (what == "edit_user" ||
+		    !haskey (ldap_user_defaults, "sn")))
 		{
 		    if (givenName == "")
 		    {
@@ -391,10 +392,18 @@ can be changed for non-local users.
 		    }
 		}
 		if (cn == "" &&
-		    !(haskey (UsersLDAP::GetUserDefaults (), "cn") &&
-		      what == "add_user"))
+		    // no substitution when editing:
+		    (what == "edit_user" ||
+		    // cn should not be substitued:
+		    !haskey (ldap_user_defaults, "cn")))
 		{
-		    cn = givenName + ((givenName != "") ? " " : "") + sn;
+		    // if 'givenName' or 'sn' should be substitued, wait for it
+		    // and do not create cn now:
+		    if (!haskey (ldap_user_defaults, "sn") &&
+			!haskey (ldap_user_defaults, "givenName"))
+		    {
+			cn = givenName + ((givenName != "") ? " " : "") + sn;
+		    }
 		}
 		UI::ChangeWidget(`id(`givenName), `Value, givenName);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
@@ -462,8 +471,25 @@ so the password settings cannot be edited.
 
 
 	    // --------------------------------- username checks, part 1/2
-	    // FIXME:
 	    // empty username during installation (next module)
+	    if (username == "" && ret ==`next && Users::StartDialog("user_add"))
+	    {
+		// The user login field is empty, this is allowed if the
+		// system is part of a network with (e.g.) NIS user management.
+		// yes-no popup headline
+		if (Popup::YesNoHeadline(_("Empty user login"),
+		    // yes-no popup contents
+		    _("Leaving the user name empty only makes sense
+in a network environment with an authentication server.
+Are you sure?")))
+		{
+		    ret = `nextmodule;
+		    break;
+		}
+		UI::SetFocus(`id(`username));
+		ret = `notnext;
+		continue;
+	    }
 	    string error = Users::CheckUsername (username);
 	    if (error != "")
 	    {
@@ -530,17 +556,20 @@ Please try again."));
 		    clear_password_fields ();
 		    continue;
 		}
+		// if "encryted" flag is present, password won't be encrypted
+		if (user["encrypted"]:false)
+		    user = (map<string,any>) remove (user, "encrypted");
 		user ["userPassword"]		= pw1;
 		user ["shadowLastChange"]	= Users::LastChangeIsNow();
 	    }
 
             // build default home dir
-            if (home == default_home || home == "")
+            if (home == "" || home == default_home || issubstring (home,"%"))
             {
-		// LDAP: maybe home should be substituted
+		// LDAP: maybe value of homeDirectory should be substituted?
 		if ( user_type == "ldap" && issubstring (home, "%") )
 		{
-		    user = Users::SubstituteValues ("user", user);
+		    user = UsersLDAP::SubstituteValues ("user", user);
 		    home = user["homeDirectory"]:default_home;
 		}
 		if ( home == default_home  || home == "")
@@ -1523,6 +1552,8 @@ Please try again.")) ;
 		    continue;
 		}
 		password = pw1;
+		if (group["encrypted"]:false)
+		    group = (map<string,any>) remove (group, "encrypted");
             }
 
 	    // --------------------------------- gid checks
