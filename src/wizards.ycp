@@ -26,7 +26,7 @@ include "./dialogs.ycp";
  * Whole configuration of users
  * @return sequence result
  */
-global define symbol UsersSequence() ``{
+global define symbol OldUsersSequence() ``{
 
     map aliases = $[
     "read":         [``(ReadDialog(!Mode::cont)), true ],
@@ -165,15 +165,15 @@ global define symbol UsersSequence() ``{
 }
 
 /**
- * Whole configuration of sk
+ * Whole configuration of users/groups
  * @return sequence result
- *
-global define symbol SkSequence() ``{
+ */
+global define symbol UsersSequence(string start) ``{
 
     map aliases = $[
-	"read"	: [ ``( ReadDialog() ), true ],
-	"main"	:   ``( MainSequence() ),
-	"write"	: [ ``( WriteDialog() ), true ]
+    "read"  : [ ``( ReadDialog(!Mode::cont)), true ],
+	"main"	:   ``( MainSequence( start ) ),
+	"write" : [ ``( WriteDialog( true )), true ]// true as parameter ??
     ];
 
     map sequence = $[
@@ -192,7 +192,7 @@ global define symbol SkSequence() ``{
 	]
     ];
 
-    string caption = _("Sk configuration");
+    string caption = _("Users and groups configuration");
     term contents = `Label(_("Initializing ..."));
 
     Wizard::CreateDialog();
@@ -203,26 +203,161 @@ global define symbol SkSequence() ``{
 
     UI::CloseDialog();
     return ret;
-}*/
+}
 
 /**
- * Whole configuration of sk but without reading and writing.
+ * Whole configuration of users/groups but without reading and writing.
  * For use with autoinstallation.
  * @return sequence result
- *
-global define symbol SkAutoSequence() ``{
-    string caption = _("Sk configuration");
+ */
+global define symbol AutoSequence(string start) ``{
+    string caption = _("Users and groups configuration");
     term contents = `Label(_("Initializing ..."));
 
     Wizard::CreateDialog();
     Wizard::SetContentsButtons(caption, contents, "",
 	    BackButtonLabel(), NextButtonLabel());
 
-    any ret = MainSequence();
+    any ret = MainSequence(start);
 
     UI::CloseDialog();
     return ret;
-}*/
+}
+
+/**
+ * Main workflow of the users/groups configuration
+ * @return sequence result
+ */
+global define symbol MainSequence(string start) ``{
+
+    map aliases = $[
+	"users":         ``(UsersDialog()),
+    "user_add":      ``(EditUserDialog(`add_user)),
+//	"user_add_inst": ``(EditUserDialog(`add_user)),
+//	"user_inst_start":[``(usersInstStart ()), true],
+    "user_edit":     ``(EditUserDialog(`edit_user)),
+	"user_details":  ``(EditUserDetailsDialog()),
+	"user_password": ``(EditUserPasswordDialog()),
+//    "user_delete":   ``(DeleteUserDialog()),
+	"user_save":     ``(UserSave()),
+//	"user_save":     [ ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )), true],
+//	"user_setup":	 [ ``(userSetup ()), true],
+
+	"groups":        ``(GroupsDialog()),
+    "group_add":     ``(EditGroupDialog(`add_group)),
+    "group_edit":    ``(EditGroupDialog(`edit_group)),
+//    "group_delete":  ``(DeleteGroupDialog()),
+	"group_save":    ``(GroupSave()),
+//	"group_save"  :  ``(UserWriteStack::GroupSave(group_in_work,  start_dialog == "group_add")),
+
+    "defaults":         ``(DefaultsDialog()),
+	"without_save" :  ``(ReallyAbort()),
+    ];
+
+    map main_sequence = $[
+    "ws_start":             start,
+    "users":$[
+            `switch_groups: "groups",
+//		    `switch_users:  "users",
+		    `new:           "user_add",
+	        `edit:          "user_edit",
+	        `delete:        "user_save",
+            `defaults:      "defaults",
+//	        `next:          "write",
+	        `next:          `next,
+		    `abort:         "without_save",
+		    `cancel:        "without_save",
+		    `exit:          `abort ],
+	"user_add": $[
+            `nextmodule:    `next, // no user and next pressed (install)
+			`nosave:        "users", // no "first user" was added (install)
+//			`additional:    "user_setup", // only install
+			`next:          "user_save",  // why this?
+			`details:       "user_details",
+			`passwordsettings: "user_password",
+			`abort:         "without_save",
+			`cancel:        "without_save",
+			`back:          "users" ],
+/*	"user_add_inst": $[ `nextmodule:     `next,
+                            `nosave:         "users",
+                            `additional:     "user_setup",
+                            `next:           "user_save",
+                            `details:        "user_details",
+                            `passwordsettings: "user_password",
+                            `abort:          "without_save",
+                            `cancel:         "without_save",
+                            `back:           "users" ],
+	"user_inst_start": $[ `next : "user_add_inst"],*/
+//	"user_setup":	 $[ `next : "user_save" ],
+	"user_details": $[
+            `abort:         "without_save",
+    // next is predefined to add or edit
+			`add_user:      "user_add",
+			`cancel:        "without_save",
+			`edit_user:     "user_edit"],
+	"user_password": $[
+            `abort:         "without_save",
+			`add_user:      "user_add",
+			`cancel:        "without_save",
+			`edit_user:     "user_edit"],
+	"user_edit": $[
+            `next:          "user_save",
+			`details:       "user_details",
+			`passwordsettings: "user_password",
+			`cancel:        "without_save",
+	        `abort:         "without_save" ],
+//	"user_delete":   $[ `next:           "users",
+/*	"user_delete":   $[ `next:           "user_save",
+	        `abort:          `abort ],*/
+	"user_save": $[
+            `next:	        "users"],
+//			`save:          "write"],
+//			`save:          `next],
+    "groups": $[
+            `switch_users:  "users",
+//			`switch_groups: "groups",
+	        `new:           "group_add",
+	        `edit:          "group_edit",
+            `delete:        "group_save",
+//		    `next:          "write",
+		    `next:          `next,
+		    `abort:         "without_save",
+			`cancel:        "without_save",
+			`exit:          `abort ],
+	"group_add": $[
+            `next:          "group_save",
+            `abort:         "without_save",
+			`cancel:        "without_save",
+			`back:          "groups" ],
+	"group_edit": $[
+            `next:          "group_save",
+            `cancel:        "without_save",
+	        `abort:         "without_save" ],
+	"group_save"  : $[
+            `next:          "groups"],
+//			`save:          "write" ],
+    "defaults": $[
+            `next:          "users"],
+	"without_save": $[
+            `next  :        `next,
+			`abort :        `abort,
+			`back  :        `back   ],
+    ];
+
+    if( ! Mode::cont )
+    {
+	    Wizard::CreateDialog();
+    }
+
+
+    symbol ret = nil;
+	ret = WizardSequencer(aliases, main_sequence);
+
+    if( ! Mode::cont )
+	UI::CloseDialog();
+
+    return ret;
+}
 
 /**
  * Main workflow of the sk configuration
