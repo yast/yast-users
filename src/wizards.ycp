@@ -302,6 +302,9 @@ define symbol UsersSequence(string start) ``{
     if( ! Mode::cont )
 	UI::CloseDialog();
 
+    // read LDAP again in the next run
+    Users::SetLDAPNotRead (true);
+
     return (symbol) ret;
 }
 
