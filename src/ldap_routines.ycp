@@ -9,6 +9,8 @@
 
 {
 
+textdomain "users";
+
 /**
  * Returns a map of LDAP users
  * @param dir directory, where prebuilded map is stored as a file
@@ -50,19 +52,32 @@ global define map ReadLDAPGroupsByName(string dir)``{
 }
 
 /**
- * Writing modified LDAP users with cpu
- * @param ldap_users map of all ldap users
- * @param server true if this machine is LDAP server
+ * Tries to check, if cpu.cfg is configured or just installed with default
+ * values
+ * @param host LDAP server
+ * @param base LDAP base
+ * @return answer
+ */
+global define boolean CpuConfigured (string host, string base) ``{
+
+    string cpu_userbase = SCR::Read(.etc.cpu_cfg."user_base");
+    string cpu_basedn = SCR::Read(.etc.cpu_cfg."base_dn");
+    string cpu_host = SCR::Read(.etc.cpu_cfg."ldap_host");
+    // check if cpu.cfg is configured -- maybe compare times?
+    return (cpu_host == host || cpu_basedn == base || cpu_userbase == base);
+}
+
+
+/**
+ * Prepare the configuration file for LDAP users/groups modifications
  * @param dir temporary directory to store config and secret data
- * @param pass bind password to LDAP server
+ * @param pass LDAP bind password
  * @return true
  */
-global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir, string pass)``{
+global define boolean WriteLDAPPrepare (string dir, string pass)``{
 
-    // TODO:check for cpu existence ...
-
-    // register agent for manipulating with cpu.cfg
-    path agent_path = .etc.cpu_cfg;
+    // register agent for manipulating with temporary changed cpu.cfg
+    path agent_path = .tmp.cpu_cfg;
     string path_to_cfg = dir + "/cpu.cfg";
     string tmpfile = dir + "/etc_cpu_cfg";
     SCR::Execute(.target.bash, sformat("/bin/cp /etc/cpu.cfg %1", path_to_cfg));
@@ -83,18 +98,65 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
     SCR::RegisterAgent (agent_path, tmpfile);
 
     // change the cfg file
+    SCR::Write(.tmp.cpu_cfg."shadow_file", dir + "/shadowfile");
+    if (pass != "" && pass != nil)
+        SCR::Write(.tmp.cpu_cfg."bind_pass", pass);
+
+    // save the cfg file now
+    SCR::Write (.tmp.cpu_cfg, "force");
+}
+
+/**
+ * Gets the bind password to LDAP database
+ * @return password
+ */
+global define string GetLDAPPassword() ``{
+
+    UI::OpenDialog (`opt(`decorated),
+        `VBox(
+            `HSpacing(36),
+            // password entering label
+            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
+            // checkbox label
+            `CheckBox (`id(`anon), `opt(`notify), _("Use the &anonymous access")),
+            `PushButton (`id(`ok), UI::OKButtonLabel())
+            )
+    );
+    any ret = UI::UserInput();
+    string pw = "";
+    if (ret == `ok)
+        pw = UI::QueryWidget(`id(`pw), `Value);
+    UI::CloseDialog();
+    return pw;
+}
+
+
+/**
+ * Remove the configuration file used for LDAP users/groups modifications
+ * @param dir temporary directory with config and secret data files
+ * @return success
+ */
+global define boolean WriteLDAPFinish (string dir) ``{
+
+    // remove the cfg and shadowfile files
+    string path_to_cfg = dir + "/cpu.cfg";
     string shadow_file = dir + "/shadowfile";
-    SCR::Write(.etc.cpu_cfg."shadow_file", shadow_file);
-    if (pass != "")
-        SCR::Write(.etc.cpu_cfg."bind_pass", pass);
+    return SCR::Execute(.target.bash,
+        "/bin/rm " + path_to_cfg + " " + shadow_file);
+}
 
-    // save also ldap_host bind_dn, base_dn, user_base etc. !!
+/**
+ * Writing modified LDAP users with cpu
+ * @param ldap_users map of all ldap users
+ * @param server true if this machine is LDAP server
+ * @param dir temporary directory to store config and secret data
+ * @return true
+ */
+global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir)``{
 
-    string skel = SCR::Read(.etc.cpu_cfg."skel_dir");
-    // TODO: set other values
-
-    // save the cfg file
-    SCR::Write (.etc.cpu_cfg, "force");
+    string shadow_file = dir + "/shadowfile";
+    string path_to_cfg = dir + "/cpu.cfg";
+    string skel = SCR::Read(.tmp.cpu_cfg."skel_dir");
 
     foreach (`uid, `user, ldap_users, ``{
 
@@ -170,12 +232,8 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
                 command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
             }
         }
-
-        SCR::Execute(.target.bash, command);
+        SCR::Execute(.target.bash_output, command);
     });
-
-    // remove the cfg and shadowfile files
-    SCR::Execute(.target.bash, "/bin/rm " + path_to_cfg + " " + shadow_file);
     return true; // TODO check for success
 }
 
@@ -183,37 +241,11 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
  * Writing modified LDAP groups using cpu
  * @param ldap_groups map of all ldap groups
  * @param dir temporary directory to store config and secret data
- * @param pass bind password to LDAP server
  * @return true
  */
-global define boolean WriteLDAPGroups(map ldap_groups, string dir, string pass)``{
+global define boolean WriteLDAPGroups(map ldap_groups, string dir)``{
 
-    // register agent for manipulating with cpu.cfg
-    path agent_path = .etc.cpu_cfg;
     string path_to_cfg = dir + "/cpu.cfg";
-    string tmpfile = dir + "/etc_cpu_cfg";
-    SCR::Execute(.target.bash, sformat("/bin/cp /etc/cpu.cfg %1", path_to_cfg));
-
-    string agent_data = sformat ("%1
-
-`ag_ini(
-  IniAgent(
-    \"%2\",
-    $[ \"options\" : [ \"ignore_case\", \"global_values\", \"flat\" ],
-       \"comments\" : [ \"^#.*\", \"^[ \\t]*$\", ],
-       \"params\" : [
-		 $[ \"match\" : [ \"^[ \\t]*([^::]*[^ \\t::])[ \\t]*::[ \\t]*(.*[^ \\t]|)[ \\t]*$\" , \"%%s::%%s\"],],
-       ]
-	]
-))", agent_path, path_to_cfg);
-    SCR::Write (.target.string, tmpfile, agent_data);
-    SCR::RegisterAgent (agent_path, tmpfile);
-
-    if (pass != "")
-        SCR::Write(.etc.cpu_cfg."bind_pass", pass);
-
-    // save the cfg file
-    SCR::Write (.etc.cpu_cfg, "force");
 
     foreach (`gid, `group, ldap_groups, ``{
 
@@ -227,7 +259,7 @@ global define boolean WriteLDAPGroups(map ldap_groups, string dir, string pass)`
         if (org_groupname == "")
             org_groupname = groupname;
 
-        string command = "/usr/bin/cpu -v";
+        string command = "/usr/bin/cpu";
 
         if (action == `added)
         {
@@ -251,12 +283,9 @@ global define boolean WriteLDAPGroups(map ldap_groups, string dir, string pass)`
                 command = sformat ("%1 -n %2", command, groupname);
         }
 
-//        y2debug ("command: %1", command);
         SCR::Execute(.target.bash, command);
     });
 
-    // remove the cpu.cfg file
-    SCR::Execute(.target.bash, "/bin/rm " + path_to_cfg);
     return true;
 }
 

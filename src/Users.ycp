@@ -104,6 +104,9 @@ global symbol encryption	 = `des;
 
 global string root_mail = "";
 
+// password to LDAP server
+string ldap_bind_pass = "";
+
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];
 
@@ -678,22 +681,22 @@ global define symbol Write (block abort, boolean useUI)``{
 	}*/
     if (ldap_modified)
     {
-        // ask for bind password
-        string pass = "";
-        if (useUI)
-            pass = GetLDAPPassword();
         boolean succ = true;
 
+        if (ldap_bind_pass == "" && useUI)
+            ldap_bind_pass = GetLDAPPassword();
+
+        WriteLDAPPrepare (tmpdir, ldap_bind_pass);
         // there are deleted users in modified_users [`ldap]
         if (size (modified_users [`ldap]:$[]) > 0)
         {
             succ = WriteLDAPUsers (
-                modified_users [`ldap]:$[], is_ldap_server, tmpdir, pass);
+                modified_users [`ldap]:$[], is_ldap_server, tmpdir);
         }
 
         // now write all other modifications
         succ = succ && WriteLDAPUsers (
-            users [`ldap]:$[], is_ldap_server, tmpdir, pass);
+            users [`ldap]:$[], is_ldap_server, tmpdir);
 
         if (!succ)
         {
@@ -708,11 +711,11 @@ global define symbol Write (block abort, boolean useUI)``{
         // there are deleted groups in modified_groups [`ldap]
         if (size (modified_groups [`ldap]:$[]) > 0)
         {
-            succ = WriteLDAPGroups (modified_groups [`ldap]:$[], tmpdir, pass);
+            succ = WriteLDAPGroups (modified_groups [`ldap]:$[], tmpdir);
         }
 
         // now write all other groups modifications
-        succ = succ && WriteLDAPGroups (groups [`ldap]:$[], tmpdir, pass);
+        succ = succ && WriteLDAPGroups (groups [`ldap]:$[], tmpdir);
 
         if (!succ)
         {
@@ -722,6 +725,8 @@ global define symbol Write (block abort, boolean useUI)``{
             else
                 y2error ("Cannot write ldap groups.");
         }
+
+        WriteLDAPFinish(tmpdir); // temporary files _must_ be removed!
     }
 
     // shadow, gshadow
@@ -732,7 +737,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
 
-    // -- send whole structure and decide in the write function
+    // TODO send whole structure and decide in the write function
     if (! WriteShadow(write_dir, shadow[`system]:$[], shadow[`local]:$[], plus_shadow))
     {
         if (useUI)
@@ -880,7 +885,6 @@ global define boolean Import (list settings) ``{
     users_by_name [`local] = UsersByName (users [`local]:$[]);
     // -- move the plus_strings to if sections ??
     plus_passwd = ReadPlusPasswd (tmpdir);
-
 
     if (groups [`system]:nil == nil || groups [`system]:nil == $[])
     {
@@ -1687,6 +1691,7 @@ global define string GetDefaultHome(boolean useUI)``{
     // check for existence of prefix directory
     if (SCR::Read(.target.size, def_home ) == -1 && useUI)
     {
+        // Popup tex
         if (UI::YesNoPopup(sformat (_("The default home directory \"%1\" doesn't exist.
 Create it now?"), def_home)))
             SCR::Execute (.target.mkdir, def_home);
@@ -1986,6 +1991,11 @@ define void ReadNewSet (symbol type) ``{
     if (type == `nis)
     {
         nis_not_read = false;
+
+        UI::OpenDialog (`opt(`decorated ),
+            // wait popup
+            `Label(_("Reading sets of users and groups, wait please...")));
+
         // first: run preparation script:
         RunPrepare ("nis");
         // read NIS users now
@@ -1997,26 +2007,46 @@ define void ReadNewSet (symbol type) ``{
     else if (type == `ldap)
     {
         // first: check for required packages:
-        if (SCR::Execute(.target.bash, "rpm -q perl-ldap cpu") !=0)
+        if (SCR::Execute(.target.bash, "rpm -q perl-ldap cpu yast2-ldap-client") !=0)
         {
-            // Popup text (required application):
-            if (UI::YesNoPopup(_("For managing LDAP users, the packages
-\"perl-ldap\" and \"cpu\" are necessary.
-Do you want to install them now?")))
-            {
-                include "require.ycp"; // is it possible to have it here??
-                DoInstallAndRemove(["perl-ldap", "cpu"], []);
-            }
-            // perl-ldap is necessary for reading
-            if (SCR::Execute(.target.bash, "rpm -q perl-ldap") !=0)
+            include "require.ycp"; // is it possible to have it here??
+            if (RequireAndConflict (["perl-ldap","cpu","yast2-ldap-client"], [],
+                // Popup text (required application):
+                _("For managing LDAP users, the packages
+\"perl-ldap\", \"cpu\" and \"yast2-ldap-client\"
+are necessary, but some of them are not present.
+Do you want to install them now?")) == false)
                 return;
         }
         ldap_not_read = false;
-        // run preparation script:
-        if (!RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base)))
+        // check for cpu.cfg
+        if (!CpuConfigured (ldap_host, ldap_base))
+        {
+            // popup text
+            if (UI::YesNoPopup(_("It looks like your \"cpu\" program is not configured. 
+(It is used for updating LDAP users and groups.)
+Do you want to do configure it now?")))
+            {
+                import "Ldap"; // could it be here ??
+                Ldap::Read();
+                if (CallFunction(`cpu_configure(true)) == `next)
+                    Ldap::WriteCpuSettings();
+            }
+        }
+        ldap_bind_pass = GetLDAPPassword();
+        // prepare config file
+        WriteLDAPPrepare (tmpdir, ldap_bind_pass);
+
+        UI::OpenDialog (`opt(`decorated ),
+            // wait popup
+            `Label(_("Reading sets of users and groups, wait please...")));
+
+        // run preparation script for geting users and groups from server:
+        if (!RunPrepare ("ldap"))
         {
             // Popup text (required application):
             UI::WarningPopup(_("There was a problem with connecting the LDAP server."));
+            UI::CloseDialog(); // the wait popup
             return;
         }
         // read the LDAP users and groups now
@@ -2031,6 +2061,8 @@ Do you want to install them now?")))
     // correct also possible change in custom itemlist
     if (new == `custom)
         UsersCache::ChangeUserCustoms (current_users);
+
+    UI::CloseDialog(); // the wait popup
 }
 
 /**
@@ -2165,31 +2197,14 @@ global define boolean RunPrepare(string type) ``{
     }
     else if ( issubstring (type, "ldap") )// ldap has some additional parameters
     {
+        string anonymous = "false";
+        if (ldap_bind_pass == "")
+            anonymous = "true";
         ret = SCR::Execute(.target.bash, sformat(
         "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
-        tmpdir, encoding, type));
+        tmpdir, encoding, anonymous));
     }
     return (ret == 0);
-}
-
-/**
- * Gets the bind password to LDAP database
- * @return password
- */
-define string GetLDAPPassword() ``{
-
-    UI::OpenDialog (`opt(`decorated),
-        `VBox(
-            `HSpacing(36),
-            // password entering label
-            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
-            `PushButton(UI::OKButtonLabel())
-            )
-    );
-    UI::UserInput();
-    string pw = UI::QueryWidget(`id(`pw), `Value);
-    UI::CloseDialog();
-    return pw;
 }
 
 /**
