@@ -4330,7 +4330,7 @@ Try again."), $min, $max);
     if (($user_in_work{"type"} || "") eq "ldap") {
 	$filtered =~ s/\$$//g;
     }
-    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'");
+    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
@@ -4918,7 +4918,8 @@ Try again."), $min, $max);
 	
     my $filtered = $groupname;
 
-    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'");
+    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
+
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
