@@ -1,7 +1,7 @@
 /**
  * Module:		Users.ycp
  *
- * Authors:		Anas Nashif (nashif@suse.de)
+ * Authors:		Anas Nashif (nashif@suse.de),
  *
  * Purpose:		Handle users functions
  *
@@ -9,36 +9,28 @@
  */
 {
 
-    module "Users";
-    textdomain "users";
+module "Users";
 
-    import "Console";
-    import "Mode";
+textdomain "users";
 
-    import "UserDefs";
-    import "UserAddDefs";
-    import "UserSettings";
-    import "UserWriteStack";
+import "Console";
+import "Mode";
+import "Progress";
+import "Report";
+import "./UsersCache";
 
-    // Encryption method: "des", "md5" - for future use: "blowfish"
-    global string encryptionMethod = "des";
+include "./routines.ycp";
+include "./nis_routines.ycp";
 
-    // The root user
-    global string rootPassword = "";
-
-    
-
-    map user_in_work  = $[];
 
     /**
       * Module constructor
       */
-    global define void Users()``{
-
+/*    global define void Users()``{
 	UserAddDefs::Read();
 	UserDefs::Read();
 	UserSettings::ReadSettingsFromDisk(false);
-    }
+    }*/
 
 
 
@@ -50,7 +42,7 @@
 	``{
 	SCR::Write(.pam.all.password.pam_unix2, "-md5");
 	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
-	
+
 	SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
 	SCR::Write(.pam.login.password.pam_unix, "-md5");
 	SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
@@ -73,6 +65,14 @@
 	SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
 
     }
+
+/*
+    // Encryption method: "des", "md5" - for future use: "blowfish"
+    global string encryptionMethod = "des";
+
+    // The root user
+    global string rootPassword = "";
+*/
 
     /**
      * Crypt the root password according to method defined in encryptionMethod
@@ -103,7 +103,7 @@
 	return;
     }
 
-    
+
     /**
      * Writes password of superuser
      * @return true on success
@@ -112,6 +112,7 @@
 	``{
 	return (SCR::Write(.target.passwd.root, rootPassword));
     }  
+
 
     /**
      * Get all the user configuration from a map.
@@ -171,13 +172,1322 @@
 	return true;
     }
 
-    /**
-     * Saves users into the system
-     * @return true on success
+
+//----------------------------
+
+
+  // ===== global values from UseriAddDefs=================================
+  /**
+   *  keys in useradd_defaults:
+   * "group"
+   * "home"
+   * "inactive"
+   * "expire"
+   * "shell"
+   * "skel"
+   **/
+  map useradd_defaults  = $[];
+
+  /*
+   * The number of days after a password expires until the account is
+   * permanently disabled. A value of 0 disables the
+   * account as soon as the password has expired, and a value of -1
+   * disables the feature.  The default value is -1.
+   */
+  global integer pass_inact_days = -1;
+
+
+  /*
+   * The date on which the user account will be disabled.
+   * The date is specified in the format YYYY-MM-DD.
+   */
+  global string pass_expire_date = "";
+
+  // ===== global values from UserDefs====================================
+
+  global string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz-_";
+  global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}=";
+  global string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-";
+  global string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
+  global string valid_id_chars       = "0123456789";
+
+  global integer max_uid	  = 60000;
+  global integer max_gid	  = 60000;
+  global integer max_system_uid = 500;
+  global integer max_system_gid = 100;
+  global integer max_length_uid = max_uid;
+  global integer max_length_gid = max_gid;
+  global integer max_length_pas = 8;
+  global integer min_length_pas = 5;
+
+  // Maximum number of days a password may be used:
+  global integer pass_max_days = 99999;
+  // Minimum number of days allowed between password changes:
+  global integer pass_min_days = 0;
+  // Number of days warning given before a password expires:
+  global integer pass_warn_age = 7;
+
+
+  global string default_pw     = "******";
+  global string encoding       = "";
+
+  global symbol encryption	 = `des;
+
+  // ===== global values from UserWriteStack==============================
+  global string root_mail = "";
+
+  // ===== global values from UserSettings================================
+    /* TODO - make the maps local if possible *
+    global map  current_users   = $[];
+    global map  current_groups  = $[];
+    global list current_gshadow = [];
+    global map current_shadow = $[];*/
+
+// NEW:
+    global map users = $[
+        `system:    nil,
+        `local:     nil,
+        `nis:       nil];
+    global map groups  = $[
+        `system:    $[],
+        `local:     $[]];
+    list modified_users = [];
+    list modified_groups = [];
+    global map users_by_name = $[];
+    global map groups_by_name = $[];
+    global map user_in_work = $[];
+    global map group_in_work = $[];
+
+    map shadow = $[]; // global ???
+    map gshadow = $[];
+
+    global list user_custom_sets = [];
+    global list group_custom_sets = [];
+    global list current_users = [];
+    global list current_groups = [];
+
+    global string base_dir = "/etc"; // paramater for ReadFuncitons ??
+
+    global list auto_shadow_symbols = ["warn", "max", "min"];
+//    global list auto_shadow_symbols = ["warn", "inact", "max", "min", "expire"];
+
+    // where should be this?
+    //global boolean aborted = false;
+
+
+
+    // ===== new module ==================================================
+    global boolean is_nis_master = false;
+    global boolean is_ldap_server = false;
+    global string default_shell = "/bin/bash";
+    global string default_skel = "/etc/skel";
+    global string default_home = "/home";
+    global integer default_gid = 100;
+    global string default_groupname = "users";
+    global string default_inactive = "-1";
+    global string default_expire = "";
+
+    // list of aviable shells (read in GetAllShells)
+    global list all_shells = [];
+    global list all_shells_items = [];// maybe this shouldn't be constant?
+
+    global list available_usersets = [ `system, `local];
+    global list available_usersets_items = [];
+    global list available_groupsets = [ `system, `local];
+    global list available_groupsets_items = [];
+
+    global map userset_to_string = $[
+        `system:    "&System users",
+        `local:     "&Local users",
+        `nis:       "&NIS users",
+        `ldap:      "L&DAP users",
+        `samba:     "Sam&ba users",
+        `custom:    "&Custom"
+        ];
+
+    global map groupset_to_string = $[
+        `system:    "&System groups",
+        `local:     "&Local groups",
+        `ldap:      "L&DAP groups",
+        `samba:     "Sam&ba groups",
+        `custom:    "&Custom"
+        ];
+
+    /*
+     * @param useUI boolean use user interface (change progress bar)
+     * @return symbol `next if success, else `abort
      */
-    global define boolean Write ()``{
-	any ret = UserWriteStack::SaveDialog(true);
-	return true;
+    global define symbol Read (block abort, boolean useUI) ``{
+
+	// progress caption
+	string caption = _("Initializing user and group configuration");
+	integer no_of_steps = 8;
+
+	// We do not set help text here, because it was set outside
+	if( useUI )
+	    Progress::New (caption, " ", no_of_steps,
+			// progress label
+		       [ _("Read the default login settings"),
+			// progress label
+			 _("Read the default system settings"),
+			// progress label
+			 _("Read the configuration type"),
+			// progress label
+			 _("Read the password settings"),
+			// progress label
+			 _("Read the group settings"),
+			// progress label
+			 _("Read the user settings"),
+			// progress label
+			 _("Read the custom settings"),
+			// progress label
+			 _("Build the cache structures")
+           ],
+			// progress label
+		       [ _("Reading the default login settings..."),
+			// progress label
+			 _("Reading the default system setttings..."),
+			// progress label
+			 _("Reading the configuration type..."),
+			// progress label
+			 _("Reading the password settings..."),
+			// progress label
+			 _("Reading the group settings..."),
+			// progress label
+			 _("Reading the user settings..."),
+			// progress label
+			 _("Reading the custom settings"),// customs
+			// progress label
+			 _("Building the cache structures"),
+			// progress label
+			 _("Finished") ],
+			    "" );
+
+	// read default login settings
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+SCR::Execute(.target.bash, "touch /tmp/touch/1start_read");
+
+	if ( ! ReadLoginDefaults() )
+	{
+		// warning popup
+	    Report::Warning (_("Cannot read the default login settings."));
+	}
+
+	// read default system settings
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+	if ( ! ReadSystemDefaults() )
+	{
+		// error popup
+	    Report::Error (_("Cannot read the default systems settings."));
+	}
+
+	// read configuration type
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+    is_nis_master = IsNisMaster();
+    is_ldap_server = IsLDAPServer();
+
+    if ( is_nis_master && useUI)
+    {
+        string dir = ReadNISConfigurationType (base_dir);
+        if (dir == nil)
+            return `abort; // aborted in NIS server dialog
+        else
+            base_dir = dir;
     }
 
+	// read password settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+	gshadow = ReadGshadowFromDisk (base_dir);
+    shadow = ReadShadowFromDisk (base_dir);
+//y2milestone("shadow:%1", shadow);
+
+	if ( (gshadow == nil) || (shadow == nil) )
+    {
+		// error popup
+	    Report::Error (_("Cannot read the password settings."));
+	    //return `abort;
+    }
+
+	// read group settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+	map passwd_groups = ReadGroupFromDisk (base_dir, gshadow);
+//y2milestone ("groups:%1", passwd_groups);
+	if ( passwd_groups == nil )
+    {
+		// error popup
+	    Report::Error (_("Cannot read the group settings."));
+        passwd_groups = $[];
+    }
+    groups_by_name = GroupsByName (passwd_groups);
+
+	// read user settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+
+SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
+ // this affects also passwd_groups!
+	map passwd_users = ReadPasswdFromDisk (base_dir, passwd_groups);
+SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
+	if (passwd_users == nil)
+    {
+		// error popup
+	    Report::Error (_("Cannot read the local user settings."));
+        passwd_users = $[];
+    }
+
+    if (! is_nis_master )
+        users[ `nis ] = ReadGetentPasswd (base_dir, passwd_groups);
+
+    if (users [`nis ]:nil != nil)
+        available_usersets = add ( available_usersets, `nis);
+
+    if ( is_ldap_server )
+        users [`ldap ] = ReadLDAPUsers ();
+
+    if (users [`ldap ]:nil != nil)
+    {
+        available_usersets = add ( available_usersets, `ldap);
+        available_groupsets = add ( available_groupsets, `ldap);
+    }
+
+    available_usersets = add ( available_usersets, `custom);
+    available_groupsets = add ( available_groupsets, `custom);
+
+    map local_users = $[];
+    map system_users = $[];
+SCR::Execute(.target.bash, "touch /tmp/touch/4before_split_passwd");
+
+    // should be divided in first read !!
+    foreach (`i_uid, `user, passwd_users, ``{
+        if ( (i_uid <= max_system_uid) || (user["username"]:"" == "nobody"))
+        {
+            user [ "type" ] = `system;
+            system_users [ i_uid ] = user;
+        }
+        else
+        {
+            user [ "type"  ] = `local;
+            local_users [ i_uid ] = user;
+        }
+    });
+SCR::Execute(.target.bash, "touch /tmp/touch/5after_split_passwd");
+    users_by_name [`system] = UsersByName(system_users);
+    users [`system] = eval (system_users);
+    PatchUsers (`system, passwd_groups);// list of groups
+SCR::Execute(.target.bash, "touch /tmp/touch/6after_patch_system");
+
+    users_by_name [`local] = UsersByName(local_users);
+    users [`local] = eval (local_users);
+    PatchUsers (`local, passwd_groups);// list of groups
+SCR::Execute(.target.bash, "touch /tmp/touch/7after_patch_local");
+
+    if ( users [ `nis ]:nil != nil )
+    {
+        users_by_name [`nis] = UsersByName(users [`nis]:$[]);
+        PatchUsers (`nis, passwd_groups);// also nis groups??
+    }
+
+SCR::Execute(.target.bash, "touch /tmp/touch/8before_split_group");
+    // should be divided in first read !!
+    foreach (`i_gid, `group, passwd_groups, ``{
+        if ( (i_gid <= max_system_gid) || (group["groupname"]:"" == "nobody")
+            || (group["groupname"]:"" == "nogroup"))
+        {
+            group [ "type" ] = `system;
+            groups [`system, i_gid] = group;
+        }
+        else
+        {
+            group [ "type"  ] = `local;
+            groups [`local, i_gid] = group;
+        }
+    });
+SCR::Execute(.target.bash, "touch /tmp/touch/9after_split_group");
+
+	// read customs
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+    user_custom_sets = ReadUserCustomSets();
+    group_custom_sets = ReadGroupCustomSets();
+
+    // There is no progress for this !!!
+    ReadOtherDefaults();
+
+SCR::Execute(.target.bash, "touch /tmp/touch/9before_cache_read");
+	// build the cache
+	if( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+	    {
+		return `abort;
+	    }
+	}
+    ReadUsersCache();
+SCR::Execute(.target.bash, "touch /tmp/touch/9c_after_cache_read");
+
+	// increase the progress to "finish"
+	if( useUI ) Progress::NextStage ();
+
+SCR::Execute(.target.bash, "touch /tmp/touch/9end_read");
+
+	return `next;
 }
+
+    /** -- would it be useful to have the global maps???
+      * Return map for mapping user names to UIDs
+      * @return map mapping
+      */
+    global define map UsersByName (map usermap) ``{
+	map res = mapmap (`k, `v, usermap, ``{
+	    return [ lookup (v, "username", ""), k ]; // only uid !!
+	});
+	return res;
+    }
+
+    /** -- would it be useful to have the global maps???
+      * @return map mapping
+      */
+    global define map GroupsByName (map groupsmap) ``{
+	map res = mapmap (`k, `v, groupsmap, ``{
+	    return [ lookup (v, "groupname", ""), v ]; // only gid??
+	});
+	return res;
+    }
+
+    /**
+      * Patch list of groups for each user to it's structure
+      */
+    global define void PatchUsers (symbol type, map groupmap) ``{
+
+    if (users [ type ]:$[] == $[] || users_by_name [ type ]:$[] == $[])
+        return;
+
+	foreach (`k, `v, groupmap, ``{
+        // group members
+	    list members = splitstring (lookup (v, "userlist", ""), ",");
+	    string name = lookup (v, "groupname", "");
+        // for each member of this group, add this group name to "grouplist"
+	    foreach (`m, members, ``{
+		    integer uid = users_by_name [ type, m ]:0;
+	        map u = users [ type, uid ]:$[];
+            if (u != $[] && k!= u["gid"]:max_gid) //do not add default group
+            {
+                string grouplist = lookup (u, "grouplist", "");
+                list l_grouplist = splitstring (grouplist, ",");
+                if (! contains (l_grouplist, name))
+                {
+                    grouplist = grouplist + "," + name;
+                    u = add (u, "grouplist", grouplist);
+                    users [ type, uid ] = u;
+                }
+            }
+	    });
+	});
+//    return usermap;
+    }
+
+
+/**
+  * Reads settings from /etc/defaults/useradd
+  * @return true on success
+  */
+global define boolean ReadLoginDefaults()``{
+
+    useradd_defaults = SCR::Read(.etc.default.useradd);
+y2milestone("defaults:%1", useradd_defaults);
+    if( useradd_defaults == $[] || useradd_defaults == nil )
+	    return false;
+
+    SetDefaultValues();
+    return true;
+}
+
+define void SetDefaultValues() ``{
+
+    pass_inact_days  = tointeger( useradd_defaults["inactive"]:"-1" );
+    pass_expire_date = useradd_defaults["expire"]:"";
+
+    default_shell = useradd_defaults["shell"]:default_shell;
+    default_skel = useradd_defaults["skel"]:default_skel;
+    default_expire = useradd_defaults["expire"]:default_expire;
+    default_inactive = useradd_defaults["inactive"]:default_inactive;
+    default_home = GetDefaultHome();
+}
+
+/**
+  * Writes settings to /etc/defaults/useradd
+  * @return true on success
+  */
+global define boolean WriteLoginDefaults()``{
+
+//    useradd_defaults["expire"] = "";
+y2milestone("useradd:%1", useradd_defaults);
+    return SCR::Write(.etc.default.useradd, useradd_defaults);
+}
+
+// -- some better name
+define boolean ReadOtherDefaults()``{
+
+    all_shells = GetAllShells (`stringlist);
+    all_shells_items = GetAllShells (`items);
+
+    default_gid = GetDefaultGid();
+    default_groupname = lookup (GetGroupFromAll(default_gid), "groupname","");
+
+    return true;
+}
+
+/**
+ * Read the security settings from the system.
+ * @return boolean true on success
+ */
+global define boolean ReadSystemDefaults()``{ //SecurityDef?
+
+	// pam stuff
+	map pam_unix_map = $[];
+	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
+	if(pam_list != [] && pam_list != nil)
+	    pam_unix_map = select(pam_list,0,$[]);
+
+	map pam_check_map = $[];
+	pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
+	if(pam_list != [] && pam_list != nil)
+	    pam_check_map = select(pam_list,0,$[]);
+
+	// md5 support
+	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
+        " "), "md5");
+	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
+        ""), " "), "blowfish");
+
+	// set defaults
+	max_uid = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
+	if (nil == max_uid)
+	    max_uid = 60000;
+    max_gid = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
+    if (nil == max_gid)
+        max_gid = 60000;
+	max_system_uid = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
+    if (nil == max_system_uid)
+        max_uid = 499;
+    max_system_gid = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
+    if (nil == max_system_uid)
+        max_system_uid = 99;
+	max_length_uid = size(sformat("%1", max_uid));
+	max_length_gid = size(sformat("%1", max_gid));
+    max_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
+    if (nil ==  max_length_pas)
+        max_length_pas = 8;
+    min_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
+    if (nil ==  min_length_pas)
+        min_length_pas = 5;
+    pass_max_days = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
+    if (nil ==  pass_max_days)
+        pass_max_days = 99999;
+    pass_min_days = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_DAYS));
+    if (nil == pass_min_days)
+        pass_min_days = 0;
+    pass_warn_age = tointeger (SCR::Read (.etc.login_defs.PASS_WARN_AGE));
+    if (nil == pass_warn_age)
+        pass_warn_age = 7;
+
+	encryption = md5 ? `md5 : blowfish ? `blowfish : `des;
+
+	// set encoding
+	string language = UI::GetLanguage(true);
+	encoding = Console::encoding;
+
+	// set maximal password length
+	if (`des != encryption)
+	    max_length_pas = 128;
+
+	return true;
+}
+
+    /** ------------ z UserSettings (mozna nebude potreba)
+     * Read all users and groups settings.
+     * @param interactive true if can ask user via popup
+     * @return success?
+     *
+    global define boolean ReadSettingsFromDisk(boolean interactive)``{
+	// if you change this, change also ui.ycp:ReadDialog
+	// where it is the same + a progress bar
+	return (    ReadConfigurationType (interactive)
+		 && ReadPasswdFromDisk()
+		 && ReadGroupFromDisk()
+		 && ReadGshadowFromDisk()
+		 && ReadShadowFromDisk() );
+    }*/
+
+/**
+ * Saves users into the system
+ */
+global define symbol Write (block abort, boolean useUI)``{
+
+    // currently in modified_users are deleted users
+    // currently I count only with system/local users
+    foreach (`user, modified_users, ``{
+        if (user["delete_home"]:false)
+        {
+            // -- what if the home was changed??
+            string home = user["home"]:"";
+            y2milestone ("The directory %1 is deleted", home);
+            string command = sformat("/bin/rm -rf %1", home);
+            y2debug("rm return value: %1",
+                SCR::Execute(.target.bash, command));
+        }
+    });
+    // add the edited or new users to modified_users
+    modified_users = WritePasswd (users [`system]:$[], users[`local]:$[]);
+    foreach (`user, modified_users, ``{
+        string home = user["home"]:"";
+        string username = user["username"]:"";
+//        string password = user["password"]:"x";
+        string command = "";
+        if (user["modified"]:`nothing == `added)
+        {
+            if (user["create_home"]:true)
+            {
+                y2milestone ("The directory %1 is created", home);
+                // copy homedir from skel
+                command = sformat("/bin/cp -r %1 %2",default_skel,home);
+                y2debug("cp return value: %1",
+                    SCR::Execute(.target.bash, command));
+            }
+            // change the rights
+            string groupname = user["groupname"]:default_groupname;
+            command = sformat("/bin/chown -R %1:%2 %3",username,groupname,home);
+            y2debug("chown return value: %1",
+                SCR::Execute(.target.bash, command));
+            // call the useradd.local -- check the existence
+            command = sformat("/usr/sbin/useradd.local %1", username);
+            y2debug("useradd.local return value: %1",
+                SCR::Execute(.target.bash, command));
+            // set the password - via shadow ??
+            // modify global shadow entry
+            /*
+            path target_path = topath (sformat (".target.passwd.%1", username));
+            y2debug("target.passwd succesful: %1",
+                SCR::Write(target_path, password));
+            */
+
+        }
+        else // only `edited can be here
+        {
+            string org_home = user["org_home"]:home;
+            if (home != org_home)
+            {
+                if (user["create_home"]:true) // homedir moved
+                {
+                    y2milestone ("The directory %1 is moved to %2",
+                        org_home, home);
+                    command = sformat("/bin/mv %1 %2", org_home, home);
+                    y2debug("mv return value: %1",
+                        SCR::Execute(.target.bash, command));
+                }
+                else // directory exists
+                {
+                    // change the rights
+                    string groupname = user["groupname"]:default_group;
+                    command = sformat("/bin/chown -R %1:%2 %3", username,
+                        groupname, home);
+                    y2debug("chown return value: %1",
+                        SCR::Execute(.target.bash, command));
+                }
+            }
+        }
+    });
+    // this should be read at the begining !!
+    string last_shadow_entry="+::0:0:0::::";
+    WriteShadow(shadow, last_shadow_entry);
+    // -- set the proper rights to shadow ??
+    modified_groups = WriteGroup (groups [`system]:$[], groups[`local]:$[]);
+    foreach (`group, modified_groups, ``{
+        // only the passwor change/set should be done here??
+        // -no, in write Gshadow
+    });
+    WriteGshadow(gshadow);
+
+    //WriteUserCustomSets();
+    WriteLoginDefaults();
+
+	return `next;
+}
+
+/**
+ * Return a map with the defaults for the shadow entry
+ * @return map of shadow settings
+ */
+global define map GetDefaultShadow()``{
+
+	return	$[
+           "expire"	: default_expire,
+		   "inact"	: default_inactive, //pass_inact_days,
+		   //"lstchg"	: "11747",
+		   "max"	: sformat("%1", pass_max_days),
+		   "min"	: sformat("%1", pass_min_days),
+		   "warn"	: sformat("%1", pass_warn_age)
+           ];
+
+	/*
+	  TODO fix lstchg
+	*/
+}
+
+/**
+ * Return the default home value for a new user.
+ * @return string home directory
+ */
+global define string GetDefaultHome()``{
+
+    string def_home = useradd_defaults["home"]:"/home";
+    /* TODO check if the directory exists */
+    if ( (findlastof( def_home, "/") +1) != size(def_home ) )
+    {
+        def_home = def_home + "/";
+    }
+    return def_home;
+}
+
+/**
+ * Return the default group id for a new user.
+ * @return integer gid
+ */
+global define integer GetDefaultGid()``{
+
+    string def_gid  = useradd_defaults["group"]:"100";
+    integer def_int = tointeger(def_gid);
+    map group = $[];
+
+    group = GetGroupFromAll (def_int);
+    if( group == $[])
+    {
+	    // error popup
+	    Report::Error(sformat(_("The default group with the id %1 does not exist.
+Please change the default group in /etc/default/useradd."), def_int ));
+
+	    // TODO If group 100 does not exists ?
+	    return 100;
+    }
+    return def_int;
+}
+
+  /** -- do not need this??
+   * Return the default shell for a new user.
+   * @return string shell name
+   */
+  global define string GetDefaultShell()``{
+      return useradd_defaults["shell"]:"/bin/bash";
+  }
+
+/**
+ * Read the /etc/shells file and return a item list or a string shell list.
+ * @param todo `items or `stringlist
+ * @return list of shells
+ */
+global define list GetAllShells(symbol todo ) ``{
+
+	list available_shells =  [];
+	list shells_read = SCR::Read(.etc.shells);
+
+	foreach( `shell_entry, shells_read, ``{
+
+	    if( is( shell_entry, string ))
+	    {
+		    if( (! issubstring( shell_entry, "passwd")) &&
+		        (! issubstring( shell_entry, "bash1")) )
+		    {
+		        if(  SCR::Read(.target.size, shell_entry  )  != -1  )
+		        {
+			        if (todo == `items) available_shells = add(available_shells,
+                            `item( `id(shell_entry), shell_entry ));
+			        if ( todo == `stringlist ) available_shells =
+                            add( available_shells, shell_entry);
+		        }
+		    }
+
+	    }
+	});
+	return available_shells;
+}
+
+    // prepare user/group_in_work for Commit
+    global define boolean Add (string what, map data)``{
+
+        return true;
+    }
+
+    global define boolean Edit (string what, map data)``{
+
+        return true;
+    }
+
+    global define boolean Delete (string what, map data)``{
+
+        return true;
+    }
+
+// cache can be global -> resolved in users.ycp
+global define boolean Commit (string object, boolean cache)``{
+
+    if (object == "user")
+    {
+y2milestone("user : %1", user_in_work );
+        integer uid = user_in_work ["uid"]:max_uid;
+        symbol what = user_in_work ["what"]:`nothing;
+        symbol type = user_in_work ["type"]:`local;
+        string username = user_in_work ["username"]:"";
+        string org_username = user_in_work ["org_username"]:username;
+        string grouplist = user_in_work ["grouplist"]:"";
+        string groupname = user_in_work ["groupname"]:default_groupname;
+        list group_list = splitstring (grouplist, ",");//remove ""
+        group_list = filter (`g, group_list, ``(g != ""));
+
+        // the action
+        if ( what == `add_user )
+        {
+            // when writing the new user, the new home has to be created
+            user_in_work ["modified"] = `added;
+            // update the affected groups
+            foreach (`group, group_list, ``{
+                group_in_work = eval (groups_by_name [group]:$[]);
+                group_in_work ["what"] = `user_change;
+                string userlist = group_in_work ["userlist"]:"";
+                if (userlist != "") userlist = userlist + ",";
+                group_in_work ["userlist"] = userlist + username;
+                Commit ("group", cache);
+            });
+            // add user to his default group -- updating only cache variables
+//            group_in_work = GetGroup (gid)?
+            group_in_work = eval (groups_by_name [groupname]:$[]);
+            group_in_work ["what"] = `user_change;
+            string more_users = group_in_work ["more_users"]:"";
+            if (more_users != "") more_users = more_users + ",";
+            group_in_work ["more_users"] = more_users + username;
+            Commit ("group", cache);
+            // modify global shadow map:
+            shadow [ username ] = user_in_work["shadow"]:$[];
+        }
+        else if ( what == `edit_user )
+        {
+            if (user_in_work ["modified"]:`nothing != `added)
+                user_in_work ["modified"] = `edited;
+            // check the change of additional group membership
+            foreach (`group, group_list, ``{
+                group_in_work = eval (groups_by_name [group]:$[]);
+                string userlist = group_in_work ["userlist"]:"";
+                list l_userlist = splitstring (userlist, ",");
+                // username changed
+                if ((org_username != username) &&
+                    (contains (l_userlist, org_username)))
+                {
+                    group_in_work ["what"] = `user_change;
+                    l_userlist = filter (`u, l_userlist, ``(u != org_username));
+                    userlist = mergestring (l_userlist, ",");
+                    if (userlist != "") userlist = userlist + ",";
+                    group_in_work ["userlist"] = userlist + username;
+                    Commit ("group", cache);
+                }
+                // user was added to the new group
+                else if (!contains (l_userlist, org_username))
+                {
+                    group_in_work ["what"] = `user_change;
+                    if (userlist != "") userlist = userlist + ",";
+                    // username can be changed here
+                    group_in_work ["userlist"] = userlist + username;
+                    Commit ("group", cache);
+                }
+            });
+            // check the removing user from some additional group
+            list removed_group_list = user_in_work ["removed_grouplist"]:[];
+            foreach (`group, removed_group_list, ``{
+                group_in_work = eval (groups_by_name [group]:$[]);
+                string userlist = group_in_work ["userlist"]:"";
+                list l_userlist = splitstring (userlist, ",");
+                if (contains (l_userlist, org_username)) // always true?
+                {
+                    group_in_work ["what"] = `user_change;
+                    l_userlist = filter (`u, l_userlist, ``(u != org_username));
+                    userlist = mergestring (l_userlist, ",");
+                    group_in_work ["userlist"] = userlist;
+                    Commit ("group", cache);
+                }
+            });
+            // check the change in default group
+            string org_groupname = user_in_work ["org_groupname"]:groupname;
+            if ((username != org_username) && (groupname == org_groupname))
+            {
+                // change the user's name in current default group
+                group_in_work = eval (groups_by_name [groupname]:$[]);
+                group_in_work ["what"] = `user_change;
+                string more_users = group_in_work ["more_users"]:"";
+                list l_more_users = splitstring (more_users, ",");
+                l_more_users = filter (`u, l_more_users, ``(u != org_username));
+                more_users = mergestring (l_more_users, ",");
+                if (more_users != "") more_users = more_users + ",";
+                group_in_work ["more_users"] = more_users + username;
+                Commit ("group", cache);
+            }
+            else if (groupname != org_groupname)
+            {
+                // note: username could be also changed!
+                // remove the name from original group ...
+                group_in_work = eval (groups_by_name [org_groupname]:$[]);
+                group_in_work ["what"] = `user_change;
+                string more_users = group_in_work ["more_users"]:"";
+                list l_more_users = splitstring (more_users, ",");
+                l_more_users = filter (`u, l_more_users, ``(u != org_username));
+                more_users = mergestring (l_more_users, ",");
+                group_in_work ["more_users"] = more_users;
+                Commit ("group", cache);
+                // and add it to the new one;
+                group_in_work = eval (groups_by_name [groupname]:$[]);
+                group_in_work ["what"] = `user_change;
+                more_users = group_in_work ["more_users"]:"";
+                if (more_users != "") more_users = more_users + ",";
+                group_in_work ["more_users"] = more_users + username;
+                Commit ("group", cache);
+            }
+            if (username != org_username)
+                shadow = remove (shadow, org_username);
+            shadow [ username ] = user_in_work["shadow"]:$[];
+        }
+        else if ( what == `delete_user )
+        {
+            // check the change of group membership
+            foreach (`group, group_list, ``{
+                group_in_work = eval (groups_by_name [group]:$[]);
+                string userlist = group_in_work ["userlist"]:"";
+                list l_userlist = splitstring (userlist, ",");
+                if (contains (l_userlist, username)) // always true?
+                {
+                    group_in_work ["what"] = `user_change;
+                    l_userlist = filter (`u, l_userlist, ``(u != username));
+                    userlist = mergestring (l_userlist, ",");
+                    group_in_work ["userlist"] = userlist;
+                    Commit ("group", cache);
+                }
+            });
+            // remove user from his default group -- only cache structures
+            group_in_work = eval (groups_by_name [groupname]:$[]);
+            group_in_work ["what"] = `user_change;
+            string more_users = group_in_work ["more_users"]:"";
+            list l_more_users = splitstring (more_users, ",");
+            l_more_users = filter (`u, l_more_users, ``(u != username));
+            more_users = mergestring (l_more_users, ",");
+            group_in_work ["more_users"] = more_users;
+            Commit ("group", cache);
+
+            // but the homedir maybe should be deleted!!
+            // prevent the add & delete of the same user
+            if (user_in_work["modified"]:`nothing != `added)
+                modified_users = add(modified_users, user_in_work);
+            user_in_work ["modified"] = `deleted;
+            shadow = remove (shadow, org_username);
+        }
+        // change the cache variables
+        if (cache)
+            UsersCache::ChangeUser(what, user_in_work);
+
+        // the main action: update users -- what if uid is changed?
+        if (what == `delete_user)
+        {
+            users [type] = remove (users[type]:$[], uid);
+            users_by_name [type] = remove (users_by_name[type]:[], username);
+        }
+        else // also `group_change !
+        {
+            users [ type, uid ] = user_in_work;
+            // only when uid was changed:
+            //users_by_name [ type, username ] = new_uid;
+
+            // this has to be done due to multiple changes of username -- ??
+            // and what about the home and others??
+            users [type, uid, "org_username"] = username;
+        }
+
+    }
+    else if ( object == "group" )
+    {
+        integer gid = group_in_work ["gid"]:max_gid;
+        integer org_gid = group_in_work ["org_gid"]:gid;
+        symbol what = group_in_work ["what"]:`nothing;
+        symbol type = group_in_work ["type"]:`local;
+        string groupname = group_in_work ["groupname"]:"";
+        string password = group_in_work ["password"]:"*";
+        string org_groupname = group_in_work ["org_groupname"]:groupname;
+        string userlist = group_in_work ["userlist"]:"";
+        list l_userlist = splitstring (userlist, ",");
+y2milestone("group: %1", group_in_work);
+
+        if ( what == `add_group )
+        {
+            group_in_work ["modified"] = `added;
+            // update users's grouplists (only local structures)
+            foreach (`user, l_userlist, ``{
+                user_in_work = GetUserByName (user);
+                string grouplist = user_in_work ["grouplist"]:"";
+                user_in_work["grouplist"] = grouplist + "," + groupname;
+                user_in_work["what"] = `group_change;
+                Commit("user", cache);
+            });
+            // create an entry for global gshadow map:
+            gshadow [ groupname ] = $[
+               "password": password,
+               "disposer": "root", // default??
+               "userlist": ""]; // will be updated at the end
+        }
+        else if (what == `edit_group )
+        {
+            if (group_in_work ["modified"]:`nothing != `added)
+                group_in_work ["modified"] = `edited;
+            // update users's grouplists (mainly local structures)
+            foreach (`user, l_userlist, ``{
+                user_in_work = GetUserByName (user);
+                string grouplist = user_in_work ["grouplist"]:"";
+                list l_grouplist = splitstring (grouplist, ",");
+                boolean commit_user = false;
+                // new user added to group
+                if (! contains (l_grouplist, org_groupname))
+                {
+                    user_in_work["grouplist"] = grouplist + "," + groupname;
+                    commit_user = true;
+                }
+                else if (org_groupname != groupname)
+                {
+                    l_grouplist = filter (`g, l_grouplist,``(g!=org_groupname));
+                    grouplist = mergestring (l_grouplist, ",");
+                    // what about ",,"?
+                    user_in_work["grouplist"] = grouplist + "," + groupname;
+                    commit_user = true;
+                }
+                if (commit_user)
+                {
+                    user_in_work["what"] = `group_change;
+                    Commit("user", cache);
+                }
+            });
+            // check the additional users removed from this group
+            list removed_user_list = group_in_work ["removed_userlist"]:[];
+            foreach (`user, removed_user_list, ``{
+                user_in_work = GetUserByName (user);
+                string grouplist = user_in_work ["grouplist"]:"";
+                list l_grouplist = splitstring (grouplist, ",");
+                if ( contains (l_grouplist, org_groupname))
+                {
+                    l_grouplist = filter (`g, l_grouplist,``(g!=org_groupname));
+                    grouplist = mergestring (l_grouplist, ",");
+                    user_in_work["grouplist"] = grouplist;
+                    user_in_work["what"] = `group_change;
+                    Commit("user", cache);
+                }
+            });
+            // correct the changed groupname/gid for users with this group
+            // as default
+            if ((groupname != org_groupname) || (gid != org_gid))
+            {
+                string more_users = group_in_work ["more_users"]:"";
+                list l_more_users = splitstring (more_users, ",");
+                foreach (`user, l_more_users, ``{
+                    user_in_work = GetUserByName (user);
+                    user_in_work["groupname"] = groupname;
+                    user_in_work["gid"] = gid;
+                    user_in_work["what"] = `group_change;
+                    Commit("user", cache);
+                });
+            }
+            // modify the gshadow -- userlist ??
+            if (groupname != org_groupname)
+            {
+                gshadow [ groupname ] = gshadow["org_groupname"]:$[];
+                gshadow = remove (gshadow, org_groupname);
+            }
+            if (password != "x" && password != "*")
+                gshadow [ groupname, "password" ] = password;
+        }
+        else if (what == `delete_group )
+        {
+            // deleted group had no members
+            group_in_work ["modified"] = `deleted;
+            groups [ type ] = remove (groups [type]:$[], org_gid);
+            groups_by_name = remove (groups_by_name, org_groupname);
+            gshadow = remove (gshadow, org_groupname);
+        }
+        else if ( what == `add_user ) // do not call Commit again
+        {
+
+        }
+        // change the cache variables
+        if (cache)
+            UsersCache::ChangeGroup(what, group_in_work);
+
+        if (what != `delete_group) // also for `change_user!
+        {
+            // the main action: update groups
+            if (gid != org_gid)
+                groups [ type ] = remove (groups [type]:$[], org_gid);
+            groups [ type, gid ] = group_in_work;
+            // name could have been changed !!
+            if (groupname != org_groupname)
+                groups_by_name = remove (groups_by_name, org_groupname);
+            groups_by_name [ groupname ] = group_in_work;
+
+            // update userlist in gshadow??
+            gshadow[groupname, "userlist"] = userlist;
+
+            // this has to be done due to multiple changes of groupname ??
+            groups [type, gid, "org_groupname"] = groupname;
+        }
+    }
+    return true;
+}
+
+global define list ReadUserCustomSets() ``{
+
+    return [`local];//, `nis];
+}
+
+global define list ReadGroupCustomSets() ``{
+
+    return [`local, `system];//, `nis];
+}
+
+global define boolean ReadUsersCache() ``{
+
+    // build the users MenuButton items
+    foreach (`set, available_usersets, ``{
+        available_usersets_items = add ( available_usersets_items,
+            `item(`id(set), userset_to_string [ set ]:""));
+    });
+
+    // build the groups MenuButton items
+    foreach (`set, available_groupsets, ``{
+        available_groupsets_items = add ( available_groupsets_items,
+            `item(`id(set), groupset_to_string [ set ]:""));
+    });
+
+    current_users = eval (user_custom_sets);
+    current_groups = eval (group_custom_sets);
+    UsersCache::Read (users, groups, current_users, current_groups);
+
+    // this is ugly!!
+    UsersCache::max_uid         =    max_uid;
+    UsersCache::max_gid         =    max_gid;
+    UsersCache::max_system_uid  =    max_system_uid;
+    UsersCache::max_system_gid  =    max_system_gid;
+    UsersCache::max_length_uid  =    max_length_uid;
+    UsersCache::max_length_gid  =    max_length_gid;
+/*    UsersCache::max_length_pas  =    max_length_pas;
+    UsersCache::min_length_pas  =    min_length_pas;*/
+
+}
+
+global define map GetUserByName ( string name )``{
+    map user = $[];
+    integer uid = -1;
+    foreach (`type, `usernames, users_by_name, ``{
+        if (user == $[])
+        {
+            uid = usernames [name]:-1;
+            if (uid != -1)
+                user = users [type, uid]:$[];
+        }
+    });
+    return user;
+}
+
+/**
+ * @param uid the user id
+ */
+global define void SelectUser( integer uid )``{
+    map ret = $[];
+    integer i = 0;
+    while ( i < size (current_users) )
+    {
+        ret = users[ current_users [i]:nil, uid ]:$[];
+        if (ret != $[])
+        {
+            y2debug("selected user: %1", ret);
+            break;
+        }
+        i = i + 1;
+    }
+    user_in_work = ret;
+}
+
+/**
+ * @param gid the group id
+ */
+global define void SelectGroup( integer gid )``{
+    map ret = $[];
+    integer i = 0;
+    while ( i < size (current_groups) )
+    {
+        ret = groups [ current_groups [i]:nil, gid ]:$[];
+        if (ret != $[])
+        {
+            y2debug("selected group: %1", ret);
+            break;
+        }
+        i = i + 1;
+    }
+	group_in_work = ret;
+}
+
+/**
+ * Return the settings for a group.
+ * @param gid the group id
+ * @return map of group
+ */
+global define map GetGroupFromAll( integer gid )``{
+
+    map group = $[];
+    foreach (`grouptype, `groupset, groups, ``{
+        if (group == $[])
+            group = groupset [gid]:$[];
+    });
+	return group;
+}
+
+   /**
+    * Return the groupname of a group.
+    * @param Id the group gid
+    * @return string groupname
+    *
+    global define string GetGroupName( integer gid ) ``{
+	return groups [ gid, "groupname" ]:"";
+    }*/
+
+/*
+ */
+global define boolean HomeExists(string home) ``{
+
+    return UsersCache::HomeExists(home);
+}
+
+/*
+ */
+global define boolean UIDExists(integer uid) ``{
+
+    return UsersCache::UIDExists(uid);
+}
+
+/*
+ */
+global define boolean UsernameExists(string username) ``{
+
+    return UsersCache::UsernameExists(username);
+}
+
+global define void ChangeCurrentUsers(symbol new) ``{
+
+    if ( new == `custom )
+        current_users = eval (user_custom_sets);
+    else
+        current_users = [ new ];
+    UsersCache::current_users = current_users;// via some function?
+}
+
+global define void ChangeCurrentGroups(symbol new) ``{
+
+    if ( new == `custom )
+        current_groups = eval (group_custom_sets);
+    else
+        current_groups = [ new ];
+    UsersCache::current_groups = current_groups;// via some function?
+}
+
+global define void ChangeCustoms(string what, list new) ``{
+
+    if (what == "user")
+    {
+        user_custom_sets = new;
+        UsersCache::ChangeUserCustoms(new);
+    }
+    else
+    {
+        group_custom_sets = new;
+        UsersCache::ChangeGroupCustoms(new);
+    }
+}
+
+global define boolean SetDefaults (map new_defaults, string groupname)``{
+
+y2milestone("useradd:%1", useradd_defaults);
+    foreach (`key, `value, new_defaults, ``{
+        if (value != "")
+            useradd_defaults[key] = new_defaults[key]:"";
+    });
+    // remove last '/' from home entry (??)
+    string home = useradd_defaults["home"]:"";
+    if ( (findlastof( home, "/") +1) == size(home) )
+        useradd_defaults["home"] = substring (home, 0, size(home)-1);
+
+    default_gid = tointeger(useradd_defaults["group"]:"100");
+    default_groupname = groupname;
+    SetDefaultValues();
+y2milestone("useradd:%1", useradd_defaults);
+    return true;
+}
+
+global define string LastChangeIsNow () ``{
+    map out = SCR::Execute(.target.bash_output, "date +%s");
+    string days_s = out["stdout"]:"0\n";
+    days_s = substring(days_s, 0, size(days_s)-1);
+    integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+    return sformat("%1", days);
+}
+
+}// EOF

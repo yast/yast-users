@@ -6,22 +6,22 @@ yncludedir = @yncludedir@/users
 
 module_DATA =			\
 	Users.ycp		\
-	UserDefs.ycp		\
-	UserSettings.ycp	\
-	UserWriteStack.ycp	\
-	UserAddDefs.ycp		\
-	Accounts.ycp
+	UsersCache.ycp
 
-ynclude_DATA =			\
-	ui.ycp			\
-	help.ycp		\
-	passwd.ycp
+ynclude_DATA =		\
+	complex.ycp		\
+    dialogs.ycp     \
+	helps.ycp		\
+	passwd.ycp      \
+    wizards.ycp     \
+    routines.ycp    \
+    nis_routines.ycp
 
-client_DATA = 			\
+client_DATA = 		\
 	users.ycp		\
-	users_auto.ycp		\
-	users_write.ycp		\
-	inst_root.ycp		\
+	users_auto.ycp	\
+	users_write.ycp	\
+	inst_root.ycp	\
 	inst_user.ycp
 
 config_DATA =			\

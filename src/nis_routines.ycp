@@ -1,0 +1,118 @@
+/**
+ * File:
+ *  nis_routines.ycp
+ *
+ * Module:
+ *  Users
+ *
+ * Summary:
+ *  NIS server read routines (moved from UserSettings.ycp)
+ *
+ * Authors:
+ *  Johannes Buchhold <jbuch@suse.de>,
+ *  ...
+ *
+ */
+
+{
+/**
+  * Check whether host is NIS master
+  * @return boolean true if is master
+  */
+global define boolean IsNisMaster () ``{
+    boolean helper = 0 == SCR::Execute (.target.bash, "test -f /usr/lib/yp/yphelper");
+    if (! helper)
+        return false;
+    boolean master = 0 == SCR::Execute (.target.bash, "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1");
+    return master;
+}
+
+
+/**
+ * If we can ask and are a NIS server, ask which set of users
+ * to administer and set UserWriteStack accordingly.
+ * @param interactive true if can ask user via popup
+ * @return success?
+ */
+global define boolean ReadNISConfigurationType (string basedir)``{
+
+    string ypdir = SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
+    while (substring (ypdir, size (ypdir) - 1) == "/")
+        ypdir = substring (ypdir, 0, size (ypdir) -1);
+    if ("" == ypdir)
+        ypdir = "/";
+    if (ypdir != basedir)
+    {
+        symbol type = getConfigurationType (ypdir);
+        if (type == `abort)
+        {
+            return nil;
+        }
+        if (type == `nis)
+        {
+            // this should never happen, probably only in testsuites
+            if (ypdir == nil)
+                ypdir = basedir;
+//                ypdir = "";
+//            base_dir = ypdir; // change here, or return as return value ???
+        /*
+        UserWriteStack::chage = sformat ("/usr/bin/chage -P %1 ", ypdir);
+        UserWriteStack::useradd = sformat ("/usr/sbin/useradd -P %1 ", ypdir);
+        UserWriteStack::usermod = sformat ("/usr/sbin/usermod -P %1 ", ypdir);
+        UserWriteStack::userdel = sformat ("/usr/sbin/userdel -P %1 ", ypdir);
+        UserWriteStack::groupadd = sformat ("/usr/sbin/groupadd -P %1 ", ypdir);
+        UserWriteStack::groupdel = sformat ("/usr/sbin/groupdel -P %1 ", ypdir);
+        UserWriteStack::groupmod = sformat ("/usr/sbin/groupmod -P %1 ", ypdir);*/
+        }
+        else
+            ypdir = basedir;
+    }
+    return ypdir;
+}
+
+/**
+  * Ask user for configuration type (standard or NIS)
+  * @param dir string directory with NIS settings
+  * @return symbol `passwd or `nis or `abort
+  */
+global define symbol getConfigurationType (string dir) ``{
+    term contents = `VBox (
+        // label
+        `Label (_("You have installed an NIS master server.
+It is configured to use a different database
+of users and groups than the local system 
+database in the /etc directory.
+Select which one to configure.
+")),
+        `VSpacing (1),
+        `RadioButtonGroup (`id (`configtype), `VBox (
+        // radio button
+        `RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
+        `VSpacing (1),
+        // radio button, %1 is path (eg. /etc)
+        `RadioButton (`id (`nis), `opt (`hstretch), sformat(_("&NIS (%1 directory)"), dir), false)
+        )),
+        `VSpacing (1),
+        `HBox (
+        `HStretch (),
+        `PushButton (`id (`ok), OKButtonLabel()),
+        `HStretch (),
+        `PushButton (`id (`abort), AbortButtonLabel()),
+        `HStretch ()
+        )
+    );
+    UI::OpenDialog (contents);
+    symbol ret = nil;
+    while (ret == nil)
+    {
+        ret = UI::UserInput ();
+        if (ret != `cancel && ret != `ok)
+            continue;
+    }
+    if (ret == `ok)
+        ret = UI::QueryWidget (`id (`configtype), `CurrentButton);
+    UI::CloseDialog ();
+    return ret;
+}
+
+}

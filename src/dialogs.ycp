@@ -1,0 +1,1828 @@
+/**
+ * File:	include/users/dialogs.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Dialogs definitions
+ * Authors:	jsuchome <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+
+{
+
+textdomain "users";
+
+import "Wizard";
+import "Mode";
+import "Report";
+
+//    import "./UsersConsts";
+import "./Users";
+import "./UsersCache";
+
+include "ui/common_messages.ycp";
+include "ui/common_popups.ycp";
+
+include "./helps.ycp";
+
+    /*
+    global map saved_user = $[];
+    global boolean use_next_time = true;*/
+
+
+
+/**
+ * Function that adds or edits a user.
+ * @param what `add_user or `edit_user
+ * @return symbol for wizard sequencer
+ */
+global define symbol EditUserDialog(symbol what) ``{
+// po details se vsechno generuje znova !!
+y2milestone ("------ what:%1, in work: %2", what, Users::user_in_work);
+
+    if (start_dialog == "user_add" && Mode::cont && use_next_time)
+    {
+        user_in_work = saved_user; // ??
+        use_next_time = false;
+    }
+
+    boolean create_home = Users::user_in_work["create_home"]:true;
+    string  username    = Users::user_in_work["username"]:"";
+    string  fullname    = Users::user_in_work["fullname"]:"";
+    integer gid         = Users::user_in_work["gid"]:Users::default_gid;
+    string  groupname   = Users::user_in_work["groupname"]:
+        Users::default_groupname;
+    string  org_groupname   = Users::user_in_work["org_groupname"]:groupname;
+    string  home        = Users::user_in_work["home"]:Users::default_home;
+    string  shell       = Users::user_in_work["shell"]:Users::default_shell;
+    integer uid         = Users::user_in_work["uid"]:nil;
+    string  surname     = Users::user_in_work["surname"]:
+        SplitFullName(`surname, fullname, uid);
+    string  forename    = Users::user_in_work["forename"]:
+        SplitFullName(`forename, fullname, uid);
+    string  password    = Users::user_in_work["password"]:"";
+//    string  old_password= Users::user_in_work["old_password"]:password;
+    string  grouplist   = Users::user_in_work["grouplist"]:"empty";
+//    boolean pwd_chng    = Users::user_in_work["pwd_chng"]:false;//??
+    symbol  user_type   = Users::user_in_work["type"]:nil;
+    list removed_grouplist = Users::user_in_work["removed_grouplist"]:[];
+    string org_username = Users::user_in_work["org_username"]:username;
+
+    if (user_type == nil)
+    {
+        user_type = `local;
+        if ((what == `add_user) && (size (Users::current_users) == 1) &&
+            (Users::current_users[0]:`local != `nis ))
+            user_type = Users::current_users[0]:`local;
+        UsersCache::user_type = user_type; //??
+    }
+    map dialog_labels = $[
+        // dialog caption %1 can be: local, system, LDAP, etc. -- change this!!
+        `add_user:   sformat(_("Add a new %1 user"), user_type),
+        // dialog caption
+        `clone_user: _("Add a new user by cloning user "),
+        // dialog caption
+        `edit_user:  _("Edit an existing user")
+    ];
+
+    if ( grouplist == "empty" && what == `edit_user)
+    {
+y2error("--------- grouplist is empty!");
+//        grouplist = UsersCache::FindGroupsBelongUser(username);
+    }
+    if ( grouplist == "empty" && what == `add_user )
+        grouplist = ",dialout,uucp,video,audio";
+    if ( uid ==  nil )
+    {
+        uid = UsersCache::NextFreeUid(); // this uses user_type
+        if ( uid == nil )
+        {
+            // error label
+            Report::Error(_("There is no free UID for this type of user!"));
+            return `nosave;
+        }
+    }
+
+    map shadow = $[];
+    if (Users::user_in_work["shadow"]:$[] == $[] && what == `add_user )
+    {
+        shadow = Users::GetDefaultShadow();//default_shadow??
+    }
+    else
+    {
+        foreach( `key, `value, Users::user_in_work["shadow"]:$[], ``{
+            shadow[key] = value;
+        });
+    }
+
+    term detailsmorebox =
+        `HBox(
+            // push button
+            `PushButton(`id(`details), _("&Details...")),
+            `VStretch(),
+            // push button
+            `PushButton(`id(`passwordsettings), _("&Password settings")),
+            `VStretch());
+
+    // running in inst-sys and first mask to a user
+    if( Mode::cont && start_dialog == "user_add" )
+    {
+        detailsmorebox = add(detailsmorebox,
+            // push button
+            `PushButton(`id(`additional), _("Additional users/&groups")));
+        detailsmorebox = `VBox (
+            // checkbox label -- change this!!
+            `CheckBox (`id (`root_mail),_("For&ward root's mail to this user"),
+                Users::root_mail != ""),
+            `VStretch (),
+            detailsmorebox);
+    }
+
+    term contents =
+        `HSquash(`VBox(
+            `VStretch(),
+            `VBox(
+                // label text -- is this true ???
+                user_type == `nis ? `Label(_("Only additional group memberships 
+can be changed for non-local users.
+"))
+                    : `VSpacing (0),
+                user_type == `nis ? `VSpacing (1) : `VSpacing (0),
+                // text entry
+                `TextEntry(`id(`forename), _("F&irst name:"), forename),
+                // text entry
+                `TextEntry(`id(`surname),  _("&Last name:"),  surname )
+            ),
+            `VSquash(
+            `HBox(
+                // input field for login name
+                `Bottom(`TextEntry(`id(`username), _("&User login:"),username)),
+                user_type == `nis ? `HSpacing (0)
+                    // push button to generate login from first and last name
+                    : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+            )),
+            // User account information,
+            // first version of user password, both versions must match
+            `Password(`id(`pw1), _("&Enter a password:"), ""),
+            // User account information,
+            // second version of user password, retyped to avoid typos
+            // This is a label,
+            // please use newline if it is longer than 48 characters
+            `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+            `VStretch(),
+            detailsmorebox ));
+
+    Wizard::SetContentsButtons(
+                lookup(dialog_labels, what, ""),
+                contents,
+                EditUserDialogHelp(),
+                UI::BackButtonLabel(),
+                UI::NextButtonLabel());
+
+    if (user_type == `nis) // canot be something edited??
+    {
+        UI::ChangeWidget (`id(`forename), `Enabled, false);
+        UI::ChangeWidget (`id(`surname), `Enabled, false);
+        UI::ChangeWidget (`id(`username), `Enabled, false);
+        UI::ChangeWidget (`id(`pw1), `Enabled, false);
+        UI::ChangeWidget (`id(`pw2), `Enabled, false);
+        UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
+    }
+
+    UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
+    if( what == `add_user && ( ! Mode::cont) )
+        // change of button label
+        Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+
+    if( what == `add_user ) UI::SetFocus(`id(`forename));
+
+    if (user_type == `system)
+//  if( uid <=  Users::max_system_uid && what == `edit_user )
+    {
+        UI::ChangeWidget(`id(`propose), `Enabled, false );
+        UI::ChangeWidget(`id(`forename),`Enabled, false );
+    }
+    if( password != "")
+    {
+        UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
+        UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
+    }
+
+    symbol ret = `next;
+    repeat
+    {
+        ret = UI::UserInput();
+
+        // generate a login name from first and last name
+        if (ret == `propose  && what == `add_user)
+//            ( !(what == `edit_user && uid <=  Users::max_system_uid) ) )
+        {
+            string forename = UI::QueryWidget(`id(`forename), `Value);
+            string surname  = UI::QueryWidget(`id(`surname), `Value);
+            string username = ProposeUsername( forename, surname );
+            UI::ChangeWidget(`id(`username), `Value, username);
+        }
+
+        // only in continue mode
+        if( ret == `additional )
+        {
+            if (UI::QueryWidget(`id(`pw1), `Value) == "" &&
+                UI::QueryWidget(`id(`pw2),`Value) == ""  &&
+                UI::QueryWidget(`id(`username), `Value) == "" &&
+                UI::QueryWidget(`id(`forename), `Value) == "" &&
+                UI::QueryWidget(`id(`surname ), `Value) == "")
+            ret = `nosave;
+        }
+
+        boolean details = ( ret == `details || ret == `passwordsettings );
+
+        // check the settings
+        if ((!Mode::cont && ( ret == `next || details ))  // why after details?
+         || ( Mode::cont && ( details || ret == `additional || ret == `next )))
+        {
+            string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
+            string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
+            username     = UI::QueryWidget(`id(`username), `Value);
+            forename     = UI::QueryWidget(`id(`forename), `Value);
+            surname      = UI::QueryWidget(`id(`surname ), `Value);
+
+            if( forename != "" )
+            {
+                if( surname != "")
+                {
+                    fullname = forename + " " + surname;
+                }
+                else
+                {
+                    fullname = forename;
+                }
+            }
+            else fullname = surname;
+
+            if ( username == "" )
+            {
+            // The user login field is empty, this is allowed if the
+            // system is part of a network with NIS user management.
+            // Ask the user about this in a Yes/No popup
+            // The first string is the title of the popup.
+
+//          if( Mode::cont && !details && ret != `additional && start_dialog == "user_add" )
+            if( Mode::cont && ret == `next && start_dialog == "user_add" )
+            {
+                // yes-no popup headline
+                if (  UI::YesNoHeadlinePopup(_("Empty user login"),
+                // yes-no popup contents
+                 _("Leaving the user name empty only makes sense
+in a network environment with a NIS server.
+
+Is this system a network client?
+")))
+                {
+                    start_sequencer_again = false;
+                    ret = `nextmodule;
+                    break;
+                }
+                UI::SetFocus(`id(`username));
+                continue;
+            }
+            else
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete. The username is empty (no user input).
+                // error popup
+                Report::Error(_("You didn't enter a username.
+Please try again.
+"));
+                UI::SetFocus(`id(`username));
+                continue;
+            }
+            }
+
+            if  (  ( size( username ) < 2 || size( username ) > 32 ) )
+            {
+
+                // There is a check whether the information from the UI is
+                // correct and complete.  The username must have a size
+                // between 2 and 32 characters.
+                // error popup
+                Report::Error(_("The username must be between 2 and 32 characters in length.
+Please try again.
+"));
+                UI::SetFocus(`id(`username));
+                continue;
+            }
+
+            string firstchar = substring(username, 0, 1);
+
+            if ((! ((firstchar >= "a" && firstchar <= "z" )
+                    || firstchar == "_")
+                || nil!=findfirstnotof(username, Users::valid_logname_chars)))
+            {
+
+                // There is a check whether the information from the UI is
+                // correct and complete.  The login name may contain only
+                // certain characters and must begin with a letter.
+                // error popup
+                Report::Error(_("The user login may contain only
+lower case letters, digits, \"-\" and \"_\"
+and must begin with a letter or \"_\".
+Please try again.
+"));
+                UI::SetFocus(`id(`username));
+                continue;
+            }
+
+            // check login against passwd contents
+            if ( (username != lookup( Users::user_in_work , "username",""))
+                 && UsersCache::UsernameExists(username))
+            {
+
+                // Tell the user that the login he entered conflicts with
+                // predefined logins in the passwd file.
+                // error popup
+                Report::Error(_("There is a conflict between the entered
+login name and a predefined username.
+
+Please try another one.
+"));
+                UI::SetFocus(`id(`username));
+                continue;
+            }
+
+            if (  pw1 != pw2 )
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete.  The two user password information
+                // do not match
+                // error popup
+                Report::Error(_("The first and the second version
+of the password are different.
+Please try again."));
+                password = "";
+                // Invalidate any old password
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+
+                UI::SetFocus(`id(`pw1));
+                continue;
+            }
+
+            // Use the old password (if any) if no passwords were entered.
+            // only check pw1 here, its identical with pw2 as checked before
+            if ( (pw1 !=  Users::default_pw) && (pw2 != Users::default_pw ))
+            {
+            if ( pw1 == "" )
+            {
+                // There is a check whether the information from the
+                // UI is correct and complete.  The first user password
+                // information is empty (no user input)
+                // error popup
+                Report::Error(_("You didn't enter a password.\nPlease try again."));
+                password = "";
+
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+
+                UI::SetFocus(`id(`pw1));
+                continue;
+            }
+            if (size (pw1) < Users::min_length_pas)
+            {
+
+                // There is a check whether the information from the
+                // UI is correct and complete.  The user password
+                // information must have a minimal size - 5 characters.
+                // error popup. %1 and %2 are numbers (typical 5 and 8)
+                Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+                    Users::min_length_pas,
+                    Users::max_length_pas));
+
+                password = "";
+
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+                UI::SetFocus(`id(`pw1));
+                continue;
+            }
+            if (size(pw1) >  Users::max_length_pas)
+            {
+                // error popup. %1 is number (typical 8)
+                if (!UI::YesNoPopup (sformat(_("The password is longer than %1 characters. It will be truncated to %1 characters."),
+                        Users::max_length_pas)))
+                {
+                password = "";
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+                UI::SetFocus(`id(`pw1));
+                continue;
+                }
+            }
+            if ( size(pw1) >=  Users::min_length_pas )
+
+            {
+                if ( nil != findfirstnotof( pw1, Users::valid_password_chars ))
+                {
+
+                // There is a check whether the information from the
+                // UI is correct and complete.  The user password may
+                // contain only certain characters
+                // error popup
+                Report::Error(_("The password may only contain the following characters:
+0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
+Please try again."));
+                password = "";
+
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+                UI::SetFocus(`id(`pw1));
+                continue;
+                }
+            }
+            if (Users::encryption == `md5)
+            {
+                password = cryptmd5(pw1);
+            }
+            else if (Users::encryption == `blowfish)
+            {
+                password = cryptblowfish(pw1);
+            }
+            else
+            {
+                password = crypt (pw1);
+            }
+            }
+
+            // bild default home dir
+            // TODO Fixme
+            if ( what == `add_user && home == Users::default_home )
+
+            {
+                home = home + username;
+            }
+
+            // why this check?? -- the homedir was changed (see above)
+            if( home != Users::user_in_work["org_home"]:"" )
+            {
+                // TODO new popup for existing dir
+                if( (UsersCache::HomeExists(home)) && !details )
+                {
+                    // error popup
+                    Report::Error(_("The default home directory is used from another user.
+Please press button Details and edit home directory."));
+                    continue;
+                }
+                if (SCR::Read(.target.size, home ) != -1)
+                {
+                    // yes-no popup
+                    if (! UI::YesNoPopup(_("The home directory selected already exists.
+Use it and change its owner?
+")))
+                    {
+                        UI::SetFocus(`id(`home));
+                        continue;
+                    }
+                    create_home = false;
+                }
+            }
+
+            if ( what == `add_user ) Users::user_in_work["org_home"] = home;
+
+            // only after pwd_chng??
+            if (password != "x" && password != "")
+            {
+                shadow["password"] = password;
+                shadow["last_change"] = Users::LastChangeIsNow();
+            }
+
+            // use Users::Add/Edit?
+            Users::user_in_work = $[
+                     "what"        :  what,
+                     "fullname"    :  fullname,
+                     "gid"         :  gid,
+                     "groupname"   :  groupname,
+                     "home"        :  home,
+                     "org_home"    :  Users::user_in_work["org_home"]:"",
+                     "password"    :  password,// write crypted password??
+//                     "old_password":  old_password,
+                     "shell"       :  shell,
+                     "uid"         :  uid,
+                     "username"    :  username,
+                     "grouplist"   :  grouplist,
+                     "forename"    :  forename,
+                     "surname"     :  surname,
+                     "shadow"      :  shadow,
+                     "create_home" :  create_home,
+//                     "pwd_chng"    :  pwd_chng,   //where is the action done??
+                     "type"        :  user_type
+            ];
+
+            // username changed -> new entry
+            if ( org_username != username )
+                Users::user_in_work["org_username"] = org_username;
+
+            if ( removed_grouplist != [] )
+                Users::user_in_work["removed_grouplist"] = removed_grouplist;
+
+            if ( org_groupname != groupname)
+                Users::user_in_work["org_groupname"] = org_groupname;
+
+            y2debug ("edited user: %1", Users::user_in_work );
+
+/*          if (start_dialog == user_add && Mode::cont)
+            {
+            saved_user = user_in_work;
+            }
+*/
+
+        }
+    } until ( ret == `next || details || ret == `abort  || ret == `back ||
+              ret == `cancel || ret == `additional || ret == `nosave );
+
+    // only in inst-sys
+    // create more users and groups
+    // leave sequencer and start it again with new start_dialog
+    if (start_dialog == "user_add" && Mode::cont)
+    {
+        Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
+            ? username : "";
+    }
+    if( ret == `additional ||  ret == `nosave ) // -- ??
+    {
+        saved_user = user_in_work;
+//      start_sequencer_again = true;
+
+//      if ( ret == `additional ) ret = `next;
+    }
+//  else start_sequencer_again = false; -- there is no use of this variable!!
+    return ret;
+}
+
+
+/**
+ * Details of adding/cloning/editing dialog
+ * @return symbol for wizard sequencer
+ */
+global define symbol EditUserDetailsDialog( ) ``{
+
+y2milestone ("------ in work: %1", Users::user_in_work);
+    //load the current usersettings from Users::user_in_work
+    symbol what           = Users::user_in_work["what"]:`nix;
+    string username       = Users::user_in_work["username"]:"";
+    string fullname       = Users::user_in_work["fullname"]:"";
+    string home           = Users::user_in_work["home"]:"";
+    string org_home       = Users::user_in_work["org_home"]:"";
+    string shell          = Users::user_in_work["shell"]:"";
+    string grouplist      = Users::user_in_work["grouplist"]:"";
+    integer uid           = Users::user_in_work["uid"]:Users::max_uid;
+    integer gid           = Users::user_in_work["gid"]:Users::max_gid;
+    symbol user_type      = Users::user_in_work["type"]:`local;
+    string defaultgroup   = Users::user_in_work["groupname"]:"";
+    fullname              = username + ", " + fullname; //??
+    integer old_uid       = 0;
+
+    list available_shells = Users::all_shells_items;
+    list available_groups = [];
+    list additional_groups = [];
+    list list_grouplist = splitstring (grouplist, ",");
+    list removed = [];
+
+    /* fill the list available_groups and set the user default group true
+    foreach ( `key, `group,  Users::groups, ``{
+
+        if ( key == gid )
+        {
+            available_groups = add( available_groups,
+                `item( `id(lookup( group , "groupname" , "" )),
+                lookup( group , "groupname" , "" ) , true));
+        }
+        else
+        {
+            available_groups = add( available_groups,
+                `item( `id(lookup( group , "groupname" , "" )),
+                lookup( group , "groupname" , "" )));
+        }
+    });
+    */
+
+    /* fill the list available_groups and set the user default group true */
+    // -- this could evia ChangeWidget ??
+    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{ // not all sets!!
+        foreach ( `group, groupset, ``{
+
+            if ( group == defaultgroup )
+                available_groups = add (available_groups,
+                    `item( `id(group), group, true));
+            else
+                available_groups = add (available_groups,
+                    `item( `id(group), group));
+            if ( contains (list_grouplist, group))// || group == defaultgroup)
+                additional_groups = add (additional_groups,
+                    `item( `id(group), group, true ));
+            else
+                additional_groups = add (additional_groups,
+                    `item( `id(group), group, false));
+        });
+    });
+
+//y2milestone ("additional: %1", additional_groups);
+
+    term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch),
+        // combobox label
+        _("Default &group"), available_groups );
+    term edit_shell = `ComboBox(`id(`shell), `opt(`hstretch, `editable),
+        // combobox label
+        _("Login &shell"), available_shells );
+
+    term contents =
+        `HBox(
+          `HSpacing(1),
+          `VBox(
+           `VSpacing(1),
+           // label
+           user_type == `nis ? `Label(_("Only additional group memberships 
+can be changed for non-local users.")) : `VSpacing (0),
+           user_type == `nis ? `VSpacing (1) : `VSpacing (0),
+           // User account information, forename or first name
+           // textentry label
+           `TextEntry(`id(`fullname), _("&Detaild profile for user:"),fullname),
+           `VSpacing(1),
+           `HBox(
+                `VBox(
+                    // textentry label
+                    `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
+                        sformat("%1",uid ))),
+                    // textentry label
+                    `Top(`TextEntry( `id(`home), _("&Home directory"), home )),
+                    `Top(edit_shell),
+                    `Top(edit_defaultgroup),
+                    `VStretch()
+                ),
+                `HSpacing(2),
+                `Top(`MultiSelectionBox( `id(`grouplist),
+                    // selection box label
+                    _("Additional group &membership"), additional_groups))//list_grouplist))
+            ),
+            `VSpacing(1)
+           ),
+           `HSpacing(1)
+        );
+
+    // dialog caption
+    Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
+                    contents,
+                    EditUserDetailsDialogHelp(),
+                    UI::BackButtonLabel(),
+                    UI::NextButtonLabel());
+
+    if (user_type == `nis)
+    {
+        UI::ChangeWidget (`id (`fullname), `Enabled, false);
+        UI::ChangeWidget (`id (`uid), `Enabled, false);
+        UI::ChangeWidget (`id (`home), `Enabled, false);
+        UI::ChangeWidget (`id (`shell), `Enabled, false);
+        UI::ChangeWidget (`id (`defaultgroup), `Enabled, false);
+    }
+
+    //Modify the dialog
+    UI::ChangeWidget(`id(`fullname), `Enabled, false );
+    UI::ChangeWidget(`id(`shell),    `Value,   shell );
+    // uid cannot be edited??
+    if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
+
+    // user input
+    symbol ret = `next;
+    repeat
+    {
+        ret = UI::UserInput();
+        if ( ret == `next )
+        {
+            string  new_home  = UI::QueryWidget(`id(`home),  `Value);
+            string  new_shell = UI::QueryWidget(`id(`shell), `Value);
+            string  new_uid   = UI::QueryWidget(`id(`uid),   `Value);
+            string  new_defaultgroup = UI::QueryWidget(`id(`defaultgroup),`Value);
+            list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
+                `SelectedItems );
+//            new_list_grouplist = filter(`g, new_list_grouplist, ``( g != ""));
+            boolean input_ok     = true;
+            integer new_i_uid    = tointeger( new_uid );
+            string new_grouplist = mergestring( new_list_grouplist, ",");
+//y2milestone("new grouplist: %1", new_grouplist);
+//y2milestone("grouplist: %1", grouplist);
+
+            // check the uid -- only for adding??
+            if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
+            {
+            if( ! ( new_i_uid >= 0  && new_i_uid <= Users::max_uid )  ||
+                nil != findfirstnotof( new_uid , Users::valid_id_chars ) )
+            {
+                // error popup, %1 is integer
+                string error = sformat(_("The selected User Id is not allowed.
+Please select a valid integer between 0 and %1"),  Users::max_uid );
+                Report::Error( error );
+                UI::SetFocus(`id(`uid));
+                continue;
+            }
+            if( new_i_uid <= Users::max_system_uid && user_type!= `system)
+            {
+                // tell the max_system_uid
+                // error popup
+                string error = sformat(_("The selected User Id is a system Id,
+because the Id is smaller than %1. \nDo you really want to create a new system user"),  Users::max_system_uid );
+                if( ! UI::YesNoPopup( error ))
+                {
+                UI::SetFocus(`id(`uid));
+                continue;
+                }
+                // !!! change user_type !!
+                user_type = `system;
+            }
+            if( ( uid != new_i_uid ) && UsersCache::UIDExists( new_i_uid ) )
+            {
+                // error popup
+                Report::Error(_("The inputted User Id is reserved.
+Please select a another User Id"));
+                UI::SetFocus(`id(`uid));
+                continue;
+            }
+            } // end of uid checks
+
+            // check the defaultgroup ( replace by filter!! ) -- no!!
+            /*
+            foreach ( `key, `group,  Users::groups, ``{
+            if( lookup( group, "groupname", "") == new_defaultgroup )
+            {
+                gid = lookup(group, "gid",  Users::max_gid);
+            }
+            });*/
+            if ( defaultgroup != new_defaultgroup )
+            {
+                gid = Users::groups_by_name[new_defaultgroup, "gid"]:gid;
+                // change groupname
+            }
+
+            // check the homedirectory
+            if ( home != new_home || what == `add_user )
+            {
+            if( (nil != findfirstnotof( new_home, Users::valid_home_chars )) ||
+                (  0 != findfirstof( new_home, "/")   ))
+            {
+                //TODO FIXME - ADD "-_" to message - not start with "-"
+                // error popup
+                Report::Error(_("The home directory may only contain the following characters:
+a..zA..Z0..9/
+Please try again."));
+                UI::SetFocus(`id(`home));
+                continue;
+            }
+            if ( Mode::test )
+                y2milestone("newhome: %1,  org_home: %2", new_home, org_home);
+
+            if ( (what == `edit_user && ( new_home != org_home ))
+                 || what == `add_user )
+            {
+                /* TODO new popup for existing dir */
+                if( UsersCache::HomeExists(new_home) ) // -- this is done twice
+                {
+                    // error popup
+                    Report::Error(_("The home directory is used from another user.
+Please try again."));
+                    UI::SetFocus(`id(`home));
+                    continue;
+                }
+                if (SCR::Read(.target.size, new_home ) !=-1)
+                {
+                    // yes-no popup
+                    if (! UI::YesNoPopup(_("The home directory selected already exists.
+Use it and change its owner?
+")))
+                    {
+                        UI::SetFocus(`id(`home));
+                        continue;
+                    }
+
+                    // use chown?
+                }
+            }
+            }
+
+            if ((!contains(Users::all_shells, new_shell))&&(new_shell != shell))
+            {
+                // Yes-No popup
+                if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
+may be unable to log in. Continue?
+")))
+                    continue;
+            }
+
+            // check the grouplist
+            if( new_grouplist != grouplist  )
+            {
+            if( nil == findfirstnotof( new_grouplist,
+                    Users::valid_grouplist_chars ) )
+            {
+                // remove last,"" -- why??
+y2milestone("list_grouplist: %1", list_grouplist);
+y2milestone("new_list_grouplist: %1", new_list_grouplist);
+                foreach (`group, list_grouplist, ``{
+                    if (! contains (new_list_grouplist, group) && group!="")
+                        removed = add (removed, group);
+                });
+                //if two entries for one group in new_groups delete one
+/*                list tmp_new_groups  = new_groups;
+                list double_entries = [];
+                foreach( `new_group, tmp_new_groups , ``{
+                    if ( (size( filter(`k, tmp_new_groups , ``( k == new_group ))) > 1 ) &&
+                    ( ! contains( double_entries, new_group) ))
+                    {
+                    double_entries =  add( double_entries ,  new_group );
+                    new_groups = filter(`k, new_groups , ``( k != new_group ));
+                    new_groups = add( new_groups , new_group );
+                    }
+                });
+                new_grouplist  = mergestring( new_groups ,",");
+y2milestone("new grouplist: %1", new_grouplist);*/
+
+                if (new_grouplist != "")
+                    new_grouplist = "," + new_grouplist;
+                // -- why is this check needed??
+                /*
+                boolean input_ok = true;
+                foreach( `new_group, new_groups , ``{
+                if( input_ok )
+                {
+                    boolean found = false;
+                    foreach(`key, `exist_group, Users::groups, ``{ // !!
+                    if( lookup( exist_group, "groupname", "") == new_group )
+                    {
+                        found = true;
+                    }
+                    });
+                    if ( found == false )
+                    {
+                    // error popup
+                    Report::Error(_("You can only assign the user
+groups that really exists.
+Please try again."));
+                    UI::SetFocus(`id(`grouplist));
+                    input_ok = false;
+                    }
+                }
+                });
+                if( ! input_ok ) continue;*/
+            }
+            else
+            {
+                // error popup
+                Report::Error(_("The groupfield may contain only
+letters and digits.
+Please try again."));
+                UI::SetFocus(`id(`grouplist));
+                continue;
+            }
+
+            } // grouplist changed
+
+            // update Users::user_in_work
+            Users::user_in_work ["home"]  = new_home;
+            Users::user_in_work ["shell"] = new_shell;
+            Users::user_in_work ["gid"]   = gid;
+            Users::user_in_work ["uid"]   = new_i_uid;
+            Users::user_in_work ["grouplist"] = new_grouplist;
+            Users::user_in_work ["groupname"] = new_defaultgroup;
+            Users::user_in_work ["org_groupname"] = defaultgroup;
+            Users::user_in_work ["removed_grouplist"] = removed;
+        } // ret = `next
+    } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
+
+//  if (Mode::cont && start_dialog == "user_add" && ret == `next)
+//      ret =
+    if ( ret == `next ) ret = what;
+
+    if( Mode::test )
+        y2milestone("user in work  %1: ",Users::user_in_work);
+
+    return ret;
+}
+
+
+/**
+ * Details of adding/cloning/editing dialog
+ * @return symbol for wizard sequencer
+ */
+global define symbol EditUserPasswordDialog() ``{
+
+    string username  = Users::user_in_work["username"]:"";
+    map shadow       = Users::user_in_work["shadow"]:$[];
+//    boolean pwd_chng = Users::user_in_work["pwd_chng"]:false;
+
+    string last_changed = shadow["last_change"]:"0";
+    string last_change = "";
+    string expires = shadow["expire"]:"0";
+    if (expires == "") expires = "0";
+
+
+    string work = shadow["inact"]:"";
+    if( work == "" ) work = sformat("%1", Users::pass_inact_days);
+    integer inact = tointeger( work );
+
+    work = shadow["max"]:"";
+    if ( work == "" ) work = sformat("%1", Users::pass_max_days );
+    integer max = tointeger( work );
+
+    work = shadow["min"]:"";
+    if( work == "") work = sformat("%1", Users::pass_min_days );;
+    integer min = tointeger( work );
+
+    work = shadow["warn"]:"";
+    if( work == "") work = sformat("%1", Users::pass_warn_age );
+    integer warn = tointeger( work );
+
+/*    work = shadow["expire"]:sformat("%1", Users::pass_warn_age );
+        if( work == "") work = "0";
+        new_shadow["expire"]  = tointeger( work );
+
+    work = shadow["last_change"]:sformat("%1", Users::pass_warn_age );
+        if( work == "") work = "0";
+        new_shadow["last_change"]  = tointeger( work );*/
+
+    if (last_changed != "0")
+    {
+        map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_changed));
+        // label
+        last_change = UI::Recode(Users::encoding, "UTF-8", lookup (out, "stdout", _("unknown")));
+    }
+    else
+    {
+        // label
+        last_change = _("never");
+    }
+    string exp_date = "";
+    if (expires != "0" )
+    {
+        exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
+        // remove \n from the end
+        exp_date = substring(exp_date,0,size(exp_date)-1);
+    }
+    term contents = `HBox (
+        `HSpacing (3),
+            `VBox (
+                `VStretch(),
+                // label
+                `Top(`Left (`Label (sformat (_("Date of the last password change: %1"), last_change )))),
+                `VSpacing (1),
+                `HSquash(`VBox(
+                    // intfield
+                    `IntField (`id ("warn"), _("Issue &warning how many days before password expiration?"), -1, 99999, warn),
+                    `VSpacing (0.5),
+                    // intfield
+                    `IntField (`id ("inact"), _("How many days &after password expires is the login usable?"), -1, 99999, inact),
+                    `VSpacing (0.5),
+                    // intfield
+                    `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999, max),
+                    `VSpacing (0.5),
+                    // intfield
+                    `IntField (`id ("min"), _("&Minimum number of days for the same password"), -1, 99999, min),
+                    `VSpacing (0.5),
+                    // textentry
+                    `TextEntry (`id ("expire"), _("&Expiration date"), exp_date)
+                )),
+                `VStretch ()),
+            `HSpacing (3));
+
+    // dialog caption
+    Wizard::SetContentsButtons(_("Password settings for user ") + username +":",
+                    contents,
+                    EditUserPasswordDialogHelp(),
+                    UI::BackButtonLabel(),
+                    UI::NextButtonLabel());
+
+    // user input
+    symbol ret = `next;
+    repeat
+    {
+        ret = UI::UserInput();
+        if( ret == `next )
+        {
+            string exp = UI::QueryWidget (`id ("expire"), `Value);
+            if (exp != "" &&
+                !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+            {
+            // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
+            // The date must stay in this format
+            UI::MessagePopup(_("Expiration date must be in format YYYY-MM-DD"));
+            UI::SetFocus(`id("expire"));
+            continue;
+            }
+            foreach(`autosymbol, Users::auto_shadow_symbols, ``{
+                if ( shadow[autosymbol]:-2 != UI::QueryWidget (
+                        `id(autosymbol), `Value))
+                    shadow[autosymbol] = sformat ("%1",
+                        UI::QueryWidget(`id(autosymbol), `Value));
+            });
+            integer new_inact = UI::QueryWidget(`id("inact"), `Value);
+            if (new_inact != inact)
+            {
+                shadow["inact"] = sformat("%1", new_inact);
+            }
+            string new_exp_date = UI::QueryWidget(`id("expire"), `Value);
+            if (new_exp_date != exp_date)
+            {
+                if (new_exp_date == "")
+                    shadow["expire"] = 0;
+                else
+                {
+                    map out = SCR::Execute(.target.bash_output,
+                        sformat("date --date='%1' ", new_exp_date) + "+%s");
+                    string days_s = out["stdout"]:"0\n";
+                    if (days_s != "")
+                    {
+                        days_s = substring(days_s, 0, size(days_s)-1);
+                        // +3600 ... this looks like a bug??
+                        // "date --date='1970-01-01' +%s" gives "-3600"
+                        integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+                        shadow["expire"] = sformat("%1", days);
+                    }
+                }
+            }
+        }
+    } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
+
+    if ( ret == `next ) ret = Users::user_in_work["what"]:`back;
+    return ret;
+}
+
+
+/**
+ * Details of adding/editing group dialog
+ * @param what `add_group or `edit_group
+ * @return symbol for wizard sequencer
+ */
+global define symbol EditGroupDialog(symbol what ) ``{
+
+    map dialog_labels = $[
+                // dialog label
+                  `add_group:   _("Add a new group"),
+                // dialog label
+                  `clone_group: _("Add a new group by cloning group "),
+                // dialog label
+                  `edit_group:  _("Edit an existing group")
+    ];
+
+    // load group saved in group_in_work
+    string  groupname   = Users::group_in_work["groupname"]:"";
+    string  password    = Users::group_in_work["password"]:"x";
+    integer gid         = Users::group_in_work["gid"]:nil;
+    // these are the users with this group as a default:
+    string  more_users  = Users::group_in_work["more_users"]:"";
+    // these are users from /etc/group:
+    string  userlist    = Users::group_in_work["userlist"]:"";
+    symbol  group_type  = Users::group_in_work["type"]:nil;
+    list list_userlist = splitstring (userlist, ",");
+    list list_more_users = splitstring (more_users, ",");
+    list additional_users = [];
+    list removed = [];
+
+    if (group_type == nil)
+    {
+        group_type = `local;
+        if ((what == `add_group) && (size (Users::current_groups) == 1) &&
+            (Users::current_groups[0]:`local != `nis ))
+            group_type = Users::current_groups[0]:`local;
+        UsersCache::group_type = group_type; //??
+    }
+
+    if( gid == nil )
+    {
+        gid = UsersCache::NextFreeGid();
+        if ( gid == nil )
+        {
+            // error label
+            Report::Error(_("There is no free GID for this type of group!"));
+            return `nosave;
+        }
+    }
+
+    // -- this could be also pre-builded, then changed via ChangeWidget ??
+    foreach ( `type, `userset, UsersCache::usernamelists, ``{// not all sets!!
+        foreach ( `username, userset, ``{
+            if ( contains (list_userlist, username) ||
+                 contains (list_more_users, username))
+                additional_users = add (additional_users,
+                    `item( `id(username), username, true ));
+            else
+                additional_users = add (additional_users,
+                    `item( `id(username), username, false));
+        });
+    });
+
+    // make dialog
+    term contents = `HBox(
+        `Left(`VBox(
+            `VSpacing(1),
+            // textentry label
+            `Top(`TextEntry( `id(`groupname), _("&Group name"), groupname )),
+            // textentry label
+            `Top(`TextEntry( `id(`gid), _("Group &id (gid)"),
+                sformat("%1", gid) )),
+            `VSpacing(1),
+            // User account information, first version of user password,
+            // both versions must match
+            `Bottom(`Password(`id(`pw1), _("&Enter a password:"), "")),
+            // User account information, second version of user password,
+            // retyped to avoid typos
+            // This is a label, please use newline if it is
+            // longer than 48 characters
+            `Bottom(`Password(`id(`pw2), _("Re-enter the &password:"),  "")),
+            `VSpacing(1)
+        )),
+        `HSpacing(2),
+        `HStretch(),
+        `VBox(
+            `VSpacing(1),
+            // selection box label
+            `MultiSelectionBox( `id(`userlist), _("&Members of this group"),
+                additional_users),
+            `VSpacing(1)
+        ));
+
+    Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
+                        contents,
+                        EditGroupDialogHelp(),
+                        UI::BackButtonLabel(),
+                        UI::NextButtonLabel());
+
+
+//    UI::ChangeWidget(`id(`userlist), `Items, additional_users);
+
+    if( what == `add_group && ! Mode::cont)
+        // push button
+        Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+
+    if( what == `add_group ) UI::SetFocus(`id(`groupname));
+
+    if( what == `edit_group  )
+    {
+        if( password != "x"  )
+        {
+        UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
+        UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
+        }
+    }
+
+    symbol ret = `next;
+    repeat
+    {
+
+        ret = UI::UserInput();
+
+        if ( ret == `next  )
+        {
+            string pw1            = UI::QueryWidget(`id(`pw1),       `Value);
+            string pw2            = UI::QueryWidget(`id(`pw2),       `Value);
+            string new_groupname  = UI::QueryWidget(`id(`groupname), `Value);
+            string new_gid        = UI::QueryWidget(`id(`gid),       `Value);
+            list(string) new_users = UI::QueryWidget(`id(`userlist), `SelectedItems );
+            string new_userlist   = "";
+            list l_new_userlist = [];
+
+            if ( new_groupname == "" )
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete.  The new_groupname is empty (no group
+                //  input).
+                // error popup
+                Report::Error(_("You didn't enter a groupname.
+Please try again.
+")) ;
+                UI::SetFocus(`id(`groupname));
+                continue;
+            }
+
+            if  ( ( size( new_groupname ) < 2 || size( new_groupname ) > 8 ) )
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete.  The groupname must have a size
+                // between 2 and 8 characters.
+                // error popup
+                Report::Error(_("The groupname must be between 2 and 8 characters in length.
+Please try again.
+")) ;
+                UI::SetFocus(`id(`groupname)) ;
+                continue;
+            }
+
+            string firstchar = substring( new_groupname, 0, 1);
+            if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
+               nil != findfirstnotof(new_groupname, Users::valid_group_chars)))
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete.  The groupname may contain only
+                // certain characters and must begin with a letter.
+                // error popup
+                Report::Error(_("The groupname may contain only
+lower case letters and digits
+and must begin with a letter.
+Please try again.
+")) ;
+                UI::SetFocus(`id(`groupname)) ;
+                continue;
+            }
+
+            if ( (((what == `edit_group ) && ( new_groupname != groupname ))
+                 || ( what == `add_group ))
+                 &&  UsersCache::GroupnameExists(new_groupname))
+            {
+                // Tell the user that the groupname he entered conflicts with
+                // predefined groupnames in the groups file.
+                // error popup
+                UI(`ErrorPopup(_("There is a conflict between the entered
+groupname and a predefined groupname.
+Please try another one.
+")));
+                UI::SetFocus(`id(`groupname)) ;
+                continue;
+            }
+
+            if (  pw1 != pw2 )
+            {
+                // There is a check whether the information from the UI is
+                // correct and complete.  The two user password information
+                // do not match
+                // error popup
+                Report::Error(_("The first and the second version
+of the password are different.
+Please try again.")) ;
+                // Invalidate any old password
+                password = "x";
+
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+
+                UI::SetFocus(`id(`pw1)) ;
+                continue;
+            }
+
+            // Use the old password (if any) if no passwords were entered.
+            // only check pw1 here, its identical with pw2 as checked before
+            if (  ( pw1 != "") &&
+              ( (pw1 != Users::default_pw) && (pw2 != Users::default_pw))  )
+            {
+
+            if (size (pw1) < Users::min_length_pas)
+            {
+                // There is a check whether the information from the
+                // UI is correct and complete.  The user password
+                // information must have a minimal size
+                // error popup. %1 and %2 numbers
+                Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
+                            Users::min_length_pas,
+                            Users::max_length_pas));
+                password = "x";
+
+                // clear password inputfields in this case
+                UI::ChangeWidget(`id(`pw1), `Value, "");
+                UI::ChangeWidget(`id(`pw2), `Value, "");
+                UI::SetFocus(`id(`pw1));
+                continue;
+            }
+            if (size(pw1) > Users::max_length_pas)
+            {
+                // yes-no popup. %1 number (typical 8)
+                if (!UI::YesNoPopup (sformat(_("The password is longer than %1 characters. It will be truncated to %1 characters."),
+                            Users::max_length_pas)))
+                {
+                    password = "x";
+                    UI::ChangeWidget(`id(`pw1), `Value, "");
+                    UI::ChangeWidget(`id(`pw2), `Value, "");
+                    UI::SetFocus(`id(`pw1));
+                    continue;
+                }
+            }
+
+            if ( pw1 != "" )
+            {
+                if ( nil != findfirstnotof( pw1, Users::valid_password_chars ) )
+                {
+                    // There is a check whether the information from the
+                    // UI is correct and complete.  The user password may
+                    // contain only certain characters
+                    // error popup
+                    Report::Error(_("The password may only contain the following characters:
+0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
+Please try again."));
+                    password = "x";
+
+                    // clear password inputfields in this case
+                    UI::ChangeWidget(`id(`pw1), `Value, "");
+                    UI::ChangeWidget(`id(`pw2), `Value, "");
+
+                    UI::SetFocus(`id(`pw1));
+                    continue;
+                }
+            }
+
+            if (Users::encryption == `md5)
+            {
+                password = cryptmd5(pw1);
+            }
+            else if (Users::encryption == `blowfish)
+            {
+                password = cryptblowfish(pw1);
+            }
+            else
+            {
+                password = crypt (pw1);
+            }
+            }
+
+            // need for update /etc/gshadow --- ???
+            if( pw1 == "" ) password = "*";
+
+            /*
+              There was a lot of code here to check that `userlist
+              is valid input. Most of it is now obsolete because
+              it is now a multi-selection box, not a text-entry box.
+              We also assume that the input to this routine was valid.
+            */
+
+            // Find out which users were added and deleted:
+            // added users will have a +1, deleted ones a -1,
+            // unchanged ones a 0
+            //list old_users = splitstring (userlist, ","); // do not need??
+//y2milestone("old_users: %1", old_users);
+//y2milestone("totez jako list_userlist: %1", list_userlist);
+//y2milestone("new_users: %1", new_users);
+/*
+            map diff_users = listmap (string u, old_users, ``([u, -1]));
+y2milestone("diff_users: %1", diff_users);
+            foreach (string u, new_users, ``{
+                diff_users[u] = diff_users[u]:0 + 1;
+            });
+y2milestone("diff_users: %1", diff_users);
+            boolean all_ok = true;
+
+            string more_users = userlist;// users with this group as default??
+//            string more_users = lookup (UsersCache::GetGroup (gid), "userlist", "");
+            foreach (string user, integer action, diff_users, ``{
+                if (action < 0)
+                {
+                    // The substring comparison is not entirely
+                    // correct but this whole thing
+                    // is too broken anyway.
+                    if (!issubstring (more_users, user))
+                    {
+                    // error popup
+                    string error_text = sformat (_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), user );
+                    Report::Error (error_text);
+                    // wrong (it is a multiselbox)
+                    // and useless (better let the user back out)
+                    //UI::ChangeWidget(`id(`userlist), `Value, userlist);
+                    UI::SetFocus (`id (`userlist));
+                    all_ok = false;
+                    }
+                }
+            });*/
+
+            /*
+            foreach (`user, removed, ``{
+                map u = Users::GetUserByName (user);
+                if ( u ["groupname"]:"" == groupname)
+                {
+                    // error popup
+                    string error_text = sformat (_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), user );
+                    Report::Error (error_text);
+                    UI::SetFocus (`id (`userlist));
+                    all_ok = false;
+                }
+            });*/
+
+            // these 3 foreach's should be fasten !!!
+            boolean all_ok = true;
+            foreach (`user, list_more_users, ``{
+                if (! contains (new_users, user))
+                {
+                    // error popup
+                    string error_text = sformat (_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), user );
+                    Report::Error (error_text);
+                    UI::SetFocus (`id (`userlist));
+                    all_ok = false;
+                }
+            });
+
+            if (!all_ok)
+            {
+//                removed = [];
+                continue;
+            }
+
+            foreach (`user, list_userlist, ``{
+                if (! contains (new_users, user))
+                    removed = add(removed, user);
+            });
+
+            foreach (`user, new_users, ``{
+                if (!contains (list_more_users, user))
+                    l_new_userlist = add (l_new_userlist, user);
+            });
+            new_userlist = mergestring(l_new_userlist, "," );
+
+            integer new_i_gid = tointeger(new_gid);
+
+            // check the gid
+            if( new_i_gid != gid)
+            {
+
+                if( (!( new_i_gid >= 0  && ( new_i_gid <=  Users::max_gid ))
+                     && ( new_i_gid != nil )) ||
+                     nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
+                {
+                // error popup %1 is number
+                Report::Error(sformat(_("The selected Group Id is not allowed.
+Please select a valid integer between 0 and %1"),  Users::max_gid));
+                UI::SetFocus(`id(`gid));
+                continue;
+                }
+
+
+            if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
+            {
+                // error popup
+                Report::Error(_("The inputted Group Id is reserved.
+Please select a another Group Id"));
+                UI::SetFocus(`id(`gid));
+                continue;
+            }
+
+            if ( (what == `edit_group ) && (new_i_gid <= Users::max_system_gid)
+                  && ( gid > Users::max_system_gid ) )// type != `system
+            {
+                // error popup
+                Report::Error(_("The inputted Group Id is a system Id.
+Please try again."));
+                UI::SetFocus(`id(`gid));
+                continue;
+            }
+
+            if ( (what == `edit_group ) && (new_i_gid > Users::max_system_gid )
+                  && ( gid <=  Users::max_system_gid ) )// type == `system
+            {
+                // error popup
+                Report::Error(_("The inputted Group Id is not a system Id.
+Please try again."));
+                UI::SetFocus(`id(`gid));
+                continue;
+
+            }
+            }
+
+            // if something has changed
+            if ( ((what == `edit_group) && (
+                                (gid != new_i_gid)  ||
+                                (groupname != new_groupname ) ||
+                                (password  != "x"           ) ||
+                                (userlist  != new_userlist  )))
+                 || (what == `add_group ))
+            {
+                //save the current group in group_in_work
+                Users::group_in_work = $[
+                      "what"            : what,
+                      "groupname"       : new_groupname,
+                      "password"        : password,
+                      "userlist"        : new_userlist, // save changes??
+                      "more_users"      : more_users,
+                      "gid"             : new_i_gid,
+                      "org_gid"         : gid,
+                      "type"            : group_type
+                ];
+                if (removed != [])
+                    Users::group_in_work["removed_userlist"] = removed;
+                if (groupname != new_groupname)
+                    Users::group_in_work["org_groupname"] = groupname;
+                // this is a hack!!
+                if (gid != new_i_gid)
+                    UsersCache::focusline_group = new_i_gid;
+            }
+            else
+            {
+                // nothing has changed - no save
+                ret = `back;
+            }
+        }
+    } until ( ret == `next || ret == `abort || ret == `back || ret == `cancel );
+
+    return ret;
+}
+
+/**
+ */
+global define symbol DefaultsDialog() ``{
+
+    string home = Users::default_home;
+    string shell = Users::default_shell;
+    string skel = Users::default_skel;
+    integer gid = Users::default_gid;
+    string expire = Users::default_expire;
+    string inactive = Users::default_inactive;
+    integer inact = tointeger(inactive);
+    string defaultgroup = Users::default_groupname;
+    string exp_date = "";
+    list available_groups = [];
+    list available_shells = Users::all_shells_items;
+
+    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{ // not all sets!!
+        foreach ( `group, groupset, ``{
+            if ( group == defaultgroup )
+                available_groups = add (available_groups,
+                    `item( `id(group), group, true));
+            else
+                available_groups = add (available_groups,
+                    `item( `id(group), group));
+        });
+    });
+
+    if (expire != "0" && expire != "")
+    {
+        exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expire) + "+\"%Y-%m-%d\"")), "stdout", "");
+        // remove \n from the end
+        exp_date = substring(exp_date,0,size(exp_date)-1);
+    }
+
+    term contents = `HBox(`HSpacing(1.5),
+        `VBox(
+            `VSpacing(1),
+			// Frame label
+	        `Frame(("Set the default values for adding new user"),`HBox(
+              `HSpacing(2), `VBox(
+                `VSpacing(1),
+                `ComboBox(`id(`defaultgroup), `opt(`hstretch),
+                    // combobox label
+                    _("D&efault group"), available_groups ),
+                `VSpacing(1),
+                // text entry
+                `ComboBox(`id(`shell), `opt(`hstretch, `editable),
+                    // combobox label
+                    _("Default &login shell"), available_shells),
+                `VSpacing(1),
+                // text entry
+                `TextEntry( `id(`home), _("Path prefix for &home directory"),
+                    home),
+                `VSpacing(1),
+                // text entry
+                `TextEntry( `id(`skel), _("&Skeleton for home directory"),skel),
+                `VSpacing(1),
+                // text entry
+                `TextEntry( `id(`exp), _("Default e&xpiration date"), exp_date),
+                `VSpacing(1),
+                // intfield
+                `IntField (`id (`inact), _("How many days &after password expires is the login usable"), -1, 99999, inact),
+                `VSpacing(1)
+                ),
+              `HSpacing(2))),
+            `VSpacing(1)),
+        `HSpacing(1.5));
+
+    Wizard::SetContentsButtons(
+            // dialog label
+            _("Defaults..."),
+            contents,
+            DefaultsDialogHelp(),
+            CancelButtonLabel(),
+            OKButtonLabel());
+    Wizard::ReplaceAbortButton (`Empty());
+
+    UI::ChangeWidget(`id(`shell), `Value, shell);
+
+    // valid chars?
+    boolean modified = false;
+
+    string new_home  = home;
+    string new_shell = shell;
+    string new_skel = skel;
+    string new_defgroup = defaultgroup;
+    string new_exp_date = exp_date;
+    integer new_inact = inact;
+    string new_expire = expire;
+
+    while (true)
+    {
+        modified = false;
+        ret = UI::UserInput();
+        if (ret == `back) break;
+        if (ret == `next)
+        {
+            new_home  = UI::QueryWidget(`id(`home),  `Value);
+            new_shell = UI::QueryWidget(`id(`shell), `Value);
+            new_skel = UI::QueryWidget(`id(`skel), `Value);
+            new_inact = UI::QueryWidget(`id(`inact), `Value);
+            new_defgroup = UI::QueryWidget(`id(`defaultgroup),`Value);
+            new_exp_date = UI::QueryWidget(`id(`exp),`Value);
+            // check the home existence
+            if (home != new_home)
+            {
+                if (SCR::Read(.target.dir, new_home ) == nil)
+                {
+                    Report::Error(_("The entered path prefix for home is not a directory.
+Please try again."));
+                    UI::SetFocus(`id(`home));
+                    continue;
+                }
+                modified = true;
+            }
+            // check the shell existence
+            if (shell != new_shell)
+            {
+                if (! contains (Users::all_shells, new_shell))
+                {
+                    // Yes-No popup
+                    if (! UI::YesNoPopup (_("If you select a nonexistent shell, the user
+may be unable to log in. Continue?
+")))
+                        continue;
+                }
+                modified = true;
+            }
+            // check the skeleton existence
+            if (skel != new_skel)
+            {
+                if (SCR::Read(.target.dir, new_skel ) == nil)
+                {
+                    Report::Error(_("The entered home directory skeleton is not a directory.
+Please try again."));
+                    UI::SetFocus(`id(`skel));
+                    continue;
+                }
+                modified = true;
+            }
+            // check the expire date
+            if (exp_date != new_exp_date)
+            {
+                if (new_exp_date != "" && !regexpmatch (new_exp_date,
+                    "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+                {
+                    // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
+                    // The date must stay in this format
+                    UI::MessagePopup(_("Expiration date must be in format YYYY-MM-DD"));
+                    UI::SetFocus(`id(`exp));
+                    continue;
+                }
+                if (new_exp_date == "")
+                    new_expire = "";
+                else
+                {
+                    map out = SCR::Execute(.target.bash_output,
+                        sformat("date --date='%1' ", new_exp_date) + "+%s");
+                    string days_s = out["stdout"]:"0\n";
+                    if (days_s != "")
+                    {
+                        days_s = substring(days_s, 0, size(days_s)-1);
+                        integer days = (tointeger(days_s) + 3600)/ (60*60*24);
+                        new_expire = sformat("%1", days);
+                    }
+                }
+                modified = true;
+            }
+            if (defaultgroup != new_defgroup || inact != new_inact)
+                modified = true;
+            break;
+        }
+    }
+    if (modified)
+    {
+        map new_defaults = $[
+            "home": new_home,
+            "shell": new_shell,
+            "skel": new_skel,
+            "group": sformat ("%1",
+                Users::groups_by_name [new_defgroup, "gid"]:gid),
+            "inactive": sformat("%1", new_inact),
+            "expire": new_expire
+        ];
+        Users::SetDefaults(new_defaults, new_defgroup);
+    }
+
+    Wizard::RestoreAbortButton();
+    return ret;
+}
+
+
+
+/**
+ * Propose a username.
+ * @param forename forename
+ * @param surname surname
+ * @return string proposed login name
+ */
+global define string ProposeUsername( string forename, string surname ) ``{
+
+    string  username            = "";
+    string  default_login_name  = "lxuser";
+    integer default_login_count = 0;
+    integer part_len            = 3;
+    integer login_len           = part_len * 2;
+    string  test_login_name     = default_login_name;
+
+    while (true)
+    {
+        if (  UsersCache::UsernameExists( test_login_name ) )
+        {
+            default_login_count = default_login_count + 1;
+            test_login_name  = default_login_name +
+                sformat("%1",default_login_count);
+        }
+        else
+        {
+            default_login_name = test_login_name;
+            break;
+        }
+    }
+    string f_name = filterchars(tolower(forename), Users::valid_logname_chars);
+    integer f_len = size( f_name );
+
+    string s_name = filterchars(tolower(surname), Users::valid_logname_chars);
+    integer s_len = size( s_name );
+
+    if ( f_len == 0 && s_len == 0 )         // both are missing
+    {
+        username = default_login_name;      // default login
+    }
+    else                                    // at least one is given
+    {
+        if ( f_len >= part_len )
+        {
+            if ( s_len >= part_len )        // forename and surname long enough
+            {
+                f_len = part_len;           // take part_len chars from each
+                s_len = part_len;
+            }
+            else                            // surname shorter than 3 chars
+            {
+                f_len = login_len - s_len;  // fill up with forename
+            }
+        }
+        else                                // forename shorter than 3 chars
+        {
+            s_len = login_len - f_len;      // fill up with surname
+        }
+
+        // build login name
+        username = substring(f_name, 0, f_len) + substring( s_name, 0, s_len );
+        if (size (username) < 2) username = default_login_name;
+        else
+        {
+            string firstchar = substring(username, 0, 1);
+            if (firstchar < "a" || firstchar > "z")
+                username = default_login_name;
+        }
+    }
+    return username;
+}
+
+
+/** -- do not use forename & surname at all ??
+ * Split fullname in forename and surname.
+ * @param what `surname or `forename
+ * @param fullname fullname
+ * @param uid user id
+ * @return string selected part of user name
+ */
+global define string SplitFullName(symbol what,string fullname,integer uid) ``{
+
+    if( fullname == nil )
+        fullname = "";
+
+    list    strs    = splitstring(fullname , " ");
+    integer i       = 1;
+    string surname  = "";
+    string forename = "";
+
+    if (UsersCache::user_type == `system)
+//    if( uid <= Users::max_system_uid )
+    {
+        if ( what == `surname  ) return fullname;
+        if ( what == `forename ) return "";
+    }
+
+    foreach( `str, strs, ``{
+        if ( i < size( strs) )
+        {
+        if( forename == "" ) forename = str;
+        else forename = forename + " " + str;
+        }
+        else  surname = str;
+        i = i + 1;
+    });
+    if ( what == `surname  ) return surname;
+    if ( what == `forename ) return forename;
+}
+
+
+
+/* EOF */
+}

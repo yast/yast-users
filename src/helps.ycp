@@ -1,6 +1,6 @@
 /**
  * File:
- *  users/help.ycp
+ *  users/helps.ycp
  *
  * Module:
  *  Configuration of the users and groups
@@ -76,6 +76,12 @@ repeat it exactly in a second field. Make sure you don't forget your password!
 
   }
 
+     /**
+     * @return string The help text.
+     */
+    global define string DefaultsDialogHelp () ``{
+        return "";
+    }
 
 
       /**
@@ -100,10 +106,11 @@ button now.
 
 
   /**
-   * Help for usersUsersDialog.
+   * Help for UsersDialog.
    * @return string help text
    */
-  global define string usersUsersDialogHelp() ``{
+  global define string UsersDialogHelp() ``{
+    return "";
 	// help text 1/4
       return ( help_main_start() + _("
 <p>
@@ -138,7 +145,7 @@ click <b>Edit</b> or <b>Delete</b>.
    * Help for usersGroups.
    * @return string help text
    */
-  global define string usersGroupsDialogHelp()``{
+  global define string GroupsDialogHelp()``{
 	// help text 1/4
       return ( help_main_start() +  _("
 <p>
@@ -170,10 +177,10 @@ push the button <b>Edit</b> or <b>Delete</b>.
 
 
   /**
-   * Help for usersEditUser.
+   * Help for EditUserDialog.
    * @return string help text
    */
-  global define string usersEditUserHelp() ``{
+  global define string EditUserDialogHelp() ``{
 	// help text 1/4
       return _("<p>
 If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
@@ -213,10 +220,10 @@ To see more details like the home directory or the user ID push
 
 
   /**
-   * Help for usersEditGroup.
+   * Help for EditGroupDialog.
    * @return string help text
    */
-  global define string usersEditGroupHelp() ``{
+  global define string EditGroupDialogHelp() ``{
 	// help text 1/6
       return _("<p>
 YaST provides an easy means of maintaining user groups on your
@@ -240,7 +247,7 @@ internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
 warns you if you try to use an already set one.
 </p>
-"), UserDefs::max_gid) +
+"), Users::max_gid) +
 	// help text 4/6
 		_("<p>
 <b>Enter a  password:</b>
@@ -268,10 +275,10 @@ Select which users should be members of this group.
 
 
   /**
-   * Help for usersEditUserDetails.
+   * Help for EditUserDetailsDialog.
    * @return string help text
    */
-  global define string usersEditUserDetailsHelp() ``{
+  global define string EditUserDetailsDialogHelp() ``{
 
 	// help text 1/6
       return _("<p>
@@ -285,7 +292,7 @@ the \"User ID\". For normal users, you should use
 a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
-"), UserDefs::max_system_uid ) +
+"), Users::max_system_uid ) +
 	// help text 3/6
 		_("<p>
 <b>Default Group:</b>
@@ -331,7 +338,7 @@ Save the current user and group settings to system
    * Help for editing password settings
    * @return string help text
    */
-  global define string  usersEditUserPasswordHelp() ``{
+  global define string  EditUserPasswordDialogHelp() ``{
 // Help text 1/5
       return _("<p>
 <b>Warning before expiration</B><BR>
