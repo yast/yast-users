@@ -41,10 +41,9 @@ Textdomain = users
 ; autoinst enabled
 Autoinst = all
 
-; data type
-AutoinstDataType = list
-
 AutoinstMerge = users,groups,user_defaults
+
+; data type
 AutoinstMergeTypes = list,list,map
 
 

@@ -81,6 +81,9 @@
     else if (func == "Result") {
 	ret = Users::Export();
     }
+    else if (func == "Write") {
+	ret = Users::Write ( ``{ return false;}, false);
+    }
     /* unknown function */
     else {
 	y2error("unknown function: %1", func);
