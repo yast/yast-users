@@ -1,0 +1,257 @@
+#!/usr/bin/perl -w
+
+use lib "/usr/lib/YaST2/agents_non_y2";
+use ycp;
+use strict;
+
+my %users		= ();
+my %groups		= ();
+
+# used for check if values like uid,username are unique:
+my %uids		= ();
+my %usernames		= ();
+my %homes		= (); 
+my %gids		= ();
+my %groupnames		= ();
+
+my %users_groups	= ();
+
+my %users_by_name	= ();
+my %groups_by_name	= ();
+
+my $user_type 		= "nis";
+my $group_type 		= "nis";
+
+#---------------------------------------------
+# read groups and prepar global 'users_groups' structure
+
+sub read_group () {
+
+    %groups	= ();
+
+    foreach my $group (`ypcat group`) {
+	
+	chomp $group;
+        my ($groupname, $pass, $gid, $users) = split (/:/,$group);
+	my $first = substr ($groupname, 0, 1);
+
+        if ( $first ne "+" && $first ne "-" ) {
+	    
+            # check for duplicates...
+	    if (defined $gids{$group_type}{$gid}) {
+		y2error ("duplicated gid in group list! Exiting...");
+		return 5;
+	    }
+	    else {
+	        $gids{$group_type}{$gid} = 1;
+	    }
+
+            if (defined $groupnames{$group_type}{$groupname}) {
+	        y2error ("duplicated groupname in group list! Exiting...");
+	        return 6;
+            }
+	    else {
+		$groupnames{$group_type}{$groupname} = 1;
+            }
+            # for each user generate list of groups, where the user is contained
+	    my @userlist	= split(/,/,$users);
+	    my %userlist	= ();
+	    foreach my $u (@userlist) {
+		$userlist{$u}			= 1;
+		$users_groups{$u}{$groupname}	= 1;
+	    }
+	    $groups{$group_type}{$gid} = {
+		"groupname"	=> $groupname,
+		"gidNumber" 	=> $gid,
+		"userlist"	=> \%userlist,
+		"type"		=> $group_type,
+		"more_users"	=> {}
+	    };
+	    $groups_by_name{$group_type}{$groupname} = $gid;
+	}
+    }
+    return 0;
+}
+
+# --------------------------------------------------------------------
+# read user entries (passwd set)
+
+sub read_passwd () {
+
+    %users = ();
+
+    foreach my $user (`ypcat passwd`) {
+
+	chomp $user;
+	my ($username, $password, $uid, $gid, $full, $home, $shell)
+	    = split(/:/,$user);
+        my $first = substr ($username, 0, 1);
+
+	if ( $first ne "+" && $first ne "-" ) {
+
+	    my $group_type	= "";
+	    my $groupname	= "";
+	    my %grouplist	= ();
+
+	    if (defined $groups{$group_type}{$gid}) {
+		$groupname = $groups{$group_type}{$gid}{"groupname"};
+		# modify default group's more_users entry
+		$groups{$group_type}{$gid}{"more_users"}{$username}	= 1;
+	    }
+
+	    # add the grouplist
+	    if (defined $users_groups{$username}) {
+		%grouplist = %{$users_groups{$username}};
+	    }
+
+	    # recode the fullname to utf-8 FIXME (and back during write)
+	    # use I18N::Langinfo qw(langinfo ABDAY_1 YESSTR NOSTR CODESET);
+	    # my $encoding = langinfo CODESET;
+	    my $encoding = "";
+	    if ($encoding ne "") {
+		from_to ($full, $encoding, "utf-8");
+	    }
+    
+	    my $colon = index ($full, ",");
+	    my $additional = "";
+	    if ( $colon > -1)
+	    {
+		$additional = $full;
+		$full = substr ($additional, 0, $colon);
+		$additional = substr ($additional, $colon + 1,
+		    length ($additional));
+	    }
+
+            # check for duplicates in /etc/passwd:
+	    if (defined $uids{$user_type}{$uid}) {
+		y2error ("duplicated UID in passwd set! Exiting...");
+		return 1;
+	    }
+            else {
+	        $uids{$user_type}{$uid} = 1;
+            }
+	    
+	    if (defined $usernames{$user_type}{$username}) {
+		y2error ("duplicated username in passwd set! Exiting...");
+		return 2;
+	    }
+	    else {
+		$usernames{$user_type}{$username} = 1;
+	    }
+	    if ($home ne "") {
+		$homes{$user_type}{$home} = 1;
+	    }
+    
+	    my @grouplist	= keys (%grouplist);
+
+	    # such map we would like to export from the read script...
+	    $users{$user_type}{$uid} = {
+		"cn"		=> $full,
+		"homeDirectory"	=> $home,
+		"username"	=> $username,
+		"uidNumber"	=> $uid,
+		"gidNumber"	=> $gid,
+		"loginShell"	=> $shell,
+		"groupname"	=> $groupname,
+		"grouplist"	=> \%grouplist,
+		"userPassword"	=> "x",
+		"type"		=> $user_type
+	    };
+	    $users_by_name{$user_type}{$username} = $uid;
+	}
+    }
+    return 0;
+}
+
+
+
+sub read_all () {
+
+    my $error = 0;
+
+    if ($error == 0) {
+	$error = read_group ();
+    }
+    if ($error == 0) {
+	$error = read_passwd ();
+    }
+    return $error;
+}
+
+
+# --------------------------------------- main -----------------------------
+while ( <STDIN> )
+{
+
+    my ($command, $path, $argument) = ycp::ParseCommand ($_);
+
+    y2debug ("command: $command, path: $path");
+    
+    if ( $command eq "Execute" ) {
+    
+	if ( $path eq '.init' ) {
+	    my $error = read_all ();
+	    if ($error > 0) {
+		ycp::Return("false");
+	    }
+	}
+	else {
+	    y2error ("wrong path ($path) or argument type:", ref ($argument));
+	    ycp::Return("false");
+	}
+	ycp::Return("true");
+    }
+    elsif ( $command eq "Read" )
+    {
+	# check if initialization was done
+	if (!%users) {
+	    my $error = read_all ();
+	    if ($error > 0) {
+		ycp::Return ({});
+	    }
+	}
+
+	if    ( $path eq '.users' ) {
+	    ycp::Return (\%{$users{"nis"}});
+	}
+	elsif ( $path eq '.groups' ) {
+	    ycp::Return (\%{$groups{"nis"}});
+	}
+	elsif ( $path eq '.users.by_name' ) {
+	    ycp::Return (\%{$users_by_name{"nis"}});
+	}
+	elsif ( $path eq '.users.uids' ) {
+	    ycp::Return (\%{$uids{"nis"}});
+	}
+	elsif ( $path eq '.users.usernames' ) {
+	    ycp::Return (\%{$usernames{"nis"}});
+	}
+	elsif ( $path eq '.users.homes' ) {
+	    ycp::Return (\%{$homes{"nis"}});
+	}
+	elsif ( $path eq '.groups.by_name' ) {
+	    ycp::Return (\%{$groups_by_name{"nis"}});
+	}
+	elsif ( $path eq '.groups.gids' ) {
+	    ycp::Return (\%{$gids{"nis"}});
+	}
+	elsif ( $path eq '.groups.groupnames' ) {
+	    ycp::Return (\%{$groupnames{"nis"}});
+	}
+	else {
+	    y2error ("wrong path ($path) or argument: ", ref ($argument));
+	    ycp::Return("false");
+	}
+    }
+    elsif ( $command eq "result")
+    {
+	exit;
+    }
+    else
+    {
+	y2error ("wrong command: $command");
+	ycp::Return("wrong command ($command)");
+    }
+}
+
+# end
