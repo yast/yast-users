@@ -1,4 +1,24 @@
 -------------------------------------------------------------------
+Fri Dec 13 11:13:36 CET 2002 - jsuchome@suse.de
+
+- new client for authentication: enables running NIS, LDAP, Kerberos modules
+- new kerberos module:
+    - basic configuration of kerberos client (agent for /etc/krb5.conf)
+    - basic PAM settings for pam_krb5
+- support for LDAP users:
+    - for generating list is the package perl-ldap used
+    - anonymous read access to LDAP server is required
+    - for modifications, cpu package is used
+- script for reading splited, some data can be read later on demand
+    (typically NIS/LDAP users)
+- autoinstalation
+- nis: users, are retrieved with ypcat
+- editgroup dialog: 2 widgets of users
+- group users (100 will change to 500) is now local (#19253)
+- new helptexts
+- 2.7.1
+
+-------------------------------------------------------------------
 Wed Nov 27 09:20:09 CET 2002 - jsuchome@suse.cz
 
 - New version of Users module:
