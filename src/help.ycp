@@ -22,14 +22,14 @@
    * @return string
    */
   global define help_main_start()``{
-      
-        return ( UI(_("<p>
+
+        return _("<p>
 Linux is a <b>multiuser system</b>. Several different users can be logged in the
 system at the same time.  To avoid confusion, each user must have
 a unique identity if they want to use Linux. Furthermore, every user at
 least belongs to one group.
 </p>
-")) );
+");
   }
 
 
@@ -39,27 +39,27 @@ least belongs to one group.
    */
   global define help_main_end()``{
 
-      return ( UI(_("<p>
+      return _("<p>
 To save the modified user and group setting to your system push the button
 <b>Finish</b>.
-</p>")));
+</p>");
   }
-	
+
 
   /**
    * Password help text.
    * @return string
-   */    
+   */
   global define help_password()``{
 
-      return ( UI(_("<p>
+      return _("<p>
 When entering a password, you must distinguish between uppercase and lowercase. A
 password should have at least 5 characters and, as a rule, not contain any
 special characters (e.g., accented characters).
 </p>
-")) +
+") +
 
-UI(_("<p>
+_("<p>
 Possible characters are
 <tt>#*,.;:._-+!$</tt>
 <tt>%&/|?{[()]}</tt> and blanks and digits
@@ -68,41 +68,41 @@ It's enough to use a password with a length of approximately 8 alpha-numeric
 characters. To ensure that the password was entered correctly, you are asked to
 repeat it exactly in a second field. Make sure you don't forget your password!
 </p>
-")) );
+");
 
   }
 
 
 
-  
+
   /**
    * Help for usersUsersDialog.
    * @return string
-   */    
+   */
   global define usersUsersDialogHelp() ``{
 
-      return ( help_main_start() + UI(_("
+      return ( help_main_start() + _("
 <p>
 In this dialog, you can get information about existing <b>users</b>.
 </p>
-")) +
+") +
 
-	       UI(_("<p>
+		_("<p>
 To shift to the group dialog push the radio button <b>Groups administration</b>.
 </p>
-")) +
+") +
 
-	       UI(_("
+		_("
 <p>
 To create a new user, push the button <b>Add</b>.
 </p>
-")) +
+") +
 
-	       UI(_("<p>
+		_("<p>
 To edit or delete an existing user, select one user from the list and
 click <b>Edit</b> or <b>Delete</b>.
 </p>
-")) +  help_main_end() );
+") +  help_main_end() );
   }
 
 
@@ -110,123 +110,122 @@ click <b>Edit</b> or <b>Delete</b>.
   /**
    * Help for usersGroups.
    * @return string
-   */    
+   */
   global define usersGroupsDialogHelp()``{
 
-      return ( help_main_start() +  UI(_("
+      return ( help_main_start() +  _("
 <p>
 In this dialog, you can get information about existing <b>groups</b>.
 </p>
-")) +
-	       UI(_("<p>
+") +
+		_("<p>
 To shift to the user dialog, push the radio button <b>Users administration</b>.
 </p>
-")) +
+") +
 
-	       UI(_("
+		_("
 <p>
 To create a new group, push the button <b>Add</b>.
 </p>
-")) + 
-	       UI(_("<p>
+") +
+		_("<p>
 To edit or delete an existing group, select one group from the list and
 push the button <b>Edit</b> or <b>Delete</b>.
 </p>
-"))     + help_main_end() );
-	 
+")     + help_main_end() );
+
   }
 
 
-  
- 
+
+
   /**
    * Help for usersEditUser.
    * @return string
-   */    
+   */
   global define usersEditUserHelp() ``{
-      
-      return ( UI(_("<p>
+
+      return _("<p>
 If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
 user account is created for this name with the <b>password</b> given in
 the corresponding field.
 </p>
-")) + help_password() + 
+") + help_password() +
 
-	 
-	       UI(_("<p>
+
+		_("<p>
 The <b>User login</b> is created from components of the full name and
 presented to you in one of the following dialogs.  If unsure, let YaST2
 <b>suggest</b> a user name.  You're allowed to modify it, but only use
 <em>lowercase</em> letters (no accented characters), digits, and <tt>._-</tt>
 User names have stricter restrictions than passwords!
 </p>
-")) +
+") +
 
-	       UI(_("<p>
+		_("<p>
 If you want to work with Linux, you must first enter the <b>User login</b>  and
 the password. This starting procedure is traditionally known as the
 <b>login</b>.
 </p>
-")) +
+") +
 
-	       UI(_("<p>
-To see more details like the home directory or the user ID push 
+		_("<p>
+To see more details like the home directory or the user ID push
 <b>Details</b>
 </p>
-"))
-	       );
+");
   }
 
 
- 
+
 
   /**
    * Help for usersEditGroup.
    * @return string
-   */    
+   */
   global define usersEditGroupHelp() ``{
 
-      return ( UI(_("<p>
-YaST provides an easy means of maintaining user groups on your 
+      return _("<p>
+YaST provides an easy means of maintaining user groups on your
 system. Here is what the different entries mean:
 </p>
-")) +
-	
-	       UI(_("<p>
+") +
+
+		_("<p>
 <b>Group name:</b>
 Here the name of the group is entered. Please be careful not to use
-long names. Normal lengths are between one and about 10 characters (the 
+long names. Normal lengths are between one and about 10 characters (the
 shorter the better).
 </p>
-")) +
-	       sformat(UI(_("<p>
+") +
+		sformat(_("<p>
 <b>Group ID(gid):</b>
 In addition to its name, a group has to be assigned a numerical ID for its
 internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
 warns you if you try to use an already set one.
 </p>
-")), max_gid) +
-	       UI(_("<p>
+"), max_gid) +
+		_("<p>
 <b>Enter a  password:</b>
 If you want the members of the group to identify themselves while
 switching to this new group (see man page of newgrp), you can assign a
 password to this group. For security reasons, this password is not shown
 here. You don't need to fill out this entry.
 </p>
-")) +
-	       UI(_("<p>
+") +
+		_("<p>
 <b>Repeat password:</b>
 The password has to be entered a second time to avoid typos.
 </p>
-")) +
-	       
-	       UI(_("<p>
+") +
+
+		_("<p>
 <b>Members of this group:</b>
 Here the user names of all group members are listed. The single names have to be
-separated by commas. Example:  
+separated by commas. Example:
 peter,anna,book,news
-</p>")) );  
+</p>");
 
   }
 
@@ -235,56 +234,55 @@ peter,anna,book,news
   /**
    * Help for usersEditUserDetails.
    * @return string
-   */    
+   */
   global define usersEditUserDetailsHelp() ``{
-      
-      return (
-	      UI(_("<p>
+
+      return _("<p>
 The meaning of the fields are described below:
-</p>")) +
-	      sformat(UI(_("<p>
+</p>") +
+		sformat(_("<p>
 <b>User ID (uid):</b>
 Each user is known to the system by a unique number,
 the \"User ID\". For normal users, you should use
 a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
-")), max_system_uid ) +
-	      UI(_("<p>
+"), max_system_uid ) +
+		_("<p>
 <b>Default Group:</b>
 The group to which the user belongs. Select one group
 from the list of all groups existing on your system.
-</p>")) +
-	      UI(_("<p>
+</p>") +
+		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is
 /home/username.
 </p>
-")) +
-	      UI(_("<p>
+") +
+		_("<p>
 <b>Login shell:</b>
 The login shell (\"command interpreter\") for the user.
 Select one shell from the list of all shells installed
 on your system.
-</p>")) +
-	      UI(_("<p>
+</p>") +
+		_("<p>
 <b>Additional group membership:</b>
 All additional memberships in groups for the user.
 </p>
-")) );
+");
   }
 
 
   /**
    * Help for usersSave.
    * @return string
-   */    
+   */
   global define usersSaveDialogHelp() ``{
-      
-      return (UI(_("<p>
+
+      return _("<p>
 Save the current user and group settings to system
-</p>")));
-      
+</p>");
+
   }
-  
+
 }

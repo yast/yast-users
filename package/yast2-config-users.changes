@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb 12 11:10:41 CET 2002 - kkaempf@suse.de
+
+- re-enable chown after useradd.local
+
+-------------------------------------------------------------------
 Mon Feb 11 17:56:14 CET 2002 - nashif@suse.de
 
 - more autoinstall updates

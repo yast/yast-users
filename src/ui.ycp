@@ -133,8 +133,11 @@
 		
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
-		    any  user_table_input   = UI::QueryWidget(`id(`user_table), `CurrentItem);
-		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input ,nil);
+		    any user_table_input   = UI::QueryWidget(`id(`user_table), `CurrentItem);
+		    if (user_table_input != nil)
+		    {
+			user_in_work = lookup( current_users , user_table_input ,nil);
+		    }
 		    else
 		    {
 			Report::Message(_("Please select an entry in the user table"));
@@ -272,8 +275,8 @@
 			if( !( new_i_uid >= 0  && new_i_uid <= max_uid )  ||
 			    nil != findfirstnotof( new_uid ,  valid_id_chars ) )
 			{
-			    string error = sformat(UI(_("The selected User Id is not allowed.
-Please select a valid integer between 0 and %1")), max_uid );
+			    string error = sformat(_("The selected User Id is not allowed.
+Please select a valid integer between 0 and %1"), max_uid );
 			    Report::Error( error );
 			    UI::SetFocus(`id(`uid));
 			    continue;
@@ -283,8 +286,8 @@ Please select a valid integer between 0 and %1")), max_uid );
 			{
 			    
 			    // tell the max_system_uid
-			    string error = sformat(UI(_("The selected User Id is a system Id,
-because the Id is smaller than %1. \nDo you really want to create a new system user")), max_system_uid );
+			    string error = sformat(_("The selected User Id is a system Id,
+because the Id is smaller than %1. \nDo you really want to create a new system user"), max_system_uid );
 			    if( ! UI::YesNoPopup( error ))
 			    {
 				UI::SetFocus(`id(`uid));
@@ -525,9 +528,9 @@ Please try again."));
      */
     global define symbol usersEditUser(symbol what) ``{
 	map dialog_labels = $[
-	    `add_user:   UI(_("Add a new user")),
-	    `clone_user: UI(_("Add a new user by cloning user ")),
-	    `edit_user:  UI(_("Edit an existing user"))
+	    `add_user:   _("Add a new user"),
+	    `clone_user: _("Add a new user by cloning user "),
+	    `edit_user:  _("Edit an existing user")
 	];
 
 	
@@ -952,12 +955,12 @@ Do you really want to delete the user %1?
 	{
 	    usersAddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
-			 UI(_("Can't execute /usr/sbin/useradd.local")));
+			 _("Can't execute /usr/sbin/useradd.local"));
 	}
 	    
 	usersAddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
-		     sformat(UI(_("Can't delete the user %1")), username) );
+		     sformat(_("Can't delete the user %1"), username) );
 
 	
 	
@@ -1098,9 +1101,9 @@ Do you really want to delete the user %1?
     global define symbol usersEditGroup(symbol what ) ``{
 
 	map dialog_labels = $[
-			      `add_group:   UI(_("Add a new group")),
-			      `clone_group: UI(_("Add a new group by cloning group ")),
-			      `edit_group:  UI(_("Edit an existing group"))
+			      `add_group:   _("Add a new group"),
+			      `clone_group: _("Add a new group by cloning group "),
+			      `edit_group:  _("Edit an existing group")
 	];
 
     
@@ -1385,8 +1388,8 @@ Please try again."));
 					if(   issubstring( findUsersBelongGroup( gid, `string ), old_user ) &&
 					      ( !issubstring( lookup( lookup( current_groups, gid, $[]),  "userlist", ""), old_user )))
 					{
-					    string error_text = sformat(UI(_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group")), old_user );
+					    string error_text = sformat(_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), old_user );
 					    Report::Error(error_text );
 					    UI::ChangeWidget(`id(`userlist), `Value, userlist);
 					    UI::SetFocus(`id(`userlist));
@@ -1414,8 +1417,8 @@ Please try again."));
 			if( (!( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil )) ||
 			    nil !=  findfirstnotof( new_gid, valid_id_chars ))
 			{
-			    Report::Error(sformat(UI(_("The selected Group Id is not allowed.
-Please select a valid integer between 0 and %1")), max_gid));
+			    Report::Error(sformat(_("The selected Group Id is not allowed.
+Please select a valid integer between 0 and %1"), max_gid));
 			    UI::SetFocus(`id(`gid));
 			    continue;
 			}
@@ -1534,7 +1537,7 @@ Do you really want to delete the group %1?
 	    //add a shell delete command to user_settings
 	    usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
 			 `del_group,
-			 sformat(UI(_("Can't delete group %1 ")),lookup( group_in_work, "groupname", "")));
+			 sformat(_("Can't delete group %1 "),lookup( group_in_work, "groupname", "")));
 	  
 	}
 	else

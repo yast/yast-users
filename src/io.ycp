@@ -376,7 +376,7 @@
 		if( SCR::Read(.target.size, tmp_dir ) == -1  )
 		    usersAddTodo( ("/bin/mkdir " + tmp_dir),
 				  `mkdir,
-				  sformat(UI(_("Can't make directory %1")), tmp_dir));
+				  sformat(_("Can't make directory %1"), tmp_dir));
 	    }
 	});
     }
@@ -393,8 +393,8 @@
 
 	usersAddTodo( ("/bin/mv " + old_home + " " +  home ),
 		      `mv,
-		      sformat(UI(_("Can't move old home directory %1
-to new home directory %2")), old_home, home));
+		      sformat(_("Can't move old home directory %1
+to new home directory %2"), old_home, home));
 	
 
     }
@@ -409,7 +409,7 @@ to new home directory %2")), old_home, home));
 
 	usersAddTodo( ("/bin/rm " +home + " -r" ),
 		      `rm,
-		      sformat(UI(_("Can't remove home directory %1.")),  home));
+		      sformat(_("Can't remove home directory %1."),  home));
     }
     /**
      * Add a string to the map user_settings to set the home dir access right.
@@ -423,15 +423,15 @@ to new home directory %2")), old_home, home));
 
 	usersAddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
 		     `chown,
-		     UI(_("Can't set user and group variable to the home directory")));
+		     _("Can't set user and group variable to the home directory"));
 	
 	usersAddTodo(("/bin/chmod g-rx " + home ),
 		     `chown,
-		     UI(_("Can't set read and write permissions to the home directory")));
+		     _("Can't set read and write permissions to the home directory"));
 
 	usersAddTodo(("/bin/chmod o-rx " + home ),
 		     `chown,
-		     UI(_("Can't set read and write permissions to the home directory")));
+		     _("Can't set read and write permissions to the home directory"));
     }
 
 
@@ -443,7 +443,7 @@ to new home directory %2")), old_home, home));
 			       "groupname" : groupname,
 			       "password"  : password,
 			       "what" : `set_group_password, 
-			       "error": UI(_("Can' set group password" ))
+			       "error": _("Can' set group password" )
 			     ]
 			     );
 	return true;
@@ -495,15 +495,15 @@ to new home directory %2")), old_home, home));
 	    {	
 		usersAddTodo( ("/usr/sbin/useradd.local " + username ),
 			      `add_user_local,
-			      UI(_("Can't execute /usr/sbin/useradd.local")));
+			      _("Can't execute /usr/sbin/useradd.local"));
 	    }
 
 
 	    usersAddTodo( todo ,
 			  `add_user,
-			  sformat(UI(_("Can't create the new user %1")), username ) );
+			  sformat(_("Can't create the new user %1"), username ) );
 	    
-	    //usersAddChownHome( home, username , groupIdToName(gid ));
+	    usersAddChownHome( home, username , groupIdToName(gid ));
 	}
 	else
 	{
@@ -546,7 +546,7 @@ to new home directory %2")), old_home, home));
 	    
 		usersAddTodo( todo,
 			      `edit_user,
-			      sformat(UI(_("Can't change the settings of the user %1")), username ));
+			      sformat(_("Can't change the settings of the user %1"), username ));
 	    
 		/*
 		if ( lookup( org_user, "username" ,"")  != username  ||
@@ -688,7 +688,7 @@ to new home directory %2")), old_home, home));
 	       
 	       usersAddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname ),
 			     `add_group,
-			     sformat(UI(_("Can't create new group %1")), new_groupname));
+			     sformat(_("Can't create new group %1"), new_groupname));
 	       
 	       if ( userlist != "" )
 	       {
@@ -699,7 +699,7 @@ to new home directory %2")), old_home, home));
 		       else new_G  = new_groupname;
 		       usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ),
 				     `edit_user,
-				     sformat(UI(_("Can't add user %1 to group %2")), user, new_G));
+				     sformat(_("Can't add user %1 to group %2"), user, new_G));
 		   });
 	       }
 	   }
@@ -730,7 +730,7 @@ to new home directory %2")), old_home, home));
 			   else new_G  = old_groupname;
 			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ),
 					 `edit_user,
-					 sformat(UI(_("Can't add user %1 to group %2")), user, new_G));
+					 sformat(_("Can't add user %1 to group %2"), user, new_G));
 		       });
 		   }
 		   else
@@ -746,7 +746,7 @@ to new home directory %2")), old_home, home));
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
 			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
 					 `edit_user,
-					 sformat(UI(_("Can't add user %1 to group %2")), user, new_new_G));
+					 sformat(_("Can't add user %1 to group %2"), user, new_new_G));
 		       });
 		       
 		   }
@@ -760,7 +760,7 @@ to new home directory %2")), old_home, home));
 	       if ( todo != "/usr/sbin/groupmod" )
 		   usersAddTodo( (todo + " " +  old_groupname),
 				 `edit_group,
-				 sformat(UI(_("Can't change the settings of the group %1")), old_groupname) );
+				 sformat(_("Can't change the settings of the group %1"), old_groupname) );
 	       
 	      
 	   }
@@ -1101,7 +1101,7 @@ to new home directory %2")), old_home, home));
 	if( lookup ( current_groups , def_int ,$[]) == $[])
 	{
 	    Report::Error(sformat(_("The default group with the id %1 does not exist.
-Please change the default group in /etc/default/useradd."),def_int ));
+Please change the default group in /etc/default/useradd."), def_int ));
 
 	    /* TODO If group 100 does not exists ? */
 	    return 100;
