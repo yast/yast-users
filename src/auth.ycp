@@ -156,6 +156,12 @@ include "ui/common_messages.ycp";
 
         if ( button == `conf_krb)
         {
+            WFM::CallModule("kerberos", []);
+            reload_config ();
+        }
+
+        if ( button == `conf_krb)
+        {
 
         }
 

@@ -1,0 +1,136 @@
+/**
+ * File:    include/kerberos/kerberos.ycp
+ * Module:  Kerberos client configuration
+ * Summary: Main file - the client
+ * Authors: Jiri Suchomel <jsuchome@suse.cz>
+ */
+
+{
+
+textdomain "kerberos";
+
+import "Wizard";
+import "Kerberos";
+
+/**
+ * The only dialog
+ * @return  `back or `next
+ */
+global define symbol KerberosDialog () ``{
+
+    // help text
+    string help_text = "";
+
+    boolean use_pam_krb = Kerberos::use_pam_krb;
+    string default_realm = Kerberos::default_realm;
+    string kdc = Kerberos::kdc;
+    list types = [  `item (`id (`optional), "optional", false),
+                    `item (`id (`required), "required", false),
+                    `item (`id (`sufficient), "sufficient", true) ];
+
+    term con = `HVSquash(
+        `VBox (
+        `VSpacing(1),
+        // frame label
+        `Frame (_("PAM login"),
+            `VBox (
+                `VSpacing (0.5),
+                `RadioButtonGroup(`id(`rd),
+                    `Left(`HVSquash(`VBox (
+                        // radio button label
+                        `Left (`RadioButton(`id(`pamno), `opt (`notify), _("Do &not use Kerberos"), !use_pam_krb)),
+                        // radio button label
+                        `Left(`RadioButton(`id(`pamyes), `opt (`notify), _("&Use Kerberos"), use_pam_krb)))))),
+                // text entry label
+                `ComboBox (`id (`auth_type), `opt(`hstretch),
+                    _("Kerberos &authentification is"), types),
+                `VSpacing (0.5))
+        ),
+        `VSpacing(1),
+        // frame label
+        `Frame (_("Kerberos client settings"),
+            `VBox (
+                `VSpacing (0.5),
+                `HSquash(
+                    // textentry label
+                    `TextEntry (`id (`realm), _("&Default realm"),
+                         default_realm)),
+                `HSquash(
+                    // textentry label
+                    `TextEntry (`id (`kdc), _("&KDC server adress"), kdc)),
+                `VSpacing (0.5)
+            )
+        ),
+        `VSpacing(1)
+    ));
+
+
+    Wizard::SetContentsButtons (
+        // dialog title
+        _("Kerberos Client Configuration"), con, help_text,
+        UI::BackButtonLabel (), UI::FinishButtonLabel ());
+
+    UI::ChangeWidget (`id (`auth_type), `Enabled, use_pam_krb);
+
+    any result = nil;
+    do {
+        result = UI::UserInput ();
+
+        use_pam_krb = (UI::QueryWidget(`id(`rd), `CurrentButton) == `pamyes);
+
+        if (result == `pamyes || result == `pamno) {
+            UI::ChangeWidget (`id (`auth_type), `Enabled, use_pam_krb);
+        }
+
+        if (result == `next && use_pam_krb) {
+
+            realm = UI::QueryWidget(`id(`realm), `Value);
+            kdc = UI::QueryWidget(`id(`kdc), `Value);
+
+            if (realm == "")
+            {
+               // error popup label
+               Report::Error(_("Enter the default realm name."));
+               result = nil;
+               continue;
+            }
+
+           if (kds == "")
+            {
+                // error popup label
+                Report::Error(_("Enter the address of KDC server."));
+                result = nil;
+                continue;
+            }
+        }
+
+    } while (result != `back && result != `next && result != `cancel);
+
+    if (result == `next)
+    {
+        Kerberos::use_pam_krb = use_pam_krb;
+    }
+
+    return result;
+}
+
+
+    // -- main
+
+    Wizard::CreateDialog ();
+    Wizard::ReplaceAbortButton(`Empty ());
+
+    Kerberos::Read ();
+
+    symbol result = KerberosDialog ();
+
+    if (result == `next)
+    {
+        if (Kerberos::Write (false));
+            UI::MessagePopup(_("The configuration of the Kerberos client
+was saved and can be used."));
+    }
+    }
+
+    return UI::CloseDialog();
+}
