@@ -529,6 +529,7 @@ Please try again."));
 
 	    // -------------------------------------- directory checks
 	    if (!details && (what == "add_user" || home != org_home)) {
+		// TODO Home is checked twice, (from Details, and back from here
 		error = Users::CheckHome (home);
 		if (error != "")
 		{
@@ -546,7 +547,6 @@ Please try again."));
 			    failed = true;
 			else
 			    ui_map[ error_map["question_id"]:"" ] = 1;
-			    // TODO how to set "create_home" ???
 		    }
 		} while (error_map != $[] && !failed);
 
@@ -591,8 +591,11 @@ Please try again."));
 		Users::AddUser (user);
 	    }
 	}
-	// TODO check for `abort here (otherwise, new values are lost when abort
-	// is not confirmed)
+	if ((ret == `abort || ret == `cancel) &&
+	    !Popup::ReallyAbort (Users::Modified()))
+	{
+	    ret = `notnext;
+	}
     }
     until ( contains ([`next,`abort,`back,`cancel,`additional,`nosave,`ldap],
 	    ret) || (details && ret != `notnext) );
@@ -1034,7 +1037,7 @@ define symbol EditUserPasswordDialog() ``{
     {
         map out = (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
         // label
-//FIXME        last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
+//FIXME - recode       last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
 	last_change = out["stdout"]:_("unknown");
     }
     else
@@ -1333,7 +1336,7 @@ define symbol EditGroupDialog (string what ) ``{
 
     string  groupname		= group["groupname"]:"";
     string  password		= group["userPassword"]:"x";
-    integer gid			= group["gidNumber"]:-1;
+    integer gid			= GetInt (group, "gidNumber", -1);
     // these are the users with this group as a default:
     map more_users		= group["more_users"]:$[];
     // these are users from /etc/group:
@@ -1454,6 +1457,11 @@ define symbol EditGroupDialog (string what ) ``{
     {
         ret = UI::UserInput();
 
+	if ((ret == `abort || ret == `cancel) &&
+	    !Popup::ReallyAbort (Users::Modified()))
+	{
+	    ret = `notnext;
+	}
         if (ret == `next)
         {
 	    // map returned from Check*UI functions
@@ -1555,8 +1563,7 @@ Please try again.")) ;
 	    else
 		Users::AddGroup (group);
         }
-    } until ( contains ([`next, `abort, `back, `ldap], ret));
-
+    } until ( contains ([`next, `abort, `back, `ldap, `cancel], ret));
     return (symbol)ret;
 }
 
@@ -1579,7 +1586,7 @@ define symbol DefaultsDialog() ``{
 
     map<string,string> groups	= Users::GetDefaultGrouplist ("local");
 
-// FIXME return from Perl???
+// FIXME strange return value from Perl???
     string grouplist	= "";/*mergestring (
 	(list<string>) maplist (string g,`i, groups, ``(g)), ",");*/
 
@@ -2028,13 +2035,13 @@ Install it now?
 
     if (changed)
     {
-	boolean was_nis_available = Users::IsNISAvailable ();
+	boolean was_nis_available = Users::NISAvailable ();
 	Users::ReadSourcesSettings();
 	// enabling NIS could add + lines!
 	// TODO what about some general solution?
-	if (was_nis_available != Users::IsNISAvailable ())
+	if (was_nis_available != Users::NISAvailable ())
 	{
-	    if (Users::IsNISAvailable ()) // nis enabled now
+	    if (Users::NISAvailable ()) // nis enabled now
 	    {
 		y2error ("FIXME: + lines have to be added!");
 		/*
