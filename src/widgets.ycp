@@ -147,6 +147,131 @@ As a general rule of thumb, use DES if you are unsure.
 };
 
 /**
+ * Popup for configuration user/group filter for making the LDAP search
+ * @return modified?
+ */
+define boolean LDAPSearchFilterPopup () ``{
+
+    string default_user_f	= "";//Users::ldap_default_user_filter;
+    string default_group_f	= "";//Users::ldap_default_group_filter;
+
+    string user_f	= "";//Users::ldap_user_filter;
+    string group_f	= "";//Users::ldap_group_filter;
+
+    if (user_f == "")
+	user_f = default_user_f;
+    if (group_f == "")
+	group_f = default_group_f;
+
+    boolean ret = false;
+
+    string help_text = "";//FIXME LDAPSearchFilterPopupHelp();
+
+    UI::OpenDialog (`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(50),
+            `VSpacing(0.5),
+	        `Frame(_("Filter for Searching the LDAP Directory"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`userf), _("&User Filter"), user_f),
+		    `VSpacing(0.5),
+		    // textentry label
+		    `TextEntry (`id(`groupf), _("&Group Filter"), group_f),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
+		// Pushbutton label (get data from LDAP server)
+	        `PushButton(`id(`read), `opt(`key_F3), _("From &Server"))
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    symbol button = nil;
+    do
+    {
+	button = (symbol) UI::UserInput();
+
+	if ( button == `help )
+        {
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `read )
+	{
+	    if (Users::ReadLDAPFilters())
+	    {
+		/*
+		UI::ChangeWidget(`id (`userf), `Value,
+		    Users::ldap_default_user_filter);
+		UI::ChangeWidget(`id (`groupf),`Value,
+		    Users::ldap_default_group_filter);
+		*/
+		y2internal ("TODO: filters");
+	    }
+	}
+	if ( button == `ok)
+	{
+	    string new_user_f = (string) UI::QueryWidget(`id (`userf), `Value);
+	    string new_group_f = (string)UI::QueryWidget(`id (`groupf), `Value);
+	    if (new_user_f != user_f)
+	    {
+		if (!issubstring (new_user_f, default_user_f))
+		{
+		    // error popup TODO -> YesNo
+		    Popup::Error (_("The new user filter does not contain the default user filter.
+Try again.
+"));
+		    UI::SetFocus (`id(`userf));
+		    button = `notnext;
+		    continue;
+		}
+		user_f = new_user_f;
+	    }
+	    if (new_group_f != group_f)
+	    {
+		if (!issubstring (new_group_f, default_group_f))
+		{
+		    // error popup
+		    Popup::Error (_("The new group filter does not contain the default group filter.
+Try again.
+"));
+		    UI::SetFocus (`id(`groupf));
+		    button = `notnext;
+		    continue;
+		}
+		group_f = new_group_f;
+	    }
+	    // checks are OK, let's update the values now
+	    /* TODO
+	    if (user_f != Users::ldap_user_filter)
+	    {
+		Users::ldap_user_filter = user_f;
+		ret = true;
+	    }
+	    if (group_f != Users::ldap_group_filter)
+	    {
+		Users::ldap_group_filter = group_f;
+		ret = true;
+	    }
+	    */
+	}
+    } while ( button != `ok && button != `cancel );
+
+    UI::CloseDialog();
+    return ret;
+}
+
+
+/**
  * @return modified?
  **/
 define boolean AutologinPopup() ``{
@@ -516,17 +641,13 @@ define list GetExpertList () ``{
 	        // menubutton label
 		`item(`id(`autologinconf), _("&Login Settings")));
 	}
-	/* TODO LDAP
-	if (Users::is_ldap_available)
+	if (Users::LDAPAvailable () && !Users::LDAPModified ())
 	{
-	    if (!Users::ldap_modified)
-	    {
-		expert_list = add (expert_list,
-		    // menubutton label
-		    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
-	    }
+	    // FIXME ExpertList generated too early -> LDAP not available
+	    expert_list = add (expert_list,
+		// menubutton label
+		`item(`id(`ldapfilter), _("LDAP &Search Filter")));
 	}
-	*/
     }
     return expert_list;
 }
@@ -712,6 +833,8 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 
     any ev_id			= event["ID"]:nil;
     string current_summary	= UsersCache::GetCurrentSummary ();
+
+// TODO wait popup when reading nis/ldap...
     if (current_summary == "users" &&
 	contains (Users::GetAvailableUserSets (), ev_id))
     {
@@ -753,6 +876,18 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     if (ev_id == `autologinconf)
     {
 	AutologinPopup();
+	return nil;
+    }
+    if (ev_id == `ldapfilter)
+    {
+	// change of search filter (only when LDAP was not modified yet)
+	if (LDAPSearchFilterPopup())
+	{
+	    /*
+	    Users::ldap_not_read = true; TODO
+	    re_read_ldap (); -> SummaryTableInit ("table");
+	    */
+	}
 	return nil;
     }
     return ev_id;
