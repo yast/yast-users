@@ -615,7 +615,10 @@ global define string LDAPSearchFilterPopupHelp() ``{
     _("<b>LDAP Search Filter Changes</b>") +
 
     // helptext 2/4
-    _("<p>Here you can extend the search filters for users and groups in addition to the filters defined in <b>YaST Ldap-client</b> module.</p>") +
+    _("<p>Here you can extend the search filters for users and groups in addition to the default search filters.") +
+
+    // helptext 3/5
+    _("<p>With the <b>From Server</b> button, you will load the filter values from LDAP Server, as they were entered in <b>YaST Ldap-client</b> module. If you are not connected yet, you will be asked for password.</p>") +
 
     // helptext 3/4
     _("<p>Only extension of default filters are allowed, thus the values entered here are checked if they contain the default values as substrings.</p>") +

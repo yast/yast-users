@@ -431,7 +431,7 @@ Please try again."));
                 }
             }
             /* password check against cracklib */
-            if (Users::use_cracklib)
+            if (Users::use_cracklib && !details)
             {
                 string out = CrackPassword (username, pw1);
                 // question; %1 is error message of cracklib
@@ -548,7 +548,7 @@ Are you sure to use the entered value?
 		    UI::SetFocus(`id(`username));
 		    continue;
 		}
-		// TODO: add "do not ask later" checkbox
+		// TODO FIXME: add "do not ask later" checkbox
             }
 
 	    // --------------------------------- now everything should be OK
@@ -581,6 +581,10 @@ Are you sure to use the entered value?
                 if ( org_username != username && org_username !="")
                     Users::user_in_work["org_username"] = org_username;
             }
+	    else
+	    {
+		Users::user_in_work["org_home"]	= home;
+	    }
 	    if ( user_type == "ldap" )
 	    {
 		Users::user_in_work ["givenName"] = givenName;
@@ -611,6 +615,8 @@ Are you sure to use the entered value?
  * @return symbol for wizard sequencer
  */
 global define symbol EditUserDetailsDialog( ) ``{
+
+// TODO FIXME check for % in ldap values... (home)
 
     //load the current usersettings from Users::user_in_work
     string what           = Users::user_in_work["what"]:"no";
@@ -787,8 +793,8 @@ can be changed for non-local users.")) : `VSpacing (0),
         if (!Users::ldap_file_server)
 	{
             UI::ChangeWidget (`id (`browse), `Enabled, false);
-	    if (what != "add_user")
-		UI::ChangeWidget (`id (`home), `Enabled, false);
+//	    if (what != "add_user")
+//		UI::ChangeWidget (`id (`home), `Enabled, false);
 	}
     }
 
@@ -829,12 +835,14 @@ can be changed for non-local users.")) : `VSpacing (0),
                 new_uid = sformat("%1", uid);
                 new_defaultgroup = defaultgroup;
             }
+	    /*
             if (user_type == "ldap")
             {
                 if (what == "edit_user" && !Users::ldap_file_server)
                     new_home = home;
             }
-	    // additional data in GECOS field
+	    */
+	    // additional data in GECOS field (passwd only)
             if (user_type == "local" || user_type == "system")
             {
                 addit_data  = UI::QueryWidget(`id(`addd),  `Value);

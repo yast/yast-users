@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Jun 27 15:13:05 CEST 2003 - jsuchome@suse.de
+
+- ldap defaults read from config modules stored in LDAP directory
+- for manipulation with LDAP, used ldap-client API
+- possibility to re-read LDAP settings after call of ldap-client
+- fix: changing home directory
+- 2.8.5
+
+-------------------------------------------------------------------
 Fri Jun 20 14:04:56 CEST 2003 - jsuchome@suse.de
 
 - adapted to new agent-ldap (using c++ API)
