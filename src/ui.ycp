@@ -78,16 +78,11 @@
     global define usersUsersDialog() ``{
 
 	user_in_work = $[];
-	
-	string help_text = usersUsersDialogHelp(); 
-	list item_user   = usersUsersRead(`items);
-	
+
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
 
-		  `Table(`id(`user_table), `header( _("Login"), _("Name"), _("UID"), _("Groups")),
-		         item_user ),
-
+		  `Table(`id(`user_table), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items)),
 	          `HBox
 		  (
 		      `PushButton(`id(`new),       _("&Add")),
@@ -100,11 +95,13 @@
 
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
-			             help_text,
+				     usersUsersDialogHelp(),
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
 
+	
+			 
 	symbol ret = `next;
 	repeat
 	    {
@@ -121,6 +118,7 @@
 		   
 		}
 	    } until ( ret != `not_next  );
+	if ( ret == `back) ret = `exit;
 	return ret;
     }
 
@@ -131,7 +129,7 @@
      */
     global define usersEditUserDetails( ) ``{
 
-	string help_text      = usersEditUserDetailsHelp();
+	
 
 	//load the current usersettings from user_in_work
 	symbol what           = lookup( user_in_work , "what"     , `nix );
@@ -199,7 +197,7 @@
 
 	UI(`SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
-			             help_text,
+				     usersEditUserDetailsHelp(),
 			             BackButtonLabel(),
 				     OKButtonLabel()));
 
@@ -434,7 +432,7 @@ Please try again.")));
 	    `edit_user:  UI(_("Edit an existing user"))
 	];
 
-	string  help_text      = "TODO HELP Add/Clone/Edit user";
+	
 	string  username       = lookup( user_in_work, "username", "");
 	string  fullname       = lookup( user_in_work, "fullname", "");
 	integer gid            = lookup( user_in_work, "gid"     , 100 );
@@ -484,7 +482,7 @@ Please try again.")));
 
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
-			             help_text,
+			             usersEditUserHelp(),
 			             BackButtonLabel(),
 				     NextButtonLabel()));
 
@@ -742,7 +740,7 @@ Please try again.")));
 	if( lookup( user_in_work, "exist", false ) )
 	{
 	    usersAddTodo("/usr/sbin/userdel " + username );
-	    usersAddChownHome( lookup(current_user, "home", "" ), root, root );
+	    usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
 	}
 		    
 		    
@@ -771,6 +769,7 @@ Please try again.")));
 	    }
 	});
 
+	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
 	user_in_work = $[];
 	return `next;
     }
@@ -784,13 +783,10 @@ Please try again.")));
 
 	group_in_work = $[];
 	
-	string help_text = "TODO HELP Group";
-	list item_group = usersGroupsRead(`items);
-
 	term contents = 
 	    `VBox(rbUsersGroup(`groups),
 		  `Table(`id(`group_table ), `header(_("Group name"), _("Group ID"), _("Group members")),
-		         item_group),
+		         usersGroupsRead(`items) ),
 	          `HBox
 		  (
 		      `PushButton(`id(`new),   _("&Add")),
@@ -803,7 +799,7 @@ Please try again.")));
 
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
-			             help_text,
+			             usersGroupsDialogHelp(),
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
@@ -823,6 +819,7 @@ Please try again.")));
 		   
 		}
 	    } until ( ret != `not_next  );
+	if( ret == `back) ret = `exit ;
 	return ret;
     }
 
@@ -848,7 +845,6 @@ Please try again.")));
 
     
 	// load group saved in group_in_work
-	string  help_text     = "TODO HELP Add/Clone/Edit group";
 	string  groupname     = lookup( group_in_work, "groupname", "");
 	string  password      = "x";
 	integer gid           = lookup( group_in_work, "gid", max_gid );
@@ -890,7 +886,7 @@ Please try again.")));
 	
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
-			             help_text,
+			             usersEditGroupHelp(),
 			             BackButtonLabel(),
 				     NextButtonLabel()));
 
@@ -1196,6 +1192,7 @@ Please try again.")));
 		    }
 		}
 	    } until ( ret == `next ||  ret == `abort  || ret == `back );
+
 	return ret;
     }
 
@@ -1244,9 +1241,75 @@ Please try again.")));
 there are users in the group.
 Delete this users first.")));
 	}
-	
+
+	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
 	group_in_work = $[];
 	return `next;
     }
+
+
+     /**
+     * Dialog to save the Groups and Usersettings to system
+     * @param 
+     */
+    global define usersSaveDialog() ``{
+	
+	
+	term contents =   `VBox(
+				`VSpacing( 2 ),
+				`Left(`Heading (_("Save modified settings to system."))),
+				`HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
+				`VSpacing( 2 )	
+				);
+
+	UI(`SetWizardContentsButtons(  "" ,
+		                     contents,
+			             usersSaveDialogHelp(),
+			             BackButtonLabel(),
+				     NextButtonLabel()));
+
+
+
+	SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
+	SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
+	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	integer value = 0;
+	boolean ok    = true;
+	    
+	if ( size( user_settings ) != 0)
+	{
+	
+	    foreach( `key, `doto, user_settings,``{
+		//if( ok )
+		//{
+		    if( SCR(`Execute(.target.bash, doto )) == 0 )
+		    {
+			value = value + 1;
+			UI(`ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) ));
+		    }
+		    else
+		    {
+			ok = false;
+		    }
+		    //}
+	    });
+
+	    if ( !ok)
+	    {
+		UI(`ErrorPopup(_("The new user and group are not configured.")));	
+
+	    }
+	    else
+	    {
+		UI(`MessagePopup(_("The new user and group settings
+are configured and usable")));	
+
+	    }
+	}
+	
+	return true;
+    }
+
+
     
 } // End

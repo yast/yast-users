@@ -104,7 +104,7 @@
 	"group_save"  :  ``(usersGroupSaveToMap()),
 
 	"without_save" :  ``(usersReallyAbort()),
-	"save_to_system": ``(usersWrite())
+	"save_to_system": ``(usersSaveDialog())
 
     ];
 
@@ -117,9 +117,9 @@
 		            `delete:         "user_delete",
 		            `next:           "save_to_system",
 		            `abort:          "without_save",
-			    `back:           `abort ],
+			    `exit:           `abort ],
 	"user_add":      $[ `next:           "user_save",
-			    `details:        "user_details",
+	      		    `details:        "user_details",
 	                    `abort:          "without_save",
 			    `back:           "users" ],
 	"user_clone":    $[ `next:           "user_save",
@@ -134,7 +134,8 @@
 	                    `abort:          "without_save" ],
 	"user_delete":   $[ `next:           "users",
 	                    `abort:          `abort ],
-	"user_save":     $[ `next:	     "users"],
+	"user_save":     $[ `next:	     "users",
+			    `save:           "save_to_system"],
         "groups":        $[ `switch_users:   "users",
 	                    `new:            "group_add",
 		            `clone:          "group_clone",
@@ -142,7 +143,7 @@
 		            `delete:         "group_delete",
 		            `next:           "save_to_system",
 		            `abort:          "without_save",
-			    `back:           `finish ],
+			    `exit:           `abort ],
 	"group_add":     $[ `next:           "group_save",
 	                    `details:        "group_details",
 	                    `abort:          "without_save",
@@ -156,7 +157,8 @@
 	"group_details": $[ `abort:          "without_save" ],
 	"group_delete":  $[ `next:           "groups",
 			    `abort:          "without_save" ],
-	"group_save"  :  $[ `next:           "groups"],
+	"group_save"  :  $[ `next:           "groups",
+			    `save:           "save_to_system" ],
 	"without_save":  $[ `next :          `abort,
 	                    `back :          `back   ]
 	

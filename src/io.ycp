@@ -18,6 +18,14 @@
  */
 
 {
+
+   
+  /**
+   * This define returns the groups of a user
+   * This is used in <TT>usersUserSaveToMap </TT> and <TT>usersGroupSaveToMap</TT> and
+   * <TT>usersUsersRead</TT> and <TT>usersEditUser</TT>
+   * @param string <TT>username</TT>
+   */
   global define findGroupsBelongUser( string username ) ``{
 
       if( username == "" ) return "";
@@ -38,6 +46,12 @@
     }
 
 
+  
+   /**
+   * This define returns the users of a group
+   * This is used in <TT>usersGroupRead </TT> and <TT>usersEditGroup</TT>
+   * @param integer <TT>gid</TT>
+   */
   global define findUsersBelongGroup( integer gid ) ``{
 
       string userlist = lookup( lookup( current_groups, gid),  "userlist", "");
@@ -53,7 +67,12 @@
       else return "";
   }
   
-  
+
+  /**
+   * Read the /etc/passwd file and save it to current_users. 
+   * This is used in users.ycp 
+   * @param 
+   */
   global define usersUsersReadFromDisk() ``{
 
 	list users  = SCR(`Read(.etc.passwd));
@@ -67,7 +86,12 @@
 	});
     }
 
-  
+
+  /**
+   * Read the /etc/group file and save it to current_groups. 
+   * This is used in users.ycp 
+   * @param 
+   */
   global define usersGroupsReadFromDisk() ``{
 
 	list groups = SCR(`Read(.etc.group ));    
@@ -83,14 +107,14 @@
 
 
 
-
+/*
   global define usersWrite() ``{
 
-       /* TODO Some code */
+    
 	SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
 	SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
 	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
-
+	
 	if ( size( user_settings ) != 0)
 	{
 	    if(UI(`YesNoPopup("make ist realy?")))
@@ -101,12 +125,22 @@
 	    }
 	 
 	}
+	else
+	{
+	    UI(`MessagePopup("nothing to do" ));
+	}
 	return true;
     }
+*/
 
 
-    
-    global define groupNameToId( string groupname) ``{
+   
+   /**
+    * Return the groupId of a groupname  
+    * Not used 
+    * @param string <TT>groupname</TT> 
+    */
+   global define groupNameToId( string groupname) ``{
 
 	integer ret = max_gid;
 	foreach( `key, `group, current_groups, ``{
@@ -119,26 +153,57 @@
 	return ret;
     }
 
-    global define groupIdToName( integer Id, map current_groups ) ``{
+
+   
+   /**
+    * Return the groupname of a groupId 
+    * Used in <TT>usersUserSaveToMap</TT>
+    * @param integer <TT>Id</TT> 
+    */
+    global define groupIdToName( integer Id ) ``{
 	return lookup(lookup( current_groups, Id), "groupname", "");
     }
 
-    global define userIdToName( integer Id, map current_users) ``{
+
+    /**
+     * Return the username of a userId 
+     * Used in <TT>usersUserSaveToMap</TT>
+     * @param integer <TT>Id</TT> 
+     */
+    global define userIdToName( integer Id ) ``{
 	return lookup( lookup( current_users, Id), "username", "");
     }
 
-    
+
+    /**
+     * Return the size of the map user_settings 
+     * Used in <TT>usersAddTodo</TT>
+     * @param 
+     */
     global define findNextTodoPos() ``{
 	return  ( size( user_settings) + 1);
     }
 
+
     
+    /**
+     * Add a string to the map user_settings for a todo position 
+     * Used in <TT>usersAddMakeHomeDir</TT>, <TT>usersAddMoveDir</TT>, <TT>usersAddChownHome</TT>,
+     * <TT>usersUserSaveToMap</TT>, <TT>usersGroupSaveToMap</TT>, <TT>usersDeleteUser</TT> and
+     * <TT>usersDeleteGroup</TT>
+     * @param string <TT>todo</TT>
+     */
     global define usersAddTodo( string todo ) ``{
 	user_settings = add( user_settings ,  findNextTodoPos(),  todo );
 	return true;
     }
 
     
+    /**
+     * Add a string to the map user_settings for creating a home dir for a new user 
+     * Used in <TT>usersAddMoveDir</TT> and <TT>usersUserSaveToMap</TT>
+     * @param string <TT>home</TT>
+     */
     global define usersAddMakeHomeDir( string home ) ``{
 
 	list   split_home = splitstring( home, "/");
@@ -153,20 +218,37 @@
 	});
     }
 
+    
+    /**
+     * Add a string to the map user_settings for creating a home dir for a new user 
+     * Used in <TT>usersAddMoveDir</TT> and <TT>usersUserSaveToMap</TT>
+     * @param string <TT>home</TT>
+     */ 
     global define usersAddMoveDir(string old_home, string  home )``{
-	usersAddMakeHomeDir(home);
-	usersAddTodo(("/bin/mv " + old_home + "/* " +  home ));
-	usersAddTodo(("/bin/rm -r " + old_home));
+	//usersAddMakeHomeDir(home);
+
+	usersAddTodo(("/bin/mv " + old_home + " " +  home ));
+	//usersAddTodo(("/bin/rm -r " + old_home));
     }
 
-    
+
+    /**
+     * Add a string to the map user_settings to set the home dir access right
+     * Used in <TT>usersUserSaveToMap</TT>
+     * @param string <TT>home</TT>, string <TT>user</TT> and string <TT>group</TT>
+     */ 
     global define usersAddChownHome( string home, string user, string group)``{
-	usersAddTodo(("/bin/chown -R " + user + ":" + group + " " + home ));
+	//usersAddTodo(("/bin/chown -R " + user + ":" + group + " " + home ));
 	usersAddTodo(("/bin/chmod g-rx " + home ));
 	usersAddTodo(("/bin/chmod o-rx " + home ));
     }
 
-    
+
+    /**
+     * Add a string to the map user_settings to save a new or modified user 
+     * Used in sequenser
+     * @param 
+     */ 
     global define usersUserSaveToMap() ``{
 
 	symbol  what     = lookup( user_in_work , "what"      , `nix );
@@ -192,7 +274,7 @@
 	    do_exist = false;
 
 	    //add shell, home, initial_group, password, uid to string
-	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell, home, groupIdToName(gid, current_groups), password, uid);
+	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell, home, groupIdToName(gid ), password, uid);
 
 	    //add fullname to string
 	    if ( fullname  != "") todo = todo + " -c '" + fullname + "'";
@@ -205,12 +287,12 @@
 
 	    usersAddMakeHomeDir( home );
 	    usersAddTodo( todo );
-	    usersAddChownHome( home, username , groupIdToName(gid, current_groups));
+	    usersAddChownHome( home, username , groupIdToName(gid ));
 	}
 	else
 	{
 	    //add initial_group to string 
-	    if ( lookup( org_user, "gid" ,     "" ) != gid      )  todo = todo + " -g "  + groupIdToName(gid, current_groups);
+	    if ( lookup( org_user, "gid" ,     "" ) != gid      )  todo = todo + " -g "  + groupIdToName(gid  );
 
 	    //add comment to string 
 	    if ( lookup( org_user, "fullname", "" ) != fullname )  todo = todo + " -c '" + fullname +"'";
@@ -239,7 +321,7 @@
 	    }
 
 	    // add username to string
-	    todo = todo + " " + userIdToName( uid, current_users);
+	    todo = todo + " " + userIdToName( uid );
 
 	    usersAddTodo( todo );
 
@@ -247,7 +329,7 @@
 		 lookup( org_user, "gid" ,     "" ) != gid       ||
 		 lookup( org_user, "home" ,    "" ) != home      	 )
 	    {  
-		usersAddChownHome( home, username , groupIdToName(gid, current_groups));
+		usersAddChownHome( home, username , groupIdToName(gid ));
 	    }
 	}
 
@@ -331,12 +413,21 @@
 	
 	current_users = add( current_users , uid, current_user );
 	SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+
+	
+	if (  start_dialog == "user_add" ) return `save;
 	return `next;
     }
 
 
 
-       global define  usersGroupSaveToMap( ) ``{
+
+     /**
+     * Add a string to the map user_settings to save a new or modified group 
+     * Used in sequenser
+     * @param 
+     */ 
+    global define  usersGroupSaveToMap( ) ``{
 
 	   //load the manipulated group from group_in_work
 	   symbol what             = lookup( group_in_work , "what" ,     "");
@@ -469,6 +560,9 @@
 
 	   //UI(`MessagePopup(sformat("%1", current_group )));
 	   SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+
+	   
+	   if (  start_dialog == "group_add" ) return `save; 
 	   return `next;
        }
 
@@ -479,9 +573,9 @@
 
     
      /**
-     * Read the /etc/group file and return a item list or a groupmap
-     * This is used in <TT>build_passwd( symbol )</TT> and <TT>usersGroupsDialog()</TT>.
-     * @param symbol what can be <TT>`items</TT> 
+     * Read the map current_groups
+     * This is used in <TT>usersGroupsDialog</TT> and <TT>usersEditGroup</TT>.
+     * @param symbol what can be <TT>`items</TT> or <TT>`groupnamelist</TT> 
      */
     global define usersGroupsRead(symbol todo ) ``{
 	
@@ -520,8 +614,8 @@
 
     
     /**
-     * Read the /etc/passwd file and return a item list 
-     * This is used in <TT>usersUsersDialog()</TT>.
+     * Read the map current_users
+     * This is used in <TT>usersUsersDialog</TT> and <TT>usersEditUser</TT> 
      * @param symbol what can be <TT>`items</TT> or <TT>`usernamelist</TT>
      */
     global define usersUsersRead(symbol todo) ``{
@@ -571,7 +665,11 @@
     }	
 
 
-
+    /**
+     * Return the next free Uid
+     * This is used in <TT>usersEditUser</TT> 
+     * @param 
+     */
     global define usersFreeUid(map current_users) ``{
 	//SCR( `Write(.dumpto.tmp.findfree , current_users ));
 	integer uid     = max_system_uid + 1 ;
@@ -591,6 +689,12 @@
     }
 
 
+
+    /**
+     * Return the next free Gid
+     * This is used in <TT>usersEditGroup</TT> 
+     * @param 
+     */
     global define usersFreeGid(map current_groups) ``{
 
 	integer gid  = max_system_gid + 1;
@@ -608,6 +712,8 @@
 	} until ( gid == max_gid );
     }
 
+
+    
     /**
      * Read the /etc/shells file and return a item list or a string shell list
      * This is used in <TT>usersEditUserDetails</TT>.

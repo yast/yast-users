@@ -25,6 +25,25 @@
       return "TODO HELP User Details";
   }
 
-  
 
+  global define usersEditUserHelp() ``{
+      return  "TODO HELP Add/Clone/Edit user";
+  }
+
+  global define usersGroupsDialogHelp()``{
+
+      return  "TODO HELP Group";
+  }
+
+  global define usersEditGroupHelp() ``{
+
+      return  "TODO HELP Add/Clone/Edit group";
+  }
+
+  
+  global define usersSaveDialogHelp() ``{
+      
+      return "TODP HELP SAVE";
+  }
+  
 }
