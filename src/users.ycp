@@ -60,7 +60,7 @@
     string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/";
     string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
-
+    string valid_id_chars       = "0123456789";
     
    
     
@@ -83,6 +83,8 @@
     string default_pw           = "******";
     integer focusline_group = 0;
     integer focusline_user  = 0;
+    boolean view_all_users  = false;
+    boolean view_all_groups = false;
     
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";

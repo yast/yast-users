@@ -38,9 +38,9 @@
 	    `Left(`RadioButtonGroup(`HBox
 	    (
 	        `RadioButton(`id(`switch_users), `opt(`notify),
-			     _("Users administration"), what == `users),
+			     _("&Users administration"), what == `users),
 		`RadioButton(`id(`switch_groups), `opt(`notify),
-			     _("Groups administration"), what == `groups)
+			     _("&Groups administration"), what == `groups)
 	    )));
     }
 
@@ -85,21 +85,23 @@
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
 
-		  `Table(`id(`user_table), `opt(`notify), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items)),
+		  `Table(`id(`user_table), `opt(`notify), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items  )),
+		  // not only sysem user 
+		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system users"), view_all_users )),
 	          `HBox
 		  (
-		      `PushButton(`id(`new),       _("&Add")),
+		      `PushButton(`id(`new),       _("A&dd")),
 		      //  `PushButton(`id(`clone),     _("&Clone")),
 		      `PushButton(`id(`edit),      _("&Edit")),
 		      `HStretch(),
-		      `PushButton(`id(`delete),    _("&Delete"))
+		      `PushButton(`id(`delete),    _("Dele&te"))
 		  )
 	    );
 
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 				     usersUsersDialogHelp(),
-			             UI::CancelButtonLabel(),
+			             UI::BackButtonLabel(),
 				     UI::FinishButtonLabel()));
 
 
@@ -111,6 +113,13 @@
 	    {
 		ret = UI(`UserInput());
 
+		if( ret == `show_all )
+		{
+		    view_all_users = UI::QueryWidget(`id(`show_all), `Value );
+		    UI::ChangeWidget(`id(`user_table), `Items,  usersUsersRead(`items ));
+		    ret = `not_next;
+		}
+		
 		// double click
 		if( ret == `user_table )
 		    ret = `edit;
@@ -149,7 +158,11 @@
         string fullname       = lookup( user_in_work , "fullname" , ""   ); 
 	string home           = lookup( user_in_work , "home"     , ""   );
 	string shell          = lookup( user_in_work , "shell"    , ""   );
+	
+	//y2milestone( " grouplist %1", lookup( user_in_work , "grouplist", ""   ));
+	
 	string grouplist      = lookup( user_in_work , "grouplist", ""   );
+	list  list_grouplist  = groupString2groupList (lookup( user_in_work , "grouplist", ""   ));
 	integer uid           = lookup( user_in_work , "uid"      , max_uid );
 	integer old_uid       = 0;
 	integer gid           = lookup( user_in_work, "gid"       , max_uid );
@@ -177,38 +190,39 @@
 	});
 
 	
-	term edit_defaultgroup = `Bottom(`ComboBox(`id(`defaultgroup), `opt(`hstretch), _("Default &group"), available_groups ));
-	term edit_shell        = `Bottom(`ComboBox(`id(`shell       ), `opt(`hstretch), _("Login &shell"), available_shells ));
+	term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch), _("Default &group"), available_groups );
+	term edit_shell        = `ComboBox(`id(`shell       ), `opt(`hstretch), _("Login &shell"), available_shells );
 	
-	term contents = 
-	    `HVSquash(
+	term contents =
+	   
 		     `HBox(
 			   `HSpacing(1),
 			   `VBox(
-			   `VSpacing(1),
-			   // User account information, forename or first name
-			   `TextEntry(`id(`fullname), _("&Detaild profile for user:"), fullname),
-			   `VSpacing(1),
-			   `HBox(
-				 `HWeight(40, edit_defaultgroup),	
-				 // input field for login name,
-				 `HSpacing(1),
-				 `HWeight(40, `Bottom(`TextEntry( `id(`uid), _("User &ID (uid)"), sformat("%1",uid ))))
-				)	,
-			   `VSpacing(0.5),	   
-			   `HBox(
-				 `HWeight(40, `Bottom(`TextEntry( `id(`home), _("&Home directory"), home ))),
-				 `HSpacing(1),
-				 `HWeight(40,  edit_shell )
+				 `VSpacing(1),
+				 // User account information, forename or first name
+				 `TextEntry(`id(`fullname), _("&Detaild profile for user:"), fullname),
+				 `VSpacing(1),
+				 `HBox(
+				       `VBox(
+					     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"), sformat("%1",uid ))),
+					     `Top(`TextEntry( `id(`home), _("&Home directory"), home )),
+					     `Top(edit_shell),
+					     `Top(edit_defaultgroup),
+					     `VStretch()
+					     // input field for login name,
+					  
+					     ),
+				       `HSpacing(2),
+					     
+				       `Top(`MultiSelectionBox( `id(`grouplist),_("Additional group &membership")  , list_grouplist))
+				       ),
+				 `VSpacing(1)
 				 ),
-			   `VSpacing(2),	
-			   `TextEntry(`id(`grouplist), _("&Additional group membership (group1, group2, .. )")
-				      ,grouplist ),
-			   `VSpacing(2)
-			   ),
-			   `HSpacing(1))
+			   `HSpacing(1)
 			   );
-
+	
+	
+	    
 	UI(`SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 				     usersEditUserDetailsHelp(),
@@ -232,16 +246,19 @@
 		    string  new_shell         = UI(`QueryWidget(`id(`shell),       `Value));
 		    string  new_uid           = UI(`QueryWidget(`id(`uid),         `Value));
 		    string  new_defaultgroup  = UI(`QueryWidget(`id(`defaultgroup),`Value));
-		    string  new_grouplist     = UI(`QueryWidget(`id(`grouplist),   `Value));
+		    list_grouplist            = UI(`QueryWidget(`id(`grouplist),   `SelectedItems ));
 		    boolean input_ok          = true;
 		    integer new_i_uid         = tointeger( new_uid );
 		    
+		    string new_grouplist      = mergestring( list_grouplist, ",");
+		    //y2milestone( "new_grouplist %1", new_grouplist );
 		    
 		    // check the uid
-		    if ( (what == `add_user) && (new_i_uid != uid) )
+		    if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
 		    {
 			
-			if( !( new_i_uid >= 0  && new_i_uid <= max_uid ))
+			if( !( new_i_uid >= 0  && new_i_uid <= max_uid )  ||
+			    nil != findfirstnotof( new_uid ,  valid_id_chars ) )
 			{
 			    string error = sformat(UI(_("The selected User Id is not allowed.
 Please select a valid integer between 0 and %1")), max_uid );
@@ -296,7 +313,7 @@ Please try again.")));
 			    UI(`SetFocus(`id(`home)));
 			    continue;
 			}
-			y2milestone("be1 . dir");
+			//y2milestone("be1 . dir");
 			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
 			if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1  )
 			{
@@ -550,7 +567,6 @@ Please try again.")));
 	    ));
 
 	
-
 	
 
 	
@@ -612,7 +628,7 @@ Please try again.")));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The name information is not
 			// complete, the user is asked to complete the information
-			UI(`ErrorPopup(_("Please enter your name.")));
+			UI(`ErrorPopup(_("Please enter a name.")));
 			UI(`SetFocus(`id(`surname)));
 			continue;
 		    }
@@ -911,20 +927,22 @@ Please log off the user first.")));
 	    `VBox(rbUsersGroup(`groups),
 		  `Table(`id(`group_table ), `opt(`notify) , `header(_("Group name"), _("Group ID"), _("Group members")),
 		         usersGroupsRead(`items) ),
+		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system groups"), view_all_groups )),
+		  
 	          `HBox
 		  (
-		      `PushButton(`id(`new),   _("&Add")),
+		      `PushButton(`id(`new),   _("A&dd")),
 		      // `PushButton(`id(`clone), _("&Clone")),
 		      `PushButton(`id(`edit),  _("&Edit")),
 		      `HStretch(),
-		      `PushButton(`id(`delete), _("&Delete"))
+		      `PushButton(`id(`delete), _("Dele&te"))
 		  )
 	    );
 
 	UI(`SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 			             usersGroupsDialogHelp(),
-			             UI::CancelButtonLabel(),
+			             UI::BackButtonLabel(),
 				     UI::FinishButtonLabel()));
 
 	if( focusline_group != 0 )
@@ -936,6 +954,15 @@ Please log off the user first.")));
 	    {
 		ret = UI(`UserInput());
 
+		if( ret == `show_all )
+		{
+		    view_all_groups = UI::QueryWidget(`id(`show_all), `Value );
+		    UI::ChangeWidget(`id(`group_table), `Items,  usersGroupsRead(`items ));
+		    ret = `not_next;
+		}
+		
+
+		
 		// double click
 		if( ret == `group_table )
 		    ret = `edit;
@@ -981,42 +1008,37 @@ Please log off the user first.")));
 	string  groupname     = lookup( group_in_work, "groupname", "");
 	string  password      = lookup( group_in_work, "password" , "x");
 	integer gid           = lookup( group_in_work, "gid", max_gid );
-	string  userlist      = findUsersBelongGroup(gid);
+	string  userlist      = findUsersBelongGroup(gid, `string);
+	list  list_userlist   = findUsersBelongGroup(gid, `list);
 	if( gid == max_gid )   gid = usersFreeGid(current_groups);
 
 	
 	// make dialog
-	term contents = 
-	    `HSquash(`VBox
-	    (	     
-	       `VStretch(),
-		// User account information, forename or first name
-	       `VSquash(`HBox
-		(
-		    // input field for login name
-		    `Bottom(`TextEntry( `id(`groupname), _("&Group name"), groupname )),
-		    // push button to generate a login name from first and last name
-		    `HSpacing(4),
-		    `Bottom(`TextEntry( `id(`gid), _("Group &id (gid)"), sformat("%1", gid) ))
-		    )),
-	       `VStretch(),
-	       `HBox(
-		     `HSpacing(10),
-		     `VBox(
-			   // User account information, first version of user password, both versions must match
-			   `Password(`id(`pw1), _("&Enter a password:"), ""),
-			     // User account information, second version of user password, retyped to avoid typos
-			   // This is a label, please use newline if it is longer than 48 characters
-			   `Password(`id(`pw2), _("Re-enter the password for &verification:"),  "")
-			   ),
-		     `HSpacing(10)
-		     ),
-	       `VStretch(),
-	       `TextEntry(`id(`userlist), _("&Members of this group (member1 , member2, ..)"), userlist ),
-	       `VStretch()
-
-
-	    ));
+	term contents =
+	    `HBox(
+		  `Left(`VBox(    
+			      `VSpacing(1),	
+			      `Top(`TextEntry( `id(`groupname), _("&Group name"), groupname )),
+			      `Top(`TextEntry( `id(`gid), _("Group &id (gid)"), sformat("%1", gid) )),
+			      `VSpacing(1),
+			      // User account information, first version of user password, both versions must match
+			      `Bottom(`Password(`id(`pw1), _("&Enter a password:"), "")),
+			      // User account information, second version of user password, retyped to avoid typos
+			      // This is a label, please use newline if it is longer than 48 characters
+			      //`Bottom(`Password(`id(`pw2), _("Re-enter the password for &verification:"),  "")),
+			      `Bottom(`Password(`id(`pw2), _("Re-enter the &password:"),  "")),
+			      `VSpacing(1)
+			      )),
+		  `HSpacing(2),
+		  `HStretch(),
+		  `VBox(
+			`VSpacing(1),	
+			`MultiSelectionBox( `id(`userlist), _("&Members of this group") , list_userlist),
+			`VSpacing(1)
+			)
+		  );
+			   
+	
 	
 	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
@@ -1053,7 +1075,8 @@ Please log off the user first.")));
 		    string pw2            = UI(`QueryWidget(`id(`pw2),       `Value));
 		    string new_groupname  = UI(`QueryWidget(`id(`groupname), `Value));
 		    string new_gid        = UI(`QueryWidget(`id(`gid),       `Value));
-		    string new_userlist   = UI(`QueryWidget(`id(`userlist),  `Value));  
+		    list_userlist         = UI(`QueryWidget(`id(`userlist),  `SelectedItems ));  
+		    string new_userlist   = mergestring( list_userlist, "," );
 
 		    
 		   
@@ -1259,7 +1282,7 @@ Please try again.")));
 				    if( ! issubstring( new_userlist, old_user ) )
 				    {
 					// some user was deleted by the user
-					if(   issubstring( findUsersBelongGroup( gid), old_user ) &&
+					if(   issubstring( findUsersBelongGroup( gid, `string ), old_user ) &&
 					      ( !issubstring( lookup( lookup( current_groups, gid),  "userlist", ""), old_user )))
 					{
 					    string error_text = sformat(UI(_("You can't delete the user -%1- from this group,
@@ -1284,11 +1307,12 @@ Please try again.")));
 		    }
 	
 		    // check the uid
-		    if ( tointeger(new_gid) != gid )
+		    if( new_gid != sformat("%1", gid) )
 		    {
 			integer new_i_gid = tointeger(new_gid);
 			
-			if( !( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil ) )
+			if( (!( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil )) ||
+			    nil !=  findfirstnotof( new_gid, valid_id_chars ))
 			{
 			    UI(`ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
 Please select a valid integer between 0 and %1")), max_gid)));

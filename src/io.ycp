@@ -100,7 +100,9 @@
 	current_gshadow  = SCR(`Read(.etc.gshadow));
 	current_gshadow  = filter(`k, current_gshadow , ``( size(k) > 1 ) );
 	if( test_mode )    SCR(`Write(.dumpto.tmp.current_gshadow,  current_gshadow  ));
-    }  
+    }
+
+    
     
   /**
    * This define returns the groups of a user.
@@ -109,25 +111,60 @@
    * @return string
    */
   global define findGroupsBelongUser( string username ) ``{
-
+   
       if( username == "" ) return "";
       string grouplist = "";
       foreach( `key, `group, current_groups , ``{
-	    
-	    string userlist = lookup( group, "userlist");
-	    if ( issubstring(userlist , username ))
-	    {
-		string groupname = lookup( group, "groupname");
-		if( grouplist == "" ) grouplist = groupname;
-		else grouplist = grouplist + "," + groupname;
-	    }
-	});
+	  
+	  string userlist = lookup( group, "userlist");
+	  if ( issubstring(userlist , username ))
+	  {
+	      string groupname = lookup( group, "groupname");
+	      if( grouplist == "" ) grouplist = groupname;
+	      else grouplist = grouplist + "," + groupname;
+	  }
+      });
 	
-	if( grouplist != nil ) return grouplist;
-	else return "";
-    }
+      if( grouplist != nil ) return grouplist;
+      else return "";
+  }
 
 
+  
+  global define groupString2groupList(string str_grouplist )``{
+
+      list false_grouplist = [];
+      list true_grouplist  = [];
+      list str_list_grouplist = splitstring( str_grouplist, "," );
+
+      foreach( `key, `group, current_groups , ``{
+	  string groupname = lookup( group, "groupname","");
+
+	  if( ! contains( str_list_grouplist, groupname ) )
+	  {
+	      term    a     = `item(`id(groupname ), groupname, false );
+	      false_grouplist     = add( false_grouplist ,  a );
+	  }    
+      });
+
+    
+      
+      foreach( `groupname,  str_list_grouplist , ``{
+	  
+	  term    a     = `item(`id(groupname ), groupname, true );
+	  true_grouplist     = add( true_grouplist ,  a ); 
+      });
+
+      true_grouplist  = sort(`x, `y, true_grouplist,  ``( x <= y ));
+      false_grouplist = sort(`x, `y, false_grouplist, ``( x <= y ));
+      
+      return union( true_grouplist, false_grouplist);
+    
+
+  }
+
+  
+  
   
    /**
    * This define returns the users of a group.
@@ -135,19 +172,68 @@
    * @param gid integer
    * @return string
    */
-  global define findUsersBelongGroup( integer gid ) ``{
+  global define findUsersBelongGroup( integer gid, symbol what ) ``{
 
-      string userlist = lookup( lookup( current_groups, gid),  "userlist", "");
-      foreach( `key, `user, current_users , ``{
+      if( what == `string )
+      {
+	  string userlist = lookup( lookup( current_groups, gid),  "userlist", "");
+	  foreach( `key, `user, current_users , ``{
 	  
-	  if ( gid == lookup(user, "gid") &&(! issubstring(userlist,  lookup( user, "username", "") )))
-	  {
-	      if( userlist == "") userlist = lookup( user, "username", "");
-	      else userlist = userlist + "," + lookup( user, "username", "");
-	  }
-      });
-      if (   userlist != nil )  return userlist;
-      else return "";
+	      if ( gid == lookup(user, "gid") &&(! issubstring(userlist,  lookup( user, "username", "") )))
+	      {
+		  if( userlist == "") userlist = lookup( user, "username", "");
+		  else userlist = userlist + "," + lookup( user, "username", "");
+	      }
+	  });
+	  if (   userlist != nil )  return userlist;
+	  else return "";
+      }
+      else
+      {
+      
+	  string str_userlist    = lookup( lookup( current_groups, gid, $[]),  "userlist", "");
+	  list str_list_userlist = [];
+
+	  if( str_userlist != "" )
+	      str_list_userlist = splitstring( str_userlist, "," );
+
+	  list false_userlist          = [];
+	  list true_userlist	       = [];
+
+	  //y2milestone( "str_userlist %1 str_list_userlist %2", str_userlist, str_list_userlist );
+	  
+	  foreach( `key, `user, current_users , ``{
+
+	      string username     =  lookup( user, "username", "");
+	      //y2milestone( "%1", str_list_userlist );
+	      
+	      if( (! contains(str_list_userlist,  username ) ))
+	      {  
+		  if ( gid == lookup(user, "gid"))
+		  {
+		      term    a       = `item(`id(username), username, true );
+		      true_userlist  =  add( true_userlist, a );  
+		  }
+		  else
+		  {
+		      term    a       = `item(`id(username), username, false );
+		      false_userlist  =  add( false_userlist, a );   
+		  }  
+	      }
+	    
+	  });
+
+	  foreach( `user, str_list_userlist, ``{
+	      term    a     = `item(`id(user), user, true );
+	      true_userlist = add( true_userlist, a );
+	  });
+
+	  true_userlist  = sort(`x, `y, true_userlist,  ``( x <= y ));
+	  false_userlist = sort(`x, `y, false_userlist, ``( x <= y ));
+	  
+	  return union( true_userlist, false_userlist );
+	
+      }
   }
   
 
@@ -283,7 +369,7 @@
 	    if( sub_dir != "" )
 	    {
 		tmp_dir = tmp_dir + "/"+sub_dir;
-		y2milestone("be 2. dir");
+		//milestone("be 2. dir");
 		//if( nil == SCR(`Read(.target.dir , tmp_dir) ))
 		if( SCR::Read(.target.size, tmp_dir ) == -1  )
 		    usersAddTodo( ("/bin/mkdir " + tmp_dir),
@@ -652,7 +738,7 @@ to new home directory %2")), old_home, home));
 			   if( !contains( split_userlist, user) ) work_userlist = add( work_userlist, user );
 		       });
 		       foreach( `user, work_userlist, ``{
-			   string new_G      = findGroupsBelongUser(user);			   
+			   string new_G      = findGroupsBelongUser(user );			   
 			   list   new_G_list = splitstring( new_G , "," );
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
 			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
@@ -785,7 +871,8 @@ to new home directory %2")), old_home, home));
 
 	    if ( lookup(group ,"todo", "") != `delete )
 	    {
-		if( todo == `items )
+		if( todo == `items  &&
+		    ( view_all_groups || ( ! view_all_groups && (key > max_system_gid ))))
 		{
 		    string  s_gid = sformat("%1", key   );
 		    term    a     = `item(`id(key));
@@ -794,7 +881,7 @@ to new home directory %2")), old_home, home));
 		     
 		    a = add(a, lookup( group , "groupname" , "" ));
 		    a = add(a, s_gid);
-		    a = add(a, findUsersBelongGroup(key) );
+		    a = add(a, findUsersBelongGroup(key, `string ) );
 		
 		    items = add( items, a );
 		}
@@ -806,7 +893,7 @@ to new home directory %2")), old_home, home));
 	    }
 	});
 	
-	if( todo == `items              ) return items;
+	if( todo == `items              ) return sort(`x, `y, items, ``( x > y ));
 	else if (todo == `groupnamelist ) return groupnamelist;
     }
 
@@ -829,7 +916,8 @@ to new home directory %2")), old_home, home));
 	    if( lookup( user ,"todo", "") != `delete )
 	    {
 		string username = lookup( user , "username" , "");
-		if( todo == `items )
+		if( todo == `items &&
+		    ( view_all_users || ( ! view_all_users && (key > max_system_uid ))))
 		{	
 		    string  s_uid = sformat("%1", key );
 		    term    a     = `item(`id(key));
@@ -865,7 +953,7 @@ to new home directory %2")), old_home, home));
 	    }
 	});
 		  
-	if( todo == `items                               ) return items;
+	if( todo == `items                               ) return  sort(`x, `y, items, ``( x > y ));
 	else if( todo == `usernamelist || todo == `homelist ) return todo_list;
 	
     }	
