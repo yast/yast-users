@@ -3,7 +3,7 @@
  *  shells.ycp
  *
  * Module:
- *  Printer configurator
+ *  Users
  *
  * Summary:
  *  Available shells listing test.
@@ -16,20 +16,14 @@
  */
 
 {
-    global define UI::OpenDialog(term t)``{}
-    global define UI::CloseDialog()``{}
-    global define term UI::UserInput()``{return `lprng ;}
-    global define UI::SetConsoleFont (string console_magic, string font, string screen_map, string unicode_map, string encoding) ``{}
-    global define UI::Recode (string s1, string s2, string s) ``{return s;}
 
     include "testsuite.ycp";
-    import "Pkg";
-    import "UserAddDefs";
+    import "Users";
 
     map READ = $[ "etc" : $["shells" : ["/bin/ash", "/bin/bash", "/bin/bash1", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]]];
 
-    TEST(``(UserAddDefs::GetAllShells (`items)), [READ, $[], $[]], 0);
+    TEST(``(Users::GetAllShells (`items)), [READ, $[], $[]], 0);
     DUMP ("==========================================================");
-    TEST(``(UserAddDefs::GetAllShells (`stringlist)), [READ, $[], $[]], 0);
+    TEST(``(Users::GetAllShells (`stringlist)), [READ, $[], $[]], 0);
 
 }
