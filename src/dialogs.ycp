@@ -1576,6 +1576,10 @@ Please try again."));
                     continue;
 
                 }
+                if (new_i_gid > Users::max_system_gid && group_type == `system)
+                    group_type = `local;
+                if (new_i_gid <= Users::max_system_gid && group_type == `local)
+                    group_type = `system;
             }
 
             foreach (`user, list_userlist, ``{
