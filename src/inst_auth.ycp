@@ -30,7 +30,7 @@
     Internet::Fastest();
     if (issubstring (Internet::device, "dsl"))
     {
-        y2debug ("only DSL is present...");
+        y2milestone ("only DSL is present...");
 	    Users::after_auth = `users;
 	    return `auto;
     }
@@ -98,8 +98,7 @@ Here you can choose the authentication method of users on your system.
 			   `VStretch()
 			   );
 
-    Wizard::SetContentsButtons (caption, contents, help,
-				BackButtonLabel(), NextButtonLabel());
+    Wizard::SetContents (caption, contents, help, Args(0), Args(1));
 
     // check if nis+/ldap are available (there are not in personal edition)
     list available_clients = [`nis];
@@ -139,10 +138,7 @@ Here you can choose the authentication method of users on your system.
 	if (ret == `abort)
 	{
 	    if ( WFM::CallFunction (`inst_confirm_abort(`incomplete) ) )
-	    {
-		Wizard::RestoreNextButton();
 		break;
-	    }
 	}
 	else if (ret == `local)
 	{
