@@ -1410,8 +1410,8 @@ sub WriteGroups {
 	    }
 	    if (defined $plugins_to_remove) {
                 foreach my $plugin (sort @{$plugins_to_remove}) {
-                    config->{"plugins"}	= [ $plugin ];
-                    y $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+                    $config->{"plugins"}	= [ $plugin ];
+                    my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
                 }
             }
 	    # now add new group with modified objectclass
@@ -1433,8 +1433,8 @@ sub WriteGroups {
 	    }
 	    if (defined $plugins_to_remove) {
                 foreach my $plugin (sort @{$plugins_to_remove}) {
-                    config->{"plugins"}	= [ $plugin ];
-                    y $res = UsersPlugins->Apply ("Write", $config, \%new_group);
+                    $config->{"plugins"}	= [ $plugin ];
+                    my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
                 }
             }
 	}
