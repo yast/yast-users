@@ -157,7 +157,8 @@
     map main_sequence = $[
         "ws_start":      start_dialog,
         "users":         $[ `switch_groups:  "groups",
-	                    `new:            "user_add",
+			    `switch_users:   "users",
+			    `new:            "user_add",
 		            `clone:          "user_clone",
 		            `edit:           "user_edit",
 		            `delete:         "user_delete",
@@ -188,6 +189,7 @@
 	"user_save":     $[ `next:	     "users",
 			    `save:           "save_to_system"],
         "groups":        $[ `switch_users:   "users",
+			    `switch_groups:  "groups",
 	                    `new:            "group_add",
 		            `clone:          "group_clone",
 			    `edit:           "group_edit",
