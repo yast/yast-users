@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Apr  5 10:53:53 CEST 2004 - jsuchome@suse.cz
+
+- fix: correct initial ID for LDAP groups (#38250)
+- 2.9.26
+
+-------------------------------------------------------------------
 Fri Apr  2 15:51:52 CEST 2004 - jsuchome@suse.cz
 
 - changed license to GPL

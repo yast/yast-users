@@ -474,8 +474,6 @@ sub Read {
 	"group_attrs"		=> $group_attrs,
 	"member_attribute"	=> $member_attribute
     );
-y2internal ("user at: ", @{$user_attrs});
-y2internal ("group at: ", @{$group_attrs});
     if (!SCR->Execute (".ldap.users.search", \%args)) {
 	$ret = Ldap->LDAPError();
     }
