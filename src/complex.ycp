@@ -85,7 +85,7 @@ define symbol WriteDialog (boolean useUI) ``{
  * @return symbol for wizard sequencer
  */
 define symbol userSetup () ``{
-    Users::SetStartDialog ("users") ;
+    Users::SetStartDialog ("users");
     return `next;
 }
 

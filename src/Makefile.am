@@ -20,9 +20,7 @@ ynclude_DATA =		\
     wizards.ycp		\
     widgets.ycp		\
     routines.ycp
-#    passwd.ycp    	\
-#    nis_routines.ycp	\
-#    ldap_routines.ycp
+#    passwd.ycp
 
 client_DATA = 		\
     users.ycp		\

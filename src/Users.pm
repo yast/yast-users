@@ -163,6 +163,9 @@ my %ldap2yast_user_attrs	= (
     "uid"		=> "username"
 );
     
+my %ldap2yast_group_attrs	= (
+    "cn"		=> "groupname"
+);
   
 ##------------------------------------
 ##------------------- global imports
@@ -190,7 +193,7 @@ sub contains {
 }
 
 sub _ {
-    return $_[0];
+    return gettext ($_[0]);
 }
 
 
@@ -489,15 +492,16 @@ sub CheckHomeMounted {
         };
 
         if (!$mounted) {
-            return
+            return sprintf (
 # Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
-"In $mountpoint_in, there is a mount point for the directory
-$home, which is used as a default home directory for new
+_("In %s, there is a mount point for the directory
+%s, which is used as a default home directory for new
 users, but this directory is not currently mounted.
 If you add new users using the default values,
-their home directories will be created in the current $home.
+their home directories will be created in the current %s.
 This can imply that these directories will not be accessible
-after you mount correctly. Continue user configuration?";
+after you mount correctly. Continue user configuration?"),
+	    $mountpoint_in, $home, $home);
 	}
     }
     return $ret;
@@ -509,7 +513,7 @@ after you mount correctly. Continue user configuration?";
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function",
-    ["map", "string", "string"],
+    ["map", "string", "integer"],
     "string"];
 }
 sub GetDefaultGrouplist {
@@ -756,7 +760,7 @@ sub GetGroup {
     my $gid		= $_[0];
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
-	@types_to_look = keys %groups;
+	@types_to_look = sort keys %groups;
     }
 
     foreach my $type (@types_to_look) {
@@ -1038,7 +1042,7 @@ sub ReadLocal {
     my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
-	"base_directory"	=> "/tmp"
+	"base_directory"	=> "/etc"
     );
     # id limits are necessary for differ local and system users
     my $init = SCR::Execute (".passwd.init", \%configuration);
@@ -1076,7 +1080,7 @@ BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
     # progress caption
-    my $caption 	= "Initializing user and group configuration";
+    my $caption 	= _("Initializing user and group configuration");
     my $no_of_steps 	= 5;
 
     if ($use_gui) {
@@ -1317,11 +1321,8 @@ sub DeleteGroup {
 
 
 ##------------------------------------
-#TODO the meaning of the map is different then in original Users.ycp!
-#it used to be whole map of user (user_in_work), now it is map of changes!
-
-#Edit is used in 2 diffr. situations:
-#	1. initialization (creates "org_user")	- could be in SelectUser???
+#Edit is used in 2 diffr. situations
+#	1. initialization (creates "org_user")	- could be in SelectUser?
 #	2. save changed values into user_in_work
 BEGIN { $TYPEINFO{EditUser} = ["function",
     "boolean",
@@ -1394,6 +1395,18 @@ sub EditUser {
 		$user_in_work{"removed_grouplist"} = \%removed;
 	    }
 	}
+	if ($key eq "create_home" || $key eq "encrypted") {
+	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
+	    next;
+	}
+	if ($key eq "userPassword" && $data{$key} ne "" && $data{$key} ne "x") {
+	    # crypt password only once (when changed)
+	    if (!defined ($data{"encrypted"})) {
+		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+		next;
+	    }
+	}
 	$user_in_work{$key}	= $data{$key};
     }
     $user_in_work{"what"}	= "edit_user";
@@ -1433,7 +1446,6 @@ sub EditGroup {
 		$group_in_work{$org_key}	= $group_in_work{$key};
 	    }
 	}
-	# TODO create @removed_user from modified %userlist
 	# compare the differences, create removed_userlist
 	if ($key eq "userlist" && defined $group_in_work{"userlist"}) {
 	    my %removed = ();
@@ -1444,6 +1456,15 @@ sub EditGroup {
 	    }
 	    if (%removed) {
 		$group_in_work{"removed_userlist"} = \%removed;
+	    }
+	}
+	if ($key eq "userPassword" && $data{$key} ne "" && $data{$key} ne "x"
+	    && $data{$key} ne "!") {
+	    # crypt password only once (when changed)
+	    if (!defined ($data{"encrypted"})) {
+		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+		next;
 	    }
 	}
 	$group_in_work{$key}	= $data{$key};
@@ -1491,8 +1512,15 @@ sub AddUser {
     }
 
     foreach my $key (keys %data) {
-	if ($key eq "create_home") {
+	if ($key eq "create_home" || $key eq "encrypted") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
+	}
+	elsif ($key eq "userPassword") {
+	    # crypt password only once
+	    if (!defined ($data{"encrypted"})) {
+		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	    }
 	}
 	else {
 	    $user_in_work{$key}	= $data{$key};
@@ -1531,9 +1559,6 @@ sub AddUser {
     }
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
-    }
-    else {
-	# FIXME when apply CryptPassword?
     }
     my %default_shadow = %{GetDefaultShadow ($type)};
     foreach my $shadow_item (keys %default_shadow) {
@@ -1617,6 +1642,13 @@ sub AddGroup {
     }
 
     foreach my $key (keys %data) {
+	if ($key eq "userPassword") {
+	    # crypt password only once
+	    if (!defined ($data{"encrypted"})) {
+		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	    }
+	}
 	$group_in_work{$key}	= $data{$key};
     }
 
@@ -1628,18 +1660,28 @@ sub AddGroup {
     if (!defined $group_in_work{"gidNumber"}) {
 	$group_in_work{"gidNumber"}	= UsersCache::NextFreeGID ($type);
     }
-#	if (type == "ldap")
-#	{
-#	    # add default object classes
-#	    group_in_work["objectClass"] = data["objectClass"]:ldap_group_class;
-#	    # add other default values
-#	    foreach (string attr, any val, ldap_group_defaults, ``{
-#		string a = ldap2yast_group_attrs [attr]:attr;
-#		if (!haskey (group_in_work, a) || group_in_work[a]:"" == "")
-#		    group_in_work [a] = val;
-#	    });
-#	    group_in_work ["dn"] = data["dn"]:CreateGroupDN (data);
-#	}
+    
+    if ($type eq "ldap") {
+	# add default object classes
+	if (!defined $group_in_work{"objectClass"}) {
+	    my @classes = UsersLDAP::GetGroupClass();
+	    $group_in_work{"objectClass"} = \@classes;
+	}
+        # add other default values
+	my %ldap_defaults	= %{UsersLDAP::GetGroupDefaults()};
+	foreach my $attr (keys %ldap_defaults) {
+	    my $a = $ldap2yast_group_attrs{$attr} || $a;
+	    if (!defined ($group_in_work{$attr})) {
+		$group_in_work{$attr}	= $ldap_defaults{$attr};
+	    }
+	};
+	if (!defined $group_in_work{"dn"}) {
+	    my $dn = CreateGroupDN (\%data);
+	    if (defined $dn) {
+		$group_in_work{"dn"} = $dn;
+	    }
+	}
+    }
     return 1;
 }
 
@@ -2209,8 +2251,6 @@ sub WriteCustomSets {
     my %customs = (
         "custom_users"			=> \@user_custom_sets,
         "custom_groups"			=> \@group_custom_sets,
-#        "dont_warn_when_uppercase"	=> $not_ask_uppercase,
-# FIXME: 'odd number of elements'
     );
     $customs{"dont_warn_when_uppercase"} =
 	YaST::YCP::Boolean ($not_ask_uppercase);
@@ -2359,7 +2399,7 @@ sub Write {
     if ($groups_modified) {
         if (! WriteGroup ()) {
             y2error ("Cannot write group file.");
-	    $ret = "Cannot write group file.";
+	    $ret = _("Cannot write group file.");
         }
         # remove the group cache for nscd (bug 24748)
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
@@ -2371,7 +2411,7 @@ sub Write {
     if ($users_modified) {
         if (!DeleteUsers ()) {
             y2error ("Error while removing users.");
-	    $ret = "Error while removing users.";
+	    $ret = _("Error while removing users.");
 	}
     }
 
@@ -2381,7 +2421,7 @@ sub Write {
     if ($users_modified) {
         if (!WritePasswd ()) {
             y2error ("Cannot write passwd file.");
-	    $ret = "Cannot write passwd file.";
+	    $ret = _("Cannot write passwd file.");
 	}
 	# remove the passwd cache for nscd (bug 24748)
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
@@ -2431,15 +2471,16 @@ sub Write {
 
     if ($users_modified) {
         if (! WriteShadow ()) {
-	    $ret = "Cannot write shadow file.";
+	    $ret = _("Cannot write shadow file.");
             y2error ("Cannot write shadow file.");
         }
     }
 
-    # Write LDAP users and groups TODO
+    # Write LDAP users and groups
     if ($use_gui) { Progress::NextStage (); }
 
     if ($ldap_modified) {
+	# TODO: bind should be checked again (ask for password)
 	# 1st: deleted users
 	if (defined ($removed_users{"ldap"})) {
 	    UsersLDAP::WriteUsers ($removed_users{"ldap"});
@@ -2480,7 +2521,7 @@ sub Write {
 	!MailAliases::SetRootAlias ($root_mail)) {
         
 	# error popup
-        $ret = "There was an error while setting forwarding for root's mail.";
+        $ret =_("There was an error while setting forwarding for root's mail.");
     }
 
     Autologin::Write (Mode::cont () || $write_only);
@@ -2524,15 +2565,15 @@ sub CheckUID {
     my $max	= UsersCache::GetMaxUID ($type);
 
     if (!defined $uid) { #FIXME if uid was not defined, it failed before...!
-	return "There is no free UID for this type of user.";
+	return _("There is no free UID for this type of user.");
     }
 
     if ($uid == $user_in_work{"uidNumber"}) {
 	return "";
     }
-    if (UsersCache::UIDExists ($uid)) {#FIXME translatable strings!
-	return "The user ID entered is already in use.
-Select another user ID.";
+    if (UsersCache::UIDExists ($uid)) {
+	return _("The user ID entered is already in use.
+Select another user ID.");
     }
 
     if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
@@ -2547,8 +2588,8 @@ Select another user ID.";
 	 )
 	)) 
     {
-	return sprintf ("The selected user ID is not allowed.
-Select a valid integer between %i and %i.", $min, $max);
+	return sprintf (_("The selected user ID is not allowed.
+Select a valid integer between %i and %i."), $min, $max);
     }
     return "";
 }
@@ -2572,9 +2613,9 @@ sub CheckUIDUI {
 	    $uid < UsersCache::GetMaxUID ("local"))
 	{
 	    $ret{"question_id"}	= "local";
-	    $ret{"question"}	= sprintf ("The selected user ID is a local ID,
+	    $ret{"question"}	= sprintf(_("The selected user ID is a local ID,
 because the ID is greater than %i.
-Really change type of user to 'local'?", UsersCache::GetMinUID ("local"));
+Really change type of user to 'local'?"), UsersCache::GetMinUID ("local"));
 	    return \%ret;
 	}
     }
@@ -2585,9 +2626,10 @@ Really change type of user to 'local'?", UsersCache::GetMinUID ("local"));
 	    $uid < UsersCache::GetMaxUID ("system"))
 	{
 	    $ret{"question_id"}	= "system";
-	    $ret{"question"}	= sprintf ("The selected user ID is a system ID,
+	    $ret{"question"}	= sprintf (
+_("The selected user ID is a system ID,
 because the ID is smaller than %i.
-Really change type of user to 'system'?", UsersCache::GetMaxUID ("system"));
+Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system"));
 	    return \%ret;
 	}
     }
@@ -2603,15 +2645,15 @@ sub CheckUsername {
     my $username	= $_[0];
 
     if (!defined $username || $username eq "") {
-        return "You didn't enter a username.
-Please try again.";
+        return _("You didn't enter a username.
+Please try again.");
     }
     
     if (length ($username) < $UsersCache::min_length_login ||
 	length ($username) > $UsersCache::max_length_login ) {
 
-	return sprintf ("The user name must be between %i and %i characters in length.
-Try again.", $UsersCache::min_length_login, $UsersCache::max_length_login);
+	return sprintf (_("The user name must be between %i and %i characters in length.
+Try again."), $UsersCache::min_length_login, $UsersCache::max_length_login);
     }
 	
     my $filtered = $username;
@@ -2619,17 +2661,17 @@ Try again.", $UsersCache::min_length_login, $UsersCache::max_length_login);
 
     my $first = substr ($username, 0, 1);
     if ($first ne "_" && ($first lt "A" || $first gt "z" ) || $filtered ne "") { 
-	return "The user login may contain only
+	return _("The user login may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
-Try again.";
+Try again.");
     }
 
     if ($username ne ($user_in_work{"username"} || "") &&
 	UsersCache::UsernameExists ($username)) {
-	return "There is a conflict between the entered
+	return _("There is a conflict between the entered
 user name and an existing user name.
-Try another one.";
+Try another one.");
     }
     return "";
     
@@ -2643,9 +2685,9 @@ sub CheckFullname {
     my $fullname	= $_[0];
 
     if ($fullname =~ m/[:,]/) {
-        return "The full user name cannot contain
+        return _("The full user name cannot contain
 \":\" or \",\" characters.
-Try again."
+Try again.");
     }
     return "";
 }
@@ -2658,15 +2700,15 @@ sub CheckGECOS {
     my $gecos		= $_[0];
 
     if ($gecos =~ m/:/) {
-        return "The \"Additional User Information\" entry cannot
-contain a colon (:).  Try again.";
+        return _("The \"Additional User Information\" entry cannot
+contain a colon (:).  Try again.");
     }
     
     my @gecos_l = split (/,/, $gecos);
     if (@gecos_l > 3 ) {
-        return "The \"Additional User Information\" entry can consist
+        return _("The \"Additional User Information\" entry can consist
 of up to three sections separated by commas.
-Remove the surplus.";
+Remove the surplus.");
     }
     
     return "";
@@ -2684,24 +2726,23 @@ sub CheckPassword {
 
     if (($pw || "") eq "") {
             
-	return "You didn't enter a password.
-Please try again.";
+	return _("You didn't enter a password.
+Please try again.");
     }
 
     if (length ($pw) < $min_length) {
-        return sprintf ("The password must have between %i and %i characters.
-Please try again.", $min_length, $max_length);
+        return sprintf (_("The password must have between %i and %i characters.
+Please try again."), $min_length, $max_length);
     }
 
     my $filtered = $pw;
     $filtered =~ s/$valid_password_chars//g;
 
     if ($filtered ne "") {
-	return "The password may only contain the following characters:
+	return _("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
-Please try again.";
+Please try again.");
     }
-            
     return "";
 }
 
@@ -2722,7 +2763,7 @@ sub CrackPassword {
     else {
 	$ret = SCR::Execute (".crack", $pw, $cracklib_dictpath);
     }
-    if (!defined ($ret)) { $ret = ""; } #FIXME from inst_root...
+    if (!defined ($ret)) { $ret = ""; }
 
     return $ret;#TODO ret should be recoded!
 }
@@ -2738,24 +2779,24 @@ sub CheckObscurity {
     my $pw 		= $_[1];
 
     if ($pw =~ m/$username/) {
-        return "You have used the user name as a part of the password.
-This is not good security practice. Are you sure?";
+        return _("You have used the user name as a part of the password.
+This is not good security practice. Are you sure?");
     }
 
     # check for lowercase
     my $filtered 	= $pw;
     $filtered 		=~ s/[a-z]//g;
     if ($filtered eq "") {
-        return "You have used only lowercase letters for the password.
-This is not good security practice. Are you sure?";
+        return _("You have used only lowercase letters for the password.
+This is not good security practice. Are you sure?");
     }
 
     # check for numbers
     $filtered 		= $pw;
     $filtered 		=~ s/[0-9]//g;
     if ($filtered eq "") {
-        return "You have used only digits for the password.
-This is not good security practice. Are you sure?";
+        return _("You have used only digits for the password.
+This is not good security practice. Are you sure?");
     }
     return "";
 }
@@ -2770,8 +2811,8 @@ sub CheckPasswordMaxLength {
     my $max_length 	= $max_pass_length{$type};
 
     if (length ($pw) > $max_length) {
-        return "The password is too long for the current encryption method.
-Truncate it to $max_length characters?";
+        return sprintf (_("The password is too long for the current encryption method.
+Truncate it to %s characters?"), $max_length);
     }
     return "";
 }
@@ -2793,9 +2834,9 @@ sub CheckPasswordUI {
 	my $error = CrackPassword ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
-	    $ret{"question"}	= "Password is too simple:
-$error
-Really use it?";
+	    $ret{"question"}	= sprintf (_("Password is too simple:
+%s
+Really use it?"), $error);
 	    return \%ret;
 	}
     }
@@ -2864,9 +2905,9 @@ sub CheckHome {
     $filtered 		=~ s/$valid_home_chars//g;
 
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {
-        return "The home directory may only contain the following characters:
+        return _("The home directory may only contain the following characters:
 a..zA..Z0..9_-/
-Try again.";
+Try again.");
     }
 
     # check if directory is writable
@@ -2876,15 +2917,15 @@ Try again.";
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = IsDirWritable ($home_path);
         if ($home_path ne "") {
-            return "The directory $home_path is not writable.
-Choose another path for the home directory.";
+            return sprintf (_("The directory %s is not writable.
+Choose another path for the home directory."), $home_path);
 	}
     }
 
 #    if ($home ne ($user_in_work{"homeDirectory"} || "") &&
     if (UsersCache::HomeExists ($home)) {
-        return "The home directory is used from another user.
-Please try again.";
+        return _("The home directory is used from another user.
+Please try again.");
     }
 
     return "";
@@ -2912,26 +2953,26 @@ sub CheckHomeUI {
     if ((($ui_map{"chown"} || 0) != 1) &&
 	!Mode::config () &&
 	(SCR::Read (".target.size", $home) != -1)) {
-#	($user_type ne "ldap" || $ldap_file_server))
+#	($user_type ne "ldap" || $ldap_file_server)) TODO
         
 	$ret{"question_id"}	= "chown";
-	$ret{"question"}	= "The home directory selected already exists.
-Use it and change its owner?";
+	$ret{"question"}	= _("The home directory selected already exists.
+Use it and change its owner?");
 
 	my %stat 	= %{SCR::Read (".target.stat", $home)};
 	my $dir_uid	= $stat{"uidNumber"} || -1;
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
-	    $ret{"question"}	= "The home directory selected already exists
+	    $ret{"question"}	= _("The home directory selected already exists
 and is owned by the currently edited user.
-Use this directory?";
+Use this directory?");
 	}
 	# maybe it is home of some user marked to delete...
 	elsif (defined $removed_homes{$home}) {
-	    $ret{"question"}	= "The home directory selected ($home)
+	    $ret{"question"}	= sprintf (_("The home directory selected (%s)
 already exists as a former home directory of
 a user previously marked for deletion.
-Use this directory?";
+Use this directory?"), $home);
 	}
     }
     return \%ret;
@@ -2954,8 +2995,8 @@ sub CheckShellUI {
 
 	if (!defined ($all_shells{$shell})) {
 	    $ret{"question_id"}	= "shell";
-	    $ret{"question"}	= "If you select a nonexistent shell, the user may be unable to log in.
-Are you sure?";
+	    $ret{"question"}	= _("If you select a nonexistent shell, the user may be unable to log in.
+Are you sure?");
 	}
     }
     return \%ret;
@@ -2972,7 +3013,7 @@ sub CheckGID {
     my $max	= UsersCache::GetMaxGID ($type);
 
     if (!defined $gid) {
-	return "There is no free GID for this type of group.";
+	return _("There is no free GID for this type of group.");
     }
 
     if ($gid == $group_in_work{"gidNumber"}) {
@@ -2980,8 +3021,8 @@ sub CheckGID {
     }
 
     if (UsersCache::GIDExists ($gid)) {
-	return "The group ID entered is already in use.
-Select another group ID.";
+	return _("The group ID entered is already in use.
+Select another group ID.");
     }
 
     if (($type ne "system" && $type ne "local" && ($gid < $min || $gid > $max))
@@ -2996,8 +3037,8 @@ Select another group ID.";
 	 )
 	)) 
     {
-	return sprintf ("The selected group ID is not allowed.
-Select a valid integer between %i and %i.", $min, $max);
+	return sprintf (_("The selected group ID is not allowed.
+Select a valid integer between %i and %i."), $min, $max);
     }
     return "";
 }
@@ -3021,9 +3062,9 @@ sub CheckGIDUI {
 	    $gid < UsersCache::GetMaxGID ("local"))
 	{
 	    $ret{"question_id"}	= "local";
-	    $ret{"question"}	= sprintf ("The selected group ID is a local ID,
+	    $ret{"question"}	= sprintf (_("The selected group ID is a local ID,
 because the ID is greater than %i.
-Really change type of group to 'local'?", UsersCache::GetMinGID ("local"));
+Really change type of group to 'local'?"), UsersCache::GetMinGID ("local"));
 	    return \%ret;
 	}
     }
@@ -3034,9 +3075,9 @@ Really change type of group to 'local'?", UsersCache::GetMinGID ("local"));
 	    $gid < UsersCache::GetMaxGID ("system"))
 	{
 	    $ret{"question_id"}	= "system";
-	    $ret{"question"}	= sprintf("The selected group ID is a system ID,
+	    $ret{"question"}	= sprintf(_("The selected group ID is a system ID,
 because the ID is smaller than %i.
-Really change type of group to 'system'?", UsersCache::GetMaxGID ("system"));
+Really change type of group to 'system'?"), UsersCache::GetMaxGID ("system"));
 	    return \%ret;
 	}
     }
@@ -3051,15 +3092,15 @@ sub CheckGroupname {
     my $groupname	= $_[0];
 
     if (!defined $groupname || $groupname eq "") {
-        return "You didn't enter a groupname.
-Please try again.";
+        return _("You didn't enter a groupname.
+Please try again.");
     }
     
     if (length ($groupname) < $UsersCache::min_length_groupname ||
 	length ($groupname) > $UsersCache::max_length_groupname ) {
 
-	return sprintf ("The group name must be between %i and %i characters in length.
-Try again.", $UsersCache::min_length_groupname,
+	return sprintf (_("The group name must be between %i and %i characters in length.
+Try again."), $UsersCache::min_length_groupname,
 	     $UsersCache::max_length_groupname);
     }
 	
@@ -3068,17 +3109,17 @@ Try again.", $UsersCache::min_length_groupname,
 
     my $first = substr ($groupname, 0, 1);
     if ($first lt "A" || $first gt "z" || $filtered ne "") { 
-	return "The group name may contain only
+	return _("The group name may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter.
-Try again.";
+Try again.");
     }
     
     if ($groupname ne ($group_in_work{"groupname"} || "") &&
 	UsersCache::GroupnameExists ($groupname)) {
-	return "There is a conflict between the entered
+	return _("There is a conflict between the entered
 group name and an existing group name.
-Try another one."
+Try another one.");
     }
     return "";
 }
@@ -3154,20 +3195,26 @@ sub CreateUserDN {
     if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
 	return undef;
     }
-    return sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr} || "", UsersLDAP::GetUserBase ());
+    return sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr}, UsersLDAP::GetUserBase ());
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{CreateGroupDN} = ["function",
-    ["map", "string", "any"],
+    "string",
     ["map", "string", "any"]];
 }
 sub CreateGroupDN {
 
-    return $_[0]; #TODO
-#    string dn_attr = ldap_group_naming_attr;
-#    string group_attr = ldap2yast_group_attrs [dn_attr]:dn_attr;
-#    return sformat ("%1=%2,%3", dn_attr, group[group_attr]:"", ldap_group_base);
+    my $dn_attr		= UsersLDAP::GetGroupNamingAttr ();
+    my $group_attr	= $dn_attr;
+    if (defined $ldap2yast_group_attrs{$dn_attr}) {
+	$group_attr	= $ldap2yast_group_attrs{$dn_attr};
+    }
+    my $group		= $_[0];
+    if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
+	return undef;
+    }
+    return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, UsersLDAP::GetUserBase ());
 }
 
 ##-------------------------------------------------------------------------
@@ -3178,6 +3225,7 @@ sub EncryptionMethod {
     return $encryption_method;
 }
 
+##------------------------------------
 BEGIN { $TYPEINFO{SetEncryptionMethod} = ["function", "void", "string"];}
 sub SetEncryptionMethod {
     if ($encryption_method ne $_[0]) {
@@ -3189,41 +3237,52 @@ sub SetEncryptionMethod {
     }
 }
 
-BEGIN { $TYPEINFO{CryptPassword} = ["function", "string", "string", "string"];}
+##------------------------------------
+BEGIN { $TYPEINFO{CryptPassword} = ["function",
+    "string",
+    "string", "string"];}
 sub CryptPassword {
 
     my $pw	= $_[0];
     my $type	= $_[1];
-    my $method	= $encryption_method;
+    my $method	= uc ($encryption_method);
     
     if ($type eq "ldap") {
-#	$method = uc ($ldap_encryption);
+	$method = uc (UsersLDAP::GetEncryption ());
 	if ($method eq "CLEAR") {
 	    return $pw;
 	}
-#	if ((contains (["MD5", "SMD5", "SHA", "SSHA"], method)) &&
-#	    (SCR::Read (.target.size, "/usr/sbin/slappasswd") != -1))
-#	{
-#	    string in = tmpdir + "/pwin";
-#	    string out = tmpdir + "/pwout";
-#	    SCR::Write (.target.string, in, pw);
-#	    SCR::Execute (.target.bash, sformat ("/bin/chmod 400 %1", in));
-#	    SCR::Execute (.target.bash, sformat (
-#		"/usr/sbin/slappasswd -h {%1} -T %2 > %3", method, in, out));
-#	    string crypted = (string) SCR::Read (.target.string, out);
-#	    SCR::Execute (.target.remove, in);
-#	    SCR::Execute (.target.remove, out);
-#	    return crypted;
-#	}
+	if ((contains (["MD5", "SMD5", "SHA", "SSHA"], $method)) &&
+	    (SCR::Read (".target.size", "/usr/sbin/slappasswd") != -1)) {
+
+	    my $in	= $tmpdir."/pwin";
+	    my $out 	= $tmpdir."/pwout";
+	    SCR::Write (".target.string", $in, $pw);
+	    SCR::Execute (".target.bash", "/bin/chmod 400 $in");
+	    SCR::Execute (".target.bash",
+		"/usr/sbin/slappasswd -h {$method} -T $in > $out");
+	    my $crypted = SCR::Read (".target.string", $out);
+	    SCR::Execute (".target.remove", $in);
+	    SCR::Execute (".target.remove", $out);
+	    chomp $crypted;
+	    return $crypted;
+	}
     }
-    if (lc ($method) eq "md5" ) {
-	return `openssl passwd -1 $pw`;
+    my %out = ();
+    # FIXME do not use openssl
+    if ($method eq "MD5" ) {
+	%out = %{SCR::Execute (".target.bash_output", "/usr/bin/openssl passwd -1 $pw")};
     }
-#    elsif (lc ($method) eq "blowfish" ) { TODO
+#    elsif ($method eq "BLOWFISH" ) { TODO
 #	return cryptblowfish (pw);
 #    }
     else {
-	return `openssl passwd -crypt $pw`; #TODO require openssl
+	%out = %{SCR::Execute (".target.bash_output", "/usr/bin/openssl passwd -crypt $pw")};
+    }
+    if (defined $out{"stdout"}) {
+        my $crypted = $out{"stdout"};
+	chomp $crypted;
+        return $crypted;
     }
 }
 
@@ -3241,8 +3300,7 @@ sub SetRootPassword {
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
 
-y2warning ("============== write root pw: $root_password"); return 1;
-##    return SCR::Write (".target.passwd.root", $root_password);
+    return SCR::Write (".target.passwd.root", $root_password);
 }
 
 ##------------------------------------

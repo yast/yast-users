@@ -94,11 +94,18 @@ my $min_gid 			= 1000;
 my $min_pass_length		= 5;
 my $max_pass_length		= 8;
 
+# keys in user's map which are not saved anywhere, they are used for internal
+# purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
      "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
-     "org_type", "what",
+     "org_type", "what", "encrypted",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
+
+my @group_internal_keys		=
+    ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
+     "dn", "org_dn", "org_groupname", "org_gidNumber", "removed_userlist",
+     "what");
 
 # conversion table from parameter names used in yast (passwd-style) to
 # correct LDAP schema atrributes
@@ -575,6 +582,41 @@ sub GetUserInternal {
     return @user_internal_keys;
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupClass} = ["function", ["list", "string"]];}
+sub GetGroupClass {
+    return @group_class;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupDefaults} = ["function", ["map", "string","string"]];}
+sub GetGroupDefaults {
+    return \%group_defaults;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupNamingAttr} = ["function", "string"];}
+sub GetGroupNamingAttr {
+    return $group_naming_attr;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupBase} = ["function", "string"];}
+sub GetGroupBase {
+    return $group_base;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupInternal} = ["function", ["list", "string"]];}
+sub GetGroupInternal {
+    return @group_internal_keys;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetEncryption} = ["function", "string"];}
+sub GetEncryption {
+    return $encryption;
+}
 
 ##------------------------------------
 # Convert internal map describing user to map that could be passed to
@@ -596,12 +638,10 @@ sub ConvertUser {
 	    if  (contains (["x","*","!"], $val)) {
 		next;
 	    }
-#	    if ($encryption ne "clear" && FIXME
-#		!issubstring ((string)value,
-#		    sformat("{%1}",toupper (Users::ldap_encryption))))
-#	    {
-#		val = sformat ("{%1}%2",toupper(Users::ldap_encryption), value);
-#	    }
+	    my $enc	= uc ($encryption);
+	    if ($enc ne "CLEAR" && !($val =~ m/^{$enc}/)) {
+		$val = sprintf ("{%s}%s", uc ($encryption), $val);
+	    }
 	}
 
 	# check if the attributes are allowed by objectClass
@@ -613,7 +653,7 @@ sub ConvertUser {
 	if ($val ne "") {
 	$ret{$attr}	= $val;
 	}
-    };
+    }
     return \%ret;
 }
 

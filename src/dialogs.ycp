@@ -134,12 +134,12 @@ define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
-y2internal ("user: %1", user);
+//y2internal ("user: %1", user);
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
     string cn		= "";
     // in LDAP, cn is list of strings...
-    if (is (user["cn"]:"", list))
+    if (is (user["cn"]:nil, list))
 	cn	= user["cn",0]:"";
     else
 	cn	= user["cn"]:"";
@@ -423,7 +423,7 @@ can be changed for non-local users.
         {
             if (UI::QueryWidget(`id(`username), `Value) == "" &&
                 UI::QueryWidget(`id(`cn), `Value) == "")
-            ret = `nosave;
+		ret = `nosave;
         }
 
         details = (contains ([`details,`passwordsettings], ret));
@@ -448,7 +448,7 @@ so the password settings cannot be edited.
 	    map<string,string> ui_map	= $[];
 
 	    // --------------------------------- username checks, part 1/2
-	    // TODO:
+	    // FIXME:
 	    // empty username during installation (next module)
 	    string error = Users::CheckUsername (username);
 	    if (error != "")
@@ -503,15 +503,7 @@ Please try again."));
 		    clear_password_fields ();
 		    continue;
 		}
-
-                // to use with autoinst.
-                if (user["encrypted"]:true)
-		{
-                    password = Users::CryptPassword (pw1, user_type);
-                }
-                else password = pw1;
-
-		user ["userPassword"]		= password;
+		user ["userPassword"]		= pw1;
 		user ["shadowLastChange"]	= Users::LastChangeIsNow();
 	    }
 
@@ -617,6 +609,7 @@ Please try again."));
         // ensuring installation the first user is stored
         // (to show it when clicking `back from Summary dialog)
 	Users::SaveCurrentUser ();
+	Users::SetStartDialog ("users");//FIXME hack, because currently not applied for `nosave
     }
     return (symbol) ret;
 }
@@ -1193,9 +1186,7 @@ define symbol LDAPSettingsDialog (string what) ``{
 
     // keys in user's map which are not saved anywhere (internal use only :-))
     list internal_keys = (what == "user") ?
-	UsersLDAP::GetUserInternal () :
-	[ "modified", "type", "what", "more_users", "s_userlist",
-	"dn", "org_dn", "org_groupname", "org_gid", "removed_userlist" ];
+	UsersLDAP::GetUserInternal () : UsersLDAP::GetGroupInternal ();
 
     list required_attrs = (what == "user") ?
 	UsersLDAP::GetUserRequiredAttributes () :
@@ -1524,7 +1515,7 @@ Please try again.")) ;
 		    clear_password_fields ();
 		    continue;
 		}
-		password = Users::CryptPassword (pw1, group_type);
+		password = pw1;
             }
 
 	    // --------------------------------- gid checks
@@ -1602,11 +1593,10 @@ define symbol DefaultsDialog() ``{
     string inactive	= defaults["inactive"]:"";
     integer inact	= tointeger (inactive);
 
-    map<string,string> groups	= Users::GetDefaultGrouplist ("local");
+    map<string,integer> groups	= Users::GetDefaultGrouplist ("local");
 
-// FIXME strange return value from Perl???
-    string grouplist	= "";/*mergestring (
-	(list<string>) maplist (string g,`i, groups, ``(g)), ",");*/
+    string grouplist	= mergestring (
+	(list<string>) maplist (string g,integer i, groups, ``(g)), ",");
 
     string exp_date		= "";
     list available_groups	= [];
@@ -1743,8 +1733,8 @@ define symbol DefaultsDialog() ``{
 		list<string> dont_exist = [];
 		foreach (string g, splitstring (new_grouplist, ","), ``{
 		    // check for group existence
-		    if (all_groupnames["local", g]:"" == "" &&
-			all_groupnames["system", g]:"" == "")
+		    if (all_groupnames["local", g]:0 == 0 &&
+			all_groupnames["system", g]:0 == 0)
 			dont_exist = (list<string>) union (dont_exist, [g]);
 		    // filter out the duplicates
 		    else l_grouplist = (list<string>) union (l_grouplist, [g]);

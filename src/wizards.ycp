@@ -135,7 +135,8 @@ define symbol MainSequence(string start) ``{
 	],
 	"user_add_inst": $[
             `nextmodule		: `next, // no user and next pressed (install)
-            `nosave		: "summary",//no "first user" was added(install)
+            `nosave		: "summary",
+//no "first user" was added(install) FIXME start_dialog is not set to "summary"
             `additional		: "user_setup",
             `next		: "user_save",
             `details		: "user_details",
