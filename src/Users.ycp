@@ -918,29 +918,26 @@ define map ImportUser (map user) ``{
         {
             type = existing ["type"]:`system; // these should be system
             // change only imported values...
+            if (!haskey (user,"password_settings"))
+                user_shadow = shadow [type, username]:$[];
+            if (!haskey (user,"forename") && !haskey (user, "surname"))
+                fullname = existing["fullname"]:"";
             map ret = $[
                 "encrypted":    user ["encrypted"]:existing["encrypted"]:true,
                 "password":     user ["user_password"]:existing["password"]:"x",
                 "username":     username,
                 "forename":     user["forename"]:existing["forename"]:"",
                 "surname":      user["surname"]:existing["surname"]:"",
+                "fullname":     fullname,
                 "shell":        user ["shell"]:existing["shell"]:default_shell,
                 "uid":          existing["uid"]:-1,
                 "gid":          user ["gid"]:existing["gid"]:default_gid,
-                "grouplist":    user ["grouplist"]:existing["grouplist"]:"",
+                "grouplist":    user ["grouplist"]:"",
                 "home":         user ["home"]:existing["home"]:"",
                 "type":         type,
                 "modified":     `imported,
+                "shadow":       user_shadow
             ];
-            if (haskey (user,"forename") || haskey (user, "surname"))
-                ret = add (ret, "fullname", fullname);
-            else
-                ret = add (ret, "fullname", existing["fullname"]:"");
-
-            if (haskey (user,"password_settings"))
-                ret = add (ret, "shadow", user_shadow);
-            else
-                ret = add (ret, "shadow", existing["shadow"]:$[]);
 
             return ret;
         }
