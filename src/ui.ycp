@@ -31,8 +31,6 @@
     include "ui/common_popups.ycp";
     include "users/help.ycp";
 
-
-    
      global define void save_focus( integer table_input, any ret , symbol what) ``{
 
 	integer l_focusline = 0;
@@ -41,7 +39,6 @@
 	    l_focusline = focusline_group;
 	if ( what == `user )
 	    l_focusline = focusline_user;
-	
 	
 	if ( is ( table_input, integer ))
 	{
@@ -60,7 +57,6 @@
 	    focusline_user = l_focusline;
     }
 
-    
     /**
      * Define the switch between Users and Groups administration.
      * This is used in usersUsersDialog and usersGroupsDialog.
@@ -78,8 +74,6 @@
 	    )));
     }
 
-  
-    
     /**
      * The dialog that appears when the [Abort] button is pressed.
      * @return `abort if user really wants to abort
@@ -569,6 +563,7 @@ Please try again."));
 		    }
 
 		    // update user_in_work
+	y2error ("New home: %1", new_home);
 		    user_in_work = add( user_in_work, "home"      , new_home );
 		    user_in_work = add( user_in_work, "shell"     , new_shell);
 		    user_in_work = add( user_in_work, "gid"       , gid      );
@@ -599,23 +594,27 @@ Please try again."));
 	string username       = user_in_work["username"]:"";
 	map shadow            = user_in_work["shadow"]:$[];
 
-	y2milestone(sformat("shadow %1", shadow));
+	y2error(sformat("shadow %1", shadow));
 
 /*
 	    `Left (`Label ("Days since the account was locked")),
 			       `Left (`CheckBox (`id ("id_30"), "Lock account", false)),
 */
-	
+	integer last_changed = shadow["last_change"]:0;
+	integer expires = shadow["expire"]:-1;
+	y2error ("Expires: %1", expires);
+	//Translators: this means the format for date. %1 will be substituted with month, %2 with day and %3 with year
+	string date_format = _("%1 %2, %3");
+	date_format = sformat (date_format, "%B", "%d", "%Y");
+	map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%2\"", last_changed, date_format));
+	string last_change = UI::Recode(UserDefs::encoding, "UTF-8", lookup (out, "stdout", _("unknown")));
+	string exp_date = "";
+	if (expires != -1)
+	    exp_date = lookup (SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
 	term contents = `HBox (`HSpacing (3),
 			       `VBox (
 				      `VStretch(),
-				      `Top(`Left (`Label (_("Date of the last password change ") + shadow["lstchg"]:"" ))),
-				      `VSpacing (1),
-				      /*
-				      `Top(`HBox (`IntField (`id ("id_129"), "Days until password expires", 1, 9, 4),
-					     `HSpacing (2),
-					     `TextEntry (`id ("id_237"), "Date on witch password expires", ""))),
-				      */
+				      `Top(`Left (`Label (sformat (_("Date of the last password change: %1"), last_change )))),
 				      `VSpacing (1),
 				       `HSquash(`VBox(
 						      `IntField (`id ("warn"), _("How many day's warning before password expires?"), -1, 99999,
@@ -628,7 +627,9 @@ Please try again."));
 								 shadow["max"]:""),
 						      `VSpacing (0.5),
 						      `IntField (`id ("min"), "Minimum number of days for the same password", -1, 99999,
-								 shadow["min"]:"")
+								 shadow["min"]:""),
+						      `VSpacing (0.5),
+						      `TextEntry (`id ("expire"), "Expiration date", exp_date)
 						      )),
 				      `VStretch ()),
 			       `HSpacing (3));
@@ -644,20 +645,31 @@ Please try again."));
 	repeat
 	    {
 		ret = UI::UserInput();
-		
 		if( ret == `next )
 		{
+		    string exp = UI::QueryWidget (`id ("expire"), `Value);
+		    if (exp != "" && ! regexpmatch (exp, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+		    {
+			// Trannslators:Don't reorder the letters YYYY-MM-DD!!! The date must stay in this format
+			UI::MessagePopup (_("Expiration date must be in format YYYY-MM-DD"));
+			UI::SetFocus(`id(`forename));
+			continue;
+		    }
+		    boolean pwd_chng = lookup (user_in_work, "pwd_chng", false);
 		    foreach(`autosymbol, UserSettings::auto_shadow_symbols, ``{
+			if (lookup (shadow, autosymbol, -2) != UI::QueryWidget(`id(autosymbol), `Value))
+			    pwd_chng = true;
 			shadow[autosymbol] =  UI::QueryWidget(`id(autosymbol), `Value);
 		    });
 		    user_in_work["shadow"] = shadow;
-
+		    user_in_work = add (user_in_work, "pwd_chng", true);
+		    y2error ("UIW: %1", user_in_work);
 		}
 	
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 	
 	if ( ret == `next ) ret = lookup( user_in_work , "what"     , `back ); 
-
+	y2error ("PWD returning %1", ret);
 	return ret;
     }
 
@@ -796,6 +808,7 @@ Please try again."));
 	string  forename       = lookup( user_in_work, "forename", "empty" );
 	string  password       = lookup( user_in_work, "password", "");
 	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
+	boolean pwd_chng       = lookup( user_in_work, "pwd_chng", false);
 	if ( grouplist == "empty" && what == `edit_user)  grouplist = UserSettings::FindGroupsBelongUser(username);
 	if ( grouplist == "empty" && what == `add_user )  grouplist = "dialout,uucp,video,audio";
 	if ( surname   == "empty" ) surname  =  usersSplitFullName(`surname,  fullname, uid);
@@ -1160,7 +1173,7 @@ Do you want to use it and change it's owner?.")))
 
 		    if ( what == `add_user ) user_in_work["org_home"] = home;
 		    if(Mode::test ) y2milestone(" user in work : %1", user_in_work );
-
+y2error ("New home: %1", home);
 		    user_in_work = $[
 				     "what"        :  what ,
 				     "fullname"    :  fullname,
@@ -1175,16 +1188,14 @@ Do you want to use it and change it's owner?.")))
 				     "surname"     :  surname,
 				     "org_home"    :  user_in_work["org_home"]:"",
 				     "shadow"      :  shadow,
-				     "create_home" :  create_home
+				     "create_home" :  create_home,
+				     "pwd_chng"	   :  pwd_chng
 
 		    ];
 
 		}
 	    } until ( ret == `next || details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional || ret == `nosave );
 
-
-	
-	
 	// only in inst-sys
 	// create more users and groups
 	// leave sequencer and start it again with new start_dialog
@@ -1195,12 +1206,10 @@ Do you want to use it and change it's owner?.")))
 	    if ( ret == `additional ) ret = `next;
 	}
 	else start_sequencer_again = false;
-	
+	y2error ("Edit returning %1", ret);
 	return ret;
     }
 
-
-    
     /**
      * Delete the user saved in user_in_work from current_users and
      * add a entry with a shell delete command to the map write_to_system_stack.

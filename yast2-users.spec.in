@@ -1,6 +1,5 @@
 @HEADER-COMMENT@
-
-#  neededforbuild yast2-devel-packages yast2-country yast2-security
+# neededforbuild yast2-devel-packages yast2-security yast2-country yast2-installation yast2-x11
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-security yast2-pam
@@ -12,12 +11,6 @@ BuildArchitectures:	noarch
 Summary:	Configuration of users
 
 %description
--
-
-@HEADER-INSTSYS@
-Summary:        Users stuff for instsys
-
-%description instsys
 -
 
 @PREP@
@@ -49,17 +42,10 @@ Summary:        Users stuff for instsys
 @configdir@/groups.y2cc
 @configdir@/add_user.y2cc
 @configdir@/add_group.y2cc
+#installation stuff
 @ydatadir@/accounts.ycp
 @clientdir@/inst_root.ycp
 @clientdir@/inst_user.ycp
 @moduledir@/User.ycp
 @moduledir@/Accounts.ycp
 %doc @docdir@
-
-%files instsys
-%defattr(-,root,root)
-@ydatadir@/accounts.ycp
-@clientdir@/inst_root.ycp
-@clientdir@/inst_user.ycp
-@moduledir@/User.ycp
-@moduledir@/Accounts.ycp

@@ -1,0 +1,9 @@
+Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
+Execute	.target.bash "/bin/cp /etc/gshadow /etc/gshadow.YaST2save" 0
+Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
+Execute	.target.bash "/usr/sbin/useradd -s /bin/bash -d /home/aaa -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa" 0
+Execute	.target.bash "/usr/sbin/useradd.local aaa" 0
+Execute	.target.bash "/usr/sbin/useradd -s /bin/bash -g  -m -p '$1$T8$yEI1SH.1b0jqeqDq6bHha1' -u 500 -o -c \"\" -G dialout,uucp,video,audio aaa" 0
+Execute	.target.bash "/usr/sbin/useradd.local aaa" 0
+Execute	.target.bash "/bin/chown -R aaa: /home/aaa" 0
+Return	`next

@@ -141,21 +141,21 @@ y2error ("user: %1", user_in_work);
 	map     org_user = UserSettings::GetUser( uid );
 	string  comment  = consoleEncoding( fullname );
 	boolean create_home = lookup (user_in_work, "create_home", true);
-
+	boolean pwd_chng = lookup (user_in_work, "pwd_chng", false);
 
 	if ( what == `add_user )
 	{
 	    do_exist = false;
 
 	    //add the shell, home, initial_group, password, uid to the todo string
-	    if (create_home)
+//	    if (create_home)
 		todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
 			home, UserSettings::GroupIdToName(gid), password, uid);
-	    else
-	    {
-		todo = sformat("/usr/sbin/useradd -s %1 -g %2 -m -p '%3' -u %4 -o",shell,
-			UserSettings::GroupIdToName(gid), password, uid);
-	    }
+//	    else
+//	    {
+//		todo = sformat("/usr/sbin/useradd -s %1 -g %2 -m -p '%3' -u %4 -o",shell,
+//			UserSettings::GroupIdToName(gid), password, uid);
+//	    }
 
 	    //add the fullname to the todo string (comment)
 	    if ( comment  != "") todo = todo + " -c " + comment;
@@ -185,6 +185,7 @@ y2error ("user: %1", user_in_work);
 	}
 	else
 	{
+	    boolean change_date = false;
 	    //add the gid to the todo string
 	    if ( org_user["gid"]:""  != gid )
 		todo = todo + " -g "  + UserSettings::GroupIdToName(gid );
@@ -199,7 +200,10 @@ y2error ("user: %1", user_in_work);
 
 	    //add the password to the todo string
 	    if ( "x" != password )
+	    {
 		todo = todo + " -p '"  + password + "'";
+		change_data = true;
+	    }
 
 	    //add the loginname to the todo string
 	    if ( org_user["username"]:""  != username )
@@ -224,9 +228,35 @@ y2error ("user: %1", user_in_work);
 		AddTodo( todo,
 			      `edit_user,
 			      sformat(_("Can't change the settings of the user %1"), username ), `user, uid);
+		string today = lookup (SCR::Execute (.target.bash_output, ("date +\"%Y-%m-%d\"")), "stdout", "");
+		today = substring (today, 0, 10);
+		todo = sformat ("/usr/bin/chage -d %1 %2", today, username);
+		AddTodo( todo, `edit_user, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
 	    }
 	}
 
+	if (pwd_chng)
+	{
+	    y2error ("Now in pwd_chng");
+	    map shadow = lookup (user_in_work, "shadow", $[]);
+	    integer val = lookup (shadow, "min", nil);
+	    if (nil != val)
+		AddTodo( sformat ("passwd -n %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+            val = lookup (shadow, "max", nil);
+            if (nil != val)
+                AddTodo( sformat ("passwd -x %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+            val = lookup (shadow, "warn", nil);
+            if (nil != val)
+                AddTodo( sformat ("passwd -w %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+            val = lookup (shadow, "inact", nil);
+            if (nil != val)
+                AddTodo( sformat ("passwd -i %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+	    string sval = lookup (shadow, "expire", nil);
+            if (regexpmatch (sval, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+                AddTodo( sformat ("chage -E %1 %2", sval, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+	    else
+		AddTodo( sformat ("chage -E -1 %1", username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+	}
 
 	map current_user = $[
 			     "exist"    : do_exist,
@@ -490,7 +520,7 @@ y2error ("user: %1", user_in_work);
 	    if( ret == true )
 	    {
 		value	= value + 1;
-		if( ! Mode::cont && ! Mode::autoinst) {
+		if( ! Mode::cont && ! Mode::autoinst && useUI) {
 		    UI::ChangeWidget(`id(`bar), `Value, ((value / size(write_to_system_stack))  * 100 ) );
 		}
 	    }

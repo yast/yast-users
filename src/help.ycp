@@ -309,19 +309,30 @@ Save the current user and group settings to system
 
 
   global define string  usersEditUserPasswordHelp() ``{
+// Help text 1/5
       return _("<p>
 <b>Warning before expiration</B><BR>
-User can be warned before expiration of it's password. You can set how many days before gets user warned. Set -1 to disable warning.
+User can be warned before expiration of it's password. You can set 
+how many days before gets user warned. Set -1 to disable warning.
 </p>")
 +
+// Help text 2/5
 _("<P><B>Logging in after expiration</B><BR>
-User can log in after expiration of his password. Set how many days after expiration it will be posisble. Set -1 to unlimited.
+User can log in after expiration of his password. Set how many days 
+after expiration it will be posisble. Set -1 to unlimited.
 </P>")
 +
-_("<P><B>Lifitime of password</B><BR> Set how many days can user use the same password before it expires.</P>")
+//Help text 3/5
+_("<P><B>Lifitime of password</B><BR> Set how many days can user 
+use the same password before it expires.</P>")
 +
-_("<P><B>Minimal age of password</B><BR>Set the minimal age of password when user will be allowed to change it.</P>");
+// Help text 4/5
+_("<P><B>Minimal age of password</B><BR>Set the minimal age of 
+password when user will be allowed to change it.</P>")
++
+// Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
+("<P><B>Expiration date</B><BR>Set the date when this account expires. 
+Date must be in format YYYY-MM-DD. 
+Leave empty if this account never expires.</P>");
   }
-
-  
 }

@@ -1,7 +1,12 @@
 -------------------------------------------------------------------
-Thu Jul 04 12:57:57 CEST 2002 - arvin@suse.de
+Thu Jul  4 13:42:31 CEST 2002 - jsrain@suse.cz
 
+- Able to edit password settings (Bug #15841) 
+- Helps update of Users module
 - added yast2-country to requires
+
+-------------------------------------------------------------------
+Wed Jul  3 12:16:33 CEST 2002 - jsrain@suse.cz
 - Added testsuite
 - Now allowed "=" in password (#15646)
 

@@ -30,7 +30,7 @@
     path group_path   = .etc.group;
     path shadow_path  = .etc.shadow;
 
-    global list auto_shadow_symbols = [ "warn", "inact", "max", "min" ];
+    global list auto_shadow_symbols = [ "warn", "inact", "max", "min", "expire" ];
 
     /**
      * Read the file /etc/gshadow and save it to the list current_gshadow.
@@ -156,6 +156,14 @@
 	      work = entry["warn"]:sformat("%1", UserDefs::pass_warn_age );
 	      if( work == "") work = "0";
 	      new_entry["warn"]  = tointeger( work );
+
+	      work = entry["expire"]:sformat("%1", UserDefs::pass_warn_age );
+              if( work == "") work = "0";
+              new_entry["expire"]  = tointeger( work );
+
+	      work = entry["last_change"]:sformat("%1", UserDefs::pass_warn_age );
+              if( work == "") work = "0";
+              new_entry["last_change"]  = tointeger( work );
 
 	      current_shadow[ username ] = new_entry;
 	  });
