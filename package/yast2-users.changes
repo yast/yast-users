@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Mar  5 10:09:27 CET 2003 - jsuchome@suse.de
+
+- fix: cloning users during autoinstallation (#24629) 
+- fix: creating homes during autoinstallation (#24731)
+- fix: remove nscd cache before chown (#24748)
+- 2.7.20
+
+-------------------------------------------------------------------
 Mon Mar  3 12:54:27 CET 2003 - jsuchome@suse.de
 
 - merged proofreaded texts
