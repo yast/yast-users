@@ -179,16 +179,6 @@ Please try again."));
 		    continue;
 		}
 
-		if (size (pw1) < 5)
-		{
-		    // yes/no popup text
-		    if (!Popup::YesNo(_("The password should have at least five characters.
-Are you sure?")))
-		    {
-			ret = `notnext;
-			continue;
-		    }
-		}
 		if (findfirstnotof (pw1, valid_password_chars) != nil)
 		{
 		    // popup text: invalid characters in root password
