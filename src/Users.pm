@@ -228,7 +228,7 @@ sub contains { #TODO use grep
 }
 
 sub _ {
-    return gettext ($_[0]);
+    return dgettext ("users", $_[0]);
 }
 
 
