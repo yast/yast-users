@@ -1248,9 +1248,13 @@ map widgets = $[
 	    `HBox (
 		`PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
 		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
-		`PushButton(`id(`delete), `opt(`key_F5),Label::DeleteButton())
+		`PushButton(`id(`delete), `opt(`key_F5),Label::DeleteButton()),
+		`HStretch(),
+		`ReplacePoint (`id (`rpfilter),
+		    // menubutton label
+		    `MenuButton (`id(`sets), `opt(`key_F2, `disabled), _("&Set Filter"), [])
+		)
 	    )
-//		`HStretch())
 	),
 	"init"			: SummaryTableInit,
 	"handle"		: SummaryTableHandler,
@@ -1259,12 +1263,12 @@ map widgets = $[
     "advanced_buttons" : $[
         "widget"		: `custom,
 	"custom_widget"		: `HBox (
+	/*
 	    `ReplacePoint (`id (`rpfilter),
 		// menubutton label
 		`MenuButton (`id(`sets), `opt(`key_F2, `disabled), _("&Set Filter"), [])
 	    ),
-            // PushButon
-//            `PushButton (`id(`customize), `opt(`key_F6),_("Customi&ze Filter")),
+	*/
 	    `ReplacePoint (`id (`rpexpert),
 		// Menu Buton label
 		`MenuButton (`id(`expertlist), _("E&xpert Options..."),[])
