@@ -17,6 +17,7 @@ X-SuSE-YaST-SortKey=
 X-SuSE-YaST-AutoInstClonable=true
 X-SuSE-YaST-AutoInstMerge=users,groups,user_defaults
 X-SuSE-YaST-AutoInstMergeTypes=list,list,map
+X-SuSE-YaST-AutoInstRequires=security
 
 Icon=user_add
 Exec=/sbin/yast2 users
