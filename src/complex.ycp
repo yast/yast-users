@@ -81,15 +81,6 @@ define symbol WriteDialog (boolean useUI) ``{
 }
 
 /**
- * Set the module to normal setup mode
- * @return symbol for wizard sequencer
- */
-define symbol userSetup () ``{
-    Users::SetStartDialog ("users");
-    return `next;
-}
-
-/**
  * Set the module into installation mode with
  * first dialog for single user addition
  * @return symbol for wizard sequencer
@@ -99,7 +90,6 @@ define symbol usersInstStart () ``{
     Users::AddUser ($[]);
     return `next;
 }
-
 
 /**
  * The dialog that appears when the [Abort] button is pressed.

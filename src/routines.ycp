@@ -10,12 +10,7 @@
 {
 textdomain "users";
 
-import "Wizard";
-import "Label";
-import "Users";
-
-
-/** FIXME: move to UsersCache...
+/**
  * Split cn (fullname) in forename and surname.
  * @param what `surname or `forename
  * @param cn fullname
@@ -23,8 +18,6 @@ import "Users";
  * @return string selected part of user name
  */
 define string SplitFullName(symbol what,string cn) ``{
-
-// TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
 
     if( cn == nil )
         cn = "";
