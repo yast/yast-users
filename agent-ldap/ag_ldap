@@ -179,13 +179,24 @@ while ( <STDIN> )
     if ( $command eq "Execute" )
     {
 	if ( $path eq '.init' && ref ($argument) eq "HASH" ) {
-	    
 	    # ------------------------------
 	    # ---------- initialization
 	    
 	    my %ldap_conf 	= %{$argument};
-
 	    my $host 		= $ldap_conf{"host"};
+	    
+	    $ldap = Net::LDAP->new($host) or ycp::Return ("initialize");
+
+	    ycp::Return("");
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.users.init' && ref ($argument) eq "HASH" ) {
+	    # ------------------------------
+	    # ---------- users initialization
+	    
+	    my %ldap_conf 	= %{$argument};
+
+#TODO bind_dn argument of .bind path?
 	    $bind_dn 		= $ldap_conf{'bind_dn'};
 	    $user_base 		= $ldap_conf{"user_base"};
 	    $group_base 	= $ldap_conf{"group_base"};
@@ -193,8 +204,6 @@ while ( <STDIN> )
 	    @group_object_class = $ldap_conf{"group_class"};
 	    $hash 		= $ldap_conf{"pw_hash"};
 	    
-	    $ldap = Net::LDAP->new($host) or ycp::Return ("initialize");
-
 	    ycp::Return("");
 	    # ---------------------------------------
 	}
@@ -218,6 +227,53 @@ while ( <STDIN> )
 	elsif ( $path eq '.search' && ref ($argument) eq "HASH" ) {
 
 	    # ------------------------------
+	    # ---------- generic ldapsearch call
+	    
+	    # TODO check if arguments exist (give some default values)
+	    my $base	= $argument->{"base"};
+	    my $scope	= $argument->{"scope"};
+	    my $filter	= $argument->{"filter"};
+	    my $attrs	= $argument->{"attrs"};
+
+	    # --- do the LDAP search
+	    my $mesg = $ldap->search(
+		base	=> $base,
+		scope	=> $scope,
+		filter	=> $filter,
+		attrs	=> $attrs
+	    );
+
+	    # FIXME return value can be both map and string!
+	    # -> differ search and read call?
+	    if ($mesg->code) {
+		ycp::Return (LDAPerror ($mesg->code));
+	    }
+
+	    my @ret = ();
+		
+	    # --- return a map of result
+	    foreach my $entry ($mesg->all_entries)
+	    { 
+		my %item = ();
+		foreach my $attr (@{$attrs}) {
+
+		    # --- return a list if more values are available...
+		    my @list_value = $entry->get_value($attr);
+		    if (scalar @list_value > 1) {
+			$item{$attr} = \@list_value;
+		    }
+		    elsif (@list_value) {
+			$item{$attr} = $entry->get_value($attr);
+		    }
+		}
+		push @ret, \%item;
+	    }
+	    ycp::Return (\@ret);
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.users.search' && ref ($argument) eq "HASH" ) {
+
+	    # ------------------------------
 	    # ---------- read users and groups from server
 
 	    %users = ();
@@ -229,7 +285,7 @@ while ( <STDIN> )
 	    my $group_filter = $argument->{"group_filter"};
 	    my $output_dir = $argument->{"output_dir"};
 	    my %more_usersmap = ();
-	    # list of groups each user is member of; indexed by usernames
+	    # map of groups each user is member of; indexed by usernames
 	    my %users_groups = ();
 
 	    # --- get LDAP groups 
@@ -431,7 +487,7 @@ while ( <STDIN> )
     }
     elsif ( $command eq "Read")
     {
-	if ( $path eq '.filter_check' )
+	if ( $path eq '.filter.check' )
 	{
 	    my $filter = $argument;
 	    my $f = Net::LDAP::Filter->new($filter);
@@ -492,7 +548,38 @@ while ( <STDIN> )
     }
     elsif ( $command eq "Write" )
     {
-	if ( $path eq '.group.add' && ref ($argument) eq "HASH" ) {
+	if ( $path eq '.add' && ref ($argument) eq "HASH" ) {
+
+	    # ------------------------------
+	    # ---------- generic ldapadd call
+
+	    my %item = %{$argument};
+	    my $dn = $item{"dn"};
+
+	    # ---------- form an entry with mandatory parameters
+	    my $entry = Net::LDAP::Entry->new;
+	    $entry->dn ($dn);
+		    
+	    # ---------- add optional parameters:
+	    foreach my $key (keys %item) {
+		if ($key ne "dn") {
+		    if (ref $item{$key}) {
+			y2internal ("key: $key, value:", @{$item{$key}});
+			$entry->add ($key => \@{$item{$key}});
+		    }
+		    else {
+			y2internal ("key: $key, value:", $item{$key});
+			$entry->add ($key => $item{$key});
+		    }
+		}
+	    }
+	   
+	    my $res = $ldap->add ($entry);
+ 
+	    ycp::Return(LDAPerror ($res->code));
+	    # ---------------------------------------
+	}
+	elsif ( $path eq '.group.add' && ref ($argument) eq "HASH" ) {
 
 	    # ------------------------------
 	    # ---------- add a new LDAP group
@@ -572,7 +659,7 @@ while ( <STDIN> )
 	    ycp::Return(LDAPerror ($res->code));
 	    # ---------------------------------------
 	}
-	elsif ( $path eq '.add' && ref ($argument) eq "HASH" ) {
+	elsif ( $path eq '.user.add' && ref ($argument) eq "HASH" ) {
 
 	    # ------------------------------
 	    # ---------- add a new LDAP user
@@ -605,7 +692,7 @@ while ( <STDIN> )
 	    ycp::Return(LDAPerror ($res->code));
 	    # ---------------------------------------
 	}
-	elsif ( ($path eq '.modify' || $path eq '.edit') &&
+	elsif ( ($path eq '.user.modify' || $path eq '.user.edit') &&
 		 ref ($argument) eq "HASH" ) {
 	    
 	    # ---------------------------------------
@@ -647,7 +734,7 @@ while ( <STDIN> )
 	    ycp::Return($ret);
 	    # ---------------------------------------
 	}
-	elsif ( $path eq '.delete' && ref ($argument) eq "HASH" ) {
+	elsif ( $path eq '.user.delete' && ref ($argument) eq "HASH" ) {
 	    
 	    # ---------------------------------------
 	    # ---------- delete an existing LDAP user
