@@ -706,6 +706,7 @@ can be changed for non-local users.")) : `VSpacing (0),
         dialog_contents,
         EditUserDialogHelp (Stage::cont (), user_type, what),
         Label::CancelButton(), Label::AcceptButton());
+// FIXME Next during installation...
     Wizard::HideAbortButton ();
 
     symbol ret		= `edit;
@@ -1010,26 +1011,7 @@ _("Change home directory to %1?"), generated_home))))
 		    continue;
 		}
 	    }
-	    // -------------------------------------- enable/disable checks
-
-	    boolean new_enabled	= !(boolean) UI::QueryWidget(`id(`ena), `Value);
-	    if (enabled	!= new_enabled)
-	    {
-		enabled	= new_enabled;
-		if (enabled)
-		{
-		    user["enabled"]		= true;
-		    if (haskey (user,"disabled"))
-			user ["disabled"]	= false;
-		}
-		else
-		{
-		    user["disabled"]	= true;
-		    if (haskey (user,"enabled"))
-			user ["enabled"]	= false;
-		}
-	    }
-
+	    // --------------------------------- autologin (during installation)
 	    if (Users::StartDialog ("user_add") && Stage::cont ())
 	    {
 		Users::SetRootMail ((boolean)
@@ -1040,6 +1022,29 @@ _("Change home directory to %1?"), generated_home))))
 			UI::QueryWidget(`id (`autologin),`Value) ? username: "";
 		    Autologin::used = (boolean)
 			UI::QueryWidget(`id (`autologin),`Value);
+		}
+	    }
+	    else
+	    {
+	    // -------------------------------------- enable/disable checks
+
+		boolean new_enabled = !(boolean)
+		    UI::QueryWidget(`id(`ena), `Value);
+		if (enabled	!= new_enabled)
+		{
+		    enabled	= new_enabled;
+		    if (enabled)
+		    {
+			user["enabled"]		= true;
+			if (haskey (user,"disabled"))
+			    user ["disabled"]	= false;
+		    }
+		    else
+		    {
+			user["disabled"]	= true;
+			if (haskey (user,"enabled"))
+			    user ["enabled"]	= false;
+		    }
 		}
 	    }
 	}
