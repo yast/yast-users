@@ -209,7 +209,7 @@ In this dialog, you can get information about existing <b>users</b>.
 
 	// help text 2/6
 		_("<p>
-To shift to the group dialog, select <b>Group Administration</b>.
+To shift to the group dialog, select <b>Groups</b>.
 </p>
 ") +
 
@@ -253,7 +253,7 @@ In this dialog, you can get information about existing <b>groups</b>.
 ") +
 	// help text 2/4
 		_("<p>
-To shift to the user dialog, select <b>User Administration</b>.
+To shift to the user dialog, select <b>Users</b>.
 </p>
 ") +
 

@@ -61,16 +61,13 @@ global define symbol UsersSequence(string start) ``{
 
     if( ! Mode::cont )
     {
-	    Wizard::CreateDialog();
+	Wizard::CreateDialog();
     }
-
-    Wizard::SetContentsButtons(caption, contents, "",
-	    Label::BackButton(), Label::NextButton());
 
     any ret = WizardSequencer(aliases, sequence);
 
     if( ! Mode::cont )
-	    UI::CloseDialog();
+	UI::CloseDialog();
 
     return ret;
 }
