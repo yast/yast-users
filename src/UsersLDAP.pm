@@ -301,7 +301,7 @@ sub ReadSettings {
 	$user_base = Ldap::GetDomain();
     }
 
-    if (defined $user_config{"defaultObjectClass"}) {
+    if (defined $user_template{"defaultObjectClass"}) {
 	@user_class = @{$user_template{"defaultObjectClass"}};
     }
 
@@ -315,10 +315,16 @@ sub ReadSettings {
 	$group_base = $user_base;
     }
 
-    if (defined $group_config{"defaultObjectClass"}) {
+    if (defined $group_template{"defaultObjectClass"}) {
 	@group_class = @{$group_template{"defaultObjectClass"}};
-# FIXME FIXME: check if we have groupOfUniqueNames or whatever!
-# $member_attribute = ...
+	if (contains (\@group_class, "groupOfNames")) {
+	    $member_attribute	= "member";
+	}
+	else {
+	    $member_attribute	= "uniqueMember";
+	}
+	UsersCache::SetLDAPMemberAttribute ($member_attribute);
+	# FIXME what about only posixGroup or anything else???
     }
 
     if (defined $user_template{"default_values"}) {
@@ -678,6 +684,11 @@ sub SetInitialized {
     $initialized = $_[0];
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{GetMemberAttribute} = ["function", "string"];}
+sub GetMemberAttribute {
+    return $member_attribute;
+}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetEncryption} = ["function", "string"];}
@@ -848,7 +859,7 @@ sub ConvertMap {
 	    y2warning ("Attribute '$attr' is not allowed by schema");
 	    next;
 	}
-	if ($key eq "uniqueMember" || $key eq "member") {
+	if ($key eq $member_attribute && ref ($val) eq "HASH") {
 	    my @lval	= ();
 	    foreach my $u (keys %{$val}) {
 		push @lval, $u;
@@ -882,7 +893,7 @@ sub WriteUsers {
     foreach my $uid (keys %{$users}) {
 
 	my $user		= $users->{$uid};
-UsersCache::DebugMap ($user);
+
         my $action      = $user->{"modified"};
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
@@ -1034,13 +1045,19 @@ sub WriteGroups {
 	    $o_classes{$oc}	= 1;
 	}
 
+	my $group_oc	= "groupOfUniqueNames";
+	if ($member_attribute eq "Member") {
+	    $group_oc	= "groupOfNames";
+	}
+
 	# if there is no member of the group, group must be changed
 	# to namedObject
-	if ((!defined $group->{"uniqueMember"} || !%{$group->{"uniqueMember"}})
-	    && defined $o_classes{"groupOfUniqueNames"})
+	if ((!defined $group->{$member_attribute} ||
+	     !%{$group->{$member_attribute}})
+	    && defined $o_classes{$group_oc})
 	{
 	    if ($action eq "added" || $action eq "edited") {
-		delete $o_classes{"groupOfUniqueNames"};
+		delete $o_classes{$group_oc};
 		$o_classes{"namedObject"}	= 1;
 	    }
 	    if ($action eq "edited") {
@@ -1051,15 +1068,15 @@ sub WriteGroups {
 	}
 	# we are adding users to empty group (=namedObject):
 	# group must be changed to groupOfUniqueNames
-	elsif (%{$group->{"uniqueMember"}} && $action eq "edited" &&
-	       !defined $o_classes{"groupOfUniqueNames"})
+	elsif (%{$group->{$member_attribute}} && $action eq "edited" &&
+	       !defined $o_classes{$group_oc})
 	{
 	    # delete old group...
 	    $action		= "deleted";
 	    # ... and create new one with altered objectClass
 	    delete $o_classes{"namedObject"};
-	    $o_classes{"groupOfUniqueNames"}	= 1;
-	    %new_group				= %{$group};
+	    $o_classes{$group_oc}	= 1;
+	    %new_group			= %{$group};
 	}
 	my @ocs		= ();
 	foreach my $oc (keys %o_classes) {

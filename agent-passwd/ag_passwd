@@ -47,6 +47,8 @@ my $base_directory	 = "/etc";
 
 sub read_shadow {
 
+    %shadow_tmp	= ();
+
     open SHADOW, "< $base_directory/shadow";
 
     foreach my $shadow_entry (<SHADOW>)
@@ -57,8 +59,17 @@ sub read_shadow {
 	    = split(/:/,$shadow_entry);  
         my $first = substr ($uname, 0, 1);
 
-	if ( $first ne "+" && $first ne "-" )
+	if ($first eq "#") {
+	    y2warning ("Found comment line in shadow file: '$shadow_entry'");
+	    y2warning ("It will be lost on write!");
+	}
+	elsif ($first ne "+" && $first ne "-")
 	{
+	    if ($uname eq "") {
+		y2error ("strange line in shadow file: '$shadow_entry'");
+		next;
+	    }
+
 	    if (defined $shadow_tmp{$uname})
 	    {
 		y2error ("duplicated username in /etc/shadow! Exiting...");
@@ -103,8 +114,20 @@ sub read_group {
         my ($groupname, $pass, $gid, $users) = split (/:/,$group);
 	my $first = substr ($groupname, 0, 1);
 
-        if ( $first ne "+" && $first ne "-" ) {
+	if ($first eq "#") {
+	    y2warning ("Found comment line in group file: '$group'");
+	    y2warning ("It will be lost on write!");
+	}
+        elsif ( $first ne "+" && $first ne "-" ) {
 	    
+	    if (!defined $pass || !defined $gid || !defined $users ||
+		$gid eq "") {
+		y2error ("strange line in group file: '$group'");
+		$errno 		= 8;
+		$error_info 	= "$group";
+		return 8;
+	    }
+		
 	    my $group_type = "local";
 	    if (($gid <= $max_system_gid || $groupname eq "nobody" ||
 		 $groupname eq "nogroup") &&
@@ -172,6 +195,7 @@ sub read_passwd {
     open PASSWD, "< $base_directory/passwd";
 
     %users 	= ();
+    %shadow	= ();
     %uids	= ();
     %usernames	= ();
     %homes	= ();
@@ -183,8 +207,21 @@ sub read_passwd {
 	    = split(/:/,$user);
         my $first = substr ($username, 0, 1);
 
-	if ( $first ne "+" && $first ne "-" ) {
+	if ($first eq "#") {
+	    y2warning ("Found comment line in passwd file: '$user'");
+	    y2warning ("It will be lost on write!");
+	}
+	elsif ($first ne "+" && $first ne "-") {
 
+	    if (!defined $password || !defined $uid || !defined $gid ||
+		!defined $full || !defined $home || !defined $shell ||
+		$username eq "" || $uid eq "" || $gid eq "") {
+		y2error ("strange line in passwd file: '$user'");
+		$errno 		= 7;
+		$error_info 	= "$user";
+		return 7;
+	    }
+		
             my $user_type	= "local";
 	    my $group_type	= "";
 	    my $groupname	= "";
@@ -312,7 +349,12 @@ sub write_passwd {
 
     my %users_w	= %{$_[0]};
 
-    open PASSWD, "> $base_directory/passwd";
+    my $o = open PASSWD, "> $base_directory/passwd";
+    if (!defined $o) {
+	y2error ("$base_directory/passwd cannot be opened for writing!");
+	$errno		= 100;
+	return 0;
+    }
 
     foreach my $type (sort {$b cmp $a} keys %users_w ) {
 
@@ -329,13 +371,16 @@ sub write_passwd {
 		$user{"homeDirectory"} || "",
 		$user{"loginShell"} || "",
 	    ));
-	    print PASSWD "$userline\n";
+	    if (defined $userline) {
+		print PASSWD "$userline\n";
+	    }
 	}
     }
     if ($plus_line_passwd ne "") {
 	print PASSWD "$plus_line_passwd\n";
     }
     close PASSWD;
+    return 1;
 }
 
 #---------------------------------------------
@@ -345,7 +390,12 @@ sub write_shadow {
 
     my %shadow_w	= %{$_[0]};
 
-    open SHADOW, "> $base_directory/shadow";
+    my $o = open SHADOW, "> $base_directory/shadow";
+    if (!defined $o) {
+	y2error ("$base_directory/shadow cannot be opened for writing!");
+	$errno		= 101;
+	return 0;
+    }
 
     foreach my $type (sort {$b cmp $a} keys %shadow_w ) {
 
@@ -363,7 +413,9 @@ sub write_shadow {
 		$shadow_entry{"shadowExpire"},
 		$shadow_entry{"shadowFlag"}
 	    ));
-	    print SHADOW "$shadowline\n";
+	    if (defined $shadowline) {
+		print SHADOW "$shadowline\n";
+	    }
 	}
     }
     if ($plus_line_shadow ne "") {
@@ -380,7 +432,12 @@ sub write_group {
 
     my %groups_w = %{$_[0]};
 
-    open GROUP, "> $base_directory/group";
+    my $o = open GROUP, "> $base_directory/group";
+    if (!defined $o) {
+	y2error ("$base_directory/group cannot be opened for writing!");
+	$errno		= 102;
+	return 0;
+    }
 
     # sort order: system items go before local ones
     foreach my $type (sort {$b cmp $a} keys %groups_w ) {
@@ -401,7 +458,9 @@ sub write_group {
 	    );
 	    my $groupline	= join (":", @group_entry);
 
-	    print GROUP "$groupline\n";
+	    if (defined $groupline) {
+		print GROUP "$groupline\n";
+	    }
 	}
     }
     if ($plus_line_group ne "") {
@@ -557,13 +616,28 @@ while ( <STDIN> )
     elsif ( $command eq "Write" )
     {
 	if ( $path eq '.users' && ref ($argument) eq "HASH" ) {
-	    write_passwd ($argument);
+	    if (write_passwd ($argument)) {
+		ycp::Return ("true");
+	    }
+	    else {
+		ycp::Return ("false");
+	    }
 	}
 	elsif ( $path eq '.shadow' && ref ($argument) eq "HASH" ) {
-	    write_shadow ($argument);
+	    if (write_shadow ($argument)) {
+		ycp::Return ("true");
+	    }
+	    else {
+		ycp::Return ("false");
+	    }
 	}
 	elsif ( $path eq '.groups' && ref ($argument) eq "HASH" ) {
-	    write_group ($argument);
+	    if (write_group ($argument)) {
+		ycp::Return ("true");
+	    }
+	    else {
+		ycp::Return ("false");
+	    }
 	}
 	elsif ( $path eq '.passwd.plusline' ) {
 	    if ($argument eq $plus_line_passwd) {
@@ -571,6 +645,7 @@ while ( <STDIN> )
 	    }
 	    else {
 		$plus_line_passwd = $argument;
+		ycp::Return ("true");
 	    }
 	}
 	elsif ( $path eq '.group.plusline' ) {
@@ -579,6 +654,7 @@ while ( <STDIN> )
 	    }
 	    else {
 		$plus_line_group = $argument;
+		ycp::Return ("true");
 	    }
 	}
 	elsif ( $path eq '.shadow.plusline' ) {
@@ -587,13 +663,13 @@ while ( <STDIN> )
 	    }
 	    else {
 		$plus_line_shadow = $argument;
+		ycp::Return ("true");
 	    }
 	}
 	else {
 	    y2error ("wrong path ($path) or argument type: ",  ref ($argument));
 	    ycp::Return("false");
 	}
-	ycp::Return ("true");
     }
     elsif ( $command eq "result")
     {
