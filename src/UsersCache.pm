@@ -444,7 +444,15 @@ sub GetAllGroupnames {
     return \%groupnames;
 }
 
-##------------------------------------ currently only for autologin?
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupnames} = ["function", ["list", "string"], "string"];}
+sub GetGroupnames {
+
+    return keys %{$groupnames{$_[0]}};
+}
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
