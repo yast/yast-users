@@ -29,10 +29,15 @@ include "users/routines.ycp";
 include "users/nis_routines.ycp";
 include "users/ldap_routines.ycp";
 
-// What module to call after auth. dialog during installation: see inst_auth.ycp
+/**
+ * What module to call after auth. dialog during installation:
+ * could be `users/`nis/`nisplus/`ldap, see inst_auth.ycp
+ */
 global symbol after_auth = `users;
 
-// Encryption method: "des", "md5" - for future use: "blowfish"
+/**
+ * Encryption method: "des", "md5" - for future use: "blowfish"
+ */
 global string encryptionMethod = "des";
 
 // The root's password
@@ -62,7 +67,7 @@ global string default_expire = "";
 // console encoding - needed for preparation script
 string encoding = "";
 
-/*
+/**
  * The number of days after a password expires until the account is
  * permanently disabled. A value of 0 disables the
  * account as soon as the password has expired, and a value of -1
@@ -71,7 +76,7 @@ string encoding = "";
 global integer pass_inact_days = -1;
 
 
-/*
+/**
  * The date on which the user account will be disabled.
  * The date is specified in the format YYYY-MM-DD.
  */
@@ -103,10 +108,14 @@ global integer pass_warn_age = 7;
 
 global string default_pw     = "******";
 
-// if password should be checked against crack
+/**
+ * if password should be checked against crack
+ */
 global boolean use_cracklib = false;
 
-// if password should be checked
+/**
+ * if password should be checked
+ */
 global boolean obscure_checks = false;
 
 global string root_mail = "";
@@ -117,13 +126,17 @@ string ldap_bind_pass = "";
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];
 
-/* Tha main map of users */
+/**
+ * The main map of users
+ */
 global map users = $[
     `system:    $[],
     `local:     $[],
     `ldap:      $[]];
 
-/* Tha main map of groups */
+/**
+ * The main map of groups
+ */
 global map groups  = $[
     `system:    $[],
     `local:     $[],
@@ -140,26 +153,46 @@ map gshadow = $[
     `local:     $[],
     `ldap:      $[]];
 
-/* structures *_by_name are used for searching */
+/**
+ * structures *_by_name are used for searching
+ */
 global map users_by_name = $[];
+
+/**
+ * structures *_by_name are used for searching
+ */
 global map groups_by_name = $[];
 
-/* maps of current user/group */
+/**
+ * map of current user
+ */
 global map user_in_work = $[];
+
+/**
+ * map of current group
+ */
 global map group_in_work = $[];
 
-// the first user, added during install
+/**
+ * the first user, added during install
+ */
 global map saved_user = $[];
 
-// users/groups, which has been deleted/modified:
+/**
+ * users, which has been deleted/modified:
+ */
 map modified_users = $[];
 map modified_groups = $[];
 
-// users/groups sets in "Custom" selection:
+/**
+ * users sets in "Custom" selection:
+ */
 global list user_custom_sets = [ `local ];
 global list group_custom_sets = [ `local ];
 
-// which sets of users/groups are we working with:
+/**
+ * which sets of users are we working with:
+ */
 global list current_users = [];
 global list current_groups = [];
 
@@ -172,21 +205,33 @@ global boolean is_ldap_server = false;
 // type of pam kerberos authentication: required/optional/sufficient/""
 global string kerberos_auth = "";
 
-// users like ldap/nis are not read by default, but could be read on demand:
+/**
+ * users like ldap/nis are not read by default, but could be read on demand:
+ */
 boolean nis_not_read = true;
+
+/**
+ * users like ldap/nis are not read by default, but could be read on demand:
+ */
 boolean ldap_not_read = true;
 
-// which sets of users/groups are available to work with:
+/**
+ * which sets of users are available to work with:
+ */
 global list available_usersets = [ `system, `local];
 global list available_usersets_items = [];
 global list available_groupsets = [ `system, `local];
 global list available_groupsets_items = [];
 
-/* where the user/group/password data are stored
-   (can be different on NIS server) */
+/**
+ * where the user/group/password data are stored
+ *  (can be different on NIS server)
+ */
 global string base_dir = "/etc";
 
-// list of available shells (read in GetAllShells)
+/**
+ * list of available shells (read in GetAllShells)
+ */
 global list all_shells = [];
 global list all_shells_items = [];
 
@@ -227,6 +272,7 @@ global map userset_to_string = $[
     `custom:    _("&Custom")
 ];
 
+// values to MenuItem in Summary dialog
 global map groupset_to_string = $[
     // the type of group set
     `system:    _("&System Groups"),
