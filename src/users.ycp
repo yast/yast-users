@@ -234,6 +234,7 @@ map cmdline = $[
     ]
 ];
 
+Users::SetGUI (false);
 ret = CommandLine::Run (cmdline);
 
 /* Finish */
