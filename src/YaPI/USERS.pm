@@ -284,7 +284,7 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "plugins"		=> [ "UsersPluginsLDAPAll" ],
+		    "plugins"		=> [ "UsersPluginLDAPAll" ],
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
   };
   my $data	= { "uid"		=> "ll",
@@ -557,7 +557,7 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "plugins"		=> [ "UsersPluginsSambaAccount" ],
+		    "plugins"		=> [ "UsersPluginSambaAccount" ],
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
 		    "uid"		=> "ll"
   };
