@@ -11,13 +11,10 @@ use strict;
 use ycp;
 use YaST::YCP qw(Boolean);
 
-use Locale::gettext;
-use POSIX;     # Needed for setlocale()
-
-setlocale(LC_MESSAGES, "");
-textdomain("users");
-
 our %TYPEINFO;
+
+# If YaST UI (Qt,ncurses) should be used
+my $use_gui                     = 1;
 
 # if LDAP user/group management is initialized
 my $initialized 		= 0;
@@ -48,9 +45,6 @@ my $group_filter 		= "";
 
 # if filters were read (could be read without reading users and groups)
 my $filters_read 		= 0;
-
-# if ldap home directiories are on this machine
-my $file_server			= 0;
 
 # default shadow settings for LDAP users
 my %shadow 			= ();
@@ -116,12 +110,22 @@ my %ldap_attrs_conversion	= (
     "groupname"	=> "cn"
 );
 
+# LDAP attrs -> yast inner values
+my %ldap2yast_user_attrs	= (
+    "uid"		=> "username"
+);
+    
+my %ldap2yast_group_attrs	= (
+    "cn"		=> "groupname"
+);
+ 
 ##------------------------------------
 ##------------------- global imports
 
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersRoutines");
 
 ##------------------------------------
 
@@ -157,10 +161,10 @@ sub ReadServer {
 sub Initialize {
 
     Ldap::Read();
+    Ldap::SetGUI ($use_gui);
 
     my $ldap_mesg = Ldap::LDAPInit ();
     if ($ldap_mesg ne "") {
-	# FIXME: how to solve UI-related routines?
 	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
 	return 0;
     }
@@ -171,13 +175,22 @@ sub Initialize {
 
     $ldap_mesg = Ldap::LDAPBind (Ldap::bind_pass ());
     if ($ldap_mesg ne "") {
-	# FIXME: how to solve UI-related routines?
 	Ldap::LDAPErrorMessage ("init", $ldap_mesg);
 	return 0;
     }
-    Ldap::InitSchema ();#FIXME -> should return error message...
+    $ldap_mesg = Ldap::InitSchema ();
+    if ($ldap_mesg ne "") {
+	Ldap::LDAPErrorMessage ("schema", $ldap_mesg);
+	return 0;
+    }
 
-    my %modules = %{Ldap::ReadConfigModules ()};
+    $ldap_mesg = Ldap::ReadConfigModules ();
+    if ($ldap_mesg ne "") {
+	Ldap::LDAPErrorMessage ("read", $ldap_mesg);
+	return 0;
+    }
+
+    my %modules = %{Ldap::GetConfigModules ()};
     while ( my ($dn, $config_module) = each %modules) {
 
 	if (!defined $config_module->{"objectClass"}) {
@@ -297,8 +310,6 @@ sub ReadSettings {
     }
     if (!$init) { return 0; }
 
-    $file_server	= Ldap::file_server ();
-
     my %tmp_user_config		= %user_config;
     my %tmp_user_template	= %user_template;
     my %tmp_group_config	= %group_config;
@@ -323,7 +334,7 @@ sub ReadSettings {
 	$group_base = $group_config{"defaultBase"}[0];
     }
     else {
-	$group_base = Ldap::nss_base_passwd ();
+	$group_base = Ldap::nss_base_group ();
     }
     if ($group_base eq "") {
 	$group_base = $user_base;
@@ -530,7 +541,7 @@ sub GetMaxPasswordLength {
 BEGIN { $TYPEINFO{GetUserRequiredAttributes} = ["function", ["list","string"]];}
 sub GetUserRequiredAttributes {
     if (defined ($user_template{"requiredAttribute"})) {
-	return $user_template{"requiredAttribute"};
+	return @{$user_template{"requiredAttribute"}};
     }
     return ();
 }
@@ -539,7 +550,7 @@ sub GetUserRequiredAttributes {
 BEGIN {$TYPEINFO{GetGroupRequiredAttributes} = ["function", ["list","string"]];}
 sub GetGroupRequiredAttributes {
     if (defined ($group_template{"requiredAttribute"})) {
-	return $group_template{"requiredAttribute"};
+	return @{$group_template{"requiredAttribute"}};
     }
     return ();
 }
@@ -583,6 +594,14 @@ sub GetUserInternal {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetUserAttrsLDAP2YaST} = ["function",
+    ["map", "string", "string"]];
+}
+sub GetUserAttrsLDAP2YaST {
+    return \%ldap2yast_user_attrs;
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetGroupClass} = ["function", ["list", "string"]];}
 sub GetGroupClass {
     return @group_class;
@@ -613,25 +632,76 @@ sub GetGroupInternal {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetGroupAttrsLDAP2YaST} = ["function",
+    ["map", "string", "string"]];
+}
+sub GetGroupAttrsLDAP2YaST {
+    return \%ldap2yast_group_attrs;
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetEncryption} = ["function", "string"];}
 sub GetEncryption {
     return $encryption;
 }
 
-##------------------------------------
-# Convert internal map describing user to map that could be passed to
-# ldap-agent (remove internal keys, rename attributes etc.)
-# @param user map of user
-# @return converted map
-sub ConvertUser {
+# Creates DN of user
+BEGIN { $TYPEINFO{CreateUserDN} = ["function",
+    "string",
+    ["map", "string", "any"]];
+}
+sub CreateUserDN {
 
     my $user		= $_[0];
-    my %ret		= ();
-    my @attributes	= Ldap::GetObjectAttributes ($user->{"objectClass"});
+    my $dn_attr		= $user_naming_attr;
+    my $user_attr	= $dn_attr;
+    if (defined $ldap2yast_user_attrs{$dn_attr}) {
+	$user_attr	= $ldap2yast_user_attrs{$dn_attr};
+    }
+    if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
+	return undef;
+    }
+    return sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr}, $user_base);
+}
 
-    foreach my $key (keys %{$user}) {
-	my $val	= $user->{$key};
-	if (contains (\@user_internal_keys, $key) || ref ($val) eq "HASH") {
+##------------------------------------
+BEGIN { $TYPEINFO{CreateGroupDN} = ["function",
+    "string",
+    ["map", "string", "any"]];
+}
+sub CreateGroupDN {
+
+    my $group		= $_[0];
+    my $dn_attr		= $group_naming_attr;
+    my $group_attr	= $dn_attr;
+    if (defined $ldap2yast_group_attrs{$dn_attr}) {
+	$group_attr	= $ldap2yast_group_attrs{$dn_attr};
+    }
+    if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
+	return undef;
+    }
+    return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, $group_base);
+}
+
+
+##------------------------------------
+# Convert internal map describing user or group to map that could be passed to
+# ldap-agent (remove internal keys, rename attributes etc.)
+# @param map of user or group
+# @return converted map
+sub ConvertMap {
+
+    my $data		= $_[0];
+    my %ret		= ();
+    my @attributes	= Ldap::GetObjectAttributes ($data->{"objectClass"});
+    my @internal	= @user_internal_keys;
+    if (!defined $data->{"uidNumber"}) {
+	@internal	= @group_internal_keys;
+    }
+
+    foreach my $key (keys %{$data}) {
+	my $val	= $data->{$key};
+	if (contains (\@internal, $key)) {
 	    next;
 	}
 	if ($key eq "userPassword") {
@@ -643,16 +713,21 @@ sub ConvertUser {
 		$val = sprintf ("{%s}%s", uc ($encryption), $val);
 	    }
 	}
-
 	# check if the attributes are allowed by objectClass
 	my $attr = $ldap_attrs_conversion{$key} || $key;
 	if (!contains (\@attributes, $attr)) {
-	    y2warning ("attribute $attr is not allowed by schema");
+	    y2warning ("Attribute '$attr' is not allowed by schema");
+	    y2warning ("Allowed attributes are: ", @attributes);
 	    next;
 	}
-	if ($val ne "") {
-	$ret{$attr}	= $val;
+	if ($key eq "uniqueMember" || $key eq "member") {
+	    my @lval	= ();
+	    foreach my $u (keys %{$val}) {
+		push @lval, $u;
+	    }
+	    $val = \@lval;
 	}
+	$ret{$attr}	= $val;
     }
     return \%ret;
 }
@@ -672,7 +747,9 @@ sub WriteUsers {
     my $dn_attr 	= $user_naming_attr;
     my $last_id 	= $last_uid;
     my $users		= $_[0];
-    my $server		= 0; # TODO file_server
+    
+    # if ldap home directiories are on this machine
+    my $server		= Ldap::file_server ();
 
     foreach my $uid (keys %{$users}) {
 
@@ -703,14 +780,12 @@ sub WriteUsers {
 	    }
 	}
 	$user->{"objectClass"}	= \@ocs;
-	$user			= ConvertUser ($user);
+	$user			= ConvertMap ($user);
 	my $rdn			= "$dn_attr=".$user->{$dn_attr};
 	my $new_dn		= "$rdn,$user_base";
 	my %arg_map		= (
 	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
 	);
-	# FIXME: where to check missing attributes?
-UsersCache::DebugMap ($user);
         if ($action eq "added") {
 	    if (! SCR::Write (".ldap.add", \%arg_map, $user)) {
 		%ret	= %{Ldap::LDAPErrorMap ()};
@@ -720,21 +795,21 @@ UsersCache::DebugMap ($user);
 		if ($uid > $last_id) {
 		    $last_id = $uid;
 		}
-#		if ($server) { FIXME *Home are in Users.pm...
-#		    if ($create_home) {
-#			CreateHome ($useradd_defaults{"skel"}, $home);
-#		    }
-#		    ChownHome ($uid, $gid, $home);
-#		}
+		if ($server) {
+		    if ($create_home) {
+			UsersRoutines::CreateHome ($useradd_defaults{"skel"}, $home);
+		    }
+		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		}
 	    }
         }
         elsif ($action eq "deleted") {
 	    if (! SCR::Write (".ldap.delete", \%arg_map)) {
 		%ret = %{Ldap::LDAPErrorMap ()};
 	    }
-#            elsif ($server && $delete_home) {
-#                DeleteHome ($home);
-#            }
+            elsif ($server && $delete_home) {
+                UsersRoutines::DeleteHome ($home);
+            }
         }
         elsif ($action eq "edited") {
 	    # if there are some attributes with empty values, agent should
@@ -747,18 +822,22 @@ UsersCache::DebugMap ($user);
 		$arg_map{"rdn"}	= $rdn;
 		# TODO enable moving in tree (editing the whole dn)
 	    }
-
+UsersCache::DebugMap (\%arg_map);
+UsersCache::DebugMap ($user);
 	    if (! SCR::Write (".ldap.modify", \%arg_map, $user)) {
 		%ret = %{Ldap::LDAPErrorMap ()};
 	    }
-#	    else {
-#		if ($server && $home ne $org_home) {
-#		    if ($create_home) {
-#			MoveHome ($org_home, $home);
-#		    }
-#		    ChownHome ($uid, $gid, $home);
-#		}
-#            }
+	    else {
+		if ($uid > $last_id) {
+		    $last_id = $uid;
+		}
+		if ($server && $home ne $org_home) {
+		    if ($create_home) {
+			UsersRoutines::MoveHome ($org_home, $home);
+		    }
+		    UsersRoutines::ChownHome ($uid, $gid, $home);
+		}
+            }
         }
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
@@ -776,5 +855,143 @@ UsersCache::DebugMap ($user);
     return "";
 }
 
+##------------------------------------
+# Writing modified LDAP groups
+# @param ldap_groups map of all ldap groups
+# @return empty map on success, map with error message and code otherwise
+BEGIN { $TYPEINFO{WriteGroups} = ["function",
+    "string",
+    ["map", "string", "any"]];
+}
+sub WriteGroups {
 
+    my %ret		= ();
+    my $dn_attr 	= $group_naming_attr;
+    my $last_id 	= $last_gid;
+    my $groups		= $_[0];
+
+    foreach my $gid (keys %{$groups}) {
+
+	my $group		= $groups->{$gid};
+
+        my $action      = $group->{"modified"};
+        if (!defined ($action)) {
+            next; 
+	}
+	my %new_group	= ();
+	my $dn		= $group->{"dn"}	|| "";
+	my $org_dn	= $group->{"org_dn"} 	|| $dn;
+	my @obj_classes	= @{$group->{"objectClass"}};
+	if (@obj_classes == 0) {
+	    @obj_classes= @group_class;
+	}
+	my %o_classes	= ();
+	foreach my $oc (@obj_classes) {
+	    $o_classes{$oc}	= 1;
+	}
+
+	# if there is no member of the group, group must be changed
+	# to namedObject
+	if ((!defined $group->{"uniqueMember"} || !%{$group->{"uniqueMember"}})
+	    && defined $o_classes{"groupOfUniqueNames"})
+	{
+	    if ($action eq "added" || $action eq "edited") {
+		delete $o_classes{"groupOfUniqueNames"};
+		$o_classes{"namedObject"}	= 1;
+	    }
+	    if ($action eq "edited") {
+		# delete old group and create new with altered objectClass
+		%new_group	= %{$group};
+		$action		= "deleted";
+	    }
+	}
+	# we are adding users to empty group (=namedObject):
+	# group must be changed to groupOfUniqueNames
+	elsif (%{$group->{"uniqueMember"}} && $action eq "edited" &&
+	       !defined $o_classes{"groupOfUniqueNames"})
+	{
+	    # delete old group...
+	    $action		= "deleted";
+	    # ... and create new one with altered objectClass
+	    delete $o_classes{"namedObject"};
+	    $o_classes{"groupOfUniqueNames"}	= 1;
+	    %new_group				= %{$group};
+	}
+	my @ocs		= ();
+	foreach my $oc (keys %o_classes) {
+	    if (Ldap::ObjectClassExists ($oc)) {
+		push @ocs, $oc;
+	    }
+	}
+	$group->{"objectClass"}	= \@ocs;
+	$group			= ConvertMap ($group);
+
+	my $rdn			= "$dn_attr=".$group->{$dn_attr};
+	my $new_dn		= "$rdn,$group_base";
+	my %arg_map		= (
+	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
+	);
+
+        if ($action eq "added") {
+	    if (!SCR::Write (".ldap.add", \%arg_map, $group)) {
+		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    }
+	    elsif ($gid > $last_id) {
+		$last_id	= $gid;
+	    }
+        }
+        elsif ($action eq "deleted") {
+	    if (!SCR::Write (".ldap.delete", \%arg_map)) {
+		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    }
+        }
+        elsif ($action eq "edited") {
+
+	    $arg_map{"check_attrs"}	= YaST::YCP::Boolean (1);
+
+	    if (lc ($dn) ne lc ($org_dn)) {
+		$arg_map{"rdn"}	= $rdn;
+	    }
+
+	    if (!SCR::Write (".ldap.modify", \%arg_map, $group)) {
+		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    }
+	    elsif ($gid > $last_id) {
+		$last_id	= $gid;
+	    }
+        }
+	if (%new_group && !%ret) {
+	    # now add new group with modified objectClass
+	    if (lc ($dn) ne lc ($org_dn)) {
+		$arg_map{"dn"}	= $dn;
+	    }
+	    $new_group{"objectClass"}	= \@ocs;
+	    if (!SCR::Write (".ldap.add", \%arg_map, ConvertMap (\%new_group))){
+		%ret 		= %{Ldap::LDAPErrorMap ()};
+	    }
+	    elsif ($gid > $last_id) {
+		$last_id = $gid;
+	    }
+	}
+    }
+    if ($last_id != $last_gid && $group_config_dn ne "")  {
+	# set nextUniqueId in group config module
+	$group_config{"nextUniqueId"}	= [ $last_id ];
+	my %modules	= (
+	    $group_config_dn => {
+		"modified"	=> "edited"
+	    }
+	);
+	$modules{$group_config_dn}{"nextUniqueId"} = $group_config{"nextUniqueId"};
+        %ret = %{Ldap::WriteToLDAP (\%modules)};
+    }
+
+    if (%ret) { UsersCache::DebugMap (\%ret); }
+    return "";
+}
+
+BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
+sub SetGUI {
+    $use_gui = $_[0];
+}
 # EOF
