@@ -276,7 +276,7 @@ global string ldap_encryption = "crypt";
 /**
  * nis users are not read by default, but could be read on demand:
  */
-boolean nis_not_read = true;
+global boolean nis_not_read = true;
 
 /**
  * ldap users are not read by default, but could be read on demand:
@@ -838,7 +838,7 @@ global define symbol Write (block abort, boolean useUI)``{
 
 	    // TODO call post_cmd after writing passwd? (modified_users will
 	    // be changed...)
-	    cmd = sformat("%1 %2", userdel_postcmd, user["username"]:"");
+	    string cmd = sformat("%1 %2", userdel_postcmd, user["username"]:"");
 	    y2internal("%1 return value: %2", userdel_precmd,
 		SCR::Execute(.target.bash, cmd));
 	});
@@ -1088,7 +1088,7 @@ global define symbol Write (block abort, boolean useUI)``{
         saved_user = $[];
         user_in_work = $[];
     }
-
+y2warning ("written");
     return `next;
 }
 
@@ -1121,6 +1121,23 @@ global define string Summary() ``{
     return ret;
 }
 
+/**
+ * List the users of given typo (used by command-line interface)
+ * @param options map of read options
+ * It has the "sets" value with the sets of users to list (local,system etc.)
+ * @return string, each user is at new line
+ */
+global define string ListUsers (map options) ``{
+
+    string ret = "";
+    foreach (`type, options["sets"]:available_usersets, ``{
+        foreach (`uid, `user, users [type]:$[], ``{
+            ret = ret + sformat(" %1\t%2\t%3\n", uid, user["username"]:"",
+                user["cn"]:"" );
+        });
+    });
+    return ret;
+}
 
 /**
  * Converts autoyast's user's map for users module usage
@@ -1740,10 +1757,12 @@ global define boolean Add (string what, map data)``{
 	    user_in_work ["gid"] = GetDefaultGid (true, type);
 
 	user_in_work["shell"]	= data["shell"]:GetDefaultShell(type);
-	user_in_work["password"] = data["password"]:"";
 	user_in_work["create_home"] = data["create_home"]:true;
 	user_in_work["what"] = "add_user";
+	user_in_work["password"] = data["password"]:"";
 	map user_shadow		= data["shadow"]:GetDefaultShadow(type);
+	if (data["password"]:"" != "")
+	    user_shadow ["password"] = data["password"]:"";
 	if (type == "ldap")
 	{
 	    user_in_work = union (user_in_work, user_shadow);
@@ -3021,7 +3040,7 @@ global define map GetGroupFromAll( integer gid )``{
             group = groupset [gid]:$[];
         }
     });
-	return group;
+    return group;
 }
 
 /**

@@ -22,9 +22,8 @@
  * <h3>Configuration of users and groups</h3>
  */
 
-//textdomain "users";
+textdomain "users";
 
-/* The main () */
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
@@ -32,26 +31,247 @@ import "Mode";
 
 include "users/wizards.ycp";
 
-string  start_dialog	   = "users";
-integer arg		   = 0;
+include "commandline/commandline.ycp";
+
+string  start_dialog	= "users";
+
+any	ret		= nil;
+integer arg		= 0;
 list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
 
 while ( arg < size( Args() ) )
 {
-	// TODO .test in Mode
-	string a = Args( arg );
-	if ( contains( possible_start_dialogs, a))
+	any a = Args( arg );
+	if ( is (a, string) && contains( possible_start_dialogs, a))
 	{
 	    start_dialog = Args( arg );
 	}
 	arg = arg + 1;
 }
 
+if (start_dialog != "users")
+{
+    y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
+    ret = UsersSequence(start_dialog);
+    y2milestone("Users module finished with %1", ret);
+    y2milestone("----------------------------------------");
+    return ret;
+}
 
-y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
+// else parse arguments in cmdline
+y2milestone( "Starting with arguments: %1", Args() );
 
 
-symbol ret = UsersSequence(start_dialog);
+// --------------------------------------------------------------------------
+// --------------------------------- cmd-line handlers FIXME separate file!
+
+/**
+ * List users
+ * @return boolean false
+ */
+global define boolean UsersListHandler (map options ) ``{
+
+    map o = $[];
+    foreach (string k, string v, options, ``{
+	if (contains (Users::available_usersets, k))
+	    o ["sets"] = union (o["sets"]:[], [ k ]);
+
+	// TODO: read ldap/nis users automaticaly?
+	if (k=="nis" && Users::nis_not_read)
+	    Users::ReadNewSet (k);
+
+	if (k=="ldap" && Users::ldap_not_read)
+	    Users::ReadNewSet (k);
+    });
+
+
+    CommandLine::Print (Users::ListUsers (o));
+
+    return false; // do not call Write...
+}
+
+/**
+ * Show one user information
+ * @return boolean false
+ */
+global define boolean UsersShowHandler (map options ) ``{
+
+    map user = $[];
+    integer uid = tointeger (options ["uid"]:-1);
+    string username = options ["username"]:"";
+
+    if (uid != -1)
+    {
+	Users::SelectUser (uid); // FIXME SelectUser looks only to current_users
+	// -> GetUserFromAll?
+	user = Users::user_in_work;
+    }
+    else if (username != "")
+    {
+	user = Users::GetUserByName (username);
+    }
+    else
+    {
+	//error message
+	Report::Error( _("You must specify either UID or username"));
+	return false;
+    }
+
+    string out = "";
+    // TODO: only some values + translate keys
+    foreach (string key, any value, user, ``{
+	out = out + sformat ("%1:\t%2\n", key, value);
+    });
+
+    CommandLine::Print (out);
+
+    return false; // do not call Write...
+}
+
+/**
+ * Add user
+ * @return boolean false
+ */
+global define boolean UsersAddHandler (map options ) ``{
+
+    if (options["username"]:"" == "")
+    {
+	//error message
+	Report::Error( _("You must specify username"));
+	return false;
+    }
+
+    map user = options;
+
+    // FIXME all checks (username etc. has to be done here...)
+
+    string pw = user["password"]:"";
+    if (pw != "")
+	user["password"] = Users::CryptPassword(pw, user["type"]:"local");
+
+    Users::Add ("user", user);
+    Users::Commit ("user", true);
+
+    Report::Message (_("Sorry, but adding is not supported yet. (No checks...)"));
+    return false;
+}
+
+/**
+ * Delete user
+ * @return boolean false
+ */
+global define boolean UsersDeleteHandler (map options ) ``{
+
+    if (options["username"]:"" == "")
+    {
+	//error message
+	Report::Error( _("You must specify username"));
+	return false;
+    }
+
+    map	user = Users::GetUserByName (options["username"]:"");
+    if (user == $[])
+	return false;
+
+    user ["what"] = "delete_user";
+    // TODO delete home?
+    user ["delete_home"] = false;
+    Users::user_in_work = user;
+
+    Users::Commit ("user", true);
+    return true;
+}
+
+global define boolean UsersRead () ``{
+
+    // TODO UI should be used some way...
+    return (Users::Read(``{ return false; }, false) == `next);
+}
+
+global define boolean UsersWrite () ``{
+
+    // TODO UI should be used some way...
+    return (Users::Write(``{ return false; }, false) == `next);
+}
+
+/* the command line description map */
+map cmdline = $[
+    "id"		: "users",
+    // translators: command line help text for Users module
+    "help"		: _("Users configuration module."),
+    "guihandler"	: ``(UsersSequence (start_dialog)),
+    "initialize"	: ``(UsersRead()),
+    "finish"		: ``(UsersWrite()),
+    "actions"		: $[
+	"list" :$[
+	    "handler"	: ``(UsersListHandler()),
+	    // translators: command line help text for list action
+	    "help"	: _("List of available users")
+	],
+	"show" :$[
+	    "handler"	: ``(UsersShowHandler()),
+	    // translators: command line help text for show action
+	    "help"	: _("Show information of selected user")
+	],
+	"add" :$[
+	    "handler"	: ``(UsersAddHandler()),
+	    // translators: command line help text for ad action
+	    "help"	: _("Add new user")
+	],
+	"delete" :$[
+	    "handler"	: ``(UsersDeleteHandler()),
+	    // translators: command line help text for delete action
+	    "help"	: _("Delete an existing user. (Home directory is not removed.)" )
+	],
+    ],
+    "options"		: $[
+	"local"	:$[
+	    // translators: command line help text for list local option
+	    "help"	: _("List of local users"),
+	],
+	"system"	:$[
+	    // translators: command line help text for list system option
+	    "help"	: _("List of system users"),
+	],
+	"ldap"		:$[
+	    // translators: command line help text for list ldap option
+	    "help"	: _("List of LDAP users"),
+	],
+	"nis"		:$[
+	    // translators: command line help text for list nis option
+	    "help"	: _("List of NIS users"),
+	],
+
+	"uid"		:$[
+	    // translators: command line help text for show uid option
+	    "help"	: _("UID of selected user"),
+	    "type"	: "string"
+	],
+	"username"	:$[
+	    // translators: command line help text for show username/add option
+	    "help"	: _("Name of selected user"),
+	    "type"	: "string"
+	],
+	"cn"		:$[
+	    // translators: command line help text for add option
+	    "help"	: _("Full name of new user"),
+	    "type"	: "string"
+	],
+	"password"		:$[
+	    // translators: command line help text for add option
+	    "help"	: _("Password of new user"),
+	    "type"	: "string"
+	],
+    ],
+    "mappings"		: $[
+	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
+	"show"  : [ "uid", "username"],
+	"add"	: [ "username", "cn", "password" ],
+	"delete": [ "username" ]
+    ]
+];
+
+ret = CommandLineRun( cmdline );
 
 /* Finish */
 y2milestone("Users module finished with %1", ret);
