@@ -103,7 +103,7 @@ repeat it exactly in a second field. Make sure you don't forget your password!
     global define string DefaultsDialogHelp () ``{
 // Help text 0/6
       return _("<p>
-Here you can set default values which will be used when creating new local or system user.
+Here you can set default values which will be used when creating new <b>local</b> or <b>system</b> user.
 </p>
 ") +
 // Help text 1/6

@@ -60,12 +60,11 @@ map useradd_defaults  = $[
     "skel": ""
 ];
 
-// default values for new users (just shotcuts from useradd_defaults):
+// default values for new local/system users (shotcuts from useradd_defaults):
 global string default_shell = "/bin/bash";
 global string default_skel = "/etc/skel";
-global string default_home = "/home/";
 global integer default_gid = 100; // TODO change to 500 with new version
-global string default_groupname = "users";// TODO use some function with type as parameter for this!
+global string default_groupname = "users";
 global string default_inactive = "-1";
 global string default_expire = "";
 
@@ -267,7 +266,9 @@ global string ldap_group_base = "";
 global string ldap_bind_dn = "";
 global string ldap_user_filter = "";
 global string ldap_group_filter = "";
-global string ldap_skel = "";// beter whould be: map ldap_shadow
+map ldap_shadow = $[];
+map ldap_defaults = $[];
+global string ldap_default_groupname = "users";
 
 // TODO comment
 global list ldap_user_class = [];
@@ -964,7 +965,7 @@ define map ImportUser (map user) ``{
         type = "system";
 
     // if empty, set to default, might be changed later..
-    map user_shadow = user ["password_settings"]:GetDefaultShadow();
+    map user_shadow = user ["password_settings"]:GetDefaultShadow(type);
 
     string pass = user ["user_password"]:"x";
 
@@ -1026,7 +1027,7 @@ define map ImportUser (map user) ``{
 	    return ret;
 	}
     }
-    string home = default_home + username;
+    string home = GetDefaultHome (false, type) + username;
     return $[
         "encrypted":        user ["encrypted"]:true,
         //can be distinct (uncrypted) from pass (which is always crypted)
@@ -1436,24 +1437,26 @@ global define boolean Add (string what, map data)``{
 		i = i - 1;
 	    }
 	}
-	UsersCache::user_type = type;
-	user_in_work["type"] = type;
-	user_in_work["uid"] = data["uid"]:NextFreeUid();
+	UsersCache::user_type	= type;
+	user_in_work["type"]	= type;
+	user_in_work["uid"]	= data["uid"]:NextFreeUid();
 	if ( user_in_work["uid"]:nil ==  nil )
 	{
 	    // error label - TODO: solve for command-line mode!
 	    Report::Error(_("There is no free UID for this type of user."));
 	    return false;
 	}
-	string username = data["username"]:""; //TODO: where to check?
+	string username		= data["username"]:""; //TODO: where to check?
 	user_in_work["username"] = username;
 	user_in_work["fullname"] = data["fullname"]:"";
-	user_in_work["home"] = data["home"]:default_home + username;//TODO: where to check?
-	user_in_work["gid"] = data["gid"]:default_gid;
-	user_in_work["groupname"] = data["groupname"]:default_groupname;
+	user_in_work["home"]	= data["home"]:
+	    (GetDefaultHome (true, type) + username);
+	    //TODO: where to check? FIXME 1st parameter!
+	user_in_work["groupname"] = data["groupname"]:GetDefaultGroupname(type);
 	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
-	user_in_work["shell"] = data["shell"]:default_shell;
-	user_in_work["shadow"] = data["shadow"]:GetDefaultShadow();
+	user_in_work["gid"]	= data["gid"]:GetDefaultGid (true, type);
+	user_in_work["shell"]	= data["shell"]:GetDefaultShell(type);
+	user_in_work["shadow"]	= data["shadow"]:GetDefaultShadow(type);
 	user_in_work["password"] = data["password"]:""; // TODO: how to enter/check?
 	user_in_work["create_home"] = data["create_home"]:true;
 	user_in_work["what"] = "add_user";
@@ -1523,7 +1526,7 @@ global define boolean Edit (string what, map data)``{
 	    if (user_in_work["shadow"]:$[] == $[])
 	    {
 		user_in_work["shadow"] = eval
-		    (shadow[type, username]:GetDefaultShadow());
+		    (shadow[type, username]:GetDefaultShadow(type));
 	    }
 	}
 	user_in_work["what"] = "edit_user";
@@ -1585,7 +1588,7 @@ global define boolean Commit (string object, boolean cache)``{
         string username = user_in_work ["username"]:"";
         string org_username = user_in_work ["org_username"]:username;
         string grouplist = user_in_work ["grouplist"]:"";
-        string defgroup = user_in_work ["groupname"]:default_groupname;
+        string defgroup = user_in_work ["groupname"]:GetDefaultGroupname(type);
 	string home = user_in_work["home"]:"";
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
@@ -2083,7 +2086,6 @@ define void SetDefaultValues(boolean useUI) ``{
     default_skel = useradd_defaults["skel"]:default_skel;
     default_expire = useradd_defaults["expire"]:default_expire;
     default_inactive = useradd_defaults["inactive"]:default_inactive;
-    default_home = GetDefaultHome(useUI);
 }
 
 /**
@@ -2177,7 +2179,7 @@ define boolean ReadAllShells()``{
  */
 define boolean ReadDefaultGroup(boolean useUI)``{
 
-    default_gid = GetDefaultGid(useUI);
+    default_gid = GetDefaultGid(useUI, "local");
     default_groupname = lookup (GetGroupFromAll(default_gid), "groupname","");
 
     return true;
@@ -2255,28 +2257,41 @@ global define boolean ReadSystemDefaults()``{
 
 /**
  * Return a map with the defaults for the shadow entry
+ * @param type user type ("local","ldap" etc.)
  * @return map of shadow settings
  */
-global define map GetDefaultShadow()``{// TODO type as parameter!!
+global define map GetDefaultShadow(string type)``{
 
-    return $[
+    map ret = $[
 	"expire": default_expire,
 	"inact"	: default_inactive,
-	"last_change": "", // LastChangeIsNow() is called from dialogs
 	"max"	: sformat("%1", pass_max_days),
 	"min"	: sformat("%1", pass_min_days),
 	"warn"	: sformat("%1", pass_warn_age)
     ];
+    if (type == "ldap")
+    {
+	ret = eval (ldap_shadow);
+    }
+    ret ["last_change"] = LastChangeIsNow();
+    return ret;
 }
 
 /**
  * Return the default home value for a new user.
  * @param useUI if UI is used
+ * @param type user type ("local","ldap" etc.)
  * @return string home directory
  */
-global define string GetDefaultHome(boolean useUI)``{
+global define string GetDefaultHome(boolean useUI, string type)``{
 
     string def_home = useradd_defaults["home"]:"/home";
+    if (type == "ldap")
+    {
+	def_home = ldap_defaults["home"]:def_home;
+	if (!ldap_file_server)
+	    return def_home;
+    }
 
     // check for existence of prefix directory
     if (SCR::Read(.target.size, def_home ) == -1 && useUI)
@@ -2294,15 +2309,34 @@ Create it now?
     return def_home;
 }
 
+/**
+ * Return the default shell
+ * @param type user type ("local", "ldap" etc.)
+ * @return string shell
+ */
+global define string GetDefaultShell(string type)``{
+
+    if (type == "ldap")
+    {
+	return ldap_defaults["shell"]:default_shell;
+    }
+    else
+	return default_shell;
+}
 
 /**
  * Return the default group id for a new user.
  * @param useUI if UI is used
+ * @param type user type ("local", "ldap" etc.)
  * @return integer gid
  */
-global define integer GetDefaultGid(boolean useUI)``{
+global define integer GetDefaultGid(boolean useUI, string type)``{
 
-    string def_gid  = useradd_defaults["group"]:default_gid;
+    string def_gid  = useradd_defaults["group"]:sformat("%1",default_gid);
+    if (type == "ldap")
+    {
+	def_gid = ldap_defaults["group"]:def_gid;
+    }
     integer def_int = tointeger(def_gid);
     map group = $[];
 
@@ -2310,12 +2344,17 @@ global define integer GetDefaultGid(boolean useUI)``{
     if( group == $[])
     {
         if (useUI)
-	        // error popup
-	        Report::Error(sformat(_("The default group with the id %1 does not exist.
-Please change the default group in /etc/default/useradd."), def_int ));
-
-	    // TODO If group 100/500 does not exists ?
-	    return default_gid;
+	{
+	    // error popup, part 2/2
+	    string rest = _("Please change the default group in /etc/default/useradd.");
+	    if (type == "ldap")
+		// error popup, part 2/2
+		rest = _("Please change the default group in LDAP settings");
+	    // error popup, part 1/2, %1 is number, %2 is part 2/2
+	    Report::Error(sformat(_("The default group with the id %1 does not exist.
+%2"), def_int, rest));
+	}
+        return default_gid;
     }
     return def_int;
 }
@@ -2875,6 +2914,19 @@ global define string GetDefaultGrouplist (string type) ``{
 }
 
 /**
+ * The name of default group
+ * @param type type of new user ("local", "system", "nis", "ldap")
+ * @return the groupname
+ */
+global define string GetDefaultGroupname (string type) ``{
+
+    if (type != "ldap")
+        return default_groupname;
+    else
+        return ldap_default_groupname;
+}
+
+/**
  * Gets the source of user lists from /etc/nsswitch.conf
  * @return list of sources (e.g. [ "ldap", "files" ]
  */
@@ -3045,6 +3097,7 @@ global define boolean CheckHomeMounted() ``{
     string mountpoint_in = "";
 
     // remove last "/"
+    string default_home = GetDefaultHome(true, "local");
     string home = substring (default_home, 0, size(default_home) - 1);
 
     list fstab = SCR::Read(.etc.fstab);
