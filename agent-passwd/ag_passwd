@@ -6,7 +6,6 @@ use strict;
 
 my $max_system_uid	= 499;
 my $max_system_gid	= 499;
-my $the_answer		= 42;
 
 my %last_uid		= (
     "local"	=> $max_system_uid + 1,
@@ -251,34 +250,6 @@ sub read_passwd () {
 	    }
     
 	    my @grouplist	= keys (%grouplist);
-	    my $all_groups	= $groupname;
-
-	    if ( $groupname ne "" ) {
-		if (@grouplist > 0) {
-		    
-		    $all_groups .= ",";
-		    if (@grouplist + 1 <= $the_answer) {
-			$all_groups .= join (",", @grouplist);
-		    }
-		    else {
-			for (my $i=0; $i < $the_answer - 1 ; $i++) {
-			    $all_groups .= "$grouplist[$i],";
-			}
-			$all_groups .= "...";
-		    }
-		}
-	    }
-	    else {
-		if (@grouplist <= $the_answer) {
-		    $all_groups = join (",", @grouplist);
-		}
-		else {
-		    for (my $i=0; $i < $the_answer ; $i++) {
-			$all_groups .= "$grouplist[$i],";
-		    }
-		    $all_groups .= "...";
-		}
-	    }
 
 	    # such map we would like to export from the read script...
 	    $users{$user_type}{$uid} = {
@@ -311,52 +282,6 @@ sub read_passwd () {
     }
     close PASSWD;
     return 0;
-}
-
-#---------------------------------------------
-# update map of groups (there is a new list of "more users"), generate items
-
-sub update_groups () {
-    
-    foreach my $type ( keys %groups ) {
-
-        foreach my $gid (keys %{$groups{$type}})
-	{
-	    my %group		= %{$groups{$type}{$gid}};
-            my @userlist	= keys %{$group{"userlist"}};
-	    my @more_users	= keys %{$group{"more_users"}};
-
-	    my $ul_no		= @userlist;
-	    my $m_no		= @more_users;
-
-	    my $all_users = "";
-	    if ($ul_no <= $the_answer) {
-		
-		$all_users = join (",", @userlist);
-		if ($m_no + $ul_no <= $the_answer) {
-		    if ($ul_no > 0 && $m_no > 0) {
-			$all_users .= ",";
-		    }
-		    $all_users .= join (",", @more_users);
-		}
-		else {
-		    if ($ul_no > 0 && $m_no > 0) {
-			$all_users .= ",";
-		    }
-		    for (my $i=0; $i < $the_answer - $ul_no ; $i++) {
-			$all_users .= "$more_users[$i],";
-		    }
-		    $all_users .= "...";
-		}
-	    }
-	    else {
-		for (my $i=0; $i < $the_answer; $i++) {
-		    $all_users .= "$userlist[$i],";
-		}
-		$all_users .= "...";
-	    }
-	}
-    }
 }
 
 #---------------------------------------------
@@ -477,9 +402,6 @@ sub read_all () {
     }
     if ($error == 0) {
 	$error = read_passwd ();
-    }
-    if ($error == 0) {
-	$error = update_groups ();
     }
     return $error;
 }
