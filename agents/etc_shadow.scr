@@ -26,7 +26,7 @@
 .etc.shadow
 
 `ag_anyagent(
-  Description (
+  SCR::AnyAgent (
       ``(File("/etc/shadow")),	// real filename
       "#",			// Comment
       false,

@@ -30,7 +30,7 @@
 .run.getent.passwd
 
 `ag_anyagent(
-  Description (
+  SCR::AnyAgent (
       ``(Run("/usr/bin/getent passwd")),	// real filename
       "#",			// Comment
       true,
