@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Fri Jan 28 14:25:52 CET 2005 - jsuchome@suse.cz
+
+- update table items correctly during installation
+- fixed deleting users from command line
+- autoyast: enable creating groups when gid is not provided
+- autoyast fix: remove internal cache when importing (#50265)
+- write empty vardir/users.ycp file if not present
+- fixed button labels of 'first user screen' during installation
+
+-------------------------------------------------------------------
 Mon Jan 24 17:12:43 CET 2005 - nashif@suse.de
 
 - Set arguments according to new installation workflow interface

@@ -313,7 +313,11 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
     else if (username != "")
     {
 	Users::SelectUserByName (username);
-	uid	= Users::GetCurrentUser()["uidnumber"]:-1;
+	map u	= Users::GetCurrentUser();
+	if (is (u["uidnumber"]:nil, integer))
+	    uid	= u["uidnumber"]:-1;
+	else if (is (u["uidnumber"]:nil, string))
+	    uid	= tointeger (u["uidnumber"]:"-1");
     }
     if (Users::GetCurrentUser () == $[])
     {

@@ -1058,7 +1058,7 @@ sub ReadCustomSets {
 
     my $file = Directory->vardir()."/users.ycp";
     if (SCR->Read (".target.size", $file) == -1) {
-	my %customs	= {};
+	my %customs	= ();
 	SCR->Write (".target.ycp", $file, \%customs);
 	$customs_modified	= 1;
 
@@ -5535,7 +5535,7 @@ sub ImportGroup {
 	    $gid	= $existing->{"gidnumber"};
 	}
     }
-    if (($gid <= UsersCache->GetMaxGID ("system") ||
+    elsif (($gid <= UsersCache->GetMaxGID ("system") ||
         $groupname eq "nobody" || $groupname eq "nogroup") &&
         $groupname ne "users")
     {
@@ -5639,11 +5639,13 @@ sub Import {
 
     $tmpdir	= SCR->Read (".target.tmpdir");
 
+    # remove cache entries (#50265)
+    UsersCache->ResetCache ();
+
     my $error_msg = $self->ReadLocal ();
     if ($error_msg) {
-	return 0; #TODO do not return, just read less
+	return 0;
     }
-# FIXME remove local/system cache entries
 
     if (Mode->config ()) {
 	
@@ -5682,12 +5684,24 @@ sub Import {
 	    }
 	}
 
+	# there could be conflicts when adding new uses
+	if (!Mode->config () && @without_uid > 0) {
+	    y2internal ("new users!");
+
+	    UsersCache->ReadUsers ("system");
+	    UsersCache->ReadUsers ("local");
+	}
+
 	foreach my $user (@without_uid) {
 	    y2milestone ("no UID for this user:", $user->{"uid"} || "");
 	    $self->ResetCurrentUser ();
 	    $self->AddUser ($user);
-	    if ($self->CheckUser ($self->GetCurrentUser()) eq "") {
+	    my $error = $self->CheckUser ($self->GetCurrentUser());
+	    if ($error eq "") {
 		$self->CommitUser ();
+	    }
+	    else {
+		y2warning ("error adding new user: $error");
 	    }
 	}
     }
@@ -5710,19 +5724,44 @@ sub Import {
 	$groups_by_name{"local"}	= {};
     }
 
+    my @without_gid		= ();
+
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
 
 	foreach my $imp_group (@{$settings{"groups"}}) {
 	    my %group	= %{$self->ImportGroup ($imp_group)};
 	    my $gid 	= $group{"gidnumber"};
 	    if (!defined $gid || $gid == -1) {
-		next;
+		delete $group{"gidnumber"};
+		push @without_gid, \%group;
 	    }
-	    my $type				= $group{"type"} || "local";
-	    my $groupname 			= $group{"cn"} || "";
-	    $groups{$type}{$gid}		= \%group;
-	    $groups_by_name{$type}{$groupname}	= $gid;
-	    $modified_groups{$type}{$gid}	= \%group;
+	    else {
+		my $type			= $group{"type"} || "local";
+		my $groupname 			= $group{"cn"} || "";
+		$groups{$type}{$gid}		= \%group;
+		$groups_by_name{$type}{$groupname}	= $gid;
+		$modified_groups{$type}{$gid}	= \%group;
+	    }
+	}
+
+	if (!Mode->config () && @without_gid > 0) {
+	    y2internal ("new groups!");
+
+	    UsersCache->ReadGroups ("system");
+	    UsersCache->ReadGroups ("local");
+	}
+
+	foreach my $group (@without_gid) {
+	    y2milestone ("no GID for this group:", $group->{"gid"} || "");
+	    $self->ResetCurrentGroup ();
+	    $self->AddGroup ($group);
+	    my $error = $self->CheckGroup ($self->GetCurrentGroup());
+	    if ($error eq "") {
+		$self->CommitGroup ();
+	    }
+	    else {
+		y2warning ("error adding new group: $error");
+	    }
 	}
     }
 
