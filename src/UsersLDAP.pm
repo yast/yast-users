@@ -185,7 +185,7 @@ sub ReadAvailable {
 BEGIN { $TYPEINFO{ReadLdap} =  ["function", "boolean"];}
 sub ReadLdap {
 
-    $ldap_read = Ldap->Read();
+    $ldap_read	= Ldap->Read();
     return $ldap_read;
 }
 
@@ -1249,12 +1249,14 @@ sub WriteUsers {
 	}
 	# check allowed object classes
 	my @ocs		= ();
-	foreach my $oc (@obj_classes) {
-	    if (Ldap->ObjectClassExists ($oc)) {
-		push @ocs, $oc;
+	if ($action ne "deleted") {
+	    foreach my $oc (@obj_classes) {
+		if (Ldap->ObjectClassExists ($oc)) {
+		    push @ocs, $oc;
+		}
 	    }
+	    $user->{"objectclass"}	= \@ocs;
 	}
-	$user->{"objectclass"}	= \@ocs;
 	# ----------- now call the WriteBefore plugin function for this user
 
 	if (!defined $plugins) {
@@ -1513,12 +1515,14 @@ sub WriteGroups {
 	    %new_group			= %{$group};
 	}
 	my @ocs		= ();
-	foreach my $oc (keys %o_classes) {
-	    if (Ldap->ObjectClassExists ($oc)) {
-		push @ocs, $oc;
+	if ($action ne "deleted") {
+	    foreach my $oc (keys %o_classes) {
+		if (Ldap->ObjectClassExists ($oc)) {
+		    push @ocs, $oc;
+		}
 	    }
+	    $group->{"objectclass"}	= \@ocs;
 	}
-	$group->{"objectclass"}	= \@ocs;
 
 	# ----------- now call the WriteBefore plugin function for this group
     
