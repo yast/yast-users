@@ -649,16 +649,9 @@ Please try again."));
 	string username       = user_in_work["username"]:"";
 	map shadow            = user_in_work["shadow"]:$[];
 
-/*
-	    `Left (`Label ("Days since the account was locked")),
-			       `Left (`CheckBox (`id ("id_30"), "Lock account", false)),
-*/
 	integer last_changed = shadow["last_change"]:0;
 	integer expires = shadow["expire"]:-1;
-	//Translators: this means the format for date. %1 will be substituted with month, %2 with day and %3 with year
-	string date_format = _("%1 %2, %3");
-	date_format = sformat (date_format, "%B", "%d", "%Y");
-	map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%2\"", last_changed, date_format));
+	map out = SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_changed));
 	string last_change = UI::Recode(UserDefs::encoding, "UTF-8", lookup (out, "stdout", _("unknown")));
 	string exp_date = "";
 	if (expires != -1)
@@ -678,7 +671,7 @@ Please try again."));
 						      `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999,
 								 shadow["max"]:""),
 						      `VSpacing (0.5),
-						      `IntField (`id ("min"), _("Mi&nimum number of days for the same password"), -1, 99999,
+						      `IntField (`id ("min"), _("&Minimum number of days for the same password"), -1, 99999,
 								 shadow["min"]:""),
 						      `VSpacing (0.5),
 						      `TextEntry (`id ("expire"), _("&Expiration date"), exp_date)

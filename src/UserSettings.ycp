@@ -392,8 +392,8 @@
      * Read all users and groups settings.
      */
     global define void ReadSettingsFromDisk(boolean interactive)``{
-//	if (interactive && isNisMaster ())
-//	{
+	if (interactive && isNisMaster ())
+	{
 	    string ypdir = SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
 	    while (substring (ypdir, size (ypdir) - 1) == "/")
 		ypdir = substring (ypdir, 0, size (ypdir) -1);
@@ -419,7 +419,7 @@
 		    UserWriteStack::groupmod = sformat ("/usr/sbin/groupmod -P %1 ", ypdir);
 		}
 	    }
-//	}
+	}
 	return (   ReadPasswdFromDisk()
 		 && ReadGroupFromDisk()
 		 && ReadGshadowFromDisk()

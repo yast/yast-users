@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jul 12 16:10:45 CEST 2002 - jsrain@suse.cz
+
+- Fixed detection whether is NIS domain master
+
+-------------------------------------------------------------------
 Fri Jul 12 15:22:15 CEST 2002 - arvin@suse.de
 
 - use proper namespace for Args and CallFunction (#16776)
