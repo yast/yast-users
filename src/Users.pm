@@ -12,6 +12,11 @@ use strict;
 use ycp;
 use YaST::YCP qw(Boolean);
 
+# for password encoding:
+use MIME::Base64 qw(encode_base64);
+use Digest::MD5;
+use Digest::SHA1 qw(sha1);
+
 use Locale::gettext;
 use POSIX ();     # Needed for setlocale()
 
@@ -31,6 +36,9 @@ my $after_auth			= "users";
 # Write only, keep progress turned off
 my $write_only			= 0; 
 
+# Export all users and groups (for autoinstallation purposes)
+my $export_all			= 0; 
+
 # Where the user/group/password data are stored (can be different on NIS server)
 my $base_directory		= "/etc";
 
@@ -41,27 +49,27 @@ my %default_groupname		= ();
 my @user_sources		= ();
 
 my %users			= (
-    "system"		=> (),
-    "local"		=> (),
+    "system"		=> {},
+    "local"		=> {},
 );
 
 my %shadow			= (
-    "system"		=> (),
-    "local"		=> (),
+    "system"		=> {},
+    "local"		=> {},
 );
 
 my %groups			= (
-    "system"		=> (),
-    "local"		=> (),
+    "system"		=> {},
+    "local"		=> {},
 );
 
 my %users_by_name		= (
-    "system"		=> (),
-    "local"		=> (),
+    "system"		=> {},
+    "local"		=> {},
 );
 my %groups_by_name		= (
-    "system"		=> (),
-    "local"		=> (),
+    "system"		=> {},
+    "local"		=> {},
 );
 
 my %removed_homes		= ();
@@ -166,8 +174,8 @@ my %max_pass_length	= (
 );
 
 # users sets in "Custom" selection:
-my @user_custom_sets		= ();
-my @group_custom_sets		= ();
+my @user_custom_sets		= ("local");
+my @group_custom_sets		= ("local");
 
 # helper structures, filled from UsersLDAP
 my %ldap2yast_user_attrs	= ();
@@ -799,7 +807,7 @@ sub GetGroup {
     }
 
     foreach my $type (@types_to_look) {
-	if (defined $groups{$type}{$gid}) {
+	if (defined ($groups{$type}{$gid})) {
 	    return $groups{$type}{$gid};
 	}
     }
@@ -1053,7 +1061,6 @@ sub ReadNewSet {
 	my $ldap_mesg = UsersLDAP::Read();
 	if ($ldap_mesg ne "") {
             Ldap::LDAPErrorMessage ("read", $ldap_mesg);
-	    # FIXME error as return value?
             return 0;
         }
 
@@ -1256,7 +1263,7 @@ sub CreateShadowMap {
     my %user		= %{$_[0]};
     my %shadow_map	= ();
     
-    my %default_shadow = %{GetDefaultShadow ($user{"type"})};
+    my %default_shadow = %{GetDefaultShadow ($user{"type"} || "local")};
     foreach my $shadow_item (keys %default_shadow) {
 	$shadow_map{$shadow_item}	= $user{$shadow_item};
     };
@@ -1385,10 +1392,7 @@ sub DeleteUser {
 
     if (%user_in_work) {
 	$user_in_work{"what"}		= "delete_user";
-y2internal ("param: ", $_[0]);#FIXME FIXME
-	if (YaST::YCP::Boolean ($_[0])) {
-	    $user_in_work{"delete_home"}	= YaST::YCP::Boolean ($_[0]);
-	}
+	$user_in_work{"delete_home"}	= YaST::YCP::Boolean ($_[0]);
 	return 1;
     }
     return 0;
@@ -1633,12 +1637,10 @@ sub AddUser {
 	if ($key eq "create_home" || $key eq "encrypted") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
-	elsif ($key eq "userPassword") {
-	    # crypt password only once
-	    if (!defined ($data{"encrypted"})) {
-		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
-		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	    }
+	# crypt password only once
+	elsif ($key eq "userPassword" && !defined ($data{"encrypted"})) {
+	    $user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
+	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
 	else {
 	    $user_in_work{$key}	= $data{$key};
@@ -1869,7 +1871,6 @@ sub CommitUser {
         y2error ("commit is forbidden: ", $user_in_work{"check_error"});
 	return 0;
     }
-
     # create local copy of current user
     my %user	= %user_in_work;
     
@@ -2036,11 +2037,8 @@ sub CommitUser {
 	}
 
 	# store deleted directories... someone could want to use them
-y2internal ("delete: ", $user{"delete_home"});
-y2internal ("delete: ", $user{"delete_home"} || 0);
-# FIXME boolean value cannot be tested???
-# - same for create_home etc.
-	if ($type ne "ldap" && ($user{"delete_home"} || 0)) {
+	my $delete_home = $user{"delete_home"} || YaST::YCP::Boolean (0);
+	if ($type ne "ldap" && $delete_home->value) {
 	    my $h	= $home;
 	    if (defined $user{"org_user"}{"homeDirectory"}) {
 	        $h	= $user{"org_user"}{"homeDirectory"};
@@ -2453,11 +2451,10 @@ sub Write {
 		my $command 	= "";
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidNumber"};
+		my $create_home	= $user{"create_home"} || YaST::YCP::Boolean(0);
        
 		if ($user_mod eq "imported" || $user_mod eq "added") {
-#FIXME "create_home" not correctly checked...
-y2warning ("create: ", $user{"create_home"} || 0);
-		    if ((($user{"create_home"} || 0) || $user_mod eq "imported")
+		    if (($create_home->value || $user_mod eq "imported")
 			&& !%{SCR::Read (".target.stat", $home)})
 		    {
 			UsersRoutines::CreateHome ($useradd_defaults{"skel"},$home);
@@ -2469,11 +2466,10 @@ y2warning ("create: ", $user{"create_home"} || 0);
 			SCR::Execute (".target.bash", $command));
 		}
 		elsif ($user_mod eq "edited") {
-#		    my $org_home = $user{"org_homeDirectory"} || $home;
 		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
 		    if ($home ne $org_home) {
 			# move the home directory
-			if ($user{"create_home"} || 0) {
+			if ($create_home->value) {
 			    UsersRoutines::MoveHome ($org_home, $home);
 			}
 		    }
@@ -2618,6 +2614,8 @@ Select another user ID.");
     {
 	return sprintf (_("The selected user ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
+#FIXME: 1. user 'nobody' 
+#	2. small id's are possible...	
     }
     return "";
 }
@@ -3015,23 +3013,23 @@ sub CheckHomeUI {
     my %ui_map		= %{$_[2]};
     my $type		= UsersCache::GetUserType ();
     my %ret		= ();
+    my $create_home	= $user_in_work{"create_home"} || YaST::YCP::Boolean(0);
 
-#    if ($home eq "" || $home eq ($user_in_work{"homeDirectory"} || "") ||
-    if ($home eq "" || !($user_in_work{"create_home"} || 0)) {
+    if ($home eq "" || !($create_home->value)) {
 	return \%ret;
     }
 
-    if ((($ui_map{"chown"} || 0) != 1) &&
-	!Mode::config () &&
-	(SCR::Read (".target.size", $home) != -1)) {
-#	($user_type ne "ldap" || $ldap_file_server)) TODO
+    if ((($ui_map{"chown"} || 0) != 1)		&&
+	!Mode::config ()			&&
+	SCR::Read (".target.size", $home) != -1	&&
+	($type ne "ldap" || Ldap::file_server ())) {
         
 	$ret{"question_id"}	= "chown";
 	$ret{"question"}	= _("The home directory selected already exists.
 Use it and change its owner?");
 
 	my %stat 	= %{SCR::Read (".target.stat", $home)};
-	my $dir_uid	= $stat{"uidNumber"} || -1;
+	my $dir_uid	= $stat{"uidNumber"} || 0;
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
 	    $ret{"question"}	= _("The home directory selected already exists
@@ -3291,10 +3289,6 @@ sub SetEncryptionMethod {
 # code provided by Ralf Haferkamp
 sub _hashPassword {
 
-    use MIME::Base64 qw(encode_base64); #FIXME to requires...
-    use Digest::MD5;
-    use Digest::SHA1 qw(sha1);
-
     my ($mech, $password) = @_;
     if ($mech  eq "crypt" ) {
         my $salt =  pack("C2",(int(rand 26)+65),(int(rand 26)+65));
@@ -3347,6 +3341,9 @@ sub CryptPassword {
     
     if (!defined $pw || $pw eq "") {
 	return $pw;
+    }
+    if (Mode::test ()) {
+	return "crypted_".$pw;
     }
 
     if ($type eq "ldap") {
@@ -3432,34 +3429,567 @@ sub ReadNISAvailable {
     return 0;
 }
 ##-------------------------------------------------------------------------
+##------------------------ import/export routines -------------------------
+##-------------------------------------------------------------------------
 
+##------------------------------------
+# Helper function, which corects the userlist entry of each group.
+# During autoinstallation, system groups are loaded from the disk,
+# and the userlists of these groups can contain the local users,
+# which we don not want to Import. So they are removed here.
+# @param disk_groups the groups loaded from local disk
+sub RemoveDiskUsersFromGroups {
+
+    my $disk_groups	= $_[0];
+    foreach my $gid (keys %{$disk_groups}) {
+	my $group	= $disk_groups->{$gid};
+	
+	foreach my $user (keys %{$group->{"userlist"}}) {
+	    if (!defined ($users_by_name{"local"}{$user}) &&
+		!defined ($users_by_name{"system"}{$user}))
+	    {
+		delete $disk_groups->{$gid}{"userlist"}{$user};
+	    }
+	}
+	foreach my $user (keys %{$group->{"more_users"}}) {
+	    if (!defined ($users_by_name{"local"}{$user}) &&
+		!defined ($users_by_name{"system"}{$user}))
+	    {
+		delete $disk_groups->{$gid}{"more_users"}{$user};
+	    }
+	}
+    }
+}
+
+##------------------------------------
+# Converts autoyast's user's map for users module usage
+# @param user map with user data provided by users_auto client
+# @return map with user data as defined in Users module
+sub ImportUser {
+
+    my $user	= $_[0];
+    my %ret	= ();
+
+    my $forename	= $user->{"forename"} 	|| "";
+    my $surname 	= $user->{"surname"}	|| "";
+    my $cn		= $user->{"cn"} || $user->{"fullname"} || "";
+    my $username 	= $user->{"username"}	|| "";
+
+    y2debug("Username=$username");
+
+    my $uid		= $user->{"uidNumber"};
+    if (!defined $uid) {
+	$uid		= $user->{"uid"};
+	if (!defined $uid) {
+	    $uid 		= -1;
+	}
+    }
+    my $gid		= $user->{"gidNumber"};
+    if (!defined $gid) {
+	$gid		= $user->{"gid"};
+	if (!defined $gid) {
+	    $gid 		= -1;
+	}
+    }
+
+    if ($cn eq "") {
+	if ($forename ne "") {
+	    if ($surname ne "") { $cn = "$forename $surname"; }
+	    else { $cn = $forename; }
+	}
+	else { $cn = $surname; }
+    }
+
+    my $type	= "local";
+    if ($uid != -1 &&
+	($uid < UsersCache::GetMaxUID ("system") || $username eq "nobody")) {
+        $type = "system";
+    }
+
+    # if empty, set to default, might be changed later..
+    my %user_shadow	= %{GetDefaultShadow ($type)};
+    if (defined $user->{"password_settings"}) {
+	%user_shadow	= %{$user->{"password_settings"}};
+    }
+
+    my $encrypted	= $user->{"encrypted"};
+    # FIXME when the password will be crypted?
+    my $pass		= $user->{"user_password"}	|| "x";
+    if (!defined $user->{"encrypted"} && $pass ne "x" && !Mode::config ()) {
+	$pass 		= CryptPassword ($pass, $type);
+	$encrypted	= 1;
+    }
+    my $home	= GetDefaultHome($type).$username;
+
+    my %grouplist	= ();
+    if (defined $user->{"grouplist"}) {
+	if (ref ($user->{"grouplist"}) eq "HASH") {
+	    %grouplist	= %{$user->{"grouplist"}};
+	}
+	else {
+	    foreach my $g (split (/,/, $user->{"grouplist"})) {
+		$grouplist{$g}	= 1;
+	    }
+	}
+    }
+
+    if ($uid == -1) {
+	# check for existence of this user (and change it with given values)
+	my %existing 	= %{GetUserByName ($username, "")};
+	if (%existing) {
+	
+	    y2milestone("Existing user:", $existing{"username"} || "");
+	    %user_in_work	= %existing;
+	    $type		= $existing{"type"} || "system";
+
+	    if (!defined $user->{"password_settings"}) {
+		LoadShadow ();
+		%user_shadow	= %{CreateShadowMap (\%user_in_work)};
+	    }
+	    my $finalpw 	= "";
+	    if ($pass ne "x") {
+		$finalpw 	= $pass;
+	    }
+	    else {
+		$finalpw 	= $existing{"userPassword"} || "x";
+	    }
+
+	    if (!defined $user->{"forename"} && !defined $user->{"surname"} &&
+		$cn eq "") {
+		$cn		= $existing{"cn"} || "";
+	    }
+	    if ($gid == -1) {
+		$gid		= $existing{"gidNumber"};
+	    }
+	    %ret	= (
+		"userPassword"	=> $finalpw,
+		"grouplist"	=> \%grouplist,
+		"username"	=> $username,
+		"encrypted"	=> $encrypted,
+		"cn"		=> $cn,
+		"uidNumber"	=> $existing{"uidNumber"},
+		"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || GetDefaultShell ($type),
+
+		"gidNumber"	=> $gid,
+		"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $existing{"homeDirectory"} || $home,
+		"type"		=> $type,
+		"modified"	=> "imported"
+	    );
+	}
+    }
+    if ($gid == -1) {
+	$gid = GetDefaultGID ($type);
+    }
+
+    if (!%ret) {
+	%ret	= (
+	"username"	=> $username,
+	"encrypted"	=> $encrypted,
+	"userPassword"	=> $pass,
+	"cn"		=> $cn,
+	"uidNumber"	=> $uid,
+	"gidNumber"	=> $gid,
+	"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || GetDefaultShell ($type),
+
+	"grouplist"	=> \%grouplist,
+	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
+	"type"		=> $type,
+	"modified"	=> "imported"
+	);
+    }
+    my %translated = (
+	"inact"		=> "shadowInactive",
+	"expire"	=> "shadowExpire",
+	"warn"		=> "shadowWarning",
+	"min"		=> "shadowMin",
+        "max"		=> "shadowMax",
+        "flag"		=> "shadowFlag",
+	"last_change"	=> "shadowLastChange",
+	"password"	=> "userPassword",
+    );
+    foreach my $key (keys %user_shadow) {
+	my $new_key	= $translated{$key} || $key;
+	if ($key eq "userPassword") { next; }
+	$ret{$new_key}	= $user_shadow{$key};
+    }
+    return \%ret;
+}
+
+##------------------------------------
+# Converts autoyast's group's map for groups module usage
+# @param group map with group data provided by users_auto client
+# @return map with group data as defined in Users module
+sub ImportGroup {
+
+    my %group		= %{$_[0]};
+    my $groupname 	= $group{"groupname"} || "";
+    my $type 		= "local";
+
+    my $gid		= $group{"gidNumber"};
+    if (!defined $gid) {
+	$gid		= $group{"gid"};
+	if (!defined $gid) {
+	    $gid 		= -1;
+	}
+    }
+
+    if (($gid <= UsersCache::GetMaxGID ("system") ||
+        $groupname eq "nobody" || $groupname eq "nogroup") &&
+        $groupname ne "users")
+    {
+        $type 		= "system";
+    }
+    my %userlist	= ();
+    if (defined $group{"userlist"}) {
+	if (ref ($group{"userlist"}) eq "HASH") {
+	    %userlist	= %{$group{"userlist"}};
+	}
+	else {
+	    foreach my $u (split (/,/, $group{"userlist"})) {
+		$userlist{$u}	= 1;
+	    }
+	}
+    }
+    my %ret		= (
+        "userPassword"	=> $group{"group_password"} || "x",
+        "groupname"	=> $groupname,
+        "gidNumber"	=> $gid,
+        "userlist"	=> \%userlist,
+        "modified"	=> "imported",
+        "type"		=> $type
+    );
+    return \%ret;
+}
+
+##------------------------------------
+# Get all the user configuration from the list of maps.
+# Is called users_auto (preparing autoinstallation data).
+# @param settings	A map with keys: "users", "groups", "user_defaults"
+# and values to be added to the system.
+# @return true
 BEGIN { $TYPEINFO{Import} = ["function",
     "boolean",
     ["map", "string", "any"]];
 }
 sub Import {
     
-    y2error ("not yet");
-    #FIXME
+    my %settings	= %{$_[0]};
+
+    y2debug ("importing: ", %settings);
+
+    if (!defined $settings{"user_defaults"} || !%{$settings{"user_defaults"}}) {
+        ReadLoginDefaults ();
+    }
+    else {
+        %useradd_defaults 	= %{$settings{"user_defaults"}};
+        $defaults_modified	= 1;
+    }
+
+    ReadSystemDefaults();
+
+    $tmpdir	= SCR::Read (".target.tmpdir");
+
+    my $error_msg = ReadLocal ();
+    if ($error_msg) {
+	return 0; #TODO do not return, just read less
+    }
+
+    $shadow{"local"}		= {};
+    $users{"local"}		= {};
+    $users_by_name{"local"}	= {};
+
+    if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
+        $users_modified	= 1;
+    }
+    if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
+        $groups_modified	= 1;
+    }
+
+    # Problem: what if UID is not provided?
+    my @without_uid		= ();
+
+    if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
+
+	foreach my $imp_user (@{$settings{"users"}}) {
+	    ResetCurrentUser ();
+	    my %user	= %{ImportUser ($imp_user)};
+	    my $type	= $user{"type"} || "local";
+	    my $uid 	= $user{"uidNumber"};
+	    my $username 	= $user{"username"} || "";
+	    if (!defined $uid || $uid == -1) {
+		delete $user{"uidNumber"};
+		push @without_uid, \%user;
+	    }
+	    else {
+		$users{$type}{$uid}		= \%user;
+		$users_by_name{$type}{$username}= $uid;
+	    $	shadow{$type}{$username}       	= CreateShadowMap (\%user);
+#FIXME when we have special grouplist, groups are not adapted!
+	    }
+	}
+
+	foreach my $user (@without_uid) {
+	    y2milestone ("no UID for this user:", $user->{"username"} || "");
+	    ResetCurrentUser ();
+	    AddUser ($user);
+	    if (CheckUser (GetCurrentUser()) eq "") {
+		CommitUser ();
+	    }
+	}
+    }
+
+    # group users should be "local"
+    if (defined ($groups{"system"}{100}) &&
+	$groups{"system"}{100}{"groupname"} eq "users") {
+	delete $groups{"system"}{100};
+    }
+    if (defined ($groups{"system"}{500}) &&
+	$groups{"system"}{500}{"groupname"} eq "users") {
+	delete $groups{"system"}{500};
+    }
+
+    # we're not interested in local userlists...
+    RemoveDiskUsersFromGroups ($groups{"system"});
+    $groups{"local"}		= {};
+    $groups_by_name{"local"}	= {};
+
+    if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
+
+	foreach my $imp_group (@{$settings{"groups"}}) {
+	    my %group	= %{ImportGroup ($imp_group)};
+	    my $gid 	= $group{"gidNumber"};
+	    if (!defined $gid) {
+		next;
+	    }
+	    my $type				= $group{"type"} || "local";
+	    my $groupname 			= $group{"groupname"} || "";
+	    $groups{$type}{$gid}		= \%group;
+	    $groups_by_name{$type}{$groupname}	= $gid;
+	}
+    }
+
+    my %group_u = %{GetGroupByName ("users", "local")};
+    if (!%group_u) {
+        # group users must be created
+	my $gid		= GetDefaultGID ("local");
+        %group_u	= (
+             "gidNumber"		=> $gid,
+	     "groupname"		=> "users",
+	     "userPassword"		=> "x",
+	     "userlist"			=> {},
+	     "type"			=> "local"
+	);
+        $groups{"local"}{$gid}		= \%group_u;
+        $groups_by_name{"local"}{"users"}	= $gid;
+    }
+
+    @available_usersets		= ( "local", "system" );
+    @available_groupsets	= ( "local", "system" );
+
+    ReadAllShells ();
+
+    # create more_users (for groups), grouplist and groupname (for users)
+    foreach my $type ("system", "local") {
+
+	if (!defined $users{$type} ||
+	    (!$users_modified && !$groups_modified)) {
+	    next;
+	}
+
+        foreach my $uid (keys %{$users{$type}}) {
+
+	    my $user		= $users{$type}{$uid};
+            my $username 	= $user->{"username"}	|| "";
+            my $gid 		= $user->{"gidNumber"}	|| GetDefaultGID($type);
+            $users{$type}{$uid}{"grouplist"} = FindGroupsBelongUser ($user);
+
+            # hack: change of default group's gid
+	    # (e.g. user 'games' has gid 100, but there is only group 500 now!)
+            my %group 		= %{GetGroup ($gid, "")};
+	    if (!%group) {
+		if ($gid == 100) {
+		    $gid 	= 500;
+		}
+		elsif ($gid == 500) {
+		    $gid	= 100;
+		}
+		# one more chance...
+		%group		= %{GetGroup ($gid, "")};
+		# adapt user's gid to new one:
+		if (%group) {
+		    $users{$type}{$uid}{"gidNumber"}	= $gid;
+		}
+	    }
+	    if (defined $group{"groupname"}) {
+		$users{$type}{$uid}{"groupname"}	= $group{"groupname"};
+	    }
+
+            # update the group's more_users
+            if (%group && !defined ($group{"more_users"}{$username})) {
+		my $gtype	= $group{"type"} || $type;
+                $groups{$gtype}{$gid}{"more_users"}{$username}	= 1;
+            }
+        }
+    }
+
+    ReadUsersCache ();
+
+    # and again:
+    UsersCache::BuildUserLists ("local", $users{"local"});
+    UsersCache::BuildUserItemList ("local", $users{"local"});
+
+    UsersCache::BuildGroupLists ("local", $groups{"local"});
+    UsersCache::BuildGroupItemList ("local", $groups{"local"});
+
     return 1;
 }
 
+##------------------------------------
+# Converts user's map for autoyast usage
+# @param user map with user data as defined in Users module
+# @return map with user data in format used by autoyast
+sub ExportUser {
+
+    my $user	= $_[0];
+    return $user;
+
+#    my $type	= $user->{"type"} || "local";
+#    my $full 	= $user->{"cn"}	|| "";
+#    string username = user["username"]:"";
+#    map user_shadow = user ["shadow"]:shadow[type, username]:$[];
+#    string pass = user_shadow["password"]:user ["password"]:"x";
+#    if (user_shadow != $[])
+#        user_shadow = remove (user_shadow, "password");
+#
+#    return {
+#        "encrypted":        user ["encrypted"]:true,
+#        "user_password":    pass,
+#        "username":         username,
+#        "forename":         SplitFullName (`givenName, full),
+#        "surname":          SplitFullName (`sn, full),
+#	"cn":		    full,
+#        "shell":            user ["shell"]:default_shell,
+#        "uid":              user ["uid"]:-1,
+#        "gid":              user ["gid"]:default_gid,
+#        "grouplist":        user ["grouplist"]:"",
+#        "home":             user ["home"]:"",
+#        "password_settings":user_shadow
+#    };
+#FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
+
+}
+
+##------------------------------------
+# Converts group's map for autoyast usage
+# @param group map with group data as defined in Users module
+# @return map with group data in format used by autoyast
+sub ExportGroup {
+
+    my $group	= $_[0];
+    return $group;
+
+    return (
+        "group_password"	=> $group->{"userPassword"} 	|| "x",
+        "groupname"		=> $group->{"groupname"}	|| "",
+        "gid"			=> $group->{"gidNumber"},
+        "userlist"		=> $group->{"userlist"}
+    );
+#FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
+};
+
+##------------------------------------
+# Dump the users settings to list of maps
+# (For use by autoinstallation.)
+# @return map Dumped settings (later acceptable by Import ())
 BEGIN { $TYPEINFO{Export} = ["function",
     ["map", "string", "any"]];
 }
 sub Export {
-    
-    y2error ("not yet");
-    #FIXME
-    return {};
+
+    my @exported_users	= ();
+    # local users when modified
+    if (defined $users{"local"}) {
+	foreach my $user (values %{$users{"local"}}) {
+	    if ($export_all || defined $user->{"modified"}) {
+		push @exported_users, ExportUser ($user);
+	    }
+	}
+    }
+
+    # modified system users:
+    if (defined $users{"system"}) {
+	foreach my $user (values %{$users{"system"}}) {
+            if ($export_all || defined $user->{"modified"}) {
+	        push @exported_users, ExportUser ($user);
+	    }
+	}
+    }
+
+    my @exported_groups	= ();
+    # modified local system groups:
+    if (defined $groups{"local"}) {
+	foreach my $group (values %{$groups{"local"}}) {
+	    if ($export_all || defined $group->{"modified"}) {
+		push @exported_groups, ExportUser ($group);
+	    }
+	}
+    }
+
+    # modified system groups:
+    if (defined $groups{"system"}) {
+	foreach my $group (values %{$groups{"system"}}) {
+            if ($export_all || defined $group->{"modified"}) {
+	        push @exported_groups, ExportUser ($group);
+	    }
+	}
+    }
+
+    return {
+        "users"		=> \@exported_users,
+        "groups"	=> \@exported_groups,
+        "user_defaults"	=> \%useradd_defaults
+    };
 }
 
+##------------------------------------
+# Summary for autoinstalation
+# @return summary of the current configuration
 BEGIN { $TYPEINFO{Summary} = ["function", "string"];}
 sub Summary {
     
-    y2error ("not yet");
-    return "FIXME";
+    my $ret = "";
+
+    # summary label
+    $ret = _("<h3>Users</h3>");
+    foreach my $type ("local", "system") {
+	if (!defined $users{$type}) { next; }
+	while (my ($uid, $user) = each %{$users{$type}}) {
+            if (defined $user->{"modified"}) {
+                $ret .= sprintf (" $uid %s %s<br>", $user->{"username"} || "", $user->{"cn"} || "");
+	    }
+	}
+    }
+    # summary label
+    $ret .= _("<h3>Groups</h3>");
+    foreach my $type ("local", "system") {
+	if (!defined $groups{$type}) { next; }
+	while (my ($gid, $group) = each %{$groups{$type}}) {
+            if (defined $group->{"modified"}) {
+                $ret .= sprintf (" $gid %s<br>", $group->{"groupname"} || "");
+	    }
+	}
+    }
+    return $ret;
 }
+
+##-------------------------------------------------------------------------
+##-------------------------------------------------------------------------
+
+BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}
+sub SetExportAll {
+    $export_all = $_[0];
+}
+
 
 BEGIN { $TYPEINFO{SetWriteOnly} = ["function", "void", "boolean"];}
 sub SetWriteOnly {

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 16 17:16:51 CET 2004 - jsuchome@suse.cz
+
+- support for autoyast (initial for new module backend)
+- 2.9.8
+
+-------------------------------------------------------------------
 Mon Feb 16 13:37:51 CET 2004 - jsuchome@suse.cz
 
 - fixed testsuite

@@ -43,21 +43,23 @@
 
     list users = [
         $[ "username":"my_user",
-           "user_password":"pass",
+           "user_password":"passw",
            "encrypted": false,
-           "uid":501,
+//           "uid":501,
            "gid":100,
            "password_settings":$[
                 "expire":""
-            ]
+            ],
+	    "grouplist": "audio"
         ],
         $[ "username":"daemon",
            "user_password":"pass",
            "encrypted": false,
         ],
         $[ "username":"root",
+	    "uidNumber": 0,
            "user_password":"pass",
-        ]
+        ],
      ];
 
 //    param = $["users": users];
@@ -79,18 +81,18 @@
 		ret = $[];
 	}
     else if (func == "Change") {
-	string start_dialog = "users"; //look to users.ycp for possible values
+	string start_dialog = "summary"; //look to users.ycp for possible values
 	Wizard::CreateDialog();
 	ret = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
     }
     else if (func == "Export") {
 	ret = Users::Export();
-//	Users::ExportAll = false;
+	Users::SetExportAll (false);
     }
     else if (func == "Read") {
 	import "Progress";
-//	Users::ExportAll = true;
+	Users::SetExportAll (true);
 	Progress::off();
 	ret = Users::Read ();
 	Progress::on();
