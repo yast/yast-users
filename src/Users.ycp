@@ -696,7 +696,15 @@ global define symbol Write (block abort, boolean useUI)``{
             command = sformat("/usr/sbin/useradd.local %1", username);
             y2debug("useradd.local return value: %1",
                 SCR::Execute(.target.bash, command));
-
+            if (Mode::cont)
+            {
+                // Arvin: "It's only purpose is to generate some caches
+                // that make the first kde login for that user faster"
+                if (SCR::Execute (.target.bash, "/usr/bin/test -e /usr/X11R6/bin/sux -a -e /opt/kde3/bin/kbuildsycoca") == 0)
+                    SCR::Execute (.target.bash_background, sformat (
+                        "/usr/X11R6/bin/sux -c /opt/kde3/bin/kbuildsycoca %1",
+                        username));
+            }
         }
         else // only `edited can be here
         {

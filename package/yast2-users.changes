@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb 17 16:23:50 CET 2003 - jsuchome@suse.de
+
+- call "sux kbuildsycoca" after adding user during installation
+- inst_auth: check for DSL device
+- 2.7.14
+
+-------------------------------------------------------------------
 Fri Feb 14 13:35:17 CET 2003 - jsuchome@suse.de
 
 - fixed typos in texts
