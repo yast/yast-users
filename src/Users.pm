@@ -1055,7 +1055,9 @@ sub ReadCustomSets {
 	SCR->Execute (".target.bash", "/bin/touch $file");
 	$customs_modified	= 1;
 
-	if ($ldap_available && !Mode->config ()) {
+	if ($ldap_available && Ldap->initial_defaults_used () &&
+	    !Mode->config ())
+	{
 	    @user_custom_sets	= ("ldap");
 	    @group_custom_sets	= ("ldap");
 	}
