@@ -227,9 +227,9 @@ push the button <b>Edit</b> or <b>Delete</b>.
    * Help for EditUserDialog.
    * @return string help text
    */
-  global define string EditUserDialogHelp() ``{
+  global define string EditUserDialogHelp(boolean mail) ``{
 	// help text 1/4
-      return _("<p>
+    string help = _("<p>
 If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
 user account is created for this name with the <b>password</b> given in
 the corresponding field.
@@ -253,14 +253,20 @@ If you want to work with Linux, you must first enter the <b>User login</b>  and
 the password. This starting procedure is traditionally known as the
 <b>login</b>.
 </p>
-") +
+");
 
-	// help text 4/4
-		_("<p>
+    if (mail)
+        // help text 4/5
+        help = help + _("<p>
+The mail for root will be forwarded to this user, if you check the option \"This user will recieve system mail\".<p>");
+
+	// help text 5/5
+    help = help + _("<p>
 To see more details like the home directory or the user ID push
 <b>Details</b>
 </p>
 ");
+    return help;
   }
 
 

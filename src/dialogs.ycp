@@ -33,7 +33,7 @@ global define symbol EditUserDialog(symbol what) ``{
 
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
-//        Users::user_in_work = Users::saved_user; // ??
+        Users::user_in_work = Users::saved_user;
         Users::use_next_time = false;
     }
 
@@ -154,8 +154,9 @@ global define symbol EditUserDialog(symbol what) ``{
             // push button
             `PushButton(`id(`additional), _("Additional users/&groups")));
         detailsmorebox = `VBox (
-            // checkbox label -- change this!!
-            `CheckBox (`id (`root_mail),_("For&ward root's mail to this user"),
+            // checkbox label
+            `CheckBox (`id (`root_mail),_("This user &will recieve all system mail"),
+//            `CheckBox (`id (`root_mail),_("For&ward root's mail to this user"),
                 Users::root_mail != ""),
             `VStretch (),
             detailsmorebox);
@@ -199,11 +200,11 @@ can be changed for non-local users.
             detailsmorebox ));
 
     Wizard::SetContentsButtons(
-                dialog_labels [ what, user_type ]:"",
-                contents,
-                EditUserDialogHelp(),
-                UI::BackButtonLabel(),
-                UI::NextButtonLabel());
+            dialog_labels [ what, user_type ]:"",
+            contents,
+            EditUserDialogHelp(Mode::cont && Users::start_dialog == "user_add"),
+            UI::BackButtonLabel(),
+            UI::NextButtonLabel());
 
     if (do_not_edit) // canot be something edited??
     {
@@ -503,10 +504,9 @@ Please try again."));
             }
 
             // why this check?? -- the homedir was changed (see above)
-//            if( home != Users::user_in_work["org_home"]:"" )
             if( home != org_home )
             {
-                // TODO new popup for existing dir
+                // new popup for existing dir
                 if( (UsersCache::HomeExists(home)) && !details )
                 {
                     // error popup
@@ -592,7 +592,7 @@ Use it and change its owner?
     }
     if( ret == `additional ||  ret == `nosave ) // -- ??
     {
-//        Users::saved_user = Users::user_in_work; // --??
+        Users::saved_user = Users::user_in_work;
 //      start_sequencer_again = true;
 
 //      if ( ret == `additional ) ret = `next;
@@ -839,8 +839,7 @@ Please try again."));
             if ( (what == `edit_user && ( new_home != org_home ))
                  || what == `add_user )
             {
-                /* TODO new popup for existing dir */
-                if( UsersCache::HomeExists(new_home) ) // -- this is done twice
+                if( UsersCache::HomeExists(new_home) )
                 {
                     // error popup
                     Report::Error(_("The home directory is used from another user.

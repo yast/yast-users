@@ -28,295 +28,16 @@ include "users/routines.ycp";
 include "users/nis_routines.ycp";
 include "users/ldap_routines.ycp";
 
-/**
- * Remove old config options - is used from inst_root.ycp
- * @return void;
- */
-global define void removeOldConf() ``{
-
-	SCR::Write(.pam.all.password.pam_unix2, "-md5");
-	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
-
-	SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
-	SCR::Write(.pam.login.password.pam_unix, "-md5");
-	SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
-	SCR::Write(.pam.passwd.password.pam_unix, "-md5");
-	SCR::Write(.pam.sshd.password.pam_pwcheck, "-md5");
-	SCR::Write(.pam.sshd.password.pam_unix, "-md5");
-	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-md5");
-	SCR::Write(.pam.rlogin.password.pam_unix, "-md5");
-
-	SCR::Write(.pam.all.password.pam_unix2, "-blowfish");
-	SCR::Write(.pam.all.password.pam_pwcheck, "-blowfish");
-
-	SCR::Write(.pam.login.password.pam_pwcheck, "-blowfish");
-	SCR::Write(.pam.login.password.pam_unix, "-blowfish");
-	SCR::Write(.pam.passwd.password.pam_pwcheck, "-blowfish");
-	SCR::Write(.pam.passwd.password.pam_unix, "-blowfish");
-	SCR::Write(.pam.sshd.password.pam_pwcheck, "-blowfish");
-	SCR::Write(.pam.sshd.password.pam_unix, "-blowfish");
-	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
-	SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
-
-}
 
 
 // Encryption method: "des", "md5" - for future use: "blowfish"
 global string encryptionMethod = "des";
 
-// The root user
+// The root's password
 global string rootPassword = "";
 
-
 /**
- * Crypt the root password according to method defined in encryptionMethod
- * This is called during install
- * @param pw1 unencrypted password
- * @return void
- */
-global define void cryptRootPassword(string pw1) ``{
-
-	if (Mode::test) {
-	    return;
-	}
-	if (encryptionMethod == "md5" )
-	{
-	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
-	    rootPassword = cryptmd5 (pw1);
-	}
-	else if (encryptionMethod == "blowfish" )
-	{
-	    SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowfish" );
-	    rootPassword = cryptblowfish (pw1);
-	}
-	else
-	{
-	    rootPassword = crypt (pw1);
-	}
-	return;
-}
-
-/**
- * Writes password of superuser
- * @return true on success
- */
-global define boolean SetRootPassword() ``{
-
-	return (SCR::Write(.target.passwd.root, rootPassword));
-}
-
-/**
- * Summary for autoinstalation
- */
-global define string Summary() ``{
-
-    string ret = "Summary of users and groups:<br>";
-
-    // do not show system users/groups ??
-    ret = ret + "<p><i>Users:</i><p>";
-    foreach (`uid, `user, users [`local]:$[], ``{
-            ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
-                user["fullname"]:"" );
-    });
-    ret = ret + "<p><i>Groups:</i><p>";
-    foreach (`gid, `group, groups [`local]:$[], ``{
-            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
-    });
-
-    /*
-    ret = ret + "<p><i>Users:</i><p>";
-    foreach (`type, `usersmap, users, ``{
-        foreach (`uid, `user, usersmap, ``{
-            ret = ret + sformat(" %1 %2<br>", uid, user["username"]:"");
-        });
-    });
-    ret = ret + "<p><i>Groups:</i><p>";
-    foreach (`type, `groupsmap, groups, ``{
-        foreach (`gid, `group, groupsmap, ``{
-            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
-        });
-    });
-    */
-    return ret;
-}
-
-/**
- * Get all the user configuration from the list of maps.
- * Is called users_auto (preparing autoinstallation data).
- * @param settings	A list of maps of type:
- * [ users, groups, shadow, gshadow, useradds_defaults ]
- * to be added to the system.
- * @return	success
- */
-global define boolean Import (list settings) ``{
-
-    // probably only the local users/groups are in settings
-    y2debug("importing: %1", settings);
-
-    users = settings[0]:users;
-    groups = settings[1]:groups;
-    shadow = settings[2]:shadow;
-    gshadow = settings[3]:gshadow;
-
-    if (settings[4]:$[] == $[])
-        ReadLoginDefaults();
-    else
-        useradd_defaults = settings[4]:$[];
-
-    ReadSystemDefaults();
-    tmpdir = SCR::Read(.target.tmpdir);
-    RunPrepare("passwd"); // creates the files with data structures in tmpdir
-
-    // read the system users from local file if they're not in parameters
-    if (users [`system]:nil == nil || users [`system]:nil == $[])
-    {
-        map passwd_users = ReadPasswd (tmpdir);
-        users [`system] = passwd_users [`system]:$[];
-        map passwd_users_by_name = ReadPasswdByName (tmpdir);
-        users_by_name [`system] = passwd_users_by_name[`system]:$[];
-    }
-    if (users [`local]:nil == nil)
-        users = add (users, `local, $[]);
-
-    users_by_name [`local] = UsersByName (users [`local]:$[]);
-    // -- move the plus_strings to if sections ??
-    plus_passwd = ReadPlusPasswd (tmpdir);
-
-    if (groups [`system]:nil == nil || groups [`system]:nil == $[])
-    {
-        map all_groups = ReadGroups (tmpdir);
-        map system_groups = all_groups [`system]:$[];
-        // but we're not interested in local userlists...
-        system_groups = RemoveDiskUsersFromGroups(system_groups);
-        groups [`system] = system_groups;
-        // hack for group users, which is count as local
-        if ( lookup (GetGroupFromAll (100), "groupname", "") != "users" &&
-             lookup (GetGroupFromAll (500), "groupname", "") != "users")
-        {
-            map local_groups = all_groups [`local]:$[];
-            map group = local_groups [default_gid]:
-                $[ "gid": default_gid, "groupname": "users",
-                   "password": "x", "userlist": "games"];
-            local_groups = RemoveDiskUsersFromGroups ($[ default_gid: group ]);
-            groups [`local] = union (groups [`local]:$[], local_groups);
-        }
-        groups_by_name = GroupsByName (system_groups);
-    }
-    if (groups [`local]:nil == nil)
-        groups = add (groups, `local, $[]);
-    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
-    plus_group = ReadPlusGroup(tmpdir);
-
-    if (shadow [`system]:nil == nil || shadow [`system]:nil == $[])
-    {
-        map all_shadow = ReadShadow (tmpdir);
-        shadow [`system] = all_shadow[`system]:$[];
-    }
-    if (shadow [`local]:nil == nil)
-        shadow = add (shadow, `local, $[]);
-    plus_shadow = ReadPlusShadow(tmpdir);
-
-    if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
-    {
-        map all_gshadow = ReadGshadow (tmpdir);
-        gshadow [`system] = all_gshadow[`system]:$[];
-    }
-    if (gshadow [`local]:nil == nil)
-        gshadow = add (gshadow, `local, $[]);
-    plus_gshadow = ReadPlusGshadow(tmpdir);
-
-    // maybe the `system users/groups shouldn't be available??
-    available_usersets = [`local, `system];
-    available_groupsets = [`local, `system];
-
-    ReadAllShells();
-    ReadDefaultGroup(false);
-
-    ReadUsersCache(false);
-
-    return true;
-}
-
-/*
- * Helper function, which corects the userlist entry of each group.
- * During autoinstallation, system groups are loaded from the disk,
- * and the userlists of these groups can contain the local users,
- * which we don not want to Import. So they are checked here.
- */
-global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
-
-	map ret = mapmap (`gid, `group, disk_groups, ``{
-
-        map new_group = group;
-
-        foreach (`list_of_users, ["userlist", "more_users"], ``{
-
-            list userlist = splitstring (group[list_of_users]:"", ",");
-            string userlist_s = "";
-            foreach (`username, userlist, ``{
-                if (haskey (users_by_name [`system]:$[], username) ||
-                    haskey (users_by_name [`local]:$[], username))
-                {
-                    if (userlist_s == "")
-                        userlist_s = username;
-                    else
-                        userlist_s = userlist_s + "," + username;
-                }
-            });
-            new_group[list_of_users] = userlist_s;
-        });
-
-	    return [ gid, new_group ];
-	});
-
-    return ret;
-}
-
-
-/**
- * Reseting the values (probably to empty set) - to use for autoinstallation
- * @param settings same as in Import
- */
-global define Set (list settings) ``{
-
-    users [`local] = settings[0, `local]:$[];
-    users_by_name [`local] = UsersByName (users [`local]:$[]);
-
-    groups [`local] = settings[1, `local]:$[];
-    groups_by_name = union (ReadGroupsByName (tmpdir),
-        GroupsByName (groups [`local]:$[]));
-
-    shadow [`local] = settings[2, `local]:$[];
-    gshadow [`local] = settings[3, `local]:$[];
-
-    if (settings[4]:$[] != $[])
-        useradd_defaults = settings[4]:$[];
-
-    UsersCache::EmptyStructures();
-    ReadUsersCache(false);
-}
-
-/**
- * Dump the users settings to list of maps
- * (For use by autoinstallation.)
- * @return map Dumped settings (later acceptable by Import ())
- */
-global define map Export() ``{
-
-    return [ users, groups, shadow, gshadow, useradd_defaults ];
-// return only values for local users/groups ??
-}
-
-/**
- *  keys in useradd_defaults:
- * "group"
- * "home"
- * "inactive"
- * "expire"
- * "shell"
- * "skel"
+ *  keys from /etc/defaults/useradd:
  **/
 map useradd_defaults  = $[
     "group": "",
@@ -415,6 +136,9 @@ global map groups_by_name = $[];
 global map user_in_work = $[];
 global map group_in_work = $[];
 
+// the first user, added during install
+global map saved_user = $[];
+
 // users, which has been deleted/modified:
 map modified_users = $[];
 //list modified_groups = [];
@@ -462,7 +186,7 @@ string plus_gshadow = "";
 string ldap_host = "";
 string ldap_base = "";
 
-string tmpdir = "/tmp";
+string tmpdir = "/tmp"; // do not write to /tmp only!
 
 global string start_dialog = "users";
 global boolean use_next_time = true; // what is it for ??
@@ -474,19 +198,28 @@ global boolean modified = false;
 global map userset_to_string = $[
     // the type of user set
     `system:    _("&System users"),
+    // the type of user set
     `local:     _("&Local users"),
+    // the type of user set
     `nis:       _("&NIS users"),
+    // the type of user set
     `ldap:      _("L&DAP users"),
+    // the type of user set
     `samba:     _("Sam&ba users"),
+    // the type of user set
     `custom:    _("&Custom")
 ];
 
 global map groupset_to_string = $[
     // the type of group set
     `system:    _("&System groups"),
+    // the type of group set
     `local:     _("&Local groups"),
+    // the type of group set
     `ldap:      _("L&DAP groups"),
+    // the type of group set
     `samba:     _("Sam&ba groups"),
+    // the type of group set
     `custom:    _("&Custom")
 ];
 
@@ -556,7 +289,7 @@ global define symbol Read (block abort, boolean useUI) ``{
 	    }
 	}
 
-	if ( ! ReadLoginDefaults() )
+	if ( ! ReadLoginDefaults(useUI) )
 	{
 		// warning popup
 	    Report::Warning (_("Cannot read the default login settings."));
@@ -711,7 +444,6 @@ global define symbol Read (block abort, boolean useUI) ``{
         is_ldap_server = IsLDAPServer (ldap_host);
 
         available_usersets = add ( available_usersets, `ldap);
-//        available_groupsets = add ( available_groupsets, `ldap);// ??
     }
 
     available_usersets = add ( available_usersets, `custom);
@@ -749,207 +481,6 @@ global define symbol Read (block abort, boolean useUI) ``{
 
 	return `next;
 }
-
-/**
-  * Return map for mapping user names to UIDs
-  * @return map mapping
-  */
-global define map UsersByName (map usermap) ``{
-	map res = mapmap (`k, `v, usermap, ``{
-	    return [ lookup (v, "username", ""), k ]; // only uid !!
-	});
-	return res;
-}
-
-/**
-  * Maps groupname to group's map
-  * @return map mapping
-  */
-global define map GroupsByName (map groupsmap) ``{
-	map res = mapmap (`k, `v, groupsmap, ``{
-	    return [ lookup (v, "groupname", ""), v ]; // whole map??
-	});
-	return res;
-}
-
-/**
-  * Patch list of groups for each user to it's structure
-  *
-global define void PatchUsers (symbol type, map groupmap) ``{
-
-    if (users [ type ]:$[] == $[] || users_by_name [ type ]:$[] == $[])
-        return;
-
-	foreach (`k, `v, groupmap, ``{
-        // group members
-	    list members = splitstring (lookup (v, "userlist", ""), ",");
-	    string name = lookup (v, "groupname", "");
-        // for each member of this group, add this group name to "grouplist"
-	    foreach (`m, members, ``{
-		    integer uid = users_by_name [ type, m ]:0;
-	        map u = users [ type, uid ]:$[];
-            if (u != $[] && k!= u["gid"]:max_gid) //do not add default group
-            {
-                string grouplist = lookup (u, "grouplist", "");
-                list l_grouplist = splitstring (grouplist, ",");
-                if (! contains (l_grouplist, name))
-                {
-                    if (grouplist != "") grouplist = grouplist + ",";
-                    grouplist = grouplist + name;
-                    u = add (u, "grouplist", grouplist);
-                    users [ type, uid ] = u;
-                }
-            }
-	    });
-	});
-}
-    */
-
-
-/**
- * Fills the variables with the default values
- * (used only for better access)
- */
-define void SetDefaultValues() ``{
-
-    pass_inact_days  = tointeger( useradd_defaults["inactive"]:"-1" );
-    pass_expire_date = useradd_defaults["expire"]:"";
-
-    default_shell = useradd_defaults["shell"]:default_shell;
-    default_skel = useradd_defaults["skel"]:default_skel;
-    default_expire = useradd_defaults["expire"]:default_expire;
-    default_inactive = useradd_defaults["inactive"]:default_inactive;
-    default_home = GetDefaultHome();
-}
-
-/**
- * Reads settings from /etc/defaults/useradd
- * @return true on success
- */
-global define boolean ReadLoginDefaults()``{
-
-    path useradd_path = .etc.default.useradd;
-
-    foreach (`key, `value, useradd_defaults, ``{
-        path entry_path = add (useradd_path, key);
-        useradd_defaults[key] = deletechars (SCR::Read(entry_path), "\"");
-    });
-
-    if( useradd_defaults == $[] || useradd_defaults == nil )
-	    return false;
-
-    SetDefaultValues();
-    return true;
-}
-
-/**
-  * Writes settings to /etc/defaults/useradd
-  * @return true on success
-  */
-global define boolean WriteLoginDefaults()``{
-
-    boolean ret = true;
-    path useradd = .etc.default.useradd;
-
-    foreach (`key, `value, useradd_defaults, ``{
-
-        ret = ret && SCR::Write( add(useradd, key), value);
-    });
-
-    y2milestone ("Succesfully written useradd defaults: %1", ret);
-    return ret;
-}
-
-/**
-  * Reads all possible shels and builds the itemlist for add user dialog
-  * @return true
-  */
-define boolean ReadAllShells()``{
-
-    all_shells = GetAllShells (`stringlist);
-    all_shells_items = GetAllShells (`items);
-
-    return true;
-}
-
-/**
-  * Sets the default gid and groupname
-  * @return true
-  */
-define boolean ReadDefaultGroup(boolean useUI)``{
-
-    default_gid = GetDefaultGid(useUI);
-    default_groupname = lookup (GetGroupFromAll(default_gid), "groupname","");
-
-    return true;
-}
-
-/**
- * Read the security settings from the system, sets the encoding and various
- * variables
- * @return boolean true on success
- */
-global define boolean ReadSystemDefaults()``{ //SecurityDef?
-
-	// pam stuff
-	map pam_unix_map = $[];
-	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
-	if(pam_list != [] && pam_list != nil)
-	    pam_unix_map = select(pam_list,0,$[]);
-
-	map pam_check_map = $[];
-	pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
-	if(pam_list != [] && pam_list != nil)
-	    pam_check_map = select(pam_list,0,$[]);
-
-	// md5 support
-	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
-        " "), "md5");
-	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
-        ""), " "), "blowfish");
-
-	// set defaults
-	max_uid = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
-	if (nil == max_uid)
-	    max_uid = 60000;
-    max_gid = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
-    if (nil == max_gid)
-        max_gid = 60000;
-	max_system_uid = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
-    if (nil == max_system_uid)
-        max_uid = 499;
-    max_system_gid = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
-    if (nil == max_system_gid)
-        max_system_gid = 99;
-	max_length_uid = size(sformat("%1", max_uid));
-	max_length_gid = size(sformat("%1", max_gid));
-    max_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
-    if (nil ==  max_length_pas)
-        max_length_pas = 8;
-    min_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
-    if (nil ==  min_length_pas)
-        min_length_pas = 5;
-    pass_max_days = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
-    if (nil ==  pass_max_days)
-        pass_max_days = 99999;
-    pass_min_days = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_DAYS));
-    if (nil == pass_min_days)
-        pass_min_days = 0;
-    pass_warn_age = tointeger (SCR::Read (.etc.login_defs.PASS_WARN_AGE));
-    if (nil == pass_warn_age)
-        pass_warn_age = 7;
-
-	encryption = md5 ? `md5 : blowfish ? `blowfish : `des;
-
-	// set maximal password length
-	if (`des != encryption)
-	    max_length_pas = 128;
-
-    encoding = Console::encoding;
-
-	return true;
-}
-
 
 /**
  * Saves users into the system
@@ -1070,6 +601,7 @@ global define symbol Write (block abort, boolean useUI)``{
         {
             if (user["create_home"]:true)
             {
+                // TODO create a path to new home directory
                 y2milestone ("The directory %1 is created", home);
                 // copy homedir from skel
                 command = sformat("/bin/cp -r %1 %2",default_skel,home);
@@ -1231,91 +763,191 @@ global define symbol Write (block abort, boolean useUI)``{
 	return `next;
 }
 
-/**
- * Return a map with the defaults for the shadow entry
- * @return map of shadow settings
- */
-global define map GetDefaultShadow()``{
 
-	return	$[
-           "expire"	: default_expire,
-		   "inact"	: default_inactive,
-           "last_change": "", // LastChangeIsNow() is called from dialogs
-		   "max"	: sformat("%1", pass_max_days),
-		   "min"	: sformat("%1", pass_min_days),
-		   "warn"	: sformat("%1", pass_warn_age)
-    ];
+/**
+ * Summary for autoinstalation
+ */
+global define string Summary() ``{
+
+    string ret = "Summary of users and groups:<br>";
+
+    // do not show system users/groups ??
+    ret = ret + "<p><i>Users:</i><p>";
+    foreach (`uid, `user, users [`local]:$[], ``{
+            ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
+                user["fullname"]:"" );
+    });
+    ret = ret + "<p><i>Groups:</i><p>";
+    foreach (`gid, `group, groups [`local]:$[], ``{
+            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
+    });
+
+    return ret;
 }
 
 /**
- * Return the default home value for a new user.
- * @return string home directory
+ * Get all the user configuration from the list of maps.
+ * Is called users_auto (preparing autoinstallation data).
+ * @param settings	A list of maps of type:
+ * [ users, groups, shadow, gshadow, useradds_defaults ]
+ * to be added to the system.
+ * @return	success
  */
-global define string GetDefaultHome()``{
+global define boolean Import (list settings) ``{
 
-    string def_home = useradd_defaults["home"]:"/home";
-    /* TODO check if the directory exists - in the dialogs */
-    if ( (findlastof( def_home, "/") +1) != size(def_home ) )
+    // probably only the local users/groups are in settings
+    y2debug("importing: %1", settings);
+
+    users = settings[0]:users;
+    groups = settings[1]:groups;
+    shadow = settings[2]:shadow;
+    gshadow = settings[3]:gshadow;
+
+    if (settings[4]:$[] == $[])
+        ReadLoginDefaults();
+    else
+        useradd_defaults = settings[4]:$[];
+
+    ReadSystemDefaults();
+    tmpdir = SCR::Read(.target.tmpdir);
+    RunPrepare("passwd"); // creates the files with data structures in tmpdir
+
+    // read the system users from local file if they're not in parameters
+    if (users [`system]:nil == nil || users [`system]:nil == $[])
     {
-        def_home = def_home + "/";
+        map passwd_users = ReadPasswd (tmpdir);
+        users [`system] = passwd_users [`system]:$[];
+        map passwd_users_by_name = ReadPasswdByName (tmpdir);
+        users_by_name [`system] = passwd_users_by_name[`system]:$[];
     }
-    return def_home;
-}
+    if (users [`local]:nil == nil)
+        users = add (users, `local, $[]);
 
-/**
- * Return the default group id for a new user.
- * @return integer gid
- */
-global define integer GetDefaultGid(boolean useUI)``{
+    users_by_name [`local] = UsersByName (users [`local]:$[]);
+    // -- move the plus_strings to if sections ??
+    plus_passwd = ReadPlusPasswd (tmpdir);
 
-    string def_gid  = useradd_defaults["group"]:default_gid;
-    integer def_int = tointeger(def_gid);
-    map group = $[];
-
-    group = GetGroupFromAll (def_int);
-    if( group == $[])
+    if (groups [`system]:nil == nil || groups [`system]:nil == $[])
     {
-        if (useUI)
-	        // error popup
-	        Report::Error(sformat(_("The default group with the id %1 does not exist.
-Please change the default group in /etc/default/useradd."), def_int ));
-
-
-	    // TODO If group 100/500 does not exists ?
-	    return default_gid;
+        map all_groups = ReadGroups (tmpdir);
+        map system_groups = all_groups [`system]:$[];
+        // but we're not interested in local userlists...
+        system_groups = RemoveDiskUsersFromGroups(system_groups);
+        groups [`system] = system_groups;
+        // hack for group users, which is count as local
+        if ( lookup (GetGroupFromAll (100), "groupname", "") != "users" &&
+             lookup (GetGroupFromAll (500), "groupname", "") != "users")
+        {
+            map local_groups = all_groups [`local]:$[];
+            map group = local_groups [default_gid]:
+                $[ "gid": default_gid, "groupname": "users",
+                   "password": "x", "userlist": "games"];
+            local_groups = RemoveDiskUsersFromGroups ($[ default_gid: group ]);
+            groups [`local] = union (groups [`local]:$[], local_groups);
+        }
+        groups_by_name = GroupsByName (system_groups);
     }
-    return def_int;
+    if (groups [`local]:nil == nil)
+        groups = add (groups, `local, $[]);
+    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
+    plus_group = ReadPlusGroup(tmpdir);
+
+    if (shadow [`system]:nil == nil || shadow [`system]:nil == $[])
+    {
+        map all_shadow = ReadShadow (tmpdir);
+        shadow [`system] = all_shadow[`system]:$[];
+    }
+    if (shadow [`local]:nil == nil)
+        shadow = add (shadow, `local, $[]);
+    plus_shadow = ReadPlusShadow(tmpdir);
+
+    if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
+    {
+        map all_gshadow = ReadGshadow (tmpdir);
+        gshadow [`system] = all_gshadow[`system]:$[];
+    }
+    if (gshadow [`local]:nil == nil)
+        gshadow = add (gshadow, `local, $[]);
+    plus_gshadow = ReadPlusGshadow(tmpdir);
+
+    // maybe the `system users/groups shouldn't be available??
+    available_usersets = [`local, `system];
+    available_groupsets = [`local, `system];
+
+    ReadAllShells();
+    ReadDefaultGroup(false);
+
+    ReadUsersCache(false);
+
+    return true;
+}
+
+
+/**
+ * Reseting the values (probably to empty set) - to use for autoinstallation
+ * @param settings same as in Import
+ */
+global define Set (list settings) ``{
+
+    users [`local] = settings[0, `local]:$[];
+    users_by_name [`local] = UsersByName (users [`local]:$[]);
+
+    groups [`local] = settings[1, `local]:$[];
+    groups_by_name = union (ReadGroupsByName (tmpdir),
+        GroupsByName (groups [`local]:$[]));
+
+    shadow [`local] = settings[2, `local]:$[];
+    gshadow [`local] = settings[3, `local]:$[];
+
+    if (settings[4]:$[] != $[])
+        useradd_defaults = settings[4]:$[];
+
+    UsersCache::EmptyStructures();
+    ReadUsersCache(false);
 }
 
 /**
- * Read the /etc/shells file and return a item list or a string shell list.
- * @param todo `items or `stringlist
- * @return list of shells
+ * Dump the users settings to list of maps
+ * (For use by autoinstallation.)
+ * @return map Dumped settings (later acceptable by Import ())
  */
-global define list GetAllShells(symbol todo ) ``{
+global define map Export() ``{
 
-	list available_shells =  [];
-	list shells_read = SCR::Read(.etc.shells);
+    return [ users, groups, shadow, gshadow, useradd_defaults ];
+}
+/*
+ * Helper function, which corects the userlist entry of each group.
+ * During autoinstallation, system groups are loaded from the disk,
+ * and the userlists of these groups can contain the local users,
+ * which we don not want to Import. So they are checked here.
+ */
+global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
 
-	foreach( `shell_entry, shells_read, ``{
+	map ret = mapmap (`gid, `group, disk_groups, ``{
 
-	    if( is( shell_entry, string ))
-	    {
-		    if( (! issubstring( shell_entry, "passwd")) &&
-		        (! issubstring( shell_entry, "bash1")) )
-		    {
-		        if(  SCR::Read(.target.size, shell_entry  )  != -1  )
-		        {
-			        if (todo == `items) available_shells = add(available_shells,
-                            `item( `id(shell_entry), shell_entry ));
-			        if ( todo == `stringlist ) available_shells =
-                            add( available_shells, shell_entry);
-		        }
-		    }
+        map new_group = group;
 
-	    }
+        foreach (`list_of_users, ["userlist", "more_users"], ``{
+
+            list userlist = splitstring (group[list_of_users]:"", ",");
+            string userlist_s = "";
+            foreach (`username, userlist, ``{
+                if (haskey (users_by_name [`system]:$[], username) ||
+                    haskey (users_by_name [`local]:$[], username))
+                {
+                    if (userlist_s == "")
+                        userlist_s = username;
+                    else
+                        userlist_s = userlist_s + "," + username;
+                }
+            });
+            new_group[list_of_users] = userlist_s;
+        });
+
+	    return [ gid, new_group ];
 	});
-	return available_shells;
+
+    return ret;
 }
 
 // prepare user/group_in_work for Commit
@@ -1338,6 +970,7 @@ global define boolean Delete (string what, map data)``{
     return true;
 }
 
+
 /**
  * Update the global user and/or group map with current
  * user_in work or group_in_work
@@ -1350,7 +983,7 @@ global define boolean Commit (string object, boolean cache)``{
 
     if (object == "user")
     {
-y2milestone("user : %1", user_in_work );
+//y2milestone("user : %1", user_in_work );
         integer uid = user_in_work ["uid"]:max_uid;
         symbol what_user = user_in_work ["what"]:`nothing;
         symbol type = user_in_work ["type"]:`local;
@@ -1576,7 +1209,7 @@ y2milestone("user : %1", user_in_work );
         }
         else // also `group_change !
         {
-            users [ type, uid ] = user_in_work;
+            users [ type, uid ] = eval (user_in_work);
             // only when uid was changed:
             //users_by_name [ type, username ] = new_uid;
 
@@ -1596,7 +1229,7 @@ y2milestone("user : %1", user_in_work );
         string org_groupname = group_in_work ["org_groupname"]:groupname;
         string userlist = group_in_work ["userlist"]:"";
         list l_userlist = splitstring (userlist, ",");
-y2milestone("group: %1", group_in_work);
+//y2milestone("group: %1", group_in_work);
 
         if (org_groupname == "")
             org_groupname = groupname;
@@ -1741,6 +1374,270 @@ y2milestone("group: %1", group_in_work);
     }
     return true;
 }
+
+/**
+  * Return map for mapping user names to UIDs
+  * @return map mapping
+  */
+global define map UsersByName (map usermap) ``{
+	map res = mapmap (`k, `v, usermap, ``{
+	    return [ lookup (v, "username", ""), k ]; // only uid !!
+	});
+	return res;
+}
+
+/**
+  * Maps groupname to group's map
+  * @return map mapping
+  */
+global define map GroupsByName (map groupsmap) ``{
+	map res = mapmap (`k, `v, groupsmap, ``{
+	    return [ lookup (v, "groupname", ""), v ]; // whole map??
+	});
+	return res;
+}
+
+/**
+ * Fills the variables with the default values
+ * (used only for better access)
+ */
+define void SetDefaultValues(boolean useUI) ``{
+
+    pass_inact_days  = tointeger( useradd_defaults["inactive"]:"-1" );
+    pass_expire_date = useradd_defaults["expire"]:"";
+
+    default_shell = useradd_defaults["shell"]:default_shell;
+    default_skel = useradd_defaults["skel"]:default_skel;
+    default_expire = useradd_defaults["expire"]:default_expire;
+    default_inactive = useradd_defaults["inactive"]:default_inactive;
+    default_home = GetDefaultHome(useUI);
+}
+
+/**
+ * Reads settings from /etc/defaults/useradd
+ * @return true on success
+ */
+global define boolean ReadLoginDefaults(boolean useUI)``{
+
+    path useradd_path = .etc.default.useradd;
+
+    foreach (`key, `value, useradd_defaults, ``{
+        path entry_path = add (useradd_path, key);
+        useradd_defaults[key] = deletechars (SCR::Read(entry_path), "\"");
+    });
+
+    if( useradd_defaults == $[] || useradd_defaults == nil )
+	    return false;
+
+    SetDefaultValues(useUI);
+    return true;
+}
+
+/**
+  * Writes settings to /etc/defaults/useradd
+  * @return true on success
+  */
+global define boolean WriteLoginDefaults()``{
+
+    boolean ret = true;
+    path useradd = .etc.default.useradd;
+
+    foreach (`key, `value, useradd_defaults, ``{
+
+        ret = ret && SCR::Write( add(useradd, key), value);
+    });
+
+    y2milestone ("Succesfully written useradd defaults: %1", ret);
+    return ret;
+}
+
+/**
+  * Reads all possible shels and builds the itemlist for add user dialog
+  * @return true
+  */
+define boolean ReadAllShells()``{
+
+    all_shells = GetAllShells (`stringlist);
+    all_shells_items = GetAllShells (`items);
+
+    return true;
+}
+
+/**
+  * Sets the default gid and groupname
+  * @return true
+  */
+define boolean ReadDefaultGroup(boolean useUI)``{
+
+    default_gid = GetDefaultGid(useUI);
+    default_groupname = lookup (GetGroupFromAll(default_gid), "groupname","");
+
+    return true;
+}
+
+/**
+ * Read the security settings from the system, sets the encoding and various
+ * variables
+ * @return boolean true on success
+ */
+global define boolean ReadSystemDefaults()``{ //SecurityDef?
+
+	// pam stuff
+	map pam_unix_map = $[];
+	list pam_list = SCR::Read(.pam.all.password.pam_unix2);
+	if(pam_list != [] && pam_list != nil)
+	    pam_unix_map = select(pam_list,0,$[]);
+
+	map pam_check_map = $[];
+	pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
+	if(pam_list != [] && pam_list != nil)
+	    pam_check_map = select(pam_list,0,$[]);
+
+	// md5 support
+	boolean md5 = contains(splitstring(lookup(pam_unix_map , "arguments", ""),
+        " "), "md5");
+	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments",
+        ""), " "), "blowfish");
+
+	// set defaults
+	max_uid = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
+	if (nil == max_uid)
+	    max_uid = 60000;
+    max_gid = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
+    if (nil == max_gid)
+        max_gid = 60000;
+	max_system_uid = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
+    if (nil == max_system_uid)
+        max_uid = 499;
+    max_system_gid = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
+    if (nil == max_system_gid)
+        max_system_gid = 99;
+	max_length_uid = size(sformat("%1", max_uid));
+	max_length_gid = size(sformat("%1", max_gid));
+    max_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
+    if (nil ==  max_length_pas)
+        max_length_pas = 8;
+    min_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
+    if (nil ==  min_length_pas)
+        min_length_pas = 5;
+    pass_max_days = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
+    if (nil ==  pass_max_days)
+        pass_max_days = 99999;
+    pass_min_days = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_DAYS));
+    if (nil == pass_min_days)
+        pass_min_days = 0;
+    pass_warn_age = tointeger (SCR::Read (.etc.login_defs.PASS_WARN_AGE));
+    if (nil == pass_warn_age)
+        pass_warn_age = 7;
+
+	encryption = md5 ? `md5 : blowfish ? `blowfish : `des;
+
+	// set maximal password length
+	if (`des != encryption)
+	    max_length_pas = 128;
+
+    encoding = Console::encoding;
+
+	return true;
+}
+
+
+/**
+ * Return a map with the defaults for the shadow entry
+ * @return map of shadow settings
+ */
+global define map GetDefaultShadow()``{
+
+	return	$[
+           "expire"	: default_expire,
+		   "inact"	: default_inactive,
+           "last_change": "", // LastChangeIsNow() is called from dialogs
+		   "max"	: sformat("%1", pass_max_days),
+		   "min"	: sformat("%1", pass_min_days),
+		   "warn"	: sformat("%1", pass_warn_age)
+    ];
+}
+
+/**
+ * Return the default home value for a new user.
+ * @return string home directory
+ */
+global define string GetDefaultHome(boolean useUI)``{
+
+    string def_home = useradd_defaults["home"]:"/home";
+
+    // check for existence of prefix directory
+    if (SCR::Read(.target.size, def_home ) == -1 && useUI)
+    {
+        if (UI::YesNoPopup(sformat (_("The default home directory \"%1\" doesn't exist.
+Create it now?"), def_home)))
+            SCR::Execute (.target.mkdir, def_home);
+    }
+    if ( (findlastof( def_home, "/") +1) != size(def_home ) )
+    {
+        def_home = def_home + "/";
+    }
+    return def_home;
+}
+
+
+/**
+ * Return the default group id for a new user.
+ * @return integer gid
+ */
+global define integer GetDefaultGid(boolean useUI)``{
+
+    string def_gid  = useradd_defaults["group"]:default_gid;
+    integer def_int = tointeger(def_gid);
+    map group = $[];
+
+    group = GetGroupFromAll (def_int);
+    if( group == $[])
+    {
+        if (useUI)
+	        // error popup
+	        Report::Error(sformat(_("The default group with the id %1 does not exist.
+Please change the default group in /etc/default/useradd."), def_int ));
+
+
+	    // TODO If group 100/500 does not exists ?
+	    return default_gid;
+    }
+    return def_int;
+}
+
+/**
+ * Read the /etc/shells file and return a item list or a string shell list.
+ * @param todo `items or `stringlist
+ * @return list of shells
+ */
+global define list GetAllShells(symbol todo ) ``{
+
+	list available_shells =  [];
+	list shells_read = SCR::Read(.etc.shells);
+
+	foreach( `shell_entry, shells_read, ``{
+
+	    if( is( shell_entry, string ))
+	    {
+		    if( (! issubstring( shell_entry, "passwd")) &&
+		        (! issubstring( shell_entry, "bash1")) )
+		    {
+		        if(  SCR::Read(.target.size, shell_entry  )  != -1  )
+		        {
+			        if (todo == `items) available_shells = add(available_shells,
+                            `item( `id(shell_entry), shell_entry ));
+			        if ( todo == `stringlist ) available_shells =
+                            add( available_shells, shell_entry);
+		        }
+		    }
+
+	    }
+	});
+	return available_shells;
+}
+
+
 
 global define list ReadUserCustomSets() ``{
 
@@ -2034,7 +1931,7 @@ global define boolean SetDefaults (map new_defaults, string groupname)``{
 
     default_gid = tointeger(useradd_defaults["group"]:sformat("%1",default_gid));
     default_groupname = groupname;
-    SetDefaultValues();
+    SetDefaultValues(false);
 
     return true;
 }
@@ -2145,12 +2042,89 @@ global define map BuildAdditional (string userlist, string more_users) ``{
         ];
 }
 
-// remove tmpdir -- only when abort or back was pushed -- is it safe ??
-/* do not set as global
-define void RemoveTmp (string dir) ``{
+/*
+ * Re-read the settings, when back was pushed during installation
+ */
+global define boolean StartAgain() ``{
 
-    if (issubstring(dir, "/tmp/"))
-        SCR::Execute(.target.bash, "/bin/rm -rf " + dir);
-}*/
+    y2debug ("reload unmodified values from disk...");
+
+    Read ( nil, false);
+
+    return true;
+
+}
+
+/**
+ * Remove old config options - is used from inst_root.ycp
+ * @return void;
+ */
+global define void removeOldConf() ``{
+
+	SCR::Write(.pam.all.password.pam_unix2, "-md5");
+	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
+
+	SCR::Write(.pam.login.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.login.password.pam_unix, "-md5");
+	SCR::Write(.pam.passwd.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.passwd.password.pam_unix, "-md5");
+	SCR::Write(.pam.sshd.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.sshd.password.pam_unix, "-md5");
+	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-md5");
+	SCR::Write(.pam.rlogin.password.pam_unix, "-md5");
+
+	SCR::Write(.pam.all.password.pam_unix2, "-blowfish");
+	SCR::Write(.pam.all.password.pam_pwcheck, "-blowfish");
+
+	SCR::Write(.pam.login.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.login.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.passwd.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.passwd.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.sshd.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.sshd.password.pam_unix, "-blowfish");
+	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
+	SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
+
+}
+
+
+/**
+ * Crypt the root password according to method defined in encryptionMethod
+ * This is called during install
+ * @param pw1 unencrypted password
+ * @return void
+ */
+global define void cryptRootPassword(string pw1) ``{
+
+	if (Mode::test) {
+	    return;
+	}
+	if (encryptionMethod == "md5" )
+	{
+	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );
+	    rootPassword = cryptmd5 (pw1);
+	}
+	else if (encryptionMethod == "blowfish" )
+	{
+	    SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
+	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowfish" );
+	    rootPassword = cryptblowfish (pw1);
+	}
+	else
+	{
+	    rootPassword = crypt (pw1);
+	}
+	return;
+}
+
+/**
+ * Writes password of superuser
+ * @return true on success
+ */
+global define boolean SetRootPassword() ``{
+
+	return (SCR::Write(.target.passwd.root, rootPassword));
+}
 
 }// EOF

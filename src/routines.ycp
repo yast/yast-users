@@ -160,7 +160,7 @@ global define list WritePasswd(string basedir, map system_users, map local_users
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
-        if (user["modified_list"]:`nothing != `nothing)
+        if (user["modified"]:`nothing != `nothing)
             modified_list = add (modified_list, user);
         return to_save;
     });
@@ -173,7 +173,7 @@ global define list WritePasswd(string basedir, map system_users, map local_users
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
-        if (user["modified_list"]:`nothing != `nothing)
+        if (user["modified"]:`nothing != `nothing)
             modified_list = add (modified_list, user);
         return to_save;
     }));

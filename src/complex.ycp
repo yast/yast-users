@@ -83,7 +83,7 @@ global define symbol userSetup () ``{
   * @return symbol for wizard sequencer
   */
 global define symbol usersInstStart () ``{
-    Users::start_dialog = "user_add";
+    Users::start_dialog = "user_add";// ??
 //    UserWriteStack::Reset ();
     return `next;
 }
@@ -241,12 +241,13 @@ global define symbol UsersDialog() ``{
 
     if (ret == `back)
     {
-        // -- don't understand at all... beware!!
         if (Mode::cont)
         {
             Users::start_dialog = "user_add";
+//            ret = `start;
+            Users::StartAgain ();
         }
-        Users::use_next_time = true; // ??
+        Users::use_next_time = true;
     }
     save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
@@ -254,6 +255,8 @@ global define symbol UsersDialog() ``{
         ret = `nosave;
     return ret;
 }
+
+
 
 /**
  * The second of the two main dialogs.
@@ -580,9 +583,9 @@ global define boolean CustomizePopup(string what) ``{
 global define symbol UserSave() ``{
 
     Users::Commit("user", true);
-
+y2milestone ("start: %1", Users::start_dialog);
     // adding only one user during install
-    if (Mode::cont && Users::start_dialog == "user_add")
+    if (Mode::cont && Users::start_dialog == "user_add" )
         return `save;
     else
     return `next;
