@@ -55,6 +55,7 @@ my @group_object_class                 =
     
 ##------------------------------------
 
+# TODO check for Mode::config???
  
 
 # return names of provided functions
@@ -185,6 +186,74 @@ sub Disable {
 }
 
 
+sub contains {
+
+    my $list = $_[0];
+    my $item = $_[1];
+
+    if (!defined $list || ref ($list) ne "ARRAY") {
+	return 0;
+    }
+    return grep (/^$item$/, @{$list} );
+}
+
+sub update_object_classes {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    # define the object class for new user/groupa
+    my @orig_object_class	= ();
+    if (defined $data->{"objectClass"} && ref $data->{"objectClass"} eq "ARRAY")
+    {
+	@orig_object_class	= @{$data->{"objectClass"}};
+    }
+    my @ocs			= @user_object_class;
+    if (($config->{"what"} || "") eq "group") {
+	@ocs			= @group_object_class;
+    }
+    foreach my $oc (@ocs) {
+	if (!contains (\@orig_object_class, $oc)) {
+	    push @orig_object_class, $oc;
+	}
+    }
+
+    $data->{"objectClass"}	= \@orig_object_class;
+
+    return $data;
+}
+
+# this will be called at the beggining of Users::Add
+# Could be called multiple times for one user/group!
+BEGIN { $TYPEINFO{AddBefore} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub AddBefore {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    $data	= update_object_classes ($config, $data);
+
+    y2internal ("AddBefore LDAPAll called");
+    return $data;
+}
+
+
+# This will be called just after Users::Add - the data map probably contains
+# the values which we could use to create new ones
+# Could be called multiple times for one user/group!
+BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
+sub Add {
+
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    y2internal ("Add LDAPAll called");
+    return $data;
+}
+
 # this will be called at the beggining of Users::Edit
 BEGIN { $TYPEINFO{EditBefore} = ["function",
     ["map", "string", "any"],
@@ -194,6 +263,8 @@ sub EditBefore {
 
     my $config	= $_[0];
     my $data	= $_[1];
+
+    $data	= update_object_classes ($config, $data);
 
     y2internal ("EditBefore LDAPAll called");
     return $data;
@@ -213,50 +284,18 @@ sub Edit {
     return $data;
 }
 
-# this will be called at the beggining of Users::Add
-# TODO: should it be called only once (=with empty map), or multiple times,
-# like in Users module?
-BEGIN { $TYPEINFO{AddBefore} = ["function",
-    ["map", "string", "any"],
-    "any", "any"];
-}
-sub AddBefore {
-
-    my $config	= $_[0];
-    my $data	= $_[1];
-
-    # define the object class for new user/group
-    if (!defined $data->{"objectClass"}) {
-	$data->{"objectClass"}	= \@user_object_class;
-	if (($config->{"what"} || "") eq "group") {
-	    $data->{"objectClass"}	= \@group_object_class;
-	}
-#FIXME objectClass must be merged with existing one!
-    }
-
-    y2internal ("AddBefore LDAPAll called");
-    return $data;
-}
-
-
-# This will be called just after Users::Add - the data map probably contains
-# the values which we could use to create new ones
-# Could be called multiple times!
-BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
-sub Add {
-
-    my $config	= $_[0];
-    my $data	= $_[1];
-
-    y2internal ("Add LDAPAll called");
-    return $data;
-}
 
 
 # what should be done before user is finally written to LDAP
 BEGIN { $TYPEINFO{WriteBefore} = ["function", "boolean", "any", "any"];}
 sub WriteBefore {
 
+    my $config	= $_[0];
+    my $data	= $_[1];
+
+    # this means what was done with a user: added/edited/deleted
+    my $action = $config->{"modified"} || "";
+    
     y2internal ("WriteBefore LDAPAll called");
     return;
 }
@@ -267,6 +306,9 @@ sub Write {
 
     my $config	= $_[0];
     my $data	= $_[1];
+
+    # this means what was done with a user: added/edited/deleted
+    my $action = $config->{"modified"} || "";
     y2internal ("Write LDAPAll called");
     return;
 }
