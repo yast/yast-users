@@ -626,7 +626,7 @@ define boolean CustomizePopup (string what) ``{
     list<string> new_customs = [];
     if (ret == `ok)
     {
-        foreach (`set, sets, ``{
+        foreach (string set, sets, ``{
             if ((boolean)UI::QueryWidget(`id(set), `Value))
             {
                 new_customs = add (new_customs, set);

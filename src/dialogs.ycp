@@ -348,7 +348,10 @@ can be changed for non-local users.
     }
 
     if (complex_layout && !Autologin::available)
+    {
 	UI::ChangeWidget(`id(`autologin), `Enabled, false);
+	UI::ChangeWidget(`id(`autologin), `Value, false);
+    }
 
     boolean details	= false;
     any ret		= `next;
@@ -1209,17 +1212,17 @@ define symbol EditUserPasswordDialog() ``{
 }
 
 /**
- * DIalog with additional (plugin) settings
+ * Dialog with additional settings, provided by extern plugins
  * @return symbol for wizard sequencer
  */
 define symbol PluginDialog (string what) ``{
 
     map<string, any> object	= (what == "user") ?
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
+    map<string, any> tmp_object	= $[];
 
     list plugins	= Users::GetAvailablePlugins ();
-y2internal ("available plugins: %1", plugins);
-    string plugin	= Users::GetCurrentPlugin ();
+    string plugin	= plugins[0]:"";
     any ret		= `not_next;
 
     if (plugin == "")// || plugin == "users_plugin_dummy.ycp")
@@ -1228,19 +1231,6 @@ y2internal ("available plugins: %1", plugins);
     }
     else
     {
-	// 1. one client hanldes all (via "Dialog")
-	// "product-based" plugin
-	/*
-	ret = WFM::CallFunction (plugin, ["Dialog", $[ "what": what ]]);
-
-	y2milestone ("plugin '%1' returned: %2", plugin, ret);
-
-	if (!is (ret, symbol))
-	    ret = `next;
-	*/
-
-	// 2. many plugins (clients?) for many actions
-	// "feature-based" plugins
 	string caption	= _("More for LDAP...");
 	string help	= "general helptext for plugins";
 
@@ -1248,27 +1238,72 @@ y2internal ("available plugins: %1", plugins);
 	foreach (string plugin, plugins, ``{
 	    any name = WFM::CallFunction (plugin, ["Summary"]);
 	    if (is (name, string))
-		options = add (options, `item(`id(name), name, false));
+		options = add (options, `item(`id(plugin), name, false));
 	});
 	term contents = `HBox(
 	    `HSquash (`VBox (
 		`Tree (`id(`tree), `opt(`notify),
-		    _("Available Options"), options
-		))
-	    ),
-	    `VBox (
-		`ReplacePoint (`id(`rp), `HVCenter (`Label (_("Plugin..."))))
-	    )
+		    _("Available Options"), options),
+		`VSpacing (0.5)
+	    )),
+	    `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()))
 	);
 
 	// dialog caption
 	Wizard::SetContentsButtons(caption, contents, help,
 	    Label::BackButton(), Label::NextButton());
 
+	UI::ChangeWidget (`id(`tree), `CurrentItem, plugin);
+	ret = `tree;
+
 	repeat
 	{
+	    if (ret == `tree)
+	    {
+		plugin	= (string) UI::QueryWidget (`id(`tree),`CurrentItem);
+		any plugin_dialog = WFM::CallFunction (plugin, ["Dialog", $[
+		    "what"	: what,
+		    "data"	: object
+		]]);
+		if (is (plugin_dialog, term))
+		{
+		    UI::ReplaceWidget (`id(`rp_plugin), (term) plugin_dialog);
+		    // now give the control of UserInput to plugin client
+		    ret = WFM::CallFunction (plugin, ["Change", $[
+			"what"	: what,
+			"data"	: object
+		    ]]);
+		    if (is (ret, map))
+		    {
+			// something was changed -> client returns map
+			object	= (map<string,any>) union (object, (map)ret);
+			tmp_object = (map<string,any>) union (tmp_object, (map) ret);
+			ret = `tree;
+		    }
+		    continue; // use ret value from client
+		}
+	    }
 	    ret = UI::UserInput();
 	} until (contains ([`next, `abort, `back, `cancel], ret));
+	if (ret == `next)
+	{
+	    if (object["what"]:"" == "edit_user")
+	    {
+	        Users::EditUser (tmp_object);
+	    }
+	    else if (object["what"]:"" == "add_user")
+	    {
+	        Users::AddUser (tmp_object);
+	    }
+	    else if (object["what"]:"" == "edit_group")
+	    {
+	        Users::EditGroup (tmp_object);
+	    }
+	    else if (object["what"]:"" == "add_group")
+	    {
+	        Users::AddGroup (tmp_object);
+	    }
+	}
     }
 
     if ( ret == `next )
@@ -1290,7 +1325,6 @@ define symbol LDAPSettingsDialog (string what) ``{
     map<string, any> object	= (what == "user") ?
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
     map<string, any> tmp_object	= $[];
-
     list items			= [];
     list used_attributes	= [];
     list new_attributes		= [];
@@ -1317,6 +1351,10 @@ define symbol LDAPSettingsDialog (string what) ``{
 	UsersLDAP::GetUserRequiredAttributes () :
 	UsersLDAP::GetGroupRequiredAttributes ();
 
+    // show only attributes allowe by schema
+
+    list allowed_attrs	= Ldap::GetObjectAttributes (object["objectClass"]:[]);
+
     // generate table items from already existing values
     foreach (string attr, any val, object, ``{
 	if (contains (internal_keys, attr))
@@ -1324,6 +1362,8 @@ define symbol LDAPSettingsDialog (string what) ``{
 	if (contains (already_edited_keys, attr))
 	    return;
 	if (is (val, map) || val == nil)
+	    return;
+	if (!contains (allowed_attrs, attr))
 	    return;
 	list<string> value = [];
 	if (is (val, string))

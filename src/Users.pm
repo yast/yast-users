@@ -331,11 +331,6 @@ sub GetAvailablePlugins {
     return @available_plugins;
 }
 
-BEGIN { $TYPEINFO{GetCurrentPlugin} = ["function", "string"]; }
-sub GetCurrentPlugin {
-    return $available_plugins[0] || "";
-}
-    
 ##------------------------------------
 BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
 sub GetCurrentUsers {
@@ -729,6 +724,7 @@ sub GetUser {
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = keys %users;
+	unshift @types_to_look, UsersCache::GetUserType ();
     }
 
     foreach my $type (@types_to_look) {
@@ -796,6 +792,7 @@ sub GetUserByName {
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = keys %users_by_name;
+	unshift @types_to_look, UsersCache::GetUserType ();
     }
     
     foreach my $type (@types_to_look) {
@@ -818,6 +815,7 @@ sub GetGroup {
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
 	@types_to_look = sort keys %groups;
+	unshift @types_to_look, UsersCache::GetGroupType ();
     }
 
     foreach my $type (@types_to_look) {
@@ -843,9 +841,9 @@ sub GetGroupByName {
     # Given user type is checked for first, but the other follow.
     # The only reason for "type" argument is to get the (probably) right
     # group as first (e.g. there are 2 'users' groups - local and ldap).
-    my @types_to_look	= (keys %groups_by_name);
-    if ($_[1] ne "") {
-	unshift @types_to_look, $_[1];
+    my @types_to_look	= keys %groups_by_name;
+    if ($type ne "") {
+	unshift @types_to_look, $type;
     }
     
     foreach my $type (@types_to_look) {
@@ -1173,6 +1171,7 @@ sub ReadAvailablePlugins {
 	    push @available_plugins, $cl;
 	}
     }
+    UsersLDAP::InitPlugins (\@available_plugins);
 }
 
 ##------------------------------------
@@ -1889,7 +1888,8 @@ sub UserReallyModified {
 	    }
 	}
 	elsif (ref ($value) eq "ARRAY") {
-	    if (@{$user{"org_user"}{$key}} ne @{$value}) {
+	    if (ref ($user{"org_user"}{$key}) ne "ARRAY" ||
+		@{$user{"org_user"}{$key}} ne @{$value}) {
 		$ret = 1;
 	    }
 	}

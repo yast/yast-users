@@ -13,10 +13,13 @@
 
 
 {
-    textdomain "users";
+    textdomain "users"; //FIXME - own textdomain (so the new plugin package
+			// won't affect original users package)
     import "Users";
     import "Label";
     import "Wizard";
+
+    import "UsersPluginDummy";//import module, which does low-level changes
 
     any ret = nil;
     string func = "";
@@ -31,7 +34,7 @@
     y2milestone("users dummy plugin started");
 
     y2internal ("func=%1", func);
-    y2internal ("param=%1", param);
+    y2debug ("param=%1", param);
 
     if (func == "Summary") {
 	// plugin name
@@ -39,32 +42,68 @@
     }
     else if (func == "Interface") {
 	// return list of available functions
-	ret = [ "Summary", "Dialog", "Interface", "Write" ];
+	ret = [ "Summary", "Dialog", "Interface", "BeforeWrite" ];
     }
     else if (func == "Dialog") {
-	// show dialog for user/group with additional setting
-	// update the current user/group map according to user action
+	// define the dialog for this plugin and return it's contents
 
 	string caption	= _("Dummy plugin");
 	string help	= "";
-	string what	= param["what"]:"user";
+	map data	= param["data"]:$[];
 
-	term contents = `VBox(
-	    `HVCenter (
-		`Label (_("Plugins..."))
-	    )
+	// LDAP attribute could have a list or single value
+	any roomNumber	= data["roomNumber"]:nil;
+	if (roomNumber == nil)
+	    roomNumber = "";
+	if (is (roomNumber, list))
+	    roomNumber	= mergestring ((list<string>)roomNumber, ",");
+	else roomNumber = sformat ("%1", roomNumber);
+
+	term contents = `HBox (`HSpacing (0.5), `VBox (
+	    `VSpacing (),
+	    `Frame (`id(`f), _("Dummy options"), `VBox(
+		`VSpacing (5),
+		`TextEntry (`id(`d), _("Dummy Value"), data["dummy"]:""),
+		`VSpacing (1),
+		`TextEntry (`id(`r), _("Some real LDAP attribute (roomNumber)"),
+		    roomNumber),
+		`VSpacing (1),
+		`CheckBox (`id(`d_ch), _("Dummy Check"),data["dummy_ch"]:false),
+		`Bottom (`HBox (
+		    `Right (`PushButton (`id(`apply), _("Apply")))
+		))
+	    )),
+	    `VSpacing ()), `HSpacing (0.5)
 	);
 
-	// dialog caption
-	Wizard::SetContentsButtons(caption, contents, help,
-	    Label::BackButton(), Label::NextButton());
+	ret = contents;
+    }
+    else if (func == "Change") {
 
+	// now the dialog defined in "Dialog" section is shown, we
+	// should handle user input
+
+	string what	= param["what"]:"user";
+	map new_data	= $[];
+
+	// if `apply was not pushed, return UserInput
 	repeat
 	{
 	    ret = UI::UserInput();
-	} until (contains ([`next, `abort, `back, `cancel], ret));
-
-	return ret;
+	    if (ret == `apply)
+	    {
+		// save data -> return the updated user/group map to the caller
+		string roomNumber = (string) UI::QueryWidget (`id(`r), `Value);
+		new_data["roomNumber"]	= splitstring (roomNumber, ",");
+		new_data["dummy"]	= UI::QueryWidget (`id(`d), `Value);
+/*		new_data["dummy_ch"]	= (boolean)
+		    UI::QueryWidget (`id(`d_ch), `Value);
+FIXME booleans are broken by Perl...
+*/
+		ret = new_data;
+		return ret;
+	    }
+	} until (contains ([`next, `abort, `back, `cancel, `tree], ret));
     }
     else if (func == "Edit") {
 	// TODO
@@ -73,14 +112,22 @@
 	ret = false;
     }
     else if (func == "BeforeWrite") {
-	// TODO
 	// do the additional actions before user/group is written
-	ret = false;
+	string what		= param["what"]:"user";
+	map<string,any> data	= param["data"]:$[];
+	if (what == "user")
+	    ret = UsersPluginDummy::WriteUserBefore (data);
+	else if (what == "group")
+	    ret = UsersPluginDummy::WriteGroupBefore (data);
     }
     else if (func == "Write") {
-	// TODO
 	// do the additional actions after user/group is written (into LDAP)
-	ret = false;
+	string what		= param["what"]:"user";
+	map<string,any> data	= param["data"]:$[];
+	if (what == "user")
+	    ret = UsersPluginDummy::WriteUser (data);
+	else if (what == "group")
+	    ret = UsersPluginDummy::WriteGroup (data);
     }
     /* unknown function */
     else {
@@ -88,7 +135,7 @@
 	ret = false;
     }
 
-    y2internal ("ret=%1", ret);
+    y2debug ("ret=%1", ret);
     y2milestone("users plugin finished");
     y2milestone("----------------------------------------");
 
