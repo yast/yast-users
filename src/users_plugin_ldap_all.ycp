@@ -178,6 +178,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	);
 
 	Wizard::CreateDialog ();
+        Wizard::SetDesktopIcon("users");
 
 	// dialog caption
 	Wizard::SetContentsButtons(_("Additional LDAP Settings"),
