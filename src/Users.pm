@@ -5526,6 +5526,53 @@ sub ImportGroup {
 }
 
 ##------------------------------------
+# Initialize settings for config mode (see bug #44660)
+BEGIN { $TYPEINFO{Initialize} = ["function", "boolean" ];}
+sub Initialize {
+
+    my $self		= shift;
+
+    $self->ReadLoginDefaults ();
+    $self->ReadSystemDefaults();
+
+    $tmpdir	= SCR->Read (".target.tmpdir");
+
+    my $error_msg = $self->ReadLocal ();
+    if ($error_msg) {
+	return 0;
+    }
+
+    $shadow{"local"}		= {};
+    $users{"local"}		= {};
+    $users_by_name{"local"}	= {};
+
+    RemoveDiskUsersFromGroups ($groups{"system"});
+    $groups{"local"}		= {};
+    $groups_by_name{"local"}	= {};
+
+    @available_usersets		= ( "local", "system", "custom" );
+    @available_groupsets	= ( "local", "system", "custom" );
+
+    $self->ReadAllShells ();
+
+    # initialize UsersCache:
+    UsersCache->ReadUsers ("system");
+    UsersCache->ReadGroups ("system");
+
+    UsersCache->BuildUserItemList ("system", $users{"system"});
+    UsersCache->BuildGroupItemList ("system", $groups{"system"});
+
+    UsersCache->BuildUserItemList ("local", $users{"local"});
+    UsersCache->BuildGroupItemList ("local", $groups{"local"});
+
+    UsersCache->SetCurrentUsers (\@user_custom_sets);
+    UsersCache->SetCurrentGroups (\@group_custom_sets);
+
+    return 1;
+}
+
+
+##------------------------------------
 # Get all the user configuration from the list of maps.
 # Is called users_auto (preparing autoinstallation data).
 # @param settings	A map with keys: "users", "groups", "user_defaults"
@@ -5748,7 +5795,8 @@ sub ExportUser {
     );
     my %shadow_map	= %{$self->CreateShadowMap ($user)};
     my %org_user	= ();
-    if (defined $user->{"org_user"}) {
+#FIXME this could cause problems...
+    if (defined $user->{"org_user"} && $user->{"modified"} ne "added") {
 	%org_user	= %{$user->{"org_user"}};
     }
     foreach my $key (keys %shadow_map) {

@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Sep  6 13:03:50 CEST 2004 - jsuchome@suse.cz
+
+- adapted for new autoyast behaviour (#44660)
+- 2.10.6
+
+-------------------------------------------------------------------
+Thu Sep  2 17:26:40 CEST 2004 - jsuchome@suse.cz
+
+- added new system user names for translation (passwd.ycp)
+
+-------------------------------------------------------------------
 Mon Aug 23 16:54:54 CEST 2004 - jsuchome@suse.cz
 
 - 2.10.5
