@@ -3,47 +3,46 @@
 # $Id$
 #
 
-SUBDIRS = scripts
-
 YCPCFLAGS = -I .
 
 yncludedir = @yncludedir@/users
 
 module_DATA =		\
-    Users.ycp		\
-    UsersCache.ycp
+    Users.pm		\
+    UsersCache.pm
 
 ynclude_DATA =		\
     complex.ycp		\
     dialogs.ycp		\
     helps.ycp		\
-    passwd.ycp      	\
-    wizards.ycp     	\
-    routines.ycp    	\
-    nis_routines.ycp	\
-    ldap_routines.ycp
+    wizards.ycp		\
+    widgets.ycp		\
+    routines.ycp
+#    passwd.ycp      	\
+#    nis_routines.ycp	\
+#    ldap_routines.ycp
 
 client_DATA = 		\
-    users.ycp		\
-    users_auto.ycp	\
-    inst_root.ycp	\
-    inst_user.ycp   	\
-    inst_auth.ycp	\
-    groups.ycp
+    users.ycp
+#    users_auto.ycp	\
+#    inst_root.ycp	\
+#    inst_user.ycp   	\
+#    inst_auth.ycp	\
+#    groups.ycp
 
-config_DATA =		\
-    users.y2cc		\
-    groups.y2cc
+#config_DATA =		\
+#    users.y2cc		\
+#    groups.y2cc
 
 desktop_DATA =		\
     users.desktop	\
     groups.desktop
 
-EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
+EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
 
 symlinks:
 	test -L users || ln -sf . users
 
-ycpchook = symlinks
+ycpchook = users
 
 include $(top_srcdir)/Makefile.am.common

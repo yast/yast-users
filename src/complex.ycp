@@ -1,9 +1,9 @@
 /**
  * File:	include/users/complex.ycp
- * Package: Configuration of users and groups
+ * Package:	Configuration of users and groups
  * Summary:	Dialogs definitions
  * Authors:	Johannes Buchhold <jbuch@suse.de>,
- *          Jiri Suchomel <jsuchome@suse.cz>
+ *		Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
  */
@@ -25,17 +25,20 @@ import "Popup";
 import "Label";
 
 include "users/helps.ycp";
-include "users/routines.ycp"; //EncryptionD
+//include "users/routines.ycp"; //EncryptionD FIXME
 
 /**
  * Return a modification status
  * @return true if data was modified
  */
 global define boolean Modified() ``{
+    /*
     return (Users::users_modified || Users::groups_modified ||
         Users::customs_modified || Users::ldap_modified ||
         Users::defaults_modified || Users::security_modified ||
 	Autologin::modified);
+    */
+    return Users::Modified () || Autologin::modified;
 }
 
 
@@ -54,7 +57,11 @@ global define symbol ReadDialog (boolean useUI ) ``{
         return UI::PollInput () == `abort;
     };
 
-    symbol ret = Users::Read(abort, useUI);
+    /*
+    symbol ret = Users::Read (abort, useUI);
+    return ret; FIXME
+    */
+    symbol ret = Users::Read () ? `next : `back;
     return ret;
 }
 
@@ -75,7 +82,8 @@ global define symbol WriteDialog (boolean useUI ) ``{
             return true;
         return false;
     };
-    return Users::Write(abort, useUI);
+//    return Users::Write(abort, useUI);
+    return Users::Write () ? `next : `abort;
 }
 
 /**
@@ -83,7 +91,7 @@ global define symbol WriteDialog (boolean useUI ) ``{
  * @return symbol for wizard sequencer
  */
 global define symbol userSetup () ``{
-    Users::start_dialog = "users" ;
+    Users::SetStartDialog ("users") ;
     return `next;
 }
 
@@ -93,7 +101,7 @@ global define symbol userSetup () ``{
  * @return symbol for wizard sequencer
  */
 global define symbol usersInstStart () ``{
-    Users::start_dialog = "user_add";// ??
+    Users::SetStartDialog ("user_add") ;
     return `next;
 }
 
@@ -130,9 +138,10 @@ global define symbol ReallyAbort() ``{
  */
 global define term rbUsersGroup(symbol what) ``{
     string curr = "";
+    /* FIXME
     if (what == `users)
     {
-        if (size (Users::current_users) == 1)
+        if (size (Users::GetCurrentUsers ()) == 1)
             curr = Users::userset_to_string[Users::current_users[0]:"custom"]:"";
         else
             curr = Users::userset_to_string["custom"]:"";
@@ -145,6 +154,7 @@ global define term rbUsersGroup(symbol what) ``{
             curr = Users::groupset_to_string["custom"]:"";
     }
     curr = deletechars (curr, "&");
+    */
     return
         `HBox(
         `Left(`RadioButtonGroup(`HBox(
@@ -172,6 +182,7 @@ global define boolean CustomizePopup(string what) ``{
     list custom_sets = [];
     map set_to_string = $[];
 
+    /* FIXME
     if (what == "user")
     {
         sets = filter (`set, Users::available_usersets, ``(set != "custom"));
@@ -188,6 +199,7 @@ global define boolean CustomizePopup(string what) ``{
 		// Frame label
         label = _("Customize the View of the Group List");
     }
+    */
 
     foreach (`set, sets, ``{
         view = add (view, `VSpacing(0.5));
@@ -215,7 +227,7 @@ global define boolean CustomizePopup(string what) ``{
     ));
     any ret = UI::UserInput();
     boolean modified = false;
-    list new_customs = [];
+    list<string> new_customs = [];
     if (ret == `ok)
     {
         foreach (`set, sets, ``{
@@ -243,6 +255,8 @@ global define boolean CustomizePopup(string what) ``{
  * @return modified?
  */
 global define boolean LDAPSearchFilterPopup () ``{
+
+    /* FIXME
 
     string default_user_f = Users::ldap_default_user_filter;
     string default_group_f = Users::ldap_default_group_filter;
@@ -355,6 +369,8 @@ Try again.
 
     UI::CloseDialog();
     return ret;
+    */
+    return false;
 }
 
 /**
@@ -370,6 +386,8 @@ global define boolean AutologinPopup() ``{
     boolean auto_used	= (user != "");
 
     // TODO check if nis/ldap users were read?
+
+    list usernames	= UsersCache::GetUsernames ("local");
 
     UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
         `VBox(
@@ -388,7 +406,7 @@ global define boolean AutologinPopup() ``{
 			`HSpacing (4), // move text under the checkbox
 			`Left(`ComboBox (`id(`autouser),
 			    // textentry label
-			    _("&User logged in"), UsersCache::usernamelist))
+			    _("&User logged in"), usernames))
 		    ),
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`pw_less),
@@ -450,14 +468,16 @@ global define boolean AutologinPopup() ``{
  * Popup for deleting user
  * @return symbol for sequencer
  */
-global define symbol DeleteUserPopup() ``{
+global define symbol OldDeleteUserPopup() ``{
 
     boolean delete      = true;
     boolean delete_home = false;
-    string type		= UsersCache::user_type;
-    string username       = Users::user_in_work["username"]:"";
-    string home =Users::user_in_work["org_home"]:Users::user_in_work["home"]:"";
-    integer uid = Users::user_in_work["org_uid"]:Users::user_in_work["uid"]:Users::max_uid[type]:60000;
+
+    string type		= UsersCache::GetUserType ();
+    map user		= Users::GetCurrentUser ();
+    string username     = user["username"]:"";
+    string home		= user["org_home"]:user["home"]:"";
+    integer uid		= user["org_uid"]:user["uid"]:Users::GetMaxUID (type);
 
     if (type == "nis")
     {
@@ -478,10 +498,12 @@ Please log off the user first."));
     }
 
     boolean no_home = false;
+    /* FIXME
     if ((type == "ldap" && !Users::ldap_file_server) ||
         // check if dir exists with this owner
         (lookup ((map)SCR::Read(.target.stat, home), "uid", -1) != uid) )
         no_home = true;
+	*/
 
     // if the user want to delete a system user
     if ( type == "system" )
@@ -543,8 +565,11 @@ Do you really want to delete the user %1?
 
     if (delete)
     {
+	/*
         Users::user_in_work["what"] = "delete_user";
         Users::user_in_work["delete_home"] = delete_home;
+	*/
+	Users::DeleteUser (delete_home);
         return `delete;
     }
     return `not_next;
@@ -556,7 +581,7 @@ Do you really want to delete the user %1?
  * The first of the two main (summary) dialogs -- list of the users.
  * @return symbol for wizard sequencer
  */
-global define symbol UsersDialog() ``{
+global define symbol OldUsersDialog() ``{
 
     /**
      * Helper function for reading again current user/group lists if necessary
@@ -564,6 +589,8 @@ global define symbol UsersDialog() ``{
      */
     define void re_read_ldap () ``{
 
+	y2error ("FIXME");
+/*
 	// re-read the list when LDAP are shown
 	if (contains (UsersCache::current_users, "ldap"))
 	{
@@ -580,6 +607,7 @@ global define symbol UsersDialog() ``{
 	    Users::ChangeCurrentGroups (set);
 	    UsersCache::group_itemlist = UsersCache::groups_itemlists[set]:[];
 	}
+*/
     }
 
     list expert_list = [
@@ -600,13 +628,9 @@ global define symbol UsersDialog() ``{
 		// menubutton label
 		`item(`id(`autologinconf), _("&Login Settings")));
 	}
+	/* FIXME
 	if (Users::is_ldap_available)
 	{
-	    /*
-	    expert_list = add (expert_list,
-		// menubutton label
-		`item(`id(`ldapconf), _("Configure L&DAP Client")));
-	    */
 	    if (!Users::ldap_modified)
 	    {
 		expert_list = add (expert_list,
@@ -614,9 +638,10 @@ global define symbol UsersDialog() ``{
 		    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
 	    }
 	}
+	*/
     }
 
-    Users::start_dialog = "users";
+    Users::SetStartDialog ("users");
     term contents = `VBox(
         `ReplacePoint (`id(`rp), rbUsersGroup(`users)),
         `Table(`id(`user_table), `opt(`notify),
@@ -635,8 +660,9 @@ global define symbol UsersDialog() ``{
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
-                Users::available_usersets_items),
+            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"), []),
+//                Users::GetAvailableUserSets ()),
+//                Users::available_usersets_items), FIXME
             // PushButon
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
@@ -658,23 +684,29 @@ global define symbol UsersDialog() ``{
                     Label::BackButton(),
                     lastbutton );
 
-    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
+y2internal ("6");
+//FIXME    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::GetUserItems ());
 
+    /* FIXME
+    UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
     if (size (UsersCache::user_itemlist) > 0)
 	UI::SetFocus (`id(`user_table));
 
+
     if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
+    */
 
     any ret = `next;
     repeat
     {
         ret = UI::UserInput();
 
-        if ( contains (Users::available_usersets, ret) )
+        if ( contains (Users::GetAvailableUserSets (), ret) )
         {
             if (Users::ChangeCurrentUsers ((string)ret))
             {
+		/* FIXME
                 UsersCache::user_itemlist = UsersCache::users_itemlists[ret]:[];
 
                 UI::ChangeWidget(`id(`user_table),`Items,
@@ -683,6 +715,7 @@ global define symbol UsersDialog() ``{
                     UsersCache::customized_usersview = true;
                 else
                     UsersCache::customized_usersview = false;
+		*/
                 UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
             }
             ret = `not_next;
@@ -693,10 +726,12 @@ global define symbol UsersDialog() ``{
         }
         if ( ret == `customize)
         {
+	    /* FIXME
             if ( CustomizePopup ("user") && UsersCache::customized_usersview)
                 UI::ChangeWidget(`id(`user_table), `Items,
                     UsersCache::user_itemlist);
             UI::ReplaceWidget (`id(`rp), rbUsersGroup (`users));
+	    */
             ret = `not_next;
         }
 
@@ -726,7 +761,7 @@ global define symbol UsersDialog() ``{
 	    // change of search filter (only when LDAP was not modified yet)
 	    if (LDAPSearchFilterPopup())
 	    {
-		Users::ldap_not_read = true;
+//FIXME		Users::ldap_not_read = true;
 		re_read_ldap ();
 	    }
             ret = `not_next;
@@ -734,6 +769,7 @@ global define symbol UsersDialog() ``{
         if ( ret == `enc)
         {
             ret = `not_next;
+		/* FIXME
 	    string enc = EncryptionDialog();
 	    if (enc != Users::encryptionMethod)
 	    {
@@ -742,6 +778,7 @@ global define symbol UsersDialog() ``{
 		    Security::PasswordMaxLengths [Users::encryptionMethod]:8;
 		Users::security_modified = true;
 	    }
+		*/
         }
 	if (ret == `autologinconf)
 	{
@@ -756,8 +793,7 @@ global define symbol UsersDialog() ``{
             if (selected != nil)
             {
                 Users::SelectUser((integer)selected );
-                if (ret == `delete)
-                    ret = DeleteUserPopup();
+//                if (ret == `delete) ret = DeleteUserPopup();
             }
             else
             {
@@ -766,12 +802,8 @@ global define symbol UsersDialog() ``{
                 ret = `not_next;
             }
         }
-        if ( ret == `new )
-        {
-            Users::user_in_work = $[];
-        }
 
-        if ( ret == `next && Mode::cont && !Users::users_modified)
+        if ( ret == `next && Mode::cont ) //FIXME&& !Users::users_modified)
         {
             // yes-no popup contents
             if ( !Popup::YesNo( _("You have not added any users. This only makes sense
@@ -784,16 +816,17 @@ Are you sure?
 
     } until ( ret != `not_next );
 
+	/* FIXME
     if (ret == `back)
     {
         if (Mode::cont)
         {
-            Users::start_dialog = "user_add";
-            Users::StartAgain ();
+            Users::SetStartDialog ("user_add");
         }
         Users::use_next_time = true;
     }
     UsersCache::focusline_user = (integer)UI::QueryWidget(`id(`user_table),`CurrentItem);
+	*/
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
@@ -804,7 +837,7 @@ Are you sure?
 /**
  * Popup for deleting group
  * @return symbol for sequencer
- */
+ *
 global define symbol DeleteGroupPopup() ``{
 
     boolean delete = true;
@@ -848,6 +881,7 @@ Remove these users from the group first.
     Users::group_in_work["what"] = "delete_group";
     return `delete;
 }
+*/
 
 
 
@@ -856,6 +890,8 @@ Remove these users from the group first.
  * @return symbol for wizard sequencer
  */
 global define symbol GroupsDialog() ``{
+
+    /*
 
     term contents = `VBox(
         `ReplacePoint (`id(`rp), rbUsersGroup(`groups)),
@@ -977,6 +1013,8 @@ you must do it on server.
         ret = `nosave;
 
     return (symbol)ret;
+    */
+    return `next;
 }
 
 

@@ -1,0 +1,272 @@
+/**
+ * Widgets for Users module
+ */
+{
+
+import "Label";
+import "Users";
+
+/**
+ * Popup for deleting user
+ * @return symbol for sequencer
+ */
+global define symbol DeleteUserPopup() ``{
+
+    boolean delete      = true;
+    boolean delete_home = false;
+
+    string type		= UsersCache::GetUserType ();
+    map user		= Users::GetCurrentUser ();
+    string username     = user["username"]:"";
+    string home		= user["org_homeDirectory"]:user["homeDirectory"]:"";
+    integer uid		= user["org_uidNumber"]:user["uidNumber"]:Users::GetMaxUID (type);
+
+    if (type == "nis")
+    {
+        // error popup
+        Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
+        return `not_next;
+    }
+
+    // if the user has log on system
+    string proc = lookup ((map)SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
+    if (size (proc) != 0)
+    {
+        // error popup
+        Report::Error(_("You can not delete this user, because the user is present.
+Please log off the user first."));
+        delete = false;
+        return `not_next;
+    }
+
+    boolean no_home = false;
+    /* FIXME
+    if ((type == "ldap" && !Users::ldap_file_server) ||
+        // check if dir exists with this owner
+        (lookup ((map)SCR::Read(.target.stat, home), "uid", -1) != uid) )
+        no_home = true;
+	*/
+
+    // if the user want to delete a system user
+    if (type == "system")
+    {
+        // yes-no popup headline
+        if(! Popup::YesNoHeadline(_("The selected user is a system user."),
+	    // yes-no popup contents
+	    _("Do you really want to delete this user?")))
+        {
+	    delete = false;
+        }
+    }
+    else
+    {
+        if (home != "" || no_home)
+        {
+	    term contents = `HBox(
+		`HSpacing(3),
+		`VBox (`VSpacing(1),
+		    `Left (
+			// question popup. %1 is username
+			`Heading(sformat(_("Delete the user %1?"), username ))),
+		    `VSpacing(0.5),
+		    `Left (`CheckBox(`id(`delete_home),
+			// checkbox label
+			sformat(_("Delete &home directory
+%1"), home )
+		    )),
+		    `VSpacing(1),
+		    `HBox (
+			`Bottom(`PushButton(`id(`ok),`opt(`key_F10),
+			    Label::YesButton()  )),
+			`Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
+			    Label::NoButton()))
+		    )
+		),
+		`HSpacing(3)
+	    );
+
+            UI::OpenDialog(`opt( `decorated ), contents );
+            any ret  = UI::UserInput();
+            delete_home = (ret == `ok) &&
+		(boolean) UI::QueryWidget (`id(`delete_home), `Value);
+
+            UI::CloseDialog();
+        }
+        else
+        {
+            // yes-no popup. %1 is username
+            if( ! Popup::YesNo(sformat(_("
+Do you really want to delete the user %1?
+"), username )))
+	    {
+		delete = false;
+	    }
+        }
+    }
+    if (delete)
+    {
+	Users::DeleteUser (delete_home);
+        return `delete;
+    }
+    return `not_next;
+}
+
+
+//================================================================
+
+
+global define void RadioButtonsUsersGroupsInit (string widget_id) ``{
+
+    y2internal ("---------- init rb ---- (%1)", widget_id);
+
+    UI::ChangeWidget (`id (UsersCache::GetCurrentSummary ()), `Value, true);
+
+}
+
+global define void RadioButtonsUsersGroupsHandler (string widget_id) ``{
+
+    y2internal ("---------- handle rb ----");
+}
+
+global define void SummaryTableInit (string widget_id) ``{
+
+    y2internal ("---------- init table ----");
+    list items = maplist (string s_item, UsersCache::GetUserItems (), ``{
+	list l_item = splitstring (s_item, "\"");
+	term t_item = `item (
+	    `id (tointeger ((string)(l_item[5]:"0"))),
+	    l_item[1]:"",
+	    l_item[3]:"",
+	    l_item[5]:"",
+	    l_item[7]:"");
+	return t_item;
+    });
+    UI::ChangeWidget (`id(widget_id), `Items, items);
+
+}
+
+global define any SummaryTableHandler (string widget_id, map event) ``{
+
+    y2internal ("---------- handle table, event: %1 ----", event);
+    any ev_id = event["ID"]:nil;
+
+    if (ev_id == "table")
+    {
+        ev_id = `edit;
+    }
+    if (ev_id == `new)
+    {
+//	Users::ResetCurrentUser ();
+	Users::AddUser ($[]);
+//	Users::CheckUID () existence TODO
+    }
+    if (ev_id == `edit || ev_id == `delete)
+    {
+        any selected = UI::QueryWidget (`id("table"), `CurrentItem);
+        if (selected != nil)
+        {
+            Users::SelectUser ((integer)selected);
+            if (ev_id == `delete)
+	    {
+		ev_id = DeleteUserPopup ();
+	    }
+	    else
+	    {
+		Users::EditUser ($[]);
+	    }
+        }
+        else
+        {
+	    // error popup
+            Report::Message(_("Please select an entry in the table"));
+            return nil;
+        }
+    }
+    return ev_id;
+}
+
+map widgets = $[
+    "rb_users_groups" : $[
+        "widget"		: `custom,
+        "help"			: _("Help for radio buttons"),
+	"custom_widget"		: `RadioButtonGroup (`HBox(
+	    // radiobutton
+	    `RadioButton (`id ("users"), `opt(`notify), _("&Users")),
+	    // radiobutton
+	    `RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
+	)),
+        "init"			: RadioButtonsUsersGroupsInit,
+        "handle"		: RadioButtonsUsersGroupsHandler,
+	"handle_events"		: [ "users", "groups" ]
+    ],
+    "table" : $[
+        "widget"		: `custom,
+        "help"			: _("help for table"),
+	"custom_widget"		: `VBox (
+	    `Table (`id("table"), `opt(`notify), `header(
+		// table header
+		_("Login"),
+		// table header
+		_("Name"),
+		// table header
+		_("UID"),
+		// table header
+		_("Groups")), [] ),
+	    `HBox (
+		`PushButton(`id(`new),`opt(`key_F3), Label::AddButton ()),
+		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
+		`PushButton(`id(`delete), `opt(`key_F5),Label::DeleteButton()),
+		`HStretch())
+	),
+	"init"			: SummaryTableInit,
+	"handle"		: SummaryTableHandler,
+	"handle_events"		: [ "table", `new, `edit, `delete ],
+    ],
+    /*
+    "user_name_entries": $[
+        "widget"		: `custom,
+	"help"			: "some help",
+	"custom_widget"		: `VBox (
+	    // text entry
+	    `TextEntry (`id(`cn), _("&Full User Name"), "")
+	),
+    ],
+    "user_fields": $[
+        "widget"		: `custom,
+        "help"			: _("help for add/edit user"),
+	"custom_widget"		: `VBox (
+	    `VSquash (`HBox(
+		// input field for login name
+		`Bottom (`TextEntry(`id(`username), _("&User Login"), "")),
+		(what != "add_user")
+		    ? `HSpacing (0)
+		    // push button to generate login from first and last name
+		    : `Bottom (`PushButton(`id(`propose), _("&Suggestion")))
+		)
+	    ),
+	    // first version of user password
+	    `Password (`id(`pw1), _("P&assword"), ""),
+	    // second version of user password, retyped to avoid typos
+	    `Password (`id(`pw2), _("&Verify Password:"), "")
+	)
+    ],
+    "user_options": $[
+        "widget"		: `custom,
+        "help"			: _("help for add/edit user"),
+	"custom_widget"		: `HVCenter (
+	    `HSquash (
+		`VBox(
+		    `PushButton(`id(`passwordsettings),`opt(`key_F7, `hstretch),
+			// push button label
+			_("&Password Settings...")),
+		    `PushButton(`id(`details),`opt(`key_F2, `hstretch),
+			// push button label
+			_("&Details..."))
+		)
+	    )
+	)
+    ],
+    */
+];
+
+}//EOF
