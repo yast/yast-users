@@ -9,7 +9,7 @@
  *			/etc/gshadow
  *			/etc/groups
  *
- *	
+ *
  *
  * $Id$
  */
@@ -18,26 +18,21 @@
     import "Mode";
     import "UserDefs";
     import "UserAddDefs";
-   
 
-    /* TODO - make the maps local if possible */    
+    /* TODO - make the maps local if possible */
     global map  current_users   = $[];
     global map  current_groups  = $[];
     global list current_gshadow = [];
-  
 
     path gshadow_path = .etc.gshadow;
     path passwd_path  = .etc.passwd;
     path group_path   = .etc.group;
     path shadow_path  = .etc.shadow;
 
-    
     global list auto_shadow_symbols = [ "warn", "inact", "max", "min" ];
-    
 
-    
     /**
-     * Read the file /etc/gshadow and save it to the list current_gshadow. 
+     * Read the file /etc/gshadow and save it to the list current_gshadow.
      * @return boolean
      */
     global define boolean ReadGshadowFromDisk()``{
@@ -55,14 +50,11 @@
 	current_gshadow  = filter(`k, current_gshadow , ``( size(k) > 1 ) );
 
 	if( Mode::test )  y2milestone("Read file gshadow: %1", current_gshadow );
-
 	return true;
     }
 
-
-  
     /**
-     * Read the file /etc/passwd and save it to the map current_users. 
+     * Read the file /etc/passwd and save it to the map current_users.
      * @return boolean
      */
     global define boolean ReadPasswdFromDisk( ) ``{
@@ -75,30 +67,27 @@
 	  y2error("Can't read file passwd");
 	  return false;
       }
-	
+
       foreach ( `user, users,  ``{
 
 	  any i_uid = user["uid"]:0;
 
 	  user["exist"] = true;
-	  
+
 	  if( is( i_uid , integer ) )
 	  {
 	      user["fullname"] = consoleUncoding( user["fullname"]:"");
 	      user["org_home"] = user["home"]:"";
-		
 	      SetUser( i_uid , user );
-	  }	
+	  }
       });
 
       if( Mode::test ) y2milestone("Read file passwd: %1", current_users);
       return true;
     }
 
-
-    
     /**
-     * Read the file /etc/group and save it to the map current_groups. 
+     * Read the file /etc/group and save it to the map current_groups.
      * @return boolean
      */
     global define boolean ReadGroupFromDisk( ) ``{
@@ -106,27 +95,23 @@
 	current_groups = $[];
 	list groups = SCR::Read( group_path );
 
-	if( groups == $[] || groups == nil )
+	if( groups == [] || groups == nil )
 	{
 	    y2error("Can't read file group");
 	    return false;
 	}
 
 	foreach ( `group, groups,  ``{
-	    
-	    any i_gid 	  =  group["gid"]:0;
+	    any i_gid = group["gid"]:0;
 	    group["exist"]=  true;
-	    
 	    if( is( i_gid , integer ) )
 	    {
 		//add group password form /etc/shadow
 		string password =  getGroupPassword( group["groupname"]:"" );
 		if ( password != nil ) group["password"]=  password;
-		
 		SetGroup(i_gid, group );
-	    }	
+	    }
 	});
-	
 	if( Mode::test ) y2milestone("Read file group: %1", current_groups);
 	return true;
     }
@@ -140,7 +125,7 @@
 
       list shadow  = SCR::Read( shadow_path );
 
-      if( shadow == $[] || shadow == nil )
+      if( shadow == [] || shadow == nil )
       {
 	  y2error("Can't read file shadow");
 	  return false;
@@ -149,7 +134,6 @@
       {
 	  // add shadow entries to current_users
 	  map current_shadow = $[];
-	  
 	  foreach(`entry, shadow , ``{
 	      string username =  entry["username"]:"";
 	      map new_entry   = $[];
@@ -213,7 +197,6 @@
 	return gid;
     }
     
-     
     /**
      * Delete the group with groupname from current_gshadow.
      * @param groupname name of the group
@@ -223,8 +206,6 @@
 	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname", "") != groupname ) );
     }
 
-
-    
     /**
      * Return the group with groupname from current_gshadow.
      * @param groupname name of the group
@@ -236,22 +217,18 @@
 	return select(password_group_list, 0,$[]);
     }
 
-
-      
   /**
    * This define returns the groups of a user.
    * @param username the name of the user
    * @return string
    */
   global define string FindGroupsBelongUser( string username ) ``{
-   
       if( username == "" ) return "";
       string grouplist = "";
       foreach( `key, `group, current_groups , ``{
-	  
 	  string userlist      = lookup( group, "userlist","");
 	  list   usersplitlist = splitstring( userlist, "," );
- 
+
 	  if( contains( usersplitlist, username ) )
 	  {
 	      string groupname = lookup( group, "groupname","");
@@ -259,7 +236,7 @@
 	      else grouplist = grouplist + "," + groupname;
 	  }
       });
-	
+
       if( grouplist != nil ) return grouplist;
       else return "";
   }
@@ -280,11 +257,9 @@
 	  {
 	      term    a     = `item(`id(groupname ), groupname, false );
 	      false_grouplist     = add( false_grouplist ,  a );
-	  }    
+	  } 
       });
 
-    
-      
       foreach( `groupname,  str_list_grouplist , ``{
 	  
 	  term    a     = `item(`id(groupname ), groupname, true );
@@ -298,8 +273,6 @@
     
   }
 
-
-  
   /**
    * This define returns the users of a group.
    * This is used in usersGroupRead  and usersEditGroup.

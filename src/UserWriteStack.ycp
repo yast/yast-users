@@ -49,7 +49,6 @@
       return  ( size( write_to_system_stack) + 1);
   }
 
-
   /**
    * Add an entry to the map write_to_system_stack for a todo position.
    * @param todo exec string
@@ -144,6 +143,7 @@
 	boolean do_exist = true;
 	map     org_user = UserSettings::GetUser( uid );
 	string  comment  = consoleEncoding( fullname );
+	boolean create_home = lookup (user_in_work, "create_home", true);
 
 
 	if ( what == `add_user )
@@ -151,8 +151,14 @@
 	    do_exist = false;
 
 	    //add the shell, home, initial_group, password, uid to the todo string
-	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
-			   home, UserSettings::GroupIdToName(gid), password, uid);
+	    if (create_home)
+		todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
+			home, UserSettings::GroupIdToName(gid), password, uid);
+	    else
+	    {
+		todo = sformat("/usr/sbin/useradd -s %1 -g %2 -m -p '%3' -u %4 -o",shell,
+			UserSettings::GroupIdToName(gid), password, uid);
+	    }
 
 	    //add the fullname to the todo string (comment)
 	    if ( comment  != "") todo = todo + " -c " + comment;
@@ -172,6 +178,12 @@
 		AddTodo( ("/usr/sbin/useradd.local " + username ),
 			      `add_user_local,
 			      _("Can't execute /usr/sbin/useradd.local"));
+	        if (! (create_home))
+		{
+		    AddTodo (sformat("/bin/chown -R %1:%2 %3", username, UserSettings::GroupIdToName(gid), home),
+				`chown_home,
+				_("Can't chown home directory"));
+		}
 	    }
 	}
 	else
@@ -438,7 +450,7 @@
 	foreach( `key, `todomap, write_to_system_stack, ``{
 
 	    symbol what  = lookup ( todomap , "what" , `error );
-	    any    ret   = 1;
+	    boolean ret = true;
 
 	    if( what == `set_group_password )
 	    {
@@ -472,7 +484,7 @@
 	    {
 		// execute the save string from write_to_system_stack
 		string todo  = lookup ( todomap , "todo" , "" );
-		ret = SCR::Execute(.target.bash, todo );
+		ret = (0 == SCR::Execute(.target.bash, todo ));
 	    }
 
 	    if( ret == true )

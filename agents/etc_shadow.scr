@@ -1,0 +1,77 @@
+/**
+ * File:
+ *   etc_gshadow.scr
+ * Summary:
+ *   SCR Agent for reading /etc/gshadow
+ * Access:
+ *   read-write
+ * Authors:
+ *   Unknown <yast2-hacker@suse.de>
+ * See:
+ *   anyagent
+ *   libscr
+ * Example:
+ *   Read(.etc.gshadow)
+ *   ([$["groupname":"user", "password":"*", "disposer":"root",
+ * "userlist":"buch,lxuser", ],
+ *     ... 
+ *   ])
+ * 
+ * $Id$
+ *
+ * Returns a <b>list of maps</b>. Each map (list-entry) corresponds 
+ * with one group. 
+ * Keys for the maps are: "groupname", "password", "disposer", "userlist". 
+ */
+.etc.shadow
+
+`ag_anyagent(
+  Description (
+      ``(File("/etc/shadow")),	// real filename
+      "#",			// Comment
+      false,
+      ``(List (
+	Or (
+	  Tuple (
+	  `username (String("")),
+          ":",
+          `password (String("")),
+          ":",
+	  `last_change (String("")),
+          ":",
+	  `min (String("")),
+          ":",
+	  `max (String("")),
+          ":",
+	  `warn (String("")),
+          ":",
+	  `inact (String("")),
+	  ":",
+          `expire (String("")),
+	  ":",
+	  `flag (String(""))
+	),
+
+	Tuple (
+	  `username (Or (String("^:"), "")),
+	  ":",
+	  `password ( Or (String ("^:"), "") ),
+	  ":",
+	  `last_change ( Or (String ("^:"), "") ),
+          ":",
+	  `min (Or (String ("^:"), "")),
+	  ":",
+          `max (Or (String ("^:"), "")),
+	  ":",
+          `warn (Or (String ("^:"), "")),
+	  ":",
+          `inact (Or (String ("^:"), "")),
+	  ":",
+          `expire (Or (String ("^:"), "")),
+	  ":",
+	  `flag (Or (String ("^\n"), ""))
+	)),
+	"\n"
+      ))
+    )
+)

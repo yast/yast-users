@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devtools  autoconf automake ycpdoc 
+# neededforbuild yast2-devtools  autoconf automake ycpdoc yast2 libxcrypt libxcrypt-devel
 
 @HEADER@
 Requires:	yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
@@ -24,9 +24,10 @@ Summary:	YaST2 Modules for installation
 %dir @yncludedir@/users
 @scrconfdir@/etc_default_useradd.scr
 @scrconfdir@/etc_gshadow.scr
+@scrconfdir@/etc_shadow.scr
 @scrconfdir@/etc_shells.scr
 @scrconfdir@/etc_group.scr
-@scrconfdir/run_procfiles.scr
+@scrconfdir@/run_procfiles.scr
 @clientdir@/users.ycp
 @clientdir@/users_write.ycp
 @moduledir@/Users.ycp

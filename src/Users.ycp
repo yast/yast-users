@@ -33,7 +33,7 @@
      * Get all the user configuration from a map.
      * When called by users_auto (preparing autoinstallation data)
      * the list can't be  empty.
-     * @param settings	A list of users to be added to the system		
+     * @param settings	A list of users to be added to the system
      * @return	success
      */
 
@@ -46,9 +46,9 @@
 		integer gid = UserDefs::max_gid;
 		// check the defaultgroup
 		//y2milestone("groups %1", current_groups);
-		
+
 		gid = UserSettings::GetGid( "users" );
-		
+
 		string mod_password = "";
 		if (! u["encrypted"]:false) {
 		    mod_password = crypt( u["user_password"]:"");
@@ -66,9 +66,9 @@
 				 "username"    :  u["username"]:"lx_user",
 				 "grouplist"   :  u["grouplist"]:"dialout,uucp,video,audio",
 				 "forename"    :  u["forename"]:"forname",
-				 "surname"     :  u["surname"]:"surname" 
+				 "surname"     :  u["surname"]:"surname"
 		];
-		
+
 		any ret = UserWriteStack::UserSave(user_in_work , false );
 	    }
 	});
@@ -81,11 +81,8 @@
      * @return true on success
      */
     global define boolean Write ()``{
-	
 	any ret = UserWriteStack::SaveDialog(true);
 	return true;
     }
 
-		
-    
 }

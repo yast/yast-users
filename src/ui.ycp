@@ -314,7 +314,6 @@
 			Report::Message(_("Please select an entry in the user table"));
 			ret = `not_next;
 		    }
-		   
 		}
 	    } until ( ret != `not_next  );
 
@@ -329,8 +328,6 @@
      * @return symbol
      */
     global define symbol usersEditUserDetails( ) ``{
-
-	
 
 	//load the current usersettings from user_in_work
 	symbol what           = lookup( user_in_work , "what"     , `nix );
@@ -363,16 +360,14 @@
 		{
 		    available_groups = add( available_groups , `item( `id(lookup( group , "groupname" , "" )),
 									  lookup( group , "groupname" , "" )));
-		}	   
+		}
 	    }
 	});
 
-	
 	term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch), _("Default &group"), available_groups );
 	term edit_shell        = `ComboBox(`id(`shell       ), `opt(`hstretch), _("Login &shell"), available_shells );
 	
 	term contents =
-	   
 		     `HBox(
 			   `HSpacing(1),
 			   `VBox(
@@ -389,23 +384,20 @@
 					     `VStretch()
 					     ),
 				       `HSpacing(2),
-					     
 				       `Top(`MultiSelectionBox( `id(`grouplist),_("Additional group &membership")  , list_grouplist))
 				       ),
 				 `VSpacing(1)
 				 ),
 			   `HSpacing(1)
 			   );
-	
-	
-	    
+
 	Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 				     usersEditUserDetailsHelp(),
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
 
-	//Modify the dialog 
+	//Modify the dialog
 	UI::ChangeWidget(`id(`fullname), `Enabled, false );
 	UI::ChangeWidget(`id(`shell),    `Value,   shell );
 	if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
@@ -427,11 +419,9 @@
 		    integer new_i_uid         = tointeger( new_uid );
 		    string new_grouplist      = mergestring( list_grouplist, ",");
 
-		    
 		    // check the uid
 		    if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
 		    {
-			
 			if( !( new_i_uid >= 0  && new_i_uid <= UserDefs::max_uid )  ||
 			    nil != findfirstnotof( new_uid ,  UserDefs::valid_id_chars ) )
 			{
@@ -441,10 +431,8 @@ Please select a valid integer between 0 and %1"),  UserDefs::max_uid );
 			    UI::SetFocus(`id(`uid));
 			    continue;
 			}
-		   
 			if( new_i_uid <=  UserDefs::max_system_uid )
 			{
-			    
 			    // tell the max_system_uid
 			    string error = sformat(_("The selected User Id is a system Id,
 because the Id is smaller than %1. \nDo you really want to create a new system user"),  UserDefs::max_system_uid );
@@ -453,7 +441,6 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
 				UI::SetFocus(`id(`uid));
 				continue;
 			    }
-			    
 			}
 
 			if(  haskey( UserSettings::current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
@@ -464,9 +451,7 @@ Please select a another User Id"));
 			    continue;
 			}
 		    }
-		    
 
-		    
 		    // check the defaultgroup ( replace by filter!! )
 		    foreach ( `key, `group,  UserSettings::current_groups, ``{
 			if( lookup( group, "groupname", "") == new_defaultgroup )
@@ -475,9 +460,6 @@ Please select a another User Id"));
 			}
 		    });
 
-		    	    
-		
-  
 		    // check the homedirectory
 		    if ( home != new_home || what == `add_user )
 		    {
@@ -485,15 +467,12 @@ Please select a another User Id"));
 			    (  0 != findfirstof( new_home, "/")   ))
 			{
 			    //TODO FIXME - ADD "-_" to message - not start with "-"
-			    
 			    Report::Error(_("The home directory  may only contain the following characters:
 a..zA..Z0..9/
 Please try again."));
 			    UI::SetFocus(`id(`home));
 			    continue;
 			}
-	
-			
 			if( Mode::test ) y2milestone("newhome: %1,  org_home: %2", new_home, user_in_work["org_home"]:""  );
 
 			if ( what == `edit_user && ( new_home != user_in_work["org_home"]:"" )
@@ -503,30 +482,42 @@ Please try again."));
 			    if (Mode::test )  y2milestone("homelist %1",   UserSettings::UsersRead(`homelist,view_all_users )  );
 
 			    /* TODO new popup for existing dir */
-			    if ( contains( UserSettings::UsersRead(`homelist, view_all_users), new_home ) || SCR::Read(.target.size, new_home ) !=-1 )
+			    if (contains (UserSettings::UsersRead (`homelist, view_all_users), new_home))
 			    {
 				Report::Error(_("The home directory is used from another user.
 Please try again."));
 				UI::SetFocus(`id(`home));
 				continue;
 			    }
+			    if (SCR::Read(.target.size, new_home ) !=-1)
+			    {
+				if (! UI::YesNoPopup(_("The home directory you selected already exists.
+Do you want to use it and change it's owner?.")))
+				{
+				    UI::SetFocus(`id(`home));
+				    continue;
+				}
+																	
+//				UserWriteStack::AddTodo(sformat("/bin/chown -R %1:%2 %3", username, gid, new_home),
+//					`chown_home,
+//					_("Can't execute /usr/sbin/userdel.local"));
+//				what = `add_user_nodir;
+
+			    }
 			    /*
 			    if(  SCR::Read(.target.size, new_home ) !=-1 )
 			    {
 				 WarningPopup ???
-			      
 			    }
 			    */
-			   
 			}
-			    
 		    }
 
 		    // chech the grouplist
 		    if( new_grouplist != grouplist  )
 		    {
 			if( nil == findfirstnotof( new_grouplist ,  UserDefs::valid_grouplist_chars ) )
-			{ 
+			{
 			    // remove last,""
 			    list new_groups  = splitstring(new_grouplist, "," );
 			    new_groups   = filter(`k, new_groups, ``( k != ""));
@@ -541,12 +532,9 @@ Please try again."));
 				double_entries =  add( double_entries ,  new_group );
 				new_groups = filter(`k, new_groups , ``( k != new_group ));
 				new_groups = add( new_groups , new_group );
-				
-				
 			    }
 			});
 			new_grouplist  = mergestring( new_groups ,",");
-			    
 			    boolean input_ok = true;
 			    foreach( `new_group, new_groups , ``{
 				if( input_ok )
@@ -580,16 +568,14 @@ Please try again."));
 			}
 		    }
 
-		
 		    // update user_in_work
 		    user_in_work = add( user_in_work, "home"      , new_home );
 		    user_in_work = add( user_in_work, "shell"     , new_shell);
 		    user_in_work = add( user_in_work, "gid"       , gid      );
 		    user_in_work = add( user_in_work, "uid"       , new_i_uid);
 		    user_in_work = add( user_in_work, "grouplist" , new_grouplist);
-		}    
+		}
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
-	
 
 	if ( ret == `next ) ret = what;
 
@@ -805,7 +791,7 @@ Please try again."));
 	    `edit_user:  _("Edit an existing user")
 	];
 
-	
+	boolean create_home    = lookup (user_in_work, "create_home", true);
 	string  username       = lookup( user_in_work, "username", "");
 	string  fullname       = lookup( user_in_work, "fullname", "");
 	integer gid            = lookup( user_in_work, "gid"     , UserAddDefs::GetDefaultGid());
@@ -834,7 +820,6 @@ Please try again."));
 		shadow[key] = value;
 	    });
 	}
-	
 	
 	term detailsmorebox = 	`HBox(
 				      `PushButton(`id(`details), _("&Details...")),
@@ -880,17 +865,13 @@ Please try again."));
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
 
-	
-	
-
-	// Modify the dialog 
+	// Modify the dialog
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
 	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
 
 
 	if( what == `add_user ) UI::SetFocus(`id(`forename));
 
-	
 
 	if( uid <=  UserDefs::max_system_uid && what == `edit_user )
 	{
@@ -1061,29 +1042,29 @@ Please try again."));
 			UI::SetFocus(`id(`pw1));
 			continue;
 		    }
-		    
+
 		    // Use the old password (if any) if no passwords were entered.
 		    // only check pw1 here, its identical with pw2 as checked before
 		    if ( (pw1 !=  UserDefs::default_pw) && (pw2 != UserDefs::default_pw ))
 		    {
 			if ( pw1 == "" )
-			{    
+			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The first user password
 			    // information is empty (no user input)
 			    Report::Error(_("You didn't enter a password.\nPlease try again."));
 			    password = "";
-			  		    
+
 			    // clear password inputfields in this case
 			    UI::ChangeWidget(`id(`pw1), `Value, "");
 			    UI::ChangeWidget(`id(`pw2), `Value, "");
-			    
+
 			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
-			if ( size (pw1) <  UserDefs::min_length_pas || size(pw1) >  UserDefs::max_length_pas  )
+			if (size (pw1) < UserDefs::min_length_pas)
 			{
-			   
+
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
@@ -1092,15 +1073,25 @@ Please try again."));
 						       UserDefs::max_length_pas));
 
 			    password = "";
-			    
+
 			    // clear password inputfields in this case
 			    UI::ChangeWidget(`id(`pw1), `Value, "");
 			    UI::ChangeWidget(`id(`pw2), `Value, "");
-			    
 			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
-
+			if (size(pw1) >  UserDefs::max_length_pas)
+			{
+			    if (!UI::YesNoPopup (sformat(_("The password is longer then %1 characters. It will be truncated to %1 characters."),
+						UserDefs::max_length_pas)))
+			    {
+				password = "";
+				UI::ChangeWidget(`id(`pw1), `Value, "");
+				UI::ChangeWidget(`id(`pw2), `Value, "");
+				UI::SetFocus(`id(`pw1));
+				continue;
+			    }
+			}
 			if ( size(pw1) >=  UserDefs::min_length_pas )
 
 			{
@@ -1115,14 +1106,12 @@ Please try again."));
 Please try again."));
 				password = "";
 				
-				
 				// clear password inputfields in this case
 				UI::ChangeWidget(`id(`pw1), `Value, "");
 				UI::ChangeWidget(`id(`pw2), `Value, "");
-				
 				UI::SetFocus(`id(`pw1));
 				continue;
-			    }	
+			    }
 			}
 
 			if( UserDefs::pam )
@@ -1137,7 +1126,7 @@ Please try again."));
 		    }
 
 		    // bild default home dir
-		    // TODO Fixme 
+		    // TODO Fixme
 		    if ( what == `add_user && home == UserAddDefs::GetDefaultHome() )
 
 		    {
@@ -1147,15 +1136,31 @@ Please try again."));
 		    if( home != user_in_work["org_home"]:"" )
 		    {
 			// TODO new popup for existing dir
-			if(  (contains( UserSettings::UsersRead(`homelist, view_all_users ), home ) || SCR::Read(.target.size, home ) != -1 )
-			     && ! details )  
+			if( (contains(UserSettings::UsersRead(`homelist, view_all_users ), home ) && ! details ))
 
 			{
 			    Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
 			    continue;
 			}
-		    
+			if (SCR::Read(.target.size, home ) != -1)
+			{
+
+                            if (! UI::YesNoPopup(_("The home directory you selected already exists.
+Do you want to use it and change it's owner?.")))
+                            {
+                                UI::SetFocus(`id(`home));
+                                continue;
+                            }
+
+//                            UserWriteStack::AddTodo(sformat("/bin/chown -R %1:%2 %3", username, gid, new_home),
+  //                                  `chown_home,
+    //                                _("Can't execute /usr/sbin/userdel.local"));
+			    create_home = false;
+//                            what = `add_user_nodir;
+			}
+
+																	
 			/*
 			  if( SCR::Read(.target.size, home ) != -1  )
 			  {
@@ -1165,21 +1170,15 @@ Please press button Details and edit home directory."));
 		    }
 
 
-		    if ( what == `add_user )  user_in_work["org_home"] = home;
-			
-			
-		  
-			  
+		    if ( what == `add_user ) user_in_work["org_home"] = home;
 		    if(Mode::test ) y2milestone(" user in work : %1", user_in_work );
-			
-		    
 
 		    user_in_work = $[
 				     "what"        :  what ,
 				     "fullname"    :  fullname,
-			 	     "gid"         :  gid,
+				     "gid"         :  gid,
 				     "home"        :  home,
-				     "password"    :  password, 
+				     "password"    :  password,
 				     "shell"       :  shell,
 				     "uid"         :  uid,
 				     "username"    :  username,
@@ -1187,7 +1186,8 @@ Please press button Details and edit home directory."));
 				     "forename"    :  forename,
 				     "surname"     :  surname,
 				     "org_home"    :  user_in_work["org_home"]:"",
-				     "shadow"      :  shadow
+				     "shadow"      :  shadow,
+				     "create_home" :  create_home
 
 		    ];
 
@@ -1222,6 +1222,7 @@ Please press button Details and edit home directory."));
 
 	boolean delete        = true;
 	boolean delete_home   = false;
+	boolean delete_empty_home = false;
 	string username       = lookup( user_in_work, "username", "");
 	string home           = lookup( user_in_work, "home", "");
 	
@@ -1287,6 +1288,10 @@ Do you really want to delete the user %1?
 		{
 		    delete = false;
 		}
+		else
+		{
+		    delete_empty_home = true;
+		}
 	    }
 	}
 
@@ -1301,35 +1306,36 @@ Do you really want to delete the user %1?
 	// delete the user from the map current_users
 	UserSettings::DelUser( user_in_work["uid"]:nil );
 
-	
+
 	if (  SCR::Read(.target.size,"/usr/sbin/userdel.local") != -1 )
 	{
 	    UserWriteStack::AddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
-			 _("Can't execute /usr/sbin/useradd.local"));
+			 _("Can't execute /usr/sbin/userdel.local"));
 	}
-	    
+
 	UserWriteStack::AddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
 		     sformat(_("Can't delete the user %1"), username) );
 
-	
-	
         //build a shell delete command and save it to write_to_system_stack
 	if(! lookup( user_in_work, "exist", true ))
 	{
-	    if( lookup( user_in_work , "home", "" ) != "") 
-		usersAddRmDir( lookup( user_in_work , "home", "" ));
+	    if( lookup( user_in_work , "home", "" ) != "")
+		UserWriteStack::AddTodo(sformat ("/bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
+			sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")));
+//		usersAddRmDir( lookup( user_in_work , "home", "" ));
 	}
 	else
 	{
-	  if( delete_home )
+	  if( delete_home || delete_empty_home )
 	  {
-	      usersAddRmDir( lookup( user_in_work, "home", "" ));
+		UserWriteStack::AddTodo(sformat ("test -d %1 && /bin/rm -rf %1", lookup(user_in_work, "home", "")), `del_user_home,
+                        sformat (_("Can't delete directory %1"), lookup(user_in_work, "home", "")));
+//	      usersAddRmDir( lookup( user_in_work, "home", "" ));
 	      if( Mode::test ) y2milestone("delete home");
 	  }
 	}
-	   
 
 	UserSettings::DelUserFromAllGroups( username );
 
@@ -1346,8 +1352,8 @@ Do you really want to delete the user %1?
     global define symbol usersGroupsDialog() ``{
 
 	group_in_work = $[];
-	
-	term contents = 
+
+	term contents =
 	    `VBox(rbUsersGroup(`groups),
 		  `Table(`id(`group_table ), `opt(`notify) , `header(_("Group name"), _("Group ID"), _("Group members")),
 		         UserSettings::GroupsRead(`items, view_all_groups) ),
@@ -1407,8 +1413,6 @@ Do you really want to delete the user %1?
 		   
 		}
 
-		
-		
 	    } until ( ret != `not_next  );
 	
 	save_focus( UI::QueryWidget(`id(`group_table), `CurrentItem), ret, `group);
@@ -1591,7 +1595,7 @@ Please try again.")) ;
 			  ( (pw1 != UserDefs::default_pw) && (pw2 != UserDefs::default_pw))  )
 		    {
 			
-			if ( size (pw1) <  UserDefs::min_length_pas || size(pw1) >  UserDefs::max_length_pas  )
+			if (size (pw1) <  UserDefs::min_length_pas)
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
@@ -1600,17 +1604,26 @@ Please try again.")) ;
 						    UserDefs::min_length_pas,
 						    UserDefs::max_length_pas));
 			    password = "x";
-			    
+
 			    // clear password inputfields in this case
 			    UI::ChangeWidget(`id(`pw1), `Value, "");
 			    UI::ChangeWidget(`id(`pw2), `Value, "");
-			    
 			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
-		
-			
-			
+                        if (size(pw1) >  UserDefs::max_length_pas)
+                        {
+                            if (!UI::YesNoPopup (sformat(_("The password is longer then %1 characters. It will be truncated to %1 characters."),
+                                                UserDefs::max_length_pas)))
+                            {
+                                password = "x";
+                                UI::ChangeWidget(`id(`pw1), `Value, "");
+                                UI::ChangeWidget(`id(`pw2), `Value, "");
+                                UI::SetFocus(`id(`pw1));
+                                continue;
+                            }
+                        }
+
 			if ( pw1 != "" )
 			{
 			    if ( nil != findfirstnotof( pw1, UserDefs::valid_password_chars ) )
@@ -1622,7 +1635,6 @@ Please try again.")) ;
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again."));
 				password = "x";
-				
 				
 				// clear password inputfields in this case
 				UI::ChangeWidget(`id(`pw1), `Value, "");

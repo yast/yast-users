@@ -4,8 +4,6 @@
 
 yncludedir = @yncludedir@/users
 
-ynclude_DATA =
-
 module_DATA =			\
 	Users.ycp		\
 	UserDefs.ycp		\

@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Jun 25 15:22:47 CEST 2002 - jsrain@suse.cz
+
+- Allowed password longer than 8 characters (#9810)
+- Fixed changing of home dir UID (#15552)
+- Fixed deleting home dir (#10994)
+- Added /etc/shadow reading
+- Adapted for new result values of Any-agent
+
+-------------------------------------------------------------------
 Wed Mar 27 10:51:37 CET 2002 - mvidner@suse.cz
 
 - Prevent deleting a currently logged-in user. (#15557)
