@@ -37,107 +37,6 @@ include "ui/common_messages.ycp";
         SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
   }
 
-/**
- * "Expert" dialog for root password:
- * Let user choose the encryption method.
- **/
-define void expert_dialog() ``{
-
-    // Help text for password expert dialog 1/5
-    string help_text = _("<p>
-<b>This is for experts only.</b>
-</p>");
-
-    // Help text for password expert dialog 2/5
-    help_text = help_text + _("<p>
-Choose a password encryption method.
-<b>DES</b>, the Linux default method, works in all network environments, but it
-restricts you to passwords no longer than eight characters.
-</p>");
-
-    // Help text for password expert dialog 3/5
-    help_text = help_text + _("<p>
-<b>MD5</b> allows longer passwords, thus provides more security, but some
-network protocols don't support this, and you may have problems with NIS.
-</p>");
-
-    // Help text for password expert dialog 4/5
-    help_text = help_text + _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-    // Help text for password expert dialog 5/5
-    help_text = help_text + _("<p>
-As a general rule of thumb, use DES if you are unsure.
-</p>");
-
-    UI::OpenDialog(
-      `VBox(
-         // Label
-//        `Heading( _("Password Expert Options") ),
-        `Heading( _("Expert Login Options") ),
-        `VSpacing( 0.7 ),
-        `HBox(
-          `HSpacing( 2 ),
-          `RadioButtonGroup(
-              // frame
-            `Frame( _("Password Encryption"),
-                  `VBox(
-                    `VSpacing( 0.5 ),
-                    // Radio buttons for password encryption: DES-crypt
-                    `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-                          Users::encryptionMethod == "des" ) ),
-                    // Radio buttons for password encryption: MD5-crypt
-                    `Left(`RadioButton(`id(`md5), _("&MD5"),
-                          Users::encryptionMethod == "md5" ) ),
-                    // Radio buttons for password encryption: blowfish-crypt
-                    `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-                          Users::encryptionMethod == "blowfish" ) )
-                    )
-            )
-          ),
-          `HSpacing( 2 )
-        ),
-        `HBox(
-          `HStretch(),
-          `HWeight( 1,
-              `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
-          `HStretch(),
-          `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
-          `HStretch(),
-          `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
-          `HStretch()
-          )
-        )
-    );
-
-    symbol button = nil;
-
-    do
-    {
-        button = UI::UserInput();
-
-        if ( button == `help )
-        {
-            Wizard::ShowHelp( help_text );
-        }
-        else if ( button == `ok )
-        {
-            if ( UI::QueryWidget( `id(`des), `Value ) )
-                Users::encryptionMethod = "des";
-            else if ( UI::QueryWidget( `id(`md5), `Value ) )
-                Users::encryptionMethod = "md5";
-            else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
-                Users::encryptionMethod = "blowfish";
-
-            y2milestone( "Password expert options: Changing encryption method to %1", Users::encryptionMethod );
-        }
-
-    } while ( button != `ok && button != `cancel );
-
-    UI::CloseDialog();
-}; // expert_dialog()
-
 
   string rpassword = Users::rootPassword;
   boolean this_is_for_real = ! Mode::test;
@@ -212,7 +111,7 @@ Valid password characters are letters, digits, blanks, and
 Do not forget this \"root\" password!
 </p>"));
 
-// Wizard::CreateDialog(); // just a hack, only for testing
+ Wizard::CreateDialog(); // just a hack, only for testing
 
  Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
 // Wizard::SetContents(title, contents, helptext, true, true);
@@ -244,7 +143,8 @@ Do not forget this \"root\" password!
 
       if (ret == `expert)
       {
-          expert_dialog();
+          CallFunction(`expert_login());
+//          expert_dialog();
 
           string pw1 = UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
@@ -289,12 +189,6 @@ Try again.
             rpassword = "";
             // Invalidate any old password
             Users::rootPassword = rpassword;
-            continue;
-         }
-
-         if ( size(pw1) >= 5 )
-         {
-            any ret2 = findfirstnotof( pw1, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}" );
 
             if ( ret2 != nil )
             {

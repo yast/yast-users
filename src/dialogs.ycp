@@ -132,11 +132,13 @@ global define symbol EditUserDialog(symbol what) ``{
     }
     else
     {
+        /*
         foreach( `key, `value, Users::user_in_work["shadow"]:$[], ``{
             shadow[key] = value;
         });
+        */
+        shadow = eval (Users::shadow[user_type, username]:$[]);
     }
-
     Users::user_in_work["what"] = what; // is it necessary here ??
 
     term detailsmorebox =
@@ -217,7 +219,8 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
     // it should be editable some time...
-    if (user_type == `ldap || Users::kerberos_auth)
+    // enable password changing for local users (not in Kerbers DB)... ??
+    if (user_type == `ldap || Users::kerberos_auth != "")
     {
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
         if (what == `edit_user)
@@ -1448,6 +1451,7 @@ Please try again."));
 }
 
 /**
+ * The dialogs for setting defaults from /etc/defaults/useradd
  */
 global define symbol DefaultsDialog() ``{
 

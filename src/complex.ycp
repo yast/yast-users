@@ -14,7 +14,7 @@ textdomain "users";
 
 import "Wizard";
 import "Mode";
-import "Report";  // we could use ErrorPopup instead of Report::
+import "Report";
 
 import "Users";
 import "UsersCache";
@@ -53,6 +53,9 @@ global define symbol ReadDialog (boolean useUI ) ``{
 }
 
 /**
+ * Write settings dialog
+ * @param useUI boolean use user interface (change progress bar)
+ * @return symbol `next if success, else `abort
  */
 global define boolean WriteDialog (boolean useUI ) ``{
 
@@ -69,19 +72,19 @@ global define boolean WriteDialog (boolean useUI ) ``{
 }
 
 /**
-  * Set the module to normal setup mode
-  * @return symbol for wizard sequencer
-  */
+ * Set the module to normal setup mode
+ * @return symbol for wizard sequencer
+ */
 global define symbol userSetup () ``{
     Users::start_dialog = "users" ;
     return `next;
 }
 
 /**
-  * Set the module into installation mode with
-  * first dialog for single user addition
-  * @return symbol for wizard sequencer
-  */
+ * Set the module into installation mode with
+ * first dialog for single user addition
+ * @return symbol for wizard sequencer
+ */
 global define symbol usersInstStart () ``{
     Users::start_dialog = "user_add";// ??
 //    UserWriteStack::Reset ();
@@ -150,11 +153,14 @@ global define symbol UsersDialog() ``{
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(_("&Set filter"), Users::available_usersets_items),
-            // PushButyon
+            `MenuButton(`id(`usersets), _("&Set filter"),
+                Users::available_usersets_items),
+            // PushButon
             `PushButton(`id(`customize), _("Customi&ze filter")),
-            // PushButyon
+            // PushButon
             `PushButton(`id(`defaults), _("S&et defaults")),
+            // PushButon
+            `PushButton(`id(`expert), _("E&xpert options...")),
             `HStretch())
     );
 
@@ -172,6 +178,8 @@ global define symbol UsersDialog() ``{
 
     UI::ChangeWidget (`id (`user_table), `Items, UsersCache::user_itemlist);
 
+    UsersCache::PrintDate("table shown");
+
     if( UsersCache::focusline_user != nil)
         UI::ChangeWidget(`id(`user_table), `CurrentItem, UsersCache::focusline_user );
 
@@ -180,7 +188,7 @@ global define symbol UsersDialog() ``{
     {
         ret = UI::UserInput();
 
-        if( contains (Users::available_usersets, ret) )
+        if ( contains (Users::available_usersets, ret) )
         {
             UI::OpenDialog (`opt(`decorated ),
                 // wait popup
@@ -197,18 +205,29 @@ global define symbol UsersDialog() ``{
 
             ret = `not_next;
         }
-        if( ret == `switch_users)
+        if ( ret == `switch_users)
         {
             ret = `not_next;
         }
-        if( ret == `customize)
+        if ( ret == `customize)
         {
             if ( CustomizePopup ("user") && UsersCache::customized_usersview)
                 UI::ChangeWidget(`id(`user_table), `Items,
                     UsersCache::user_itemlist);
             ret = `not_next;
         }
-        if( ret == `user_table )
+        if ( ret == `expert)
+        {
+            ret = `not_next;
+            if (CallFunction(`expert_login()) == `next)
+            {
+                // check the sources, they could be modified
+                Users::ReadSourcesSettings();
+                Users::BuildMenuButtonItems();
+                ret = `users;
+            }
+        }
+        if ( ret == `user_table )
             ret = `edit;
         if ( ret == `edit  || ret == `delete )
         {
@@ -230,10 +249,10 @@ global define symbol UsersDialog() ``{
         if ( ret == `new )
         {
             Users::user_in_work = $[];
-            if (Users::kerberos_auth)
+            if (Users::kerberos_auth == "required")// only this ??
             {
                 // error popup
-                Report::Message (_("As you are using Kerberos for authentication, you cannot add local users."));
+                Report::Message (_("As you are using only Kerberos for authentication, you cannot add local users."));
                 ret = `not_next;
             }
         }
@@ -244,7 +263,6 @@ global define symbol UsersDialog() ``{
         if (Mode::cont)
         {
             Users::start_dialog = "user_add";
-//            ret = `start;
             Users::StartAgain ();
         }
         Users::use_next_time = true;
@@ -253,6 +271,7 @@ global define symbol UsersDialog() ``{
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;
+
     return ret;
 }
 
@@ -370,6 +389,7 @@ global define symbol GroupsDialog() ``{
 }
 
 /**
+ * Popup for deleting user
  */
 global define symbol DeleteUserPopup() ``{
 
@@ -464,6 +484,7 @@ Do you really want to delete the user %1?
 
 
 /**
+ * Popup for deleting group
  */
 global define symbol DeleteGroupPopup() ``{
 
@@ -506,6 +527,7 @@ Remove these users from the group first."));
 }
 
 /**
+ * Dialog for definition of customized view
  */
 global define boolean CustomizePopup(string what) ``{
 
@@ -577,7 +599,7 @@ global define boolean CustomizePopup(string what) ``{
     return modified;
 }
 
-/*
+/**
  * Just giving paramaters for commiting user
  */
 global define symbol UserSave() ``{
@@ -591,7 +613,7 @@ y2milestone ("start: %1", Users::start_dialog);
     return `next;
 }
 
-/*
+/**
  * Just giving paramaters for commiting group
  */
 global define symbol GroupSave() ``{

@@ -89,6 +89,13 @@ $last_system_uid = 0;
 
 $the_answer = 42; # ;-)
 
+sub print_date {
+
+    my ($message) = @_;
+    $date = `date +%X`;
+#    print STDERR "$message: $date";
+}
+    
 
 #---------------------------------------------
 # read shadow, write it as a YCP map and prepare shadowmap structure
@@ -116,6 +123,8 @@ foreach $shadow_entry (<SHADOW>)
 }
 close SHADOW;
 
+print_date ("shadow done");
+
 #---------------------------------------------
 # reading gshadow and writing it as a YCP map
 
@@ -140,6 +149,8 @@ foreach (<GSHADOW>)
     }
 }
 close GSHADOW;
+
+print_date ("gshadow done");
 
 #---------------------------------------------
 # reading /etc/group and preparing users_groups structure
@@ -180,6 +191,7 @@ foreach (<GROUP>)
 }
 
 close GROUP;
+print_date ("group read");
 
 #---------------------------------------------
 # and finally read the passwd
@@ -317,21 +329,21 @@ foreach $user (<PASSWD>)
         print $YCP_PASSWD "\t\t\"shell\": \"$shell\",\n";
         print $YCP_PASSWD "\t\t\"groupname\": \"$groupname\",\n";
         print $YCP_PASSWD "\t\t\"grouplist\": \"$grouplist\",\n";
-        print $YCP_PASSWD "\t\t\"shadow\": \$[\n";
+#        print $YCP_PASSWD "\t\t\"shadow\": \$[\n";
 
         my ($uname, $pass, $last_change, $min, $max, $warn, $inact,
          $expire, $flag) = split(/:/,$shadowmap{$username});
 
             # the shadow entry of this user
-            print $YCP_PASSWD "\t\t\t\"password\": \"$pass\",\n";
-            print $YCP_PASSWD "\t\t\t\"last_change\": \"$last_change\",\n";
-            print $YCP_PASSWD "\t\t\t\"min\": \"$min\",\n";
-            print $YCP_PASSWD "\t\t\t\"max\": \"$max\",\n";
-            print $YCP_PASSWD "\t\t\t\"warn\": \"$warn\",\n";
-            print $YCP_PASSWD "\t\t\t\"inact\": \"$inact\",\n";
-            print $YCP_PASSWD "\t\t\t\"expire\": \"$expire\",\n";
-            print $YCP_PASSWD "\t\t\t\"flag\": \"$flag\"\n";
-            print $YCP_PASSWD "\t\t],\n";
+#            print $YCP_PASSWD "\t\t\t\"password\": \"$pass\",\n";
+#            print $YCP_PASSWD "\t\t\t\"last_change\": \"$last_change\",\n";
+#            print $YCP_PASSWD "\t\t\t\"min\": \"$min\",\n";
+#            print $YCP_PASSWD "\t\t\t\"max\": \"$max\",\n";
+#            print $YCP_PASSWD "\t\t\t\"warn\": \"$warn\",\n";
+#            print $YCP_PASSWD "\t\t\t\"inact\": \"$inact\",\n";
+#            print $YCP_PASSWD "\t\t\t\"expire\": \"$expire\",\n";
+#            print $YCP_PASSWD "\t\t\t\"flag\": \"$flag\"\n";
+#            print $YCP_PASSWD "\t\t],\n";
     
         print $YCP_PASSWD "\t\t\"type\": `$user_type\n";
         print $YCP_PASSWD "\t],\n";
@@ -428,6 +440,8 @@ close MAX_LOCAL_UID;
 open MAX_SYSTEM_UID, "> $last_system";
 print MAX_SYSTEM_UID "$last_system_uid";
 close MAX_SYSTEM_UID;
+
+print_date ("passwd done");
 
 #---------------------------------------------
 # save the modified map of groups
@@ -561,6 +575,7 @@ close YCP_GSHADOW_LOCAL;
 print YCP_GSHADOW_SYSTEM "]\n";
 close YCP_GSHADOW_SYSTEM;
 
+print_date ("group done");
 
 open YCP_GROUPNAMES, "> $groupnamelist_file";
 print YCP_GROUPNAMES "\$[\n";
