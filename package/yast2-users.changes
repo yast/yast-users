@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr  2 15:51:52 CEST 2004 - jsuchome@suse.cz
+
+- changed license to GPL
+- 2.9.25
+
+-------------------------------------------------------------------
 Fri Apr  2 10:10:00 CEST 2004 - jsuchome@suse.cz
 
 - fix: enable deleting groups with long name (#38006)
