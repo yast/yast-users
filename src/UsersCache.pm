@@ -677,11 +677,14 @@ sub BuildUserItem {
     my %user		= %{$_[0]};
     my $uid		= $user{"uidNumber"};
     my $username	= $user{"username"} || "";
-    my $full		= $user{"cn"} || "";
+    my $full		= $user{"cn"} || ""; #FIXME use gecos if present...
 
 #    if ($user{"type"} eq "system") {
 #	$full		= SystemUsers (full); FIXME translate names!
 #    }
+    if (ref ($full) eq "ARRAY") {
+	$full	= $full->[0];
+    }
 
     my $groupname	= $user{"groupname"} || "";
     my %grouplist	= %{$user{"grouplist"}};
@@ -795,8 +798,8 @@ sub BuildGroupItemList {
     my %map_of_groups	= %{$_[1]};
     $group_items{$type}	= {};
 
-    foreach my $uid (keys %map_of_groups) {
-        $group_items{$type}{$uid}	= BuildGroupItem ($map_of_groups{$uid});
+    foreach my $id (keys %map_of_groups) {
+        $group_items{$type}{$id}	= BuildGroupItem ($map_of_groups{$id});
     };
 }
 
@@ -1080,6 +1083,5 @@ sub BuildAdditional {
     }
     return sort @additional;
 }
-
 
 # EOF
