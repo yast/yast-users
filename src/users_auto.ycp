@@ -60,7 +60,7 @@
         "shell": "/bin/bash",
         "skel": "/etc/skel"
     ];
-    // and passed to Import, or give empty map to Import and deafults
+    // and passed to Import, or give empty map to Import and defaults
     // will be read from the system
 
 
@@ -70,7 +70,7 @@
     // examples of input structure:
     map users = $[
      `local: $[
-        501:$["fullname":"A", "gid":100, "grouplist":"some_group", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
+        501:$["fullname":"A", "gid":100, "grouplist":"somegr", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
     ];
 
     map shadow = $[
@@ -80,14 +80,15 @@
 
     map groups = $[
      `local: $[
-        500:$["gid":500, "groupname":"some_group", "more_users":"", "password":"x", "userlist":"ab"]
+        501:$["gid":501, "groupname":"somegr", "more_users":"", "password":"x", "userlist":"ab"]
         ]];
 
     map gshadow = $[
      `local: $[
-        "some_group":$["disposer":"root", "password":"*", "userlist":"ab"]]];
+        "somegr":$["disposer":"root", "password":"*", "userlist":"ab"]]];
 
-    settings = [ users, groups, shadow, gshadow, useradd_defaults ];
+//    settings = [ users, groups, shadow, gshadow, useradd_defaults ];
+    settings = [ $[], $[], $[], $[], $[] ];
 
     Users::Import ( settings );
 //    y2milestone("Imported: (%1)", settings);
@@ -117,7 +118,7 @@
     }
 
 
-//    Wizard::CreateDialog(); // just a hack, only for testing
+    Wizard::CreateDialog(); // just a hack, only for testing
     set_contents();
     any result = nil;
     any ret = nil;
@@ -134,7 +135,7 @@
             settings = Users::Export ();
             y2milestone ("settings from Export: %1", settings);
         }
-        Users::Set(settings); // why it is here ??
+//        Users::Set(settings); // why it is here ??
         set_contents();
     }
     else if ( ret == `reset)

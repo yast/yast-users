@@ -52,7 +52,9 @@ global boolean customized_groupsview = true;
 global string encoding = "";
 
 // map of last uid used for new user (to fasten searching of free uid)
-map last_uid = $[];
+map last_uid = $[
+    `system: 1,
+    `local: 500];
 
     map symbol_to_string = $[
         `local: "local",
@@ -75,7 +77,6 @@ string dir) ``{
     });
     users_itemlists [ `custom ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ `custom ]:[];
-
 
     // -- change groups building in a same way !!
     group_custom_sets = cust_g;
@@ -312,8 +313,6 @@ global define list BuildGroupItemList(map map_of_groups) ``{
 
         string userlist = group["userlist"]:"";
         string more = group["more_users"]:"";
-y2milestone ("userlist: %1", userlist);
-y2milestone ("more: %1", more);
         if ((userlist != "") && (more != ""))
             userlist = userlist + ",";
         userlist = userlist + more;
@@ -331,6 +330,13 @@ y2milestone ("more: %1", more);
             }
             userlist = userlist + "...";
         }
+
+
+        /*
+        userlist_l = splitstring(userlist, ",");
+        if (!contains (userlist_l, all_users[i]) //this is for "nobody"
+        {
+*/
         a = add(a, userlist);
 
         items = add( items, a );
@@ -485,10 +491,10 @@ define void UpdateUserItemlist () ``{
     if (! (customized_usersview))
     {
         symbol type = current_users[0]:user_type;
-        user_itemlist = users_itemlists [type]:[]; //pointer ??
+        user_itemlist = users_itemlists [type]:[];
     }
     else
-        user_itemlist = users_itemlists [`custom]:[]; //pointer ??
+        user_itemlist = users_itemlists [`custom]:[];
 
     user_itemlist = sort (user_itemlist);
 }
@@ -501,10 +507,10 @@ define void UpdateGroupItemlist () ``{
     if (! (customized_groupsview))
     {
         symbol type = current_groups[0]:group_type;
-        group_itemlist = groups_itemlists [type]:[]; //pointer ??
+        group_itemlist = groups_itemlists [type]:[];
     }
     else
-        group_itemlist = groups_itemlists [`custom]:[]; //pointer ??
+        group_itemlist = groups_itemlists [`custom]:[];
 
     group_itemlist = sort (group_itemlist);
 }
@@ -621,45 +627,5 @@ global define void ChangeGroup (symbol what, map group) ``{
 
 
 }
-
-/**
-  * Get group id
-  * @param groupname string group name
-  * @return integer gid
-  *
-global define integer GetGid( string groupname )``{
-
-    integer gid = Users::max_gid;
-    ProgressInitGroups ("GetGid");
-    foreach ( `key, `group,  current_groups, ``{
-        if( lookup( group, "groupname", "") == groupname )
-        {
-        gid = lookup(group, "gid", Users::max_gid  );
-        }
-        ProgressNext ();
-    });
-    ProgressDone ();
-    return gid;
-}*/
-
-/**
-  * Get iser id
-  * @param username string user name
-  * @return integer uid
-  *
-global define integer GetUid( string username )``{
-
-        integer uid = Users::max_uid;
-    ProgressInitUsers ("GetUid");
-        foreach ( `key, `user,  current_users, ``{
-            if( lookup( user, "username", "") == username )
-            {
-                uid = lookup(user, "uid", Users::max_uid  );
-            }
-        ProgressNext ();
-        });
-    ProgressDone ();
-        return uid;
-}*/
 
 }

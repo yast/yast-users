@@ -177,19 +177,35 @@ global define boolean Import (list settings) ``{
         map passwd_users_by_name = ReadPasswdByName (tmpdir);
         users_by_name [`system] = passwd_users_by_name[`system]:$[];
     }
+    if (users [`local]:nil == nil)
+        users = add (users, `local, $[]);
+
     users_by_name [`local] = UsersByName (users [`local]:$[]);
     // -- move the plus_strings to if sections ??
     plus_passwd = ReadPlusPasswd (tmpdir);
 
     if (groups [`system]:nil == nil || groups [`system]:nil == $[])
     {
-        map system_groups = lookup( ReadGroups (tmpdir), `system, $[]);
+        map all_groups = ReadGroups (tmpdir);
+        map system_groups = all_groups [`system]:$[];
         // but we're not interested in local userlists...
         system_groups = RemoveDiskUsersFromGroups(system_groups);
         groups [`system] = system_groups;
+        // hack for group users, which is count as local
+        if ( lookup (GetGroupFromAll (100), "groupname", "") != "users" &&
+             lookup (GetGroupFromAll (500), "groupname", "") != "users")
+        {
+            map local_groups = all_groups [`local]:$[];
+            map group = local_groups [default_gid]:
+                $[ "gid": default_gid, "groupname": "users",
+                   "password": "x", "userlist": "games"];
+            local_groups = RemoveDiskUsersFromGroups ($[ default_gid: group ]);
+            groups [`local] = union (groups [`local]:$[], local_groups);
+        }
         groups_by_name = GroupsByName (system_groups);
-//        groups_by_name = ReadGroupsByName (tmpdir);
     }
+    if (groups [`local]:nil == nil)
+        groups = add (groups, `local, $[]);
     groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
     plus_group = ReadPlusGroup(tmpdir);
 
@@ -198,6 +214,8 @@ global define boolean Import (list settings) ``{
         map all_shadow = ReadShadow (tmpdir);
         shadow [`system] = all_shadow[`system]:$[];
     }
+    if (shadow [`local]:nil == nil)
+        shadow = add (shadow, `local, $[]);
     plus_shadow = ReadPlusShadow(tmpdir);
 
     if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
@@ -205,6 +223,8 @@ global define boolean Import (list settings) ``{
         map all_gshadow = ReadGshadow (tmpdir);
         gshadow [`system] = all_gshadow[`system]:$[];
     }
+    if (gshadow [`local]:nil == nil)
+        gshadow = add (gshadow, `local, $[]);
     plus_gshadow = ReadPlusGshadow(tmpdir);
 
     // maybe the `system users/groups shouldn't be available??
@@ -311,7 +331,7 @@ map useradd_defaults  = $[
 global string default_shell = "/bin/bash";
 global string default_skel = "/etc/skel";
 global string default_home = "/home/";
-global integer default_gid = 100;
+global integer default_gid = 500; // TODO change to 500 with new version
 global string default_groupname = "users";
 global string default_inactive = "-1";
 global string default_expire = "";
@@ -344,7 +364,7 @@ global string valid_id_chars       = "0123456789";
 global integer max_uid	  = 60000;
 global integer max_gid	  = 60000;
 global integer max_system_uid = 500 - 1;
-global integer max_system_gid = 100 - 1;
+global integer max_system_gid = 500 - 1; // TODO change to 500 with new version
 global integer max_length_uid = 5;// size(sformat("%1", max_uid));
 global integer max_length_gid = 5;
 global integer max_length_pas = 8;
@@ -1256,7 +1276,7 @@ global define string GetDefaultHome()``{
  */
 global define integer GetDefaultGid(boolean useUI)``{
 
-    string def_gid  = useradd_defaults["group"]:"100";
+    string def_gid  = useradd_defaults["group"]:default_gid;
     integer def_int = tointeger(def_gid);
     map group = $[];
 
@@ -1269,8 +1289,8 @@ global define integer GetDefaultGid(boolean useUI)``{
 Please change the default group in /etc/default/useradd."), def_int ));
 
 
-	    // TODO If group 100 does not exists ?
-	    return 100;
+	    // TODO If group 100/500 does not exists ?
+	    return default_gid;
     }
     return def_int;
 }
@@ -1403,6 +1423,7 @@ y2milestone("user : %1", user_in_work );
             // check the change of additional group membership
             foreach (`group, group_list, ``{
                 group_in_work = eval (groups_by_name [group]:$[]);
+                if (group_in_work == $[]) return;
                 string userlist = group_in_work ["userlist"]:"";
                 list l_userlist = splitstring (userlist, ",");
                 // username changed
@@ -1430,6 +1451,7 @@ y2milestone("user : %1", user_in_work );
             list removed_group_list = user_in_work ["removed_grouplist"]:[];
             foreach (`group, removed_group_list, ``{
                 group_in_work = eval (groups_by_name [group]:$[]);
+                if (group_in_work == $[]) return;
                 string userlist = group_in_work ["userlist"]:"";
                 list l_userlist = splitstring (userlist, ",");
                 if (contains (l_userlist, org_username)) // always true?
@@ -1447,34 +1469,45 @@ y2milestone("user : %1", user_in_work );
             {
                 // change the user's name in current default group
                 group_in_work = eval (groups_by_name [defgroup]:$[]);
-                group_in_work ["what"] = `user_change;
-                string more_users = group_in_work ["more_users"]:"";
-                list l_more_users = splitstring (more_users, ",");
-                l_more_users = filter (`u, l_more_users, ``(u != org_username));
-                more_users = mergestring (l_more_users, ",");
-                if (more_users != "") more_users = more_users + ",";
-                group_in_work ["more_users"] = more_users + username;
-                Commit ("group", cache);
+                if (group_in_work != $[])
+                {
+                    group_in_work ["what"] = `user_change;
+                    string more_users = group_in_work ["more_users"]:"";
+                    list l_more_users = splitstring (more_users, ",");
+                    l_more_users = filter (`u, l_more_users,
+                        ``(u != org_username));
+                    more_users = mergestring (l_more_users, ",");
+                    if (more_users != "") more_users = more_users + ",";
+                    group_in_work ["more_users"] = more_users + username;
+                    Commit ("group", cache);
+                }
             }
             else if (defgroup != org_defgroup)
             {
                 // note: username could be also changed!
                 // remove the name from original group ...
                 group_in_work = eval (groups_by_name [org_defgroup]:$[]);
-                group_in_work ["what"] = `user_change;
-                string more_users = group_in_work ["more_users"]:"";
-                list l_more_users = splitstring (more_users, ",");
-                l_more_users = filter (`u, l_more_users, ``(u != org_username));
-                more_users = mergestring (l_more_users, ",");
-                group_in_work ["more_users"] = more_users;
-                Commit ("group", cache);
+                if (group_in_work != $[])
+                {
+                    group_in_work ["what"] = `user_change;
+                    string more_users = group_in_work ["more_users"]:"";
+                    list l_more_users = splitstring (more_users, ",");
+                    l_more_users = filter (`u, l_more_users,
+                        ``(u != org_username));
+                    more_users = mergestring (l_more_users, ",");
+                    group_in_work ["more_users"] = more_users;
+                    Commit ("group", cache);
+                }
                 // and add it to the new one;
                 group_in_work = eval (groups_by_name [defgroup]:$[]);
-                group_in_work ["what"] = `user_change;
-                more_users = group_in_work ["more_users"]:"";
-                if (more_users != "") more_users = more_users + ",";
-                group_in_work ["more_users"] = more_users + username;
-                Commit ("group", cache);
+                if (group_in_work != $[])
+                {
+                    group_in_work ["what"] = `user_change;
+                    more_users = group_in_work ["more_users"]:"";
+                    if (more_users != "") more_users = more_users + ",";
+                    group_in_work ["more_users"] = more_users + username;
+                    Commit ("group", cache);
+                }
             }
             // modify the shadow entry
             if (type == `local || type == `system) // - also for groups !
@@ -1559,7 +1592,6 @@ y2milestone("user : %1", user_in_work );
             // and what about the home and others??
             users [type, uid, "org_username"] = username;
         }
-
     }
     else if ( object == "group" )
     {
@@ -1730,7 +1762,7 @@ global define boolean WriteUserCustomSets() ``{
 
 global define list ReadGroupCustomSets() ``{
 
-    return [`local, `system];//, `nis];
+    return [`local];//, `system];//, `nis];
 }
 
 global define boolean ReadUsersCache(boolean read_prebuilded) ``{
@@ -1920,6 +1952,9 @@ Do you want to install them now?")))
         UsersCache::BuildUsers (users [`ldap]:$[], `ldap, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
+        // correct also possible change in custom itemlist
+        if (new == `custom)
+            UsersCache::ChangeUserCustoms (current_users);
     }
     if (contains (current_users, `nis) && nis_not_read)
     {
@@ -1932,6 +1967,9 @@ Do you want to install them now?")))
         UsersCache::BuildUsers (users [`nis]:$[], `nis, tmpdir);
         // also groups have to be reloaded
         CorrectGroups();
+        // correct also possible change in custom itemlist
+        if (new == `custom)
+            UsersCache::ChangeUserCustoms (current_users);
     }
 
     UsersCache::current_users = current_users;// via some function?
@@ -1943,8 +1981,11 @@ global define void CorrectGroups() ``{
     map correction = SCR::Read(.target.ycp, tmpdir + "/group_correct.ycp");
     foreach (`gid, `userslist, correction, ``{
 
-
         map corrected_group = GetGroupFromAll(gid);
+        if (corrected_group == $[]) // can be e.g. for NIS groups
+            return;
+        // TODO here could be the conversion 100 <-> 500 done...
+
         if (corrected_group ["more_users"]:"" == "")
             corrected_group ["more_users"] = userslist;
         else
@@ -1994,7 +2035,7 @@ global define boolean SetDefaults (map new_defaults, string groupname)``{
     if ( (findlastof( home, "/") +1) == size(home) )
         useradd_defaults["home"] = substring (home, 0, size(home)-1);
 
-    default_gid = tointeger(useradd_defaults["group"]:"100");
+    default_gid = tointeger(useradd_defaults["group"]:sformat("%1",default_gid));
     default_groupname = groupname;
     SetDefaultValues();
 
