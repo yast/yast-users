@@ -1,5 +1,5 @@
 #
-# Makefile.am for modules/y2c_prnt
+# Makefile.am for modules/y2c_users
 #
 
 SUBDIRS = src doc #testsuite
