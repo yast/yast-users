@@ -5934,6 +5934,14 @@ sub Summary {
 ##-------------------------------------------------------------------------
 ##-------------------------------------------------------------------------
 
+# Sets modified flags, except of ldap_modified!
+BEGIN { $TYPEINFO{SetModified} = ["function", "void", "boolean"];}
+sub SetModified {
+    my $self	= shift;
+    $users_modified = $groups_modified = $customs_modified =
+    $defaults_modified = $security_modified = $_[0];
+}
+
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}
 sub SetExportAll {
     my $self	= shift;
