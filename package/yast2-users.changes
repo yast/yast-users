@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 11 15:49:23 CEST 2004 - jsuchome@suse.cz
+
+- fix: wrong call of Message module from perl
+- do not touch /etc/group when only user was added (+adapted testsuite)
+
+-------------------------------------------------------------------
 Tue Aug 10 09:37:04 CEST 2004 - jsuchome@suse.cz
 
 - merged proofread texts
