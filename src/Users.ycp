@@ -568,13 +568,13 @@ global define symbol Write (block abort, boolean useUI)``{
 			// progress stage label
 			_("Back up the configuration files"),
 			// progress stage label
+			_("Write groups"),
+			// progress stage label
 			_("Check for deleted users"),
 			// progress stage label
 			_("Write users"),
 			// progress stage label
 			_("Write passwords"),
-			// progress stage label
-			_("Write groups"),
 			// progress stage label
 			_("Write LDAP users and groups"),
 			// progress stage label
@@ -585,13 +585,13 @@ global define symbol Write (block abort, boolean useUI)``{
 			// progress step label
 		  [ _("Creating backup of configuration files..."),
 			// progress step label
+			_("Writing groups..."),
+			// progress step label
 			_("Checking deleted users..."),
 			// progress step label
 			_("Writing users..."),
 			// progress step label
 			_("Writing passwords..."),
-			// progress step label
-			_("Writing groups..."),
 			// progress step label
 			_("Writing LDAP users and groups..."),
 			// progress step label
@@ -612,6 +612,28 @@ global define symbol Write (block abort, boolean useUI)``{
     if (modified) // TODO better structure of modfied
         BackupConfFiles(base_dir); // should be removed at the end?
 
+
+    // write group before passwd! (bug #24130)
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    if (eval (abort))
+		    return `abort;
+	}
+    if (modified)
+    {
+        if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
+             plus_group))
+        {
+            if (useUI)
+                // error popup
+                Report::Error (_("Cannot write group file."));
+            else
+                y2error("Cannot write group file.");
+        }
+    }
+
+    // check for deleted users (-> remove homes)
 	if ( useUI )
 	{
 	    Progress::NextStage ();
@@ -623,11 +645,11 @@ global define symbol Write (block abort, boolean useUI)``{
     foreach (`uid, `user, modified_users [`local]:$[], ``{
         if (user["delete_home"]:false)
         {
-            // -- what if the home was changed??
+            // TODO (check): what if the home was changed??
             string home = user["home"]:"";
             y2milestone ("The directory %1 is deleted", home);
             string command = sformat("/bin/rm -rf %1", home);
-            y2debug("rm return value: %1",
+            y2debug("rm (%1) return value: %2", command,
                 SCR::Execute(.target.bash, command));
         }
     });
@@ -638,7 +660,7 @@ global define symbol Write (block abort, boolean useUI)``{
             string home = user["home"]:"";
             y2milestone ("The directory %1 is deleted", home);
             string command = sformat("/bin/rm -rf %1", home);
-            y2debug("rm return value: %1",
+            y2debug("rm (%1) return value: %2", command,
                 SCR::Execute(.target.bash, command));
         }
     });
@@ -684,13 +706,13 @@ global define symbol Write (block abort, boolean useUI)``{
                 y2milestone ("The directory %1 is created", home);
                 // copy homedir from skel
                 command = sformat("/bin/cp -r %1 %2",default_skel,home);
-                y2debug("cp return value: %1",
+                y2debug("cp (%1) return value: %2", command,
                     SCR::Execute(.target.bash, command));
             }
             // change the rights
             string groupname = user["groupname"]:default_groupname;
             command = sformat("/bin/chown -R %1:%2 %3",username,groupname,home);
-            y2debug("chown return value: %1",
+            y2debug("chown (%1) return value: %2", command,
                 SCR::Execute(.target.bash, command));
             // call the useradd.local (-- check the existence ??)
             command = sformat("/usr/sbin/useradd.local %1", username);
@@ -719,7 +741,7 @@ global define symbol Write (block abort, boolean useUI)``{
                     y2milestone ("The directory %1 is moved to %2",
                         org_home, home);
                     command = sformat("/bin/mv %1 %2", org_home, home);
-                    y2debug("mv return value: %1",
+                    y2debug("mv (%1) return value: %2", command,
                         SCR::Execute(.target.bash, command));
                 }
                 else // directory already exists
@@ -728,7 +750,7 @@ global define symbol Write (block abort, boolean useUI)``{
                     string groupname = user["groupname"]:default_groupname;
                     command = sformat("/bin/chown -R %1:%2 %3", username,
                         groupname, home);
-                    y2debug("chown return value: %1",
+                    y2debug("chown (%1) return value: %2", command,
                         SCR::Execute(.target.bash, command));
                 }
             }
@@ -740,7 +762,7 @@ global define symbol Write (block abort, boolean useUI)``{
                 y2milestone ("UID of user %1 was changed, changing rights of files in %2", username, home);
                 command = sformat("/bin/chown -R %1:%2 %3", username,
                     groupname, home);
-                y2debug("chown return value: %1",
+                y2debug("chown (%1) return value: %2", command,
                     SCR::Execute(.target.bash, command));
             }
         }
@@ -774,26 +796,6 @@ global define symbol Write (block abort, boolean useUI)``{
 	            Report::Error (_("Cannot write gshadow file."));
             else
                 y2error ("Cannot write gshadow file.");
-        }
-    }
-
-    // group
-	if ( useUI )
-	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-		    return `abort;
-	}
-    if (modified)
-    {
-        if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
-             plus_group))
-        {
-            if (useUI)
-                // error popup
-                Report::Error (_("Cannot write group file."));
-            else
-                y2error("Cannot write group file.");
         }
     }
 
@@ -2703,7 +2705,7 @@ global define map BuildAdditional (string userlist, string more_users) ``{
 global define boolean StartAgain() ``{
 
     y2debug ("reloading unmodified values from disk...");
-    Read ( nil, false);
+    Read ( ``{return false;}, false);
     return true;
 }
 

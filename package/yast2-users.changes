@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb 24 10:03:47 CET 2003 - jsuchome@suse.de
+
+- fix: group ownership for home directory not set if group is newly
+  created (#24130)
+- 2.7.16
+
+-------------------------------------------------------------------
 Fri Feb 21 15:21:18 CET 2003 - arvin@suse.de
 
 - better text for "abort installation" popup (bug #24019)
