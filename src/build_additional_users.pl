@@ -51,22 +51,26 @@ close MORE_USERS;
 
 open USERNAMES, "< $usernames_file";
 
-$usernames = <USERNAMES>;
+foreach my $line (<USERNAMES>)
+{
+    chomp $line;
+    $usernames .= $line;
+}
 
 close USERNAMES;
-
 
 my @nameslist = ();
 
 while (index ($usernames, "\"") > -1)
 {
-    $first_idx = index($usernames, "\"");
+    $first_idx = index($usernames, ":");
     $last_idx = index($usernames, "]");
     $names = substr ($usernames, $first_idx, $last_idx - $first_idx + 1, "");
-    chop $names; # the "]" at the end
-    $names =~s/\"//g;
-    push (@nameslist, split (/,/, $names));
-
+    if (index ($names, "\"") > -1)
+    {
+        $names =~s/[:\[\]\"]//g;
+        push (@nameslist, split (/,/, $names));
+    }
 }
 
 open ULIST, "> $output_ulist";
