@@ -258,6 +258,7 @@ sub UserAdd {
 	InitializeConfiguration ($config);
 
 	# finally read LDAP tree
+	# TODO not necessary to read everything... (?)
 	$ret	= Users->ReadLDAPSet ();
 	if ($ret ne "") { return $ret; }
     }
@@ -315,11 +316,102 @@ sub UserModify {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
-    my $ret	= "";
-    my $user	= {};
+    my $error	= "";
 
-    #TODO
-    return $ret;
+    Users->SetGUI (0);
+
+    my $type	= $config->{"type"} || "local";
+
+    if ($type ne "ldap") {
+	$error = Users->Read ();
+	if ($error ne "") { return $error; }
+    }
+
+    # config map could contain: user type, plugins to use, ... (?)
+    # before we read LDAP, we could find here e.g. bind password
+    InitializeConfiguration ($config);
+
+    # 1. select user
+
+    my $key	= "";
+    if (defined $config->{"dn"} && $type eq "ldap") {
+	$key	= "dn";
+    }
+    elsif (defined $config->{"uid"}) {
+	$key	= "uid";
+    }
+    elsif (defined $config->{"uidnumber"}) {
+	$key	= "uidnumber";
+    }
+
+    if ($type eq "ldap") {
+	# this initializes LDAP with the default values and read the
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+
+	# now rewrite default values with given values
+	InitializeConfiguration ($config);
+
+	# If we want to atributes, that should be unique
+	# (uid/dn/uidnumber/home (TODO?) we must read everything to check
+	# possible conflicts...
+	my $read_all	= 0;
+	if (defined $data->{"uid"} || defined $data->{"uidnumber"}) {
+	    $read_all	= 1;
+	}
+
+	# search with proper filter (= one DN/uid/uidnumber)
+	# should be sufficient in this case...
+	if ($key eq "dn" && !$read_all) {
+	    UsersLDAP->SetUserBase ($config->{$key});
+	}
+	elsif (!defined $config->{"user_filter"} && $key ne "" && !$read_all) {
+	    my $filter	= "$key=".$config->{$key};
+	    UsersLDAP->SetCurrentUserFilter ($filter);
+	}
+	# Let's create the minimal list of neccessary attributes to get
+	my @necessary_user_attributes = ("uid", "uidnumber");
+	if (!defined $config->{"user_attributes"}) {
+	    my @attrs	= keys (%{$data});
+	    foreach my $a (@necessary_user_attributes) {
+		if (!defined $data->{$a}) { push @attrs, $a;}
+	    }
+	    UsersLDAP->SetUserAttributes (\@attrs);
+	}
+	
+	$error	= Users->ReadLDAPSet ();
+	if ($error ne "") { return $error; }
+    }
+    elsif ($type eq "nis") {
+	Users->ReadNewSet ($type);
+    }
+
+    if ($key eq "uidnumber") {
+	Users->SelectUser ($config->{$key}, $type);
+    }
+    elsif ($key ne "") {
+	Users->SelectUserByName ($config->{$key}, $type);
+    }
+
+    # 'dn' has to be passed in $data map so it could be changed
+    # TODO it is currently not possible to move entry deeper in the tree
+    # -> allow setting 'dn' in data map!
+    if ($type eq "ldap" && !defined $data->{"dn"}) {
+	my $user	= Users->GetCurrentUser ();
+	$data->{"dn"}	= $user->{"dn"};
+    }
+
+    if (Users->EditUser ($data)) {
+	$error = Users->CheckUser ({});
+	if ($error eq "" && Users->CommitUser ()) {
+	    $error = Users->Write ();
+	}
+    }
+    else {
+	$error	= "no such user"; # this text is surely somewhere...
+    }
+	
+    return $error;
 }
 
 =item *
@@ -347,8 +439,10 @@ BEGIN{$TYPEINFO{UserFeatureAdd} = ["function",
 }
 sub UserFeatureAdd {
 
+#FIXME just call UserModify with 'plugins' entry in $data hash
     my $self	= shift;
-    return "";
+    my $error	= "";
+    return $error;
 }
 
 =item *
@@ -412,7 +506,6 @@ sub UserDelete {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $ret	= "";
     my $error	= "";
 
     Users->SetGUI (0);
