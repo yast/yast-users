@@ -557,7 +557,6 @@ Press Details and edit the home directory."), home_path));
 		 (what == "add_user" || username != org_username) &&
 		 Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
             {
-		// FIXME
                 // The login name contains uppercase 1/3
 		string text = _("<p>
 You have used uppercase letters in the user login entry.</p>") +

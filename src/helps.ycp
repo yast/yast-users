@@ -106,7 +106,6 @@ repeat it exactly in a second field. Make sure you don't forget your password!
      * @return string The help text.
      */
     global define string DefaultsDialogHelp () ``{
-	// FIXME grouplist!
 // Help text 0/6
       return _("<p>
 Here you can set default values which will be used when creating new <b>local</b> or <b>system</b> user.
@@ -116,6 +115,13 @@ Here you can set default values which will be used when creating new <b>local</b
       _("<p>
 <b>Default Group</b><br>
 The group name for a new user's initial group.
+</p>
+")
++
+// Help text 1.5/6
+      _("<p>
+<b>Secondary Groups</b><br>
+Names of initial additional groups of new user.
 </p>
 ")
 +
@@ -563,36 +569,15 @@ Leave empty if this account never expires.</P>
 
 global define string AuthentizationDialogHelp() ``{
 
-    // FIXME
-    string help_text = _("FIXME!") +
-
+    string help_text =
+    // help text 1/2
     _("<p>
-<b>User Sources</b><br>
-View the sources of user's accounts. The possible values here can be:
+<b>Configuration Overview</b><br>
+Here you can see summary of modules which could affect sources
+of user's accounts or authentication type.
 </p>
 ") +
-    // help text 2/5
-    _("<p>
-<b>Local Files</b> -- data is stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
-<b>NIS</b> -- user data can be retrieved from the NIS server<br>
-<b>Compat</b> -- both previous sources can be used<br>
-<b>LDAP</b> -- user database is on the LDAP server
-</p>
-") +
-    // help text 3/5
-    _("<p>
-For more information, look at the file <i>/etc/nsswitch.conf</i> and its documentation.
-</p>") +
-
-    // help text 4/5
-    _("<p>
-<b>Additional Authentication</b>
-This is the partial list of your PAM settings. It shows the authentication types, which can be used by users on your system. As a default, users are authenticated by comparing their passwords with the ones saved in local files or on the NIS server.<br>
-Other possibility for authentication is using the LDAP server or Kerberos.
-</p>
-") +
-
-    // help text 5/5
+    // help text 2/2
     _("<p>
 <b>Changing the Values</b><br>
 You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
@@ -602,9 +587,34 @@ You can configure these settings by running appropriate modules. Select the modu
     return help_text;
 }
 
-global define string LDAPSettingsDialogHelp(string what) ``{
+global define string LDAPSettingsDialogHelp (string what) ``{
 
-    return "FIXME: " + what;
+    // helptext 0/2 ("first sentence")
+    string first = _("Here you can see the table of all allowed attributes for current LDAP user, which were not set in previous dialogs.");
+
+    if (what == "group")
+	// alternative helptext 0/2 ("first sentence")
+	first = _("Here you can see the table of all allowed attributes for current LDAP group, which were not set in previous dialogs.");
+
+
+    // helptext 1/2 (don't translate objectClass"),
+    // %1 is first sentence (0/2), %2 is list of values
+    string help_text = sformat (_("<p>
+%1
+The list of attributes is given by the value of \"objectClass\"
+(which is by default
+%2
+).
+</p>"), first, mergestring (what == "user" ?
+	Users::ldap_user_class : Users::ldap_group_class, ",")) +
+
+    // helptext 2/2
+    _("<p>
+You can edit each attribute using the <b>Edit</b> button. Some of attributes 
+could be required to fill, as defined in the user template in <b>Ldap client module</b>.</p>");
+
+    return help_text;
+
 }
 
 /**

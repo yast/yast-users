@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul 17 10:47:11 CEST 2003 - jsuchome@suse.de
+
+- system settings (/etc/login.defs etc.) are read from Security module
+- helptexts
+
+-------------------------------------------------------------------
 Mon Jul 14 18:57:10 CEST 2003 - jsuchome@suse.de
 
 - fix on inst_user dialog (#27859)
