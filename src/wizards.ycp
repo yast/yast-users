@@ -70,84 +70,6 @@ define symbol SummaryDialog() ``{
     return (symbol) ret;
 }
 
-//FIXME too complicated...
-define symbol CWMEditUserDialog (string what) ``{
-
-    // global initialozation for whole dialog
-    map dialog_labels = $[
-        "add_user": $[
-            // dialog caption:
-            "local":    _("Add a New Local User"),
-            // dialog caption:
-            "system":	_("Add a New System User"),
-            // dialog caption:
-            "ldap":     _("Add a New LDAP User")
-        ],
-        "edit_user": $[
-            // dialog caption:
-            "local":    _("Edit an Existing Local User"),
-            // dialog caption:
-            "system":	_("Edit an Existing System User"),
-            // dialog caption:
-            "ldap":	_("Edit an Existing LDAP User"),
-            // dialog caption:
-            "nis":	_("Edit an Existing NIS User")
-        ]
-    ];
-    string user_type	= UsersCache::GetUserType ();
-
-    term contents = `VBox(
-	`VSpacing(),
-	// Frame title
-	`Frame ( _("User Data"),
-	  `HVSquash(
-	    `VBox (
-		`VSpacing (0.5),
-		`HBox (
-		    `HSpacing (2),
-		    `VBox(
-			`HSquash (
-			  `VBox(
-			    `VStretch(),
-			    "user_name_entries",
-			    "user_fields"
-			)),
-			`VSpacing (1),
-			`VSquash (`Top ("user_options"))
-		    ),
-		    `HSpacing (2)
-		),
-		`VSpacing( 0.5 )
-	    )
-	))
-    );
-
-    /*
-    if ( complex_layout )
-    {
-	contents = add ( contents, `VBox (
-	    `VSpacing (0.5),
-	    `HCenter(`PushButton(`id(`additional), `opt(`key_F3),
-		// push button
-		_("User &Management") ) ),
-	    `VSpacing (0.5))
-	);
-    }
-    */
-    contents = `VCenter (contents);
-
-    any ret = CWM::ShowAndRun (
-	["user_name_entries", "user_fields", "user_options" ],
-	widgets,
-	contents,
-        dialog_labels [ what, user_type ]:"",
-	Label::BackButton (), Label::NextButton (),
-	$[]
-    );
-
-    y2internal ("User Dialog ret: -%1-", ret);
-    return (symbol) ret;
-}
 
 // --------------------------------------------------------------------------
 // --------------------------------------------------------------------------
@@ -162,7 +84,6 @@ define symbol MainSequence(string start) ``{
 
     map aliases = $[
 	"summary":		``(SummaryDialog ()),
-//	"users":            ``(UsersDialog()),
 	"user_add":         ``(EditUserDialog("add_user")),
 	"user_add_inst":    ``(EditUserDialog("add_user")),
 	"user_inst_start":  [``(usersInstStart ()), true],
@@ -173,7 +94,6 @@ define symbol MainSequence(string start) ``{
 	"user_save":        [``(UserSave()), true],
 	"user_setup":	    [ ``(userSetup ()), true],
 
-//	"groups":           ``(GroupsDialog()),
 	"group_add":        ``(EditGroupDialog("add_group")),
 	"group_edit":       ``(EditGroupDialog("edit_group")),
 	"group_ldap":		``(LDAPSettingsDialog("group")),
@@ -185,8 +105,8 @@ define symbol MainSequence(string start) ``{
     ];
 
     map main_sequence = $[
-    "ws_start":             start,
-    "summary":$[
+	"ws_start":             start,
+	"summary":$[
 	    `new_user		: "user_add",
 	    `edit_user		: "user_edit",
 	    `delete_user	: "user_save",
@@ -200,129 +120,99 @@ define symbol MainSequence(string start) ``{
 	    `next		: `next,
             `nosave		: `nosave,
 	    `exit		: `abort
-    ],
-    /*
-    "users":$[
-            `switch_groups:	"groups",
-            `users:		"users",
-	    `new:		"user_add",
-	    `edit:		"user_edit",
-	    `delete:		"user_save",
-            `defaults:		"defaults",
-	    `auth:		"auth",
-	    `next:		`next,
-	    `abort:		"without_save",
-	    `cancel:		"without_save",
-            `nosave:		`nosave,
-	    `exit:		`abort ],
-    */
-    "user_add": $[
-            `nextmodule:	`next,
+	],
+	"user_add": $[
+            `nextmodule		: `next,
 	    `nosave		: "summary",
-//	    `nosave:		"users",
-	    `additional:	"user_setup", // only install
-	    `next:		"user_save",  // -> Commit
-	    `details:		"user_details",
-	    `passwordsettings:	"user_password",
-	    `ldap:		"user_ldap",
-	    `abort:		"without_save",
-	    `cancel:		"without_save",
-//	    `back:		"users"
-    ],
-    "user_add_inst": $[
-            `nextmodule:    `next, // no user and next pressed (install)
+	    `additional		: "user_setup", // only install
+	    `next		: "user_save",  // -> Commit
+	    `details		: "user_details",
+	    `passwordsettings	: "user_password",
+	    `ldap		: "user_ldap",
+	    `abort		: "without_save",
+	    `cancel		: "without_save",
+	],
+	"user_add_inst": $[
+            `nextmodule		: `next, // no user and next pressed (install)
             `nosave		: "summary",//no "first user" was added(install)
-//            `nosave:        "users", // no "first user" was added (install)
-            `additional:    "user_setup",
-            `next:          "user_save",
-            `details:       "user_details",
-            `passwordsettings:  "user_password",
-            `abort:         "without_save",
-            `cancel:        "without_save",
-//            `back:          "users"
-    ], // is it OK ??
-    "user_edit": $[
+            `additional		: "user_setup",
+            `next		: "user_save",
+            `details		: "user_details",
+            `passwordsettings	: "user_password",
+            `abort		: "without_save",
+            `cancel		: "without_save",
+	],
+	"user_edit": $[
             `next:		"user_save",
 	    `details:		"user_details",
 	    `passwordsettings:	"user_password",
 	    `ldap:		"user_ldap",
 	    `cancel:		"without_save",
-	    `abort:		"without_save" ],
-    "user_inst_start": $[
-            `next:          "user_add_inst"], // is this needed ??
-    "user_setup": $[
-            `next :         "user_save" ],
-    "user_details": $[
+	    `abort:		"without_save"
+	],
+	"user_inst_start": $[
+            `next:          "user_add_inst"
+	],
+	"user_setup": $[
+            `next :         "user_save"
+	],
+	"user_details": $[
 	    // next is predefined to add or edit
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit",
 	    `ldap:		"user_ldap",
-	    ],
-    "user_password": $[
+	],
+	"user_password": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
-	    `edit_user:		"user_edit"],
-    "user_ldap": $[
+	    `edit_user:		"user_edit"
+	],
+	"user_ldap": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
-	    `edit_user:		"user_edit"],
-    "user_save": $[
-//            `next:	        "users",
+	    `edit_user:		"user_edit"
+	],
+	"user_save": $[
             `next		: "summary",
 	    `save		: `next//this should be write - during install??
-    ],
-    /*
-    "groups": $[
-            `switch_users:  "users",
-	    `new:           "group_add",
-	    `edit:          "group_edit",
-            `delete:        "group_save",
-	    `next:          `next,
-	    `abort:         "without_save",
-	    `cancel:        "without_save",
-            `nosave:        `nosave,
-	    `exit:          `abort ],
-    */
-    "group_add": $[
+        ],
+	"group_add": $[
 	    `nosave		: "summary",
-//	    `nosave:		"groups",
             `next:		"group_save",
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `ldap:		"group_ldap",
-//	    `back:		"groups"
-    ],
-    "group_edit": $[
+	],
+        "group_edit": $[
             `next:		"group_save",
             `cancel:		"without_save",
 	    `ldap:		"group_ldap",
-	    `abort:		"without_save" ],
-    "group_ldap": $[
+	    `abort:		"without_save"
+	],
+        "group_ldap": $[
 	    `next:		"group_save",
-	    `abort:		"without_save" ],
-    "group_save"  : $[
-//            `next		: "groups"
+	    `abort:		"without_save"
+	],
+        "group_save"  : $[
             `next		: "summary"
-    ],
-    "defaults": $[
+	],
+        "defaults": $[
 	    `abort		: "without_save",
-//            `next:          "users"
             `next		: "summary"
-    ],
-    "auth": $[
+	],
+        "auth": $[
 	    `abort		: "without_save",
-//            `next:          "users"
             `next		: "summary"
-    ],
-    "without_save": $[
+	],
+        "without_save": $[
             `next		: `next,
 	    `abort		: `abort,
 	    `back		: `back
-    ],
+	],
     ];
 
     return WizardSequencer(aliases, main_sequence);
