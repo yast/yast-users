@@ -501,7 +501,7 @@ to new home directory %2")), old_home, home));
 			  `add_user,
 			  sformat(UI(_("Can't create the new user %1")), username ) );
 	    
-	    usersAddChownHome( home, username , groupIdToName(gid ));
+	    //usersAddChownHome( home, username , groupIdToName(gid ));
 	}
 	else
 	{
