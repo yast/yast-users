@@ -295,6 +295,7 @@ global define symbol UsersDialog() ``{
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
             `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
+//            (Mode::config || Mode::cont) ? `HSpacing(0):
             Mode::config ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
