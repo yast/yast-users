@@ -1207,6 +1207,7 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	    return nil;
 	}
 	Wizard::CreateDialog ();
+        Wizard::SetDesktopIcon("users");
 	any ret = WriteDialog (true);
 	if (ret == `next)
 	{

@@ -82,6 +82,7 @@
     else if (func == "Change") {
 	string start_dialog = "summary"; //look to users.ycp for possible values
 	Wizard::CreateDialog();
+        Wizard::SetDesktopIcon("users");
 	ret = AutoSequence(start_dialog);
 	Wizard::CloseDialog();
     }
