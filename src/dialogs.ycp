@@ -1142,7 +1142,7 @@ define symbol EditUserPasswordDialog() ``{
 
     Wizard::SetContentsButtons (
 	// dialog caption, %1 is user name
-	sformat (_("Password settings for user %1"), username),
+	sformat (_("Password Settings for User %1"), username),
         contents,
         EditUserPasswordDialogHelp(),
         Label::BackButton(),
@@ -1463,8 +1463,7 @@ define symbol LDAPSettingsDialog (string what) ``{
 		     contains (new_attributes, req)) &&
 		    tmp_object[req]:object[req]:[] == [])
 		    // question, %1 is attribute name
-		    if (!Popup::YesNo (sformat (_(
-"The attribute '%1' is required for this object according
+		    if (!Popup::YesNo (sformat (_("The attribute '%1' is required for this object according
 to its LDAP configuration, but it is currently empty.
 Are you sure?"), req)))
 		    {
