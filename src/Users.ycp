@@ -879,6 +879,8 @@ define map ImportUser (map user) ``{
     string forename = user["forename"]:"";
     string surname = user["surname"]:"";
     string fullname = "";
+    string username = user["username"]:"";
+    integer uid = user["uid"]:-1;
 
     if( forename != "" )
     {
@@ -888,7 +890,7 @@ define map ImportUser (map user) ``{
     else fullname = surname;
 
     symbol type = `local;
-    if (user["uid"]:-1 <= max_system_uid || user["username"]:"" == "nobody")
+    if ((uid <= max_system_uid || username == "nobody") && uid != -1)
         type = `system;
 
     map user_shadow = user ["password_settings"]:$[];
@@ -908,6 +910,36 @@ define map ImportUser (map user) ``{
         user_shadow = add (user_shadow, "password", pass);
     }
 
+    if (uid == -1)
+    {
+        // check for existence of user -> change it
+        map existing = GetUserByName (username);
+        if (existing != $[])
+        {
+            type = existing ["type"]:`system; // these should be system
+            // change only imported values...
+            map ret = $[
+                "encrypted":    user ["encrypted"]:existing["encrypted"]:true,
+                "password":     user ["user_password"]:existing["password"]:"x",
+                "username":     username,
+                "forename":     user["forename"]:existing["forename"]:"",
+                "surname":      user["surname"]:existing["surname"]:"",
+                "shell":        user ["shell"]:existing["shell"]:default_shell,
+                "uid":          existing["uid"]:-1,
+                "gid":          user ["gid"]:existing["gid"]:default_gid,
+                "grouplist":    user ["grouplist"]:existing["grouplist"]:"",
+                "home":         user ["home"]:existing["home"]:"",
+                "type":         type,
+                "modified":     `imported,
+            ];
+            if (haskey (user,"forename") || haskey (user, "surname"))
+                ret = add (ret, "fullname", fullname);
+            if (haskey (user,"password_settings"))
+                ret = add (ret, "shadow", user_shadow);
+            return ret;
+        }
+    }
+
     return $[
         "encrypted":        user ["encrypted"]:true,
         //can be distinct (uncrypted) from pass (which is always crypted)
@@ -917,7 +949,7 @@ define map ImportUser (map user) ``{
         "surname":          surname,
         "fullname":         fullname,
         "shell":            user ["shell"]:default_shell,
-        "uid":              user ["uid"]:-1,
+        "uid":              uid,
         "gid":              user ["gid"]:default_gid,
         "grouplist":        user ["grouplist"]:"",
         "home":             user ["home"]:"",
@@ -965,7 +997,10 @@ global define boolean Import (map settings) ``{
     if (settings["userdefaults"]:$[] == $[])
         ReadLoginDefaults(false);
     else
+    {
         useradd_defaults = settings["userdefaults"]:$[];
+        defaults_modified = true;
+    }
 
     ReadSystemDefaults();
     tmpdir = SCR::Read(.target.tmpdir);
@@ -985,23 +1020,56 @@ global define boolean Import (map settings) ``{
     users [`system] = passwd_users [`system]:$[];
     users [`local] = $[];
 
+    users_by_name [`system] = UsersByName (users[`system]:$[]);
+    users_by_name [`local] = $[];
+
+    if (settings["users"]:[] != [] || settings["groups"]:[] != [])
+        modified = true;
+
+    // Problem: what if UID is not provided?
+    list without_uid = [];
+
     foreach (`imp_user, settings["users"]:[], ``{
         map user = ImportUser (imp_user);
         symbol type = user ["type"]:`local;
-        users [type] = add (users[type]:$[], user["uid"]:-1, user);
-        // TODO: what if uid was changed??
+        integer uid = user ["uid"]:-1;
+        string username = user["username"]:"";
+        if (uid == -1)
+            without_uid = add (without_uid, user);
+        else
+        {
+            users [type] = add (users[type]:$[], uid, user);
+            users_by_name [type] = add (users_by_name[type]:$[], username,uid);
+            // TODO: what if uid was changed??
 
-        // update shadow
-        map users_shadow = user ["shadow"]:$[];
-        shadow [type] = add (shadow[type]:$[],user["username"]:"",users_shadow);
+            // update shadow
+            shadow[type] = add (shadow[type]:$[], username, user["shadow"]:$[]);
+        }
     });
 
-    users_by_name [`system] = UsersByName (users[`system]:$[]);
-    users_by_name [`local] = UsersByName (users[`local]:$[]);
+    // these are _ugly hacks_ to import users without UIDs...
+    // TODO: use User::Add & Commit for them
+    if (size (without_uid) > 0)
+    {
+        list uids = UsersCache::BuildUIDList (users[`local]:$[]);
+        integer last = uids [ size(uids)-1 ]:max_system_uid;
+        foreach (`user, without_uid, ``{
+            // new local user -> generate new uid (use Commit?)
+            integer uid = last + 1;
+            while (contains (uids, uid))
+                uid = uid + 1;
+            uids = add (uids, uid); last = uid;
+            user ["type"] = `local;
+            user ["uid"] = uid;
+            users [`local] = add (users[`local]:$[], uid, user);
+            users_by_name [`local] = add (users_by_name[`local]:$[],
+                user["username"]:"", uid);
+        });
+    }
 
     plus_passwd = ReadPlusPasswd (tmpdir);// TODO use this for autoinstall??
 
-    // --- get igshadow
+    // --- get gshadow
     map all_gshadow = ReadGshadow (tmpdir);
     gshadow [`system] = all_gshadow[`system]:$[];
     gshadow [`local] = $[];
@@ -2252,6 +2320,14 @@ global define boolean UIDExists(integer uid) ``{
 global define boolean UsernameExists(string username) ``{
 
     return UsersCache::UsernameExists(username);
+}
+
+/**
+ * Scan uidlist for the next free uid.
+ * @return integer free uid
+ */
+global define integer NextFreeUid() ``{
+    return UsersCache::NextFreeUid();
 }
 
 /**
