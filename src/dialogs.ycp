@@ -704,9 +704,10 @@ can be changed for non-local users.")) : `VSpacing (0),
     Wizard::SetContentsButtons (
         dialog_labels [ what, user_type ]:"",
         dialog_contents,
-        EditUserDialogHelp (Stage::cont (), user_type, what),
-        Label::CancelButton(), Label::AcceptButton());
-// FIXME Next during installation...
+        EditUserDialogHelp (complex_layout, user_type, what),
+        Label::CancelButton(),
+	complex_layout ?  Label::NextButton () : Label::AcceptButton()
+    );
     Wizard::HideAbortButton ();
 
     symbol ret		= `edit;
