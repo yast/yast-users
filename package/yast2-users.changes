@@ -2,7 +2,8 @@
 Mon Jan 27 13:23:39 CET 2003 - jsuchome@suse.cz
 
 - autoinst fix: do not export group with only cache structures changed
-- fix: changing id's more times, check for keys to remove from maps 
+- fix: changing id's more times, check for keys to remove from maps
+- adapted testsuite 
 
 -------------------------------------------------------------------
 Mon Jan 27 12:09:04 CET 2003 - jsuchome@suse.cz

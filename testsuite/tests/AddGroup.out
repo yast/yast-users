@@ -7,7 +7,7 @@ Return	true
 Dump	local groups modified:
 Dump	 $[501:$["gid":501, "groupname":"testgroup", "modified":`added, "org_groupname":"testgroup", "password":"x", "type":`local, "userlist":"hh", "what":`add_group]]
 Dump	local users modified:
-Dump	 $[500:$["forename":"", "fullname":"", "gid":100, "grouplist":"audio,testgroup", "groupname":"users", "home":"/home/hh", "modified":`nothing, "org_home":"/home/hh", "org_username":"hh", "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"hh", "what":`group_change]]
+Dump	 $[500:$["forename":"", "fullname":"", "gid":100, "grouplist":"audio,testgroup", "groupname":"users", "home":"/home/hh", "org_home":"/home/hh", "org_username":"hh", "password":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "shadow":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"", "type":`local, "uid":500, "username":"hh", "what":`group_change]]
 Dump	
 Dump	==========================================================
 Dump	local group itemlist:
