@@ -16,7 +16,6 @@ modules_DATA =			\
 	UserAddDefs.ycp
 
 include_DATA =			\
-	io.ycp			\
 	ui.ycp			\
 	help.ycp
 
