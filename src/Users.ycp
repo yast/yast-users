@@ -307,7 +307,6 @@ global define map Export() ``{
     global string base_dir = "/etc"; // paramater for ReadFuncitons ??
 
     global list auto_shadow_symbols = ["warn", "max", "min"];
-//    global list auto_shadow_symbols = ["warn", "inact", "max", "min", "expire"];
 
     // where should be this?
     //global boolean aborted = false;
@@ -316,7 +315,7 @@ global define map Export() ``{
 
     // ===== new module ==================================================
     global boolean is_nis_master = false;
-    global boolean is_ldap_server = false;
+    global boolean is_ldap_server = false;// ??
     global boolean is_ldap_present = false;
     global string default_shell = "/bin/bash";
     global string default_skel = "/etc/skel";
@@ -383,7 +382,7 @@ global define symbol Read (block abort, boolean useUI) ``{
 			// progress label
 			 _("Read the configuration type"),
 			// progress label
-			 _("Build tha data structures"),
+			 _("Build the data structures"),
 			// progress label
 			 _("Read the password settings"),
 			// progress label
@@ -402,7 +401,7 @@ global define symbol Read (block abort, boolean useUI) ``{
 			// progress label
 			 _("Reading the configuration type..."),
 			// progress label
-			 _("Building tha data structures..."),
+			 _("Building the data structures..."),
 			// progress label
 			 _("Reading the password settings..."),
 			// progress label
@@ -499,12 +498,12 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 	}
 
 
-    gshadow = SCR::Read(.target.ycp, tmpdir + "/gshadow.ycp");
+    gshadow = ReadGshadow(tmpdir);
 
-    shadow = SCR::Read(.target.ycp, tmpdir + "/shadow.ycp");
+    shadow = ReadShadow (tmpdir);
 //y2milestone("shadow:%1", shadow);
-    last_shadow = SCR::Read(.target.ycp, tmpdir + "/last_shadow.ycp");
-    last_gshadow = SCR::Read(.target.ycp, tmpdir + "/last_gshadow.ycp");
+    last_shadow = ReadLastShadow(tmpdir);
+    last_gshadow = ReadLastGshadow(tmpdir);
 
 	if ( (gshadow == nil) || (shadow == nil) )
     {
@@ -523,10 +522,9 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 	    }
 	}
 
-    groups [`local] = SCR::Read(.target.ycp, tmpdir + "/group_local.ycp");
-    groups [`system] = SCR::Read(.target.ycp, tmpdir + "/group_system.ycp");
-    groups_by_name = SCR::Read(.target.ycp, tmpdir + "/group_byname.ycp");
-    last_group = SCR::Read(.target.ycp, tmpdir + "/last_group.ycp");
+    groups = ReadGroups(tmpdir);
+    groups_by_name = ReadGroupsByName(tmpdir);
+    last_group = ReadLastGroup(tmpdir);
 
 	if ( groups [`local]:nil == nil )
     {
@@ -535,7 +533,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
         groups [`local] = $[];
     }
     if ( groups [`system]:nil == nil)
- {
+    {
 		// error popup
 	    Report::Error (_("Cannot read the system group settings."));
         groups [`system] = $[];
@@ -553,17 +551,12 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 
 SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
 
-    users [`local] = SCR::Read(.target.ycp, tmpdir + "/passwd_local.ycp");
-    users [`system] = SCR::Read(.target.ycp, tmpdir + "/passwd_system.ycp");
+    users = ReadPasswd (tmpdir);
 
 SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 
-    last_passwd = SCR::Read(.target.ycp, tmpdir + "/last_passwd.ycp");
-
-    users_by_name [`local] = SCR::Read(.target.ycp, tmpdir +
-        "/passwd_local_byname.ycp");
-    users_by_name [`system] = SCR::Read(.target.ycp, tmpdir +
-        "/passwd_system_byname.ycp");
+    last_passwd = ReadLastPasswd (tmpdir);
+    users_by_name = ReadPasswdByName (tmpdir);
 
 	if (users [`local]:nil == nil )
     {
@@ -578,26 +571,23 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
         users [`system] = $[];
     }
 
-
     if (! is_nis_master )
     {
-        users [`nis] = SCR::Read(.target.ycp, tmpdir + "/nis.ycp");
-        users_by_name [`nis] = SCR::Read(.target.ycp, tmpdir +
-            "/nis_byname.ycp");
+        users [`nis] = ReadNISUsers (tmpdir);
+        users_by_name [`nis] = ReadNISUsersByName (tmpdir);
+        if (users [`nis ]:nil != nil)
+            available_usersets = add ( available_usersets, `nis);
     }
 
-    if (users [`nis ]:nil != nil)
-        available_usersets = add ( available_usersets, `nis);
-
-    /*
-    if ( is_ldap_present ) // .. not at server !!
-        users [`ldap ] = ReadLDAPUsers ();
-        */
-
-    if (users [`ldap ]:nil != nil)
+    if ( is_ldap_present )
     {
-        available_usersets = add ( available_usersets, `ldap);
-        available_groupsets = add ( available_groupsets, `ldap);
+        is_ldap_server = IsLDAPServer ();
+        users [`ldap ] = ReadLDAPUsers (tmpdir);
+        if (users [`ldap ]:nil != nil)
+        {
+            available_usersets = add ( available_usersets, `ldap);
+            available_groupsets = add ( available_groupsets, `ldap);// ??
+        }
     }
 
     available_usersets = add ( available_usersets, `custom);
@@ -1270,9 +1260,13 @@ y2milestone("user : %1", user_in_work );
                 group_in_work ["more_users"] = more_users + username;
                 Commit ("group", cache);
             }
-            if (username != org_username)
-                shadow = remove (shadow, org_username);
-            shadow [ username ] = user_in_work["shadow"]:$[];
+            // modify the shadow entry
+            if (type == `local || type == `system) // - also for groups !
+            {
+                if (username != org_username)
+                    shadow = remove (shadow, org_username);
+                shadow [ username ] = user_in_work["shadow"]:$[];
+            }
         }
         else if ( what == `delete_user )
         {
