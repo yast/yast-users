@@ -21,7 +21,7 @@ import "Internet";
 import "DSL";
 
 // Check if lan is configured
-list net_devices = NetworkDevices::List("");
+list<string> net_devices = NetworkDevices::List("");
 y2debug("net_devices: %1", net_devices);
 
 if(size(net_devices) == 0) {
@@ -64,7 +64,7 @@ map button_labels = $[
 ];
 
 // check if nis+/ldap are available (there are not in personal edition)
-list available_clients = ["nis"];
+list<string> available_clients = ["nis"];
 
 if (Require::IsPackageAvailable("yast2-ldap-client"))
     available_clients = add (available_clients, "ldap");

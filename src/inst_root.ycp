@@ -209,7 +209,7 @@ Are you sure?")))
 	    // map returned from Check*UI functions
 	    map error_map		= $[];
 	    // map with id's of confirmed questions
-	    map<string,string> ui_map	= $[];
+	    map<string,integer> ui_map	= $[];
 	    boolean failed		= false;
 	    do
 	    {
