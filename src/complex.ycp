@@ -110,7 +110,7 @@ global define symbol ReallyAbort() ``{
     }
     else
     {
-        ret = CallFunction(`inst_confirm_abort(`incomplete));
+        ret = Popup::ConfirmAbort (`incomplete);
     }
 
     if( ret )
