@@ -26,7 +26,6 @@ import "UsersCache";
 
 import "Label";
 import "Popup";
-include "ui/file_popups.ycp";
 
 include "users/helps.ycp";
 include "users/routines.ycp";
@@ -945,8 +944,8 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    string dir = home;
 	    if (SCR::Read(.target.size, home ) == -1)
 		dir = Users::GetDefaultHome (true, user_type);
-	    dir = PopupDir (dir);
-	    if (dir != "")
+	    dir = UI::AskForExistingDirectory (dir, "");
+	    if (dir != nil)
 	    {
 		if ( (findlastof( dir, "/") + 1) == size(dir) )
 		    dir = substring (dir, 0, size(dir)-1);
@@ -2049,8 +2048,8 @@ global define symbol DefaultsDialog() ``{
 	    string dir = UI::QueryWidget(`id(`home),  `Value);
 	    if (SCR::Read(.target.size, dir ) == -1)
 		dir = home;
-	    dir = PopupDir (dir);
-	    if (dir != "")
+	    dir = UI::AskForExistingDirectory (dir, "");
+	    if (dir != nil)
 	    {
 		UI::ChangeWidget (`id(`home), `Value, dir);
 	    }
@@ -2060,8 +2059,8 @@ global define symbol DefaultsDialog() ``{
 	    string dir = UI::QueryWidget(`id(`skel),  `Value);
 	    if (SCR::Read(.target.size, dir ) == -1)
 		dir = skel;
-	    dir = PopupDir (dir);
-	    if (dir != "")
+	    dir = UI::AskForExistingDirectory (dir, "");
+	    if (dir != nil)
 	    {
 		UI::ChangeWidget (`id(`skel), `Value, dir);
 	    }

@@ -767,9 +767,6 @@ global define void ChangeUser(string what, map user) ``{
     {
         if (uid != org_uid)
         {
-	    /*
-            uidlists [type] = filter (`u, uidlists [type]:[], ``(u != org_uid));
-	    */
             uidlists [org_type] = filter (`u, uidlists [org_type]:[],
 		``(u != org_uid));
             uidlists [type] = prepend (uidlists [type]:[], uid);
@@ -780,19 +777,12 @@ global define void ChangeUser(string what, map user) ``{
 	}
         if (home != org_home)
         {
-	    /*
-            homelists [type] = filter (`h, homelists [type]:[], ``(h != home));
-	    */
             homelists [org_type] = filter (`h, homelists [org_type]:[],
 		``(h != home));
             homelists [type] = prepend (homelists [type]:[], home);
         }
         if (username != org_username)
         {
-	    /*
-            usernamelists [type] = filter (`u, usernamelists [type]:[],
-                ``(u != org_username));
-	    */
             usernamelists [org_type] = filter (`u, usernamelists [org_type]:[],
                 ``(u != org_username));
 	    removed_usernamelists = mapmap
@@ -808,10 +798,6 @@ global define void ChangeUser(string what, map user) ``{
 		userdnlist = add (userdnlist, dn);
 	    }
         }
-	/*
-        users_itemlists [type] = filter (`item, users_itemlists [type]:[],
-            ``(select(item,1,"") != org_username));
-	*/
         users_itemlists [org_type] = filter (`it, users_itemlists [org_type]:[],
             ``(select(it,1,"") != org_username));
         users_itemlists [type] = prepend (users_itemlists [type]:[],
