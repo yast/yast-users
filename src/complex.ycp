@@ -148,18 +148,18 @@ global define symbol UsersDialog() ``{
             // table header
              _("Groups")), [] ), // do not read until the dialog is displayed
         `HBox (
-            `PushButton(`id(`new),       AddButtonLabel ()),
-            `PushButton(`id(`edit),      EditButtonLabel ()),
-            `PushButton(`id(`delete),    DeleteButtonLabel ()),
+            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
+            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
+            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(`id(`usersets), _("&Set filter"),
+            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set filter"),
                 Users::available_usersets_items),
             // PushButon
-            `PushButton(`id(`customize), _("Customi&ze filter")),
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
             // PushButon
-            `PushButton(`id(`defaults), _("S&et defaults")),
+            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et defaults")),
             Mode::config ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
@@ -295,15 +295,16 @@ global define symbol GroupsDialog() ``{
             _("Group members")),
             []),// defer the reading until the dialog is displayed
         `HBox (
-            `PushButton(`id(`new),       AddButtonLabel ()),
-            `PushButton(`id(`edit),      EditButtonLabel ()),
-            `PushButton(`id(`delete),    DeleteButtonLabel ()),
+            `PushButton(`id(`new),`opt(`key_F3), AddButtonLabel ()),
+            `PushButton(`id(`edit), `opt(`key_F4), EditButtonLabel ()),
+            `PushButton(`id(`delete), `opt(`key_F5), DeleteButtonLabel ()),
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(_("&Set filter"), Users::available_groupsets_items),
+            `MenuButton(`opt(`key_F2), _("&Set filter"),
+                Users::available_groupsets_items),
             // PushButyon
-            `PushButton(`id(`customize), _("Customi&ze filter")),
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
             `HStretch())
     );
 
@@ -458,8 +459,10 @@ Please log off the user first."));
 %1"), org_home ) )),
                 `VSpacing(1),
                 `HBox(
-                    `Bottom(`PushButton(`id(`ok), OKButtonLabel()  )),
-                    `Bottom(`PushButton(`id(`cancel), CancelButtonLabel()))
+                    `Bottom(`PushButton(`id(`ok),`opt(`key_F10),
+                        OKButtonLabel()  )),
+                    `Bottom(`PushButton(`id(`cancel), `opt(`key_F9),
+                        CancelButtonLabel()))
                 )
             ),
             `HSpacing(3));
@@ -594,8 +597,10 @@ global define boolean CustomizePopup(string what) ``{
             `VSpacing(1),
 	        `HBox(
 	            `HSpacing(1),
-	            `Left(`PushButton(`id(`cancel), CancelButtonLabel())),
-	            `Right(`PushButton(`id(`ok), `opt(`default), OKButtonLabel())),
+	            `Left(`PushButton(`id(`cancel), `opt(`key_F9),
+                    CancelButtonLabel())),
+	            `Right(`PushButton(`id(`ok), `opt(`default, `key_F10),
+                    OKButtonLabel())),
 	            `HSpacing(1)
 	            ),
             `VSpacing(1)),

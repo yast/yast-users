@@ -37,7 +37,6 @@ global define symbol EditUserDialog(symbol what) ``{
         Users::user_in_work = Users::saved_user;
         Users::use_next_time = false;
     }
-
     boolean create_home = Users::user_in_work["create_home"]:true;
     string  username    = Users::user_in_work["username"]:"";
     string  fullname    = Users::user_in_work["fullname"]:"";
@@ -65,6 +64,7 @@ global define symbol EditUserDialog(symbol what) ``{
     symbol  user_type   = Users::user_in_work["type"]:nil;
     list removed_grouplist = Users::user_in_work["removed_grouplist"]:[];
     string org_username = Users::user_in_work["org_username"]:username;
+    string addit_data   = Users::user_in_work["addit_data"]:"";
 
     if (user_type == nil)
     {
@@ -143,18 +143,20 @@ global define symbol EditUserDialog(symbol what) ``{
     term detailsmorebox =
         `HBox(
             // push button
-            `PushButton(`id(`details), _("&Details...")),
+            `PushButton(`id(`details),`opt(`key_F2), _("&Details...")),
             `VStretch(),
-            // push button
-            `PushButton(`id(`passwordsettings), _("&Password settings")),
+            `PushButton(`id(`passwordsettings),`opt(`key_F7),
+                // push button label
+                 _("&Password settings")),
             `VStretch());
 
     // running in inst-sys and first mask to a user
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
         detailsmorebox = add(detailsmorebox,
-            // push button
-            `PushButton(`id(`additional), _("Additional users/&groups")));
+            `PushButton(`id(`additional), `opt(`key_F3),
+                // push button
+                _("Additional users/&groups")));
         detailsmorebox = `VBox (
             // checkbox label
             `CheckBox (`id (`root_mail),_("This user &will recieve all system mail"),
@@ -164,14 +166,12 @@ global define symbol EditUserDialog(symbol what) ``{
     }
 
     boolean do_not_edit = (user_type == `nis);
-//                          (user_type == `ldap && !Users::is_ldap_server));
-    // user_type == `nis
 
     term contents =
         `HSquash(`VBox(
             `VStretch(),
             `VBox(
-                // label text -- is this true ??? what about ldap ??
+                // label text
                 do_not_edit ? `Label(_("Only additional group memberships 
 can be changed for non-local users.
 ")) : `VSpacing (0),
@@ -217,7 +217,7 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
     // it should be editable some time...
-    // enable password changing for local users (not in Kerbers DB)... ??
+    // enable password changing for local users only (not in Kerbers DB)... ??
     if (user_type == `ldap || Users::kerberos_auth != "")
     {
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
@@ -230,9 +230,11 @@ can be changed for non-local users.
     }
 
     UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
+
     if( what == `add_user && ( ! Mode::cont) )
-        // change of button label
-        Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+        Wizard::ReplaceNextButton(`PushButton (`id (`next),`opt(`key_F10),
+            // change of button label
+            _("&Create")));
 
     if( what == `add_user ) UI::SetFocus(`id(`forename));
 
@@ -284,6 +286,27 @@ can be changed for non-local users.
             username     = UI::QueryWidget(`id(`username), `Value);
             forename     = UI::QueryWidget(`id(`forename), `Value);
             surname      = UI::QueryWidget(`id(`surname ), `Value);
+
+            if (findfirstof(forename, Users::invalid_gecos_chars) != nil)
+            {
+                // error message
+                Report::Error(_("The forename entry can contain
+neither colon nor comma characters.
+Please try again.
+"));
+                UI::SetFocus(`id(`forename));
+                continue;
+            }
+            if (findfirstof(surname, Users::invalid_gecos_chars) != nil)
+            {
+                // error message
+                Report::Error(_("The surname entry can contain
+neither colon nor comma characters.
+Please try again.
+"));
+                UI::SetFocus(`id(`surname));
+                continue;
+            }
 
             if( forename != "" )
             {
@@ -584,6 +607,8 @@ Use it and change its owner?
             }
             if ( email != "")
                 Users::user_in_work ["email"] = email;
+            if ( addit_data != "")
+                Users::user_in_work ["addit_data"] = addit_data;
 
             y2debug ("edited user: %1", Users::user_in_work );
         }
@@ -624,9 +649,13 @@ global define symbol EditUserDetailsDialog( ) ``{
     integer gid           = Users::user_in_work["gid"]:Users::max_gid;
     symbol user_type      = Users::user_in_work["type"]:`local;
     string defaultgroup   = Users::user_in_work["groupname"]:"";
-    string email          = Users::user_in_work["email"]:"";
-    fullname              = username + ", " + fullname; //??
+    fullname              = username + ", " + fullname; // for show in dialog
     integer old_uid       = 0;
+    // for LDAP only:
+    string email          = Users::user_in_work["email"]:"";
+
+    // additional parts of GECOS (used by finger, see bug 18270) (passwd only)
+    string addit_data = Users::user_in_work["addit_data"]:"";
 
     list available_shells = Users::all_shells_items;
     list available_groups = [];
@@ -687,12 +716,25 @@ global define symbol EditUserDetailsDialog( ) ``{
         // combobox label
         _("Login &shell"), available_shells );
 
+    term additional_data = nil;
+    if (user_type == `ldap)
+        additional_data =
+            // textentry label
+            `Top(`TextEntry( `id(`email), _("&Email adress"), email ));
+    else if (user_type == `nis)
+        additional_data = `Empty();
+    else
+        additional_data =
+            // textentry label
+            `Top(`TextEntry(`id(`addd), _("&Additional user information:"),
+                addit_data));
+
     boolean do_not_edit = (user_type == `nis);
     term contents =
         `HBox(
           `HSpacing(1),
           `VBox(
-           `VSpacing(1),
+           `VSpacing(0.5),
            // label
            do_not_edit ? `Label(_("Only additional group memberships 
 can be changed for non-local users.")) : `VSpacing (0),
@@ -700,17 +742,15 @@ can be changed for non-local users.")) : `VSpacing (0),
            // User account information, forename or first name
            // textentry label
            `TextEntry(`id(`fullname),_("&Detailed profile for user:"),fullname),
-           `VSpacing(1),
+           `VSpacing(0.5),
            `HBox(
                 `VBox(
                     // textentry label
                     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
                         sformat("%1",uid ))),
-                    (user_type != `ldap) ? `Empty() :
-                    // textentry label
-                    `Top(`TextEntry( `id(`email), _("&Email adress"), email )),
                     // textentry label
                     `Top(`TextEntry( `id(`home), _("&Home directory"), home )),
+                    additional_data,
                     `Top(edit_shell),
                     `Top(edit_defaultgroup),
                     `VStretch()
@@ -728,13 +768,12 @@ can be changed for non-local users.")) : `VSpacing (0),
     // dialog caption
     Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
                     contents,
-                    EditUserDetailsDialogHelp(),
+                    EditUserDetailsDialogHelp(user_type),
                     UI::BackButtonLabel(),
                     UI::NextButtonLabel());
 
     if (do_not_edit)
     {
-        UI::ChangeWidget (`id (`fullname), `Enabled, false);
         UI::ChangeWidget (`id (`uid), `Enabled, false);
         UI::ChangeWidget (`id (`home), `Enabled, false);
         UI::ChangeWidget (`id (`shell), `Enabled, false);
@@ -742,7 +781,6 @@ can be changed for non-local users.")) : `VSpacing (0),
     }
     if (user_type == `ldap)
     {
-//        UI::ChangeWidget (`id (`defaultgroup), `Enabled, false);
         if (what == `edit_user && !Users::is_ldap_server)
             UI::ChangeWidget (`id (`home), `Enabled, false);
     }
@@ -750,9 +788,6 @@ can be changed for non-local users.")) : `VSpacing (0),
     //Modify the dialog
     UI::ChangeWidget(`id(`fullname), `Enabled, false );
     UI::ChangeWidget(`id(`shell),    `Value,   shell );
-
-    // uid cannot be edited??
-    // if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
 
     // user input
     symbol ret = `next;
@@ -774,7 +809,6 @@ can be changed for non-local users.")) : `VSpacing (0),
             }
             if (user_type == `ldap)
             {
-//                new_defaultgroup = defaultgroup;
                 if (what == `edit_user && !Users::is_ldap_server)
                     new_home = home;
                 email =  UI::QueryWidget(`id(`email),   `Value);
@@ -788,6 +822,31 @@ can be changed for non-local users.")) : `VSpacing (0),
                         UI::SetFocus(`id(`email));
                         continue;
                     }
+            }
+            if (user_type == `local || user_type == `system)
+            {
+                addit_data  = UI::QueryWidget(`id(`addd),  `Value);
+                if (findfirstof(addit_data, ":") != nil)
+                {
+                    // error message
+                    Report::Error(_("The \"additional data\" entry cannot contain
+colon. Please try again.
+"));
+                    UI::SetFocus(`id(`addd));
+                    continue;
+                }
+                list add_l = splitstring (addit_data, ",");
+                if (size (add_l) > 3 )
+                {
+                    // error message
+                    Report::Error(_("The \"additional data\" entry can consist
+of up to three sections separated by commas.
+Please remove the surplus.
+"));
+                    UI::SetFocus(`id(`addd));
+                    continue;
+                }
+
             }
 
             list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
@@ -820,7 +879,7 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
                 UI::SetFocus(`id(`uid));
                 continue;
                 }
-                // !!! change user_type !!
+                // change user_type
                 user_type = `system;
             }
             if( ( uid != new_i_uid ) && UsersCache::UIDExists( new_i_uid ) )
@@ -833,14 +892,6 @@ Please select a another User Id"));
             }
             } // end of uid checks
 
-            // check the defaultgroup ( replace by filter!! ) -- no!!
-            /*
-            foreach ( `key, `group,  Users::groups, ``{
-            if( lookup( group, "groupname", "") == new_defaultgroup )
-            {
-                gid = lookup(group, "gid",  Users::max_gid);
-            }
-            });*/
             if ( defaultgroup != new_defaultgroup )
             {
                 gid = lookup (Users::GetGroupByName (new_defaultgroup, user_type), "gid", gid);
@@ -853,8 +904,6 @@ Please select a another User Id"));
             if( (nil != findfirstnotof( new_home, Users::valid_home_chars )) ||
                 (  0 != findfirstof( new_home, "/")   ))
             {
-                //TODO FIXME - ADD "-_" to message - not start with "-"
-                // why it couldn't start with "-" ?
                 // error popup
                 Report::Error(_("The home directory may only contain the following characters:
 a..zA..Z0..9_-/
@@ -939,6 +988,10 @@ Please try again."));
                 Users::user_in_work ["org_uid"] = uid;
             if ( email != "")
                 Users::user_in_work ["email"] = email;
+            if ( addit_data != "" )
+            {
+                Users::user_in_work ["addit_data"] = addit_data;
+            }
 
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
@@ -981,14 +1034,6 @@ global define symbol EditUserPasswordDialog() ``{
     work = shadow["warn"]:"";
     if( work == "") work = sformat("%1", Users::pass_warn_age );
     integer warn = tointeger( work );
-
-/*    work = shadow["expire"]:sformat("%1", Users::pass_warn_age );
-        if( work == "") work = "0";
-        new_shadow["expire"]  = tointeger( work );
-
-    work = shadow["last_change"]:sformat("%1", Users::pass_warn_age );
-        if( work == "") work = "0";
-        new_shadow["last_change"]  = tointeger( work );*/
 
     if (last_changed != "0")
     {
@@ -1217,8 +1262,9 @@ global define symbol EditGroupDialog(symbol what ) ``{
                         UI::NextButtonLabel());
 
     if( what == `add_group && ! Mode::cont)
-        // push button
-        Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
+        Wizard::ReplaceNextButton(`PushButton (`id (`next),`opt(`key_F10),
+            // push button
+            _("&Create")));
 
     if( what == `add_group ) UI::SetFocus(`id(`groupname));
 
@@ -1586,9 +1632,11 @@ global define symbol DefaultsDialog() ``{
             _("New users defaults"),
             contents,
             DefaultsDialogHelp(),
-            CancelButtonLabel(),
-            OKButtonLabel());
-    Wizard::ReplaceAbortButton (`Empty());
+            BackButtonLabel(),
+            NextButtonLabel());
+//            CancelButtonLabel(),
+//            OKButtonLabel());
+//    Wizard::ReplaceAbortButton (`Empty());
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
 

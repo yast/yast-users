@@ -190,7 +190,7 @@ You can configure these settings by running appropriate modules. Select the modu
                 `RichText (`id(`summary), ""),
                 `VSpacing( 0.5 ),
                 // button label
-                `MenuButton(_("&Configure ..."), [
+                `MenuButton(`opt(`key_F4), _("&Configure ..."), [
                     `item(`id(`conf_nis), "&NIS"),
                     `item(`id(`conf_ldap), "&LDAP"),
                     `item(`id(`conf_krb), "&Kerberos")]),

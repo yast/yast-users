@@ -321,7 +321,16 @@ foreach my $user (<PASSWD>)
             }
         }
         # recode the fullname to utf
-        from_to($full, $encod, "utf-8"); # this slows a bit...
+        from_to ($full, $encod, "utf-8"); # this slows a bit...
+    
+        my $colon = index ($full, ",");
+        my $additional = "";
+        if ( $colon > -1)
+        {
+            $additional = $full;
+            $full = substr ($additional, 0, $colon);
+            $additional = substr ($additional, $colon + 1,length ($additional));
+        }
 
         print $YCP_PASSWD_HOMES "\"$home\", ";
         print $YCP_PASSWD_USERNAMES "\"$username\", ";
@@ -341,6 +350,10 @@ foreach my $user (<PASSWD>)
         {
             print $YCP_PASSWD
                 "\t\t\"fullname\": SystemUsers[\"$username\"]:\"$full\",\n";
+        }
+        if ($additional ne "")
+        {
+            print $YCP_PASSWD "\t\t\"addit_data\": \"$additional\",\n";
         }
         print $YCP_PASSWD "\t\t\"home\": \"$home\",\n";
         print $YCP_PASSWD "\t\t\"org_home\": \"$home\",\n";

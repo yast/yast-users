@@ -335,10 +335,10 @@ global define list BuildUserItemList(map map_of_users) ``{
 
         a = add(a, username );
 
-        if(key > max_system_uid)
-            a = add(a, Uncoding(user["fullname"]:"") );
-        else
+        if (user["type"]:`local == `system)
             a = add(a, SystemUsers[username]:user["fullname"]:"" );
+        else
+            a = add(a, user["fullname"]:"" );
 
         a = add(a, s_uid );
 

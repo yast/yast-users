@@ -10,7 +10,7 @@ Return	true
 Dump	local users modified:
 Dump	 $[]
 Dump	local groups modified:
-Dump	 $[17:$["gid":17, "groupname":"audio", "more_users":"", "org_groupname":"audio", "type":`local, "userlist":"hh", "what":`user_change], 100:$["gid":100, "groupname":"users", "more_users":"hh", "org_groupname":"users", "type":`local, "userlist":"", "what":`user_change]]
+Dump	 $[17:$["gid":17, "groupname":"audio", "modified":`edited, "more_users":"", "org_groupname":"audio", "type":`local, "userlist":"hh", "what":`user_change], 100:$["gid":100, "groupname":"users", "modified":`edited, "more_users":"hh", "org_groupname":"users", "type":`local, "userlist":"", "what":`user_change]]
 Dump	
 Dump	local user itemlist modified:
 Dump	 []
