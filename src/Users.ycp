@@ -635,6 +635,8 @@ global define symbol Write (block abort, boolean useUI)``{
             else
                 y2error("Cannot write group file.");
         }
+        // remove the group cache for nscd (bug 24748)
+        SCR::Execute (.target.bash_output, "/usr/sbin/nscd -i group");
     }
 
     // check for deleted users (-> remove homes)
@@ -682,6 +684,8 @@ global define symbol Write (block abort, boolean useUI)``{
         // add the edited or new users to modified_users
         modified_users [`passwd] = WritePasswd (write_dir, users [`system]:$[],
             users[`local]:$[], plus_passwd);
+        // remove the passwd cache for nscd (bug 24748)
+        SCR::Execute (.target.bash, "/usr/sbin/nscd -i passwd");
     }
 
     if (modified_users [`passwd]:$[] == nil)
@@ -699,9 +703,11 @@ global define symbol Write (block abort, boolean useUI)``{
         string home = user["home"]:"";
         string username = user["username"]:"";
         string command = "";
-        if (user["modified"]:`nothing == `added)
+        symbol user_mod = user["modified"]:`nothing;
+        if (user_mod == `imported || user_mod == `added)
         {
-            if (user["create_home"]:true)
+            if (user["create_home"]:true ||
+               (user_mod == `imported && SCR::Read (.target.stat, home) == $[]))
             {
                 // create a path to new home directory, if not exists
                 string home_path = substring (home,0, findlastof(home,"/"));
@@ -975,16 +981,9 @@ define map ImportUser (map user) ``{
     if ((uid <= max_system_uid || username == "nobody") && uid != -1)
         type = `system;
 
-    map user_shadow = $[];
     // if empty, set to default, might be changed later..
-    if ( user ["password_settings"]:$[] == $[] )
-    {
-	user_shadow = GetDefaultShadow();
-    }
-    else
-    {
-	user_shadow = user ["password_settings"]:$[];
-    }
+    map user_shadow = user ["password_settings"]:GetDefaultShadow();
+
     string pass = user ["user_password"]:"x";
 
     if (!user["encrypted"]:true && pass != "x" && !Mode::config)
