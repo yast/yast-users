@@ -35,7 +35,7 @@ least belongs to one group.
 	// help text 1/2
       return _("<p>
 Users and groups are arranged to various sets. You can change the set currently showed in the table with the <b>Set filter</b> button.
-You can also customize you view filter after pushing <b>Customize filter</b>.")
+You can also customize your view filter after pushing <b>Customize filter</b>.")
 
 	// help text 1/2
          + _("<p>
@@ -79,8 +79,41 @@ repeat it exactly in a second field. Make sure you don't forget your password!
      * @return string The help text.
      */
     global define string DefaultsDialogHelp () ``{
-        return "";
-    }
+// Help text 1/6
+      return _("<p>
+<b>Default group</b><br>
+The group name for a new user's initial group.
+</p>
+")
++
+// Help text 2/6
+_("<p><b>Default login shell</b><br>
+The name of the new user's login shell. You can select one from the list or enter your own path to shell.</P>
+")
++
+//Help text 3/6
+_("<p><b>Default home</b><br>
+The initial path prefix for a new user's home directory. The user's name will be affixed to the end of this value to create the default name of the user's home directory</P>
+")
++
+// Help text 4/6
+_("<p><b>Skeleton directory</b><br>
+The contents of this directory will be copied to users's home directory when new user is added. </p>
+")
++
+// Help text 5/6:
+// Don't reorder letters YYYY-MM-DD, date must be set in this format
+_("<p><b>Expiration date</b><br>
+The date on which the user account is disabled. Date must be in format YYYY-MM-DD. Leave empty if this account never expires.</P>")
++
+// Help text 6/6
+_("<P><B>Logging in after expiration</B><BR>
+Users can log in after expiration of passwords. Set how many days 
+after expiration login is allowed. Use -1 for unlimited access.
+</P>
+");
+
+}
 
 
       /**
@@ -88,7 +121,6 @@ repeat it exactly in a second field. Make sure you don't forget your password!
      * @return string The help text.
      */
     global define string ReadDialogHelp () ``{
-	// TODO FIXME: Modify it to your needs!
 	return
 	    // For translators: read dialog help, part 1 of 2
 _("<P><B><BIG>Initializing users configuration</BIG></B><BR>
@@ -103,9 +135,18 @@ button now.
     }
 
     global define string WriteDialogHelp () ``{
-	// TODO FIXME: Modify it to your needs!
-	return "";
-    }
+    return
+	    // For translators: read dialog help, part 1 of 2
+_("<P><B><BIG>Saving users configuration</BIG></B><BR>
+Please wait...
+<BR></P>
+") +
+	    // For translators: read dialog help, part 2 of 2
+_("<P><B><BIG>Aborting the save:</BIG></B><BR>
+Abort the saving by pressing <B>Abort</B>.
+An additional dialog will inform you whether it is safe to do so.
+</P>");
+ }
 
 
   /**
@@ -279,11 +320,7 @@ Select which users should be members of this group.
     if (more)
         // additional helptext for EditFroup dialog
         helptext = helptext +
-		_("<p>
-<b>\"Core\" members:</b>
-... cannot be edited.
-</p>
-");
+        _("The second list shows users, for which this group is the default group. This cannot be edited here.");
 
     return helptext;
   }

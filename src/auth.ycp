@@ -20,19 +20,34 @@ include "ui/common_messages.ycp";
 //include "users/nis_routines.ycp";
 
 
-    // Help text
+    // Help text 1/5
     string help_text = _("<p>
-<b>User lists</b>
+<b>User lists</b><br>
+Here you can see the sources of user's accounts. The possible values here can be:
 </p>");
-
-    help_text = help_text + _("<p>These are read from <i>/etc/nsswitch.conf</i>.
-</p>");
-
+    // help text 2/5  - do not translate Compat
     help_text = help_text + _("<p>
-<b>Additional authentification</b>
+<b>Local files</b> - data are stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
+<b>NIS</b> - user data can be retrieved from NIS server<br>
+<b>Compat</b> - both previous sources can be used<br>
+<b>LDAP</b> - user database is on the LDAP server
+</p>");
+    // help text 3/5
+    help_text = help_text + _("<p>
+For more information, look at the file <i>/etc/nsswitch.conf</i> and its documentation.
 </p>");
 
-    help_text = help_text + _("<p>This is checked with pam-agent.
+    // help text 4/5
+    help_text = help_text + _("<p>
+<b>Additional authentication</b>
+This is the partial list of your PAM settings. It shows the authentication types, which can be used by users on your system. As a default, users are authenticated by comparing their passwords with the ones saved in local files or on the NIS server.<br>
+Other possibility for authenication is using the LDAP server or Kerberos.
+</p>");
+
+    // help text 5/5
+    help_text = help_text + _("<p>
+<b>Changing the values</b><br>
+You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
 </p>");
 
     //    list supported_users_sources = [ "nis", "ldap", "files", "compat" ];
@@ -42,10 +57,16 @@ include "ui/common_messages.ycp";
         // checking /etc/nsswitch.conf
         list users_sources = Users::GetUsersSources ();
         map to_string = $[
+            // just the name (do not translate)
             "nis"   : _("NIS"),
+            // just the name (do not translate)
             "ldap"  : _("LDAP"),
+            // the source of users sets
             "files" : _("Local files"),
-            "compat": _("Compat")
+            // the source of users sets (do not translate)
+            "compat": _("Compat"),
+            // just the name (do not translate)
+            "krb5"  : _("Kerberos")
          ];
 
         string sources_text = "";
@@ -74,6 +95,17 @@ include "ui/common_messages.ycp";
 
         if ( contains (pam_args, "use_ldap"))
             auth_text = auth_text + to_string ["ldap"]:"" + "<br>";
+
+        // and this looks to /etc/pam.d/login ...
+        pam_auth_list = SCR::Read (.pam.login);
+        boolean auth_krb = false;
+        foreach (`line, pam_auth_list, ``{
+            if (issubstring (line["module"]:"", "pam_krb5.so") &&
+                line["type"]:"" == "auth")
+                auth_krb = true;
+        });
+        if (auth_krb)
+            auth_text = auth_text + to_string ["krb5"]:"" + "<br>";
 
         UI::ChangeWidget(`id(`auth), `Value, auth_text);
     }
@@ -104,7 +136,7 @@ include "ui/common_messages.ycp";
         `VSpacing( 1 ),
         `HBox( `HSpacing(12),
         // frame label
-        `Frame( _("Additional authentification (PAM settings)"),
+        `Frame( _("Additional authentication (PAM settings)"),
             `HBox(
             `HSpacing (1),
             `VBox(
@@ -117,6 +149,7 @@ include "ui/common_messages.ycp";
         `HSpacing (12)),
 
         `VSpacing( 1 ),
+        // button label
         `MenuButton(_("&Configure ..."), [
             `item(`id(`conf_nis), "NIS"),
             `item(`id(`conf_ldap), "LDAP"),
@@ -128,13 +161,18 @@ include "ui/common_messages.ycp";
     // dialog title
     string title = _("Expert Login Options");
 
-    Wizard::CreateDialog(); // just a hack, only for testing
-
+    if (!Mode::cont)
+    {
+        Wizard::CreateDialog();
+        Wizard::SetContentsButtons (title, contents, help_text,
+            UI::BackButtonLabel(), UI::FinishButtonLabel());
+        Wizard::ReplaceAbortButton(`Empty ());
+    }
+    else
 // Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
-    Wizard::SetContents (title, contents, help_text, true, true);
+        Wizard::SetContents (title, contents, help_text, true, true);
 
     reload_config();
-
 
     symbol button = nil;
 
@@ -165,7 +203,21 @@ include "ui/common_messages.ycp";
 
         }
 
+        if ( button == `abort )
+        {
+            if (Mode::cont)
+            {
+                if (CallFunction(`inst_confirm_abort(`incomplete)))
+                    return `abort;
+            }
+            else
+                return `abort;
+        }
+
     } while ( button != `next && button != `abort && button != `back );
+
+    if (!Mode::cont)
+        UI::CloseDialog();
 
     return button;
 }

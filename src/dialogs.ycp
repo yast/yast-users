@@ -16,11 +16,6 @@ import "Wizard";
 import "Mode";
 import "Report";
 
-//    import "./UsersConsts";
-/*
-import "./Users";
-import "./UsersCache";
-*/
 import "Users";
 import "UsersCache";
 
@@ -90,12 +85,24 @@ y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
         SplitFullName(`forename, fullname, user_type);
 
     map dialog_labels = $[
-        // dialog caption %1 can be: local, system, LDAP, etc. -- change this!!
-        `add_user:   sformat(_("Add a new %1 user"), user_type),
-        // dialog caption
-        `clone_user: _("Add a new user by cloning user "),
-        // dialog caption
-        `edit_user:  _("Edit an existing user")
+        `add_user: $[
+            // dialog caption:
+            `local:     _("Add a new local user"),
+            // dialog caption:
+            `system:     _("Add a new system user"),
+            // dialog caption:
+            `ldap:     _("Add a new LDAP user")
+        ],
+        `edit_user: $[
+            // dialog caption:
+            `local:     _("Edit an existing local user"),
+            // dialog caption:
+            `system:     _("Edit an existing system user"),
+            // dialog caption:
+            `ldap:     _("Edit an existing LDAP user"),
+            // dialog caption:
+            `nis:     _("Edit an existing NIS user")
+        ]
     ];
 
     if ( grouplist == "empty" && what == `edit_user)
@@ -198,7 +205,7 @@ can be changed for non-local users.
             detailsmorebox ));
 
     Wizard::SetContentsButtons(
-                lookup(dialog_labels, what, ""),
+                dialog_labels [ what, user_type ]:"",
                 contents,
                 EditUserDialogHelp(),
                 UI::BackButtonLabel(),
@@ -1125,13 +1132,24 @@ global define symbol EditUserPasswordDialog() ``{
 global define symbol EditGroupDialog(symbol what ) ``{
 
     map dialog_labels = $[
-                // dialog label
-                  `add_group:   _("Add a new group"),
-                // dialog label
-                  `clone_group: _("Add a new group by cloning group "),
-                // dialog label
-                  `edit_group:  _("Edit an existing group")
+        `add_group: $[
+            // dialog caption:
+            `local:     _("Add a new local group"),
+            // dialog caption:
+            `system:     _("Add a new system group"),
+            // dialog caption:
+            `ldap:     _("Add a new LDAP group")
+        ],
+        `edit_group: $[
+            // dialog caption:
+            `local:     _("Edit an existing local group"),
+            // dialog caption:
+            `system:     _("Edit an existing system group"),
+            // dialog caption:
+            `ldap:     _("Edit an existing LDAP group")
+        ]
     ];
+
 
     // load group saved in group_in_work
     string  groupname   = Users::group_in_work["groupname"]:"";
@@ -1232,12 +1250,13 @@ global define symbol EditGroupDialog(symbol what ) ``{
                 additional_users [`ulist]:[]),
             more ? `VSpacing(1) : `VSpacing (0),
             // selection box label
-            more ? `MultiSelectionBox( `id(`more_users), _("\"&Core\" members"),
+            more ? `MultiSelectionBox( `id(`more_users), "",
                 additional_users [`more]:[]) : `VSpacing (0),
             `VSpacing(1)
         ));
 
-    Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
+    Wizard::SetContentsButtons(
+                        dialog_labels [ what, group_type ]:"",
                         contents,
                         EditGroupDialogHelp(more),
                         UI::BackButtonLabel(),
@@ -1638,7 +1657,7 @@ global define symbol DefaultsDialog() ``{
 
     Wizard::SetContentsButtons(
             // dialog label
-            _("Defaults..."),
+            _("New users defaults"),
             contents,
             DefaultsDialogHelp(),
             CancelButtonLabel(),

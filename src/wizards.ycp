@@ -197,13 +197,19 @@ global define symbol UsersSequence(string start) ``{
     string caption = _("Users and groups configuration");
     term contents = `Label(_("Initializing ..."));
 
-    Wizard::CreateDialog();
+    if( ! Mode::cont )
+    {
+	    Wizard::CreateDialog();
+    }
+
     Wizard::SetContentsButtons(caption, contents, "",
 	    BackButtonLabel(), NextButtonLabel());
 
     any ret = WizardSequencer(aliases, sequence);
 
-    UI::CloseDialog();
+    if( ! Mode::cont )
+	    UI::CloseDialog();
+
     return ret;
 }
 
@@ -351,94 +357,16 @@ global define symbol MainSequence(string start) ``{
 			`back  :        `back   ],
     ];
 
-    if( ! Mode::cont )
-    {
-	    Wizard::CreateDialog();
-    }
-
 
     symbol ret = nil;
+    Wizard::CreateDialog();
+
 	ret = WizardSequencer(aliases, main_sequence);
 
-    if( ! Mode::cont )
-	UI::CloseDialog();
+    UI::CloseDialog();
 
     return ret;
 }
-
-/**
- * Main workflow of the sk configuration
- * @return sequence result
- *
-global define symbol MainSequence() ``{
-
-    map aliases = $[
-	"summary"	:   ``( SummaryDialog() ),
-	"overview"	:   ``( OverviewDialog() ),
-	"configure"	: [ ``( AddSequence() ), true ],
-	"add"		: [ ``( AddSequence() ), true ],
-	"edit"		: [ ``( AddSequence() ), true ]
-    ];
-
-    map sequence = $[
-	"ws_start" : "summary",
-	"summary" : $[
-	    `abort	: `abort,
-	    `next	: `next,
-	    `overview	: "overview",
-	    `configure	: "configure",
-	    `other	: "configure",
-	],
-	"overview" : $[
-	    `abort	: `abort,
-	    `next	: `next,
-	    `add	: "add",
-	    `edit	: "edit",
-	],
-	"configure" : $[
-	    `abort	: `abort,
-	    `next	: "summary",
-	],
-	"add" : $[
-	    `abort	: `abort,
-	    `next	: "overview",
-	],
-	"edit" : $[
-	    `abort	: `abort,
-	    `next	: "overview",
-	]
-    ];
-
-    any ret = WizardSequencer(aliases, sequence);
-
-    return ret;
-}*/
-
-/**
- * Add a configuration of sk
- * @return sequence result
- *
-global define symbol AddSequence() ``{
-
-    map aliases = $[
-	"config1"	: ``( Configure1Dialog() ),
-	"config2"	: ``( Configure2Dialog() )
-    ];
-
-    map sequence = $[
-	"ws_start" : "config1",
-	"config1" : $[
-	    `abort	: `abort,
-	    `next	: "config2"
-	],
-	"config2" : $[
-	    `abort	: `abort,
-	    `next	: `next
-	]
-    ];
-
-    return WizardSequencer( aliases, sequence );
-}*/
 
 /* EOF */
 }

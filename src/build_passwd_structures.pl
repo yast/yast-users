@@ -461,8 +461,9 @@ foreach (values %groupmap)
     $YCP_GROUP = YCP_GROUP_LOCAL;
     $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_LOCAL;
     $YCP_GSHADOW = YCP_GSHADOW_LOCAL;
-    if ($gid <= $max_system_gid || $groupname eq "nobody" ||
-        $groupname eq "nogroup" )
+    if (($gid <= $max_system_gid || $groupname eq "nobody" ||
+         $groupname eq "nogroup") &&
+        ($groupname ne "users"))
     {
         $group_type = "system";
         $YCP_GROUP = YCP_GROUP_SYSTEM;
