@@ -652,7 +652,23 @@ global define string LDAPSearchFilterPopupHelp() ``{
 only obtain users with a user name beginning with 'u'.</p>
 ");
 
+}
 
+/**
+ * @return string help text
+ */
+global define string AutologinPopupHelp() ``{
+
+    return
+    // helptext 1/4 - caption
+    _("<p><b>Autologin Settings</b></p>") +
+
+    // FIXME write helptext...
+    _("<p><b>Autologin</b>... only for KDM</p>") +
+
+    _("<p><b>List of users</b>...</p>") +
+
+    _("<p><b>Password less logins</b>...indepenent on autologin</p>");
 }
 
 }// EOF

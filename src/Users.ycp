@@ -26,6 +26,7 @@ import "Console";
 import "Security";
 import "Require";
 import "Popup";
+import "Autologin";
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
@@ -175,11 +176,6 @@ global string cracklib_dictpath = "/usr/lib/cracklib_dict";
 global boolean obscure_checks = false;
 
 global string root_mail = "";
-
-// autologin without showing kdm (value is username)
-global string autologin = "";
-global boolean autologin_used = true;
-global boolean autologin_available = true;
 
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];
@@ -366,6 +362,8 @@ global boolean use_next_time = false;
 // if anything was done
 global boolean users_modified = false;
 global boolean groups_modified = false;
+// actually customs_modified is used for check of various changes,
+// not only original 'custom lists'
 global boolean customs_modified = false;
 global boolean defaults_modified = false;
 global boolean ldap_modified = false;
@@ -713,18 +711,11 @@ global define symbol Read (block abort, boolean useUI) ``{
     // increase the progress to "finish"
     if( useUI ) Progress::NextStage ();
 
-    // check for KDM (needed for autologin)
-    if (SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER) != "kdm" ||
-	!Require::IsAnyPackageInstalled (["kdebase3-kdm"]))
+    Autologin::Read ();
+    if (Mode::cont) // initial configuration
     {
-	autologin_available = false;
-	autologin_used = false;
-    }
-    if (!Mode::cont && autologin_used)
-    {
-	string auto_user = SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN);
-	if (auto_user == nil || auto_user == "")
-	    autologin_used = false;
+	Autologin::used		= true;
+	Autologin::modified	= true;
     }
 
     return `next;
@@ -1074,41 +1065,11 @@ global define symbol Write (block abort, boolean useUI)``{
         if (root_mail != "" && !MailAliases::SetRootAlias (root_mail))
             // error popup
             Report::Error(_("There was an error while setting forwarding for root's mail."));
-
-	if (autologin_available)
-	{
-	    if (autologin != "" &&
-		(is_nis_available || is_ldap_available ||
-		size (UsersCache::usernamelists["local"]:[]) != 1))
-	    {
-		autologin = "";
-	    }
-
-	    // write autologin information
-	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN,
-		autologin);
-	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
-		autologin == "" ? "no" : "yes");
-	    // flush changes (#30124)
-	    SCR::Write(.sysconfig.displaymanager, nil);
-	}
     }
-    else // not installation
-    {
-	// FIXME this should be handled with some warning popup...
-	if (autologin_available && autologin_used)
-	{
-	    // disable autologin when there are more users (bug #31141)
-	    if (is_nis_available || is_ldap_available ||
-		size (UsersCache::usernamelists["local"]:[]) != 1)
 
-	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN, "");
-	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN, "no");
-	    SCR::Write(.sysconfig.displaymanager, nil);
-	    // run suseconfig
-	    SCR::Execute (.target.bash, "/sbin/SuSEconfig --module kdm3");
-	}
-    }
+    // TODO check for more users/nis/ldap -> autologin popup
+
+    Autologin::Write (Mode::cont || write_only);
 
     // increase the progress to "finish"
     if( useUI ) Progress::NextStage ();

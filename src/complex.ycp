@@ -16,6 +16,7 @@ import "Wizard";
 import "Mode";
 import "Report";
 import "Security";
+import "Autologin";
 
 import "Users";
 import "UsersCache";
@@ -32,7 +33,8 @@ include "users/helps.ycp";
 global define boolean Modified() ``{
     return (Users::users_modified || Users::groups_modified ||
         Users::customs_modified || Users::ldap_modified ||
-        Users::defaults_modified || Users::security_modified);
+        Users::defaults_modified || Users::security_modified ||
+	Autologin::modified);
 }
 
 
@@ -162,11 +164,19 @@ global define symbol UsersDialog() ``{
 	    // menubutton label
 	    `item(`id(`auth), _("&Authentication and User Sources"))
 	]);
-	if (Users::is_ldap_available)
+	if (Autologin::available)
 	{
 	    expert_list = add (expert_list,
 		// menubutton label
+		`item(`id(`autologinconf), _("&Login Settings")));
+	}
+	if (Users::is_ldap_available)
+	{
+	    /*
+	    expert_list = add (expert_list,
+		// menubutton label
 		`item(`id(`ldapconf), _("Configure L&DAP Client")));
+	    */
 	    if (!Users::ldap_modified)
 	    {
 		expert_list = add (expert_list,
@@ -266,6 +276,7 @@ global define symbol UsersDialog() ``{
 	    // FIXME use CallFunction...
             if (`next == CallModule("ldap", []))
 	    {
+// FIXME: `next is returned also when writing to LDAP failed...
 		if (!Users::ldap_not_read && !Users::ldap_modified &&
 		    // yes/no popup
 		    Popup::YesNo (_("Reread all data from LDAP server?")))
@@ -301,6 +312,11 @@ global define symbol UsersDialog() ``{
 		Users::security_modified = true;
 	    }
         }
+	if (ret == `autologinconf)
+	{
+            ret = `not_next;
+	    AutologinPopup();
+	}
         if ( ret == `user_table )
             ret = `edit;
         if ( ret == `edit  || ret == `delete )
@@ -870,6 +886,101 @@ global define term rbUsersGroup(symbol what) ``{
         `Right(`Label(`id(`curr_f), sformat(_("Filter: %1"), curr)))
         );
 }
+
+
+/**
+ * @return modified?
+ **/
+global define boolean AutologinPopup() ``{
+
+    string help_text = AutologinPopupHelp();
+    boolean ret = false;
+
+    string user		= Autologin::user;
+    boolean pw_less	= Autologin::pw_less;
+    boolean auto_used	= (user != "");
+
+    list auto_users = union (union (
+	sort (UsersCache::usernamelists ["local"]:[]),
+	sort (UsersCache::usernamelists ["nis"]:[]) ),
+	sort (UsersCache::usernamelists ["ldap"]:[]) );
+    // + nis/ldap! - TODO check if nis/ldap users were read...
+    // FIXME sort+union is done each time again!
+
+    UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
+        `VBox(
+            `HSpacing(40),
+            `VSpacing(0.5),
+		// frame label
+	        `Frame(_("KDM Login Settings"), `HBox(
+		  `HSpacing (0.5),
+		  `VBox(
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`auto),`opt (`notify),
+			// checkbox label
+			_("Enable &Autologin"), auto_used)),
+		    `VSpacing(0.2),
+		    `HBox (
+			`HSpacing (4), // move text under the checkbox
+			`Left(`ComboBox (`id(`autouser),
+			    // textentry label
+			    _("&User logged in"), auto_users))
+		    ),
+		    `VSpacing(0.5),
+		    `Left(`CheckBox (`id(`pw_less),
+			// checkbox label
+			_("&Enable password less logins"), pw_less)),
+		    `VSpacing(0.5)
+		  ),
+		  `HSpacing(0.5)
+		)),
+            `VSpacing(0.5),
+	    `HBox(
+		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
+	    ),
+            `VSpacing(0.5)),
+        `HSpacing(1.5)
+    ));
+
+    if (user != "")
+	UI::ChangeWidget (`id (`autouser), `Value, user);
+    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+
+    symbol button = nil;
+    do
+    {
+	button = UI::UserInput();
+
+	if ( button == `help )
+	{
+	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `auto )
+	{
+	    auto_used = UI::QueryWidget (`id(`auto), `Value);
+	    UI::ChangeWidget (`id (`autouser), `Enabled, auto_used);
+	}
+    } while ( !contains ([`ok, `cancel, `abort], button));
+
+    if (button == `ok)
+    {
+	user = (auto_used) ? UI::QueryWidget (`id(`autouser), `Value) : "";
+	pw_less = UI::QueryWidget (`id(`pw_less), `Value);
+
+	if (user != Autologin::user || pw_less != Autologin::pw_less)
+	{
+	    ret = true;
+	    Autologin::used	= auto_used;
+	    Autologin::user	= user;
+	    Autologin::pw_less	= pw_less;
+	    Autologin::modified = true;
+	}
+    }
+    UI::CloseDialog();
+    return ret;
+};
 
 /* EOF */
 }
