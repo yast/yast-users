@@ -24,6 +24,7 @@ import "Mode";
 import "Report";
 import "Label";
 import "Popup";
+import "Security"; // Perl module (Users.pm) donesn't call constructor...
 
 import "Users";
 import "UsersCache";
