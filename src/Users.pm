@@ -3690,7 +3690,8 @@ sub WriteShadow {
 }
 
 ##------------------------------------
-sub DeleteUsers {
+# execute USERDEL_PRECMD scripts for users which should be deleted
+sub PreDeleteUsers {
 
     my $ret = 1;
 
@@ -3705,6 +3706,15 @@ sub DeleteUsers {
 	    SCR->Execute (".target.bash", $cmd);
 	};
     };
+    return $ret;
+}
+
+##------------------------------------
+# remove home directories and
+# execute USERDEL_POSTCMD scripts for users which should be deleted
+sub PostDeleteUsers {
+
+    my $ret	= 1;
 
     foreach my $home (keys %removed_homes) {
 	$ret = $ret && UsersRoutines->DeleteHome ($home);
@@ -3804,6 +3814,7 @@ sub Write {
     my $ret		= "";
     my $nscd_passwd	= 0;
     my $nscd_group	= 0;
+    my @useradd_postcommands	= ();
 
     # progress caption
     my $caption 	= __("Writing user and group configuration...");
@@ -3972,7 +3983,7 @@ sub Write {
     if ($use_gui) { Progress->NextStage (); }
 
     if ($users_modified) {
-        if (!DeleteUsers ()) {
+        if (!PreDeleteUsers ()) {
        	    # error popup
 	    $ret = __("There was an error while removing users.");
 	    Report->Error ($ret);
@@ -4064,8 +4075,7 @@ sub Write {
 		    }
 		    # call the useradd.local
 		    $command = sprintf ("%s %s", $useradd_cmd, $username);
-		    y2milestone ("'$command' return value: ", 
-			SCR->Execute (".target.bash", $command));
+		    push @useradd_postcommands, $command;
 		}
 		elsif ($user_mod eq "edited") {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
@@ -4125,6 +4135,24 @@ sub Write {
         if (!defined ($out{"exit"}) || $out{"exit"} != 0) {
             y2error ("Cannot make NIS database: ", %out);
         }
+    }
+
+    # complete adding users
+    if ($users_modified && @useradd_postcommands > 0) {
+	foreach my $command (@useradd_postcommands) {
+	    y2milestone ("'$command' returns: ", 
+		SCR->Execute (".target.bash", $command));
+	}
+    }
+
+    # complete deleting of users
+    if ($users_modified) {
+        if (!PostDeleteUsers ()) {
+	    # error popup
+	    $ret = __("There was an error while removing users.");
+	    Report->Error ($ret);
+	    return $ret;
+	}
     }
 
     # Write the custom settings

@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Jan 31 14:13:22 CET 2005 - jsuchome@suse.cz
+
+- call /usr/sbin/useradd.local at the end of adding (#50242)
+- 2.11.9 
+
+-------------------------------------------------------------------
+Mon Jan 31 10:25:36 CET 2005 - jsuchome@suse.cz
+
+- added X-SuSE-YaST-AutoInstRequires to desktop file (nashif)
+
+-------------------------------------------------------------------
 Fri Jan 28 17:58:11 CET 2005 - jsuchome@suse.cz
 
 - 2.11.8 

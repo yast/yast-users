@@ -50,10 +50,10 @@ Execute	.target.mkdir "/tmp/local/home" true
 Read	.target.stat "/tmp/local/home/jj" $[]
 Execute	.target.mkdir "/tmp/local/home/jj" true
 Read	.target.stat "/tmp/local/home/jj" $[]
-Execute	.target.bash " jj" 0
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$["jj":$["shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "userpassword":"crypted_q"]], "system":$[]] true
 Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Execute	.target.bash " jj" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ add new user 'jj' - done ====================
