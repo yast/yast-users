@@ -1078,6 +1078,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN, "");
 	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN, "no");
 	    SCR::Write(.sysconfig.displaymanager, nil);
+	    // run suseconfig
+	    SCR::Execute (.target.bash, "/sbin/SuSEconfig --module kdm3");
 	}
     }
 
