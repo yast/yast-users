@@ -98,7 +98,7 @@ global integer pass_inact_days = -1;
 global string pass_expire_date = "";
 
 global string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_";
-global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}=";
+global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%^&/|\?{[()]}=";
 global string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-.";
 global string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_";
 global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
@@ -1989,6 +1989,8 @@ global define boolean Commit (string object, boolean cache)``{
         if ((type == "local" || type == "system") &&
             !users_modified && UserReallyModified())
 	    users_modified = true;
+//FIXME if !UserReallyModified && Mode::config -> unset user["modified"] ???
+//--- or set user_modified to true?
         if (type == "ldap" && !ldap_modified && UserReallyModified())
             ldap_modified = true;
 
