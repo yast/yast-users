@@ -1672,7 +1672,7 @@ Please try again.")) ;
 		boolean failed			= false;
 		do
 		{
-		    error_map = Users::CheckPasswordUI (groupname, pw1, ui_map);
+		    error_map= Users::CheckPasswordUI(new_groupname,pw1,ui_map);
 		    if (error_map != $[])
 		    {
 			if (!Popup::YesNo (error_map ["question"]:""))
