@@ -916,6 +916,20 @@ sub bool {
     return $param;
 }
 
+# gets base from the DN
+sub get_base {
+
+    my $dn	= $_[0];
+    if (!defined $dn) {
+	return "";
+    }
+    my @dn_list	= split (",", $dn);
+    shift @dn_list;
+    return join (',', @dn_list);
+}
+
+
+
 ##------------------------------------
 # Writing modified LDAP users with
 # @param ldap_users map of all ldap users
@@ -1034,6 +1048,10 @@ sub WriteUsers {
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"rdn"}		= $rdn;
 		$arg_map{"new_dn"}	= $dn;
+		my $new_base		= get_base ($dn);
+		if ($new_base ne get_base ($arg_map{"dn"})) {
+		    $arg_map{"newParentDN"}	= $new_base;
+		}
 	    }
 	    if (! SCR->Write (".ldap.modify", \%arg_map, $user)) {
 		%ret = %{Ldap->LDAPErrorMap ()};
