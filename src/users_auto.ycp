@@ -73,6 +73,9 @@
 	Users::Import($[]);
 	ret = $[];
     }
+    else if (func == "Packages") {
+		ret = $[];
+	}
     else if (func == "Change") {
 	string start_dialog = "users"; //look to users.ycp for possible values
 	Wizard::CreateDialog();
@@ -94,7 +97,10 @@
 	Progress::on();
     }
     else if (func == "Write") {
+	import "Progress";
+	Progress::Off();
 	ret = Users::Write ( ``{ return false;}, false);
+	Progress::On();
     }
     /* unknown function */
     else {
