@@ -1,0 +1,58 @@
+/**
+ * File:
+ *  groups.ycp
+ * Module:
+ *  Configuration of the users and groups stettings
+ *
+ * Summary:
+ *  Main file.
+ *
+ * Authors:
+ *	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ *
+ * Main file of yast2-users package. Calls all other modules.
+ */
+
+{
+
+/***
+ * <h3>Configuration of users and groups</h3>
+ */
+
+textdomain "users";
+
+y2milestone ("----------------------------------------");
+y2milestone ("Users module started");
+
+import "Mode";
+
+include "users/wizards.ycp";
+
+include "commandline/commandline.ycp";
+
+string  start_dialog	= "groups";
+
+any	ret		= nil;
+integer arg		= 0;
+list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
+
+while ( arg < size( Args() ) )
+{
+	any a = Args( arg );
+	if ( is (a, string) && contains( possible_start_dialogs, a))
+	{
+	    start_dialog = Args( arg );
+	}
+	arg = arg + 1;
+}
+
+y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
+ret = UsersSequence(start_dialog);
+
+y2milestone("Users module finished with %1", ret);
+y2milestone("----------------------------------------");
+return ret;
+
+} // End

@@ -26,7 +26,8 @@ client_DATA = 		\
     users_auto.ycp	\
     inst_root.ycp	\
     inst_user.ycp   	\
-    inst_auth.ycp
+    inst_auth.ycp	\
+    groups.ycp
 
 config_DATA =		\
     users.y2cc		\
