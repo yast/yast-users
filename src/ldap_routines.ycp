@@ -1,0 +1,200 @@
+/**
+ * File:	include/users/ldap_routines.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	LDAP users manipulation routines
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ */
+
+{
+
+/**
+ * Returns a map of LDAP users
+ */
+global define map ReadLDAPUsers(string dir) ``{
+
+    return (SCR::Read(.target.ycp, dir + "/ldap.ycp"));
+}
+
+global define map ReadLDAPUsersByName(string dir) ``{
+
+    return (SCR::Read(.target.ycp, dir + "/ldap_byname.ycp"));
+}
+
+/**
+ * Writing modified LDAP users with cpu
+ */
+global define boolean WriteLDAPUsers(list ldap_users, boolean server, string dir, string pass)``{
+
+
+// check for cpu existence ...
+
+
+    // register agent for manipulating with cpu.cfg
+    path agent_path = .etc.cpu_cfg;
+    string path_to_cfg = dir + "/cpu.cfg";
+    string tmpfile = dir + "/etc_cpu_cfg";
+    SCR::Execute(.target.bash, sformat("/bin/cp /etc/cpu.cfg %1", path_to_cfg));
+
+    string agent_data = sformat ("%1
+
+`ag_ini(
+  IniAgent(
+    \"%2\",
+    $[ \"options\" : [ \"ignore_case\", \"global_values\", \"flat\" ],
+       \"comments\" : [ \"^#.*\", \"^[ \\t]*$\", ],
+       \"params\" : [
+		 $[ \"match\" : [ \"^[ \\t]*([^::]*[^ \\t::])[ \\t]*::[ \\t]*(.*[^ \\t]|)[ \\t]*$\" , \"%%s::%%s\"],],
+       ]
+	]
+))", agent_path, path_to_cfg);
+    SCR::Write (.target.string, tmpfile, agent_data);
+    SCR::RegisterAgent (agent_path, tmpfile);
+
+    // change the cfg file
+    string shadow_file = dir + "/shadowfile";
+    SCR::Write(.etc.cpu_cfg."shadow_file", shadow_file);
+    if (pass != "")
+        SCR::Write(.etc.cpu_cfg."bind_pass", pass);
+
+    string skel = SCR::Read(.etc.cpu_cfg."skel_dir");
+    // other values??
+
+    // save the cfg file
+    SCR::Write (.etc.cpu_cfg, "force");
+
+    foreach (`user, ldap_users, ``{
+
+y2milestone("user: %1", user);
+        integer uid         = user["uid"]:nil;
+        integer gid         = user["gid"]:nil; // default values??
+        string  username    = user["username"]:"";
+        string  org_username = user["org_username"]:username;
+        string  forename    = user["forename"]:"";
+        string  surname     = user["surname"]:"";
+        string  home        = user["home"]:"";
+        string  org_home    = user["org_home"]:home;
+        string  shell       = user["shell"]:"";
+        string  password    = user["password"]:"";
+        string  groupname   = user["groupname"]:"";
+        symbol  action      = user["modified"]:`nothing;
+
+        string command = "/usr/bin/cpu";
+
+        // save password to shadowfile (check the encryption?)
+        SCR::Write(.target.string, shadow_file,
+            sformat("%1:%2", org_username, password));
+
+        if (action == `added)
+        {
+            command = sformat (
+            "%1 useradd -f %2 -u %3 -g %4 -d %5 -s %6 -S %7",
+            command, path_to_cfg, uid, gid, home, shell, username);
+
+            if (forename != "")
+                command = command + " -F " + forename;
+            if (surname != "")
+                command = command + " -L " + surname;
+
+            // on server, we can create the home
+            if (server)
+            {
+//                command = sformat ("%1 -m", command); needs only "root dir"
+                command = sformat("%1; /bin/cp -r %2 %3", command, skel, home);
+                command = sformat("%1; /bin/chown -R %2:%3 %4",
+                    command, username, groupname, home);
+            }
+        }
+        else if (action == `deleted)
+        {
+            command = sformat ("%1 userdel -f %2 %3",
+                command, path_to_cfg, username);
+            if (server && user["delete_home"]:false)
+            {
+                y2milestone ("The directory %1 is beeing deleted", home);
+                command = sformat("%1 ; /bin/rm -rf %2", command, home);
+            }
+        }
+        else if (action == `edited)
+        {
+
+            // password for command-line cannot be crypted ??
+            command = sformat (
+            "%1 usermod -f %2 -u %3 -s %4 %5",
+            command, path_to_cfg, uid, shell, org_username);
+
+            if (forename != "")
+                command = command + " -F " + forename;
+            if (surname != "")
+                command = command + " -L " + surname;
+
+            /*
+            command = sformat (
+            "%1 usermod -f %2 -u %3 -s %4 -p %5 %6 > /tmp/cpu",
+            command, path_to_cfg, uid, shell, password, org_username);
+            */
+
+            if (org_username != username)
+                command = sformat ("%1 -l %2", command, username);
+
+            if (server && home != org_home)
+            {
+                y2milestone ("The directory %1 is moved to %2", org_home, home);
+                command = sformat("%1; /bin/mv %2 %3", command, org_home, home);
+            }
+        }
+
+        if (action != `nothing)
+        {
+            y2milestone ("command: %1", command);
+            SCR::Execute(.target.bash, command);
+        }
+    });
+
+    // remove the cfg and shadowfile files !!
+    SCR::Execute(.target.bash, "/bin/rm " + path_to_cfg + " " + shadow_file);
+    return true;
+}
+
+/** Does it make sense?
+ */
+global define boolean ReadLDAPGroups() ``{
+
+    return (SCR::Read(.target.ycp, dir + "/ldap_group.ycp"));
+}
+
+/**
+  */
+global define boolean IsLDAPServer (string host) ``{
+
+    if (host == "localhost" || host == "127.0.0.1")
+        return true;
+    return false;
+}
+
+/**
+  */
+global define string GetLDAPBase () ``{
+
+    return SCR::Read(.etc.openldap.ldap_conf.base);
+}
+
+/**
+  */
+global define string GetLDAPHost () ``{
+
+    return SCR::Read(.etc.openldap.ldap_conf.host);
+}
+
+/**
+  */
+global define boolean IsLDAPAvailable (list passwd_source) ``{
+
+    if ( contains (passwd_source, "ldap"))
+        return true;
+    else
+        return false;
+}
+
+
+}

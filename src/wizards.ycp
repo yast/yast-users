@@ -185,7 +185,8 @@ global define symbol UsersSequence(string start) ``{
 	],
 	"main" : $[
 	    `abort	: `abort,
-	    `next	: "write"
+	    `next	: "write",
+        `nosave : `next
 	],
 	"write" : $[
 	    `abort	: `abort, // call RemoveTmp ??
@@ -268,6 +269,7 @@ global define symbol MainSequence(string start) ``{
 	        `next:          `next,
 		    `abort:         "without_save",
 		    `cancel:        "without_save",
+            `nosave:        `nosave,
 		    `exit:          `abort ],
 	"user_add": $[
             `nextmodule:    `next,
@@ -327,6 +329,7 @@ global define symbol MainSequence(string start) ``{
 		    `next:          `next,
 		    `abort:         "without_save",
 			`cancel:        "without_save",
+            `nosave:        `nosave,
 			`exit:          `abort ],
 	"group_add": $[
             `next:          "group_save",

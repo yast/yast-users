@@ -7,11 +7,24 @@
  */
 
 {
+/*
+ * Reads the prepared map of NIS users
+ */
+global define map ReadNISUsers(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/nis.ycp");
+}
+
+global define map ReadNISUsersByName(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
+}
+
 /**
   * Check whether host is NIS master
   * @return boolean true if is master
   */
-global define boolean IsNisMaster () ``{
+global define boolean IsNISMaster () ``{
     boolean helper = 0 == SCR::Execute (.target.bash, "test -f /usr/lib/yp/yphelper");
     if (! helper)
         return false;
@@ -19,6 +32,16 @@ global define boolean IsNisMaster () ``{
     return master;
 }
 
+/**
+  * Checks if set of NIS users is available
+  */
+global define boolean IsNISAvailable (list passwd_source) ``{
+
+    if (contains (passwd_source, "nis") ||
+        contains (passwd_source, "compat"))
+        return true;
+    return false;
+}
 
 /**
  * If we can ask and are a NIS server, ask which set of users
@@ -45,16 +68,6 @@ global define boolean ReadNISConfigurationType (string basedir)``{
             // this should never happen, probably only in testsuites
             if (ypdir == nil)
                 ypdir = basedir;
-//                ypdir = "";
-//            base_dir = ypdir; // change here, or return as return value ???
-        /*
-        UserWriteStack::chage = sformat ("/usr/bin/chage -P %1 ", ypdir);
-        UserWriteStack::useradd = sformat ("/usr/sbin/useradd -P %1 ", ypdir);
-        UserWriteStack::usermod = sformat ("/usr/sbin/usermod -P %1 ", ypdir);
-        UserWriteStack::userdel = sformat ("/usr/sbin/userdel -P %1 ", ypdir);
-        UserWriteStack::groupadd = sformat ("/usr/sbin/groupadd -P %1 ", ypdir);
-        UserWriteStack::groupdel = sformat ("/usr/sbin/groupdel -P %1 ", ypdir);
-        UserWriteStack::groupmod = sformat ("/usr/sbin/groupmod -P %1 ", ypdir);*/
         }
         else
             ypdir = basedir;
