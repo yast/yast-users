@@ -20,6 +20,7 @@
     import "Mode";
     import "Directory";
     import "Progress";
+    import "Report";
 
     map READ = $[
 	"passwd": $[
@@ -85,6 +86,9 @@
     ];
     map WRITE = $[];
     map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
 	"target" : $[
 	    "bash" :	0,
 	    "bash_output" : $[],
