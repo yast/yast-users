@@ -59,7 +59,10 @@ define symbol InitializeTableItems () ``{
     return `next;
 }
 
-define symbol SummaryDialog() ``{
+/**
+ * run the main (Summary) dialog via CWM
+ */
+define symbol SummaryDialog() {
 
     term contents = `VBox (
 	`HBox (`Left ("rb_users_groups")),
@@ -101,7 +104,7 @@ define symbol SummaryDialog() ``{
 	ret = update_symbol [ret, UsersCache::GetCurrentSummary ()]:`back;
     }
 
-    if (ret == `back && Stage::cont ())
+    if (Stage::cont () && (ret == `back || ret == `abort))
     {
 	Users::SetStartDialog ("user_add");
 	Users::SetUseNextTime (true);
@@ -116,6 +119,7 @@ define symbol SummaryDialog() ``{
 	    Users::ChangeCurrentUsers ("ldap");
 	}
 	Users::SetGUI (old_gui);
+	ret	= `back;
     }
 
     return (symbol) ret;
@@ -142,13 +146,11 @@ define symbol MainSequence(string start) ``{
 	"user_edit"		: ``(EditUserDialog("edit_user")),
 	"user_details"		: ``(EditUserDetailsDialog()),
 	"user_password"		: ``(EditUserPasswordDialog()),
-//	"user_ldap"		: ``(LDAPSettingsDialog("user")),
 	"user_plugin"		: ``(PluginDialog("user")),
 	"user_save"		: [``(UserSave()), true],
 
 	"group_add"		: ``(EditGroupDialog("add_group")),
 	"group_edit"		: ``(EditGroupDialog("edit_group")),
-//	"group_ldap"		: ``(LDAPSettingsDialog("group")),
 	"group_plugin"		: ``(PluginDialog("group")),
 	"group_save"		: [``(GroupSave()), true],
 
@@ -158,7 +160,6 @@ define symbol MainSequence(string start) ``{
     ];
 
     map main_sequence = $[
-//	"ws_start":             start,
 	"ws_start"		: "init_summary",
 	"init_summary"		: $[
 	    `next		: start
@@ -213,10 +214,6 @@ define symbol MainSequence(string start) ``{
 	    // next is predefined to add or edit
             `abort:		"without_save",
 	    `cancel:		"without_save",
-//	    `add_user:		"user_add",
-//	    `edit_user:		"user_edit",
-//	    `ldap:		"user_ldap",
-//	    `ldap:		"user_plugin",
 	    `next:		"user_plugin",
 	],
 	"user_password": $[
@@ -225,16 +222,6 @@ define symbol MainSequence(string start) ``{
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit"
 	],
-	/*
-	"user_ldap": $[
-            `abort:		"without_save",
-	    `cancel:		"without_save",
-//	    `add_user:		"user_add",
-//	    `edit_user:		"user_edit"
-	    // here could be plugin dialog...
-	    `next:		"user_plugin"
-	],
-	*/
 	"user_plugin": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
@@ -249,7 +236,6 @@ define symbol MainSequence(string start) ``{
 	"group_add": $[
 	    `nosave		: "summary",
             `next		: "group_save",
-//	    `ldap		: "group_ldap",
 	    `ldap		: "group_plugin",
 	    `abort		: `abort,
 	    `cancel		: `abort,
@@ -257,18 +243,9 @@ define symbol MainSequence(string start) ``{
         "group_edit": $[
             `next		: "group_save",
 	    `ldap		: "group_plugin",
-//	    `ldap		: "group_ldap",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
-	/*
-        "group_ldap": $[
-	    `next:		"group_plugin",
-//	    `next:		"group_save",
-	    `cancel:		"without_save",
-	    `abort:		"without_save"
-	],
-	*/
 	"group_plugin": $[
 	    `next:		"group_save",
 	    `abort:		`abort,

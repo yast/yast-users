@@ -93,16 +93,16 @@
     else if (func == "Read") {
 	import "Progress";
 	Users::SetExportAll (true);
-	Progress::off();
+	boolean progress_orig = Progress::set (false);
 	ret = (Users::Read () == "");
-	Progress::on();
+	Progress::set (progress_orig);
     }
     else if (func == "Write") {
 	import "Progress";
 	Users::SetWriteOnly (true);
-	Progress::off();
+	boolean progress_orig = Progress::set (false);
 	ret = (Users::Write () == "");
-	Progress::on();
+	Progress::set (progress_orig);
     }
     /**
      * Return if configuration  was changed

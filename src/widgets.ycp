@@ -326,15 +326,6 @@ only obtain users with a user name beginning with 'u'.</p>
         `VSpacing (0.5)
     ), `HSpacing (1.5));
 
-    /*
-    UI::OpenDialog (`opt(`decorated), `VBox (
-	`HSpacing (90),
-	`HBox (
-	    `RichText (help_text),
-	    contents
-	)
-    ));
-    */
     UI::OpenDialog (`opt(`decorated), contents);
     symbol button	= `notnext;
     do
