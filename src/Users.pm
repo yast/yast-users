@@ -145,6 +145,9 @@ my $use_cracklib 		= 1;
 my $cracklib_dictpath		= "";
 my $obscure_checks 		= 1;
 
+# User/group names must match the following regex expression. (/etc/login.defs)
+my $character_class 		= "[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.\$-]\\?";
+
 # the +/- entries in config files:
 my @pluses_passwd		= ();
 my @pluses_group		= ();
@@ -1126,6 +1129,7 @@ sub ReadSystemDefaults {
 
     Progress->off ();
     Security->Read ();
+
     if ($use_gui) { Progress->on (); }
 
     my %security	= %{Security->Export ()};
@@ -1145,6 +1149,8 @@ sub ReadSystemDefaults {
 
     $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
     $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
+
+    $character_class 	= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
 
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
@@ -4093,7 +4099,7 @@ sub Write {
 ##----------------- check routines (TODO move outside...) ---------
 
 # "-" means range! -> at the begining or at the end!
-# TODO look to CHARACTER_CLASS in /etc/login.defs
+# now CHARACTER_CLASS from /etc/login.defs is used
 my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._-";
 
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\[]|]";# the ']' is or-ed...
@@ -4241,6 +4247,7 @@ sub CheckUsername {
         return __("You did not enter a user name.
 Try again.");
     }
+
     my $min		= UsersCache->GetMinLoginLength ();
     my $max		= UsersCache->GetMaxLoginLength ();
 
@@ -4252,16 +4259,16 @@ Try again."), $min, $max);
     }
 
     my $filtered = $username;
-    $filtered =~ s/[$valid_logname_chars]//g;
 
-    # Samba users may need to have '$' in username (#40433)
+    # Samba users may need to have '$' at the end of username (#40433)
     if (($user_in_work{"type"} || "") eq "ldap") {
-	$filtered =~ s/\$//g;
+	$filtered =~ s/\$$//g;
     }
-
-    
-    my $first = substr ($username, 0, 1);
-    if ($first ne "_" && ($first lt "A" || $first gt "z" ) || $filtered ne "") { 
+    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'");
+    my $stdout = $grep->{"stdout"} || "";
+    $stdout =~ s/\n//g;
+    if ($stdout ne $filtered) {
+	y2error ("username $username doesn't match to $character_class");
 	# error popup
 	return __("The user login may contain only
 letters, digits, \"-\", \".\", and \"_\"
@@ -4282,7 +4289,6 @@ Try another one.");
 	}
     }
     return "";
-    
 }
 
 ##------------------------------------
@@ -4843,10 +4849,12 @@ Try again."), $min, $max);
     }
 	
     my $filtered = $groupname;
-    $filtered =~ s/[$valid_logname_chars]//g;
 
-    my $first = substr ($groupname, 0, 1);
-    if ($first lt "A" || $first gt "z" || $filtered ne "") { 
+    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'");
+    my $stdout = $grep->{"stdout"} || "";
+    $stdout =~ s/\n//g;
+    if ($stdout ne $filtered) {
+	y2error ("groupname $groupname doesn't match to $character_class");
 	# error popup
 	return __("The group name may contain only
 letters, digits, \"-\", \".\", and \"_\"

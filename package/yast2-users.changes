@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jul 16 15:49:46 CEST 2004 - jsuchome@suse.cz
+
+- advanced check for user/group name contents (#43053)
+
+-------------------------------------------------------------------
 Wed Jul 14 17:53:32 CEST 2004 - jsuchome@suse.cz
 
 - LDAP users: initially, read only minimal set of attributes; the rest
