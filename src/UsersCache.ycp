@@ -98,7 +98,6 @@ map last_uid = $[
 global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) ``{
 
     current_users = user_custom_sets;
-    PrintDate ("read cache start");
 
     foreach (`type, `usersmap, usermap, ``{
         BuildUsers (usersmap, type);
@@ -125,17 +124,14 @@ global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g) 
 global define void ReadFromFiles (string dir) ``{
 
     current_users = user_custom_sets;
-    PrintDate ("read cache start");
 
     // could be the sets here explicitly?
     list start_sets = ["local", "system"];
     foreach (`type, start_sets , ``{
         ReadUsers (type, dir);
     });
-    PrintDate ("before merge");
     users_itemlists [ "custom" ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ "custom" ]:[];
-    PrintDate ("after merge");
 
     foreach (`type, start_sets , ``{
         ReadGroups (type, dir);
@@ -143,7 +139,6 @@ global define void ReadFromFiles (string dir) ``{
     groups_itemlists [ "custom" ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ "custom" ]:[];
 
-    PrintDate ("read cache end");
 }
 
 /**
@@ -152,8 +147,6 @@ global define void ReadFromFiles (string dir) ``{
  * @param type the users type
  */
 global define void BuildUsers (map usersmap, string type) ``{
-
-    PrintDate ("build users start");
 
     homelists = add (homelists, type, BuildHomeList (usersmap));
     usernamelists = add (usernamelists, type, BuildUsernameList (usersmap));
@@ -188,19 +181,14 @@ global define void BuildGroups (map groupsmap, string type) ``{
  */
 global define boolean ReadUsers (string type, string dir) ``{
 
-    PrintDate ("build users start");
-
     if (type == "ldap")
     {
 	homelists [type] = SCR::Read(.ldap.users.homes);
         usernamelists [type] = SCR::Read(.ldap.users.usernames);
 
-	PrintDate ("homelist");
-
 	users_itemlists [type] =
 	    SCR::Read (.target.ycp, dir + "/itemlist_ldap.ycp");
 
-        PrintDate ("itemlists");
 	uidlists [type] = SCR::Read (.ldap.users.uids);
         last_uid [type] = SCR::Read (.ldap.users.last_uid);
 
@@ -210,12 +198,10 @@ global define boolean ReadUsers (string type, string dir) ``{
     usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
         type + ".ycp");
 
-    PrintDate ("homelist");
     // eval due to translation of system user names
     users_itemlists [type] = eval (
         SCR::Read(.target.ycp, dir + "/itemlist_" + type + ".ycp"));
 
-    PrintDate ("itemlists");
     uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" + type + ".ycp");
     if (type != "nis")
     {
@@ -866,7 +852,7 @@ global define void ChangeGroup (string what, map group) ``{
  */
 global define void PrintDate(string message) ``{
 
-//    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
+    y2warning ("%1: %2", message, lookup (SCR::Execute(.target.bash_output, "date +%X"), "stdout", ""));
 }
 
 /**
