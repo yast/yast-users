@@ -52,13 +52,13 @@ include "ui/common_messages.ycp";
             `VBox(
                // advise user to remember his new password
                `Label(_("Do not forget what you enter here.")),
-               `VSpacing(),
+               `VSpacing(1),
 
                `Left(`Password(`id(`pw1),
                     // Label: get password for user root
                     // Please use newline if label is longer than 40 characters
                     _("&Enter a password for the root user:"), "")),
-               `VSpacing(0.5),
+               `VSpacing(1),
 
                `Left(`Password(`id(`pw2),
                     // Label: get same password again for verification
@@ -66,7 +66,7 @@ include "ui/common_messages.ycp";
                     _("Reenter the password for &verification:"), ""))
                )
              ),
-        `VStretch(),
+        `VSpacing(2),
         // push button
         `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
         `VStretch()
@@ -144,7 +144,6 @@ Do not forget this \"root\" password!
       if (ret == `expert)
       {
           CallFunction(`expert_login());
-//          expert_dialog();
 
           string pw1 = UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
