@@ -373,10 +373,10 @@ Select which users should be members of this group.
 
   /**
    * Help for EditUserDetailsDialog.
-   * @param user_type type of edited user (`local/`system/`ldap/`nis)
+   * @param user_type type of edited user (local/system/ldap/nis)
    * @return string help text
    */
-  global define string EditUserDetailsDialogHelp(symbol user_type) ``{
+  global define string EditUserDetailsDialogHelp(string user_type) ``{
 
 	// help text 1/8
     string helptext = _("<p>
@@ -408,7 +408,7 @@ The home directory of the user. Normally this is
 </p>
 ");
 
-    if (user_type == `ldap)
+    if (user_type == "ldap")
         helptext = helptext +
     // alternate helptext 5/8
     _("<p>
@@ -421,7 +421,7 @@ LDAP server.</p>") +
 Set the user's e-mail address here.</p>
 ");
 
-    else if (user_type == `system || user_type == `local)
+    else if (user_type == "system" || user_type == "local")
         helptext = helptext +
     // alternate helptext 5/8
     _("<p><b>Additional Information</b>

@@ -25,7 +25,6 @@ import "Directory";
 import "Console";
 import "Security";
 import "Require";
-import "Summary"; // only for AuthDialog? TODO
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
@@ -93,8 +92,6 @@ global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEF
 global string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-.";
 global string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_";
 global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
-// used for LDAP users: TODO check if necesssary!
-//global string valid_fullname_chars  = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_ !@#$%^&*()+={[]}:;',.<>/\?";
 global string valid_id_chars       = "0123456789";
 global string invalid_gecos_chars = ",:";
 
@@ -133,6 +130,20 @@ list user_sources = [];
 
 /**
  * The main map of users
+ * example:
+ * users = $[
+ *  `local:$[
+ *	500 :$[
+ *	    "fullname":"Hans H", "gid":100, "home":"/local/hh",
+ *	    "password":"x","shell":"/bin/bash",
+ *	    "uid":500, "username":"hh",
+ *	    "shadow":$[
+ *		"expire":0, "inact":-1, "last_change":11984, "max":99999,
+ *		"min":0, "warn":7
+ *	    ]
+ *	 ],
+ *	 501 : ...
+ *    ]]
  */
 global map users = $[
     "system":    $[],
@@ -252,8 +263,7 @@ string plus_gshadow = "";
 global string ldap_host = "";
 global string ldap_base = "";
 // password to LDAP server
-global string ldap_bind_pass = ""; //FIXME, not global?
-
+string ldap_bind_pass = "";
 
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
@@ -266,6 +276,10 @@ global boolean groups_modified = false;
 global boolean customs_modified = false;
 global boolean defaults_modified = false;
 global boolean ldap_modified = false;
+global boolean security_modified = false;
+
+// home directories to delete
+global list removed_homes = [];
 
 // values to MenuItem in Summary dialog
 global map userset_to_string = $[
@@ -580,62 +594,61 @@ global define symbol Write (block abort, boolean useUI)``{
 	// We do not set help text here, because it was set outside
 	if( useUI )
 	    Progress::New (caption, " ", no_of_steps, [
-			// progress stage label
-			_("Back up the configuration files"),
-			// progress stage label
-			_("Write groups"),
-			// progress stage label
-			_("Check for deleted users"),
-			// progress stage label
-			_("Write users"),
-			// progress stage label
-			_("Write passwords"),
-			// progress stage label
-			_("Write LDAP users and groups"),
-			// progress stage label
-			_("Write the custom settings"),
-			// progress stage label
-		    _("Write the default login settings")
-           ],
-			// progress step label
-		  [ _("Creating backup of configuration files..."),
-			// progress step label
-			_("Writing groups..."),
-			// progress step label
-			_("Checking deleted users..."),
-			// progress step label
-			_("Writing users..."),
-			// progress step label
-			_("Writing passwords..."),
-			// progress step label
-			_("Writing LDAP users and groups..."),
-			// progress step label
-			_("Writing the custom settings..."),
-			// progress step label
-		    _("Writing the default login settings..."),
-			// final progress step label
-			_("Finished") ],
-			    "" );
+		// progress stage label
+		_("Back up the configuration files"),
+		// progress stage label
+		_("Write groups"),
+		// progress stage label
+		_("Check for deleted users"),
+		// progress stage label
+		_("Write users"),
+		// progress stage label
+		_("Write passwords"),
+		// progress stage label
+		_("Write LDAP users and groups"),
+		// progress stage label
+		_("Write the custom settings"),
+		// progress stage label
+		_("Write the default login settings")
+           ], [
+		// progress step label
+		_("Creating backup of configuration files..."),
+		// progress step label
+		_("Writing groups..."),
+		// progress step label
+		_("Checking deleted users..."),
+		// progress step label
+		_("Writing users..."),
+		// progress step label
+		_("Writing passwords..."),
+		// progress step label
+		_("Writing LDAP users and groups..."),
+		// progress step label
+		_("Writing the custom settings..."),
+		// progress step label
+		_("Writing the default login settings..."),
+		// final progress step label
+		_("Finished") ],
+	    "" );
 // TODO: LDAP in progress only when available
-// TODO: save Security settings (password hash) when changed
 
-	// backup
-	if ( useUI )
-	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-		    return `abort;
-	}
+    // backup
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
+	    return `abort;
+    }
     if (users_modified || groups_modified)
         BackupConfFiles(base_dir); // should be removed at the end?
 
     // write group before passwd! (bug #24130)
-	if ( useUI )
-	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-		    return `abort;
-	}
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
+	    return `abort;
+    }
     if (groups_modified)
     {
         if (! WriteGroup (write_dir, groups ["system"]:$[], groups["local"]:$[],
@@ -659,29 +672,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		return `abort;
     }
 
-    // currently there are deleted users in MOdified_users
-    foreach (`uid, `user, modified_users ["local"]:$[], ``{
-        if (user["delete_home"]:false)
-        {
-            // TODO (check): what if the home was changed??
-            string home = user["home"]:"";
-            y2milestone ("The directory %1 is deleted", home);
-            string command = sformat("/bin/rm -rf %1", home);
-            y2debug("rm (%1) return value: %2", command,
-                SCR::Execute(.target.bash, command));
-        }
-    });
-    foreach (`uid, `user, modified_users ["system"]:$[], ``{
-        if (user["delete_home"]:false)
-        {
-            // -- what if the home was changed??
-            string home = user["home"]:"";
-            y2milestone ("The directory %1 is deleted", home);
-            string command = sformat("/bin/rm -rf %1", home);
-            y2debug("rm (%1) return value: %2", command,
-                SCR::Execute(.target.bash, command));
-        }
-    });
+    DeleteHomeDirs();
 
     // write passwd
     if ( useUI )
@@ -720,29 +711,11 @@ global define symbol Write (block abort, boolean useUI)``{
         if (user_mod == "imported" || user_mod == "added")
         {
             if (user["create_home"]:true ||
-               (user_mod == "imported" && SCR::Read (.target.stat, home) == $[]))
+               (user_mod == "imported" && SCR::Read(.target.stat, home) == $[]))
             {
-                // create a path to new home directory, if not exists
-                string home_path = substring (home,0, findlastof(home,"/"));
-                if (SCR::Read(.target.stat, home_path) == $[])
-                    SCR::Execute(.target.mkdir, home_path);
-                y2milestone ("The directory %1 is created", home);
-                // copy homedir from skel
-                command = sformat("/bin/cp -r %1 %2",default_skel,home);
-                y2debug("cp (%1) return value: %2", command,
-                    SCR::Execute(.target.bash, command));
+		CreateHome (default_skel, home);
             }
-            // change the rights
-            string groupname = user["groupname"]:default_groupname;
-            // chown only when necessary:
-            if (uid != lookup (SCR::Read(.target.stat, home), "uid", -1) ||
-                gid != lookup (SCR::Read(.target.stat, home), "gid", -1))
-            {
-                command = sformat("/bin/chown -R %1:%2 %3", username, groupname,
-                    home);
-                y2debug("chown (%1) return value: %2", command,
-                    SCR::Execute(.target.bash, command));
-            }
+	    ChownHome (uid, gid, home);
             // call the useradd.local (-- check the existence ??)
             command = sformat("/usr/sbin/useradd.local %1", username);
             y2debug("useradd.local return value: %1",
@@ -755,40 +728,23 @@ global define symbol Write (block abort, boolean useUI)``{
             {
                 if (user["create_home"]:true) // move the home directory
                 {
-                    string home_path = substring (home,0, findlastof(home,"/"));
-                    if (SCR::Read(.target.stat, home_path) == $[])
-                        SCR::Execute(.target.mkdir, home_path);
-                    y2milestone ("The directory %1 is moved to %2",
-                        org_home, home);
-                    command = sformat("/bin/mv %1 %2", org_home, home);
-                    y2debug("mv (%1) return value: %2", command,
-                        SCR::Execute(.target.bash, command));
+		    MoveHome (org_home, home);
                 }
             }
-            string groupname = user["groupname"]:default_groupname;
-            // directory already exists and chown is needed
-            if (uid != lookup (SCR::Read(.target.stat, home), "uid", -1) ||
-                gid != lookup (SCR::Read(.target.stat, home), "gid", -1))
-            {
-                y2milestone ("changing owner of files in %2 to %1", username, home);
-                command = sformat("/bin/chown -R %1:%2 %3", username,
-                    groupname, home);
-                y2debug("chown (%1) return value: %2", command,
-                    SCR::Execute(.target.bash, command));
-            }
+	    ChownHome (uid, gid, home);
         }
     });
     // shadow, gshadow
-	if ( useUI )
-	{
-	    Progress::NextStage ();
-	    if (eval (abort))
-		    return `abort;
-	}
+    if ( useUI )
+    {
+	Progress::NextStage ();
+	if (eval (abort))
+	    return `abort;
+    }
 
     if (users_modified)
     {
-        // TODO send whole structure and decide in the write function
+        // TODO use structure and decide in the write function
         if (! WriteShadow(write_dir, shadow["system"]:$[], shadow["local"]:$[],
                 plus_shadow))
         {
@@ -801,7 +757,7 @@ global define symbol Write (block abort, boolean useUI)``{
     }
     if (groups_modified)
     {
-        if (! WriteGshadow(write_dir, gshadow["system"]:$[], gshadow["local"]:[],
+        if (!WriteGshadow(write_dir, gshadow["system"]:$[], gshadow["local"]:[],
                 plus_gshadow))
         {
             if (useUI)
@@ -835,7 +791,6 @@ global define symbol Write (block abort, boolean useUI)``{
     }
     if (ldap_modified)
     {
-//        boolean succ = true;
 	string error = "";
 
         if (ldap_bind_pass == "" && useUI)
@@ -846,7 +801,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		string ldap_bind = LDAPBind();
 		while (ldap_bind_pass != nil && ldap_bind != "")
 		{
-		    UI::ErrorPopup (GetLDAPErrorMessage ("bind", ldap_bind));
+		    LDAPErrorMessage ("bind", ldap_bind);
 		    ldap_bind_pass = GetLDAPPassword();
 		    ldap_bind = LDAPBind();
 		}
@@ -863,14 +818,14 @@ global define symbol Write (block abort, boolean useUI)``{
 		    ldap_file_server);
 		if (error != "" && useUI)
 		{
-		    Report::Error (error);
+		    LDAPErrorMessage ("users", error);
 		}
             }
             // now write all other modifications
             error = WriteLDAPUsers ( users ["ldap"]:$[], ldap_file_server);
 	    if (error != "" && useUI)
 	    {
-                Report::Error (error);
+		LDAPErrorMessage ("users", error);
 	    }
             // there are deleted groups in modified_groups ["ldap"]
             if (size (modified_groups ["ldap"]:$[]) > 0)
@@ -878,14 +833,14 @@ global define symbol Write (block abort, boolean useUI)``{
                 error = WriteLDAPGroups (modified_groups ["ldap"]:$[]);
 		if (error != "" && useUI)
 		{
-		    Report::Error (error);
+		    LDAPErrorMessage ("users", error);
 		}
 	    }
             // now write all other groups modifications
             error = WriteLDAPGroups (groups ["ldap"]:$[]);
 	    if (error != "" && useUI)
 	    {
-                Report::Error (error);
+		LDAPErrorMessage ("users", error);
 	    }
         }
     }
@@ -909,6 +864,9 @@ global define symbol Write (block abort, boolean useUI)``{
     }
     if (defaults_modified)
         WriteLoginDefaults();
+
+    if (security_modified)
+	WriteSecurity();// TODO: add progress?
 
     // mail forward from root
     if (Mode::cont && root_mail != "")
@@ -1468,7 +1426,6 @@ global define boolean UserReallyModified () ``{
     boolean ret = false;
 
     // grouplist can be ignered, it is a modification of groups
-    // TODO: check for LDAP users!
     foreach (`key, `value, user_in_work["org_user"]:$[], ``{
         if (key != "grouplist" && user_in_work[key]:nil != value) ret = true;
     });
@@ -1493,6 +1450,7 @@ global define boolean Commit (string object, boolean cache)``{
         string org_username = user_in_work ["org_username"]:username;
         string grouplist = user_in_work ["grouplist"]:"";
         string defgroup = user_in_work ["groupname"]:default_groupname;
+	string home = user_in_work["home"]:"";
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
@@ -1527,6 +1485,12 @@ global define boolean Commit (string object, boolean cache)``{
                     }
                 }
             });
+	    // check if home directory for this user doesn't already exist
+	    if (!user_in_work["create_home"]:true &&
+		contains (removed_homes, home))
+	    {
+		removed_homes = filter (`h, removed_homes, ``(h != home));
+	    }
             // add user to his default group -- updating only cache variables
             group_in_work = GetGroupByName (defgroup, type);
             if (group_in_work == $[])
@@ -1638,6 +1602,12 @@ global define boolean Commit (string object, boolean cache)``{
                     Commit ("group", cache);
                 }
             }
+	    // check if home directory for this user doesn't already exist
+	    if (!user_in_work["create_home"]:true &&
+		contains (removed_homes, home))
+	    {
+		removed_homes = filter (`h, removed_homes, ``(h != home));
+	    }
             // modify the shadow entry
             if (type == "local" || type == "system") // - also for groups !
             {
@@ -1676,11 +1646,19 @@ global define boolean Commit (string object, boolean cache)``{
             group_in_work ["more_users"] = more_users;
             Commit ("group", cache);
 
+	    // store deleted directories... someone could want to use them
+	    if (user_in_work["delete_home"]:false && type != "ldap")
+	    {
+		removed_homes = add (removed_homes, user_in_work["org_home"]:
+		    user_in_work["home"]:"");
+	    }
             // prevent the add & delete of the same user
             if (user_in_work["modified"]:"no" != "added")
             {
                 user_in_work ["modified"] = "deleted";
-                modified_users [type] = add (modified_users [type]:$[],
+		// TODO: modified_users is not needed when we use removed_homes
+		// (but are still needed for ldap)
+		modified_users [type] = add (modified_users [type]:$[],
                     uid, user_in_work);
             }
             if (type != "ldap")
@@ -1688,30 +1666,31 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else if ( what_user == "group_change")
         {
-                if (type == "ldap")
-                    user_in_work ["modified"] = "edited";
-                // prevent loading this argument with some unwanted value later
-//                else
-//                    user_in_work ["modified"] = "no";
+//            if (type == "ldap")
+//		user_in_work ["modified"] = "edited";// why?
         }
         // change the cache variables
         if (cache)
             UsersCache::ChangeUser(what_user, user_in_work);
 
-        // the main action: update users -- what if uid is changed?
+        // the main action: update users
         if (what_user == "delete_user")
         {
             users [type] = remove (users[type]:$[], uid);
-            users_by_name [type] = remove (users_by_name[type]:[], username);
+            users_by_name [type] = remove (users_by_name[type]:$[], username);
         }
         else // also "group_change" !
         {
             if (uid != org_uid && haskey (users[type]:$[], org_uid))
             {
-                users_by_name [type, username ] = uid;
                 users [type] = remove (users [type]:$[], org_uid);
             }
+	    if (username != org_username)
+	    {
+                users_by_name [type] = remove (users_by_name [type]:$[], org_username);
+	    }
             users [ type, uid ] = eval (user_in_work);
+            users_by_name [ type, username ] = uid;
 
             // this has to be done due to multiple changes of username -- ??
             // and what about the home and others?? TODO
@@ -1721,6 +1700,7 @@ global define boolean Commit (string object, boolean cache)``{
     }
     else if ( object == "group" )
     {
+//y2internal ("group: %1", group_in_work);
         integer gid = group_in_work ["gid"]:max_gid;
         integer org_gid = group_in_work ["org_gid"]:gid;
         string what_group = group_in_work ["what"]:"no";
@@ -1834,14 +1814,14 @@ global define boolean Commit (string object, boolean cache)``{
                     }
                 });
             }
-            // modify the gshadow -- userlist ??
             if (groupname != org_groupname)
             {
                 gshadow [type, groupname] = gshadow [type, org_groupname]:$[];
                 if (haskey (gshadow [type]:$[], org_groupname))
                     gshadow [type] = remove (gshadow [type]:$[], org_groupname);
             }
-            if (password != "x" && password != "*" && password != "!")
+//            if (password != "x" && password != "*" && password != "!")
+	    if (!contains (["x","*","!"], password) && type != "ldap")
                 gshadow [type, groupname, "password"] = password;
         }
         else if (what_group == "delete_group" )
@@ -1916,20 +1896,12 @@ global define void ReadSourcesSettings () ``{
 
     if ( !is_nis_master && is_nis_available )
     {
-            available_usersets = add ( available_usersets, "nis");
-            available_groupsets = add ( available_groupsets, "nis");
+        available_usersets = add ( available_usersets, "nis");
+        available_groupsets = add ( available_groupsets, "nis");
     }
 
     if ( is_ldap_available )
     {
-        ldap_base = GetLDAPBase();
-        ldap_host = GetLDAPHost();
-        is_ldap_server = IsLDAPServer (ldap_host);
-        //TODO read it from some file...
-        import "Ldap";
-        Ldap::Read();// do not call later...
-//        ldap_file_server = Ldap::file_server;
-
         available_usersets = add ( available_usersets, "ldap");
         available_groupsets = add ( available_groupsets, "ldap");
     }
@@ -2017,6 +1989,39 @@ global define boolean WriteLoginDefaults()``{
     y2milestone ("Succesfully written useradd defaults: %1", ret);
     return ret;
 }
+
+/**
+ * Save Security settings (encryption method) if changed in Users module
+ * @return success
+ */
+global define boolean WriteSecurity () ``{
+
+    boolean ret = true;
+    if ( encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des" )
+    {
+	y2milestone( "Changing encryption method to %1", encryptionMethod);
+        Security::modified = true;
+	Security::Settings["PASSWD_ENCRYPTION"] = encryptionMethod;
+	Progress::off();
+	ret = Security::Write();
+	Progress::on();
+    }
+    return ret;
+}
+
+/**
+ * Removes directories marked for deletion
+ * (there are stored in global list removed_homes
+ */
+global define boolean DeleteHomeDirs () ``{
+
+    boolean ret = true;
+    foreach (`home, removed_homes, ``{
+	ret = ret && DeleteHome (home);
+    });
+    return ret;
+}
+
 
 /**
  * Reads all possible shels and builds the itemlist for add user dialog
@@ -2492,50 +2497,35 @@ global define boolean ReadNewSet (string type) ``{
     else if (type == "ldap")
     {
         // first: check for required packages:
-//        if (!Require::RequireAndConflict (["perl-ldap","cpu","yast2-ldap-client"], [], sformat (
         if (!Require::RequireAndConflict (["perl-ldap","yast2-ldap-client"], [], sformat (
 // Popup text (%1 are required packages):
 _("For managing LDAP users, these packages are necessary:
 <br>%1<br>
 At least one of them is not present.
 Install it now?"),
-//"<b>cpu</b>,<b>perl-ldap</b>,<b>yast2-ldap-client</b>.")))
 "<b>perl-ldap</b>,<b>yast2-ldap-client</b>.")))
                 return false;
-	/* FIXME do more!
-        // check for cpu.cfg
-        if (!CpuConfigured (ldap_host, ldap_base))
-        {
-            // popup text
-            if (UI::YesNoPopup(_("Your \"cpu\" program does not appear to be configured. 
-It is used for updating LDAP users and groups.
-Configure it now?
-")))
-            {
-                if (CallFunction(`cpu_configure(true)) == `next)
-                    Ldap::WriteCpuSettings();
-            }
-        }
-	*/
+
+	// read all needed LDAP settings now:
+	ReadLDAPSettings ();
+
         ldap_bind_pass = GetLDAPPassword();
         if (ldap_bind_pass == nil) // cancel button
         {
             return false;
         }
 
-	//FIXME: return value !!
-	string ldap_mesg = WriteLDAPInit ();
+	string ldap_mesg = LDAPInit ();
         if ( ldap_mesg != "")
 	{
-            UI::ErrorPopup (GetLDAPErrorMessage("init", ldap_mesg));
+            LDAPErrorMessage("init", ldap_mesg);
 	    return false;
 	}
 
-	//FIXME: return value !!
 	ldap_mesg = LDAPBind ();
 	if (ldap_mesg != "")
         {
-            UI::ErrorPopup (GetLDAPErrorMessage("bind", ldap_mesg));
+            LDAPErrorMessage("bind", ldap_mesg);
             return false;
         }
 
@@ -2543,11 +2533,10 @@ Configure it now?
             // wait popup
             `Label(_("Reading sets of users and groups. Please wait...")));
 
-	//FIXME: return value !!
 	ldap_mesg = ReadLDAP();
 	if (ldap_mesg != "")
 	{
-            UI::ErrorPopup (GetLDAPErrorMessage("read", ldap_mesg));
+            LDAPErrorMessage("read", ldap_mesg);
             UI::CloseDialog(); // close the wait popup
             return false;
         }
@@ -2708,8 +2697,7 @@ global define void SetDefaults (map new_defaults, string groupname)``{
  */
 global define string LastChangeIsNow () ``{
     map out = SCR::Execute(.target.bash_output, "date +%s");
-    string days_s = out["stdout"]:"0\n";
-    days_s = substring(days_s, 0, size(days_s)-1); // TODO use deletechars
+    string days_s = deletechars (out["stdout"]:"0", "\n");
     integer days = (tointeger(days_s) + 3600)/ (60*60*24);
     return sformat("%1", days);
 }
@@ -2735,38 +2723,6 @@ global define map RunPrepare(string type) ``{
         "%1/build_nis_structures.pl %2 %3", Directory::bindir, tmpdir,
         encoding));
     }
-    return ret;
-}
-
-// FIXME: comment!
-global define string WriteLDAPInit () ``{
-// TODO: set version: default is 3, else look to Ldap module
-
-
-    map ldap = $[
-	"host": ldap_host,
-        "user_base": ldap_base,//FIXME: group, user base!
-        "group_base": ldap_base,//FIXME: group, user base!
-	"user_class": [	"person", "posixAccount" ,"top" ,"shadowAccount",
-			"inetOrgPerson" ],
-	"group_class": ["posixGroup" ,"top" ],
-	"bind_dn": "uid=jirka,dc=suse,dc=cz", // in ldap.conf
-	"pw_hash": "CRYPT"]; // FIXME: ldap.conf or Security module?
-	// objectClass!
-    return SCR::Execute (.ldap.init, ldap);
-}
-
-
-/** FIXME: move to ldap_routines, fix comment
- * Tries to bind to LDAP server with current password
- * @return map returned by target.bash_output
- */
-global define string LDAPBind () ``{
-
-    // FIXME: return value
-    if (ldap_bind_pass == nil)
-	return "";
-    string ret = SCR::Execute (.ldap.bind, ldap_bind_pass);
     return ret;
 }
 
@@ -2807,10 +2763,11 @@ global define map BuildAdditional (string userlist, string more_users) ``{
 
     SCR::Write(.target.string, tmpdir + "/additional_userlist", userlist);
     SCR::Write(.target.string, tmpdir + "/additional_moreusers", more_users);
-    // do not write all usernames for non-local groups
-    if (UsersCache::group_type == "ldap")
+    // do not write local usernames for non-local groups
+    string type = UsersCache::group_type;
+    if (contains (["ldap", "nis"], type))
         SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
-            UsersCache::usernamelists["ldap"]:[]);
+            $[ type : UsersCache::usernamelists[type]:[] ]);
     else
         SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
             UsersCache::usernamelists);
@@ -2836,7 +2793,7 @@ global define boolean StartAgain() ``{
     return true;
 }
 
-/**
+/** TODO: is this really needed?
  * Remove old config options - is used from inst_root.ycp
  */
 global define void removeOldConf() ``{
@@ -2868,36 +2825,6 @@ global define void removeOldConf() ``{
 }
 
 /**
- * Crypt the root password according to method defined in encryptionMethod
- * This is called during install
- * @param pw1 unencrypted password
- * @return void
- */
-global define void cryptRootPassword(string pw1) ``{
-
-	if (Mode::test) {
-	    return;
-	}
-	if (encryptionMethod == "md5" )
-	{
-	    SCR::Write( .pam.all.password.pam_unix2,   "+md5" );// this is done in
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+md5" );// Security module!
-	    rootPassword = cryptmd5 (pw1);
-	}
-	else if (encryptionMethod == "blowfish" )
-	{
-	    SCR::Write( .pam.all.password.pam_unix2,   "+blowfish" );
-	    SCR::Write( .pam.all.password.pam_pwcheck, "+blowfish" );
-	    rootPassword = cryptblowfish (pw1);
-	}
-	else
-	{
-	    rootPassword = crypt (pw1);
-	}
-	return;
-}
-
-/**
  * Crypt the given password according to method defined in encryptionMethod
  * @param pw unencrypted password
  * @return encrypted password
@@ -2913,12 +2840,28 @@ global define string CryptPassword (string pw) ``{
 }
 
 /**
+ * Crypt the root password according to method defined in encryptionMethod
+ * This is called during install
+ * @param pw unencrypted password
+ * @return void
+ */
+global define void cryptRootPassword(string pw) ``{
+
+    if (Mode::test) {
+	return;
+    }
+    rootPassword = CryptPassword (pw);
+    return;
+}
+
+
+/**
  * Writes password of superuser
  * @return true on success
  */
 global define boolean SetRootPassword() ``{
 
-	return (SCR::Write(.target.passwd.root, rootPassword));
+    return (SCR::Write(.target.passwd.root, rootPassword));
 }
 
 /**
@@ -3008,7 +2951,7 @@ after you mount correctly. Continue user configuration?
  */
 global define string CheckObscurity (string username, string pw) ``{
 
-    // FIXME: temporary checked here, LATER with some agent
+    // temporary checked here, TODO use some agent
     if (issubstring (pw, username))
     {
         // yes/no popup
@@ -3059,6 +3002,5 @@ global define string CrackPassword (string username, string pw) ``{
 
     return out;
 }
-
 
 }// EOF

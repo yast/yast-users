@@ -18,6 +18,7 @@ import "Report";
 
 import "Users";
 import "UsersCache";
+import "Summary"; // only for AuthDialog? TODO
 
 include "ui/common_messages.ycp";
 include "ui/common_popups.ycp";
@@ -32,7 +33,7 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(string what) ``{
 
-//    y2internal ("user: %1", Users::user_in_work);
+    y2internal ("user: %1", Users::user_in_work);
     map org_user = Users::user_in_work["org_user"]:eval(Users::user_in_work);
 
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
@@ -150,6 +151,21 @@ global define symbol EditUserDialog(string what) ``{
     }
     Users::user_in_work["what"] = what; // is it necessary here ??
 
+    // FIXME: adapt helptext!
+    /*
+    term name_entries =
+        // text entry
+	`TextEntry (`id(`fullname), _("User name"), fullname);
+    if (user_type == "ldap")
+    {
+	*/
+term	name_entries = `VBox(
+            // text entry
+            `TextEntry(`id(`forename), _("F&irst Name"), forename),
+            // text entry
+            `TextEntry(`id(`surname),  _("&Last Name"),  surname ));
+//    }
+
     term detailsmorebox =
         `HBox(
             // push button
@@ -159,17 +175,6 @@ global define symbol EditUserDialog(string what) ``{
                 // push button label
                  _("&Password settings")),
             `VStretch());
-
-    /*
-    // TODO: remove from here
-    if (user_type == "ldap")
-        detailsmorebox = `VBox (
-            // checkbox label
-            `CheckBox (`id (`create_dirs),_("&Home directory is here"),
-                create_ldap_dirs ),
-            `VStretch (),
-            detailsmorebox);
-    */
 
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
@@ -196,10 +201,7 @@ global define symbol EditUserDialog(string what) ``{
 can be changed for non-local users.
 ")) : `VSpacing (0),
                 do_not_edit ? `VSpacing (1) : `VSpacing (0),
-                // text entry
-                `TextEntry(`id(`forename), _("F&irst Name"), forename),
-                // text entry
-                `TextEntry(`id(`surname),  _("&Last name"),  surname )
+		name_entries
             ),
             `VSquash(
             `HBox(
@@ -209,12 +211,9 @@ can be changed for non-local users.
                     // push button to generate login from first and last name
                     : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
             )),
-            // User account information,
             // first version of user password, both versions must match
             `Password(`id(`pw1), _("&Enter a password"), ""),
-            // User account information,
             // second version of user password, retyped to avoid typos
-            // This is a label,
             // please use newline if it is longer than 48 characters
             `Password(`id(`pw2), _("Re-enter the password for &verification"), ""),
             `VStretch(),
@@ -490,6 +489,15 @@ _("The home directory selected (%1)
 already exists and is owned by currently edited user.
 Use this directory?"), home);
 
+		    // maybe it is home of some user marked to delete...
+		    else if (contains (Users::removed_homes, home))
+			question = sformat(
+// yes-no popup
+_("The home directory selected (%1)
+already exists as a former home directory of
+some user currently marked for deletion.
+Use this directory?"), home);
+
                     if (! UI::YesNoPopup(question))
                     {
                         home = Users::default_home;
@@ -722,6 +730,7 @@ Please try again."));
         Users::saved_user = Users::user_in_work;
     }
 //    y2warning ("user: %1", Users::user_in_work);
+    y2warning ("ret : %1", ret);
     return ret;
 }
 
@@ -756,6 +765,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     list available_shells = Users::all_shells_items;
     list available_groups = [];
     list additional_groups = [];
+    list additional_ldap_groups = [];
     list list_grouplist = splitstring (grouplist, ",");
     list removed = [];
 
@@ -766,6 +776,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
         if (grouptype == "local" || grouptype == "system" ||
             (grouptype == "ldap" && user_type == "ldap"))
+	{
           foreach ( `group, groupset, ``{
 
             if (user_type == "ldap")
@@ -778,9 +789,19 @@ global define symbol EditUserDetailsDialog( ) ``{
                     else
                         available_groups = add (available_groups,
                             `item( `id(group), group));
+                    if ( contains (list_grouplist, group))
+                        additional_ldap_groups = add (additional_ldap_groups,
+                            `item( `id(group), group, true ));
+                    else
+                        additional_ldap_groups = add (additional_ldap_groups,
+                            `item( `id(group), group, false));
                 }
                 else
                 {
+		    // if there is a group with same name, use only that
+		    // with type "ldap"
+		    if ( contains (UsersCache::groupnamelists["ldap"]:[],group))
+			return;
                     if ( contains (list_grouplist, group))
                         additional_groups = add (additional_groups,
                             `item( `id(group), group, true ));
@@ -805,6 +826,7 @@ global define symbol EditUserDetailsDialog( ) ``{
                         `item( `id(group), group, false));
             }
           });
+	}
     });
 
     term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch),
@@ -854,9 +876,16 @@ can be changed for non-local users.")) : `VSpacing (0),
                     `VStretch()
                 ),
                 `HSpacing(2),
+		`VBox(
                 `Top(`MultiSelectionBox( `id(`grouplist),
                     // selection box label
-                    _("Additional group &membership"), additional_groups))
+                    _("Additional group &membership"), additional_groups)),
+		(user_type == "ldap") ?
+		    `MultiSelectionBox( `id(`ldapgrouplist),
+                    // selection box label
+                    _("Additional &LDAP groups"), additional_ldap_groups)
+		    : `Empty()
+		    )
             ),
             `VSpacing(1)
            ),
@@ -922,6 +951,7 @@ can be changed for non-local users.")) : `VSpacing (0),
                         continue;
                     }
             }
+	    // additional data in GECOS field
             if (user_type == "local" || user_type == "system")
             {
                 addit_data  = UI::QueryWidget(`id(`addd),  `Value);
@@ -950,6 +980,11 @@ Remove the surplus.
 
             list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
                 `SelectedItems );
+	    if (user_type == "ldap")
+	    {
+		new_list_grouplist = merge (new_list_grouplist,
+		    UI::QueryWidget(`id(`ldapgrouplist), `SelectedItems ));
+	    }
             string new_grouplist = mergestring( new_list_grouplist, ",");
             integer new_i_uid    = tointeger( new_uid );
 
@@ -1062,6 +1097,15 @@ Use it and change its owner?");
 _("The home directory selected already exists
 and is owned by currently edited user.
 Use this directory?");
+		    // maybe it is home of some user marked to delete...
+		    else if (contains (Users::removed_homes, home))
+			question = sformat(
+// yes-no popup
+_("The home directory selected (%1)
+already exists as a former home directory of
+some user currently marked for deletion.
+Use this directory?"), home);
+
                     if (! UI::YesNoPopup(question))
                     {
                         UI::SetFocus(`id(`home));
@@ -1091,9 +1135,10 @@ may be unable to log in. Continue?
                     // is not in new grouplist:
                     if (!contains (new_list_grouplist, group))
                     {
+			term item = `item (`id (group), group, true);
                         // but is in initial one:
-                        if (contains (additional_groups,
-                            `item (`id (group), group, true)))
+                        if (contains (additional_groups, item) ||
+			    contains (additional_ldap_groups, item))
                             // -> so is removed:
                             removed = add (removed, group);
                         else
@@ -1101,7 +1146,7 @@ may be unable to log in. Continue?
                             new_list_grouplist = add (new_list_grouplist,group);
                     }
                 });
-            new_grouplist = mergestring( new_list_grouplist, ",");
+		new_grouplist = mergestring( new_list_grouplist, ",");
             }
             else // this will never be reached... ?
             {
@@ -1139,7 +1184,15 @@ Please try again."));
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
-    if ( ret == `next ) ret = what;
+    // TODO ugly!
+    if ( ret == `next )
+    {
+	if (what == "add_user")
+	    ret = `add_user;
+	else
+	    ret = `edit_user;
+    }
+    y2warning ("ret : %1", ret);
     return ret;
 }
 
@@ -1278,7 +1331,16 @@ global define symbol EditUserPasswordDialog() ``{
         }
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
-    if ( ret == `next ) ret = Users::user_in_work["what"]:`back;
+//    if ( ret == `next ) ret = Users::user_in_work["what"]:`back;
+    // TODO ugly!
+    if ( ret == `next )
+    {
+	if (Users::user_in_work["what"]:"no" == "add_user")
+	    ret = `add_user;
+	else
+	    ret = `edit_user;
+    }
+    y2warning ("ret : %1", ret);
 
     Users::user_in_work["shadow"] = shadow;
 
@@ -1329,15 +1391,21 @@ global define symbol EditGroupDialog(string what ) ``{
     if (group_type == nil)
     {
         group_type = "local";
-        if ((what == "add_group") && (size (Users::current_groups) == 1) &&
-            (Users::current_groups[0]:"local" != "nis" )) // what about ldap ??
-            group_type = Users::current_groups[0]:"local";
-        UsersCache::group_type = group_type; //??
+        if (what == "add_group")
+	{
+	    integer i = size (Users::current_groups) - 1;
+	    while (i >= 0 )
+	    {
+		if (Users::current_groups[i]:"local" != "nis")
+		    group_type = Users::current_groups[i]:"local";
+		i = i - 1;
+	    }
+	}
+        UsersCache::group_type = group_type;
     }
 
     if (group_type == "nis")
     {
-
         return `nosave;
     }
 
@@ -1369,13 +1437,10 @@ global define symbol EditGroupDialog(string what ) ``{
             `Top(`TextEntry( `id(`gid), _("Group &id (gid)"),
                 sformat("%1", gid) )),
             `VSpacing(1),
-            // User account information, first version of group password,
-            // both versions must match
+            // User account information, first version of group password
             `Bottom(`Password(`id(`pw1), _("&Enter a password"), "")),
             // User account information, second version of group password,
-            // retyped to avoid typos
-            // This is a label, please use newline if it is
-            // longer than 48 characters
+            // please use newline if it is longer than 48 characters
             `Bottom(`Password(`id(`pw2), _("Re-enter the &password"),  "")),
             `VSpacing(1)
         )),
@@ -1394,11 +1459,10 @@ global define symbol EditGroupDialog(string what ) ``{
         ));
 
     Wizard::SetContentsButtons(
-                        dialog_labels [ what, group_type ]:"",
-                        contents,
-                        EditGroupDialogHelp(more),
-                        UI::BackButtonLabel(),
-                        UI::NextButtonLabel());
+        dialog_labels [ what, group_type ]:"",
+	contents,
+        EditGroupDialogHelp(more),
+        UI::BackButtonLabel(), UI::NextButtonLabel());
 
     if( what == "add_group" && ! Mode::cont)
         Wizard::ReplaceNextButton (`PushButton (`id (`next),
@@ -1407,25 +1471,29 @@ global define symbol EditGroupDialog(string what ) ``{
 
     if( what == "add_group" ) UI::SetFocus(`id(`groupname));
 
-    if( what == "edit_group"  )
+    if( what == "edit_group" )
     {
         if( password != "x"  )
         {
-        UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
-        UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
+	    UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
+	    UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
         }
     }
 
     if (more)
+    {
+	// the group of users having this group as default - cannot be edited!
         UI::ChangeWidget (`id(`more_users), `Enabled, false);
+    }
 
-    // I don't know how to change the userlist yet...
+    /*
     if (group_type == "ldap")
     {
         UI::ChangeWidget (`id(`userlist), `Enabled, false);
         UI::ChangeWidget(`id(`pw1), `Enabled, false);
         UI::ChangeWidget(`id(`pw2), `Enabled, false);
     }
+    */
 
     any ret = `next;
     repeat
@@ -1774,7 +1842,6 @@ global define symbol DefaultsDialog() ``{
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
 
-    // valid chars?
     boolean modified = false;
 
     string new_home  = home;
@@ -1914,7 +1981,7 @@ global define symbol AuthentizationDialog() ``{
         if (Require::IsPackageAvailable (package))
 	{
 	    available = add (available, client);
-	    mb = add (mb, `item(`id(client), to_string[client]:""));//FIXME: shortcuts!
+	    mb = add (mb, `item(`id(client), to_string[client]:""));
 	}
         if (Require::AreAllPackagesInstalled ([package]))
 	    installed = add (installed, client);
@@ -1961,7 +2028,7 @@ global define symbol AuthentizationDialog() ``{
 	    import "Ldap"; //FIXME: import here?
 	    Ldap::Read();
 	    string server = Ldap::server;
-	    string domain = Ldap::domain;// FIXME: domain in not global in Ldap
+	    string domain = Ldap::GetDomain();
 	    ret = additional_info ( [
 		_("Server:"),
 		_("Domain:") ], [ server, domain ],  Ldap::start);
@@ -1971,7 +2038,7 @@ global define symbol AuthentizationDialog() ``{
 	    import "Nis"; //FIXME: import here?
 	    Nis::Read();
 	    string servers = mergestring (Nis::servers,"<br>");
-	    string domain = Nis::domain;// FIXME: domain in not global in Nis
+	    string domain = Nis::GetDomain();
 	    ret = additional_info ( [
 		_("Servers:"),
 		_("Domain:") ], [ servers, domain ], Nis::start);
@@ -1981,7 +2048,7 @@ global define symbol AuthentizationDialog() ``{
 	    import "Nisplus"; //FIXME: import here?
 	    Nisplus::Read();
 	    string server = Nisplus::server;
-	    string domain = Nisplus::domain;// FIXME: domain in not global
+	    string domain = Nisplus::GetDomain();
 	    ret = additional_info ( [
 		_("Server:"),
 		_("Domain:") ], [ server, domain ], Nisplus::start);

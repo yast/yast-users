@@ -5,6 +5,9 @@
  * Authors:	Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
+ *
+ * Important! It is supposed that this file is included from Users.ycp,
+ * some variables are used from here...
  */
 
 {
@@ -52,52 +55,137 @@ global define map ReadLDAPGroupsByName(string dir)``{
 }
 
 /**
- * Error messages for errors detected during LDAP operation
+ * Error popup for errors detected during LDAP operation
  * @param type error type: binding/reading/writing
  * @param error name of error (constant from perl-ldap)
- * @return error message
  */
-global define string GetLDAPErrorMessage (string type, string error) ``{
+global define void LDAPErrorMessage (string type, string error) ``{
 
     map ldap_error = $[
     "LDAP_INAPPROPRIATE_AUTH":
-// original description:
-//"The server requires the client which had attempted to bind anonymously or without supplying credentials to provide some form of credentials"
-
-// error message:FIXME
-_("Wrong password was entered or anonymous access is restricted."),
+	// error message:
+_("The server requires the client which had
+attempted to bind anonymously or without
+supplying credentials to provide some form
+of credentials"),
 
     "LDAP_INVALID_CREDENTIALS":
-// error message:
-_("Wrong password was entered."),
+	// error message:
+	_("Wrong password was entered."),
 
-//LDAP_INVALID_SYNTAX
-//LDAP_PARAM_ERROR
+    "LDAP_INVALID_SYNTAX":
+	// error message:
+_("Some part of the request contained an invalid
+syntax. It could be a search with an invalid
+filter or a request to modify the schema
+and the given schema has a bad syntax."),
+
+    "LDAP_PARAM_ERROR":
+	// error message:
+	_("An invalid parameter was specified."),
+
+    "LDAP_NO_SUCH_ATTRIBUTE":
+	// error message:
+	_("The request referenced an attribute that does not exist."),
 
     "initialize":
-// error message:
-_("Possible reason: server is down or unreachable."),
+	// error message:
+	_("Server could be down or unreachable."),
     ];
 
     map error_type = $[
         // error message, more specific description follows
 	"init": _("Connection to LDAP server can not be established."),
         // error message, more specific description follows
-	"bind":_("There was a problem with connecting to the LDAP server:"),
+	"bind": _("Problem with connecting to the LDAP server."),
         // error message, more specific description follows
-	"read":_("There was a problem with reading data from the LDAP server:"),
+	"read": _("Problem with reading data from the LDAP server."),
         // error message, more specific description follows
-	"users": _("There was a problem with writing LDAP users:"),
+	"users": _("There was a problem with writing LDAP users."),
         // error message, more specific description follows
-	"groups":  _("There was a problem with writing LDAP groups:")];
+	"groups": _("There was a problem with writing LDAP groups.")
+    ];
 
-    return sformat ("%1
-%2",
-    // default error message (should not be used)
-    error_type[type]:_("LDAP error:"), ldap_error[error]:error);
+    UI::OpenDialog (`HBox(`HSpacing (0.5),
+	`VBox(
+	    `VSpacing (0.5),
+	    // label
+	    `Left(`Heading (_("Error"))),
+	    `Label (error_type[type]:_("Unknown LDAP error")),
+	    `ReplacePoint (`id(`rp), `Empty()),
+	    `VSpacing (0.5),
+	    // checkbox label
+	    `Left(`CheckBox (`id(`details), `opt (`notify),_("&Show Details"), false)),
+	    `PushButton (`id(`ok), `opt(`key_F10,`default), UI::OKButtonLabel())
+	),
+	`HSpacing(0.5))
+    );
+    any ret = nil;
+    do
+    {
+	ret = UI::UserInput();
+	if (ret == `details)
+	{
+	    if (UI::QueryWidget (`id(`details), `Value))
+		UI::ReplaceWidget (`id(`rp), `VBox (
+		    `Label (ldap_error[error]:error)));
+	    else
+		UI::ReplaceWidget (`id(`rp), `Empty());
+	}
+    }
+    while (ret != `ok && ret != `cancel);
 
-    // TODO: add some "More..." button to show specific error messages
+    UI::CloseDialog();
 }
+
+/**
+ * Read basic settings about LDAP
+ */
+global define void ReadLDAPSettings () ``{
+
+//    import "Ldap";
+//    Ldap::Read();
+    ldap_base = GetLDAPBase();// LDAP::GetDomain() -> will be filled after Read
+    ldap_host = GetLDAPHost();
+    is_ldap_server = IsLDAPServer (ldap_host);
+//        ldap_file_server = Ldap::file_server; TODO: currenty not in Ldap!
+
+}
+
+
+
+/**
+ * Initializes the LDAP settings
+ * @return error message or empty string on success
+ */
+global define string LDAPInit () ``{
+// TODO: set version (in Ldap module)
+
+    map ldap = $[
+	"host": ldap_host,
+        "user_base": ldap_base,//FIXME: group, user base!
+        "group_base": ldap_base,//FIXME: group, user base!
+	"user_class": [	"person", "posixAccount" ,"top" ,"shadowAccount",
+			"inetOrgPerson" ],
+	"group_class": ["posixGroup" ,"top" ],
+	"bind_dn": "uid=jirka,dc=suse,dc=cz", // in ldap.conf
+	"pw_hash": "CRYPT"]; // FIXME: ldap.conf
+    return SCR::Execute (.ldap.init, ldap);
+}
+
+
+/**
+ * Tries to bind to LDAP server with current password
+ * @return error message or empty string on success
+ */
+global define string LDAPBind () ``{
+
+    if (ldap_bind_pass == nil)
+	return "";
+    string ret = SCR::Execute (.ldap.bind, ldap_bind_pass);
+    return ret;
+}
+
 
 /**
  * Gets the bind password to LDAP database
@@ -127,7 +215,7 @@ global define string GetLDAPPassword() ``{
     if (ret == `ok)
         pw = UI::QueryWidget(`id(`pw), `Value);
     if (ret == `cancel)
-        pw = nil; // FIXME: do not use nil here!
+        pw = nil;
     UI::CloseDialog();
     return pw;
 }
@@ -140,7 +228,7 @@ global define string ReadLDAP () ``{
 
     string ret = SCR::Execute (.ldap.search, $[
 	"output_dir": tmpdir,
-	"user_filter": "objectClass=person", // FIXME
+	"user_filter": "objectClass=person", // FIXME configure
 	"group_filter": "objectClass=posixGroup" ]
     );
     return ret;
@@ -149,7 +237,7 @@ global define string ReadLDAP () ``{
 /**
  * Writing modified LDAP users with
  * @param ldap_users map of all ldap users
- * @param server true if this machine is file for LDAP //FIXME: not here!
+ * @param server true if this machine is file for LDAP
  * @return empty string on success, error message otherwise
  */
 global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
@@ -165,52 +253,42 @@ global define string WriteLDAPUsers(map ldap_users, boolean server) ``{
 
         string home		= user["home"]:"";
         string org_home		= user["org_home"]:home;
-        string username		= user["username"]:"";
-        string groupname	= user["groupname"]:"";
-	string command		= "";
+        integer gid		= user["gid"]:default_gid;
 	string ldap_ret = "";
 
         if (action == "added")
         {
 	    ldap_ret = SCR::Write (.ldap.add, user);
-            // on server, we can create the home
-            if (server)
+            // on server, we can modify homes
+            if (server && ldap_ret == "")
             {
 		// FIXME: skeleton is missing!
-                command = sformat("/bin/cp -r %1 %2", skel, home);
-                command = sformat("%1; /bin/chown -R %2:%3 %4", command,
-		    username, groupname, home);
+		if (user["create_home"]:false)
+		    CreateHome (default_skel, home);
+		ChownHome (uid, gid, home);
             }
         }
         else if (action == "deleted")
         {
 	    ldap_ret = SCR::Write (.ldap.delete, user);
-            if (server && user["delete_home"]:false)
+            if (server && user["delete_home"]:false && ldap_ret == "")
             {
-                y2milestone ("The directory %1 is deleted", home);
-                command = sformat("/bin/rm -rf %1", home);
+                DeleteHome (home);
             }
         }
         else if (action == "edited")
         {
 	    ldap_ret = SCR::Write (.ldap.modify, user);
-
-            if (server && home != org_home)
+            if (server && home != org_home && ldap_ret == "")
             {
-                y2milestone ("The directory %1 is moved to %2", org_home, home);
-                command = sformat("/bin/mv %1 %2", org_home, home);
+		if (user["create_home"]:false)
+		    MoveHome (org_home, home);
+		ChownHome (uid, gid, home);
             }
         }
 	if (ldap_ret != "")
 	{
-	    ret = GetLDAPErrorMessage ("users", ldap_ret);
-	}
-	else if (command != "")
-	{
-	    // FIXME: directory operation in Write, together with local users
-	    map out = SCR::Execute(.target.bash_output, command);
-	    if (out["stderr"]:"" != "")
-		y2error ("error calling %1: %2", command, out["stderr"]:"");
+	    ret = ldap_ret;
 	}
     });
     return ret;
@@ -248,7 +326,7 @@ global define string WriteLDAPGroups(map ldap_groups)``{
         }
 	if (ldap_ret != "")
 	{
-	    ret = GetLDAPErrorMessage ("groups", ldap_ret);
+	    ret = ldap_ret;
 	    //FIXME: this is last error message!
 	}
     });

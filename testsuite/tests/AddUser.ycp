@@ -36,6 +36,8 @@
     "type":"local",
 	"what":"add_user"];
 
+    Users::users_by_name = $["local": $[], "ldap":$[], "system":$[]];
+
     DUMP ( sformat ("local users:\n %1", Users::users [ "local" ]:$[]) );
     DUMP ( sformat ("shadow:\n %1\n", Users::shadow) );
 

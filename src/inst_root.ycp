@@ -33,110 +33,13 @@ import "Mode";
 import "Progress";
 include "ui/common_messages.ycp";
 
+include "users/routines.ycp";   // for EncryptionDialog()
+
   if (Mode::cont && ! Mode::usessh)
   {
         // what is this for??
         SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
   }
-
-   // FIXME : use EncryptionDialog()!
-
-  /**
-   * "Expert" dialog for root password:
-   * Let user choose the encryption method.
-   **/
-  define void expert_dialog() ``{
-
-      // Help text for password expert dialog 1/5
-      string help_text = _("<p>
-<b>This is for experts only.</b>
-</p>");
-
-      // Help text for password expert dialog 2/5
-      help_text = help_text + _("<p>
-Choose a password encryption method.
-<b>DES</b>, the Linux default method, works in all network environments, but it
-restricts you to passwords no longer than eight characters.
-</p>");
-
-      // Help text for password expert dialog 3/5
-      help_text = help_text + _("<p>
-<b>MD5</b> allows longer passwords, thus provides more security, but some
-network protocols don't support this, and you may have problems with NIS.
-</p>");
-
-      // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-      // Help text for password expert dialog 5/5
-      help_text = help_text + _("<p>
-As a general rule of thumb, use DES if you are unsure.
-</p>");
-
-      UI::OpenDialog( `VBox(
-	// Label
-	`Heading( _("Password Expert Options") ),
-	`VSpacing( 0.7 ),
-	    `HBox(
-	    `HSpacing( 2 ),
-	    `RadioButtonGroup(
-		// frame
-		`Frame( _("Password Encryption"),
-		`VBox(
-		    `VSpacing( 0.5 ),
-		    // Radio buttons for password encryption: DES-crypt
-		    `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-			    encryptionMethod == "des" ) ),
-		    // Radio buttons for password encryption: MD5-crypt
-		    `Left(`RadioButton(`id(`md5), _("&MD5"),
-			    encryptionMethod == "md5" ) ),
-		    // Radio buttons for password encryption: blowfish-crypt
-		    `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-			    encryptionMethod == "blowfish" ) )
-		))
-	    ),
-	    `HSpacing( 2 )
-	    ),
-	`VSpacing( 0.5 ),
-	`HBox(
-	    `HStretch(),
-	    `HWeight( 1, `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
-	    `HStretch(),
-	    `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
-	    `HStretch(),
-	    `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
-	    `HStretch()
-	)
-    ));
-
-      symbol button = nil;
-
-      do
-      {
-	  button = UI::UserInput();
-
-	  if ( button == `help )
-	  {
-	      Wizard::ShowHelp( help_text );
-	  }
-	  else if ( button == `ok )
-	  {
-	      if      ( UI::QueryWidget( `id(`des), `Value ) )	encryptionMethod = "des";
-	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	encryptionMethod = "md5";
-	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) encryptionMethod = "blowfish";
-
-	      y2milestone( "Password expert options: Changing encryption method to %1", encryptionMethod );
-
-          Users::encryptionMethod = encryptionMethod;
-	  }
-      } while ( button != `ok && button != `cancel );
-
-
-      UI::CloseDialog();
-  }; // expert_dialog()
-
 
   boolean this_is_for_real = ! Mode::test;
 
@@ -145,6 +48,7 @@ As a general rule of thumb, use DES if you are unsure.
   Progress::on();
 
   string encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
+  Users::encryptionMethod = encryptionMethod;
 
   // Title for root-password dialogue
   string title = _("Password for \"root\", the system administrator");
@@ -244,7 +148,7 @@ Do not forget this \"root\" password!
 
       if (ret == `expert)
       {
-          expert_dialog();
+	    encryptionMethod = EncryptionDialog();
 
           string pw1 = UI::QueryWidget(`id(`pw1), `Value);
           UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
@@ -301,6 +205,7 @@ Are you sure?")))
             continue;
          }
 
+	Users::encryptionMethod = encryptionMethod;
         if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
         {
             Security::modified = true;
@@ -312,7 +217,6 @@ Are you sure?")))
 
          y2milestone( "encrypting with %1", Users::encryptionMethod );
 
-         Users::removeOldConf();
          Users::cryptRootPassword(pw1);
          if ( ! Users::SetRootPassword())
          {
