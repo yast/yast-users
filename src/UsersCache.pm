@@ -706,6 +706,16 @@ sub BuildUserItemList {
     };
 }
 
+##------------------------------------
+# Get first value from DN (e.g. "group" for "cn=group,dc=suse,dc=cz")
+sub get_first {
+
+    my @dn_list = split (",", $_[0]);
+    my $ret = substr ($dn_list[0], index ($dn_list[0], "=") + 1);
+
+    if (!defined $ret || $ret eq "") { $ret = $_[0]; }
+    return $ret;
+}
 
 ##------------------------------------
 # build item for one group
@@ -723,9 +733,11 @@ sub BuildGroupItem {
     if (defined ($group{"more_users"})) {
 	%more_users	= %{$group{"more_users"}};
     }
-    if ($group{"type"} eq "ldap") {
-	%userlist	= %{$group{"uniqueMember"}};
-	# TODO there are DN's, not usernames...
+    if ($group{"type"} eq "ldap" && defined ($group{"uniqueMember"})) {
+	foreach my $dn (keys %{$group{"uniqueMember"}}) {
+	    my $user		= get_first ($dn);
+	    $userlist{$user}	= 1;	
+	}
     }
 
     my @all_users	= ();

@@ -68,7 +68,7 @@ define string GetString (map data, string key, string default_value) {
 
 
 // upperase letters were used in username! bug #26409
-// TODO -> CheckUsername!
+// FIXME -> CheckUsername!
 define symbol AskForUppercasePopup (string username) ``{
 
     symbol ret = `ok;
@@ -353,10 +353,8 @@ can be changed for non-local users.
 
 	if (! contains ([`back, `cancel, `abort], ret))
 	{
-	    if (user_type == "ldap")
+	    if (user_type == "ldap") // TODO into CheckUser
 	    {
-y2internal ("FIXME");
-		/* FIXME LDAP defaults
 		// Form the fullname for LDAP user
 		// sn (surname) and cn (fullname) are required attributes,
 		// they cannot be empty
@@ -364,9 +362,9 @@ y2internal ("FIXME");
 		sn	  = (string) UI::QueryWidget(`id(`sn ), `Value);
 
 		// create default cn/sn if they are not marked for substitution
-		if (!(haskey (Users::ldap_user_defaults, "sn") &&
-		      what == "add_user") &&
-		    sn == "")
+		if (sn == "" &&
+		    !(haskey (UsersLDAP::GetUserDefaults (), "sn") &&
+		      what == "add_user"))
 		{
 		    if (givenName == "")
 		    {
@@ -378,13 +376,15 @@ y2internal ("FIXME");
 			givenName = "";
 		    }
 		}
-		if (!(haskey (Users::ldap_user_defaults, "cn") &&
-		      what == "add_user")
-		    && cn == "")
+		if (cn == "" &&
+		    !(haskey (UsersLDAP::GetUserDefaults (), "cn") &&
+		      what == "add_user"))
+		{
 		    cn = givenName + ((givenName != "") ? " " : "") + sn;
+		}
 		UI::ChangeWidget(`id(`givenName), `Value, givenName);
 		UI::ChangeWidget(`id(`sn), `Value, sn);
-		*/
+// FIXME cn cannot be empty !
 	    }
 	    else
 	    {
@@ -446,7 +446,6 @@ so the password settings cannot be edited.
 	    map error_map			= $[];
 	    // map with id's of confirmed questions
 	    map<string,string> ui_map	= $[];
-	    //TODO ui_map 'more' global? (now new check after Details)
 
 	    // --------------------------------- username checks, part 1/2
 	    // TODO:
@@ -531,7 +530,7 @@ Please try again."));
 
 	    // -------------------------------------- directory checks
 	    if (!details && (what == "add_user" || home != org_home)) {
-		// TODO Home is checked twice, (from Details, and back from here
+		//FIXME Home is checked twice, (from Details, and back from here
 		error = Users::CheckHome (home);
 		if (error != "")
 		{
@@ -1194,10 +1193,7 @@ define symbol LDAPSettingsDialog (string what) ``{
 
     // keys in user's map which are not saved anywhere (internal use only :-))
     list internal_keys = (what == "user") ?
-	[ "create_home", "grouplist", "groupname", "modified", "org_username",
-	"org_uid", "org_home","org_user", "type", "org_groupname", "what",
-	"dn", "org_dn", "removed_grouplist", "delete_home", "addit_data"
-	] :
+	UsersLDAP::GetUserInternal () :
 	[ "modified", "type", "what", "more_users", "s_userlist",
 	"dn", "org_dn", "org_groupname", "org_gid", "removed_userlist" ];
 
@@ -1225,7 +1221,7 @@ define symbol LDAPSettingsDialog (string what) ``{
     });
 
     // conversion table from parameter names used in LDAP to ones used in
-    // yast (passwd-style) FIXME in Users
+    // yast (passwd-style) FIXME get from Users
     map ldap2yast_user_attrs = $[
 	"uid":		"username",
     ];

@@ -516,14 +516,16 @@ sub GetDefaultGrouplist {
 
     my $type		= $_[0];
     my %grouplist	= ();
+    my $grouplist	= "";
 
-    if ($type eq "local") {
-	foreach my $group (split (/,/, $useradd_defaults{"groups"})) {
-	    $grouplist{$group}	= 1;
-	}
+    if ($type eq "ldap") {
+	$grouplist	= UsersLDAP::GetDefaultGrouplist ();
     }
     else {
-# FIXME Ldap should have group DN's, not names...
+	$grouplist	= $useradd_defaults{"groups"};
+    }
+    foreach my $group (split (/,/, $grouplist)) {
+	$grouplist{$group}	= 1;
     }
     return \%grouplist;
 }
@@ -1496,7 +1498,6 @@ sub AddUser {
 	    $user_in_work{$key}	= $data{$key};
 	}
     }
-#TODO if "what" already exists, we can return (Substitute...?)
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
@@ -1681,7 +1682,23 @@ sub UserReallyModified {
 	};
 	return $ret;
     }
-    #TODO LDAP
+    # search result, because some attributes were not filled yet
+    my @internal_keys	= UsersLDAP::GetUserInternal ();
+    foreach my $key (keys %user) {
+
+	my $value = $user{$key};
+	if (contains (\@internal_keys, $key) || (ref ($value) eq "HASH")) {
+	    next;
+	}
+	if (ref ($value) eq "ARRAY") {
+	    if (@{$user{"org_user"}{$key}} ne @{$value}) {
+		$ret = 1;
+	    }
+	}
+        elsif ($user{"org_user"}{$key} ne $value) {
+	    $ret = 1;
+	}
+    };
     return $ret;
 }
 
@@ -1710,7 +1727,7 @@ sub CommitUser {
     my $org_uid		= $user{"org_uidNumber"} || $uid;
     my $username	= $user{"username"};
     my $org_username	= $user{"org_username"} || $username;
-    my $groupname	= $user{"groupname"};
+    my $groupname	= $user{"groupname"} || GetDefaultGroupname ($type);
     my $home		= $user{"homeDirectory"};
     my %grouplist	= %{$user{"grouplist"}};
 
@@ -1730,7 +1747,7 @@ sub CommitUser {
         $user{"modified"}	= "added";
 
 	if ($type eq "ldap") {
-	    %user = SubstituteValues ("user", \%user);
+	    %user = %{SubstituteValues ("user", \%user)};
 	}
 
         # update the affected groups
@@ -2372,6 +2389,9 @@ sub Write {
 
     # check for homedir changes
     foreach my $type (keys %modified_users)  {
+	if ($type eq "ldap") {
+	    next; #homes for LDAP are ruled in WriteLDAP
+	}
 	foreach my $uid (keys %{$modified_users{$type}}) {
 	    
 	    my %user		= %{$modified_users{$type}{$uid}};
@@ -2416,8 +2436,17 @@ sub Write {
         }
     }
 
-    # LDAP users and groups TODO
+    # Write LDAP users and groups TODO
     if ($use_gui) { Progress::NextStage (); }
+
+    if ($ldap_modified) {
+	# 1st: deleted users
+	if (defined ($removed_users{"ldap"})) {
+	    UsersLDAP::WriteUsers ($removed_users{"ldap"});
+	}
+	
+	UsersLDAP::WriteUsers ($modified_users{"ldap"});
+    }
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {
