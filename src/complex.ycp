@@ -250,7 +250,11 @@ global define symbol ReallyAbort() ``{
         ret = CallFunction(`inst_confirm_abort(`incomplete));
     }
 
-    if( ret ) return `abort;
+    if( ret )
+    {
+//        return Users::Aborted();
+        return `abort;
+    }
     else return `back;
 }
 

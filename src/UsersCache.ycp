@@ -24,10 +24,12 @@ global map usernamelists = $[];
 global map groupnamelists = $[];
 global map users_itemlists = $[];
 global map groups_itemlists = $[]; // global ??
+// item list of all users used in edit group dialog
+global list additional_users = [];
 global list user_itemlist = [];
 global list group_itemlist = [];
 global list uidlist = [];
-list gidlist = [];
+global list gidlist = [];
 global list current_users = []; // global ??
 global list current_groups = []; // global ??
 global list user_custom_sets = []; // global ??
@@ -79,10 +81,13 @@ global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g)
     group_custom_sets = cust_g;
     current_groups = cust_g;
     foreach (`type, `groupsmap, groupmap, ``{
-        groupnamelists [type] = BuildGroupnameList (groupsmap);
+        if (groupnamelists [type]:nil == nil)
+            groupnamelists [type] = BuildGroupnameList (groupsmap);
         groups_itemlists [type] = BuildGroupItemList(groupsmap);
     });
-    gidlist = BuildGIDList(groupmap); // this doesn't look very useful...
+
+    if (gidlist == [])
+        gidlist = BuildGIDList(groupmap); // this doesn't look very useful...
     groups_itemlists [ `custom ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ `custom ]:[]; // ukazatel?
 
@@ -231,7 +236,10 @@ global define list BuildUserItemList(map map_of_users) ``{
  */
 global define string Uncoding( string fullname ) ``{
 
-    return UI::Recode( encoding, "UTF-8",  fullname );
+    if (fullname == "" || fullname == nil)
+        return "";
+    else
+        return UI::Recode( encoding, "UTF-8",  fullname );
 
 }
 

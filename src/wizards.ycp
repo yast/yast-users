@@ -188,7 +188,7 @@ global define symbol UsersSequence(string start) ``{
 	    `next	: "write"
 	],
 	"write" : $[
-	    `abort	: `abort,
+	    `abort	: `abort, // call RemoveTmp ??
 	    `next	: `next
 	]
     ];

@@ -89,6 +89,7 @@ y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
 y2error("--------- grouplist is empty!");
 //        grouplist = UsersCache::FindGroupsBelongUser(username);
     }
+    // -- what if these groups don't exist ??
     if ( grouplist == "empty" && what == `add_user )
         grouplist = "dialout,uucp,video,audio";
 //        grouplist = ",dialout,uucp,video,audio";
@@ -1097,7 +1098,7 @@ global define symbol EditGroupDialog(symbol what ) ``{
     symbol  group_type  = Users::group_in_work["type"]:nil;
     list list_userlist = splitstring (userlist, ",");
     list list_more_users = splitstring (more_users, ",");
-    list additional_users = [];
+//    list additional_users = [];
     list removed = [];
 
     if (group_type == nil)
@@ -1120,8 +1121,9 @@ global define symbol EditGroupDialog(symbol what ) ``{
         }
     }
 
+    /*
     // -- this could be also pre-builded, then changed via ChangeWidget ??
-    foreach ( `type, `userset, UsersCache::usernamelists, ``{// not all sets!!
+    foreach ( `type, `userset, UsersCache::usernamelists, ``{// not all sets??
         foreach ( `username, userset, ``{
             if ( contains (list_userlist, username) ||
                  contains (list_more_users, username))
@@ -1132,6 +1134,7 @@ global define symbol EditGroupDialog(symbol what ) ``{
                     `item( `id(username), username, false));
         });
     });
+    */
 
     // make dialog
     term contents = `HBox(
@@ -1143,10 +1146,10 @@ global define symbol EditGroupDialog(symbol what ) ``{
             `Top(`TextEntry( `id(`gid), _("Group &id (gid)"),
                 sformat("%1", gid) )),
             `VSpacing(1),
-            // User account information, first version of user password,
+            // User account information, first version of group password,
             // both versions must match
             `Bottom(`Password(`id(`pw1), _("&Enter a password:"), "")),
-            // User account information, second version of user password,
+            // User account information, second version of group password,
             // retyped to avoid typos
             // This is a label, please use newline if it is
             // longer than 48 characters
@@ -1159,7 +1162,7 @@ global define symbol EditGroupDialog(symbol what ) ``{
             `VSpacing(1),
             // selection box label
             `MultiSelectionBox( `id(`userlist), _("&Members of this group"),
-                additional_users),
+                UsersCache::additional_users),
             `VSpacing(1)
         ));
 
@@ -1169,8 +1172,9 @@ global define symbol EditGroupDialog(symbol what ) ``{
                         UI::BackButtonLabel(),
                         UI::NextButtonLabel());
 
-
-//    UI::ChangeWidget(`id(`userlist), `Items, additional_users);
+    // dfds
+    UI::ChangeWidget(`id(`userlist), `SelectedItems,
+        union (list_more_users, list_userlist));
 
     if( what == `add_group && ! Mode::cont)
         // push button
@@ -1264,7 +1268,7 @@ Please try another one.
             if (  pw1 != pw2 )
             {
                 // There is a check whether the information from the UI is
-                // correct and complete.  The two user password information
+                // correct and complete.  The two group password information
                 // do not match
                 // error popup
                 Report::Error(_("The first and the second version
@@ -1290,7 +1294,7 @@ Please try again.")) ;
             if (size (pw1) < Users::min_length_pas)
             {
                 // There is a check whether the information from the
-                // UI is correct and complete.  The user password
+                // UI is correct and complete.  The group password
                 // information must have a minimal size
                 // error popup. %1 and %2 numbers
                 Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
@@ -1323,7 +1327,7 @@ Please try again.")) ;
                 if ( nil != findfirstnotof( pw1, Users::valid_password_chars ) )
                 {
                     // There is a check whether the information from the
-                    // UI is correct and complete.  The user password may
+                    // UI is correct and complete.  The group password may
                     // contain only certain characters
                     // error popup
                     Report::Error(_("The password may only contain the following characters:
@@ -1501,7 +1505,7 @@ Please try again."));
             if ( ((what == `edit_group) && (
                                 (gid != new_i_gid)  ||
                                 (groupname != new_groupname ) ||
-                                (password  != "x"           ) ||
+                                (password  != "x" && password != "*") ||
                                 (userlist  != new_userlist  )))
                  || (what == `add_group ))
             {
