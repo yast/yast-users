@@ -10,6 +10,12 @@ use strict;
 use ycp;
 use YaST::YCP qw(Term);
 
+use Locale::gettext;
+use POSIX;     # Needed for setlocale()
+
+setlocale(LC_MESSAGES, "");
+textdomain("users");
+
 our %TYPEINFO;
 
 my $user_type		= "local";
