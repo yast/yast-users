@@ -15,12 +15,13 @@ textdomain "users";
 import "Wizard";
 import "Popup";
 import "Users";
+/*
 import "Lan";
 import "Internet";
-import "DSL";
+import "DSL";*/
 import "Require";
 
-/* Check if lan is configured */
+/* Check if lan is configured *
 list lan_devices = Lan::GetDevices("all");
 y2debug("lan_devices: %1", lan_devices);
 
@@ -40,6 +41,7 @@ if(!found) {
     Users::after_auth = "users";
     return `auto;
 }
+*/
 
 // caption for dialog "User Authentication Method"
 string caption = _("User Authentication Method");
@@ -129,7 +131,7 @@ else
     UI::ChangeWidget (`id(`network), `Value, true);
 
     foreach (string client, available_clients, ``{
-	UI::ChangeWidget (`id(client), `Value, Users::After_auth () == client);
+	UI::ChangeWidget (`id(client), `Value, Users::AfterAuth () == client);
     });
 }
 

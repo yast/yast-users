@@ -3202,4 +3202,38 @@ BEGIN { $TYPEINFO{ReadLDAPFilters} = ["function", "boolean"];}
 sub ReadLDAPFilters {
     return UsersLDAP::ReadFilters ();
 }
+
+BEGIN { $TYPEINFO{Import} = ["function",
+    "boolean",
+    ["map", "string", "any"]];
+}
+sub Import {
+    
+    y2error ("not yet");
+    #FIXME
+    return 1;
+}
+
+BEGIN { $TYPEINFO{Export} = ["function",
+    ["map", "string", "any"]];
+}
+sub Export {
+    
+    y2error ("not yet");
+    #FIXME
+    return {};
+}
+
+BEGIN { $TYPEINFO{Summary} = ["function", "string"];}
+sub Summary {
+    
+    y2error ("not yet");
+    return "FIXME";
+}
+
+BEGIN { $TYPEINFO{SetWriteOnly} = ["function", "void", "boolean"];}
+sub SetWriteOnly {
+    $write_only = $_[0];
+}
+
 # EOF

@@ -12,6 +12,7 @@ y2milestone ("Users module started");
 
 import "Users";
 import "Mode";
+import "Ldap"; //FIXME workaround to initialize variables
 
 include "users/wizards.ycp";
 include "commandline/commandline.ycp";
