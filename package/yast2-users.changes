@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jun 28 17:18:30 CEST 2002 - arvin@suse.de
+
+- renamed package from yast2-config-users to yast2-users
+
+-------------------------------------------------------------------
 Tue Jun 25 15:22:47 CEST 2002 - jsrain@suse.cz
 
 - Allowed password longer than 8 characters (#9810)
@@ -16,42 +21,40 @@ Wed Mar 27 10:51:37 CET 2002 - mvidner@suse.cz
 Fri Mar  8 16:37:12 CET 2002 - jbuch@suse.de
 
 - remove incorrect help text (#14712)
-  mike has checked this diff too 
 
 -------------------------------------------------------------------
 Fri Mar  8 16:21:09 CET 2002 - jbuch@suse.de
 
-- fixed bug - changing password of an existing user 
+- fixed bug - changing password of an existing user
 
 -------------------------------------------------------------------
 Fri Mar  8 14:36:23 CET 2002 - jbuch@suse.de
 
 - Set focus on userpage to forename field (Bug #14664)
   Use helptext form inst_root.ycp for password (Bug #13383)
-  Mike has checked this diff too 
 
 -------------------------------------------------------------------
 Fri Mar  1 14:42:39 CET 2002 - jbuch@suse.de
 
 - use min_pas_len from /etc/login.defs for md5 too
-  mike has checked this diff too  
 
 -------------------------------------------------------------------
 Thu Feb 28 16:52:35 MET 2002 - jbuch@suse.de
 
--  bug 14105: fixed problems with users that have nearly the same name
-   mike has checked this diff too 
+- bug 14105: fixed problems with users that have nearly the same
+  name
 
 -------------------------------------------------------------------
 Tue Feb 26 18:03:30 MET 2002 - jbuch@suse.de
 
 - fixed bug 12647 - change the home directory
-  in continue mode call the abort Popup from user module (not inst_user.ycp) 
+- in continue mode call the abort Popup from user module (not
+  inst_user.ycp)
 
 -------------------------------------------------------------------
 Mon Feb 25 17:37:51 MET 2002 - jbuch@suse.de
 
-- utf-8 -> UTF-8 
+- utf-8 -> UTF-8
   Encodings must be upper case !
 
 -------------------------------------------------------------------
@@ -63,13 +66,13 @@ Mon Feb 25 17:12:58 MET 2002 - jbuch@suse.de
 Mon Feb 25 16:29:09 MET 2002 - jbuch@suse.de
 
 - fixed call of pam agent
- 
+
 -------------------------------------------------------------------
 Mon Feb 25 15:20:54 MET 2002 - jbuch@suse.de
 
 - fixed sequencer bug in the inst-sys
   don't show group nobody
-  use value "umask" from /etc/login.defs 
+  use value "umask" from /etc/login.defs
 
 -------------------------------------------------------------------
 Fri Feb 22 19:26:56 MET 2002 - jbuch@suse.de
@@ -78,7 +81,7 @@ Fri Feb 22 19:26:56 MET 2002 - jbuch@suse.de
   fixed bad help text
   fixed SetFocus bugs
   fixed one ShortCut bug
-  changed allowed password characters 
+  changed allowed password characters
 
 -------------------------------------------------------------------
 Thu Feb 21 11:50:05 CET 2002 - lslezak@suse.cz
@@ -91,13 +94,15 @@ Thu Feb 21 11:50:05 CET 2002 - lslezak@suse.cz
 Mon Feb 18 17:28:08 CET 2002 - sh@suse.de
 
 - V 2.5.9
-- Fixed bug #13518: Keyboard focus not in input field when adding user 
+- Fixed bug #13518: Keyboard focus not in input field when adding
+  user
 
 -------------------------------------------------------------------
 Mon Feb 18 14:31:44 CET 2002 - sh@suse.de
 
 - V 2.5.8
-- Fixed bug #13383: Letters not mentioned as valid chars in help text 
+- Fixed bug #13383: Letters not mentioned as valid chars in help
+  text
 
 -------------------------------------------------------------------
 Mon Feb 18 13:20:00 CET 2002 - kkaempf@suse.de
@@ -135,34 +140,35 @@ Sat Feb  9 17:31:28 PST 2002 - nashif@suse.de
 -------------------------------------------------------------------
 Fri Feb  8 20:14:31 MET 2002 - tom@suse.de
 
-- Now the config module is being called from the installation workflow.
+- Now the config module is being called from the installation
+  workflow.
 
 -------------------------------------------------------------------
 Tue Sep 11 11:33:40 CEST 2001 - jbuch@suse.de
 
-- Fixed error in switching between groups and users 
+- Fixed error in switching between groups and users
 
 -------------------------------------------------------------------
 Sat Sep  8 14:54:44 CEST 2001 - jbuch@suse.de
 
 - Add the new CheckBox "Also view system users/groups"
-- Changed TextEntry for userlist/grouplist to MultiSelectionBox 
+- Changed TextEntry for userlist/grouplist to MultiSelectionBox
 
 -------------------------------------------------------------------
 Fri Sep  7 18:08:20 CEST 2001 - jbuch@suse.de
 
-- fixed bug 10290 
+- fixed bug 10290
 
 -------------------------------------------------------------------
 Tue Aug 21 14:34:33 CEST 2001 - jbuch@suse.de
 
 - add yast2-agent-pam to spec file
-  replaced fileexist 
+  replaced fileexist
 
 -------------------------------------------------------------------
 Thu Aug  9 11:02:45 CEST 2001 - jbuch@suse.de
 
-- add crypt md5 password 
+- add crypt md5 password
 
 -------------------------------------------------------------------
 Mon Aug  6 16:35:17 CEST 2001 - jbuch@suse.de
@@ -179,56 +185,57 @@ Mon May 14 15:30:34 CEST 2001 - jbuch@suse.de
 
 - added if( test_mode) for test output
   else the user can read a map saved in the directory /tmp/..
-  that contains crypted passwords and other user and group 
-  informations     
+  that contains crypted passwords and other user and group
+  informations
 
 -------------------------------------------------------------------
 Thu May 10 16:19:30 MEST 2001 - gs@suse.de
 
-- icons for module Create an user and Create a group added (bug 7234) 
+- icons for module Create an user and Create a group added (bug
+  7234)
 
 -------------------------------------------------------------------
 Mon May  7 15:23:22 CEST 2001 - jbuch@suse.de
 
-- UI(`GetLanguage()) to UI(`GetLanguage(true))  
+- UI(`GetLanguage()) to UI(`GetLanguage(true))
 
 -------------------------------------------------------------------
 Mon May  7 14:06:12 CEST 2001 - jbuch@suse.de
 
-- new version 
+- new version
 
 -------------------------------------------------------------------
 Mon May  7 12:48:24 CEST 2001 - jbuch@suse.de
 
-- fixed Encoding/Uncoding fullname  
+- fixed Encoding/Uncoding fullname
 
 -------------------------------------------------------------------
 Thu May  3 15:12:39 CEST 2001 - jbuch@suse.de
 
-- fixed bug 7517 and 7428 
+- fixed bug 7517 and 7428
 
 -------------------------------------------------------------------
 Mon Apr 30 13:03:04 CEST 2001 - jbuch@suse.de
 
-- add icons for menu; fixed shell bug  
+- add icons for menu; fixed shell bug
 
 -------------------------------------------------------------------
 Thu Apr 26 21:26:07 CEST 2001 - jbuch@suse.de
 
-- add saving group password 
+- add saving group password
 
 -------------------------------------------------------------------
 Tue Apr 24 13:52:31 CEST 2001 - jbuch@suse.de
 
-- check_ycp ok 
+- check_ycp ok
 
 -------------------------------------------------------------------
 Tue Apr 24 09:37:46 CEST 2001 - jbuch@suse.de
 
-- new menuentry and isnil(..) -> .. != nil 
+- new menuentry and isnil(..) -> .. != nil
 
 -------------------------------------------------------------------
 Tue Apr 17 15:56:01 CEST 2001 - jbuch@suse.de
 
-- initial 
+- initial
 

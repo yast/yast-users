@@ -1,5 +1,6 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devtools  autoconf automake ycpdoc yast2 libxcrypt libxcrypt-devel
+
+# neededforbuild  yast2-devel-packages
 
 @HEADER@
 Requires:	yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
