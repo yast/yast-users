@@ -182,11 +182,19 @@ global define list BuildUserItemList(map map_of_users) ``{
         string own_group = user["groupname"]:"";
         string grouplist = user["grouplist"]:"";
         list l_grouplist = splitstring (grouplist, ",");
-//        if (issubstring (grouplist, own_group) && grouplist!="")
+        /*
         if ( contains (l_grouplist, own_group) && grouplist!="")
             grouplist = substring (grouplist,1); // remove comma
         else
             grouplist = own_group + grouplist;
+        */
+        if ( !contains (l_grouplist, own_group))
+        {
+            if (grouplist != "")
+                grouplist = own_group + "," + grouplist;
+            else
+                grouplist = own_group;
+        }
 
         a = add(a, grouplist );
         items = add( items, a );
@@ -397,7 +405,7 @@ global define void ChangeUser(symbol what, map user) ``{
 
     if (what == `add_user)
     {
-//y2milestone ("local itemlist: %1", itemlist [type]:[]);
+//y2milestone ("itemlist: %1", users_itemlists [type]:[]);
         uidlist = prepend (uidlist, uid);
         homelists [type] = add (homelists [type]:[], home);
         usernamelists [type] = add (usernamelists [type]:[], username);
@@ -436,6 +444,7 @@ global define void ChangeUser(symbol what, map user) ``{
             ``(select(item,1,"") != username));
         UpdateUserItemlist ();
     }
+//y2milestone ("itemlist: %1", users_itemlists [type]:[]);
 
 }
 

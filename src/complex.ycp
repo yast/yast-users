@@ -233,6 +233,7 @@ global define boolean WriteDialog (boolean useUI ) ``{
     }
     else
     {
+        // -- is there any function like that ??
         ret = CallFunction(`inst_confirm_abort(`incomplete));
     }
 
@@ -358,7 +359,7 @@ y2milestone("--------------- Users summary");
 
     if (ret == `back)
     {
-        // don't understand at all... beware!
+        // -- don't understand at all... beware!!
         /*
         start_dialog = "user_add";
         UserWriteStack::Reset ();

@@ -24,12 +24,6 @@ include "ui/common_popups.ycp";
 
 include "./helps.ycp";
 
-    /*
-    global map saved_user = $[];
-    global boolean use_next_time = true;*/
-
-
-
 /**
  * Function that adds or edits a user.
  * @param what `add_user or `edit_user
@@ -39,10 +33,10 @@ global define symbol EditUserDialog(symbol what) ``{
 // po details se vsechno generuje znova !!
 y2milestone ("------ what:%1, in work: %2", what, Users::user_in_work);
 
-    if (start_dialog == "user_add" && Mode::cont && use_next_time)
+    if (start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
-        user_in_work = saved_user; // ??
-        use_next_time = false;
+        Users::user_in_work = Users::saved_user; // ??
+        Users::use_next_time = false;
     }
 
     boolean create_home = Users::user_in_work["create_home"]:true;
@@ -90,7 +84,8 @@ y2error("--------- grouplist is empty!");
 //        grouplist = UsersCache::FindGroupsBelongUser(username);
     }
     if ( grouplist == "empty" && what == `add_user )
-        grouplist = ",dialout,uucp,video,audio";
+        grouplist = "dialout,uucp,video,audio";
+//        grouplist = ",dialout,uucp,video,audio";
     if ( uid ==  nil )
     {
         uid = UsersCache::NextFreeUid(); // this uses user_type
@@ -551,7 +546,7 @@ Use it and change its owner?
     }
     if( ret == `additional ||  ret == `nosave ) // -- ??
     {
-        saved_user = user_in_work;
+        Users::saved_user = Users::user_in_work;
 //      start_sequencer_again = true;
 
 //      if ( ret == `additional ) ret = `next;
@@ -777,8 +772,7 @@ Please try again."));
                 UI::SetFocus(`id(`home));
                 continue;
             }
-            if ( Mode::test )
-                y2milestone("newhome: %1,  org_home: %2", new_home, org_home);
+            y2debug("newhome: %1,  org_home: %2", new_home, org_home);
 
             if ( (what == `edit_user && ( new_home != org_home ))
                  || what == `add_user )
@@ -901,8 +895,8 @@ Please try again."));
 //      ret =
     if ( ret == `next ) ret = what;
 
-    if( Mode::test )
-        y2milestone("user in work  %1: ",Users::user_in_work);
+//    if( Mode::test )
+//        y2milestone("user in work  %1: ",Users::user_in_work);
 
     return ret;
 }

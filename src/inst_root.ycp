@@ -2,9 +2,9 @@
  *
  * $Id$
  *
- * Module:		inst_root.ycp
+ * Module:      inst_root.ycp
  *
- * Author:		Klaus Kämpf <kkaempf@suse.de>
+ * Author:      Klaus Kämpf <kkaempf@suse.de>
  *
  * Purpose:
  * Displays two input fields to get the root password from the user.
@@ -18,124 +18,124 @@
  * After all the password is crypted and written into the user_settings.
  *
  *
- * SCR:		Write( .pam.all.password.pam_unix2   )
- *		Write( .pam.all.password.pam_pwcheck )
+ * SCR:     Write( .pam.all.password.pam_unix2   )
+ *      Write( .pam.all.password.pam_pwcheck )
  */
 
 {
 
-  textdomain "users";
+textdomain "users";
 
-  import "Wizard";
-  import "Users";
-  import "Mode";
-  include "ui/common_messages.ycp";
+import "Wizard";
+import "Users";
+import "Mode";
+include "ui/common_messages.ycp";
 
-    if (Mode::cont && ! Mode::usessh)
-    {
-	SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
-    }
+  if (Mode::cont && ! Mode::usessh)
+  {
+        // what is this for??
+        SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
+  }
 
-  /**
-   * "Expert" dialog for root password:
-   * Let user choose the encryption method.
-   **/
-  define void expert_dialog() ``{
+/**
+ * "Expert" dialog for root password:
+ * Let user choose the encryption method.
+ **/
+define void expert_dialog() ``{
 
-      // Help text for password expert dialog 1/5
-      string help_text = _("<p>
+    // Help text for password expert dialog 1/5
+    string help_text = _("<p>
 <b>This is for experts only.</b>
 </p>");
 
-      // Help text for password expert dialog 2/5
-      help_text = help_text + _("<p>
+    // Help text for password expert dialog 2/5
+    help_text = help_text + _("<p>
 Choose a password encryption method.
 <b>DES</b>, the Linux default method, works in all network environments, but it
 restricts you to passwords no longer than eight characters.
 </p>");
 
-      // Help text for password expert dialog 3/5
-      help_text = help_text + _("<p>
+    // Help text for password expert dialog 3/5
+    help_text = help_text + _("<p>
 <b>MD5</b> allows longer passwords, thus provides more security, but some
 network protocols don't support this, and you may have problems with NIS.
 </p>");
 
-      // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p>
+    // Help text for password expert dialog 4/5
+    help_text = help_text + _("<p>
 <b>Blowfish</b> is similar to MD5, but uses a different algorithm
 to encrypt passwords.
 </P>");
-      // Help text for password expert dialog 5/5
-      help_text = help_text + _("<p>
+    // Help text for password expert dialog 5/5
+    help_text = help_text + _("<p>
 As a general rule of thumb, use DES if you are unsure.
 </p>");
 
-      UI::OpenDialog(
-		     `VBox(
-				// Label
-			   `Heading( _("Password Expert Options") ),
-			   `VSpacing( 0.7 ),
-			   `HBox(
-				 `HSpacing( 2 ),
-				 `RadioButtonGroup(
-							// frame
-						   `Frame( _("Password Encryption"),
-							   `VBox(
-								 `VSpacing( 0.5 ),
+    UI::OpenDialog(
+      `VBox(
+         // Label
+        `Heading( _("Password Expert Options") ),
+        `VSpacing( 0.7 ),
+        `HBox(
+          `HSpacing( 2 ),
+          `RadioButtonGroup(
+              // frame
+              `Frame( _("Password Encryption"),
+                  `VBox(
+                    `VSpacing( 0.5 ),
+                    // Radio buttons for password encryption: DES-crypt
+                    `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+                          Users::encryptionMethod == "des" ) ),
+                    // Radio buttons for password encryption: MD5-crypt
+                    `Left(`RadioButton(`id(`md5), _("&MD5"),
+                          Users::encryptionMethod == "md5" ) ),
+                    // Radio buttons for password encryption: blowfish-crypt
+                    `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
+                          Users::encryptionMethod == "blowfish" ) )
+                    )
+              )
+          ),
+          `HSpacing( 2 )
+          ),
+        `VSpacing( 0.5 ),
+        `HBox(
+          `HStretch(),
+          `HWeight( 1,
+              `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
+          `HStretch(),
+          `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
+          `HStretch(),
+          `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
+          `HStretch()
+          )
+        )
+    );
 
-								 // Radio buttons for password encryption: DES-crypt
-								 `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-										    Users::encryptionMethod == "des" ) ),
+    symbol button = nil;
 
-								 // Radio buttons for password encryption: MD5-crypt
-								 `Left(`RadioButton(`id(`md5), _("&MD5"),
-										    Users::encryptionMethod == "md5" ) ),
-								 // Radio buttons for password encryption: blowfish-crypt
-                                                                 `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-                                                                                    Users::encryptionMethod == "blowfish" ) )
-								 )
-							   )
-						   ),
-				 `HSpacing( 2 )
-				 ),
-			   `VSpacing( 0.5 ),
-			   `HBox(
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() ) ),
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`cancel), UI::CancelButtonLabel() ) ),
-				 `HStretch(),
-				 `HWeight( 1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
-				 `HStretch()
-				 )
-			   )
-		     );
+    do
+    {
+        button = UI::UserInput();
 
-      symbol button = nil;
+        if ( button == `help )
+        {
+            Wizard::ShowHelp( help_text );
+        }
+        else if ( button == `ok )
+        {
+            if ( UI::QueryWidget( `id(`des), `Value ) )
+                Users::encryptionMethod = "des";
+            else if ( UI::QueryWidget( `id(`md5), `Value ) )
+                Users::encryptionMethod = "md5";
+            else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
+                Users::encryptionMethod = "blowfish";
 
-      do
-      {
-	  button = UI::UserInput();
+            y2milestone( "Password expert options: Changing encryption method to %1", Users::encryptionMethod );
+        }
+    } while ( button != `ok && button != `cancel );
 
-	  if ( button == `help )
-	  {
-	      Wizard::ShowHelp( help_text );
-	  }
-	  else if ( button == `ok )
-	  {
-	      if      ( UI::QueryWidget( `id(`des), `Value ) )	Users::encryptionMethod = "des";
-	      else if ( UI::QueryWidget( `id(`md5), `Value ) )	Users::encryptionMethod = "md5";
-	      else if ( UI::QueryWidget( `id(`blowfish), `Value ) ) Users::encryptionMethod = "blowfish";
-
-	      y2milestone( "Password expert options: Changing encryption method to %1", Users::encryptionMethod );
-	  }
-      } while ( button != `ok && button != `cancel );
-
-
-      UI::CloseDialog();
-  }; // expert_dialog()
-
-
+    UI::CloseDialog();
+}; // expert_dialog()
 
 
   string rpassword = Users::rootPassword;
@@ -147,30 +147,30 @@ As a general rule of thumb, use DES if you are unsure.
 
   term contents =
       `VBox(
-	    `VStretch(),
-	    `HSquash(
-		     `VBox(
-			   // advise user to remember his new password
-			   `Label(_("Do not forget what you enter here.")),
-			   `VSpacing(),
+        `VStretch(),
+        `HSquash(
+            `VBox(
+               // advise user to remember his new password
+               `Label(_("Do not forget what you enter here.")),
+               `VSpacing(),
 
-			   `Left(`Password(`id(`pw1),
-					   // Label: get password for user root
-					   // Please use newline if label is longer than 40 characters
-					   _("&Enter a password for the root user:"), "")),
-			   `VSpacing(0.5),
+               `Left(`Password(`id(`pw1),
+                    // Label: get password for user root
+                    // Please use newline if label is longer than 40 characters
+                    _("&Enter a password for the root user:"), "")),
+               `VSpacing(0.5),
 
-			   `Left(`Password(`id(`pw2),
-					   // Label: get same password again for verification
-					   // Please use newline if label is longer than 40 characters
-					   _("Reenter the password for &verification:"), ""))
-			   )
-		     ),
-	    `VStretch(),
-		// push button
-	    `PushButton(`id(`expert), _("E&xpert Options...") ),
-	    `VStretch()
-	    );
+               `Left(`Password(`id(`pw2),
+                    // Label: get same password again for verification
+                    // Please use newline if label is longer than 40 characters
+                    _("Reenter the password for &verification:"), ""))
+               )
+             ),
+        `VStretch(),
+        // push button
+        `PushButton(`id(`expert), _("E&xpert Options...") ),
+        `VStretch()
+        );
 
   // help text ( explain what the user "root" is and does ) 1/5
   string helptext = UI(_("<p>
@@ -211,13 +211,12 @@ Valid password characters are letters, digits, blanks, and
 Do not forget this \"root\" password!
 </p>"));
 
-
   Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
 
   if ("" == UI::QueryWidget(`id(`pw1), `Value))
-	UI::SetFocus (`id (`pw1));
+    UI::SetFocus (`id (`pw1));
   else if ("" == UI::QueryWidget(`id(`pw2), `Value))
-	UI::SetFocus (`id (`pw2));
+    UI::SetFocus (`id (`pw2));
 
   any ret = nil;
 
@@ -225,96 +224,98 @@ Do not forget this \"root\" password!
   {
       if ( ret != `expert )
       {
-	  // Clear password fields on every round
-	  UI::ChangeWidget(`id(`pw1), `Value, "");
-	  UI::ChangeWidget(`id(`pw2), `Value, "");
-	  UI::SetFocus( `id(`pw1) );
+        // Clear password fields on every round
+          UI::ChangeWidget(`id(`pw1), `Value, "");
+          UI::ChangeWidget(`id(`pw2), `Value, "");
+          UI::SetFocus( `id(`pw1) );
       }
 
       ret = Wizard::UserInput();
 
       if ( ret == `abort && CallFunction(`inst_confirm_abort(`incomplete) ) )
-	  return `abort;
+          return `abort;
 
       if (ret == `cancel)
-	  break;
+          break;
 
       if (ret == `expert)
       {
-	  expert_dialog();
+          expert_dialog();
 
-	  string pw1 = UI::QueryWidget(`id(`pw1), `Value);
-	  UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
+          string pw1 = UI::QueryWidget(`id(`pw1), `Value);
+          UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
       }
       else if (ret != `back)
       {
-	  string pw1 = UI::QueryWidget(`id(`pw1), `Value);
-	  string pw2 = UI::QueryWidget(`id(`pw2), `Value);
+          string pw1 = UI::QueryWidget(`id(`pw1), `Value);
+          string pw2 = UI::QueryWidget(`id(`pw2), `Value);
 
-	  if (this_is_for_real && pw1 != pw2 )
-	  {
-	     // report misspellings of the password
-	     UI::MessagePopup(_("The first and the second version\nof the password don't match!\nPlease try again."));
-	     rpassword = "";
-	     // Invalidate any old password
-	     Users::rootPassword = rpassword;
-	     continue;
-	  }
+      if (this_is_for_real && pw1 != pw2 )
+      {
+         // report misspellings of the password
+         UI::MessagePopup(_("The first and the second version\nof the password don't match!\nPlease try again."));
+         rpassword = "";
+         // Invalidate any old password
+         Users::rootPassword = rpassword;
+         continue;
+      }
 
-	  // Use the old password (if any) if no passwords were entered.
-	  // only check pw1 here, it is identical with pw2 (as checked before).
+      // Use the old password (if any) if no passwords were entered.
+      // only check pw1 here, it is identical with pw2 (as checked before).
 
-	  if ( this_is_for_real && ( (pw1 != "") || (rpassword == "") ) )
-	  {
-	     if (pw1 == "")
-	     {
-		// report if user forgot to enter a password
-		UI::MessagePopup(_("You didn't enter a password\nPlease try again."));
-                rpassword = "";
-		// Invalidate any old password
-		Users::rootPassword = rpassword;
-		continue;
-	     }
+      if ( this_is_for_real && ( (pw1 != "") || (rpassword == "") ) )
+      {
+         if (pw1 == "")
+         {
+            // report if user forgot to enter a password
+            UI::MessagePopup(_("You didn't enter a password.
+Please try again."));
+            rpassword = "";
+            // Invalidate any old password
+            Users::rootPassword = rpassword;
+            continue;
+         }
 
-	     if (size (pw1) < 5)
-	     {
-		// explain how a password has to be formed
-		UI::MessagePopup(_("The password must have at least 5 characters.
+         if (size (pw1) < 5)
+         {
+            // explain how a password has to be formed
+            UI::MessagePopup(_("The password must have at least 5 characters.
 Try again.
 "));
-                rpassword = "";
-		// Invalidate any old password
-		Users::rootPassword = rpassword;
-		continue;
-	     }
+            rpassword = "";
+            // Invalidate any old password
+            Users::rootPassword = rpassword;
+            continue;
+         }
 
-	     if ( size(pw1) >= 5 )
-	     {
-		any ret2 = findfirstnotof( pw1, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}" );
+         if ( size(pw1) >= 5 )
+         {
+            any ret2 = findfirstnotof( pw1, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}" );
 
-		if ( ret2 != nil ) {
-		   // There is a check whether the information from the UI is correct and complete
-		   // The root password may contain only certain characters
-		   UI::MessagePopup(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
-                   rpassword = "";
-		   // Invalidate any old password
-		   Users::rootPassword = rpassword;
-		   continue;
-		}
-	     }
+            if ( ret2 != nil )
+            {
+               // There is a check whether the information from the UI is
+               // correct and complete
+               // The root password may contain only certain characters
+               UI::MessagePopup(_("The password may only contain the following characters:\n 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nPlease try again."));
+               rpassword = "";
+               // Invalidate any old password
+               Users::rootPassword = rpassword;
+               continue;
+            }
+         }
 
-	     y2milestone( "encrypting with %1", Users::encryptionMethod );
+         y2milestone( "encrypting with %1", Users::encryptionMethod );
 
-
-	     Users::removeOldConf();
-	     Users::cryptRootPassword(pw1);
-	     if ( this_is_for_real && ! Users::SetRootPassword())
-	     {
-		 // Error msg
-		 Report::Error(_("The root password could not be set.
+         Users::removeOldConf();
+         Users::cryptRootPassword(pw1);
+         if ( this_is_for_real && ! Users::SetRootPassword())
+         {
+             // Error msg
+             Report::Error(_("The root password could not be set.
 You will not be able to log in.\n"));
-	     }
-	  }
+         }
+      }
       }
   } until ( ret == `next || ret == `back || ret == `cancel );
 

@@ -111,8 +111,26 @@ include "./nis_routines.ycp";
     global define boolean SetRootPassword()
 	``{
 	return (SCR::Write(.target.passwd.root, rootPassword));
-    }  
+    }
 
+global define string Summary() ``{
+
+    string ret = "Summary of users and groups:<br>";
+
+    ret = ret + "<p><i>Users:</i><p>";
+    foreach (`type, `usersmap, users, ``{
+        foreach (`uid, `user, usersmap, ``{
+            ret = ret + sformat(" %1 %2<br>", uid, user["username"]:"");
+        });
+    });
+    ret = ret + "<p><i>Groups:</i><p>";
+    foreach (`type, `groupsmap, groups, ``{
+        foreach (`gid, `group, groupsmap, ``{
+            ret = ret + sformat(" %1 %2<br>", gid, group["groupname"]:"");
+        });
+    });
+    return ret;
+}
 
     /**
      * Get all the user configuration from a map.
@@ -122,7 +140,7 @@ include "./nis_routines.ycp";
      * @return	success
      */
 
-    global define boolean Import (list settings) ``{
+    global define boolean ImportOld (list settings) ``{
 	foreach(`u , settings, ``{
 	    if (u["username"]:"" != "root") {
 		string def_home = UserAddDefs::GetDefaultHome() + u["username"]:"lxuser";
@@ -172,6 +190,20 @@ include "./nis_routines.ycp";
 	return true;
     }
 
+global define boolean Import (list settings) ``{
+
+    users = settings[0]:users;
+    groups = settings[1]:groups;
+    shadow = settings[2]:shadow;
+    gshadow = settings[3]:gshadow;
+
+}
+
+global define map Export() ``{
+
+    return [ users, groups, shadow, gshadow ];
+}
+
 
 //----------------------------
 
@@ -216,8 +248,8 @@ include "./nis_routines.ycp";
   global integer max_gid	  = 60000;
   global integer max_system_uid = 500;
   global integer max_system_gid = 100;
-  global integer max_length_uid = max_uid;
-  global integer max_length_gid = max_gid;
+  global integer max_length_uid = 6;// size(sformat("%1", max_uid));
+  global integer max_length_gid = 6;
   global integer max_length_pas = 8;
   global integer min_length_pas = 5;
 
@@ -246,9 +278,9 @@ include "./nis_routines.ycp";
 
 // NEW:
     global map users = $[
-        `system:    nil,
-        `local:     nil,
-        `nis:       nil];
+        `system:    $[],
+        `local:     $[]];
+//        `nis:       $[]];
     global map groups  = $[
         `system:    $[],
         `local:     $[]];
@@ -262,8 +294,8 @@ include "./nis_routines.ycp";
     map shadow = $[]; // global ???
     map gshadow = $[];
 
-    global list user_custom_sets = [];
-    global list group_custom_sets = [];
+    global list user_custom_sets = [ `local ];
+    global list group_custom_sets = [ `local ];
     global list current_users = [];
     global list current_groups = [];
 
@@ -282,7 +314,7 @@ include "./nis_routines.ycp";
     global boolean is_ldap_server = false;
     global string default_shell = "/bin/bash";
     global string default_skel = "/etc/skel";
-    global string default_home = "/home";
+    global string default_home = "/home/";
     global integer default_gid = 100;
     global string default_groupname = "users";
     global string default_inactive = "-1";
@@ -296,6 +328,10 @@ include "./nis_routines.ycp";
     global list available_usersets_items = [];
     global list available_groupsets = [ `system, `local];
     global list available_groupsets_items = [];
+
+    global map last_passwd = $[];
+    global map last_group = $[];
+    global map last_shadow = $[];
 
     global map userset_to_string = $[
         `system:    "&System users",
@@ -429,6 +465,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1start_read");
 	}
 
 	gshadow = ReadGshadowFromDisk (base_dir);
+//y2milestone("gshadow:%1", gshadow);
     shadow = ReadShadowFromDisk (base_dir);
 //y2milestone("shadow:%1", shadow);
 
@@ -450,7 +487,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1start_read");
 	}
 
 	map passwd_groups = ReadGroupFromDisk (base_dir, gshadow);
-//y2milestone ("groups:%1", passwd_groups);
+//	map passwd_groups = ReadGroupFromDiskNew (base_dir, gshadow);
 	if ( passwd_groups == nil )
     {
 		// error popup
@@ -472,6 +509,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1start_read");
 SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
  // this affects also passwd_groups!
 	map passwd_users = ReadPasswdFromDisk (base_dir, passwd_groups);
+//	map passwd_users = ReadPasswdFromDiskNew (base_dir); //shadow as param
 SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 	if (passwd_users == nil)
     {
@@ -481,13 +519,16 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
     }
 
     if (! is_nis_master )
+//        users[ `nis ] = ReadGetentPasswdNew (base_dir);
         users[ `nis ] = ReadGetentPasswd (base_dir, passwd_groups);
 
     if (users [`nis ]:nil != nil)
         available_usersets = add ( available_usersets, `nis);
 
-    if ( is_ldap_server )
+    /*
+    if ( is_ldap_server ) // .. not at server !!
         users [`ldap ] = ReadLDAPUsers ();
+        */
 
     if (users [`ldap ]:nil != nil)
     {
@@ -628,7 +669,8 @@ SCR::Execute(.target.bash, "touch /tmp/touch/9end_read");
                 list l_grouplist = splitstring (grouplist, ",");
                 if (! contains (l_grouplist, name))
                 {
-                    grouplist = grouplist + "," + name;
+                    if (grouplist != "") grouplist = grouplist + ",";
+                    grouplist = grouplist + name;
                     u = add (u, "grouplist", grouplist);
                     users [ type, uid ] = u;
                 }
@@ -850,8 +892,8 @@ global define symbol Write (block abort, boolean useUI)``{
         }
     });
     // this should be read at the begining !!
-    string last_shadow_entry="+::0:0:0::::";
-    WriteShadow(shadow, last_shadow_entry);
+    //string last_shadow_entry="+::0:0:0::::";
+    WriteShadow(shadow);
     // -- set the proper rights to shadow ??
     modified_groups = WriteGroup (groups [`system]:$[], groups[`local]:$[]);
     foreach (`group, modified_groups, ``{
@@ -1012,6 +1054,7 @@ y2milestone("user : %1", user_in_work );
             // add user to his default group -- updating only cache variables
 //            group_in_work = GetGroup (gid)?
             group_in_work = eval (groups_by_name [groupname]:$[]);
+            // -- what if the group doesn't exist ??
             group_in_work ["what"] = `user_change;
             string more_users = group_in_work ["more_users"]:"";
             if (more_users != "") more_users = more_users + ",";
