@@ -888,9 +888,8 @@ sub WriteUsers {
         my $home	= $user->{"homeDirectory"} || "";
         my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
         my $gid		= $user->{"gidNumber"} || GetDefaultGID ();
-	my $create_home	= $user->{"create_home"} || 0;
-	my $delete_home	= $user->{"delete_home"} || 0;
-y2internal ("delete: ", $user->{"delete_home"} || 0);#FIXME boolean??
+	my $create_home	= $user->{"create_home"} || YaST::YCP::Boolean (0);
+	my $delete_home	= $user->{"delete_home"} || YaST::YCP::Boolean (0);
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
@@ -923,7 +922,7 @@ y2internal ("delete: ", $user->{"delete_home"} || 0);#FIXME boolean??
 		    $last_id = $uid;
 		}
 		if ($server) {
-		    if ($create_home) {
+		    if ($create_home->value) {
 			UsersRoutines::CreateHome ($useradd_defaults{"skel"}, $home);
 		    }
 		    UsersRoutines::ChownHome ($uid, $gid, $home);
@@ -934,7 +933,7 @@ y2internal ("delete: ", $user->{"delete_home"} || 0);#FIXME boolean??
 	    if (! SCR::Write (".ldap.delete", \%arg_map)) {
 		%ret = %{Ldap::LDAPErrorMap ()};
 	    }
-            elsif ($server && $delete_home) {
+            elsif ($server && $delete_home->value) {
                 UsersRoutines::DeleteHome ($home);
             }
         }
@@ -957,7 +956,7 @@ y2internal ("delete: ", $user->{"delete_home"} || 0);#FIXME boolean??
 		    $last_id = $uid;
 		}
 		if ($server && $home ne $org_home) {
-		    if ($create_home) {
+		    if ($create_home->value) {
 			UsersRoutines::MoveHome ($org_home, $home);
 		    }
 		    UsersRoutines::ChownHome ($uid, $gid, $home);
