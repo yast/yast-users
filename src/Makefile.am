@@ -2,6 +2,9 @@
 # Makefile.am for y2c_users/src
 #
 
+yncludedir = @yncludedir@/users
+
+ynclude_DATA =
 
 module_DATA =			\
 	Users.ycp		\
