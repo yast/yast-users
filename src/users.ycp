@@ -74,8 +74,9 @@ map cmdline = $[
 	    "handler"	: UsersListHandler,
 	    // translators: command line help text for list action
 	    "help"	: _("List of available users"),
-//FIXME non_strict comment -
-	    "options"   : ["non_strict"]
+	    "options"   : ["non_strict"],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("User parameters, which should be listed"),
 	],
 	"show" :$[
 	    "handler"	: UserShowHandler,
@@ -86,16 +87,18 @@ map cmdline = $[
 	    "handler"	: UserAddHandler,
 	    // translators: command line help text for ad action
 	    "help"	: _("Add new user"),
-	    "options"   : ["non_strict"]//FIXME for LDAP attributes...
+	    "options"   : ["non_strict"],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("Additional (LDAP) user parameters"),
 	],
-	/*FIXME
 	"edit" :$[
 	    "handler"	: UserEditHandler,
 	    // translators: command line help text for ad action
 	    "help"	: _("Edit an existing user"),
-	    "options"   : ["non_strict"]
+	    "options"   : ["non_strict"],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("Additional (LDAP) user parameters"),
 	],
-	*/
 	"delete" :$[
 	    "handler"	: UserDeleteHandler,
 	    // translators: command line help text for delete action
@@ -162,7 +165,7 @@ map cmdline = $[
 	    "help"	: _("Password of the user"),
 	    "type"	: "string"
 	],
-	"groups"	:$[
+	"grouplist"	:$[
 	    // translators: command line help text for home option
 	    "help"	: _("List of groups of which the user is a member (separated by commas)"),
 	    "type"	: "string"
@@ -177,11 +180,22 @@ map cmdline = $[
 	    "help"	: _("Password to LDAP server"),
 	    "type"	: "string"
 	],
+	"new_username"	:$[
+	    // translators: command line help text for new_username option
+	    "help"	: _("New login name of the user"),
+	    "type"	: "string"
+	],
+	"new_uid"		:$[
+	    // translators: command line help text for new_uid option
+	    "help"	: _("New UID of the user"),
+	    "type"	: "string"
+	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis", ],// + "custom"
 	"show"  : [ "uid", "username", "type" ],
-	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "groups", "type", "ldap_pw" ],
+	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "grouplist", "type", "ldap_pw" ],
+	"edit"	: [ "username", "uid", "cn", "password", "home", "shell", "gid", "grouplist", "new_username", "new_uid", "type", "ldap_pw" ],
 	"delete": [ "username", "uid", "delete_home", "type", "ldap_pw" ],
     ]
 ];
