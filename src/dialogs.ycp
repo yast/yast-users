@@ -1937,7 +1937,7 @@ define symbol AuthentizationDialog() ``{
         "kerberos"  : _("&Kerberos"),
         // just the name (do not translate)
         "samba"  : _("&Samba"),
-	 ];
+    ];
 
     // name of module to call
     map call_module = $[
@@ -1960,27 +1960,29 @@ define symbol AuthentizationDialog() ``{
 	}
 	else if (client == "ldap")
 	{
-	    import "Ldap";
 	    Ldap::Read();
 	    ret = Ldap::ShortSummary();
 	}
 	else if (client == "nis")
 	{
-	    import "Nis";
-	    Nis::Read();
-	    ret = Nis::ShortSummary();
+	    WFM::CallFunction ("nis_auto", ["Read"]);
+	    any a = WFM::CallFunction ("nis_auto", ["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
 	}
 	else if (client == "kerberos")
 	{
-	    import "Kerberos";
-	    Kerberos::Read();
-	    ret = Kerberos::ShortSummary();
+	    WFM::CallFunction ("kerberos-client_auto", ["Read"]);
+	    any a = WFM::CallFunction ("kerberos-client_auto",["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
 	}
 	else if (client == "samba")
 	{
-	    import "Samba";
-	    Samba::Read();
-	    ret = Samba::ShortSummary();
+	    WFM::CallFunction ("samba-client_auto", ["Read"]);
+	    any a = WFM::CallFunction ("samba-client_auto", ["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
 	}
 	Progress::on();
 	return ret;
