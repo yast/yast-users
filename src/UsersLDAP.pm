@@ -193,7 +193,7 @@ sub Initialize {
     if (!Ldap->anonymous () && !defined (Ldap->bind_pass ())) {
 	y2error ("no password to LDAP - cannot bind!");
 	# error message
-	return _("No password to LDAP was entered");
+	return _("No password for LDAP was entered");
     }
 
     $ldap_mesg = Ldap->LDAPBind (Ldap->bind_pass ());
@@ -952,13 +952,35 @@ sub SubstituteValues {
 sub ConvertMap {
 
     my $self		= shift;
-    my $data		= $_[0];
+    my $data		= shift;
+    my $org_ocs		= undef;
+    if (defined $data->{"org_user"}{"objectclass"}) {
+	$org_ocs	= $data->{"org_user"}{"objectclass"};
+    }
+    elsif (defined $data->{"org_group"}{"objectclass"}) {
+	$org_ocs	= $data->{"org_group"}{"objectclass"};
+    }
+
     my %ret		= ();
     my @attributes	= ();
     my $attributes	= Ldap->GetObjectAttributes ($data->{"objectclass"});
     if (defined $attributes && ref ($attributes) eq "ARRAY") {
 	@attributes	= @{$attributes};
     }
+    my $old_attributes	= [];
+    if (defined $org_ocs) {
+	my @ocs		= ();
+	foreach my $oc (@$org_ocs) {
+	    # object class was deleted
+	    if (!contains ($data->{"objectclass"}, $oc, 1)) {
+		push @ocs, $oc;
+	    }
+	}
+	if (@ocs > 0) {
+	    $old_attributes	= Ldap->GetObjectAttributes (\@ocs);
+	}
+    }
+
     my @internal	= @user_internal_keys;
     if (!defined $data->{"uidnumber"}) {
 	@internal	= @group_internal_keys;
@@ -980,8 +1002,15 @@ sub ConvertMap {
 	}
 	# check if the attributes are allowed by objectclass
 	if (!contains (\@attributes, $key, 1)) {
-	    y2warning ("Attribute '$key' is not allowed by schema");
-	    next;
+	    if (contains ($old_attributes, $key, 1)) {
+		# remove the old attribute
+		y2milestone ("Attribute '$key' is not supported now.");
+		$val	= "";
+	    }
+	    else {
+		y2warning ("Attribute '$key' is not allowed by schema.");
+		next;
+	    }
 	}
 	if ($key eq $member_attribute && ref ($val) eq "HASH") {
 	    my @lval	= ();
@@ -1107,9 +1136,15 @@ sub WriteUsers {
 	foreach my $plugin (sort @{$plugins}) {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
-#TODO check the return value?
+#FIXME check the return value!
 	}
-
+	# now call WriteBefore on plugins which should be removed:
+	# (such call could e.g. remove mail account)
+	foreach my $plugin (sort @{$plugins_to_remove}) {
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
+	}
+	# --------------------------------------------------------------------
 	# --------------------------------------------------------------------
         if ($action eq "added") {
 	    if (! SCR->Write (".ldap.add", \%arg_map, $user)) {
@@ -1170,7 +1205,14 @@ sub WriteUsers {
 	if (!defined $ret{"msg"}) {
 	    foreach my $plugin (sort @{$plugins}) {
 		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("WriteBefore", $config, $user);
+		my $res = UsersPlugins->Apply ("Write", $config, $user);
+	    }
+	}
+#FIXME check the return value! (set 'ret')
+	if (!defined $ret{"msg"}) {
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Write", $config, $user);
 	    }
 	}
 	# --------------------------------------------------------------------
@@ -1301,6 +1343,10 @@ sub WriteGroups {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
 	}
+	foreach my $plugin (sort @{$plugins_to_remove}) {
+	    $config->{"plugins"}	= [ $plugin ];
+	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+	}
 	# -------------------------------------------------------------------
 
         if ($action eq "added") {
@@ -1336,7 +1382,13 @@ sub WriteGroups {
 	if (!defined $ret{"msg"}) {
 	    foreach my $plugin (sort @{$plugins}) {
 		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+		my $res = UsersPlugins->Apply ("Write", $config, $group);
+	    }
+	}
+	if (!defined $ret{"msg"}) {
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Write", $config, $group);
 	    }
 	}
 	# --------------------------------------------------------------------
@@ -1345,6 +1397,10 @@ sub WriteGroups {
 	if (%new_group && !%ret) {
 	    $config->{"modified"}	= "added";
 	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+	    }
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
 	    }
@@ -1362,6 +1418,10 @@ sub WriteGroups {
 		$last_id = $gid;
 	    }
 	    foreach my $plugin (sort @{$plugins}) {
+		$config->{"plugins"}	= [ $plugin ];
+		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
+	    }
+	    foreach my $plugin (sort @{$plugins_to_remove}) {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
 	    }
