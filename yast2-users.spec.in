@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-security yast2-country yast2-installation yast2-x11
+# neededforbuild yast2-devel-packages yast2-security yast2-country yast2-installation yast2-x11 nearly-all
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-security yast2-pam
@@ -24,28 +24,10 @@ Summary:	Configuration of users
 %files
 %defattr(-,root,root)
 %dir @yncludedir@/users
-@scrconfdir@/etc_default_useradd.scr
-@scrconfdir@/etc_gshadow.scr
-@scrconfdir@/etc_shadow.scr
-@scrconfdir@/etc_shells.scr
-@scrconfdir@/etc_group.scr
-@scrconfdir@/run_procfiles.scr
-@clientdir@/users.ycp
-@clientdir@/users_write.ycp
-@moduledir@/Users.ycp
-@moduledir@/UserAddDefs.ycp
-@moduledir@/UserDefs.ycp
-@moduledir@/UserSettings.ycp
-@moduledir@/UserWriteStack.ycp
+@clientdir@/*.ycp
+@configdir@/*.y2cc
+@moduledir@/*.ycp
+@scrconfdir@/*.scr
 @yncludedir@/users/*
-@configdir@/users.y2cc
-@configdir@/groups.y2cc
-@configdir@/add_user.y2cc
-@configdir@/add_group.y2cc
-#installation stuff
 @ydatadir@/accounts.ycp
-@clientdir@/inst_root.ycp
-@clientdir@/inst_user.ycp
-@moduledir@/User.ycp
-@moduledir@/Accounts.ycp
 %doc @docdir@

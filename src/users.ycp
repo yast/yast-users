@@ -9,7 +9,7 @@
  *  Main file.
  *
  * Authors:
- *  Johannes Buchhold <jbuch@suse.de> 	
+ *  Johannes Buchhold <jbuch@suse.de>
  *
  * $Id$
  *
@@ -23,21 +23,21 @@
 
     textdomain "users";
 
-    // ===== import modules =========================================== 
+    // ===== import modules ===========================================
     import "Wizard";
     import "Console";
     import "Mode";
     import "Report";
-    
-    import "UserDefs";    
+
+    import "UserDefs";
     import "UserAddDefs";
     import "UserSettings";
     import "UserWriteStack";
 
-    
-    // ===== arguments ================================================ 
-    string  start_dialog 	   = "users";
-    integer arg 		   = 0;
+
+    // ===== arguments ================================================
+    string  start_dialog	   = "users";
+    integer arg		   = 0;
     list    possible_start_dialogs = ["user_add", "group_add", "groups", "users" ];
 
     y2error ("argsize: %1", size( Args() ));
@@ -58,8 +58,8 @@
 
     y2debug( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
 
-    
-    // ===== Definitions ==============================================   
+
+    // ===== Definitions ==============================================
     map group_in_work = $[];
     map user_in_work  = $[];
 
@@ -69,12 +69,12 @@
     boolean view_all_groups = false;
 
     boolean start_sequencer_again  = false;
-    
+
     // ===== includes =================================================
     include "wizard/sequencer.ycp";
     include "users/ui.ycp";
 
-    
+
     // ===== change start dialog =========================================
     // if in inst-system and one user was already created switsch to overview
 
@@ -83,13 +83,13 @@
     {
 	map non_system_user = filter(`key, `user, UserSettings::current_users,
 				     ``( ( user["uid"]:0 >   UserDefs::max_system_uid) && user["username"]:"" != "nobody"  ));
-	
+
 	if( size( non_system_user ) > 0 )
 	{
 	    start_dialog = "users";
 	}
     }
-    
+
 
     // ===== Open UI ==================================================
     if( ! Mode::cont )
@@ -99,9 +99,9 @@
 
     // ===== Read all system settings =================================
     if ( ReadDialog(! Mode::cont ) == `abort ) return `abort;
-	
-    
-    
+
+
+
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
 	"users":         ``(usersUsersDialog()),
@@ -112,7 +112,7 @@
 	"user_password": ``(usersEditUserPassword()),
         "user_delete":   ``(usersDeleteUser()),
 	"user_save":     ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )),
-	
+
 	"groups":        ``(usersGroupsDialog()),
         "group_add":     ``(usersEditGroup(`add_group)),
         "group_clone":   ``(usersEditGroup(`clone_group)),
@@ -139,7 +139,7 @@
 	"user_add":      $[ `nextmodule:     `next,
 			    `nosave:         `next,
 			    `next:           "user_save",
-	      		    `details:        "user_details",
+			    `details:        "user_details",
 			    `passwordsettings: "user_password",
 			    `abort:          "without_save",
 			    `cancel:         "without_save",
@@ -153,12 +153,12 @@
 			    `add_user:       "user_add",
 			    `cancel:         "without_save",
 			    `clone_user:     "user_clone",
-  			    `edit_user:      "user_edit"],
+			    `edit_user:      "user_edit"],
 	"user_password":  $[ `abort:         "without_save",
 			    `add_user:       "user_add",
 			    `cancel:         "without_save",
 			    `clone_user:     "user_clone",
-  			    `edit_user:      "user_edit"],
+			    `edit_user:      "user_edit"],
 	"user_edit":     $[ `next:           "user_save",
 			    `details:        "user_details",
 			    `passwordsettings: "user_password",
@@ -195,13 +195,13 @@
 	"without_save":  $[ `next  :         `next,
 			    `abort :         `abort,
 			    `back  :         `back   ],
-	"save_to_system": $[ `next: 	     `next ]
-	
+	"save_to_system": $[ `next:	     `next ]
+
     ];
 
-   
-    
-	
+
+
+
     // ===== Start the sequence =======================================
     any ret = WizardSequencer(aliases, main_sequence);
 
@@ -221,10 +221,10 @@
 	UserSettings::ReadSettingsFromDisk();
 
 
-	start_dialog 		  ="users";
+	start_dialog		  ="users";
 	main_sequence["ws_start"] ="users";
-	
-	ret = WizardSequencer(aliases, main_sequence);	
+
+	ret = WizardSequencer(aliases, main_sequence);
 
     }
 
@@ -233,5 +233,5 @@
 
     y2milestone( "Returning with %1", ret );
     return ret;
-    
+
 } // End

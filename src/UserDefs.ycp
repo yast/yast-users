@@ -5,18 +5,20 @@
  *
  * Purpose:		Handle user defaults and system settings
  *                      contains only constant settings
- * 
+ *
  *
  * $Id$
  */
 {
+
     module "UserDefs";
-  
+    textdomain "users";
+
     import "Console";
     import "UserAddDefs";
 
     include "security/io.ycp";
-   
+
     // ===== global values=============================================
     global string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz-_";
     global string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}=";
@@ -24,35 +26,35 @@
     global string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     global string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
     global string valid_id_chars       = "0123456789";
-     
-    global integer max_uid   	  = 60000;
-    global integer max_gid 	  = 60000;          
-    global integer max_system_uid = 500;     
+
+    global integer max_uid	  = 60000;
+    global integer max_gid	  = 60000;
+    global integer max_system_uid = 500;
     global integer max_system_gid = 100;
-    global integer max_length_uid = max_uid;   
-    global integer max_length_gid = max_gid;     
-    global integer max_length_pas = 8; 
-    global integer min_length_pas = 5; 
+    global integer max_length_uid = max_uid;
+    global integer max_length_gid = max_gid;
+    global integer max_length_pas = 8;
+    global integer min_length_pas = 5;
 
 
     global integer pass_max_days = 99999; //Maximum number of days a password may be used.
     global integer pass_min_days = 0;     //Minimum number of days allowed between password changes.
     global integer pass_warn_age = 7;	  //Number of days warning given before a password expires.
-    
+
     global string default_pw     = "******";
     global string encoding       = "";
-    
+
     global boolean pam           = false;
 
 
-    
+
 
     /**
      * Return a map with the defaults for the shadow entry
      */
     global define map GetDefaultShadow()``{
 
-	return 	$[ //"expire"	: "",
+	return	$[ //"expire"	: "",
 		   "inact"	: UserAddDefs::pass_inact_days,
 		   //"lstchg"	: "11747",
 		   "max"	: pass_max_days,
@@ -60,7 +62,7 @@
 		   "warn"	: pass_warn_age	];
 
 	/*
-	  TODO fix expire and lstchg 
+	  TODO fix expire and lstchg
 	*/
     }
 
@@ -77,15 +79,15 @@
 	{
 	    max_uid             = tointeger(lookup( security, "UID_MAX" , 60000));
 	    max_gid             = tointeger(lookup( security, "GID_MAX" , 60000));
-	    max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)) -1; 
+	    max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)) -1;
 	    max_system_gid      = tointeger(lookup( security, "GID_MIN" , 100)) -1;
 	    max_length_uid      = size(sformat("%1", max_uid));
 	    max_length_gid      = size(sformat("%1", max_gid));
 	    max_length_pas      = tointeger(lookup( security,"PASS_MAX_LEN",8));
 	    min_length_pas      = tointeger(lookup( security,"PASS_MIN_LEN",5));
-	    pass_max_days 	= tointeger(security["PASS_MAX_DAYS"]:"99999"); 
+	    pass_max_days	= tointeger(security["PASS_MAX_DAYS"]:"99999");
 	    pass_min_days       = tointeger(security["PASS_MIN_DAYS"]:"0");
-	    pass_warn_age 	= tointeger(security["PASS_WARN_AGE"]:"7");	    
+	    pass_warn_age	= tointeger(security["PASS_WARN_AGE"]:"7");
 
 	    pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ;
 	}
@@ -96,7 +98,7 @@
 	}
 
 	/* set encoding */
-	string language = UI::GetLanguage(true);	
+	string language = UI::GetLanguage(true);
 	encoding = Console::SelectFont( language);
 
 	/* set maximal password length */

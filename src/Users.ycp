@@ -8,19 +8,21 @@
  * $Id$
  */
 {
+
     module "Users";
+    textdomain "users";
+
     import "Console";
     import "Mode";
 
-    import "UserDefs";    
+    import "UserDefs";
     import "UserAddDefs";
     import "UserSettings";
     import "UserWriteStack";
 
-   
 
-    map user_in_work  = $[];   
-    
+    map user_in_work  = $[];
+
     global define void Users()``{
 
 	UserAddDefs::Read();

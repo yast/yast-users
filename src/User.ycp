@@ -14,7 +14,10 @@
  * $Id$
  */
 {
+
     module "User";
+    textdomain "users";
+
     import "Installation";
     import "Mode";
 
@@ -42,7 +45,7 @@
     global define integer CreateSysUser()
     ``{
 	// FIXME: should be looked up dynamically (first free above 500)
-	string uid = "500";		
+	string uid = "500";
 	integer ret = 0;
 
 	// back to console encoding
