@@ -61,7 +61,7 @@ sub read_group () {
 		$users_groups{$u}{$groupname}	= 1;
 	    }
 	    $groups{$group_type}{$gid} = {
-		"groupname"	=> $groupname,
+		"cn"		=> $groupname,
 		"gidNumber" 	=> $gid,
 		"userlist"	=> \%userlist,
 		"type"		=> $group_type,
@@ -94,7 +94,7 @@ sub read_passwd () {
 	    my %grouplist	= ();
 
 	    if (defined $groups{$group_type}{$gid}) {
-		$groupname = $groups{$group_type}{$gid}{"groupname"};
+		$groupname = $groups{$group_type}{$gid}{"cn"};
 		# modify default group's more_users entry
 		$groups{$group_type}{$gid}{"more_users"}{$username}	= 1;
 	    }
@@ -148,7 +148,7 @@ sub read_passwd () {
 	    $users{$user_type}{$uid} = {
 		"cn"		=> $full,
 		"homeDirectory"	=> $home,
-		"username"	=> $username,
+		"uid"		=> $username,
 		"uidNumber"	=> $uid,
 		"gidNumber"	=> $gid,
 		"loginShell"	=> $shell,

@@ -90,7 +90,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// (either because they were edited before or it is to hard to edit
 	// them (objectClass, DN)
 	list do_not_show_keys	= (what == "user") ?
-	[ "username", "uidNumber", "homeDirectory",
+	[ "uid", "username", "uidNumber", "homeDirectory",
 	// "givenName", "sn",
 	"userPassword", "objectClass", "loginShell", "gidNumber",
 	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
@@ -98,6 +98,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	] :
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
+	  "cn",
 	  UsersLDAP::GetMemberAttribute ()
 	];
 
@@ -144,14 +145,11 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// generate table items with empty values
 	// (not set for this user/group yet)
 	// we need to read available attributes from Ldap
-	map ldap2yast = (what == "user") ? UsersLDAP::GetUserAttrsLDAP2YaST():
-	    UsersLDAP::GetGroupAttrsLDAP2YaST();
-
 	foreach (string class, data["objectClass"]:[], ``{
 	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
-		if (!haskey (data, ldap2yast [at]:at) &&
-		    !contains (do_not_show_keys, ldap2yast [at]:at))
+		if (!haskey (data, at) &&
+		    !contains (do_not_show_keys, at))
 		{
 		    data[at] = [];
 		    new_attributes = add (new_attributes, at);

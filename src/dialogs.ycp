@@ -145,7 +145,7 @@ define symbol EditUserDialog (string what) ``{
 	user = Users::GetCurrentUser ();
     }
     string user_type	= user["type"]:"local";
-    string username	= user["username"]:"";
+    string username	= user["uid"]:"";
     string cn		= "";
     // in LDAP, cn is list of strings
     if (is (user["cn"]:nil, list))
@@ -157,7 +157,7 @@ define symbol EditUserDialog (string what) ``{
     string home		= user["homeDirectory"]:default_home;
     string org_home	= user["org_homeDirectory"]:home;
     string password	= user["userPassword"]:"x";
-    string org_username = user["org_username"]:username;
+    string org_username = user["org_uid"]:username;
     boolean create_home	= user["create_home"]:true;
     integer uid		= GetInt (user, "uidNumber", nil);
     string dn		= user["dn"]:"";
@@ -533,7 +533,7 @@ Are you sure?")))
 		ret = `notnext;
                 continue;
 	    }
-	    user["username"]		= username;
+	    user["uid"]		= username;
 
 	    // --------------------------------- uid check (for nil value)
 	    if (!details && uid == nil)
@@ -724,7 +724,7 @@ define symbol EditUserDetailsDialog( ) ``{
     // load the current usersettings from Users::user_in_work
     string user_type	= user["type"]:"local";
     string what         = user["what"]:"no";
-    string username     = user["username"]:"";
+    string username     = user["uid"]:"";
     string cn		= user["cn"]:"";
     string home         = user["homeDirectory"]:"";
     string org_home     = user["org_homeDirectory"]:"";
@@ -1086,14 +1086,6 @@ can be changed for non-local users.")) : `VSpacing (0),
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
-    /* also enable PluginDIalog for non-ldap users
-    if ( ret == `next )
-    {
-	ret = string_to_symbol (what); // `back has same effect
-	if (user_type == "ldap")
-	    ret = `ldap;
-    }
-    */
     return (symbol)ret;
 }
 
@@ -1108,7 +1100,7 @@ define symbol EditUserPasswordDialog() ``{
 
     map<string,any>shadow	= $[];
 
-    string username	= user["username"]:"";
+    string username	= user["uid"]:"";
     string user_type	= user["type"]:"local";
     list<string> shadow_symbols =
 	["shadowWarning", "shadowMax", "shadowMin", "shadowInactive"];
@@ -1429,7 +1421,7 @@ define symbol EditGroupDialog (string what ) ``{
 
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
-    string  groupname		= group["groupname"]:"";
+    string  groupname		= group["cn"]:"";
     string  password		= group["userPassword"]:"x";
     integer gid			= GetInt (group, "gidNumber", -1);
     // these are the users with this group as a default:
@@ -1647,7 +1639,7 @@ Please try again.")) ;
 	    });
 
 	    // --------------------------------- now everything should be OK
-            group["groupname"]		= new_groupname;
+            group["cn"]			= new_groupname;
             group["userPassword"]	= password;
             group["more_users"]		= more_users;
             group["gidNumber"]		= new_i_gid;

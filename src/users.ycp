@@ -111,7 +111,7 @@ define boolean UsersShowHandler (map options ) ``{
 	// label shown at command line (user attribute)
 	"cn"		: _("Full Name:"),
 	// label shown at command line (user attribute)
-	"username"	: _("Login Name:"),
+	"uid"		: _("Login Name:"),
 	// label shown at command line (user attribute)
 	"homeDirectory"	: _("Home Directory:"),
 	// label shown at command line (user attribute)
@@ -153,6 +153,7 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
 
     map <string, any> user = $[];
     map keys = $[
+	"username"	: "uid",
 	"password"	: "userPassword",
 	"home"		: "homeDirectory",
 	"shell"		: "loginShell",

@@ -95,6 +95,7 @@ my $max_pass_length		= 8;
 # purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
+     "org_uid",
      "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "user_disabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
@@ -102,10 +103,10 @@ my @user_internal_keys		=
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
      "dn", "org_dn", "org_groupname", "org_gidNumber", "removed_userlist",
-     "what");
+     "what", "org_cn");
 
 # conversion table from parameter names used in yast (passwd-style) to
-# correct LDAP schema atrributes
+# correct LDAP schema atrributes	TODO DO NOT USE
 my %ldap_attrs_conversion	= (
     # user:
     "username"	=> "uid",
@@ -113,7 +114,7 @@ my %ldap_attrs_conversion	= (
     "groupname"	=> "cn"
 );
 
-# LDAP attrs -> yast inner values
+# LDAP attrs -> yast inner values	TODO DO NOT USE
 my %ldap2yast_user_attrs	= (
     "uid"		=> "username"
 );
@@ -764,9 +765,9 @@ sub CreateUserDN {
     my $user		= $_[0];
     my $dn_attr		= $user_naming_attr;
     my $user_attr	= $dn_attr;
-    if (defined $ldap2yast_user_attrs{$dn_attr}) {
-	$user_attr	= $ldap2yast_user_attrs{$dn_attr};
-    }
+#    if (defined $ldap2yast_user_attrs{$dn_attr}) {
+#	$user_attr	= $ldap2yast_user_attrs{$dn_attr};
+#    }
     if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
 	return undef;
     }
@@ -783,9 +784,9 @@ sub CreateGroupDN {
     my $group		= $_[0];
     my $dn_attr		= $group_naming_attr;
     my $group_attr	= $dn_attr;
-    if (defined $ldap2yast_group_attrs{$dn_attr}) {
-	$group_attr	= $ldap2yast_group_attrs{$dn_attr};
-    }
+#    if (defined $ldap2yast_group_attrs{$dn_attr}) {
+#	$group_attr	= $ldap2yast_group_attrs{$dn_attr};
+#    }
     if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
 	return undef;
     }
@@ -838,8 +839,8 @@ sub SubstituteValues {
 	}
 
 	# translate attribute names from LDAP to yast-type
-	my $ldap_attr = $ldap_attrs_conversion{$attr} || $attr;
-	my $val = $defaults{$ldap_attr};
+#	my $ldap_attr = $ldap_attrs_conversion{$attr} || $attr;
+	my $val = $defaults{$attr};
 
 	if (defined ($val) && $val =~ m/%/) {
 	    my @parts	= split (/%/, $val);
@@ -861,9 +862,8 @@ sub SubstituteValues {
 		    if (ref ($v) eq "ARRAY") {
 			$sv = $v->[0];
 		    }
-		    my $a	= $ldap_attrs_conversion{$at} || $at;
-		    if (substr ($part, 0, length ($a)) eq $a) {
-			$result	= $result.$sv.substr ($part, length ($a));
+		    if (substr ($part, 0, length ($at)) eq $at) {
+			$result	= $result.$sv.substr ($part, length ($at));
 			$replaced = 1;
 		    }
 		}
@@ -916,9 +916,9 @@ sub ConvertMap {
 	    }
 	}
 	# check if the attributes are allowed by objectClass
-	my $attr = $ldap_attrs_conversion{$key} || $key;
-	if (!contains (\@attributes, $attr)) {
-	    y2warning ("Attribute '$attr' is not allowed by schema");
+#	my $attr = $ldap_attrs_conversion{$key} || $key;
+	if (!contains (\@attributes, $key)) {
+	    y2warning ("Attribute '$key' is not allowed by schema");
 	    next;
 	}
 	if ($key eq $member_attribute && ref ($val) eq "HASH") {
@@ -928,7 +928,7 @@ sub ConvertMap {
 	    }
 	    $val = \@lval;
 	}
-	$ret{$attr}	= $val;
+	$ret{$key}	= $val;
     }
     return \%ret;
 }

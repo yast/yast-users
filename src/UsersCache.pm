@@ -693,7 +693,7 @@ sub BuildUserItem {
     
     my %user		= %{$_[0]};
     my $uid		= $user{"uidNumber"};
-    my $username	= $user{"username"} || "";
+    my $username	= $user{"uid"} || "";
     my $full		= $user{"cn"} || "";
     if (defined $user{"gecos"} && $user{"gecos"} ne "") {
 	$full		= $user{"gecos"};
@@ -755,7 +755,7 @@ sub BuildGroupItem {
 
     my %group		= %{$_[0]};
     my $gid		= $group{"gidNumber"};
-    my $groupname	= $group{"groupname"} || "";
+    my $groupname	= $group{"cn"} || "";
 
     my %userlist	= ();
     if (defined ($group{"userlist"})) {
@@ -840,8 +840,8 @@ sub CommitUser {
     my $org_uid		= $user{"org_uidNumber"} || $uid;
     my $home		= $user{"homeDirectory"};
     my $org_home	= $user{"org_homeDirectory"} || $home;
-    my $username	= $user{"username"};
-    my $org_username	= $user{"org_username"} || $username;
+    my $username	= $user{"uid"};
+    my $org_username	= $user{"org_uid"} || $username;
 
     my $dn		= $user{"dn"} || $username;
     my $org_dn		= $user{"org_dn"} || $dn;
@@ -929,8 +929,8 @@ sub CommitGroup {
     my $type		= $group{"type"} || ""; 
 
     my $org_type	= $group{"org_type"} || $type;
-    my $groupname	= $group{"groupname"} || "";
-    my $org_groupname	= $group{"org_groupname"} || $groupname;
+    my $groupname	= $group{"cn"} || "";
+    my $org_groupname	= $group{"org_cn"} || $groupname;
     my $gid		= $group{"gidNumber"};
     my $org_gid		= $group{"org_gidNumber"} || $gid;
 
@@ -1012,7 +1012,7 @@ sub BuildUserLists {
 
     foreach my $uid (keys %map_of_users) {
         $uids{$type}{$uid}	= 1;
-	my $username		= $map_of_users{$uid}{"username"};
+	my $username		= $map_of_users{$uid}{"uid"};
 	if (defined ($username)) {
 	    $usernames{$type}{$username}	= 1;
 	}
@@ -1039,7 +1039,7 @@ sub BuildGroupLists {
 
     foreach my $gid (keys %map_of_groups) {
         $gids{$type}{$gid}	= 1;
-	my $groupname		= $map_of_groups{$gid}{"groupname"};
+	my $groupname		= $map_of_groups{$gid}{"cn"};
 	if (defined ($groupname)) {
 	    $groupnames{$type}{$groupname}	= 1;
 	}
