@@ -1,14 +1,15 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages
+
+#  neededforbuild yast2-devel-packages yast2-country yast2-security
 
 @HEADER@
-Requires:	yast2 yast2-security yast2-pam
+Requires:	yast2 yast2-country yast2-security yast2-pam
 Obsoletes:	yast2-config-users y2c_users
 Provides:	yast2-config-users y2c_users
 
 BuildArchitectures:	noarch
 
-Summary:	Configuration of users 
+Summary:	Configuration of users
 
 %description
 -
