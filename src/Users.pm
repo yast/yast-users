@@ -201,6 +201,7 @@ YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
+YaST::YCP::Import ("ProductFeatures");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("UsersCache");
@@ -212,7 +213,7 @@ YaST::YCP::Import ("UsersUI");
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
 
-sub contains {
+sub contains { #TODO use grep
 
     foreach my $key (@{$_[0]}) {
 	if ($key eq $_[1]) { return 1; }
@@ -1280,7 +1281,8 @@ sub Read {
 
     Autologin::Read ();
 
-    if (Mode::cont () && Autologin::available ()) {
+    if (Mode::cont () && Autologin::available () &&
+	ProductFeatures::enable_autologin ()) {
 	Autologin::Use (YaST::YCP::Boolean (1));
     }
 
