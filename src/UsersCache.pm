@@ -493,7 +493,7 @@ sub GetUserItems {
 
     my @items;
     foreach my $itemref (@current_user_items) {
-	foreach my $id (sort keys %{$itemref}) {
+	foreach my $id (sort {$a <=> $b} keys %{$itemref}) {
 	    push @items, $itemref->{$id};
 	}
     }
@@ -506,7 +506,7 @@ sub GetGroupItems {
 
     my @items;
     foreach my $itemref (@current_group_items) {
-	foreach my $id (sort keys %{$itemref}) {
+	foreach my $id (sort {$a <=> $b} keys %{$itemref}) {
 	    push @items, $itemref->{$id};
 	}
     }
