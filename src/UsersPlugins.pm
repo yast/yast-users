@@ -90,8 +90,6 @@ sub Apply {
     my $data	= $_[2];
     my %ret	= ();
 
-    y2milestone ("action to call on plugins: $action");
-
     my $type	= "";
     if (defined $config->{"type"}) {
 	$type	= $config->{"type"};
@@ -115,6 +113,8 @@ sub Apply {
 	    $ret{$module}	= $plugins{$module}{$action};
 	    next;
 	}
+
+	y2milestone ("action to call on plugins: $action");
 
 	# check if plugin function is allowed for current user/group type
 	if (defined $plugins{$module}{"Restriction"} 		&&
