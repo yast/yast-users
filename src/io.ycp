@@ -20,6 +20,7 @@
 {
 
   textdomain "users";
+
   /**
    * This define returns the groups of a user
    * This is used in <TT>usersUserSaveToMap </TT> and <TT>usersGroupSaveToMap</TT> and
@@ -105,34 +106,19 @@
 	});
     }
 
-
-
-/*
-  global define usersWrite() ``{
-
-    
-	SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
-	SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
-	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+  
+   /**
+   * Read the /etc/gshadow file and save it to current_gshadow. 
+   * This is used in users.ycp and in usersSaveDialog()
+   * @param 
+   */
+  global define  usersGroupsShadowReadFromDisk() ``{
 	
-	if ( size( user_settings ) != 0)
-	{
-	    if(UI(`YesNoPopup("make ist realy?")))
-	    {
-		foreach( `key, `doto, user_settings,``{
-		    y2debug("make on system %1",SCR(`Execute(.target.bash, doto )));
-		});
-	    }
-	 
-	}
-	else
-	{
-	    UI(`MessagePopup("nothing to do" ));
-	}
-	return true;
-    }
-*/
+	current_gshadow  = SCR(`Read(.etc.gshadow));
+	if( test_mode )    SCR(`Write(.dumpto.tmp.current_gshadow,  current_gshadow  ));
+    }  
 
+  
 
    
    /**
@@ -211,7 +197,7 @@
 
 	list   split_home = splitstring( home, "/");
 	string tmp_dir    = "";
-	//UI(`MessagePopup(sformat("%1", split_home )));
+
 	foreach( `sub_dir, split_home , ``{
 	    if( sub_dir != "" )
 	    {
@@ -230,14 +216,13 @@
      * @param string <TT>home</TT>
      */ 
     global define usersAddMoveDir(string old_home, string  home )``{
-	//usersAddMakeHomeDir(home);
 
 	usersAddTodo( ("/bin/mv " + old_home + " " +  home ),
 		      `mv,
 		      sformat(UI(_("Can't move old home directory %1
 to new home directory %2")), old_home, home));
 	
-	//usersAddTodo(("/bin/rm -r " + old_home));
+
     }
 
 
@@ -262,6 +247,22 @@ to new home directory %2")), old_home, home));
     }
 
 
+    global define usersAddSetGroupPassword( string groupname, string password ) ``{
+
+	user_settings = add( user_settings ,
+			     findNextTodoPos(),
+			     $[
+			       "groupname" : groupname,
+			       "password"  : password,
+			       "what" : `set_group_password, 
+			       "error": UI(_("Can' set group password" ))
+			     ]
+			     );
+	return true;
+	
+    }
+    
+    
     /**
      * Add a string to the map user_settings to save a new or modified user 
      * Used in sequenser
@@ -284,10 +285,6 @@ to new home directory %2")), old_home, home));
 	string  comment  = usersConsoleEncoding( fullname );
 		      
 	// ToDo write a User;
-	/*
-	UI(`MessagePopup("fullname:" + fullname + "\n" + "gid:" + sformat("%1", gid) +"\n" + "username:" + username +  "\n"+ "uid:" + sformat("%1",uid) + "\n" + "home:" + home + "\n" + "password" + password + "\n" + "shell: " + shell  + "\n" + "old_username" + sformat("%1", userIdToName(uid, current_users)) + "\n" + "grouplist" +  grouplist ));
-	*/
-	
 	if ( what == `add_user )
 	{
 	    do_exist = false;
@@ -390,7 +387,8 @@ to new home directory %2")), old_home, home));
 	list search_groups = splitstring(grouplist, "," );
 
 	
-	// username changed
+	// if the username was changed
+	// the map current_groups must be updated
 	map    tmp_current_groups = current_groups;
 	string old_username       = lookup( org_user , "username" , "" );
 	if ( old_username != username )
@@ -412,9 +410,11 @@ to new home directory %2")), old_home, home));
 	    current_groups = tmp_current_groups;
 	}
 	
+
 	
-	//Error with new username - old username
-	//for all groups
+	//If the userlist has changed the map current_groups 
+	//must be updated
+	// add or delete user from userlist
 	foreach( `key, `group, tmp_current_groups, ``{
 	    string userlist  = lookup(group, "userlist" , "");
 	    map    new_group = group;
@@ -423,7 +423,6 @@ to new home directory %2")), old_home, home));
 	    {
 		//UI(`MessagePopup("delete " + username + " from " +  lookup( group, "groupname") ));
 		// delete username from userlist
-		
 		list split_userlist = splitstring( userlist, ",");
 		string new_userlist = "";
 		
@@ -449,19 +448,55 @@ to new home directory %2")), old_home, home));
 		current_groups = add( current_groups, key , new_group );
 	    }
 	});
-
-	
 	current_users = add( current_users , uid, current_user );
-	SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
 
 	
+	if( test_mode ) SCR(`Write(.dumpto.tmp.user_settings,   user_settings  ));
+
+	//leave the module with save
 	if (  start_dialog == "user_add" ) return `save;
 	return `next;
     }
 
 
+    /**
+     * Return true if the group have a password
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersHaveGroupPassword( string groupname ) ``{
+
+	
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+
+	if( size (password_group_list ) == 0 ) return false;
+	
+	if( (lookup( select(password_group_list, 0) , "password", "" ) != "*" ) &&
+	    (lookup( select(password_group_list, 0) , "password", "" ) != "!" ) ) return true;
+	return false;
+    }
 
 
+    
+    /**
+     * Delete the group with the groupname from current_gshadow
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersDeleteGroupFromShadow( string groupname )``{
+	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname") != groupname ) );
+    }
+
+
+    /**
+     * Return the group with the groupname from current_gshadow
+     * @param string  <TT>groupname</TT>
+     */
+    global define usersReturnGroupFromShadow( string groupname ) ``{
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+	if ( size ( password_group_list ) == 0 ) return $[]; 
+	return select(password_group_list, 0);
+    }
+
+    
      /**
      * Add a string to the map user_settings to save a new or modified group 
      * Used in sequenser
@@ -477,12 +512,11 @@ to new home directory %2")), old_home, home));
 	   integer gid             = lookup( group_in_work, "gid",        "");
 	   integer old_gid         = lookup( group_in_work, "old_gid",    "");
 	
-	   
-	   //remove default user from the userlist
+	 
+	   // remove default user from the userlist
 	   list   split_userlist = splitstring( userlist, ",");
 	   string new_userlist   = "";
 	   map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid") == old_gid) );
-	 
 	   foreach(`entry, split_userlist, ``{
 	      
 	       if(  (size(filter(`k, `v, default_users, ``(lookup(v,"username") == entry ))) == 0 ) ||
@@ -524,7 +558,6 @@ to new home directory %2")), old_home, home));
 	       
 	       if ( lookup( lookup( current_groups , old_gid, $[] ), "userlist" ,  "" ) != userlist )
 	       {
-		   // UI(`MessagePopup("old and new userlist differ" ));
 		   
 		   string old_userlist       = lookup( lookup( current_groups , old_gid, $[] ), "userlist" ,  "" );
 		   list   old_split_userlist = splitstring( old_userlist, ",");
@@ -585,9 +618,10 @@ to new home directory %2")), old_home, home));
 				 "exist"         : do_exist,
 				 "gid"           : gid,
 				 "groupname"     : new_groupname,
-				 "password"      : password, 
+				 "password"      : "x", 
 				 "userlist"      : new_userlist
 	   ];
+
 
 	   
 	   // upadate current_users and current_groups if the gid was modified
@@ -610,10 +644,34 @@ to new home directory %2")), old_home, home));
 	   // save current_group to current_groups
 	   current_groups = add( current_groups, gid, current_group );
 
-	   //UI(`MessagePopup(sformat("%1", current_group )));
-	   SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+
+           // update current_gshadow
+	   map shadow_entry =  $[
+				 "disposer"  : "root",
+				 "groupname" : new_groupname,
+				 "password"  : password,
+				 "userlist"  : userlist
+	   ];
+	   
+	   if( what != `add_group )
+	   {
+	       string old_groupname = lookup( lookup( current_groups , old_gid, $[] ), "groupname" , "" );
+	       usersDeleteGroupFromShadow( old_groupname );
+	       
+	   }
+	   current_gshadow = add( current_gshadow , shadow_entry );  
 
 	   
+	   // bild todo aktion
+	   //if( (what == `edit_group && password != "*") ||
+	   //    (what == `add_group) )
+	   // {
+	   usersAddSetGroupPassword( new_groupname, password );
+	   // }
+
+	   //if test_mode
+	   if( test_mode ) SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+
 	   if (  start_dialog == "group_add" ) return `save; 
 	   return `next;
        }
@@ -624,7 +682,7 @@ to new home directory %2")), old_home, home));
     
 
     
-     /**
+    /**
      * Read the map current_groups
      * This is used in <TT>usersGroupsDialog</TT> and <TT>usersEditGroup</TT>.
      * @param symbol what can be <TT>`items</TT> or <TT>`groupnamelist</TT> 
@@ -728,7 +786,7 @@ to new home directory %2")), old_home, home));
      * @param 
      */
     global define usersFreeUid(map current_users) ``{
-	//SCR( `Write(.dumpto.tmp.findfree , current_users ));
+
 	integer uid     = max_system_uid + 1 ;
 	repeat {
 	    if (  haskey( current_users , uid) )
@@ -832,4 +890,6 @@ to new home directory %2")), old_home, home));
 
 	return comment;
     }
+
+
 }

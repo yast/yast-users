@@ -26,6 +26,7 @@
     include "users/io.ycp";
     include "users/help.ycp";
 
+    
     /**
      * Define the switch between Users and Groups administration.
      * This is used in <TT>usersUsersDialog()</TT> and <TT>usersGroupsDialog</TT>.
@@ -108,7 +109,7 @@
 		ret = UI(`UserInput());
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
-		    any user_table_input = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
+		    any  user_table_input   = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
 		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input );
 		    else
 		    {
@@ -339,7 +340,7 @@ Please try again.")));
 		    user_in_work = add( user_in_work, "uid"       , new_i_uid);
 		    user_in_work = add( user_in_work, "grouplist" , new_grouplist);
 		}    
-	    } until ( ret == `next || ret == `abort  || ret == `back );
+	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 	
 	if ( ret == `next ) ret = what;
 	return ret;
@@ -535,8 +536,6 @@ Please try again.")));
 	}
 
 	
-	
-	/* TODO change the current_user here */
 	symbol ret = `next;
 	repeat
 	    {
@@ -728,17 +727,12 @@ Please try again.")));
 
 		}
 		
-	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back );
+	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel );
 
 	return ret;
     }
 
 
-
-
-
-    
-    
     
     /**
      * Delete the user saved in user_in_work from current_users and
@@ -767,7 +761,7 @@ Please try again.")));
 	current_users = new_current_users;
 
 	
-	//build a shell delete comman and save it to user_settings
+	//build a shell delete command and save it to user_settings
 	if( lookup( user_in_work, "exist", false ) )
 	{
 	    if ( fileexist("/usr/sbin/userdel.local") )
@@ -864,11 +858,8 @@ Please try again.")));
     }
 
 
-
-
-
-
-
+    
+  
 
 
     /**
@@ -886,7 +877,7 @@ Please try again.")));
     
 	// load group saved in group_in_work
 	string  groupname     = lookup( group_in_work, "groupname", "");
-	string  password      = "x";
+	string  password      = "*";
 	integer gid           = lookup( group_in_work, "gid", max_gid );
 	string  userlist      = findUsersBelongGroup(gid);
 	if( gid == max_gid )   gid = usersFreeGid(current_groups);
@@ -939,8 +930,11 @@ Please try again.")));
 
 	if( what == `edit_group  )
 	{
-	    UI(`ChangeWidget(`id(`pw1), `Value, default_pw));
-	    UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+	    if( usersHaveGroupPassword(groupname ) )
+	    {
+		UI(`ChangeWidget(`id(`pw1), `Value, default_pw));
+		UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+	    }
 	}
 
 
@@ -1025,7 +1019,7 @@ Please try another one.
 			UI(`ErrorPopup(_("The first and the second version
 of the password are different.
 Please try again.")));
-			password = "x";
+			password = "*";
 			// Invalidate any old password
 			
 			// clear password inputfields in this case
@@ -1038,34 +1032,17 @@ Please try again.")));
 		    
 		    // Use the old password (if any) if no passwords were entered.
 		    // only check pw1 here, its identical with pw2 as checked before
-		    if (  ( (pw1 != "") || (password == "x") ) &&
+		    if (  ( pw1 != "") &&
 			  ( (pw1 != default_pw) && (pw2 != default_pw))  )
 		    {
-			/*
-			if ( pw1 == "" )
-			{
-			    // There is a check whether the information from the
-			    // UI is correct and complete.  The first user password
-			    // information is empty (no user input)
-			    UI(`ErrorPopup(_("You didn't enter a password.\nPlease try again.")));
-			    password = "x";
-			    // Invalidate any old password
-						    
-			    // clear password inputfields in this case
-			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
-			    
-			    UI(`SetFocus(`id(`pw1)));
-			    continue;
-			}
-			*/
+			
 			if ( size (pw1) < 5 && pw1 != "" )
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
 			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
-			    password = "x";
+			    password = "*";
 			    
 			    // clear password inputfields in this case
 			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
@@ -1085,7 +1062,7 @@ Please try again.")));
 				UI(`ErrorPopup(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
 Please try again.")));
-				password = "x";
+				password = "*";
 				
 				
 				// clear password inputfields in this case
@@ -1098,11 +1075,13 @@ Please try again.")));
 			}
 			password = crypt (pw1);
 		    }
-		    
+
+		    if( pw1 == "" ) password = "*";
+		   
 		    
 		    if ( userlist != new_userlist )
 		    {
-			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as vail_userlist_chars
+			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as valid_userlist_chars
 			{
 			    list new_users = splitstring(new_userlist , "," );
 			    boolean all_found = true;
@@ -1146,8 +1125,8 @@ Please try again.")));
 					if(   issubstring( findUsersBelongGroup( gid), old_user ) &&
 					      ( !issubstring( lookup( lookup( current_groups, gid),  "userlist", ""), old_user )))
 					{
-					    string error_text = sformat(UI_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group"), old_user );
+					    string error_text = sformat(UI(_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group")), old_user );
 					    UI(`ErrorPopup(error_text ));
 					    UI(`ChangeWidget(`id(`userlist), `Value, userlist));
 					    UI(`SetFocus(`id(`userlist)));
@@ -1233,7 +1212,7 @@ Please try again.")));
 			ret = `back;
 		    }
 		}
-	    } until ( ret == `next ||  ret == `abort  || ret == `back );
+	    } until ( ret == `next ||  ret == `abort  || ret == `back || ret == `cancel );
 
 	return ret;
     }
@@ -1270,6 +1249,8 @@ Please try again.")));
 	    current_groups = new_current_groups;
 
 
+	    //delete the group in current_gshadow
+	    usersDeleteGroupFromShadow( lookup( group_in_work, "groupname", ""));
 	    
 	    //add a shell delete command to user_settings
 	    if( lookup( group_in_work , "exist", false ) )
@@ -1300,6 +1281,9 @@ Delete this users first.")));
 	
 	if ( size ( user_settings ) == 0 ) return `next;
 
+	SCR(`Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save"));
+	SCR(`Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save"));
+	SCR(`Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save"));
 	
 	term contents =   `VBox(
 				`VSpacing( 2 ),
@@ -1316,9 +1300,9 @@ Delete this users first.")));
 
 
 
-	SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
-	SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
-	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	if( test_mode ) SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
+	if( test_mode ) SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
+	if( test_mode ) SCR( `Write(.dumpto.tmp.user_settings_final,     user_settings  ));
 	integer value = 0;
 	boolean ok    = true;
 	    
@@ -1326,24 +1310,55 @@ Delete this users first.")));
 	{
 	
 	    foreach( `key, `todomap, user_settings,``{
-		//if( ok )
-		//{
-		string todo  = lookup ( todomap , "todo" , "" );
-		symbol what  = lookup ( todomap , "what" , `error );
-		string error = lookup ( todomap , "error", "" );
-
 		
-		if( SCR(`Execute(.target.bash, todo )) == 0 )
+		symbol what  = lookup ( todomap , "what" , `error );
+		any    ret   = 1;
+		
+		if( what == `set_group_password )
 		{
-		    value = value + 1;
+		   
+		    string groupname = lookup ( todomap , "groupname" ,"");
+		    string password  = lookup ( todomap , "password"  ,"");
+
+                    //read the /etc/gshado file new
+		    usersGroupsShadowReadFromDisk();
+
+		    //get groupmap from  current_gshadow 
+		    map group       = usersReturnGroupFromShadow(  groupname );
+
+		    //delete this map in current_gshadow
+		    if ( group != $[] )  usersDeleteGroupFromShadow( groupname );
+
+		    //add a new  groupmap to current_gshadow
+		    map new_group       = $[
+					    "password" : password,
+					    "disposer" : "root" ,
+					    "groupname": groupname,
+					    "userlist" : lookup( group , "userlist" ,"")
+		    ];
+		   
+		    current_gshadow = add( current_gshadow, new_group);
+
+		    //save /etc/gshado file 
+		    ret = SCR(`Write(.etc.gshadow, current_gshadow ));
+		}
+		else
+		{
+		    // execute the save string from user_settings 
+		    string todo  = lookup ( todomap , "todo" , "" );
+		    ret =  SCR(`Execute(.target.bash, todo ));
+		}
+
+		if( ret == 0 )
+		{
+		    value	= value + 1;
 		    UI(`ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) ));
 		}
 		else
 		{
 		    ok = false;
-		    UI(`ErrorPopup(error));
+		    UI(`ErrorPopup( lookup ( todomap , "error", "" )));
 		}
-		    //}
 	    });
 
 	    if ( !ok)

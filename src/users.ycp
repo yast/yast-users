@@ -44,8 +44,9 @@
     map user_settings = $[];
 
     // For cloning and so
-    map current_users  = $[];
-    map current_groups = $[];
+    map  current_users   = $[];
+    map  current_groups  = $[];
+    list current_gshadow = [];
 
     map group_in_work = $[];
     map user_in_work  = $[];
@@ -81,6 +82,7 @@
 
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
+    usersGroupsShadowReadFromDisk();
     
     // ===== Open UI ==================================================
     UI(`CreateWizardDialog());
@@ -99,7 +101,7 @@
         "group_add":     ``(usersEditGroup(`add_group)),
         "group_clone":   ``(usersEditGroup(`clone_group)),
         "group_edit":    ``(usersEditGroup(`edit_group)),
-	"group_details": ``(usersEditGroupDetails()),
+	//"group_details": ``(usersEditGroupDetails()),
         "group_delete":  ``(usersDeleteGroup()),
 	"group_save"  :  ``(usersGroupSaveToMap()),
 
@@ -117,20 +119,25 @@
 		            `delete:         "user_delete",
 		            `next:           "save_to_system",
 		            `abort:          "without_save",
+			    `cancel:         "without_save",
 			    `exit:           `abort ],
 	"user_add":      $[ `next:           "user_save",
 	      		    `details:        "user_details",
 	                    `abort:          "without_save",
+			    `cancel:         "without_save",
 			    `back:           "users" ],
 	"user_clone":    $[ `next:           "user_save",
 			    `details:        "user_details",
+			    `cancel:         "without_save",
 	                    `abort:          "without_save" ],
 	"user_details":  $[ `abort:          "without_save",
 			    `add_user:       "user_add",
+			    `cancel:         "without_save",
 			    `clone_user:     "user_clone",
   			    `edit_user:      "user_edit"],
 	"user_edit":     $[ `next:           "user_save",
 			    `details:        "user_details",
+			    `cancel:         "without_save",
 	                    `abort:          "without_save" ],
 	"user_delete":   $[ `next:           "users",
 	                    `abort:          `abort ],
@@ -143,18 +150,22 @@
 		            `delete:         "group_delete",
 		            `next:           "save_to_system",
 		            `abort:          "without_save",
+			    `cancel:         "without_save",
 			    `exit:           `abort ],
 	"group_add":     $[ `next:           "group_save",
-	                    `details:        "group_details",
+			  //`details:        "group_details",
 	                    `abort:          "without_save",
+			    `cancel:         "without_save",
 			    `back:           "groups" ],
 	"group_clone":   $[ `next:           "group_save",
-	                    `details:        "group_details",
+			  //`details:        "group_details",
+			    `cancel:         "without_save",
 	                    `abort:          "group_save" ],
 	"group_edit":    $[ `next:           "group_save",
-	                    `details:        "group_details",
-	                    `abort:          "group_details" ],
-	"group_details": $[ `abort:          "without_save" ],
+			  //`details:        "group_details",
+			    `cancel:         "without_save",
+	                    `abort:          "without_save" ],
+	//"group_details": $[ `abort:          "without_save" ],
 	"group_delete":  $[ `next:           "groups",
 			    `abort:          "without_save" ],
 	"group_save"  :  $[ `next:           "groups",
