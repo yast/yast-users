@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Apr 21 16:26:26 CEST 2004 - jsuchome@suse.cz
+
+- fixed build (failing testsuites)
+- plugins: enable deleting of objectClass (#38984)
+
+-------------------------------------------------------------------
 Thu Apr 15 10:51:40 CEST 2004 - jsuchome@suse.cz
 
 - fix: enable user membership management for LDAP groups (#38919)
