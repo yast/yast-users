@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Oct 29 10:07:20 CEST 2004 - jsuchome@suse.cz
+
+- adapted for new Mode:: interface
+- used common texts from Message module
+- 2.11.0
+
+-------------------------------------------------------------------
 Mon Oct  4 17:05:08 CEST 2004 - jsuchome@suse.cz
 
 - do not read settings from Security module if it were already modified

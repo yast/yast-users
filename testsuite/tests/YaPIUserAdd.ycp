@@ -128,7 +128,7 @@
 
     DUMP ("==========================================================");
 
-    Mode::test = true;
+    Mode::SetTest ("test");
 
     map<string,any> config_map  = $[];
     map<string,any> data_map    = $[

@@ -9,16 +9,17 @@
 {
 
 import "Autologin";
-import "Wizard";
 import "Label";
+import "Ldap";
+import "Message";
+import "Mode";
 import "Popup";
 import "Report";
-import "Mode";
-import "Ldap";
-
+import "Stage";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
+import "Wizard";
 
 include "users/complex.ycp";
 
@@ -184,9 +185,7 @@ crypted with a different method than DES.
 	`VBox (
 	    `HSpacing(50),
 	    `RichText (`id(`rt), text),
-	    `CheckBox (`id(`ch), `opt(`notify),
-		// checkbox label
-		_("Do Not Show This Message &Again")),
+	    `CheckBox (`id(`ch),`opt(`notify),Message::DoNotShowMessageAgain()),
 	    `HBox (
 		`PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
 		`PushButton (`id(`no),`opt(`key_F9), Label::NoButton())
@@ -607,7 +606,7 @@ define symbol DeleteUserPopup() ``{
 
     // if the user has log on system
     string proc = lookup ((map)SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", uid )), "stdout", "");
-    if (size (proc) != 0 && !Mode::config)
+    if (size (proc) != 0 && !Mode::config ())
     {
         // error popup
         Report::Error(_("You can not delete this user, because the user is present.
@@ -926,7 +925,7 @@ define list GetExpertList () ``{
 	// menubutton label
 	`item(`id(`defaults), _("De&faults for New Users")),
     ];
-    if (!Mode::config)
+    if (!Mode::config ())
     {
 	expert_list = merge (expert_list, [
 	    // menubutton label
@@ -940,7 +939,7 @@ define list GetExpertList () ``{
 	        // menubutton label
 		`item(`id(`autologinconf), _("&Login Settings")));
 	}
-	if (!Mode::cont)
+	if (!Stage::cont ())
 	{
 	    expert_list = add (expert_list,
 		// menubutton label
@@ -954,7 +953,7 @@ define list GetLDAPExpertList () ``{
 
     // TODO do not generate always -> expert_list_changed
     list expert_list = [ ];
-    if (!Mode::config && Users::LDAPAvailable () && !Users::LDAPModified ())
+    if (!Mode::config () && Users::LDAPAvailable () && !Users::LDAPModified ())
     {
 	expert_list = add (expert_list,
 	    // menubutton label
@@ -992,7 +991,7 @@ least belongs to one group.
 define string help_main_end()``{
 
     // button label (without shortcut sign)
-    string button = Mode::cont ? _("Next") : _("Finish");
+    string button = Stage::cont () ? _("Next") : _("Finish");
 
     // help text 1/3
     return _("<p>

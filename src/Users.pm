@@ -211,6 +211,7 @@ YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
+YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("ProductFeatures");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
@@ -1467,7 +1468,7 @@ sub Read {
 
     $self->ReadSourcesSettings();
 
-    if ($nis_master && $use_gui && !Mode->cont()) {
+    if ($nis_master && $use_gui && !Stage->cont()) {
 	my $directory = UsersUI->ReadNISConfigurationType ($base_directory);
 	if (!defined ($directory)) {
 	    return "read error"; # aborted in NIS server dialog
@@ -1514,7 +1515,7 @@ sub Read {
 
     Autologin->Read ();
 
-    if (Mode->cont () && Autologin->available () &&
+    if (Stage->cont () && Autologin->available () &&
 	ProductFeatures->enable_autologin ()) {
 	Autologin->Use (YaST::YCP::Boolean (1));
     }
@@ -4136,7 +4137,7 @@ sub Write {
     }
 
     # mail forward from root
-    if (Mode->cont () && $root_mail ne "" &&
+    if (Stage->cont () && $root_mail ne "" &&
 	!MailAliases->SetRootAlias ($root_mail)) {
         
 	# error popup
@@ -4145,10 +4146,10 @@ sub Write {
 	return $ret;
     }
 
-    Autologin->Write (Mode->cont () || $write_only);
+    Autologin->Write (Stage->cont () || $write_only);
 
     # do not show user in first dialog when all has been writen
-    if (Mode->cont ()) {
+    if (Stage->cont ()) {
         $use_next_time	= 0;
         undef %saved_user;
         undef %user_in_work;

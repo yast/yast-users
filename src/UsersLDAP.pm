@@ -129,6 +129,7 @@ my $group_scope			= YaST::YCP::Integer (2);
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
@@ -313,7 +314,7 @@ sub ReadSettings {
 
 	    my $dn	= $user_base;
 	    $user_base 	= Ldap->GetDomain();
-	    if (!$use_gui || Mode->cont() ||
+	    if (!$use_gui || Stage->cont() ||
 		# popup question, %s is string argument
 		Popup->YesNo (sprintf (__("No entry with DN '%s'
 exists on the LDAP server. Create it now?"), $dn)))
@@ -340,7 +341,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	    my $dn	= $group_base;
 #TODO what in the cases there is something different from organizationalunit?
 	    $group_base 	= Ldap->GetDomain();
-	    if (!$use_gui || Mode->cont() ||
+	    if (!$use_gui || Stage->cont() ||
 		# popup question, %s is string argument
 		Popup->YesNo (sprintf (__("No entry with DN '%s'
 exists on the LDAP server. Create it now?"), $dn)))

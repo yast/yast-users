@@ -139,7 +139,7 @@
 
     DUMP ("==========================================================");
 
-    Mode::test = true;
+    Mode::SetTest ("test");
 
     TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
 

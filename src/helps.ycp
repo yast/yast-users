@@ -11,11 +11,12 @@
  */
 {
   textdomain "users";
-  import "Mode";
+
+  import "Label";
+  import "Stage";
   import "Users";
   import "UsersCache";
   import "UsersLDAP";
-  import "Label";
 
 
   /**
@@ -259,7 +260,7 @@ To see more details, such as the home directory or the user ID, click
 To edit various password settings of this user (e.g., expiration date), click <b>Password Settings</b>.</p>
 ");
 
-    if (!Mode::cont && type != "nis")
+    if (!Stage::cont () && type != "nis")
     {
 	// help text 7/6
 	help = help + _("<p>To disallow this user to
