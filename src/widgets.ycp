@@ -525,14 +525,15 @@ Do you really want to delete the user %1?
  */
 define symbol DeleteGroupPopup() ``{
 
-    boolean delete	= true;
-    string type		= UsersCache::GetGroupType ();
-    map group		= Users::GetCurrentGroup ();
+    boolean delete		= true;
+    string type			= UsersCache::GetGroupType ();
+    map group			= Users::GetCurrentGroup ();
+    string member_attribute	= UsersLDAP::GetMemberAttribute ();
 
     // if no user is in this group
     if (group["userlist"]:$[] == $[] &&
         group["more_users"]:$[] == $[] &&
-        group["uniqueMember"]:$[] == $[])
+        group[member_attribute]:$[] == $[])
     {
         //if the group is a system group ask the user ..
         if (type == "system")
