@@ -86,19 +86,20 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
         list new_attributes		= [];
         boolean modified		= false;
 
-	// list of attributes that are edited elsewhere
-        // They don't have to really be set for current user! (e.g.shadow*)
-        // (There are LDAP names for shadow* in this list -> they cannot be in
-        // ldap2yast, because no "translation to yast names" is needed.)
-        list already_edited_keys = (what == "user") ?
-	[ "username", "uidNumber", "homeDirectory", "givenName", "sn",
+	// which LDAP keys should not be edited here
+	// (either because they were edited before or it is to hard to edit
+	// them (objectClass, DN)
+	list do_not_show_keys	= (what == "user") ?
+	[ "username", "uidNumber", "homeDirectory",
+	// "givenName", "sn",
 	"userPassword", "objectClass", "loginShell", "gidNumber",
 	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
-	"shadowMin", "shadowMax", "shadowFlag" ] :
+	"shadowMin", "shadowMax", "shadowFlag"
+	] :
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
-	  UsersLDAP::GetMemberAttribute () ];
-	// FIXME problem when these parameters are required!
+	  UsersLDAP::GetMemberAttribute ()
+	];
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
@@ -109,14 +110,13 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    UsersLDAP::GetGroupRequiredAttributes ();
 
 	// show only attributes allowed by schema
-
 	list allowed_attrs= Ldap::GetObjectAttributes (data["objectClass"]:[]);
 
 	// generate table items from already existing values
         foreach (string attr, any val, data, ``{
 	    if (contains (internal_keys, attr))
 		return;
-	    if (contains (already_edited_keys, attr))
+	    if (contains (do_not_show_keys, attr))
 		return;
 	    if (!contains (allowed_attrs, attr))
 		return;
@@ -128,7 +128,15 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 		value = [ (string)val ];
 		data [attr] = value;
 	    }
-	    else value = (list<string>)val;
+	    else if (is (val, integer))
+	    {
+		value = [ sformat ("%1", val) ];
+		data [attr] = value;
+	    }
+	    else if (is (val, list))
+	    {
+		value = (list<string>)val;
+	    }
 	    used_attributes = add (used_attributes, attr);
 	    items = add (items,`item (`id(attr), attr, mergestring(value,",")));
 	});
@@ -143,7 +151,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    foreach (string at, Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
 		if (!haskey (data, ldap2yast [at]:at) &&
-		    !contains (already_edited_keys, ldap2yast [at]:at))
+		    !contains (do_not_show_keys, ldap2yast [at]:at))
 		{
 		    data[at] = [];
 		    new_attributes = add (new_attributes, at);
@@ -156,7 +164,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    `VSpacing(0.5),
 	    `Table(`id(`table), `opt(`notify), `header(
 		// table header 1/2
-		_("Attribute"),
+		_("Attribute") + "  ",
 		// table header 2/2
 		_("Value")),
 		items),
@@ -201,8 +209,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 		string err = UsersPluginLDAPAll::Check (
 		    config,
 		    (map<string,any>) union (data, tmp_data));
-		// FIXME what about old (internal) parameters (givenName) ???
-		// they are not shown in this dialog but they could be missing!
+
 		if (err != "")
 		{
 		    Report::Error (err);

@@ -580,7 +580,7 @@ define boolean CustomizePopup (string what) ``{
 
     term view = `VBox();
     string label = "";
-    list sets = [];
+    list<string> sets = [];
     list custom_sets = [];
     map set_to_string = $[];
 
@@ -772,7 +772,9 @@ Customize your view filter with <b>Customize Filter</b>.</p>
 _("<p>
 Click <b>Expert Options</b> to edit various expert settings:
 password encryption type, user authentication method, default values for new
-users, or configuration of LDAP search filters.
+users, or login settings. With <b>Write Changes Now</b> expert option, you
+can save all changes you have done do far without exiting from configuration
+module.
 </p>
 ") +
 
@@ -1049,8 +1051,8 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     any ev_id			= event["ID"]:nil;
     string current_summary	= UsersCache::GetCurrentSummary ();
 
-    if (current_summary == "users" &&
-	contains (Users::GetAvailableUserSets (), ev_id))
+    if (current_summary == "users" && is (ev_id,string) &&
+	contains (Users::GetAvailableUserSets (), (string) ev_id))
     {
 	// FIXME do not work if LDAP is in custom set!
 	if (ev_id == "ldap" && Ldap::bind_pass == nil)
@@ -1082,8 +1084,8 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
 	if (popup) UI::CloseDialog ();
 	return nil;
     }
-    if (current_summary == "groups" &&
-	contains (Users::GetAvailableGroupSets (), ev_id))
+    if (current_summary == "groups" && is (ev_id,string) &&
+	contains (Users::GetAvailableGroupSets (), (string) ev_id))
     {
 	if (ev_id == "ldap" && Ldap::bind_pass == nil)
 	{

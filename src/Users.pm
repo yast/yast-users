@@ -30,7 +30,7 @@ our %TYPEINFO;
 my $use_gui			= 1;
 
 # What client to call after authentication dialog during installation:
-# could be "users","nis","nisplus" or "ldap", for more see inst_auth.ycp
+# could be "users","nis" or "ldap", for more see inst_auth.ycp
 my $after_auth			= "users";
 
 # Write only, keep progress turned off
@@ -126,6 +126,11 @@ my $nis_not_read 		= 1;
 
 # ldap users are not read by default, but could be read on demand:
 my $ldap_not_read 		= 1;
+
+# check if config files were read before w try to write them
+my $passwd_not_read 		= 1;
+my $shadow_not_read 		= 1;
+my $group_not_read 		= 1;
 
 # paths to commands that should be run before (after) adding (deleting) a user
 my $useradd_cmd 		= "";
@@ -1123,6 +1128,9 @@ sub ReadLocal {
 	my $error_info	= SCR::Read (".passwd.error.info");
 	return UsersUI::GetPasswdErrorMessage ($error, $error_info);
     }
+    $passwd_not_read 		= 0;
+    $shadow_not_read 		= 0;
+    $group_not_read 		= 0;
 
     foreach my $type ("local", "system") {
 	$users{$type}		= \%{SCR::Read (".passwd.$type.users")};
@@ -1140,24 +1148,16 @@ sub ReadLocal {
 
 sub ReadUsersCache {
     
-#    y2warning ("ReadUsersCache start");
     UsersCache::Read ();
-
-#    y2warning ("ReadUsersCache 1");
 
     UsersCache::BuildUserItemList ("local", $users{"local"});
     UsersCache::BuildUserItemList ("system", $users{"system"});
 
-#    y2warning ("ReadUsersCache 2");
-
     UsersCache::BuildGroupItemList ("local", $groups{"local"});
     UsersCache::BuildGroupItemList ("system", $groups{"system"});
 
-#    y2warning ("ReadUsersCache 3");
-
     UsersCache::SetCurrentUsers (\@user_custom_sets);
     UsersCache::SetCurrentGroups (\@group_custom_sets);
-#    y2warning ("ReadUsersCache finish");
 }
 
 sub ReadAvailablePlugins {
@@ -1305,7 +1305,9 @@ sub CreateShadowMap {
     
     my %default_shadow = %{GetDefaultShadow ($user{"type"} || "local")};
     foreach my $shadow_item (keys %default_shadow) {
-	$shadow_map{$shadow_item}	= $user{$shadow_item};
+	if (defined $user{$shadow_item}) {
+	    $shadow_map{$shadow_item}	= $user{$shadow_item};
+	}
     };
     return \%shadow_map;
 }
@@ -1569,6 +1571,15 @@ sub EditGroup {
 
     if (defined $data{"type"}) {
 	$type = $data{"type"};
+    }
+
+    # check if group is edited for first time
+    if (!defined $group_in_work{"org_group"} &&
+	($group_in_work{"what"} || "") ne "add_group") {
+
+	# save first map for later checks of modification (in Commit)
+	my %org_group			= %group_in_work;
+	$group_in_work{"org_group"}	= \%org_group;
     }
 
     # update the settings which should be changed
@@ -2491,9 +2502,14 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($groups_modified) {
+	if ($group_not_read) {
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/group"));
+	    return 0;
+	}
         if (! WriteGroup ()) {
-	    # error popup
-            Report::Error (_("Cannot write group file."));
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/group"));
 	    return 0;
         }
 	if (!$write_only) {
@@ -2517,9 +2533,14 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($users_modified) {
+	if ($passwd_not_read) {
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/passwd"));
+	    return 0;
+	}
         if (!WritePasswd ()) {
-	    # error popup
-            Report::Error (_("Cannot write passwd file."));
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/passwd"));
 	    return 0;
 	}
 	if (!$write_only) {
@@ -2572,9 +2593,14 @@ sub Write {
     if ($use_gui) { Progress::NextStage (); }
 
     if ($users_modified) {
+	if ($shadow_not_read) {
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("%s file was not correctly read so it will not be written."), "$base_directory/shadow"));
+	    return 0;
+	}
         if (! WriteShadow ()) {
-	    # error popup
-            Report::Error (_("Cannot write shadow file."));
+	    # error popup (%s is a file name)
+            Report::Error (sprintf (_("Cannot write %s file."), "$base_directory/shadow"));
 	    return 0;
         }
     }
@@ -2751,7 +2777,7 @@ Select a valid integer between %i and %i."), $min, $max);
 # check the uid of current user - part 2
 BEGIN { $TYPEINFO{CheckUIDUI} = ["function",
     ["map", "string", "string"],
-    "integer", ["map", "string", "string"]];
+    "integer", ["map", "string", "integer"]];
 }
 sub CheckUIDUI {
 
@@ -2893,13 +2919,15 @@ sub CheckPassword {
     my $min_length 	= $min_pass_length{$type};
     my $max_length 	= $max_pass_length{$type};
 
-    #TODO enable not entering the password... (bug#32587)
     if (($pw || "") eq "") {
-            
 	# error popup
 	return _("You didn't enter a password.
 Try again.");
     }
+#    if ($pw eq "") {
+#	# enable user without password (?)
+#	return "";
+#    }
 
     if (length ($pw) < $min_length) {
 	# error popup
@@ -3002,7 +3030,7 @@ Truncate it to %s characters?"), $max_length);
 # check the password of current user -- part 2
 BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
     ["map", "string", "string"],
-    "string", "string", ["map", "string", "string"]];
+    "string", "string", ["map", "string", "integer"]];
 }
 sub CheckPasswordUI {
 
@@ -3010,6 +3038,23 @@ sub CheckPasswordUI {
     my $pw 		= $_[1];
     my %ui_map		= %{$_[2]};
     my %ret		= ();
+
+    if (($ui_map{"empty_pw"} || 0) != 1) {
+	# popup question: user didn't enter password
+	my $error = _("You didn't enter a password.
+Every one will be able to log in as this user!
+Do you really want to leave this user wihout password?.");
+
+	if ($pw eq "") {
+	    $ret{"question_id"}	= "empty_pw";
+	    $ret{"question"}	= $error;
+	    return \%ret;
+	}
+    }
+
+    if ($pw eq "") {
+	return \%ret;
+    }
 
     if ($use_cracklib && (($ui_map{"crack"} || 0) != 1)) {
 	my $error = CrackPassword ($pw);
@@ -3126,7 +3171,7 @@ Please try again.");
 # check the home directory of current user - part 2
 BEGIN { $TYPEINFO{CheckHomeUI} = ["function",
     ["map", "string", "string"],
-    "integer", "string", ["map", "string", "string"]];
+    "integer", "string", ["map", "string", "integer"]];
 }
 sub CheckHomeUI {
 
@@ -3189,7 +3234,7 @@ Use this directory?"), $home);
 # check the shell of current user
 BEGIN { $TYPEINFO{CheckShellUI} = ["function",
     ["map", "string", "string"],
-    "string", ["map", "string", "string"]];
+    "string", ["map", "string", "integer"]];
 }
 sub CheckShellUI {
 
@@ -3271,7 +3316,7 @@ Select a valid integer between %i and %i."), $min, $max);
 # check the gid of current group - part 2
 BEGIN { $TYPEINFO{CheckGIDUI} = ["function",
     ["map", "string", "string"],
-    "integer", ["map", "string", "string"]];
+    "integer", ["map", "string", "integer"]];
 }
 sub CheckGIDUI {
 
@@ -3429,8 +3474,6 @@ sub CheckUser {
 BEGIN { $TYPEINFO{CheckGroup} = ["function", "string", ["map","string","any"]];}
 sub CheckGroup {
 
-#FIXME this is never called from sequence !!!
-# - there will be a problem when member is required!
     my %group	= %{$_[0]};
     if (!%group) {
 	%group = %group_in_work;
@@ -4078,7 +4121,9 @@ sub ExportUser {
 	    # do not export unchanged shadow values
 	    next;
 	}
-	$user_shadow{$new_key}	= $shadow_map{$key};
+	if (defined $shadow_map{$key}) {
+	    $user_shadow{$new_key}	= $shadow_map{$key};
+	}
     }
 
     # remove the keys, whose values were not changed
@@ -4137,15 +4182,22 @@ sub ExportGroup {
     if (defined $group->{"userlist"}) {
 	$userlist	= join (",", keys %{$group->{"userlist"}});
     }
-#FIXME export only changed values! 
-    return {
+    my %ret		= (
         "group_password"	=> $group->{"userPassword"} 	|| "x",
         "groupname"		=> $group->{"groupname"}	|| "",
-        "gid"			=> $group->{"gidNumber"},
         "userlist"		=> $userlist
-    };
-#FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
-};
+    );
+    if (defined $group->{"org_group"} &&
+	defined $group->{"org_group"}{"gidNumber"} &&
+	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"}) {
+
+	$ret{"gid"}		= $group->{"gidNumber"};
+# TODO check also change in password & userlist
+# FIXME export all when password was changed!
+    }
+
+    return \%ret;
+}
 
 ##------------------------------------
 # Dump the users settings to list of maps

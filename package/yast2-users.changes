@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar  8 16:49:46 CET 2004 - jsuchome@suse.cz
+
+- fix: check group name
+- fixes of default LDAP plugin
+- 2.9.12
+
+-------------------------------------------------------------------
 Thu Mar  4 20:45:29 CET 2004 - jsuchome@suse.cz
 
 - plugins: differs user from groups (=2 map parameters to every function)

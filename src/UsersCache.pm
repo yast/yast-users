@@ -368,7 +368,7 @@ sub GroupnameExists {
 	$ret = defined $groupnames{$group_type}{$groupname};
     }
     else {
-	$ret = (defined $groupnames{"local"}{$groupname} &&
+	$ret = (defined $groupnames{"local"}{$groupname} ||
 		defined $groupnames{"system"}{$groupname});
     }
     return $ret;
@@ -533,9 +533,9 @@ BEGIN { $TYPEINFO{GetMinUID} = ["function",
 sub GetMinUID {
 
     if (defined $min_uid{$_[0]}) {
-	return $min_uid{$_[0]};
+	return YaST::YCP::Integer ($min_uid{$_[0]})->value;
     }
-    return 0;
+    return YaST::YCP::Integer (0)->value;
 }
 
 ##------------------------------------
@@ -546,9 +546,9 @@ BEGIN { $TYPEINFO{GetMaxUID} = ["function",
 sub GetMaxUID {
 
     if (defined $max_uid{$_[0]}) {
-	return $max_uid{$_[0]};
+	return YaST::YCP::Integer ($max_uid{$_[0]})->value;
     }
-    return 60000;
+    return YaST::YCP::Integer (60000)->value;
 }
 
 ##------------------------------------
@@ -568,7 +568,7 @@ sub NextFreeUID {
             return $uid;
         }
     } until ( $uid == $max );
-    return $ret;
+    return YaST::YCP::Integer ($ret)->value;
 }
 
 ##------------------------------------
@@ -579,9 +579,9 @@ BEGIN { $TYPEINFO{GetMinGID} = ["function",
 sub GetMinGID {
 
     if (defined $min_gid{$_[0]}) {
-	return $min_gid{$_[0]};
+	return YaST::YCP::Integer ($min_gid{$_[0]})->value;
     }
-    return 0;
+    return YaST::YCP::Integer (0)->value;
 }
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMaxGID} = ["function",
@@ -591,9 +591,9 @@ BEGIN { $TYPEINFO{GetMaxGID} = ["function",
 sub GetMaxGID {
 
     if (defined $max_gid{$_[0]}) {
-	return $max_gid{$_[0]};
+	return YaST::YCP::Integer ($max_gid{$_[0]})->value;
     }
-    return 60000;
+    return YaST::YCP::Integer (60000)->value;
 }
 
 
@@ -613,7 +613,7 @@ sub NextFreeGID {
             return $gid;
         }
     } until ( $gid == $max );
-    return $ret;
+    return YaST::YCP::Integer ($ret)->value;
 }
 
 

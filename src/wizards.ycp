@@ -55,7 +55,8 @@ define symbol SummaryDialog() ``{
 	    `back: ReallyBack
 	]
     );
-    if (ret != nil && contains ([`new, `edit, `delete], ret))
+    if (ret != nil &&
+	is (ret,symbol) && contains ([`new, `edit, `delete], (symbol) ret))
     {
 	map update_symbol = $[
 	    `new: $[
