@@ -85,12 +85,12 @@ repeat it exactly in a second field. Make sure you don't forget your password!
     global define string ReadDialogHelp () ``{
 	// TODO FIXME: Modify it to your needs!
 	return
-	    // For translators: joe read dialog help, part 1 of 2
-_("<P><B><BIG>Initializing joe</BIG></B><BR>
+	    // For translators: read dialog help, part 1 of 2
+_("<P><B><BIG>Initializing users configuration</BIG></B><BR>
 Please wait...
 <BR></P>
 ") +
-	    // For translators: joe read dialog help, part 2 of 2
+	    // For translators: read dialog help, part 2 of 2
 _("<P><B><BIG>Aborting the initialization:</BIG></B><BR>
 You can safely abort the configuration utility by pressing the <B>Abort</B>
 button now.

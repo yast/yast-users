@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Aug  9 09:22:32 CEST 2002 - jsrain@suse.de
+
+- fixed initialization help text (Bug #17542)
+- 2.6.18
+
+-------------------------------------------------------------------
 Thu Aug  8 11:36:17 CEST 2002 - jsrain@suse.de
 
 - added more testsuites
