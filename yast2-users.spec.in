@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-pam yast2-packager cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client
+# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-pam yast2-packager cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client yast2-perl-bindings
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-pam yast2-security yast2-packager yast2-mail-aliases cracklib
@@ -29,10 +29,10 @@ Summary:	Configuration of users
 @desktopdir@/*.desktop
 @moduledir@/*.pm
 @yncludedir@/users/*
-@ybindir@/*.pl
 #agents:
 @scrconfdir@/*.scr
 @agentdir@/ag_uid
+@agentdir@/ag_passwd
 @plugindir@/libpy2ag_crack.so.*
 @plugindir@/libpy2ag_crack.so
 @plugindir@/libpy2ag_crack.la
