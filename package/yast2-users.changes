@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Sep 29 13:15:01 CEST 2003 - jsuchome@suse.cz
+
+- properly differ between local/system users (#31515),
+  manage new variables from /etc/login.defs,
+  enable change of user/group type (by changing uid/gid)
+- 2.9.0
+
+-------------------------------------------------------------------
 Tue Sep 23 12:28:50 CEST 2003 - jsuchome@suse.cz
 
 - run suseconfig after writing autologin value (#31470)
