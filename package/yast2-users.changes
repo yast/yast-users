@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar  3 12:54:27 CET 2003 - jsuchome@suse.de
+
+- merged proofreaded texts
+- inst_auth: fix network devices testing (#24004) - msvec@suse.cz
+- 2.7.19
+
+-------------------------------------------------------------------
 Thu Feb 27 18:26:37 CET 2003 - jsuchome@suse.de
 
 - added popup for confirmation of short root's password (#24294)

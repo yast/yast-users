@@ -274,7 +274,7 @@ the password. This starting procedure is traditionally known as the
     if (mail)
         // help text 4/5
         help = help + _("<p>
-The mail for root will be forwarded to this user if you check the option \"Recieve System Mail\".</p>
+The mail for root will be forwarded to this user if you check the option \"Receive System Mail\".</p>
 ");
 
 	// help text 5/5
@@ -397,7 +397,7 @@ LDAP server.</p>") +
     // alternate helptext 5.5/8
     _("<p>
 <b>E-Mail:</b>
-You can set user's e-mail adress here.</p>
+Set the user's e-mail address here.</p>
 ");
 
     else if (user_type == `system || user_type == `local)
