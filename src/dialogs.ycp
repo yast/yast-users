@@ -1307,7 +1307,7 @@ define symbol LDAPSettingsDialog (string what) ``{
 		ret = `notnext;
 		continue;
 	    }
-	    UI::ChangeWidget (`id(`table),`Item(attr,0),mergestring(value,","));
+	    UI::ChangeWidget (`id(`table),`Item(attr,1),mergestring(value,","));
 	    tmp_object [attr] = value;
 	}
         if ( ret == `next )
