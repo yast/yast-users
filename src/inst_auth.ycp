@@ -26,6 +26,7 @@ y2debug("net_devices: %1", net_devices);
 
 if (size(net_devices) == 0 && size (Ldap::initial_defaults) == 0) {
     Users::SetAfterAuth ("users");
+    y2milestone ("network not available: no network based authentization");
     return `auto;
 }
 
@@ -37,6 +38,7 @@ maplist(string dev, net_devices, ``{
 y2debug("found=%1", found);
 
 if (!found && size (Ldap::initial_defaults) == 0) {
+    y2milestone ("network not available: no network based authentization");
     Users::SetAfterAuth ("users");
     return `auto;
 }
@@ -51,24 +53,58 @@ Here you can choose the authentication method of users on your system.
 </p>") +
 
 // helptext 2/3
-_("<p>Select <b>Local</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
-
-// helptext 3/3
-_("<p>If you are using a NIS or LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
+_("<p>Select <b>Local</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>");
 
 map button_labels = $[
     // radiobutton to select ldap user auth.
     "ldap":      _("&LDAP"),
     // radiobutton to select nis user auth.
     "nis":       _("N&IS"),
+    // radiobutton to select samba user auth.
+    "samba":       _("&Samba"),
     // radiobutton to select local user auth.
-    "users":     _("Local (/etc/passwd)")
+    "users":     _("L&ocal (/etc/passwd)")
 ];
 
 list<string> available_clients = [];
 
 if (Require::IsPackageAvailable("yast2-nis-client") && found)
     available_clients = add (available_clients, "nis");
+
+if (Require::IsPackageAvailable("yast2-samba-client") && found)
+    available_clients = add (available_clients, "samba");
+
+if (contains (available_clients, "nis"))
+{
+    if (contains (available_clients, "samba"))
+    {
+	help = help +
+	// helptext 3/3 -- nis & samba & ldap avialable
+_("<p>If you are using a NIS or LDAP server to store user data or if you want to authenticate users against NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
+    }
+    else
+    {
+	help = help +
+	// helptext 3/3 -- nis & ldap avialable
+_("<p>If you are using a NIS or LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
+    }
+}
+else
+{
+    if (contains (available_clients, "samba"))
+    {
+	help = help +
+	// helptext 3/3 -- samba &ldap available
+_("<p>If you are using a LDAP server to store user data or if you want to authenticate users against NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
+    }
+    else
+    {
+	help = help +
+	// helptext 3/3 -- only ldap available
+_("<p>If you are using a LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>.");
+    }
+}
+
 
 available_clients = add (available_clients, "ldap");
 available_clients = add (available_clients, "users");
@@ -100,7 +136,7 @@ term contents = `VBox (
 		       );
 Wizard::SetDesktopIcon("users");
 Wizard::SetContents (caption, contents, help,
-		    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
+    (boolean) WFM::Args(0), (boolean) WFM::Args(1));
 
 // select and enable to correct buttons
 foreach (string client, available_clients, ``{
@@ -127,10 +163,18 @@ repeat {
 
 if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
     Users::SetAfterAuth ("ldap");
-if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
-    Users::SetAfterAuth ("nis");
 if ( (boolean) UI::QueryWidget( `id("users"), `Value ) )
     Users::SetAfterAuth ("users");
+if (contains (available_clients, "nis") &&
+    (boolean) UI::QueryWidget( `id("nis"), `Value ) )
+{
+    Users::SetAfterAuth ("nis");
+}
+if (contains (available_clients, "samba") &&
+    (boolean) UI::QueryWidget( `id("samba"), `Value ) )
+{
+    Users::SetAfterAuth ("samba");
+}
 
 return (symbol) ret;
 
