@@ -28,7 +28,7 @@ global string default_realm = "";
 // adress of KDC (key distribution centre) server for default realm
 global string kdc = "";
 
-//global string clockskew = "";
+global string clockskew = "";
 
 global boolean pam_modified = false;
 
