@@ -713,23 +713,8 @@ This is not good security practice. Are you sure?");
 global define string CrackPassword (string username, string pw) ``{
 
 
-    return "OK"; //FIXME
+    return "OK"; //FIXME use crack agent
 //    return (SCR::Execute(.crack, pw));
-    /*
-    // write password to some shadow file
-    string shadowfile = tmpdir + "/shadowfile";
-    SCR::Write(.target.string, shadowfile, sformat ("%1 %2", username, pw));
-
-    string out = lookup (SCR::Execute (.target.bash_output,
-        sformat ("/bin/cat %1 | /usr/bin/vpass", shadowfile)), "stdout", "");
-
-    // remove \n at the end
-    out = substring(out, 0, size(out)-1);
-
-    SCR::Execute(.target.bash, sformat ("/bin/rm -f %1", shadowfile));
-
-    return out;
-    */
 
 }
 

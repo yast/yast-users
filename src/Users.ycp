@@ -286,6 +286,7 @@ global list ldap_user_class = [];
 global list ldap_group_class = [];
 // password to LDAP server
 string ldap_bind_pass = nil;
+global boolean ldap_anonymous = false;
 
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
@@ -636,7 +637,8 @@ global define symbol Write (block abort, boolean useUI)``{
 		// final progress step label
 		_("Finished") ],
 	    "" );
-// TODO: LDAP in progress only when available
+// TODO: LDAP writing in separarate funcitons before Write
+// (so we can return back when anything fails...)
 
     // backup
     if ( useUI )
@@ -782,7 +784,7 @@ global define symbol Write (block abort, boolean useUI)``{
         {
             if (useUI)
                 // error popup
-	            Report::Error (_("Cannot make NIS database."));
+	        Report::Error (_("Cannot make NIS database."));
             else
                 y2error("Cannot make NIS database: %1", ret);
         }
@@ -795,62 +797,94 @@ global define symbol Write (block abort, boolean useUI)``{
 	if (eval (abort))
 	    return `abort;
     }
+
     if (ldap_modified)
     {
 	string error = "";
 
-        if ((ldap_bind_pass == "" || ldap_bind_pass == nil) && useUI)
+	// TODO do not ask again when anonymous was set?
+        if ((ldap_anonymous || ldap_bind_pass == nil) && useUI)
 	{
-            ldap_bind_pass = GetLDAPPassword();
-	    if (ldap_bind_pass != nil)
-	    {
-		string ldap_bind = LDAPBind();
-		while (ldap_bind_pass != nil && ldap_bind != "")
-		{
-		    LDAPErrorMessage ("bind", ldap_bind);
-		    ldap_bind_pass = GetLDAPPassword();
-		    ldap_bind = LDAPBind();
-		}
-	    }
+	    ldap_bind_pass = LDAPAskAndBind();
         }
-	// FIXME: when anonymous is set, bind is OK, but writing not!!!
-	// -> LDAP_STRONG_AUTH_REQUIRED
 
-        // cancel returns nil!
+        // nil means "canceled"
         if (ldap_bind_pass != nil)
         {
-            // there are deleted users in modified_users ["ldap"]
-            if (size (modified_users ["ldap"]:$[]) > 0)
-            {
-                error = WriteLDAPUsers (modified_users ["ldap"]:$[],
-		    ldap_file_server);
+	    // 1st: delete users in modified_users ["ldap"]
+	    do
+	    {
+		if (size (modified_users ["ldap"]:$[]) > 0)
+		{
+		    error = WriteLDAPUsers (modified_users ["ldap"]:$[],
+			ldap_file_server);
+		    if (error != "" && useUI)
+		    {
+			LDAPErrorMessage ("users", error);
+			if (error == "LDAP_STRONG_AUTH_REQUIRED")
+			{
+			    ldap_bind_pass = LDAPAskAndBind();
+			}
+		    }
+		}
+	    }
+	    // when anonymous is set, bind is OK, but writing not
+	    // error LDAP_STRONG_AUTH_REQUIRED is returned after LDAP command
+	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
+		    && useUI);
+
+            // 2nd: now write all other user modifications (add/edit)
+	    do
+	    {
+		error = WriteLDAPUsers ( users ["ldap"]:$[], ldap_file_server);
 		if (error != "" && useUI)
 		{
 		    LDAPErrorMessage ("users", error);
+		    if (error == "LDAP_STRONG_AUTH_REQUIRED")
+		    {
+			ldap_bind_pass = LDAPAskAndBind();
+		    }
 		}
-            }
-            // now write all other modifications
-            error = WriteLDAPUsers ( users ["ldap"]:$[], ldap_file_server);
-	    if (error != "" && useUI)
-	    {
-		LDAPErrorMessage ("users", error);
 	    }
-            // there are deleted groups in modified_groups ["ldap"]
-            if (size (modified_groups ["ldap"]:$[]) > 0)
-            {
-                error = WriteLDAPGroups (modified_groups ["ldap"]:$[]);
+	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
+		    && useUI);
+
+
+            // 3rd: there are deleted groups in modified_groups ["ldap"]
+	    do
+	    {
+		if (size (modified_groups ["ldap"]:$[]) > 0)
+		{
+		    error = WriteLDAPGroups (modified_groups ["ldap"]:$[]);
+		    if (error != "" && useUI)
+		    {
+			LDAPErrorMessage ("users", error);
+			if (error == "LDAP_STRONG_AUTH_REQUIRED")
+			{
+			    ldap_bind_pass = LDAPAskAndBind();
+			}
+		    }
+		}
+	    }
+	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
+		    && useUI);
+
+	    // 4th: now write all other groups modifications
+	    do
+	    {
+		error = WriteLDAPGroups (groups ["ldap"]:$[]);
 		if (error != "" && useUI)
 		{
 		    LDAPErrorMessage ("users", error);
+		    if (error == "LDAP_STRONG_AUTH_REQUIRED")
+		    {
+			ldap_bind_pass = LDAPAskAndBind();
+		    }
 		}
 	    }
-            // now write all other groups modifications
-            error = WriteLDAPGroups (groups ["ldap"]:$[]);
-	    if (error != "" && useUI)
-	    {
-		LDAPErrorMessage ("users", error);
-	    }
-        }
+	    while (error == "LDAP_STRONG_AUTH_REQUIRED" && ldap_bind_pass!=nil
+		    && useUI);
+	}
     }
 
     // customs
@@ -2693,19 +2727,9 @@ Install it now?"),
 	    ldap_initialized = true;
 	}
 
-        if (ldap_bind_pass == nil)
+        if (ldap_bind_pass == nil && !ldap_anonymous)
 	{
-            ldap_bind_pass = GetLDAPPassword();
-	    if (ldap_bind_pass != nil)
-	    {
-		ldap_mesg = LDAPBind();
-		while (ldap_bind_pass != nil && ldap_mesg != "")
-		{
-		    LDAPErrorMessage ("bind", ldap_mesg);
-		    ldap_bind_pass = GetLDAPPassword();
-		    ldap_bind = LDAPBind();
-		}
-	    }
+	    ldap_bind_pass = LDAPAskAndBind();
         }
         if (ldap_bind_pass == nil)
 	    return false;
