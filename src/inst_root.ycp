@@ -154,7 +154,11 @@ Do not forget this \"root\" password!
 	encryptionMethod = EncryptionPopup ();
 
         string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
-        UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );
+
+	if ( pw1 == "" )
+	    UI::SetFocus( pw1 == "" );
+	else
+	    Wizard::SetFocusToNextButton();
       }
       else if (ret != `back && ret != `notnext)
       {
