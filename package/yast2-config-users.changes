@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Feb  8 20:14:31 MET 2002 - tom@suse.de
+
+- Now the config module is being called from the installation workflow.
+
+-------------------------------------------------------------------
 Tue Sep 11 11:33:40 CEST 2001 - jbuch@suse.de
 
 - Fixed error in switching between groups and users 
