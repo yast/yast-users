@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jun 15 20:58:03 CEST 2004 - jsuchome@suse.cz
+
+- command-line: group management, LDAP support
+- 2.10.0
+
+-------------------------------------------------------------------
 Wed Jun  9 11:01:19 CEST 2004 - jsuchome@suse.cz
 
 - YaPI: correct initialization of LDAP configuration (#41806, #41850)

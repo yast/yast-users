@@ -83,7 +83,9 @@ map cmdline = $[
 	    "handler"	: GroupsListHandler,
 	    // translators: command line help text for list action
 	    "help"	: _("List of available groups"),
-	    "options"	: [ "non_strict" ]
+	    "options"	: [ "non_strict" ],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("User parameters, which should be listed"),
 	],
 	"show" :$[
 	    "handler"	: GroupShowHandler,
@@ -93,7 +95,23 @@ map cmdline = $[
 	"delete" :$[
 	    "handler"	: GroupDeleteHandler,
 	    // translators: command line help text for delete action
-	    "help"	: _("Delete an existing group.")
+	    "help"	: _("Delete an existing group")
+	],
+	"add" :$[
+	    "handler"	: GroupAddHandler,
+	    // translators: command line help text for ad action
+	    "help"	: _("Add new group"),
+	    "options"   : ["non_strict"],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("Additional (LDAP) group parameters"),
+	],
+	"edit" :$[
+	    "handler"	: GroupEditHandler,
+	    // translators: command line help text for ad action
+	    "help"	: _("Edit an existing group"),
+	    "options"   : ["non_strict"],
+	    // help text for unknown parameter name
+	    "non_strict_help":	_("Additional (LDAP) group parameters"),
 	],
     ],
     "options"		: $[
@@ -123,6 +141,26 @@ map cmdline = $[
 	    "help"	: _("Name of the group"),
 	    "type"	: "string"
 	],
+	"password"		:$[
+	    // translators: command line help text for 'password' option
+	    "help"	: _("Password of the group"),
+	    "type"	: "string"
+	],
+	"userlist"	:$[
+	    // translators: command line help text for 'user' option
+	    "help"	: _("List of group members (separated by commas)"),
+	    "type"	: "string"
+	],
+	"new_groupname"	:$[
+	    // translators: command line help text for new_groupname option
+	    "help"	: _("New group name"),
+	    "type"	: "string"
+	],
+	"new_gid"		:$[
+	    // translators: command line help text for new_gid option
+	    "help"	: _("New GID of the group"),
+	    "type"	: "string"
+	],
 	"type"	:$[
 	    // translators: command line help text for show option
 	    "help"	: _("Type of the group (local/system/nis/ldap)"),
@@ -138,6 +176,8 @@ map cmdline = $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
 	"show"  : [ "gid", "groupname", "type"],
 	"delete": [ "groupname", "gid", "type", "ldap_pw" ],
+	"add"	: [ "groupname", "gid", "password", "userlist", "type", "ldap_pw"],
+	"edit"	: [ "groupname", "gid", "password", "new_gid", "userlist", "new_groupname", "type", "ldap_pw" ],
     ]
 ];
 
