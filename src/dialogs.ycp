@@ -37,6 +37,8 @@ include "users/routines.ycp";
  */
 global define symbol EditUserDialog(string what) ``{
 
+//Users::start_dialog = "user_add";
+//Mode::cont = true;
     // maybe we have returned to the first "add user dialog"
     // during installation workflow:
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
@@ -119,34 +121,123 @@ global define symbol EditUserDialog(string what) ``{
             `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
     }
 
+    term checkboxes = `Empty();
+    term buttonbox = `VBox(
+	`PushButton(`id(`passwordsettings),`opt(`key_F7, `hstretch),
+	    // push button label
+	    _("&Password Settings...")),
+	// push button label
+	`PushButton(`id(`details),`opt(`key_F2, `hstretch), _("&Details..."))
+    );
+
+    if( Mode::cont && Users::start_dialog == "user_add" )
+    {
+	checkboxes = `VBox(
+	    // checkbox label
+	    `Left( `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
+		Users::root_mail != "") ),
+	    `VSpacing (0.5),
+	    // checkbox label
+	    `Left( `CheckBox (`id (`autologin),_("Enable &Auto Login"), true) )
+	);
+    }
+    term fields = `VBox(
+	`VStretch(),
+	`VBox(
+	    // label text
+	    do_not_edit ? `Label(_("Only additional group memberships
+can be changed for non-local users.
+")) : `VSpacing (0),
+	    do_not_edit ? `VSpacing (1) : `VSpacing (0),
+	    name_entries
+	),
+	`VSquash(
+	    `HBox(
+		// input field for login name
+		`Bottom(`TextEntry(`id(`username), _("&User Login"), username)),
+		(what != "add_user")
+		    ? `HSpacing (0)
+		    // push button to generate login from first and last name
+		    : `Bottom(`PushButton(`id(`propose), _("&Suggestion"))))
+	),
+	// first version of user password
+	`Password(`id(`pw1), _("&Password"), ""),
+	// second version of user password, retyped to avoid typos
+	// please use newline if it is longer than 48 characters
+	`Password(`id(`pw2), _("&Verify Password:"), "")
+    );
+
+    term userbox = `VBox(
+	`HSquash( fields ),
+	`VSpacing( 1 ),
+	`VSquash(
+	    `Top(
+		`HBox(
+			`HStretch(),
+			`HVCenter( `HVSquash( checkboxes ) ),
+			`HSpacing( 1 ),
+			`HVCenter( `HVSquash( buttonbox  ) ),
+			`HSpacing( 1 )
+		)
+	    )
+	)
+    );
+
+    term contents = `VBox(
+	`VSpacing(),
+	// Frame title
+	`Frame( _( "User Data" ), `HVSquash(
+	    `VBox(
+		`VSpacing( 0.5 ),
+		`HBox( `HSpacing( 1 ), userbox, `HSpacing( 1 )),
+		`VSpacing( 0.5 )
+	    )
+	))
+    );
+
+    if( Mode::cont && Users::start_dialog == "user_add" )
+    {
+	contents = add ( contents,
+	    `HVCenter(`PushButton(`id(`additional), `opt(`key_F3),
+		// push button
+		_("Additional Users and &Groups") ) )
+	);
+    }
+    else
+    {
+	contents = add( contents, `VStretch() );
+    }
+    /*
     term detailsmorebox =
         `HBox(
             // push button
             `PushButton(`id(`details),`opt(`key_F2), _("&Details...")),
-            `VStretch(),
             `PushButton(`id(`passwordsettings),`opt(`key_F7),
 		// push button label
-                _("&Password Settings")),
-            `VStretch());
+                _("&Password Settings"))
+	);
 
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
-        detailsmorebox = add(detailsmorebox,
+        detailsmorebox = `VBox (
+	    `HSquash(`HBox(`VBox(
+		// checkbox label
+		`Left(`CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
+		    Users::root_mail != "")),
+
+		`VSpacing (0.5),
+		// checkbox label
+		`Left(`CheckBox (`id (`autologin),_("Enable &Auto Login"), true))
+	    ))),
+	    `VSpacing (0.5),
+            detailsmorebox,
+	    `VSpacing (0.5),
             `PushButton(`id(`additional), `opt(`key_F3),
                 // push button
                 _("Additional Users and &Groups")));
-        detailsmorebox = `VBox (
-            // checkbox label
-            `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
-                Users::root_mail != ""),
-
-	    `VSpacing (0.5),
-            // checkbox label
-            `CheckBox (`id (`autologin),_("Enable &Auto Login"), true),
-
-            `VStretch (),
-            detailsmorebox);
     }
+    detailsmorebox = add(detailsmorebox, `VStretch());
+
     term contents =
         `HSquash(`VBox(
             `VStretch(),
@@ -173,6 +264,7 @@ can be changed for non-local users.
             `Password(`id(`pw2), _("Reenter the Password for &Verification"), ""),
             `VStretch(),
             detailsmorebox ));
+    */
 
     Wizard::SetContentsButtons(
             dialog_labels [ what, user_type ]:"",
@@ -190,7 +282,6 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`pw2), `Enabled, false);
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
-    //TODO: kerberos passwords editing: Users::kerberos_auth != "required")
 
     UI::ChangeWidget (`id (`username), `ValidChars, Users::valid_logname_chars);
 
