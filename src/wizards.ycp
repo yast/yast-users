@@ -68,6 +68,7 @@ define symbol SummaryDialog() ``{
     }
 
     return (symbol) ret;
+    // TODO before writing LDAP, check password..
 }
 
 

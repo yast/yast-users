@@ -94,6 +94,21 @@ my $min_gid 			= 1000;
 my $min_pass_length		= 5;
 my $max_pass_length		= 8;
 
+my @user_internal_keys		=
+    ("create_home", "grouplist", "groupname", "modified", "org_username",
+     "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
+     "org_type", "what",
+     "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
+
+# conversion table from parameter names used in yast (passwd-style) to
+# correct LDAP schema atrributes
+my %ldap_attrs_conversion	= (
+    # user:
+    "username"	=> "uid",
+    # group:
+    "groupname"	=> "cn"
+);
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -330,7 +345,7 @@ sub ReadSettings {
     }
 	
     if (defined $user_defaults{"homeDirectory"}) {
-	$useradd_defaults{"home"}	= $user_defaults{"homeDirectory"}[0];
+	$useradd_defaults{"home"}	= $user_defaults{"homeDirectory"};
     }
     if (defined $user_defaults{"gidNumber"}) {
 	$useradd_defaults{"group"}	= $user_defaults{"gidNumber"};
@@ -339,18 +354,18 @@ sub ReadSettings {
 	$useradd_defaults{"shell"}	= $user_defaults{"loginShell"};
     }
     if (defined $user_config{"skelDir"}) {
-	$useradd_defaults{"skel"}	= $user_config{"skelDir"};
+	$useradd_defaults{"skel"}	= $user_config{"skelDir"}[0];
     }
 
-#    # set default secondary groups FIXME
-#    # WARNING: there are DN's, but we expect only names...
-#    string grouplist = Users::ldap_default_grouplist;
-#    foreach (string dn, user_template ["secondaryGroup"]:[], ``{
-#	if (grouplist != "")
-#	    grouplist = grouplist + ",";
-#	grouplist = grouplist + get_first (dn);
-#    });
-#    Users::ldap_default_grouplist = grouplist;
+    # set default secondary groups
+    # Warning: there are DN's, but we want (?) only names...
+    if (defined ($user_template{"secondaryGroup"})) {
+	my @grouplist	= ();
+	foreach my $dn (@{$user_template{"secondaryGroup"}}) {
+	    push @grouplist, UsersCache::get_first ($dn);
+	}
+	$useradd_defaults{"groups"}	= join (",", @grouplist);
+    };
 
     # password length (there is no check if it is correct for current hash)
     if (defined ($user_config{"minPasswordLength"})) {
@@ -468,6 +483,12 @@ sub InitConstants {
 #}
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function", "string"];}
+sub GetDefaultGrouplist {
+    return $useradd_defaults{"groups"};
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGID} = ["function", "integer"];}
 sub GetDefaultGID {
     return $useradd_defaults{"group"};
@@ -547,5 +568,173 @@ BEGIN { $TYPEINFO{GetUserBase} = ["function", "string"];}
 sub GetUserBase {
     return $user_base;
 }
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetUserInternal} = ["function", ["list", "string"]];}
+sub GetUserInternal {
+    return @user_internal_keys;
+}
+
+
+##------------------------------------
+# Convert internal map describing user to map that could be passed to
+# ldap-agent (remove internal keys, rename attributes etc.)
+# @param user map of user
+# @return converted map
+sub ConvertUser {
+
+    my $user		= $_[0];
+    my %ret		= ();
+    my @attributes	= Ldap::GetObjectAttributes ($user->{"objectClass"});
+
+    foreach my $key (keys %{$user}) {
+	my $val	= $user->{$key};
+	if (contains (\@user_internal_keys, $key) || ref ($val) eq "HASH") {
+	    next;
+	}
+	if ($key eq "userPassword") {
+	    if  (contains (["x","*","!"], $val)) {
+		next;
+	    }
+#	    if ($encryption ne "clear" && FIXME
+#		!issubstring ((string)value,
+#		    sformat("{%1}",toupper (Users::ldap_encryption))))
+#	    {
+#		val = sformat ("{%1}%2",toupper(Users::ldap_encryption), value);
+#	    }
+	}
+
+	# check if the attributes are allowed by objectClass
+	my $attr = $ldap_attrs_conversion{$key} || $key;
+	if (!contains (\@attributes, $attr)) {
+	    y2warning ("attribute $attr is not allowed by schema");
+	    next;
+	}
+	if ($val ne "") {
+	$ret{$attr}	= $val;
+	}
+    };
+    return \%ret;
+}
+
+##------------------------------------
+# Writing modified LDAP users with
+# @param ldap_users map of all ldap users
+# @param server true if this machine is file for LDAP
+# @return empty map on success, map with error message and code otherwise
+BEGIN { $TYPEINFO{WriteUsers} = ["function",
+    "string",
+    ["map", "string", "any"]];
+}
+sub WriteUsers {
+
+    my %ret		= ();
+    my $dn_attr 	= $user_naming_attr;
+    my $last_id 	= $last_uid;
+    my $users		= $_[0];
+    my $server		= 0; # TODO file_server
+
+    foreach my $uid (keys %{$users}) {
+
+	my $user		= $users->{$uid};
+
+        my $action      = $user->{"modified"};
+        if (!defined ($action)) { #TODO return on first error || !%ret)
+            next; 
+	}
+        my $home	= $user->{"homeDirectory"} || "";
+        my $org_home	= $user->{"org_homeDirectory"} || $home;
+        my $gid		= $user->{"gidNumber"} || GetDefaultGID ();
+	my $create_home	= $user->{"create_home"} || 0;
+	my $delete_home	= $user->{"delete_home"} || 0;
+
+	# old DN stored from ldap-search (removed in Convert)
+	my $dn		= $user->{"dn"}	|| "";
+	my $org_dn	= $user->{"org_dn"} || $dn;
+	my @obj_classes	= @{$user->{"objectClass"}};
+	if (@obj_classes == 0) {
+	    @obj_classes= @user_class;
+	}
+	# check allowed object classes
+	my @ocs		= ();
+	foreach my $oc (@obj_classes) {
+	    if (Ldap::ObjectClassExists ($oc)) {
+		push @ocs, $oc;
+	    }
+	}
+	$user->{"objectClass"}	= \@ocs;
+	$user			= ConvertUser ($user);
+	my $rdn			= "$dn_attr=".$user->{$dn_attr};
+	my $new_dn		= "$rdn,$user_base";
+	my %arg_map		= (
+	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
+	);
+	# FIXME: where to check missing attributes?
+UsersCache::DebugMap ($user);
+        if ($action eq "added") {
+	    if (! SCR::Write (".ldap.add", \%arg_map, $user)) {
+		%ret	= %{Ldap::LDAPErrorMap ()};
+	    }
+            # on server, we can modify homes
+            else {
+		if ($uid > $last_id) {
+		    $last_id = $uid;
+		}
+#		if ($server) { FIXME *Home are in Users.pm...
+#		    if ($create_home) {
+#			CreateHome ($useradd_defaults{"skel"}, $home);
+#		    }
+#		    ChownHome ($uid, $gid, $home);
+#		}
+	    }
+        }
+        elsif ($action eq "deleted") {
+	    if (! SCR::Write (".ldap.delete", \%arg_map)) {
+		%ret = %{Ldap::LDAPErrorMap ()};
+	    }
+#            elsif ($server && $delete_home) {
+#                DeleteHome ($home);
+#            }
+        }
+        elsif ($action eq "edited") {
+	    # if there are some attributes with empty values, agent should
+	    # care of them - it will either:
+	    # 1. delete the attribute (if there was a value before) or
+	    # 2. ignore given attribute (when it doesn't exist)
+	    $arg_map{"check_attrs"}	= YaST::YCP::Boolean (1);
+
+	    if (lc ($dn) ne lc ($org_dn)) {
+		$arg_map{"rdn"}	= $rdn;
+		# TODO enable moving in tree (editing the whole dn)
+	    }
+
+	    if (! SCR::Write (".ldap.modify", \%arg_map, $user)) {
+		%ret = %{Ldap::LDAPErrorMap ()};
+	    }
+#	    else {
+#		if ($server && $home ne $org_home) {
+#		    if ($create_home) {
+#			MoveHome ($org_home, $home);
+#		    }
+#		    ChownHome ($uid, $gid, $home);
+#		}
+#            }
+        }
+    }
+    if ($last_id != $last_uid && $user_config_dn ne "")  {
+	# set nextUniqueId in user config module
+	$user_config{"nextUniqueId"}	= [ $last_id ];
+	my %modules	= (
+	    $user_config_dn => {
+		"modified"	=> "edited"
+	    }
+	);
+	$modules{$user_config_dn}{"nextUniqueId"} =$user_config{"nextUniqueId"};
+        %ret = %{Ldap::WriteToLDAP (\%modules)};
+    }
+#    return ret;
+    return "";
+}
+
 
 # EOF
