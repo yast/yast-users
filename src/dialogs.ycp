@@ -30,9 +30,6 @@ include "users/helps.ycp";
  * @return symbol for wizard sequencer
  */
 global define symbol EditUserDialog(symbol what) ``{
-// po details se vsechno generuje znova !!
-y2milestone ("------ what:%1, in work: %2", what, Users::user_in_work);
-y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
 
     if (Users::start_dialog == "user_add" && Mode::cont && Users::use_next_time)
     {
@@ -63,9 +60,7 @@ y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
     string  shell       = Users::user_in_work["shell"]:Users::default_shell;
     integer uid         = Users::user_in_work["uid"]:nil;
     string  password    = Users::user_in_work["password"]:"";
-//    string  old_password= Users::user_in_work["old_password"]:password;
     string  grouplist   = Users::user_in_work["grouplist"]:"empty";
-//    boolean pwd_chng    = Users::user_in_work["pwd_chng"]:false;//??
     symbol  user_type   = Users::user_in_work["type"]:nil;
     list removed_grouplist = Users::user_in_work["removed_grouplist"]:[];
     string org_username = Users::user_in_work["org_username"]:username;
@@ -155,7 +150,6 @@ y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
     // running in inst-sys and first mask to a user
     if( Mode::cont && Users::start_dialog == "user_add" )
     {
-y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
         detailsmorebox = add(detailsmorebox,
             // push button
             `PushButton(`id(`additional), _("Additional users/&groups")));
@@ -221,7 +215,7 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
     // it should be editable some time...
-    if (user_type == `ldap)
+    if (user_type == `ldap || Users::kerberos_auth)
     {
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
         if (what == `edit_user)
@@ -312,7 +306,6 @@ can be changed for non-local users.
 //          if( Mode::cont && !details && ret != `additional && Users::start_dialog == "user_add" )
             if( Mode::cont && ret == `next && Users::start_dialog == "user_add" )
             {
-y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
                 // yes-no popup headline
                 if (  UI::YesNoHeadlinePopup(_("Empty user login"),
                 // yes-no popup contents
@@ -594,7 +587,6 @@ Use it and change its owner?
     // leave sequencer and start it again with new Users::start_dialog
     if (Users::start_dialog == "user_add" && Mode::cont)
     {
-y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
         Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
             ? username : "";
     }
@@ -616,7 +608,6 @@ y2milestone ("start dialog = %1, Mode::cont%2", Users::start_dialog,Mode::cont);
  */
 global define symbol EditUserDetailsDialog( ) ``{
 
-y2milestone ("------ in work: %1", Users::user_in_work);
     //load the current usersettings from Users::user_in_work
     symbol what           = Users::user_in_work["what"]:`nix;
     string username       = Users::user_in_work["username"]:"";
@@ -675,8 +666,6 @@ y2milestone ("------ in work: %1", Users::user_in_work);
                     `item( `id(group), group, false));
         });
     });
-
-//y2milestone ("additional: %1", additional_groups);
 
     term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch),
         // combobox label
@@ -895,51 +884,6 @@ may be unable to log in. Continue?
                     if (! contains (new_list_grouplist, group) && group!="")
                         removed = add (removed, group);
                 });
-                //if two entries for one group in new_groups delete one
-/*                list tmp_new_groups  = new_groups;
-                list double_entries = [];
-                foreach( `new_group, tmp_new_groups , ``{
-                    if ( (size( filter(`k, tmp_new_groups , ``( k == new_group ))) > 1 ) &&
-                    ( ! contains( double_entries, new_group) ))
-                    {
-                    double_entries =  add( double_entries ,  new_group );
-                    new_groups = filter(`k, new_groups , ``( k != new_group ));
-                    new_groups = add( new_groups , new_group );
-                    }
-                });
-                new_grouplist  = mergestring( new_groups ,",");
-y2milestone("new grouplist: %1", new_grouplist);*/
-
-                /*
-                if (new_grouplist != "")
-                    new_grouplist = "," + new_grouplist;
-                */
-
-                // -- why is this check needed??
-                /*
-                boolean input_ok = true;
-                foreach( `new_group, new_groups , ``{
-                if( input_ok )
-                {
-                    boolean found = false;
-                    foreach(`key, `exist_group, Users::groups, ``{ // !!
-                    if( lookup( exist_group, "groupname", "") == new_group )
-                    {
-                        found = true;
-                    }
-                    });
-                    if ( found == false )
-                    {
-                    // error popup
-                    Report::Error(_("You can only assign the user
-groups that really exists.
-Please try again."));
-                    UI::SetFocus(`id(`grouplist));
-                    input_ok = false;
-                    }
-                }
-                });
-                if( ! input_ok ) continue;*/
             }
             else
             {
@@ -1150,7 +1094,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
         ]
     ];
 
-
     // load group saved in group_in_work
     string  groupname   = Users::group_in_work["groupname"]:"";
     string  password    = Users::group_in_work["password"]:"x";
@@ -1186,36 +1129,8 @@ global define symbol EditGroupDialog(symbol what ) ``{
         }
     }
 
-    // -- this could be also pre-builded, then changed via ChangeWidget ??
-    foreach ( `type, `userset, UsersCache::usernamelists, ``{
-        foreach ( `username, userset, ``{
-            boolean in_more = false;
-            if ( contains (list_more_users, username))
-            {
-                additional_users [`more] = add (additional_users [`more]:[],
-                    `item( `id(username), username, true ));
-                in_more = true;
-            }
-            if ( contains (list_userlist, username) )
-                additional_users [`ulist] = add (additional_users [`ulist]:[],
-                    `item( `id(username), username, true ));
-            else if (!in_more)
-                additional_users [`ulist] = add (additional_users [`ulist]:[],
-                    `item( `id(username), username, false));
-        });
-    });
-
-    // maybe some users are not accesible in usernamelist (not loaded yet),
-    // but they are in userlist...
-    foreach (`username, list_userlist, ``{
-        if (! contains (additional_users [`ulist]:[],
-                `item ( `id(username), username, true)))
-        {
-            additional_users [`ulist] = add (additional_users [`ulist]:[],
-                `item( `id(username), username, true ));
-        }
-    });
-
+    // now, the additional userlist should be builded:
+    additional_users = Users::BuildAdditional (userlist, more_users);
 
     boolean more = false;
     if (size(list_more_users) > 0)
@@ -1262,11 +1177,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
                         UI::BackButtonLabel(),
                         UI::NextButtonLabel());
 
-    /*
-    UI::ChangeWidget(`id(`userlist), `SelectedItems,
-        union (list_more_users, list_userlist));
-    */
-
     if( what == `add_group && ! Mode::cont)
         // push button
         Wizard::ReplaceNextButton(`PushButton (`id (`next), _("&Create")));
@@ -1288,7 +1198,6 @@ global define symbol EditGroupDialog(symbol what ) ``{
     symbol ret = `next;
     repeat
     {
-
         ret = UI::UserInput();
 
         if ( ret == `next  )
@@ -1506,43 +1415,6 @@ Please try again."));
                 }
             }
 
-            /*
-            // these 3 foreach's should be fasten !!!
-            // 1. looking for illegaly removed (more_users) users
-            // - only the smaller set could be checked
-            boolean all_ok = true;
-
-            foreach (`user, list_more_users, ``{
-                if (! contains (new_users, user))
-                {
-                    // error popup
-                    string error_text = sformat (_("You can't delete the user -%1- from this group,
-because the user's defaultgroup is this group"), user );
-                    Report::Error (error_text);
-                    UI::SetFocus (`id (`userlist));
-                    all_ok = false;
-                }
-            });
-
-            if (!all_ok)
-            {
-//                removed = [];
-                continue;
-            }
-
-            // 2. build the new userlist
-            foreach (`user, new_users, ``{
-                if (!contains (list_more_users, user))
-                    l_new_userlist = add (l_new_userlist, user);
-            });
-
-            // 3. which users are regulary (userlist) removed?
-            foreach (`user, list_userlist, ``{
-                if (!contains (l_new_userlist, user))
-                    removed = add (removed, user);
-            });
-            */
-//            new_userlist = mergestring(l_new_userlist, "," );
             foreach (`user, list_userlist, ``{
                 if (!contains (new_users, user))
                     removed = add (removed, user);

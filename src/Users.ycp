@@ -432,6 +432,7 @@ global boolean is_nis_available = false;
 global boolean is_nis_master = false;
 global boolean is_ldap_available = false;
 global boolean is_ldap_server = false;
+global boolean kerberos_auth = false;
 
 // users like ldap/nis are not read by default, but could be read on demand:
 boolean nis_not_read = true;
@@ -554,7 +555,6 @@ global define symbol Read (block abort, boolean useUI) ``{
 		return `abort;
 	    }
 	}
-SCR::Execute(.target.bash, "touch /tmp/touch/1a_start_read");
 
 	if ( ! ReadLoginDefaults() )
 	{
@@ -592,6 +592,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1a_start_read");
     is_nis_available = IsNISAvailable (user_sources);
     is_nis_master = IsNISMaster ();
     is_ldap_available = IsLDAPAvailable (user_sources);
+    kerberos_auth = KerberosAuth();
 
     if ( is_nis_master && useUI)
     {
@@ -612,14 +613,12 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1a_start_read");
 	    }
 	}
 
-SCR::Execute(.target.bash, "touch /tmp/touch/1b_before_passwd");
     tmpdir = SCR::Read(.target.tmpdir);
 
     if ( !RunPrepare("passwd") )
     {
 	    Report::Error (_("Cannot run preparation script."));
     }
-SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 
 	// read password settings
 	if( useUI )
@@ -682,10 +681,7 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 	    }
 	}
 
-SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
-
     users = ReadPasswd (tmpdir);
-SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 
     plus_passwd = ReadPlusPasswd (tmpdir);
     users_by_name = ReadPasswdByName (tmpdir);
@@ -737,7 +733,6 @@ SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
     ReadAllShells();
     ReadDefaultGroup(useUI);
 
-SCR::Execute(.target.bash, "touch /tmp/touch/5before_cache_read");
 	// build the cache
 	if( useUI )
 	{
@@ -748,12 +743,9 @@ SCR::Execute(.target.bash, "touch /tmp/touch/5before_cache_read");
 	    }
 	}
     ReadUsersCache(true);
-SCR::Execute(.target.bash, "touch /tmp/touch/6after_cache_read");
 
 	// increase the progress to "finish"
 	if( useUI ) Progress::NextStage ();
-
-SCR::Execute(.target.bash, "touch /tmp/touch/7end_read");
 
 	return `next;
 }
@@ -2131,6 +2123,27 @@ global define list GetUsersSources() ``{
     return splitstring(passwd_source, " ");
 }
 
+/*
+ * Calls the script which builds the widget contens for EditGroup dialog
+ @ param userlist the list of users, having this group as additional
+ @ param more_users the list of users, having this group as default group
+ */
+global define map BuildAdditional (string userlist, string more_users) ``{
+
+    SCR::Write(.target.string, tmpdir + "/additional_userlist", userlist);
+    SCR::Write(.target.string, tmpdir + "/additional_moreusers", more_users);
+    SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
+        UsersCache::usernamelists);
+
+    if (0 != SCR::Execute(.target.bash, sformat(
+        "%1/build_additional_users.pl %2", Directory::bindir, tmpdir)))
+        return $[];
+    else
+        return $[
+            `ulist: SCR::Read(.target.ycp, tmpdir + "/additional_ulist.ycp"),
+            `more:  SCR::Read(.target.ycp, tmpdir + "/additional_more.ycp")
+        ];
+}
 
 // remove tmpdir -- only when abort or back was pushed -- is it safe ??
 /* do not set as global
