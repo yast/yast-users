@@ -18,6 +18,7 @@ import "Report";
 import "Progress";
 import "Summary";
 import "Require";
+import "Autologin";
 
 import "Users";
 import "UsersCache";
@@ -168,7 +169,7 @@ can be changed for non-local users.
 	    `VSpacing (0.5),
 	    // checkbox label
 	    `Left( `CheckBox (`id (`autologin),_("A&uto Login"),
-		Users::autologin_used) )
+		Autologin::used) )
 	);
 	optionbox = `HBox(
 			  `HStretch(),
@@ -260,7 +261,8 @@ can be changed for non-local users.
         UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
     }
 
-    if (complex_layout && !Users::autologin_available)
+    // FIXME popup? helptext?
+    if (complex_layout && !Autologin::available)
 	UI::ChangeWidget(`id(`autologin), `Enabled, false );
 
     any ret = `next;
@@ -707,11 +709,11 @@ _("<p>Really use the entered value?</p>");
     {
         Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
             ? username : "";
-	if (Users::autologin_available)
+	if (Autologin::available)
 	{
-	    Users::autologin = UI::QueryWidget (`id (`autologin), `Value)
+	    Autologin::user = UI::QueryWidget (`id (`autologin), `Value)
 		? username : "";
-	    Users::autologin_used = UI::QueryWidget (`id (`autologin), `Value);
+	    Autologin::used = UI::QueryWidget (`id (`autologin), `Value);
 	}
     }
     if( ret == `additional ||  ret == `nosave )
@@ -2315,7 +2317,7 @@ global define symbol AuthentizationDialog() ``{
         `HSpacing(4)
     );
 
-    // dialog title
+    // dialog title FIXME "sources of user data/accounts..."
     string title = _("Authentication and User Sources");
 
     Wizard::SetContentsButtons (title, contents, AuthentizationDialogHelp(),
@@ -2367,6 +2369,7 @@ Install it now?
     }
     return button;
 }
+
 
 /**
  * Just giving paramaters for commiting user
