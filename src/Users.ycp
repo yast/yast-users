@@ -1684,7 +1684,7 @@ global define boolean Commit (string object, boolean cache)``{
         string org_groupname = group_in_work ["org_groupname"]:groupname;
         string userlist = group_in_work ["userlist"]:"";
         list l_userlist = splitstring (userlist, ",");
-//y2error("group: %1", group_in_work);
+//y2warning("group: %1", group_in_work);
 
         if (org_groupname == "")
             org_groupname = groupname;
@@ -2412,7 +2412,7 @@ global define integer NextFreeUid() ``{
  * Read new set of users - "on demand" (called from running module)
  * @param type the type of users, currently `ldap or `nis
  */
-define void ReadNewSet (symbol type) ``{
+global define void ReadNewSet (symbol type) ``{
 
     if (type == `nis)
     {
