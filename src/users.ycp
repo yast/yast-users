@@ -87,7 +87,7 @@
     include "users/io.ycp";
 
     map    settings = $[];
-    string language = UI( `GetLanguage());
+    string language = UI( `GetLanguage(true));
     settings        = SelectConsoleFont( language);
     string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
 
