@@ -46,6 +46,7 @@
     "type":`local]
     ];
 
+    Users::groups_by_name [`local] = $[];
 
     DUMP ( sformat ("local groups:\n %1", Users::groups [ `local ]:$[]) );
 
@@ -69,5 +70,4 @@
 
     DUMP ( sformat ("local group itemlist modified:\n %1",
         UsersCache::groups_itemlists [ `local ]:[]) );
-
 }

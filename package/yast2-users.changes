@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Wed Jan  8 13:04:06 CET 2003 - jsuchome@suse.de
+
+- fix: created path to home directory if not exist
+- check if home directory is mounted (bug #20365)
+- check for installed packages
+- read speedup (script)
+- enabled reading NIS groups
+- enabled reading and editing LDAP groups
+- 2.7.4
+
+-------------------------------------------------------------------
 Wed Dec 18 10:17:42 CET 2002 - jsuchome@suse.de
 
 - fixes: missing newlines on write, reading /etc/group, writing shadow

@@ -35,7 +35,8 @@ $gshadow_input  = $input_dir."/gshadow";
 
 $group_system_output            = $output_dir."/group_system.ycp";
 $group_local_output             = $output_dir."/group_local.ycp";
-$group_byname_output            = $output_dir."/group_byname.ycp";
+$group_byname_local             = $output_dir."/group_local_byname.ycp";
+$group_byname_system            = $output_dir."/group_system_byname.ycp";
 $group_system_itemlist          = $output_dir."/group_system_itemlist.ycp";
 $group_local_itemlist           = $output_dir."/group_local_itemlist.ycp";
 
@@ -50,30 +51,30 @@ $passwd_local_output            = $output_dir."/passwd_local.ycp";
 $passwd_system_byname_output    = $output_dir."/passwd_system_byname.ycp";
 $passwd_local_byname_output     = $output_dir."/passwd_local_byname.ycp";
 
-#$additional_users               = $output_dir."/additional_users.ycp";
-        
 $usernamelist_local  = $output_dir."/usernamelist_local.ycp";
-$usernamelist_system  = $output_dir."/usernamelist_system.ycp";
+$usernamelist_system = $output_dir."/usernamelist_system.ycp";
 
 $homelist_local      = $output_dir."/homelist_local.ycp";
-$homelist_system      = $output_dir."/homelist_system.ycp";
+$homelist_system     = $output_dir."/homelist_system.ycp";
 
 $passwd_system_itemlist         = $output_dir."/itemlist_system.ycp";
 $passwd_local_itemlist          = $output_dir."/itemlist_local.ycp";
 
-$uidlist_local       = $output_dir."/uidlist_local.ycp";
-$uidlist_system       = $output_dir."/uidlist_system.ycp";
+$uidlist_local          = $output_dir."/uidlist_local.ycp";
+$uidlist_system         = $output_dir."/uidlist_system.ycp";
 
-$groupnamelist_file  = $output_dir."/groupnamelists.ycp";
-$gidlist_file       = $output_dir."/gidlist.ycp";
+$groupnamelist_local    = $output_dir."/groupnamelist_local.ycp";
+$groupnamelist_system   = $output_dir."/groupnamelist_system.ycp";
+$gidlist_local          = $output_dir."/gidlist_local.ycp";
+$gidlist_system         = $output_dir."/gidlist_system.ycp";
 
-$plus_passwd_file = $output_dir."/plus_passwd.ycp";
-$plus_group_file = $output_dir."/plus_group.ycp";
-$plus_shadow_file = $output_dir."/plus_shadow.ycp";
-$plus_gshadow_file = $output_dir."/plus_gshadow.ycp";
+$plus_passwd_file   = $output_dir."/plus_passwd.ycp";
+$plus_group_file    = $output_dir."/plus_group.ycp";
+$plus_shadow_file   = $output_dir."/plus_shadow.ycp";
+$plus_gshadow_file  = $output_dir."/plus_gshadow.ycp";
 
 $last_local      =   $output_dir."/last_local_uid.ycp";
-$last_system      =   $output_dir."/last_system_uid.ycp";
+$last_system     =   $output_dir."/last_system_uid.ycp";
 
 # hash with the form: user => group1,group2
 %users_groups = ();
@@ -449,16 +450,27 @@ print_date ("passwd done");
 
 open YCP_GROUP_LOCAL, "> $group_local_output";
 open YCP_GROUP_SYSTEM, "> $group_system_output";
-open YCP_GROUP_BYNAME, "> $group_byname_output";
+open YCP_GROUP_BYNAME_LOCAL, "> $group_byname_local";
+open YCP_GROUP_BYNAME_SYSTEM, "> $group_byname_system";
 open YCP_GROUP_ITEMLIST_SYSTEM, "> $group_system_itemlist";
 open YCP_GROUP_ITEMLIST_LOCAL, "> $group_local_itemlist";
 
-open YCP_GIDLIST, "> $gidlist_file";
-print YCP_GIDLIST "[\n";
+open YCP_GIDLIST_LOCAL, "> $gidlist_local";
+print YCP_GIDLIST_LOCAL "[\n";
+
+open YCP_GIDLIST_SYSTEM, "> $gidlist_system";
+print YCP_GIDLIST_SYSTEM "[\n";
+
+open YCP_GROUPNAMELIST_LOCAL, "> $groupnamelist_local";
+print YCP_GROUPNAMELIST_LOCAL "[\n";
+
+open YCP_GROUPNAMELIST_SYSTEM, "> $groupnamelist_system";
+print YCP_GROUPNAMELIST_SYSTEM "[\n";
 
 print YCP_GROUP_LOCAL "\$[\n";
 print YCP_GROUP_SYSTEM "\$[\n";
-print YCP_GROUP_BYNAME "\$[\n";
+print YCP_GROUP_BYNAME_LOCAL "\$[\n";
+print YCP_GROUP_BYNAME_SYSTEM "\$[\n";
 print YCP_GROUP_ITEMLIST_LOCAL "[\n";
 print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
 
@@ -482,6 +494,9 @@ foreach (values %groupmap)
     $YCP_GROUP = YCP_GROUP_LOCAL;
     $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_LOCAL;
     $YCP_GSHADOW = YCP_GSHADOW_LOCAL;
+    $YCP_GIDLIST = YCP_GIDLIST_LOCAL;
+    $YCP_GROUPNAMELIST = YCP_GROUPNAMELIST_LOCAL;
+    $YCP_GROUP_BYNAME = YCP_GROUP_BYNAME_LOCAL;
     if (($gid <= $max_system_gid || $groupname eq "nobody" ||
          $groupname eq "nogroup") &&
         ($groupname ne "users"))
@@ -490,6 +505,9 @@ foreach (values %groupmap)
         $YCP_GROUP = YCP_GROUP_SYSTEM;
         $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_SYSTEM;
         $YCP_GSHADOW = YCP_GSHADOW_SYSTEM;
+        $YCP_GIDLIST = YCP_GIDLIST_SYSTEM;
+        $YCP_GROUPNAMELIST = YCP_GROUPNAMELIST_SYSTEM;
+        $YCP_GROUP_BYNAME = YCP_GROUP_BYNAME_SYSTEM;
     }
 
     if (defined $gshadowmap{$groupname})
@@ -519,25 +537,18 @@ foreach (values %groupmap)
     print $YCP_GROUP "\t\t\"type\": `$group_type\n";
     print $YCP_GROUP "\t],\n";
 
-    print YCP_GROUP_BYNAME "\t\"$groupname\": \$[\n";
-    print YCP_GROUP_BYNAME "\t\t\"groupname\": \"$groupname\",\n";
-    print YCP_GROUP_BYNAME "\t\t\"pass\": \"$pass\",\n";
-    print YCP_GROUP_BYNAME "\t\t\"gid\": $gid,\n";
-    print YCP_GROUP_BYNAME "\t\t\"userlist\": \"$userlist\",\n";
-    print YCP_GROUP_BYNAME "\t\t\"more_users\": \"$more_users\",\n";
-    print YCP_GROUP_BYNAME "\t\t\"type\": `$group_type\n";
-    print YCP_GROUP_BYNAME "\t],\n";
+    print $YCP_GROUP_BYNAME "\t\"$groupname\": \$[\n";
+    print $YCP_GROUP_BYNAME "\t\t\"groupname\": \"$groupname\",\n";
+    print $YCP_GROUP_BYNAME "\t\t\"pass\": \"$pass\",\n";
+    print $YCP_GROUP_BYNAME "\t\t\"gid\": $gid,\n";
+    print $YCP_GROUP_BYNAME "\t\t\"userlist\": \"$userlist\",\n";
+    print $YCP_GROUP_BYNAME "\t\t\"more_users\": \"$more_users\",\n";
+    print $YCP_GROUP_BYNAME "\t\t\"type\": `$group_type\n";
+    print $YCP_GROUP_BYNAME "\t],\n";
            
-    if (defined  $groupnamelists{$group_type})
-    {
-        $groupnamelists{$group_type} .= ", \"$groupname\"";
-    }
-    else
-    {
-        $groupnamelists{$group_type} = "\"$groupname\"";
-    }
+    print $YCP_GROUPNAMELIST "\"$groupname\",";
     
-    print YCP_GIDLIST " $gid,";
+    print $YCP_GIDLIST " $gid,";
 
     $all_users = $userlist;
     if ($userlist ne "" && $more_users ne "")
@@ -565,16 +576,25 @@ foreach (values %groupmap)
 
 print YCP_GROUP_LOCAL "]\n";
 print YCP_GROUP_SYSTEM "]\n";
-print YCP_GROUP_BYNAME "]\n";
+print YCP_GROUP_BYNAME_LOCAL "]\n";
+print YCP_GROUP_BYNAME_SYSTEM "]\n";
 print YCP_GROUP_ITEMLIST_SYSTEM "]\n";
 print YCP_GROUP_ITEMLIST_LOCAL "]\n";
 
-print YCP_GIDLIST "]\n";
-close YCP_GIDLIST;
+print YCP_GIDLIST_LOCAL "]\n";
+close YCP_GIDLIST_LOCAL;
+print YCP_GIDLIST_SYSTEM "]\n";
+close YCP_GIDLIST_SYSTEM;
+
+print YCP_GROUPNAMELIST_LOCAL "]\n";
+close YCP_GROUPNAMELIST_LOCAL;
+print YCP_GROUPNAMELIST_SYSTEM "]\n";
+close YCP_GROUPNAMELIST_SYSTEM;
 
 close YCP_GROUP_LOCAL;
 close YCP_GROUP_SYSTEM;
-close YCP_GROUP_BYNAME;
+close YCP_GROUP_BYNAME_LOCAL;
+close YCP_GROUP_BYNAME_SYSTEM;
 close YCP_GROUP_ITEMLIST_SYSTEM;
 close YCP_GROUP_ITEMLIST_LOCAL;
 
@@ -584,10 +604,3 @@ print YCP_GSHADOW_SYSTEM "]\n";
 close YCP_GSHADOW_SYSTEM;
 
 print_date ("group done");
-
-open YCP_GROUPNAMES, "> $groupnamelist_file";
-print YCP_GROUPNAMES "\$[\n";
-print YCP_GROUPNAMES "\t`system: [ ".$groupnamelists{"system"}." ],\n";
-print YCP_GROUPNAMES "\t`local: [ ".$groupnamelists{"local"}." ],\n";
-print YCP_GROUPNAMES "]\n";
-close YCP_GROUPNAMES;

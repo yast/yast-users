@@ -20,6 +20,16 @@ global define map ReadNISUsersByName(string dir)``{
     return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
 }
 
+global define map ReadNISGroups(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/group_nis.ycp");
+}
+
+global define map ReadNISGroupsByName(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/group_nis_byname.ycp");
+}
+
 /**
   * Check whether host is NIS master
   * @return boolean true if is master

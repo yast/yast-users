@@ -55,8 +55,12 @@
     ];
 
     Users::groups_by_name = $[
-        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh", "type": `local ],
+     `local: $[
+        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh", "type": `local ]
+      ],
+      `system: $[
         "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"hh", "more_users": "", "type": `local ]
+      ]
     ];
 
     DUMP ( sformat ("local groups:\n %1\n", Users::groups [ `local ]:$[]) );
