@@ -21,9 +21,9 @@ Summary:        Users stuff for instsys
 
 @PREP@
 
-@BUILD-YCP@
+@BUILD@
 
-@INSTALL-YCP@
+@INSTALL@
 
 @CLEAN@
 
