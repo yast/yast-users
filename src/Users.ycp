@@ -993,6 +993,12 @@ define map ImportUser (map user) ``{
     {
         user_shadow = add (user_shadow, "password", pass);
     }
+	else {
+        user_shadow = shadow [type, username]:$[];
+        // real password is in shadow
+		user_shadow["password"] =
+            user ["user_password"]:shadow[type,username,"password"]:"x";
+	}
 
 
     if (uid == -1)
