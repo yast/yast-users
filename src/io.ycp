@@ -193,8 +193,11 @@
      * <TT>usersDeleteGroup</TT>
      * @param string <TT>todo</TT>
      */
-    global define usersAddTodo( string todo ) ``{
-	user_settings = add( user_settings ,  findNextTodoPos(),  todo );
+    global define usersAddTodo( string todo, symbol what, string error ) ``{
+	
+	user_settings = add( user_settings ,  findNextTodoPos(),  $[ "todo" : todo,
+								     "what" : what,
+								     "error": error ] );
 	return true;
     }
 
@@ -213,7 +216,9 @@
 	    if( sub_dir != "" )
 	    {
 		tmp_dir = tmp_dir + "/"+sub_dir;
-		if( nil == Dir(tmp_dir) )  usersAddTodo("/bin/mkdir " + tmp_dir);
+		if( nil == Dir(tmp_dir) )  usersAddTodo( ("/bin/mkdir " + tmp_dir),
+							 `mkdir,
+							 sformat(UI(_("Can't make directory %1")), tmp_dir));
 	    }
 	});
     }
@@ -227,7 +232,11 @@
     global define usersAddMoveDir(string old_home, string  home )``{
 	//usersAddMakeHomeDir(home);
 
-	usersAddTodo(("/bin/mv " + old_home + " " +  home ));
+	usersAddTodo( ("/bin/mv " + old_home + " " +  home ),
+		      `mv,
+		      sformat(UI(_("Can't move old home directory %1
+to new home directory %2")), old_home, home));
+	
 	//usersAddTodo(("/bin/rm -r " + old_home));
     }
 
@@ -238,9 +247,18 @@
      * @param string <TT>home</TT>, string <TT>user</TT> and string <TT>group</TT>
      */ 
     global define usersAddChownHome( string home, string user, string group)``{
-	//usersAddTodo(("/bin/chown -R " + user + ":" + group + " " + home ));
-	usersAddTodo(("/bin/chmod g-rx " + home ));
-	usersAddTodo(("/bin/chmod o-rx " + home ));
+
+	usersAddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
+		     `chown,
+		     UI(_("Can't set user and group variable to the home directory")));
+	
+	usersAddTodo(("/bin/chmod g-rx " + home ),
+		     `chown,
+		     UI(_("Can't set read and write permissions to the home directory")));
+
+	usersAddTodo(("/bin/chmod o-rx " + home ),
+		     `chown,
+		     UI(_("Can't set read and write permissions to the home directory")));
     }
 
 
@@ -263,6 +281,7 @@
 	string  todo     = "/usr/sbin/usermod";
 	boolean do_exist = true;
 	map     org_user = lookup( current_users, uid , $[]);
+	string  comment  = usersConsoleEncoding( fullname );
 		      
 	// ToDo write a User;
 	/*
@@ -276,8 +295,8 @@
 	    //add shell, home, initial_group, password, uid to string
 	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell, home, groupIdToName(gid ), password, uid);
 
-	    //add fullname to string
-	    if ( fullname  != "") todo = todo + " -c '" + fullname + "'";
+	    //add fullname to string (comment)
+	    if ( comment  != "") todo = todo + " -c " + comment;
 
 	    //add groups to string
 	    if ( grouplist != "") todo = todo + " -G " + grouplist;
@@ -286,7 +305,19 @@
 	    todo = todo + " " + username;
 
 	    usersAddMakeHomeDir( home );
-	    usersAddTodo( todo );
+
+	    if( fileexist ("/usr/sbin/useradd.local") )
+	    {	
+		usersAddTodo( ("/usr/sbin/useradd.local " + username ),
+			      `add_user_local,
+			      UI(_("Can't execute /usr/sbin/useradd.local")));
+	    }
+
+
+	    usersAddTodo( todo ,
+			  `add_user,
+			  sformat(UI(_("Can't create the new user %1")), username ) );
+	    
 	    usersAddChownHome( home, username , groupIdToName(gid ));
 	}
 	else
@@ -295,7 +326,7 @@
 	    if ( lookup( org_user, "gid" ,     "" ) != gid      )  todo = todo + " -g "  + groupIdToName(gid  );
 
 	    //add comment to string 
-	    if ( lookup( org_user, "fullname", "" ) != fullname )  todo = todo + " -c '" + fullname +"'";
+	    if ( lookup( org_user, "fullname", "" ) != fullname )  todo = todo + " -c " + comment ;
 
 	    //add home_dir to string
 	    if ( lookup( org_user, "home" ,    "" ) != home     )
@@ -323,7 +354,9 @@
 	    // add username to string
 	    todo = todo + " " + userIdToName( uid );
 
-	    usersAddTodo( todo );
+	    usersAddTodo( todo,
+			  `edit_user,
+			  sformat(UI(_("Can't change the settings of the user %1")), username ));
 
 	    if ( lookup( org_user, "username" ,"")  != username  ||
 		 lookup( org_user, "gid" ,     "" ) != gid       ||
@@ -460,7 +493,11 @@
 	   if ( what == `add_group )
 	   {
 	       do_exist = false;
-	       usersAddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname )  );
+	       
+	       usersAddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname ),
+			     `add_group,
+			     sformat(UI(_("Can't create new group %1")), new_groupname));
+	       
 	       if ( userlist != "" )
 	       {
 		   list split_userlist = splitstring( userlist , "," );
@@ -468,7 +505,9 @@
 		       string new_G = findGroupsBelongUser(user);
 		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
 		       else new_G  = new_groupname;
-		       usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ));
+		       usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ),
+				     `edit_user,
+				     sformat(UI(_("Can't add user %1 to group %2")), user, new_G));
 		   });
 	       }
 	   }
@@ -498,7 +537,9 @@
 			   string new_G = findGroupsBelongUser(user);
 			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
 			   else new_G  = old_groupname;
-			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ));
+			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ),
+					 `edit_user,
+					 sformat(UI(_("Can't add user %1 to group %2")), user, new_G));
 		       });
 		   }
 		   else
@@ -512,7 +553,9 @@
 			   string new_G      = findGroupsBelongUser(user);			   
 			   list   new_G_list = splitstring( new_G , "," );
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
-			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ));
+			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
+					 `edit_user,
+					 sformat(UI(_("Can't add user %1 to group %2")), user, new_new_G));
 		       });
 		       
 		   }
@@ -524,7 +567,9 @@
 		   todo = todo + " -g " + sformat("%1", gid) + " -o";
 
 	       if ( todo != "/usr/sbin/groupmod" )
-		   usersAddTodo(todo + " " +  old_groupname );
+		   usersAddTodo( (todo + " " +  old_groupname),
+				 `edit_group,
+				 sformat(UI(_("Can't change the settings of the group %1")), old_groupname) );
 	       
 	      
 	   }
@@ -641,8 +686,9 @@
 
 		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0)), "groupname");
 		    string more_groups = findGroupsBelongUser( username );
+	
 		    
-		    if ( issubstring ( more_groups, grouplist )) grouplist = more_groups;
+		    if ( contains ( splitstring( more_groups , "," ) , grouplist )) grouplist = more_groups;
 		    else
 		    {
 			if( more_groups != "" ) grouplist = grouplist + "," + more_groups;
@@ -742,5 +788,37 @@
 
 
 	return available_shells;
-    }    
+    }
+
+
+    /**
+     * Encode the fullname?
+     * This is used in <TT>usersUserSaveToMap</TT>.
+     * @param string <TT>fullname</TT>  
+     */
+    global define usersConsoleEncoding( string fullname ) ``{
+
+	include "font_defines.ycp";
+	any ret = findfirstof( fullname , "\"" );
+	
+	if( !isnil( ret ))
+	{
+	    string split_list = splitstring( fullname, "\"");
+	    fullname = "";
+	    
+	    foreach ( `split , split_list, ``{
+		if( fullname == "" ) fullname = split;
+		else fullname = fullname + "\\\"" + split; 
+	    });
+	}
+
+	      
+	map    settings = $[];
+	string language = UI( `GetLanguage() );
+	settings        = SelectConsoleFont(settings, language);
+	string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
+	string comment  = UI(`Recode ("utf-8", encoding, sformat("\"%1\"", fullname )));
+
+	return comment;
+    }
 }

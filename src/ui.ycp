@@ -188,7 +188,7 @@
 				 `HWeight(40,  edit_shell )
 				 ),
 			   `VSpacing(2),	
-			   `TextEntry(`id(`grouplist), _("Additional group menbership (group1, group2, .. )")
+			   `TextEntry(`id(`grouplist), _("Additional group membership (group1, group2, .. )")
 				      ,grouplist ),
 			   `VSpacing(2)
 			   ),
@@ -240,7 +240,7 @@ Please select a valid integer between 0 and %1")), max_uid );
 			    
 			    // tell the max_system_uid
 			    string error = sformat(UI(_("The selected User Id is a system Id,
-because the Id is bigger than %1. \nDo you really want to create a new system user")), max_system_uid );
+because the Id is smaller than %1. \nDo you really want to create a new system user")), max_system_uid );
 			    if( ! UI(`YesNoPopup( error )))
 			    {
 				continue;
@@ -439,14 +439,16 @@ Please try again.")));
 	string  home           = lookup( user_in_work, "home"    , "/home/");
 	string  shell          = lookup( user_in_work, "shell"   , "/bin/bash");
 	integer uid            = lookup( user_in_work, "uid"     , max_uid );
-	string  surname        = usersSplitFullName(`surname,  fullname, uid); 
-	string  forename       = usersSplitFullName(`forename, fullname, uid);
+	string  surname        = lookup( user_in_work, "surname" , "empty" ); 
+	string  forename       = lookup( user_in_work, "forename", "empty" ); 
 	string  password       = lookup( user_in_work, "password", "");
 	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
 	if ( grouplist == "empty" && what == `edit_user)  grouplist = findGroupsBelongUser(username);
 	if ( grouplist == "empty" && what == `add_user )  grouplist = "dialout,uucp,video,audio";
+	if ( surname   == "empty" ) surname  =  usersSplitFullName(`surname,  fullname, uid);
+	if ( forename  == "empty" ) forename =  usersSplitFullName(`forename, fullname, uid);
 	if ( uid == max_uid )  uid = usersFreeUid(current_users);
-
+	
 	
 	term contents = 
 	    `HSquash(`VBox
@@ -494,7 +496,7 @@ Please try again.")));
 	else  if( what == `add_user )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
 	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Modify")));
 	
-	if( uid <= max_system_uid)
+	if( uid <= max_system_uid && what == `edit_user )
 	{
 	    UI(`ChangeWidget(`id(`propose), `Enabled, false ));
 	    UI(`ChangeWidget(`id(`forename),`Enabled, false ));
@@ -533,7 +535,6 @@ Please try again.")));
 		    if( forename != "" ) fullname = forename + " " + surname;
 		    else                 fullname = surname;
 		    
-		  
 		    
 		    if ( (what == `add_user  && fullname == "") ||
 			 (what == `edit_user && fullname == "" && ( lookup( user_in_work , "fullname", "") != "") ) )
@@ -692,7 +693,9 @@ Please try again.")));
 				     "shell"       :  shell,
 				     "uid"         :  uid,
 				     "username"    :  username,
-				     "grouplist"   :  grouplist
+				     "grouplist"   :  grouplist,
+				     "forename"    :  forename,
+				     "surname"     :  surname 
 		    ];
 
 		}
@@ -739,7 +742,16 @@ Please try again.")));
 	//build a shell delete comman and save it to user_settings
 	if( lookup( user_in_work, "exist", false ) )
 	{
-	    usersAddTodo("/usr/sbin/userdel " + username );
+	    if ( fileexist("/usr/sbin/userdel.local") )
+	    {
+		usersAddTodo(("/usr/sbin/userdel.local " + username),
+			     `del_user_local,
+			     UI(_("Can't execute /usr/sbin/useradd.local")));
+	    }
+	    
+	    usersAddTodo("/usr/sbin/userdel " + username ,
+			 `del_user,
+			 sformat(UI(_("Can't delete the user %1")), username) );
 	    usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
 	}
 		    
@@ -1001,6 +1013,7 @@ Please try again.")));
 		    if (  ( (pw1 != "") || (password == "x") ) &&
 			  ( (pw1 != default_pw) && (pw2 != default_pw))  )
 		    {
+			/*
 			if ( pw1 == "" )
 			{
 			    // There is a check whether the information from the
@@ -1017,7 +1030,8 @@ Please try again.")));
 			    UI(`SetFocus(`id(`pw1)));
 			    continue;
 			}
-			if ( size (pw1) < 5 )
+			*/
+			if ( size (pw1) < 5 && pw1 != "" )
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
@@ -1033,7 +1047,7 @@ Please try again.")));
 			    continue;
 			}
 			
-			if ( size(pw1) >= 5 )
+			if ( size(pw1) >= 5 && pw1 != "" )
 			{
 			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
 			    {
@@ -1150,7 +1164,7 @@ Please select a another Group Id")));
 			    }
 			}
 
-			if ( (what != `add_user ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
+			if ( (what != `add_group ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
 			{
 			    UI(`ErrorPopup(_("The inputted Group Id is a system Id.
 Please try again.")));
@@ -1158,7 +1172,7 @@ Please try again.")));
 			    continue;
 			}
 
-			if ( (what != `add_user ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
+			if ( (what != `add_group ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
 			{
 			    UI(`ErrorPopup(_("The inputted Group Id is not a system Id.
 Please try again.")));
@@ -1232,7 +1246,9 @@ Please try again.")));
 	    //add a shell delete command to user_settings
 	    if( lookup( group_in_work , "exist", false ) )
 	    {
-		usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "") ));
+		usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
+			     `del_group,
+			     sformat(UI(_("Can't delete group %1 ")),lookup( group_in_work, "groupname", "")));
 	    }
 	}
 	else
@@ -1254,6 +1270,8 @@ Delete this users first.")));
      */
     global define usersSaveDialog() ``{
 	
+	if ( size ( user_settings ) == 0 ) return true;
+
 	
 	term contents =   `VBox(
 				`VSpacing( 2 ),
@@ -1279,18 +1297,24 @@ Delete this users first.")));
 	if ( size( user_settings ) != 0)
 	{
 	
-	    foreach( `key, `doto, user_settings,``{
+	    foreach( `key, `todomap, user_settings,``{
 		//if( ok )
 		//{
-		    if( SCR(`Execute(.target.bash, doto )) == 0 )
-		    {
-			value = value + 1;
-			UI(`ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) ));
-		    }
-		    else
-		    {
-			ok = false;
-		    }
+		string todo  = lookup ( todomap , "todo" , "" );
+		symbol what  = lookup ( todomap , "what" , `error );
+		string error = lookup ( todomap , "error", "" );
+
+		
+		if( SCR(`Execute(.target.bash, todo )) == 0 )
+		{
+		    value = value + 1;
+		    UI(`ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) ));
+		}
+		else
+		{
+		    ok = false;
+		    UI(`ErrorPopup(error));
+		}
 		    //}
 	    });
 
