@@ -71,20 +71,13 @@ define symbol WriteDialog (boolean useUI) ``{
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
 
-    // A callback function for abort FIXME not functional now
-    block<boolean> abort = ``{
-        // popup text
-        if (UI::PollInput () == `abort && Popup::YesNo (_("Really abort the writing process?")))
-            return true;
-        return false;
-    };
-
     if (Users::LDAPModified () && (Ldap::anonymous || Ldap::bind_pass == nil))
     {
 	// ask for real LDAP password if reading was anonymous
 	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
 	if (Ldap::bind_pass == nil)
 	{
+	    // popup text
 	    if (Popup::YesNo (_("Really abort the writing process?")))
 		return `back;
 	}
