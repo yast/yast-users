@@ -5621,9 +5621,12 @@ sub Import {
 	return 0; #TODO do not return, just read less
     }
 
-    $shadow{"local"}		= {};
-    $users{"local"}		= {};
-    $users_by_name{"local"}	= {};
+    if (Mode->config ()) {
+	
+	$shadow{"local"}		= {};
+	$users{"local"}			= {};
+	$users_by_name{"local"}		= {};
+    }
 
     if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
         $users_modified		= 1;
@@ -5677,8 +5680,11 @@ sub Import {
 
     # we're not interested in local userlists...
     RemoveDiskUsersFromGroups ($groups{"system"});
-    $groups{"local"}		= {};
-    $groups_by_name{"local"}	= {};
+
+    if (Mode->config ()) {
+	$groups{"local"}		= {};
+	$groups_by_name{"local"}	= {};
+    }
 
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
 
@@ -5766,6 +5772,11 @@ sub Import {
     # initialize UsersCache: 1. system users and groups:
     UsersCache->ReadUsers ("system");
     UsersCache->ReadGroups ("system");
+
+    if (!Mode->config ()) {
+	UsersCache->ReadUsers ("local");
+	UsersCache->ReadGroups ("local");
+    }
 
     UsersCache->BuildUserItemList ("system", $users{"system"});
     UsersCache->BuildGroupItemList ("system", $groups{"system"});
