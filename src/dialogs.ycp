@@ -121,26 +121,7 @@ global define symbol EditUserDialog(string what) ``{
             `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
     }
 
-    term checkboxes = `Empty();
-    term buttonbox = `VBox(
-	`PushButton(`id(`passwordsettings),`opt(`key_F7, `hstretch),
-	    // push button label
-	    _("&Password Settings...")),
-	// push button label
-	`PushButton(`id(`details),`opt(`key_F2, `hstretch), _("&Details..."))
-    );
 
-    if( Mode::cont && Users::start_dialog == "user_add" )
-    {
-	checkboxes = `VBox(
-	    // checkbox label
-	    `Left( `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
-		Users::root_mail != "") ),
-	    `VSpacing (0.5),
-	    // checkbox label
-	    `Left( `CheckBox (`id (`autologin),_("Enable &Auto Login"), true) )
-	);
-    }
     term fields = `VBox(
 	`VStretch(),
 	`VBox(
@@ -167,21 +148,40 @@ can be changed for non-local users.
 	`Password(`id(`pw2), _("&Verify Password:"), "")
     );
 
-    term userbox = `VBox(
-	`HSquash( fields ),
-	`VSpacing( 1 ),
-	`VSquash(
-	    `Top(
-		`HBox(
-			`HStretch(),
-			`HVCenter( `HVSquash( checkboxes ) ),
-			`HSpacing( 1 ),
-			`HVCenter( `HVSquash( buttonbox  ) ),
-			`HSpacing( 1 )
-		)
-	    )
-	)
+    term optionbox = `Empty();
+    term buttonbox = `VBox(
+	`PushButton(`id(`passwordsettings),`opt(`key_F7, `hstretch),
+	    // push button label
+	    _("&Password Settings...")),
+	// push button label
+	`PushButton(`id(`details),`opt(`key_F2, `hstretch), _("&Details..."))
     );
+
+    boolean complex_layout = Mode::cont && Users::start_dialog == "user_add";
+
+    if ( complex_layout )
+    {
+	term checkboxes = `VBox(
+	    // checkbox label
+	    `Left( `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
+		Users::root_mail != "") ),
+	    `VSpacing (0.5),
+	    // checkbox label
+	    `Left( `CheckBox (`id (`autologin),_("A&uto Login"), true) )
+	);
+	
+	optionbox = `HBox(
+			  `HStretch(),
+			  `HVCenter( `HVSquash( checkboxes ) ),
+			  `HSpacing( 1 ),
+			  `HVCenter( `HVSquash( buttonbox  ) ),
+			  `HSpacing( 1 )
+			  );
+    }
+    else
+    {
+	optionbox = `HVCenter( `HSquash( buttonbox  ) );
+    }
 
     term contents = `VBox(
 	`VSpacing(),
@@ -189,24 +189,32 @@ can be changed for non-local users.
 	`Frame( _( "User Data" ), `HVSquash(
 	    `VBox(
 		`VSpacing( 0.5 ),
-		`HBox( `HSpacing( 1 ), userbox, `HSpacing( 1 )),
+		`HBox( `HSpacing( 2 ),
+		       `VBox(
+			     `HSquash( fields ),
+			     `VSpacing( 1 ),
+			     `VSquash( `Top( optionbox ) )
+			     ),
+		       `HSpacing( 2 )),
 		`VSpacing( 0.5 )
 	    )
 	))
     );
 
-    if( Mode::cont && Users::start_dialog == "user_add" )
+
+    if ( complex_layout )
     {
 	contents = add ( contents,
 	    `HVCenter(`PushButton(`id(`additional), `opt(`key_F3),
 		// push button
-		_("Additional Users and &Groups") ) )
+		_("User &Management") ) )
 	);
     }
     else
     {
 	contents = add( contents, `VStretch() );
     }
+    
     /*
     term detailsmorebox =
         `HBox(
@@ -243,7 +251,7 @@ can be changed for non-local users.
             `VStretch(),
             `VBox(
                 // label text
-                do_not_edit ? `Label(_("Only additional group memberships 
+                do_not_edit ? `Label(_("Only additional group memberships
 can be changed for non-local users.
 ")) : `VSpacing (0),
                 do_not_edit ? `VSpacing (1) : `VSpacing (0),
@@ -889,7 +897,7 @@ global define symbol EditUserDetailsDialog( ) ``{
           `VBox(
            `VSpacing(0.5),
            // label
-           do_not_edit ? `Label(_("Only additional group memberships 
+           do_not_edit ? `Label(_("Only additional group memberships
 can be changed for non-local users.")) : `VSpacing (0),
            do_not_edit ? `VSpacing (1) : `VSpacing (0),
            // frame label, user name follows
@@ -1000,7 +1008,7 @@ can be changed for non-local users.")) : `VSpacing (0),
                 if (findfirstof(addit_data, ":") != nil)
                 {
                     // error message
-                    Report::Error(_("The \"Additional User Information\" entry cannot 
+                    Report::Error(_("The \"Additional User Information\" entry cannot
 contain a colon (:).  Try again.
 "));
                     UI::SetFocus(`id(`addd));
@@ -1058,7 +1066,7 @@ Select another user ID.
             {
                 // error popup, %1 is number
                 string error = sformat(_("The selected user ID is a system ID,
-because the ID is smaller than %1. 
+because the ID is smaller than %1.
 Really create a new system user?
 "),  Users::max_uid["system"]:500 );
                 if( ! Popup::YesNo( error ))
