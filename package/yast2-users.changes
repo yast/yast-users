@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb  4 09:24:01 CET 2003 - jsuchome@suse.cz
+
+- autoinst: fixed importing user (missing shadow map)
+- added progress for LDAP
+
+-------------------------------------------------------------------
 Mon Feb  3 11:26:55 CET 2003 - jsuchome@suse.de
 
 - NIS+ entry in expert_login
