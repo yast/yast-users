@@ -4343,12 +4343,9 @@ sub CheckPassword {
 
     my $self		= shift;
     my $pw 		= $_[0];
-    my $type		= UsersCache->GetUserType ();
-    my $min_length 	= $min_pass_length{$type};
-    my $max_length 	= $max_pass_length{$type};
 
     # password for 'disabled' user
-    if ($pw eq "!") { # TODO || $pw eq ""
+    if ($pw eq "!") {
 	return "";
     }
 
@@ -4356,12 +4353,6 @@ sub CheckPassword {
 	# error popup
 	return __("You did not enter a password.
 Try again.");
-    }
-
-    if (length ($pw) < $min_length) {
-	# error popup
-        return sprintf (__("The password must have between %i and %i characters.
-Try again."), $min_length, $max_length);
     }
 
     my $filtered = $pw;
@@ -4468,6 +4459,8 @@ sub CheckPasswordUI {
     my $username	= $_[0];
     my $pw 		= $_[1];
     my %ui_map		= %{$_[2]};
+    my $type		= UsersCache->GetUserType ();
+    my $min_length 	= $min_pass_length{$type};
     my %ret		= ();
 
     if ($pw eq "") {
@@ -4492,6 +4485,15 @@ Really use it?"), $error);
 	    $ret{"question_id"}	= "obscure";
 	    $ret{"question"}	= $error;
 	    return \%ret;
+	}
+    }
+
+    if (($ui_map{"short"} || 0) != 1) {
+	if (length ($pw) < $min_length) {
+	    $ret{"question_id"}	= "short";
+	    # popup questionm, %1 is number
+	    $ret{"question"}	= sprintf (__("The password should have at least %i characters.
+Are you sure?"), $min_length);
 	}
     }
     
