@@ -686,6 +686,7 @@ global define boolean LDAPSearchFilterPopup () ``{
 		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
 	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
 	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
+		// Pushbutton label (get data from LDAP server)
 	        `PushButton(`id(`read), `opt(`key_F3), _("From &Server"))
 	    ),
             `VSpacing(0.5)),
