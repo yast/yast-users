@@ -102,7 +102,7 @@
 	],
 	"target": $[
 	    "stat"	: $[],
-	    "size"	: 0,
+	    "size"	: -1,
 	    "tmpdir"	: "/tmp/YaST"
 	],
 	"product": $[
@@ -122,6 +122,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash"	: 0,
 	    "bash_output": $[],
 	]
     ];

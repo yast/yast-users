@@ -121,6 +121,16 @@
 		]
 	    ],
 	],
+	"target": $[
+	    "size"	: -1
+	],
+	/* To simulate NIS server, use target.size = 0 and this:
+	"sysconfig": $[
+	    "ypserv" : $[
+		"YPPWD_SRCDIR"	: "/etc"
+	    ]
+	],
+	*/
     ];
 
     map WRITE = $[];

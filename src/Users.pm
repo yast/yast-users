@@ -5243,7 +5243,7 @@ sub GetRootPassword {
 # Check whether host is NIS master
 BEGIN { $TYPEINFO{ReadNISMaster} = ["function", "boolean"];}
 sub ReadNISMaster {
-    if (SCR->Read (".target.size", "/usr/lib/yp/yphelper") != -1) {
+    if (SCR->Read (".target.size", "/usr/lib/yp/yphelper") == -1) {
         return 0;
     }
     return (SCR->Execute (".target.bash", "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname > /dev/null 2>&1") == 0);

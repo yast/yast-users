@@ -125,7 +125,7 @@
 	],
 	"target": $[
 	    "stat"	: $[],
-	    "size"	: 0,
+	    "size"	: -1,
 	    "tmpdir"	: "/tmp/YaST"
 	],
 	"product": $[
