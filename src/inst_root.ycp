@@ -28,7 +28,7 @@ import "Popup";
 import "Users";
 import "UsersCache";
 
-include "users/dialogs.ycp";   // for EncryptionDialog()
+include "users/widgets.ycp";   // for EncryptionPopup()
 
 string valid_password_chars = "-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*() ,;:._+/|?{}=[]";
 
@@ -149,7 +149,7 @@ Do not forget this \"root\" password!
 
       if (ret == `expert)
       {
-	encryptionMethod = EncryptionDialog();
+	encryptionMethod = EncryptionPopup ();
 
         string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
         UI::SetFocus( pw1 == "" ? `id(`pw1) : `id(`next) );

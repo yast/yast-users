@@ -20,7 +20,7 @@
    * First part of the help text.
    * @return string help text
    */
-  global define string help_main_start()``{
+  define string help_main_start()``{
 	// help text 1/1
         return _("<p>
 Linux is a <b>multiuser system</b>. Several different users can be logged in the
@@ -36,7 +36,7 @@ least belongs to one group.
    * Last part of the help text.
    * @return string help text
    */
-  global define string help_main_end()``{
+  define string help_main_end()``{
     // button label (without shortcut sign)
     string button = Mode::cont ? _("Next") : _("Finish");
 	// help text 1/2
@@ -59,7 +59,7 @@ To save the modified user and group setting to your system, press
    * @param type user type
    * @return string help text
    */
-  global define string help_password(string type)``{
+  define string help_password(string type)``{
     string password_length = "";
     map enc_to_string = $[
 	// encryption type
@@ -109,7 +109,7 @@ repeat it exactly in a second field. Do not forget your password.
      /**
      * @return string The help text.
      */
-    global define string DefaultsDialogHelp () ``{
+    define string DefaultsDialogHelp () ``{
 // Help text 0/6
       return _("<p>
 Here, set default values to use when creating new <b>local</b> or <b>system</b> users.
@@ -164,7 +164,7 @@ after expiration login is allowed. Use -1 for unlimited access.
      * Help for the ReadDialog () dialog.
      * @return string The help text.
      */
-    global define string ReadDialogHelp () ``{
+    define string ReadDialogHelp () ``{
 	return
 	    // For translators: read dialog help, part 1 of 2
 _("<P><B><BIG>Initializing users configuration</BIG></B><BR>
@@ -182,7 +182,7 @@ button now.
      * Help for the WriteDialog () dialog.
      * @return string The help text.
      */
-    global define string WriteDialogHelp () ``{
+    define string WriteDialogHelp () ``{
     return
 	    // For translators: read dialog help, part 1 of 2
 _("<P><B><BIG>Saving User Configuration</BIG></B><BR>
@@ -202,7 +202,7 @@ An additional dialog will inform you whether it is safe to do so.
    * Help for UsersDialog.
    * @return string help text
    */
-  global define string UsersDialogHelp() ``{
+  define string UsersDialogHelp() ``{
 	// help text 1/6
       return ( help_main_start() + _("
 <p>
@@ -247,7 +247,7 @@ users, or LDAP client configuration.
    * Help for usersGroups.
    * @return string help text
    */
-  global define string GroupsDialogHelp()``{
+  define string GroupsDialogHelp()``{
 	// help text 1/4
       return ( help_main_start() +  _("
 <p>
@@ -284,7 +284,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
    * @param type type of user created
    * @return string help text
    */
-  global define string EditUserDialogHelp(boolean mail, string type, string what) ``{
+  define string EditUserDialogHelp(boolean mail, string type, string what) ``{
 
     string help = "";
     if (type == "ldap")
@@ -385,7 +385,7 @@ To edit various password settings of this user (e.g., expiration date), click <b
    * @param more if the widget with more_users will be shown
    * @return string help text
    */
-  global define string EditGroupDialogHelp(boolean more) ``{
+  define string EditGroupDialogHelp(boolean more) ``{
 	// help text 1/6
       string helptext = _("<p>
 YaST provides an easy means of maintaining user groups on your
@@ -445,7 +445,7 @@ Here, select which users should be members of this group.
    * @param user_type type of edited user (local/system/ldap/nis)
    * @return string help text
    */
-  global define string EditUserDetailsDialogHelp(string user_type) ``{
+  define string EditUserDetailsDialogHelp(string user_type) ``{
 
 	// help text 1/8
     string helptext = _("<p>
@@ -532,7 +532,7 @@ All additional memberships in groups for the user.
    * Help for usersSave.
    * @return string help text
    */
-  global define string usersSaveDialogHelp() ``{
+  define string usersSaveDialogHelp() ``{
 	// help texts 1/1
       return _("<p>
 Save the current user and group settings to system
@@ -544,7 +544,7 @@ Save the current user and group settings to system
    * Help for editing password settings
    * @return string help text
    */
-  global define string  EditUserPasswordDialogHelp() ``{
+  define string  EditUserPasswordDialogHelp() ``{
 // Help text 1/5
       return _("<p>
 <b>Warning before expiration</B><BR>
@@ -577,7 +577,7 @@ Leave empty if this account never expires.</P>
 ");
   }
 
-global define string AuthentizationDialogHelp() ``{
+define string AuthentizationDialogHelp() ``{
 
     string help_text =
     // help text 1/2
@@ -597,7 +597,7 @@ You can configure these settings by running appropriate modules. Select the modu
     return help_text;
 }
 
-global define string LDAPSettingsDialogHelp (string what) ``{
+define string LDAPSettingsDialogHelp (string what) ``{
 
     // helptext 0/2 ("first sentence")
     string first = _("Here, see the table of all allowed attributes for the current LDAP user that were not set in previous dialogs.");
@@ -634,7 +634,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
  * Help for changing the LDAP search filter
  * @return string help text
  */
-global define string LDAPSearchFilterPopupHelp() ``{
+define string LDAPSearchFilterPopupHelp() ``{
 
     return
     // helptext 1/4 - caption
@@ -663,7 +663,7 @@ only obtain users with a user name beginning with 'u'.</p>
 /**
  * @return string help text
  */
-global define string AutologinPopupHelp() ``{
+define string AutologinPopupHelp() ``{
 
     return
     // helptext 1/4 - caption

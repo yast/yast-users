@@ -14,118 +14,15 @@ import "Wizard";
 import "Label";
 import "Users";
 
-/**
- * FIXME: move to ui_routines.ycp/dialogs.ycp?
- * Let user choose the encryption method.
- **
-global define string EncryptionDialog() ``{
 
-      string method = Users::EncryptionMethod ();
-
-      // Help text for password expert dialog 1/5
-      string help_text = _("<p>
-<b>This is for experts only.</b>
-</p>");
-
-      // Help text for password expert dialog 2/5
-      help_text = help_text + _("<p>
-Choose a password encryption method for local and system users.
-<b>DES</b>, the Linux default method, works in all network environments, but it
-restricts passwords to eight characters or less.
-</p>
-");
-
-      // Help text for password expert dialog 3/5
-      help_text = help_text + _("<p>
-<b>MD5</b> allows longer passwords, thus provides more security, but some
-network protocols don't support this, and you may have problems with NIS.
-</p>");
-
-      // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-      // Help text for password expert dialog 5/5
-      help_text = help_text + _("<p>
-As a general rule of thumb, use DES if you are unsure.
-</p>");
-
-      UI::OpenDialog(
-	`VBox(
-	  // Label
-	  `Heading( _("Set Password Encryption") ),
-	  `VSpacing( 0.7 ),
-	  `HBox(
-		`HSpacing( 2 ),
-		`RadioButtonGroup(
-		// frame label
-		`Frame( _("Encryption Type"),
-		  `VBox(
-		  `VSpacing( 0.5 ),
-		  // Radio buttons for password encryption: DES-crypt
-		  `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
-			method == "des" ) ),
-		  // Radio buttons for password encryption: MD5-crypt
-		  `Left(`RadioButton(`id(`md5), _("&MD5"),
-			method == "md5" ) ),
-		  // Radio buttons for password encryption: blowfish-crypt
-		  `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-			method == "blowfish" ) )
-		  )
-		)),
-		`HSpacing( 2 )
-	  ),
-	  `VSpacing( 0.5 ),
-	  `HBox(
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`ok), `opt(`default, `key_F10),
-		    Label::OKButton() )),
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`cancel), `opt (`key_F9),
-		    Label::CancelButton())),
-		`HStretch(),
-		`HWeight(1, `PushButton(`id(`help), `opt (`key_F2),
-		    Label::HelpButton() ) ),
-		`HStretch()
-	  )
-	));
-
-      any button = nil;
-
-      do
-      {
-	  button = UI::UserInput();
-
-	  if ( button == `help )
-	  {
-	      Wizard::ShowHelp( help_text );
-	  }
-	  else if ( button == `ok )
-	  {
-	      if      ( (boolean) UI::QueryWidget( `id(`des), `Value ) )
-		  method = "des";
-	      else if ( (boolean) UI::QueryWidget( `id(`md5), `Value ) )
-		  method = "md5";
-	      else if ( (boolean) UI::QueryWidget( `id(`blowfish), `Value ) )
-		  method = "blowfish";
-	      y2milestone( "Changing encryption method to %1", method );
-	  }
-      } while ( button != `ok && button != `cancel );
-
-      UI::CloseDialog();
-      return method;
-};
-*/
-
-/**
+/** FIXME: move to UsersCache...
  * Split cn (fullname) in forename and surname.
  * @param what `surname or `forename
  * @param cn fullname
  * @param type user type
  * @return string selected part of user name
  */
-global define string SplitFullName(symbol what,string cn) ``{
+define string SplitFullName(symbol what,string cn) ``{
 
 // TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
 
