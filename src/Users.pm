@@ -3,6 +3,8 @@
 # Users module written in Perl
 #
 
+#TODO do not dereference large map if not necessary...
+
 package Users;
 
 use strict;
@@ -54,6 +56,9 @@ my %removed_groups		= ();
 my %user_in_work		= ();
 my %group_in_work		= ();
 
+# the first user, added during installation
+my %saved_user			= ();
+
 my %useradd_defaults		= (
     "group"		=> "500",
     "home"		=> "/home",
@@ -98,7 +103,8 @@ my $cracklib_dictpath		= "";
 my $obscure_checks 		= 0;
 
 # starting dialog for installation mode
-my $start_dialog		= "users";#TODO ???
+my $start_dialog		= "summary";
+my $use_next_time		= 0;
 
 # which sets of users are we working with:
 my @current_users		= ();
@@ -172,6 +178,18 @@ BEGIN { $TYPEINFO{SetStartDialog} = ["function", "void", "string"]; }
 sub SetStartDialog {
     $start_dialog = $_[0];
 }
+
+BEGIN { $TYPEINFO{UseNextTime} = ["function", "boolean"]; }
+sub UseNextTime {
+    return $use_next_time;
+}
+
+BEGIN { $TYPEINFO{SetUseNextTime} = ["function", "void", "boolean"]; }
+sub SetUseNextTime {
+    $use_next_time = $_[0];
+#TODO    $use_next_time = Boolean ($_[0]);
+}
+
 
 BEGIN { $TYPEINFO{GetAvailableUserSets} = ["function", ["list", "string"]]; }
 sub GetAvailableUserSets {
@@ -460,9 +478,28 @@ sub ResetCurrentUser {
     undef %user_in_work;
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{SaveCurrentUser} = [ "function", "void" ];}
+sub SaveCurrentUser {
+    %saved_user = %user_in_work;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{RestoreCurrentUser} = [ "function", "void" ];}
+sub RestoreCurrentUser {
+    %user_in_work = %saved_user;
+}
+
+
 BEGIN { $TYPEINFO{GetCurrentGroup} = [ "function", ["map", "string", "any" ]];}
 sub GetCurrentGroup {
     return \%group_in_work;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{ResetCurrentGroup} = [ "function", "void" ];}
+sub ResetCurrentGroup {
+    undef %group_in_work;
 }
 
 ##------------------------------------
@@ -944,6 +981,16 @@ sub SelectGroupByName {
     %group_in_work = %{GetGroupByName($_[0], "local")};
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{SelectGroup} = [ "function",
+    "void",
+    "integer"];
+}
+sub SelectGroup {
+
+    %group_in_work = %{GetGroup ($_[0], "")};
+}
+
 
 ##------------------------------------
 # boolean parameter means "delete home directory"
@@ -1211,7 +1258,12 @@ sub AddGroup {
     if (defined $data{"type"}) {
 	$type = $data{"type"};
     }
-    %group_in_work			= %data;
+    if (!%data) {
+	ResetCurrentGroup ();
+    }
+    foreach my $key (keys %data) {
+	$group_in_work{$key}	= $data{$key};
+    }
     $group_in_work{"type"}		= $type;
     $group_in_work{"what"}		= "add_group";
 	
@@ -1533,6 +1585,7 @@ sub CommitGroup {
     my %userlist	= %{$group{"userlist"}};
 
     y2internal ("commiting group '$groupname', action is '$what_group'");
+
     if ($type eq "system" || $type eq "local") {
 	$groups_modified = 1;
     }
@@ -1624,10 +1677,10 @@ sub CommitGroup {
             $group{"modified"}	= "edited";
         }
     }
-    elsif ( $what_group eq "user_change_default") {
-            # current group is some user's default - changin only cache
-            # structures and don't set modified flag
-    }
+#    elsif ( $what_group eq "user_change_default") {
+#            # current group is some user's default - changin only cache
+#            # structures and don't set modified flag
+#    }
 
     UsersCache::CommitGroup (\%group);
     # 2. common action: update groups
@@ -1656,7 +1709,6 @@ sub CommitGroup {
         $groups_by_name{$type}{$groupname}	= $gid;
     }
     undef %group_in_work;
-#	DebugMap (\%{$groups_by_name{"local"}});
     return "true";
 }
 
@@ -1893,11 +1945,10 @@ sub Write () {
 
 
 #    # do not show user in first dialog when all has been writen
-#    if (Mode::cont)
-#    {
-#        use_next_time = false;
-#        saved_user = $[];
-#        user_in_work = $[];
+#    if (Mode::cont) {
+#        $use_next_time	= 0;
+#        undef %saved_user;
+#        undef %user_in_work;
 #    }
 
     return $ret;
@@ -1987,6 +2038,28 @@ Try another one.";
     }
     return "";
     
+}
+
+##------------------------------------
+# TODO same as for fullname??? fllname cannot contain ","
+BEGIN { $TYPEINFO{CheckGECOS} = ["function", "string", "string"]; }
+sub CheckGECOS {
+
+    my $gecos		= $_[0];
+
+    if ($gecos =~ m/:/) {
+        return "The \"Additional User Information\" entry cannot
+contain a colon (:).  Try again.";
+    }
+    
+    my @gecos_l = split (/,/, $gecos);
+    if (@gecos_l > 3 ) {
+        return "The \"Additional User Information\" entry can consist
+of up to three sections separated by commas.
+Remove the surplus.";
+    }
+    
+    return "";
 }
 
 ##------------------------------------

@@ -16,11 +16,12 @@ import "Mode";
 include "users/wizards.ycp";
 include "commandline/commandline.ycp";
 
-string  start_dialog	= "users";
+string  start_dialog	= "summary";
 
 any	ret		= nil;
 integer arg		= 0;
-list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
+//TODO groups -> adapt current_summary list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
+list    possible_start_dialogs = ["user_add", "group_add", "summary", "user_inst_start" ];
 
 while ( arg < size( WFM::Args() ) )
 {
@@ -32,7 +33,7 @@ while ( arg < size( WFM::Args() ) )
     arg = arg + 1;
 }
 
-if (start_dialog != "users")
+if (start_dialog != "summary")
 {
     y2milestone( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
     ret = UsersSequence(start_dialog);

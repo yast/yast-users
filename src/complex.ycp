@@ -816,17 +816,15 @@ Are you sure?
 
     } until ( ret != `not_next );
 
-	/* FIXME
     if (ret == `back)
     {
         if (Mode::cont)
         {
             Users::SetStartDialog ("user_add");
         }
-        Users::use_next_time = true;
+        Users::SetUseNextTime (true);
     }
-    UsersCache::focusline_user = (integer)UI::QueryWidget(`id(`user_table),`CurrentItem);
-	*/
+//TODO    UsersCache::focusline_user = (integer)UI::QueryWidget(`id(`user_table),`CurrentItem);
 
     if (!Mode::cont && ret == `next && !Modified())
         ret = `nosave;

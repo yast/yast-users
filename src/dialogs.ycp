@@ -57,6 +57,68 @@ define integer GetInt (map data, string key, integer default_value) {
     return default_value;
 }
 
+define string GetString (map data, string key, string default_value) {
+
+    if (data[key]:nil != nil)
+	return sformat ("%1", data[key]:nil);
+    return default_value;
+}
+
+
+// (it is at the end because it is question)
+// upperase letters were used in username! bug #26409
+define symbol AskForUppercasePopup (string username) ``{
+
+    symbol ret = `ok;
+
+    if (username != tolower (username) &&
+//	!Users::not_ask_uppercase &&
+	Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
+    {
+	// The login name contains uppercase 1/3
+	string text = _("<p>
+You have used uppercase letters in the user login entry.</p>") +
+
+        // The login name contains uppercase 2/3
+_("<p>This could cause problems with delivering the mail
+to this user, because mail systems generally do not
+support case-sensitive names.<br>
+You could solve this problem by editing the alias table.</p>
+") +
+
+        // The login name contains uppercase 3/3
+_("<p>Really use the entered value?</p>");
+
+	UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
+	    `VBox (
+		`HSpacing(50),
+		`RichText (`id(`rt), text),
+		`CheckBox (`id(`ch), `opt(`notify),
+		    // checkbox label
+		    _("Do Not Show This Message &Again")),
+		`HBox(
+		    `PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
+		    `PushButton (`id(`no),`opt(`key_F9), Label::NoButton())
+		)
+	    ))
+	);
+	do {
+	    ret = (symbol) UI::UserInput();
+	}
+	while (!contains ([`cancel, `ok, `no], ret));
+
+	if (ret != `cancel)
+	{
+	    /* FIXME
+	    Users::not_ask_uppercase =(boolean)UI::QueryWidget(`id(`ch),`Value);
+	    if (Users::not_ask_uppercase)
+		Users::customs_modified = true;
+	    */
+	}
+	UI::CloseDialog();
+    }
+    return ret;
+}
 
 /**
  * Function that adds or edits a user.
@@ -65,15 +127,13 @@ define integer GetInt (map data, string key, integer default_value) {
  */
 global define symbol EditUserDialog (string what) ``{
 
-    // maybe we have returned to the first "add user dialog"
+    // Maybe we have returned to the first "add user dialog"
     // during installation workflow:
-/* FIXME
-    if (Users::StartDialog ("user_add") && Mode::cont &&
-	Users::use_next_time)
+    if (Users::StartDialog ("user_add") && Mode::cont && Users::UseNextTime ())
     {
-        Users::user_in_work = (map) eval (Users::saved_user);
-        Users::use_next_time = false;
-    }*/
+        Users::RestoreCurrentUser ();
+        Users::SetUseNextTime (false);
+    }
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
@@ -470,56 +530,9 @@ Please try again."));
 	    user["homeDirectory"]	= home;
 
 	    // --------------------------------- username checks, part 2/2
-	    // TODO own popup for this...
-	    // (it is at the end because it is question)
-	    // upperase letters were used in username! bug #26409
-            if ( username != tolower (username) &&
-//FIXME		 !Users::not_ask_uppercase &&
-		 (what == "add_user" || username != org_username) &&
-		 Require::IsAnyPackageInstalled (["sendmail", "postfix"]))
-            {
-                // The login name contains uppercase 1/3
-		string text = _("<p>
-You have used uppercase letters in the user login entry.</p>") +
-
-                // The login name contains uppercase 2/3
-_("<p>This could cause problems with delivering the mail
-to this user, because mail systems generally do not
-support case-sensitive names.<br>
-You could solve this problem by editing the alias table.</p>
-") +
-
-                // The login name contains uppercase 3/3
-_("<p>Really use the entered value?</p>");
-
-		UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
-		    `VBox(
-		    `HSpacing(50),
-		    `RichText (`id(`rt), text),
-		    `CheckBox (`id(`ch), `opt(`notify),
-		    // checkbox label
-		    _("Do Not Show This Message &Again")),
-		    `HBox(
-		    `PushButton (`id(`ok),`opt(`key_F10), Label::YesButton()),
-		    `PushButton (`id(`no),`opt(`key_F9), Label::NoButton())
-		    )))
-		);
-		any r = nil;
-		do {
-		    r = UI::UserInput();
-		}
-		while (!contains ([`cancel, `ok, `no], r));
-
-		if (r != `cancel)
-		{
-		    /* FIXME
-		    Users::not_ask_uppercase = (boolean) UI::QueryWidget(`id(`ch),`Value);
-		    if (Users::not_ask_uppercase)
-			Users::customs_modified = true;
-		    */
-		}
-		UI::CloseDialog();
-		if (r != `ok)
+            if (what == "add_user" || username != org_username)
+	    {
+		if (AskForUppercasePopup (username) != `ok)
 		{
 		    UI::SetFocus(`id(`username));
 		    ret = `notnext;
@@ -570,7 +583,7 @@ _("<p>Really use the entered value?</p>");
     {
         // ensuring installation the first user is stored
         // (to show it when clicking `back from Summary dialog)
-//FIXME        Users::saved_user = Users::user_in_work;
+	Users::SaveCurrentUser ();
     }
     return (symbol) ret;
 }
@@ -590,7 +603,7 @@ global define symbol EditUserDetailsDialog( ) ``{
     string cn		= user["cn"]:"";
     string home         = user["homeDirectory"]:"";
     string org_home     = user["org_homeDirectory"]:"";
-    boolean create_home = user["create_home"]:true;
+    boolean create_home = user["create_home"]:true;//FIXME boolean from perl?
     string shell        = user["loginShell"]:"";
     map groups		= user["grouplist"]:$[];
     integer uid	= GetInt (user, "uidNumber", UsersCache::GetMaxUID (user_type));
@@ -604,7 +617,6 @@ global define symbol EditUserDetailsDialog( ) ``{
     list available_groups	= [];
     list additional_groups	= [];
     list additional_ldap_groups	= [];
-//    list list_grouplist		= maplist (string key, `val, groups, ``(key));
     list removed = [];
     string grouplist		= "";
 
@@ -629,7 +641,6 @@ global define symbol EditUserDetailsDialog( ) ``{
                     else
                         available_groups = add (available_groups,
                             `item( `id(group), group));
-//                    if ( contains (list_grouplist, group))
                     if ( haskey (groups, group))
                         additional_ldap_groups = add (additional_ldap_groups,
                             `item( `id(group), group, true ));
@@ -643,7 +654,6 @@ global define symbol EditUserDetailsDialog( ) ``{
 		    // with type "ldap"
 		    if ( all_groupnames ["ldap",group]:0 == 1 )
 			return;
-//                    if ( contains (list_grouplist, group))
                     if ( haskey (groups, group))
                         additional_groups = add (additional_groups,
                             `item( `id(group), group, true ));
@@ -660,7 +670,6 @@ global define symbol EditUserDetailsDialog( ) ``{
                 else
                     available_groups = add (available_groups,
                         `item( `id(group), group));
-//                if ( contains (list_grouplist, group))
                 if ( haskey (groups, group))
                     additional_groups = add (additional_groups,
                         `item( `id(group), group, true ));
@@ -826,28 +835,14 @@ can be changed for non-local users.")) : `VSpacing (0),
             {
 		// TODO use CheckGECOS
                 addit_data  = (string)UI::QueryWidget(`id(`addd),  `Value);
-                if (findfirstof(addit_data, ":") != nil)
-                {
-                    // error message
-                    Report::Error(_("The \"Additional User Information\" entry cannot
-contain a colon (:).  Try again.
-"));
-                    UI::SetFocus(`id(`addd));
+		string error = Users::CheckGECOS (addit_data);
+		if (error != "")
+		{
+		    Report::Error (error);
+		    UI::SetFocus(`id(`addd));
 		    ret = `notnext;
-                    continue;
-                }
-                list add_l = splitstring (addit_data, ",");
-                if (size (add_l) > 3 )
-                {
-                    // error message
-                    Report::Error(_("The \"Additional User Information\" entry can consist
-of up to three sections separated by commas.
-Remove the surplus.
-"));
-                    UI::SetFocus(`id(`addd));
-		    ret = `notnext;
-                    continue;
-                }
+		    continue;
+		}
             }
 
             integer new_i_uid    = tointeger (new_uid);
@@ -863,7 +858,7 @@ Remove the surplus.
 		    ret = `notnext;
 		    continue;
 		}
-		/* TODO change of type
+		/* TODO change of type -> question
 		if (!UsersCache::CheckUIDInterval (new_i_uid, user_type))
 		{
 		    integer minimum = Users::min_uid[user_type]:0;
@@ -928,6 +923,7 @@ Select a valid integer between %1 and %2.
 		if (error != "")
 		{
 		    Report::Error (error);
+		    UI::SetFocus(`id(`home));
 		    ret = `notnext;
 		    continue;
 		}
@@ -1056,46 +1052,47 @@ may be unable to log in. Continue?
  */
 global define symbol EditUserPasswordDialog() ``{
 
-    return `next;
-    /*
-    map user		= Users::user_in_work;
+    map<string,any>user	= Users::GetCurrentUser ();
+
+    map<string,any>shadow	= $[];
+
     string username	= user["username"]:"";
-    map shadow		= user["shadow"]:$[
-	// workaround for LDAP users
-	"last_change":	user["shadowLastChange"]:"0",
-	"expire":	user["shadowExpire"]:"0",
-	"inact":	user["shadowInactive"]:"",
-	"max":		user["shadowMax"]:"",
-	"min":		user["shadowMin"]:"",
-	"warn":		user["shadowWarning"]:""
-    ];
-    list shadow_symbols = ["warn", "max", "min"];
+    string user_type	= user["type"]:"local";
+    list shadow_symbols =
+	["shadowWarning", "shadowMax", "shadowMin", "shadowInactive"];
 
-    string last_change = shadow["last_change"]:"0";
-    string expires = shadow["expire"]:"0";
-    if (expires == "") expires = "0";
+    string last_change	= GetString (user, "shadowLastChange", "0");
+    string expires	= GetString (user, "shadowExpire", "0");
+    if (expires == "")
+	expires = "0";
 
-    string work = shadow["inact"]:"";
-    if( work == "" ) work = sformat("%1", Users::pass_inact_days);
+    /*
+    string work = user["shadowInactive"]:"";
+//TODO    if( work == "" ) work = sformat("%1", Users::pass_inact_days);
     integer inact = tointeger( work );
 
-    work = shadow["max"]:"";
-    if ( work == "" ) work = sformat("%1", Users::pass_max_days );
+    work = user["shadowMax"]:"";
+//    if ( work == "" ) work = sformat("%1", Users::pass_max_days );
     integer max = tointeger( work );
 
-    work = shadow["min"]:"";
-    if( work == "") work = sformat("%1", Users::pass_min_days );;
+    work = user["shadowMin"]:"";
+//    if( work == "") work = sformat("%1", Users::pass_min_days );;
     integer min = tointeger( work );
 
-    work = shadow["warn"]:"";
-    if( work == "") work = sformat("%1", Users::pass_warn_age );
+    work = user["shadowWarning"]:"";
+//    if( work == "") work = sformat("%1", Users::pass_warn_age );
     integer warn = tointeger( work );
+    */
+    integer inact = GetInt (user, "shadowInactive", 0);
+    integer max	= GetInt (user, "shadowMax", 0);
+    integer min = GetInt (user, "shadowMin", 0);
+    integer warn = GetInt (user, "shadowWarning", 0);
 
-    if (last_change != "0")
+    if (last_change != "0") //FIXME use Users
     {
         map out = (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
         // label
-        last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
+//FIXME        last_change = UsersCache::Uncoding (out["stdout"]:_("unknown"));
     }
     else
     {
@@ -1103,7 +1100,8 @@ global define symbol EditUserPasswordDialog() ``{
         last_change = _("never");
     }
     string exp_date = "";
-    if (expires != "0" && expires != "-1" )
+    if (expires != "0" && expires != "-1" )//FIXME use Users
+
     {
         exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -1113,34 +1111,45 @@ global define symbol EditUserPasswordDialog() ``{
         `HSpacing (3),
             `VBox (
                 `VStretch(),
-                // label
-                `Top(`Left (`Label (sformat (_("Date of the last password change: %1"), last_change )))),
+                `Top(`Left (`Label (sformat (
+		    // label
+		    _("Date of the last password change: %1"), last_change )))),
                 `VSpacing (1),
                 `HSquash(`VBox(
-                    // intfield
-                    `IntField (`id ("warn"), _("Days before Password Expiration to Issue &Warning"), -1, 99999, warn),
+                    `IntField (`id ("shadowWarning"),
+			// intfield label
+			_("Days before Password Expiration to Issue &Warning"),
+			-1, 99999, warn),
                     `VSpacing (0.5),
-                    // intfield
-                    `IntField (`id ("inact"), _("Days &after Password Expires with Usable Login"), -1, 99999, inact),
+                    `IntField (`id ("shadowInactive"),
+			// intfield label
+			_("Days &after Password Expires with Usable Login"),
+			-1, 99999, inact),
                     `VSpacing (0.5),
-                    // intfield
-                    `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999, max),
+                    `IntField (`id ("shadowMax"),
+			// intfield label
+			_("Ma&ximum number of days for the same password"),
+			-1, 99999, max),
                     `VSpacing (0.5),
-                    // intfield
-                    `IntField (`id ("min"), _("&Minimum number of days for the same password"), -1, 99999, min),
+                    `IntField (`id ("shadowMin"),
+			// intfield label
+			_("&Minimum number of days for the same password"),
+			-1, 99999, min),
                     `VSpacing (0.5),
-                    // textentry
-                    `TextEntry (`id ("expire"), _("&Expiration date"), exp_date)
+                    `TextEntry (`id ("shadowExpire"),
+			// textentry label
+			_("&Expiration date"), exp_date)
                 )),
                 `VStretch ()),
             `HSpacing (3));
 
-    // dialog caption
-    Wizard::SetContentsButtons(_("Password settings for user ") + username +":",
-                    contents,
-                    EditUserPasswordDialogHelp(),
-                    Label::BackButton(),
-                    Label::NextButton());
+    Wizard::SetContentsButtons (
+	// dialog caption, %1 is user name
+	sformat (_("Password settings for user %1"), username),
+        contents,
+        EditUserPasswordDialogHelp(),
+        Label::BackButton(),
+        Label::NextButton());
 
     // user input
     any ret = `next;
@@ -1149,34 +1158,33 @@ global define symbol EditUserPasswordDialog() ``{
         ret = UI::UserInput();
         if( ret == `next )
         {
-            string exp = (string)UI::QueryWidget (`id ("expire"), `Value);
+            string exp = (string)UI::QueryWidget (`id ("shadowExpire"), `Value);
             if (exp != "" &&
                 !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
             {
-            // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
-            // The date must stay in this format
-            Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
-            UI::SetFocus(`id("expire"));
-	    ret = `notnext;
-            continue;
+		// popup text: Don't reorder the letters YYYY-MM-DD!!!
+		// The date must stay in this format
+		Popup::Message(_("Expiration date must be in format YYYY-MM-DD"));
+		UI::SetFocus(`id("expire"));
+		ret = `notnext;
+		continue;
             }
             // update the values in shadow map
-            foreach(string shadowsymbol, shadow_symbols, ``{
-                if ( shadow[shadowsymbol]:-2 != UI::QueryWidget (
+            foreach (string shadowsymbol, shadow_symbols, ``{
+                if (user[shadowsymbol]:nil != UI::QueryWidget (
                         `id(shadowsymbol), `Value))
+		{
                     shadow[shadowsymbol] = sformat ("%1",
                         UI::QueryWidget(`id(shadowsymbol), `Value));
+		}
             });
-            integer new_inact = (integer)UI::QueryWidget(`id("inact"), `Value);
-            if (new_inact != inact)
-            {
-                shadow["inact"] = sformat("%1", new_inact);
-            }
-            string new_exp_date = (string)UI::QueryWidget(`id("expire"), `Value);
+            string new_exp_date = (string)
+		UI::QueryWidget(`id("shadowExpire"),`Value);
             if (new_exp_date != exp_date)
             {
                 if (new_exp_date == "")
-                    shadow["expire"] = user["type"]:"local"=="ldap"? "": "0";
+		    // TODO why it is different for LDAP?
+                    shadow["shadowExpire"] = user_type == "ldap" ? "" : "0";
                 else
                 {
                     map out = (map)SCR::Execute(.target.bash_output,
@@ -1185,7 +1193,7 @@ global define symbol EditUserPasswordDialog() ``{
                     if (seconds_s != "")
                     {
 			integer days = (tointeger(seconds_s))/ (60*60*24);
-                        shadow["expire"] = sformat("%1", days);
+                        shadow["shadowExpire"] = sformat("%1", days);
                     }
                 }
             }
@@ -1194,21 +1202,16 @@ global define symbol EditUserPasswordDialog() ``{
 
     if ( ret == `next )
     {
-	ret = string_to_symbol (Users::user_in_work["what"]:"back");
+	string what = user["what"]:"back";
 
-	if (user["type"]:"local" != "ldap")
-	    Users::user_in_work["shadow"] = (map) eval (shadow);
-	else
-	{
-	    foreach (string key, string value, shadow, ``{
-		Users::user_in_work [Users::ldap_attrs_conversion[key]:key] =
-		    value;
-	    });
-	}
+	if (what == "add_user")
+	    Users::AddUser (shadow);
+	else if (what == "edit_user")
+	    Users::EditUser (shadow);
+
+	ret = string_to_symbol (what);
     }
-
     return (symbol)ret;
-    */
 }
 
 /**
@@ -1383,8 +1386,43 @@ Are you sure?"), req)))
  */
 global define symbol EditGroupDialog(string what ) ``{
 
-return `next;
-/*
+    return `back;
+    /*
+    // create a local copy of current group
+    map<string,any> group	= Users::GetCurrentGroup ();
+
+    string  groupname		= group["groupname"]:"";
+    string  password		= group["userPassword"]:"x";
+    integer gid			= group["gidNumber"]:-1;
+    // these are the users with this group as a default:
+    map more_users		= group["more_users"]:$[];
+    // these are users from /etc/group:
+    map userlist		= group["userlist"]:$[];
+    // and these are members of LDAP group:
+    map uniqueMember		= group["uniqueMember"]:$[];
+    string group_type		= group["type"]:"";
+    string new_type		= group_type;
+//    list list_userlist		= splitstring (userlist, ",");
+//    list list_more_users	= splitstring (more_users, ",");
+//    list uniqueMember		= group["uniqueMember"]:[];
+    string dn			= group["dn"]:"";
+    string new_dn		= dn;
+    map additional_users	= $[];
+    list removed		= [];
+
+    // now, the additional userlist should be builded:
+    if (group_type == "ldap")
+    {
+	additional_users = Users::BuildAdditionalLDAP (uniqueMember,more_users);
+	list_userlist = uniqueMember;
+    }
+    else
+        additional_users = Users::BuildAdditional (userlist, more_users);
+
+    boolean more = false;
+    if (size(more_users) > 0)
+        more = true;
+
     map dialog_labels = $[
         "add_group": $[
             // dialog caption:
@@ -1404,43 +1442,6 @@ return `next;
         ]
     ];
 
-    if (what == "add_group")
-    {
-	if (!Users::Add("group", Users::group_in_work))
-	    return `nosave;
-    }
-
-    // load group saved in group_in_work
-    map group			= (map) eval (Users::group_in_work);
-    string  groupname		= group["groupname"]:"";
-    string  password		= group["userPassword"]:"x";
-    integer gid			= group["gidNumber"]:-1;
-    // these are the users with this group as a default:
-    string  more_users		= group["more_users"]:"";
-    // these are users from /etc/group:
-    string  userlist		= group["userlist"]:"";
-    string  group_type		= group["type"]:"";
-    string  new_type		= group_type;
-    list list_userlist		= splitstring (userlist, ",");
-    list list_more_users	= splitstring (more_users, ",");
-    list uniqueMember		= group["uniqueMember"]:[];
-    string dn			= group["dn"]:"";
-    string new_dn		= dn;
-    map additional_users	= $[];
-    list removed = [];
-
-    // now, the additional userlist should be builded:
-    if (group_type == "ldap")
-    {
-	additional_users = Users::BuildAdditionalLDAP (uniqueMember,more_users);
-	list_userlist = uniqueMember;
-    }
-    else
-        additional_users = Users::BuildAdditional (userlist, more_users);
-
-    boolean more = false;
-    if (size(list_more_users) > 0)
-        more = true;
 
     // make dialog
     term contents = `HBox(
@@ -1513,15 +1514,17 @@ return `next;
     {
         ret = UI::UserInput();
 
-        if ( ret == `next  )
+        if (ret == `next)
         {
             string pw1            = (string) UI::QueryWidget(`id(`pw1), `Value);
             string pw2            = (string)UI::QueryWidget(`id(`pw2),`Value);
             string new_groupname  = (string)UI::QueryWidget(`id(`groupname), `Value);
             string new_gid        = (string)UI::QueryWidget(`id(`gid), `Value);
-            list<string> new_users = (list)UI::QueryWidget(`id(`userlist), `SelectedItems );
+            list<string> new_users = (list<string>)
+		UI::QueryWidget(`id(`userlist), `SelectedItems );
 
 	    // --------------------------------- groupname checks
+	    // TODO use CheckGroupname
             if ( new_groupname == "" )
             {
                 // groupname is empty (no group input).
@@ -1591,41 +1594,16 @@ Please try again.")) ;
                 continue;
             }
 
-            // Use the old password (if any) if no passwords were entered.
-            // only check pw1 here, its identical with pw2 as checked before
             if ( pw1 != "" && pw1 != default_pw )
             {
-
-	    integer min_length_pas = Users::pass_length [group_type,"min"]:5;
-            if (size (pw1) < min_length_pas)
-            {
-                // The group password has incorrect length
-                // error popup. %1 and %2 numbers (minimum and maximum)
-                Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
-                    Users::pass_length [group_type,"max"]:8, min_length_pas));
-		clear_password_fields();
-                continue;
-            }
-            if ( pw1 != "" )
-            {
-                if ( nil != findfirstnotof( pw1, Users::valid_password_chars ) )
-                {
-                    // The password contains incorrect characters
-                    // error popup
-                    Report::Error(_("The password may only contain the following characters:
-0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
-Please try again."));
-		    clear_password_fields();
+		string error = Users::CheckPassword (pw1);
+		if (error != "")
+		{
+		    Report::Error (error);
+		    clear_password_fields ();
 		    continue;
-                }
-            }
-	    if (!CheckPasswordMaxLength (pw1, group_type))
-	    {
-		clear_password_fields ();
-		continue;
-	    }
-
-            password = Users::CryptPassword (pw1, group_type);
+		}
+		password = Users::CryptPassword (pw1, group_type);
             }
 
             // need for update /etc/gshadow (! is for empty password)
