@@ -424,14 +424,18 @@ to new home directory %2"), old_home, home));
 	usersAddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
 		     `chown,
 		     _("Can't set user and group variable to the home directory"));
-	
-	usersAddTodo(("/bin/chmod g-rx " + home ),
-		     `chown,
-		     _("Can't set read and write permissions to the home directory"));
 
-	usersAddTodo(("/bin/chmod o-rx " + home ),
-		     `chown,
-		     _("Can't set read and write permissions to the home directory"));
+	// FIXME, check general security level
+	if (false)
+	{
+	    usersAddTodo(("/bin/chmod g-rx " + home ),
+			`chown,
+			_("Can't set read and write permissions to the home directory"));
+
+	    usersAddTodo(("/bin/chmod o-rx " + home ),
+			`chown,
+			_("Can't set read and write permissions to the home directory"));
+	}
     }
 
 
