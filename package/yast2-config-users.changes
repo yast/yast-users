@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu May 10 16:19:30 MEST 2001 - gs@suse.de
+
+- icons for module Create an user and Create a group added (bug 7234) 
+
+-------------------------------------------------------------------
 Mon May  7 15:23:22 CEST 2001 - jbuch@suse.de
 
 - UI(`GetLanguage()) to UI(`GetLanguage(true))  
