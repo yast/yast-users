@@ -23,7 +23,8 @@ client_DATA = 		\
 	users_auto.ycp	\
 	users_write.ycp	\
 	inst_root.ycp	\
-	inst_user.ycp
+	inst_user.ycp   \
+    auth.ycp
 
 config_DATA =			\
 	users.y2cc		\

@@ -39,7 +39,11 @@ global define boolean IsNISAvailable (list passwd_source) ``{
 
     if (contains (passwd_source, "nis") ||
         contains (passwd_source, "compat"))
-        return true;
+    {
+        // check if it is true
+        if (0 == SCR::Execute (.target.bash, "/usr/bin/ypwhich"))
+            return true;
+    }
     return false;
 }
 

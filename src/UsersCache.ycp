@@ -13,10 +13,10 @@ module "UsersCache";
 textdomain "users";
 
 import "Mode";
-import "Console";
 
 include "users/passwd.ycp";
 
+// list of home directories
 global map homelists = $[];
 global map usernamelists = $[];
 global map groupnamelists = $[];
@@ -49,9 +49,10 @@ global integer max_length_gid = 0;
 global boolean customized_usersview = true;
 global boolean customized_groupsview = true;
 
-string encoding = "";
+global string encoding = "";
 
-integer last_used_local_uid = 1;
+// map of last uid used for new user (to fasten searching of free uid)
+map last_uid = $[];
 
     map symbol_to_string = $[
         `local: "local",
@@ -66,8 +67,6 @@ integer last_used_local_uid = 1;
 global define boolean Read(map usermap, map groupmap, list cust_u, list cust_g,
 string dir) ``{
 
-    encoding = Console::encoding;
-
     user_custom_sets = cust_u;
     current_users = cust_u;
 
@@ -78,11 +77,9 @@ string dir) ``{
     if (uidlist == [])
         uidlist = BuildUIDList(usermap);
     */
-y2milestone ("uidlists: %1", uidlists);
     users_itemlists [ `custom ] = MergeUserTableItems();
     user_itemlist = users_itemlists [ `custom ]:[];
 
-    last_used_local_uid = max_system_uid + 1;
 
     // -- change groups building in a same way !!
     group_custom_sets = cust_g;
@@ -113,6 +110,10 @@ global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
         users_itemlists = add (users_itemlists, type,
             BuildUserItemList(usersmap));
         uidlists [type] = BuildUIDList(usersmap);
+        if (type != `system)
+            last_uid [type] = max_system_uid + 1;
+        else
+            last_uid [type] = 1;
     }
     else // load from the file
     {
@@ -120,10 +121,14 @@ global define boolean BuildUsers (map usersmap, symbol type, string dir) ``{
             stringtype + ".ycp");
         usernamelists [type] = SCR::Read(.target.ycp, dir + "/usernamelist_" +
             stringtype + ".ycp");
-        users_itemlists [type] = SCR::Read(.target.ycp, dir + "/itemlist_" +
-            stringtype + ".ycp");
+        // eval due to translation of system use names
+        users_itemlists [type] = eval (
+            SCR::Read(.target.ycp, dir + "/itemlist_" + stringtype + ".ycp"));
         uidlists [type] = SCR::Read(.target.ycp, dir + "/uidlist_" +
             stringtype + ".ycp");
+        if (type != `nis)
+            last_uid [type] = SCR::Read (.target.ycp, dir + "/last_" +
+                stringtype + "_uid.ycp");
     }
 }
 
@@ -276,6 +281,7 @@ global define string Uncoding( string fullname ) ``{
  */
 global define list BuildGroupItemList(map map_of_groups) ``{
 
+    integer the_answer = 42;
     list items = [];
     foreach ( `key, `group, map_of_groups, ``{
 
@@ -294,6 +300,19 @@ global define list BuildGroupItemList(map map_of_groups) ``{
             userlist = userlist + ",";
         userlist = userlist + more;
         // filter out the duplicates from more_groups??
+        // shorten the list, if it is too long:
+        list all_users = splitstring (userlist, ",");
+        if (size (all_users) > the_answer)
+        {
+            userlist = "";
+            integer i = 0;
+            while (i < the_answer)
+            {
+                userlist = userlist + all_users[i]:"" + ",";
+                i = i + 1;
+            }
+            userlist = userlist + "...";
+        }
         a = add(a, userlist);
 
         items = add( items, a );
@@ -398,21 +417,17 @@ global define boolean GroupnameExists(string groupname) ``{
  */
 global define integer NextFreeUid() ``{
 
-    integer min = 1;
+    integer uid = last_uid [user_type]:last_uid [`local]:1;
     integer max = max_uid;
     if (user_type == `system)
         max = max_system_uid;
-    else // beware !! what about LDAP etc.??
-        min = last_used_local_uid + 1;
-    integer uid = min;
     repeat
     {
-//        if (contains (uidlist, uid))
         if (UIDExists (uid))
             uid = uid + 1;
         else
         {
-            last_used_local_uid = uid;
+            last_uid [user_type] = uid;
             return uid;
         }
     } until ( uid == max );
@@ -532,7 +547,7 @@ global define void ChangeUser(symbol what, map user) ``{
 }
 
 /* Update the cache after changing group */
-global define void ChangeGroup(symbol what, map group) ``{
+global define void ChangeGroup (symbol what, map group) ``{
 
     integer gid = group["gid"]:nil;
     integer org_gid = group["gid"]:gid;
@@ -575,6 +590,14 @@ global define void ChangeGroup(symbol what, map group) ``{
                 ``(g != groupname));
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != groupname));
+        UpdateGroupItemlist ();
+    }
+    else if (what == `itemlist)
+    {
+        groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
+            ``(select(item,1,"") != org_groupname));
+        groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?
+            BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
 
