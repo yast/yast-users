@@ -18,9 +18,10 @@
 
 {
     textdomain "users";
+    import "Wizard";
 
     // ===== includes =================================================
-    include "ui/wizard_dialog.ycp";
+    //include "ui/wizard_dialog.ycp";
     include "ui/common_messages.ycp";
     include "ui/common_popups.ycp";
     include "users/io.ycp";
@@ -98,7 +99,7 @@
 		  )
 	    );
 
-	UI::SetWizardContentsButtons(_("User and group administration"),
+	Wizard::SetContentsButtons(_("User and group administration"),
 		                     contents,
 				     usersUsersDialogHelp(),
 			             UI::BackButtonLabel(),
@@ -223,7 +224,7 @@
 	
 	
 	    
-	UI::SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
+	Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 				     usersEditUserDetailsHelp(),
 			             UI::BackButtonLabel(),
@@ -571,7 +572,7 @@ Please try again."));
 	
 
 	
-	UI::SetWizardContentsButtons(lookup(dialog_labels, what, ""),
+	Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditUserHelp(),
 			             UI::BackButtonLabel(),
@@ -823,6 +824,8 @@ Please press button Details and edit home directory."));
      * @return symbol
      */
     global define symbol usersDeleteUser() ``{
+
+	boolean delete        = true;
 	string username       = lookup( user_in_work, "username", "");
 	map new_current_users = $[];
 	
@@ -837,8 +840,7 @@ Please press button Details and edit home directory."));
 	{
 	    UI::ErrorPopup(_("You can not delete this user, because the user is present.
 Please log off the user first."));
-	    user_in_work = $[];
-	    return `next; 
+	    delete = false;
 	}
 	
 	
@@ -846,11 +848,26 @@ Please log off the user first."));
 	// if the user want to delete a system user
 	if ( lookup(user_in_work , "uid", nil) <= max_system_uid )
 	{	
-	    if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user")))
+	    if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user?")))
 	    {
-		user_in_work = $[];
-		return `next;
+		delete = false;
 	    }
+	}
+	else
+	{	
+	    if( ! UI::YesNoPopup(sformat(_("
+Do you really want to delete the user %1?
+"), username )))
+	    {
+		delete = false;
+	    }
+	}
+
+	if(! delete )
+	{
+	    save_focus( lookup(user_in_work ,"uid", 0), `nodelet, `user);
+	    user_in_work = $[];
+	    return `next;
 	}
 
 
@@ -940,7 +957,7 @@ Please log off the user first."));
 		  )
 	    );
 
-	UI::SetWizardContentsButtons(_("User and group administration"),
+	Wizard::SetContentsButtons(_("User and group administration"),
 		                     contents,
 			             usersGroupsDialogHelp(),
 			             UI::BackButtonLabel(),
@@ -1041,7 +1058,7 @@ Please log off the user first."));
 			   
 	
 	
-	UI::SetWizardContentsButtons(lookup(dialog_labels, what, ""),
+	Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditGroupHelp(),
 			             UI::BackButtonLabel(),
@@ -1389,7 +1406,7 @@ Please try again."));
      */
     global define usersDeleteGroup() ``{
 
-	
+	boolean delete = true;
 	//if no  user in this group
 	if ( (size ( filter(`k, `v, current_users , ``(lookup(v,"gid", -1) == lookup(group_in_work , "gid", -1)))) == 0) &&
 	     (lookup( group_in_work , "userlist", "") == "" ) )
@@ -1399,7 +1416,25 @@ Please try again."));
 	    if ( lookup(group_in_work , "gid", -1 ) <= max_system_gid )
 	    {	
 		if(! UI::YesNoHeadlinePopup(_("The marked group is a system group."), _("Do you really want to delete this group")))
-		    return `next;
+		{
+		    delete = false;
+		}
+	    }
+	    else
+	    {
+		if( ! UI::YesNoPopup(sformat(_("
+Do you really want to delete the group %1?
+"),lookup( group_in_work, "groupname", ""))))
+		{
+		    delete = false;
+		}
+	    }
+
+	    if ( ! delete )
+	    {
+		save_focus( lookup(group_in_work, "gid", 0), `nodelete, `group );
+		group_in_work = $[];
+		return `next;
 	    }
 
 	    
@@ -1425,6 +1460,7 @@ Please try again."));
 	    UI::WarningPopup(_("You can't delete this group because
 there are users in the group.
 Delete this users first."));
+	    save_focus( lookup(group_in_work, "gid", 0), `nodelete, `group );
 	}
 
 	if( test_mode ) SCR::Write(.dumpto.tmp.user_set,   user_settings  );
@@ -1452,7 +1488,7 @@ Delete this users first."));
 				`VSpacing( 2 )	
 				);
 
-	UI::SetWizardContentsButtons(  "" ,
+	Wizard::SetContentsButtons(  "" ,
 				       contents,
 				       usersSaveDialogHelp(),
 				       UI::BackButtonLabel(),

@@ -23,6 +23,7 @@
      */
 
     textdomain "users";
+    import "Wizard";
 
     // ===== arguments ================================================
 
@@ -137,7 +138,7 @@
     
  
     // ===== Open UI ==================================================
-    UI::CreateWizardDialog();
+    Wizard::CreateDialog();
     
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
