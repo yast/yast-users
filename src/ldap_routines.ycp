@@ -159,7 +159,7 @@ global define void ReadLDAPSettings () ``{
     ldap_host		= GetLDAPHost();
     is_ldap_server	= IsLDAPServer (ldap_host);
 //    ldap_file_server	= Ldap::file_server; TODO: currenty not in Ldap!
-//    ldap_version	= Ldap::version; TODO: currenty not in Ldap!
+    ldap_version	= Ldap::ldap_v2 ? 2 : 3;
     ldap_encryption	= Ldap::pam_password; // TODO: configure in Ldap
     ldap_bind_dn	= Ldap::bind_dn;
     ldap_user_class	= [
@@ -190,7 +190,7 @@ global define string LDAPInit () ``{
         "group_base":	ldap_group_base,
 	"user_class":	ldap_user_class,
 	"group_class":	ldap_group_class,
-//	"version":	ldap_version,
+	"version":	ldap_version,
 	"bind_dn":	ldap_bind_dn,
 	"pw_hash":	toupper (ldap_encryption) // TODO is toupper needed?
     ];
