@@ -197,32 +197,46 @@ global define boolean UsersWrite () ``{
     return (Users::Write(abort, false) == `next);
 }
 
+global define boolean UsersGUI ()``{
+    return (UsersSequence (start_dialog) == `next);
+}
+
 /* the command line description map */
 map cmdline = $[
     "id"		: "users",
     // translators: command line help text for Users module
     "help"		: _("Users configuration module."),
-    "guihandler"	: ``(UsersSequence (start_dialog)),
+    "guihandler"	: ``(UsersGUI()),
     "initialize"	: ``(UsersRead()),
     "finish"		: ``(UsersWrite()),
+    /*
+    "guihandler"	: UsersGUI,
+    "initialize"	: UsersRead,
+    "finish"		: UsersWrite,
+    TODO NI
+    */
     "actions"		: $[
 	"list" :$[
 	    "handler"	: ``(UsersListHandler()),
+//	    "handler"	: UsersListHandler,TODO NI
 	    // translators: command line help text for list action
 	    "help"	: _("List of available users")
 	],
 	"show" :$[
 	    "handler"	: ``(UsersShowHandler()),
+//	    "handler"	: UsersShowHandler,TODO NI
 	    // translators: command line help text for show action
 	    "help"	: _("Show information of selected user")
 	],
 	"add" :$[
 	    "handler"	: ``(UsersAddHandler()),
+//	    "handler"	: UsersAddHandler,TODO NI
 	    // translators: command line help text for ad action
 	    "help"	: _("Add new user")
 	],
 	"delete" :$[
-	    "handler"	: ``(UsersDeleteHandler()),
+	    "handler"	: ``(UsersDeleteHandler ()),
+//	    "handler"	: UsersDeleteHandler,TODO NI
 	    // translators: command line help text for delete action
 	    "help"	: _("Delete an existing user. (Home directory is not removed.)" )
 	],
