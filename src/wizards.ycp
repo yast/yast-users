@@ -201,6 +201,7 @@ global define symbol MainSequence(string start) ``{
             `nosave:        `nosave,
 	    `exit:          `abort ],
 	"group_add": $[
+	    `nosave:		"groups",
             `next:          "group_save",
             `abort:         "without_save",
 	    `cancel:        "without_save",
