@@ -817,10 +817,8 @@ global define symbol Write (block abort, boolean useUI)``{
 		return `abort;
     }
 
-    DeleteHomeDirs();
-    // TODO FIXME: call userdell_*cmd for each deleted user???
     // FIXME it doesn't make a sense to rebuild NIS database every time...
-    /*
+    // FIXME correct the number of parameters of scripts
     foreach (symbol type, map deleted, modified_users, ``{
 
 	if (!contains (["system", "local"], type)) return;
@@ -829,13 +827,24 @@ global define symbol Write (block abort, boolean useUI)``{
 	    string cmd = sformat("%1 %2", userdel_precmd, user["username"]:"");
 	    y2internal("%1 return value: %2", userdel_precmd,
 		SCR::Execute(.target.bash, cmd));
+	});
+    });
 
+    DeleteHomeDirs();
+
+    foreach (symbol type, map deleted, modified_users, ``{
+
+	if (!contains (["system", "local"], type)) return;
+
+	foreach (integer uid, map user, deleted, ``{
+
+	    // TODO call post_cmd after writing passwd? (modified_users will
+	    // be changed...)
 	    cmd = sformat("%1 %2", userdel_postcmd, user["username"]:"");
 	    y2internal("%1 return value: %2", userdel_precmd,
 		SCR::Execute(.target.bash, cmd));
 	});
     });
-    */
 
     // write passwd
     if ( useUI )
