@@ -187,7 +187,7 @@ my %ldap2yast_user_attrs	= ();
 my %ldap2yast_group_attrs	= ();
 
 # list of available plugin clients with features, enhabcing users module
-my @available_plugins		= ();
+#my @available_plugins		= ();
  
 ##------------------------------------
 ##------------------- global imports
@@ -215,6 +215,9 @@ YaST::YCP::Import ("UsersUI");
 
 sub contains { #TODO use grep
 
+    if (!defined $_[0] || ref ($_[0]) ne "ARRAY") {
+	return 0;
+    }
     foreach my $key (@{$_[0]}) {
 	if ($key eq $_[1]) { return 1; }
     }
@@ -225,6 +228,18 @@ sub _ {
     return gettext ($_[0]);
 }
 
+
+sub bool {
+
+    my $param = $_[0];
+    if (!defined $param) {
+	return 0;
+    }
+    if (ref ($param) eq "YaST::YCP::Boolean") {
+	return $param->value();
+    }
+    return $param;
+}
 
 sub DebugMap {
     UsersCache::DebugMap (@_);
@@ -1166,19 +1181,6 @@ sub ReadAvailablePlugins {
 
     if (Mode::test ()) { return; }
 
-#    my $find = "/usr/bin/find ".Directory::clientdir();
-#    $find .= " -name users_plugin_*.ycp"; #TODO use some variable for the name
-#    my $out	= SCR::Execute (".target.bash_output", $find);
-#    my $clients = $out->{"stdout"} || "";
-#    foreach my $client (split (/\n/, $clients)) {
-#	my @cl = split (/\//, $client);
-#	my $cl = $cl[-1] || "";
-#	$cl =~ s/\.ycp$//g;
-#	if ($cl ne "") {
-#	    push @available_plugins, $cl;
-#	}
-#    }
-#    UsersLDAP::InitPlugins (\@available_plugins);
     UsersPlugins::Read ();
 }
 
@@ -1378,9 +1380,11 @@ sub LoadShadow {
 	my $username	= $user_in_work{"username"};
 	my $type	= $user_in_work{"type"};
 	foreach my $key (keys %{$shadow{$type}{$username}}) {
-	    if ($key eq "userPassword") {
-		next;
-	    }
+#	    if ($key eq "userPassword" &&
+#		$shadow{$type}{$username}{$key} ne "!") {
+##		next;
+#		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+#	    }
 	    $user_in_work{$key} = $shadow{$type}{$username}{$key};
 	}
     }
@@ -1457,6 +1461,50 @@ sub DeleteGroup {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{DisableUser} = ["function",
+    ["map", "string", "any" ],
+    ["map", "string", "any" ]];
+}
+sub DisableUser {
+    
+    my $user	= $_[0];
+
+    my $plugins = UsersPlugins::Apply ("Interface", { "what" => "user"}, $user);
+    if (defined $plugins && ref ($plugins) eq "HASH") {
+	foreach my $plugin (keys %{$plugins}) {
+	    if (contains ($plugins->{$plugin}, "Disable")) {
+	        my $result = UsersPlugins::Apply ("Disable", {
+		    "what"	=> "user",
+		    "plugin"	=> $plugin }, $user);
+		if (defined $result->{$plugin} &&
+		    ref ($result->{$plugin}) eq "HASH") {
+		    $user	= $result->{$plugin};
+		}
+	    }
+	}
+    }
+    else {
+	# no plugins available: local user
+	# TODO not ready? shadowExpire
+	# TODO maybe we have plugin for local user, but without Disable...
+	my $type	= $user->{"type"} || "";
+	if ($type eq "local" || $type eq "system") {
+	    my $pw			= $user->{"userPassword"} || "";
+	    $user->{"userPassword"}	= "!".$pw;
+
+	    # FIXME old password should be stored until Enable...!
+	}
+    }
+    if (!defined $user->{"user_disabled"} ||
+	! $user->{"user_disabled"}->value) {
+	$user->{"user_disabled"}	= YaST::YCP::Boolean (1);
+    }
+	
+    return $user;
+}
+
+
+##------------------------------------
 #Edit is used in 2 diffr. situations
 #	1. initialization (creates "org_user")	- could be in SelectUser?
 #	2. save changed values into user_in_work
@@ -1480,10 +1528,15 @@ sub EditUser {
     if (!defined $user_in_work{"org_user"} &&
 	($user_in_work{"what"} || "") ne "add_user") {
 
+	# password we have read was real
+	my $pw	= $user_in_work{"userPassword"} || "";
+	if ($pw ne "" && $pw ne "!" && $pw ne "x") {
+	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	}
+
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
-
 	# grouplist wasn't fully generated while reading nis & ldap users
 	if ($type eq "nis" || $type eq "ldap") {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
@@ -1541,13 +1594,18 @@ sub EditUser {
 		$user_in_work{"removed_grouplist"} = \%removed;
 	    }
 	}
-	if ($key eq "create_home" || $key eq "encrypted" || $key eq "no_skeleton") {
+	if ($key eq "create_home" || $key eq "encrypted" ||
+	    $key eq "no_skeleton" || $key eq "user_disabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	    next;
 	}
-	if ($key eq "userPassword" && $data{$key} ne "" && $data{$key} ne "x") {
+	if ($key eq "org_user") {
+	    next;
+	}
+	if ($key eq "userPassword" && $data{$key} ne "" &&
+	    $data{$key} ne "x" &&  $data{$key} ne "!") {
 	    # crypt password only once (when changed)
-	    if (!defined ($data{"encrypted"})) {
+	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
 		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		next;
@@ -1557,6 +1615,12 @@ sub EditUser {
     }
     $user_in_work{"what"}	= "edit_user";
     UsersCache::SetUserType ($type);
+    # now handle possible login disabling
+    if (defined $user_in_work{"user_disabled"} &&
+	ref ($user_in_work{"user_disabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"user_disabled"}->value) {
+	DisableUser (\%user_in_work);
+    }
     return 1;
 }
 
@@ -1640,7 +1704,7 @@ sub EditGroup {
 	if ($key eq "userPassword" && $data{$key} ne "" && $data{$key} ne "x"
 	    && $data{$key} ne "!") {
 	    # crypt password only once (when changed)
-	    if (!defined ($data{"encrypted"})) {
+	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		next;
@@ -1653,6 +1717,7 @@ sub EditGroup {
     UsersCache::SetGroupType ($type);
     return 1;
 }
+
 
 ##------------------------------------
 # Initializes user_in_work map with default values
@@ -1692,11 +1757,15 @@ sub AddUser {
     }
 
     foreach my $key (keys %data) {
-	if ($key eq "create_home" || $key eq "encrypted" || $key eq "no_skeleton") {
+	if ($key eq "create_home" || $key eq "encrypted" ||
+	    $key eq "no_skeleton" || $key eq "user_disabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
 	# crypt password only once
-	elsif ($key eq "userPassword" && !defined ($data{"encrypted"})) {
+	elsif ($key eq "userPassword" &&
+	      (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) &&
+	      $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!")
+	{
 	    $user_in_work{$key} 	= CryptPassword ($data{$key}, $type);
 	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	}
@@ -1765,6 +1834,7 @@ sub AddUser {
 	    $user_in_work{"objectClass"} = \@classes;
 	}
         # add other default values
+# FIXME this must be enabled by LDAP plugins!
 	my %ldap_defaults	= %{UsersLDAP::GetUserDefaults()};
 	foreach my $attr (keys %ldap_defaults) {
 	    my $a = $ldap2yast_user_attrs{$attr} || $a;
@@ -1779,17 +1849,13 @@ sub AddUser {
 	    }
 	}
     }
+    # now handle possible login disabling
+    if (defined $user_in_work{"user_disabled"} &&
+	ref ($user_in_work{"user_disabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"user_disabled"}->value) {
+	DisableUser (\%user_in_work);
+    }
     return 1;
-}
-
-##------------------------------------
-# Shortcut to AddUser
-BEGIN { $TYPEINFO{Add} = ["function",
-    "boolean",
-    ["map", "string", "any" ]];
-}
-sub Add {
-    return AddUser ($_[0]);
 }
 
 ##------------------------------------
@@ -1854,9 +1920,10 @@ sub AddGroup {
     }
 
     foreach my $key (keys %data) {
-	if ($key eq "userPassword") {
+	if ($key eq "userPassword" &&
+	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
 	    # crypt password only once
-	    if (!defined ($data{"encrypted"})) {
+	    if (!defined ($data{"encrypted"}) || !bool ($data{"encrypted"})) {
 		$group_in_work{$key} 	= CryptPassword ($data{$key}, $type);
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 	    }
@@ -1913,15 +1980,36 @@ sub UserReallyModified {
 
     my $ret = 0;
 
+    my %org_user	= ();
+    if (defined $user{"org_user"}) {
+	%org_user	= %{$user{"org_user"}};
+    }
     if ($user{"type"} ne "ldap") {
 	# grouplist can be ignored, it is a modification of groups
-	while ( my ($key, $value) = each %{$user{"org_user"}}) {
-	    if ($key ne "grouplist" &&
-		(!defined $user{$key} || $user{$key} ne $value))
+	while ( my ($key, $value) = each %org_user) {
+
+	    if ($key eq "grouplist") {
+		next;
+	    }
+	    if (defined $user{$key} &&
+		(ref ($value) eq "YaST::YCP::Boolean" && 
+		 ref ($user{$key}) eq "YaST::YCP::Boolean") ||
+		(ref ($value) eq "YaST::YCP::Integer" && 
+		 ref ($user{$key}) eq "YaST::YCP::Integer"))
+	    {
+		if ($user{$key}->value() != $value->value())
+		{
+		    $ret = 1;
+		    y2milestone ("old value: ", $value->value());
+		    y2milestone ("changed to: ", $user{$key}->value());
+		}
+		next;
+	    }
+	    if (!defined $user{$key} || $user{$key} ne $value)
 	    {
 		$ret = 1;
-		y2debug ("old value:%1, changed to:%2",
-		    $value, $user{$key} || "-" );
+		y2internal ("old value: $value, changed to: ",
+		    $user{$key} || "-" );
 	    }
 	}
 	return $ret;
@@ -1935,18 +2023,18 @@ sub UserReallyModified {
 	    ref ($value) eq "HASH" ) {
 	    next;
 	}
-	if (!defined ($user{"org_user"}{$key})) {
+	if (!defined ($org_user{$key})) {
 	    if ($value ne "") {
 		$ret = 1;
 	    }
 	}
 	elsif (ref ($value) eq "ARRAY") {
-	    if (ref ($user{"org_user"}{$key}) ne "ARRAY" ||
-		@{$user{"org_user"}{$key}} ne @{$value}) {
+	    if (ref ($org_user{$key}) ne "ARRAY" ||
+		@{$org_user{$key}} ne @{$value}) {
 		$ret = 1;
 	    }
 	}
-        elsif ($user{"org_user"}{$key} ne $value) {
+        elsif ($org_user{$key} ne $value) {
 	    $ret = 1;
 	}
     }
@@ -2932,15 +3020,16 @@ sub CheckPassword {
     my $min_length 	= $min_pass_length{$type};
     my $max_length 	= $max_pass_length{$type};
 
+    # password for 'disabled' user
+    if ($pw eq "!") { # TODO || $pw eq ""
+	return "";
+    }
+
     if (($pw || "") eq "") {
 	# error popup
 	return _("You didn't enter a password.
 Try again.");
     }
-#    if ($pw eq "") {
-#	# enable user without password (?)
-#	return "";
-#    }
 
     if (length ($pw) < $min_length) {
 	# error popup
@@ -3055,9 +3144,9 @@ sub CheckPasswordUI {
     if (($ui_map{"empty_pw"} || 0) != 1) {
 	# popup question: user didn't enter password
 	my $error = _("You didn't enter a password.
-Every one will be able to log in as this user!
-Do you really want to leave this user wihout password?.");
-
+This user will not be enabled to log in.
+Are you sure?");
+#FIXME do not check when already disabled...
 	if ($pw eq "") {
 	    $ret{"question_id"}	= "empty_pw";
 	    $ret{"question"}	= $error;
@@ -3454,8 +3543,6 @@ sub CheckUser {
 	$error	= CheckGECOS ($user{"addit_data"});
     }
 
-# TODO Check*UI (?)
-
     my $error_map	=
 	UsersPlugins::Apply ("Check", { "what" => "user" }, \%user);
 
@@ -3493,6 +3580,8 @@ sub CheckGroup {
     }
 
     my $error = CheckGID ($group{"gidNumber"});
+
+# FIXME CheckPassword!
 
     if ($error eq "") {
 	$error = CheckGroupname ($group{"groupname"});
@@ -3761,11 +3850,16 @@ sub ImportUser {
     }
 
     my $encrypted	= $user->{"encrypted"};
+    if (defined $encrypted && ref ($encrypted) ne "YaST::YCP::Boolean") {
+	$encrypted	= YaST::YCP::Boolean ($encrypted);
+    }
     # FIXME when the password will be crypted?
     my $pass		= $user->{"user_password"}	|| "x";
-    if (!defined $user->{"encrypted"} && $pass ne "x" && !Mode::config ()) {
+    if ((!defined $encrypted || !bool ($encrypted)) &&
+	$pass ne "x" && !Mode::config ())
+    {
 	$pass 		= CryptPassword ($pass, $type);
-	$encrypted	= 1;
+	$encrypted	= YaST::YCP::Boolean (1);
     }
     my $home	= GetDefaultHome($type).$username;
 
@@ -4169,7 +4263,7 @@ sub ExportUser {
     }
     my $encrypted	= $exported_user{"encrypted"};
     if (!defined $encrypted) {
-	$encrypted	= 1;
+	$encrypted	= YaST::YCP::Boolean (1);
     }
     if (defined $ret{"user_password"}) {
 	$ret{"encrypted"}		= $encrypted;
