@@ -127,8 +127,12 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    if (is (val, map) || val == nil)
 		return;
 	    list<string> value = [];
+	    if (is (val, list))
+	    {
+		value = (list<string>)val;
+	    }
 	    if (contains (binary_attrs, at) || is (val, byteblock) ||
-		(is (val, list) && is (select ((list)val,0,nil), byteblock)))
+		(is (val, list) && is (value[0]:nil, byteblock)))
 	    {
 		y2warning ("binary value (%1) cannot be edited", at);
 		return;
@@ -142,10 +146,6 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    {
 		value = [ (string)val ];
 		data [at] = value;
-	    }
-	    else if (is (val, list))
-	    {
-		value = (list<string>)val;
 	    }
 	    used_attributes = add (used_attributes, at);
 	    items = add (items,`item (`id(at), at, mergestring(value,",")));
