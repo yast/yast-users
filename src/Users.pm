@@ -2770,6 +2770,7 @@ sub CheckPassword {
     my $min_length 	= $min_pass_length{$type};
     my $max_length 	= $max_pass_length{$type};
 
+    #TODO enable not entering the password... (bug#32587)
     if (($pw || "") eq "") {
             
 	return _("You didn't enter a password.
@@ -3027,29 +3028,45 @@ sub CheckHomeUI {
     my %ret		= ();
     my $create_home	= $user_in_work{"create_home"} || YaST::YCP::Boolean(0);
 
-    if ($home eq "" || !($create_home->value)) {
+    if ($home eq "" || !($create_home->value) || Mode::config()) {
+	return \%ret;
+    }
+    if ($type eq "ldap" && !Ldap::file_server ()) {
+	return \%ret;
+    }
+	
+    my %stat 	= %{SCR::Read (".target.stat", $home)};
+    
+    if ((($ui_map{"not_dir"} || 0) != 1)	&&
+	%stat && !($stat{"isdir"} || 0))	{
+
+	$ret{"question_id"}	= "not_dir";
+	# yes/no popup: user seleceted something strange as a home directory
+	$ret{"question"}	= _("The path for selected home directory already exists,
+but it is not a directory.
+Are you sure?");
 	return \%ret;
     }
 
     if ((($ui_map{"chown"} || 0) != 1)		&&
-	!Mode::config ()			&&
-	SCR::Read (".target.size", $home) != -1	&&
-	($type ne "ldap" || Ldap::file_server ())) {
+	%stat && ($stat{"isdir"} || 0))	{
         
 	$ret{"question_id"}	= "chown";
+	# yes/no popup
 	$ret{"question"}	= _("The home directory selected already exists.
 Use it and change its owner?");
 
-	my %stat 	= %{SCR::Read (".target.stat", $home)};
 	my $dir_uid	= $stat{"uidNumber"} || 0;
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
+	    # yes/no popup
 	    $ret{"question"}	= _("The home directory selected already exists
 and is owned by the currently edited user.
 Use this directory?");
 	}
 	# maybe it is home of some user marked to delete...
 	elsif (defined $removed_homes{$home}) {
+	    # yes/no popup
 	    $ret{"question"}	= sprintf (_("The home directory selected (%s)
 already exists as a former home directory of
 a user previously marked for deletion.
@@ -3870,8 +3887,23 @@ sub ExportUser {
 
     my $type	= $user->{"type"} || "local";
     my $username = $user->{"username"} || "";
-    my %user_shadow	= %{CreateShadowMap ($user)};
-#TODO Translate keys of user_shadow...?
+    my %user_shadow	= ();
+
+    my %translated = (
+	"shadowInactive"	=> "inact",
+	"shadowExpire"		=> "expire",
+	"shadowWarning"		=> "warn",
+	"shadowMin"		=> "min",
+        "shadowMax"		=> "max",
+        "shadowFlag"		=> "flag",
+	"shadowLastChange"	=> "last_change",
+	"userPassword"		=> "password"
+    );
+    my %shadow_map	= %{CreateShadowMap ($user)};
+    foreach my $key (keys %shadow_map) {
+	my $new_key		= $translated{$key} || $key;
+	$user_shadow{$new_key}	= $shadow_map{$key};
+    }
 
     my $encrypted	= $user->{"encrypted"};
     if (!defined $encrypted) {
@@ -3891,7 +3923,7 @@ sub ExportUser {
         "gid"			=> $user->{"gidNumber"},
         "home"			=> $user->{"homeDirectory"} || "",
         "grouplist"		=> $grouplist,
-#        "password_settings":user_shadow
+        "password_settings"	=> \%user_shadow
     };
 #FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
 # better would be: leave the new values, but remove 'internal' ones
