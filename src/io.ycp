@@ -251,6 +251,7 @@
 	  
 	    if( is( i_uid , integer ) )
 	    {
+		
 		user = add( user , "fullname", usersConsoleUncoding( lookup( user, "fullname" ,"" )));
 		current_users = add(current_users, i_uid , user );
 	    }	
@@ -265,8 +266,9 @@
    */
   global define void usersGroupsReadFromDisk() ``{
 
-	list groups = SCR::Read(.etc.group );    
+	list groups = SCR::Read(.etc.group );
 	foreach ( `group, groups,  ``{
+	    
 	    any i_gid = lookup( group, "gid", 0);
 	    group = add(group, "exist", true);
 	    if( is( i_gid , integer ) )
@@ -873,7 +875,7 @@ to new home directory %2")), old_home, home));
 	    if ( lookup(group ,"todo", "") != `delete )
 	    {
 		if( todo == `items  &&
-		    ( view_all_groups || ( ! view_all_groups && (key > max_system_gid ))))
+		    ( view_all_groups || ( ! view_all_groups && (key > max_system_gid &&  group["groupname"]:"" != "nogroup" ))))
 		{
 		    string  s_gid = sformat("%1", key   );
 		    term    a     = `item(`id(key));
@@ -918,7 +920,7 @@ to new home directory %2")), old_home, home));
 	    {
 		string username = lookup( user , "username" , "");
 		if( todo == `items &&
-		    ( view_all_users || ( ! view_all_users && (key > max_system_uid ))))
+		    ( view_all_users || ( ! view_all_users && (key > max_system_uid  && user["username"]:"" != "nobody" ))))
 		{	
 		    string  s_uid = sformat("%1", key );
 		    term    a     = `item(`id(key));
@@ -1061,7 +1063,6 @@ to new home directory %2")), old_home, home));
      * @return boolean
      */
     global define boolean usersConsoleUncoding( string fullname ) ``{
-	
 	return UI::Recode( encoding,"utf-8",  fullname );
     }
 

@@ -100,11 +100,15 @@
 		  )
 	    );
 
+	string lastbutton =  UI::FinishButtonLabel() ;
+	if( Mode::cont )
+	    lastbutton =  UI::NextButtonLabel() ;
+	
 	Wizard::SetContentsButtons(_("User and group administration"),
 		                     contents,
 				     usersUsersDialogHelp(),
 			             UI::BackButtonLabel(),
-				     UI::FinishButtonLabel());
+				     lastbutton );
 
 
 	if( focusline_user != 0) 
@@ -234,7 +238,7 @@
 		                     contents,
 				     usersEditUserDetailsHelp(),
 			             UI::BackButtonLabel(),
-				     UI::OKButtonLabel());
+				     UI::NextButtonLabel());
 
 	//Modify the dialog 
 	UI::ChangeWidget(`id(`fullname), `Enabled, false );
@@ -400,7 +404,7 @@ Please try again."));
 		}    
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 	
-	if ( ret == `next ) ret = what;
+	if ( ret == `next ) ret = what; 
 	return ret;
     }
 
@@ -541,8 +545,19 @@ Please try again."));
 	if ( surname   == "empty" ) surname  =  usersSplitFullName(`surname,  fullname, uid);
 	if ( forename  == "empty" ) forename =  usersSplitFullName(`forename, fullname, uid);
 	if ( uid == max_uid )  uid = usersFreeUid(current_users);
+
 	
+	term detailsmorebox = 	`HBox(
+				      `PushButton(`id(`details), _("&Details...")),
+				      `VStretch()
+				      );
 	
+	// running in inst-sys and first mask to a user
+	if( Mode::cont &&  start_dialog == "user_add" )
+	{
+	    detailsmorebox = add(detailsmorebox, `PushButton(`id(`additional), _("&Additional users/groups")));
+	}
+	    
 	term contents = 
 	    `HSquash(`VBox(
 	     
@@ -571,7 +586,7 @@ Please try again."));
 	       `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
 		
 	       `VStretch(),
-	       `PushButton(`id(`details), _("&Details..."))
+		detailsmorebox
 	    ));
 
 	
@@ -588,9 +603,9 @@ Please try again."));
 	
 
 	// Modify the dialog 
-	if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
-	else  if( what == `add_user )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
-	else  if( what == `edit_user)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
+	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
+	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	//else  if( what == `edit_user)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 	
 	if( uid <= max_system_uid && what == `edit_user )
 	{
@@ -618,7 +633,7 @@ Please try again."));
 		    UI::ChangeWidget(`id(`username), `Value, username);
 		}
 		    	
-		if ( ret == `next || ret == `details )
+		if ( ret == `next || ret == `details || ret == `additional )
 		{
 		    string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
 		    string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
@@ -631,7 +646,7 @@ Please try again."));
 		    
 
 		    if ( Mode::test )
-		    {
+		    {	
 			return `next;
 		    }
 		    
@@ -822,8 +837,17 @@ Please press button Details and edit home directory."));
 
 		}
 		
-	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel );
+	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional );
 
+	// only in inst-sys
+	// create more users and groups
+	// leave sequencer and start it again with new start_dialog
+	if( ret == `additional )
+	{
+	    start_sequencer_again = true;
+	    ret = `next;
+	}
+	
 	return ret;
     }
 
@@ -872,9 +896,9 @@ Please log off the user first."));
 	    if( lookup( user_in_work, "exist", true ) && home != "" && SCR::Read(.target.size, home ) !=-1)
 	    {
 		term contents = `HBox(
-				      `HSpacing(2),
+				      `HSpacing(3),
 				      `VBox(`VSpacing(1),
-					    `Left(`Heading(sformat(_("Delete the user %1?"), username ))),
+					    `Left(`Heading(sformat(_("Delete the user %1"), username ))),
 					    `VSpacing(0.5),
 					    `Left(`CheckBox(`id(`delete_home), sformat(_("delete &home directory
 %1"),home ) )),
@@ -884,7 +908,7 @@ Please log off the user first."));
 						  `Bottom(`PushButton(`id(`cancel),UI(`CancelButtonLabel())))
 						  )
 					    ),
-					    `HSpacing(2)
+					    `HSpacing(3)
 				      );
 				  
 		UI::OpenDialog(`opt( `decorated ), contents );
@@ -1011,11 +1035,15 @@ Do you really want to delete the user %1?
 		  )
 	    );
 
+	string lastbutton =  UI::FinishButtonLabel() ;
+	if( Mode::cont )
+	    lastbutton =  UI::NextButtonLabel() ;
+	
 	Wizard::SetContentsButtons(_("User and group administration"),
 		                     contents,
 			             usersGroupsDialogHelp(),
 			             UI::BackButtonLabel(),
-				     UI::FinishButtonLabel());
+				     lastbutton );
 
 	if( focusline_group != 0 )
 	    UI::ChangeWidget(`id(`group_table), `CurrentItem, focusline_group );
@@ -1054,7 +1082,6 @@ Do you really want to delete the user %1?
 		
 		
 	    } until ( ret != `not_next  );
-	if( ret == `back) ret = `exit ;
 	
 	save_focus( UI::QueryWidget(`id(`group_table), `CurrentItem), ret, `group);
 	return ret;
@@ -1121,9 +1148,9 @@ Do you really want to delete the user %1?
 	
 
 
-	if( what == `clone_group )       UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
-	else   if( what == `add_group )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
-	else   if( what == `edit_group)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
+	//if( what == `clone_group )       UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
+	if( what == `add_group && ! Mode::cont)  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	//else   if( what == `edit_group)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 
 	if( what == `edit_group  )
 	{
@@ -1534,19 +1561,23 @@ Delete this users first."));
 	SCR::Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save");
 	SCR::Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save");
 	SCR::Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save");
-	
-	term contents =   `VBox(
-				`VSpacing( 2 ),
-				`Left(`Heading (_("Save modified settings to system."))),
-				`HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
-				`VSpacing( 2 )	
-				);
 
-	Wizard::SetContentsButtons(  "" ,
-				       contents,
-				       usersSaveDialogHelp(),
-				       UI::BackButtonLabel(),
-				       UI::NextButtonLabel());
+	// normal, running system
+	if( ! Mode::cont )
+	{
+	    term contents =   `VBox(
+				    `VSpacing( 2 ),
+				    `Left(`Heading (_("Save modified settings to system."))),
+				    `HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
+				    `VSpacing( 2 )	
+				    );
+
+	    Wizard::SetContentsButtons(  "" ,
+					 contents,
+					 usersSaveDialogHelp(),
+					 UI::BackButtonLabel(),
+					 UI::NextButtonLabel());
+	}
 
 
 
@@ -1618,9 +1649,12 @@ Delete this users first."));
 	    }
 	    else
 	    {
-		UI::MessagePopup(_("The new user and group settings
+		// normal, running system
+		if( ! Mode::cont )
+		{
+		    UI::MessagePopup(_("The new user and group settings
 are configured and usable"));	
-
+		}
 	    }
 	}
 	

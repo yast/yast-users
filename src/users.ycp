@@ -25,32 +25,32 @@
     textdomain "users";
     import "Wizard";
     import "Console";
+    import "Mode";
 
+    y2milestone("mode %1", Mode::cont );
+    
     // ===== arguments ================================================
 
     boolean test_mode = false;
-
+    boolean start_sequencer_again = false;
     string  start_dialog = "users";
+    integer arg = 0;
 
+    
+    while ( arg < size( Args() ) )
     {
-	integer arg = 0;
-
-	while ( arg < size( Args() ) )
+	y2debug( "arg #%1: %2", arg, Args( arg ) );
+	if ( Args( arg ) == .test )
 	{
-	    y2debug( "arg #%1: %2", arg, Args( arg ) );
-		
-	    if ( Args( arg ) == .test )
-	    {
-		test_mode = true;
-	    }
-	    else
-	    {
-		start_dialog = Args( arg );
-	    }
-
-	    arg = arg + 1;
+	    test_mode = true;
 	}
+	else
+	{
+	    start_dialog = Args( arg );
+	}
+	arg = arg + 1;
     }
+
 
     y2debug( "Starting with %1 - test mode: %2", start_dialog, test_mode );
     
@@ -102,7 +102,7 @@
 
     
     // ===== includes =================================================
-    include "ui/wizard_dialog.ycp";
+    //include "ui/wizard_dialog.ycp";
     include "wizard/sequencer.ycp";
     
     include "users/ui.ycp";
@@ -111,12 +111,10 @@
    
     string language = UI::GetLanguage(true);
     string encoding = Console::SelectFont( language);
-  
     
     usersGroupsShadowReadFromDisk();
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
-
   
     list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
     map  pam_map  = select( pam_list, 0, $[]);
@@ -145,9 +143,23 @@
 	min_length_pas = 8;
     }
     
- 
+    // if in inst-system and one user was already created switsch to overview
+    if( start_dialog == "user_add" && ( Mode::cont ))
+    {
+	//y2milestone(" users  %1 ", current_users );
+	map non_system_user = filter(`key, `user, current_users, ``( ( user["uid"]:0 >   max_system_uid) && user["username"]:"" != "nobody"  ));
+	if( size( non_system_user ) > 0 )
+	{
+	    start_dialog = "users";
+	}
+    }
+    
     // ===== Open UI ==================================================
-    Wizard::CreateDialog();
+    if( ! Mode::cont )
+    {
+	Wizard::CreateDialog();
+    }
+	
     
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
@@ -246,7 +258,28 @@
     // ===== Start the sequence =======================================
     
     any ret = WizardSequencer(aliases, main_sequence);
-    UI::CloseDialog();
+
+    if ( start_sequencer_again )
+    {
+	
+	user_settings = $[];
+	current_users   = $[];
+	current_groups  = $[];
+	current_gshadow = [];
+
+	group_in_work = $[];
+	user_in_work  = $[];
+
+	usersGroupsShadowReadFromDisk();
+	usersUsersReadFromDisk();
+	usersGroupsReadFromDisk();
+	start_dialog = "users";
+	main_sequence["ws_start"]="users";
+	ret = WizardSequencer(aliases, main_sequence);
+    }
+
+    if( ! Mode::cont )
+	UI::CloseDialog();
 
     y2milestone( "Returning with %1", ret );
     return ret;
