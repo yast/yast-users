@@ -2,6 +2,9 @@
 ; Menuentry file used by
 ;  YaST2 Control Center
 ;
+; Authors:
+;  *  Johannes Buchhold <jbuch@suse.de>
+;
 ; $Id$
 ;
 

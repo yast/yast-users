@@ -1,3 +1,20 @@
+/**
+ * File:
+ *  users/accounts.ycp
+ *
+ * Module:
+ *  Configuration of the users and groups
+ *
+ * Summary:
+ *  Screens and UI routines for the users module
+ *
+ * Authors:
+ *  Johannes Buchhold <jbuch@suse.de>
+ *
+ * $Id$
+ *
+ */
+
 // accounts predefined by initial /etc/passwd
 // this is checked in inst_user
 // FIXME: check login against passwd contents

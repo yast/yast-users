@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Jul 10 14:16:54 CEST 2002 - jsrain@suse.cz
+
+- Fixed maintenance of users/group for NIS when using other dir
+  than /etc for files (Bug #14817)
+- Addedf possibility to add non-local users to local groups 
+  (Bug #15013)
+
+-------------------------------------------------------------------
 Tue Jul  9 21:31:58 CEST 2002 - msvec@suse.cz
 
 - added missing textdomains
@@ -17,9 +25,6 @@ Thu Jul  4 13:42:31 CEST 2002 - jsrain@suse.cz
 - Able to edit password settings (Bug #15841)
 - Helps update of Users module
 - added yast2-country to requires
-
--------------------------------------------------------------------
-Wed Jul  3 12:16:33 CEST 2002 - jsrain@suse.cz
 - Added testsuite
 - Now allowed "=" in password (#15646)
 

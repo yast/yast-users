@@ -1,8 +1,8 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-security yast2-country yast2-installation yast2-x11 nearly-all
+# neededforbuild yast2-devel-packages yast2-security yast2-country yast2-installation yast2-x11
 
 @HEADER@
-Requires:	yast2 yast2-country yast2-security yast2-pam
+Requires:	yast2 yast2-country yast2-security yast2-pam yast2-nis-server
 Obsoletes:	yast2-config-users y2c_users
 Provides:	yast2-config-users y2c_users
 

@@ -23,6 +23,13 @@
 
   include "users/help.ycp";
 
+  global string chage = "/usr/bin/chage";
+  global string useradd = "/usr/sbin/useradd";
+  global string usermod = "/usr/sbin/usermod";
+  global string userdel = "/usr/sbin/userdel";
+  global string groupadd = "/usr/sbin/groupadd";
+  global string groupdel = "/usr/sbin/groupdel";
+  global string groupmod = "/usr/sbin/groupmod";
 
   list write_to_system_stack = [];
 
@@ -126,36 +133,31 @@
      * @return symbol
      */
     global define symbol UserSave(map user_in_work, boolean save_directly ) ``{
-y2error ("user: %1", user_in_work);
 	symbol  what     = lookup( user_in_work , "what"      , `nix );
 	string  fullname = lookup( user_in_work , "fullname"  , ""   );
 	integer gid      = lookup( user_in_work , "gid"       ,  UserDefs::max_gid );
 	string  home     = lookup( user_in_work , "home"      , ""   );
 	string  password = lookup( user_in_work , "password"  , ""   );
+	string  old_password = lookup( user_in_work , "old_password"  , ""   );
 	string  shell    = lookup( user_in_work , "shell"     , ""   );
 	integer uid      = lookup( user_in_work , "uid"       , UserDefs::max_uid );
 	string  username = lookup( user_in_work , "username"  , ""   );
 	string  grouplist= lookup( user_in_work , "grouplist" , ""   );
-	string  todo     = "/usr/sbin/usermod";
+	string  todo     = usermod;
 	boolean do_exist = true;
 	map     org_user = UserSettings::GetUser( uid );
 	string  comment  = consoleEncoding( fullname );
 	boolean create_home = lookup (user_in_work, "create_home", true);
 	boolean pwd_chng = lookup (user_in_work, "pwd_chng", false);
+	symbol  user_type = lookup (user_in_work, "type", `passwd);
 
 	if ( what == `add_user )
 	{
 	    do_exist = false;
 
 	    //add the shell, home, initial_group, password, uid to the todo string
-//	    if (create_home)
-		todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
+	    todo = sformat(useradd + " -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
 			home, UserSettings::GroupIdToName(gid), password, uid);
-//	    else
-//	    {
-//		todo = sformat("/usr/sbin/useradd -s %1 -g %2 -m -p '%3' -u %4 -o",shell,
-//			UserSettings::GroupIdToName(gid), password, uid);
-//	    }
 
 	    //add the fullname to the todo string (comment)
 	    if ( comment  != "") todo = todo + " -c " + comment;
@@ -199,10 +201,10 @@ y2error ("user: %1", user_in_work);
 		todo = todo + " -d "  + home + " -m";
 
 	    //add the password to the todo string
-	    if ( "x" != password )
+	    if ( "x" != password && old_password != password)
 	    {
 		todo = todo + " -p '"  + password + "'";
-		change_data = true;
+		change_date = true;
 	    }
 
 	    //add the loginname to the todo string
@@ -220,42 +222,54 @@ y2error ("user: %1", user_in_work);
 		todo = todo + " -G "  + grouplist;
 	    }
 
-	    //add the todo string to the write stack
-	    if( todo !=  "/usr/sbin/usermod" )
+	    if (user_type == `getent)
 	    {
-		todo = todo + " " + UserSettings::UserIdToName( uid );
+		pwd_chng = false;
+		todo = sformat ("cp %4/passwd %4/passwd.y2backup;
+echo '\n%2:x:65530:100:::\n' >>%4/passwd;
+%3 -G %1 %2;
+mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ), usermod, UserSettings::base_dir);
+	    }
+
+	    //add the todo string to the write stack
+	    if( todo !=  usermod )
+	    {
+		if (substring (todo, 0, 15) == sunstring (usermod, 0, 15))
+		    todo = todo + " " + UserSettings::UserIdToName( uid );
 
 		AddTodo( todo,
 			      `edit_user,
 			      sformat(_("Can't change the settings of the user %1"), username ), `user, uid);
 		string today = lookup (SCR::Execute (.target.bash_output, ("date +\"%Y-%m-%d\"")), "stdout", "");
-		today = substring (today, 0, 10);
-		todo = sformat ("/usr/bin/chage -d %1 %2", today, username);
-		AddTodo( todo, `edit_user, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		if (change_date)
+		{
+		    today = substring (today, 0, 10);
+		    todo = sformat (chage + " -d %1 %2", today, username);
+		    AddTodo( todo, `edit_user, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		}
 	    }
 	}
 
 	if (pwd_chng)
 	{
-	    y2error ("Now in pwd_chng");
 	    map shadow = lookup (user_in_work, "shadow", $[]);
 	    integer val = lookup (shadow, "min", nil);
 	    if (nil != val)
-		AddTodo( sformat ("passwd -n %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		AddTodo( sformat (chage + " -m %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
             val = lookup (shadow, "max", nil);
             if (nil != val)
-                AddTodo( sformat ("passwd -x %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -M %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
             val = lookup (shadow, "warn", nil);
             if (nil != val)
-                AddTodo( sformat ("passwd -w %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -W %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
             val = lookup (shadow, "inact", nil);
             if (nil != val)
-                AddTodo( sformat ("passwd -i %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
-	    string sval = lookup (shadow, "expire", nil);
+                AddTodo( sformat (chage + " -I %1 %2", val, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+	    string sval = substring (lookup (shadow, "expire", nil), 0, 10);
             if (regexpmatch (sval, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
-                AddTodo( sformat ("chage -E %1 %2", sval, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+                AddTodo( sformat (chage + " -E %1 %2", sval, username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
 	    else
-		AddTodo( sformat ("chage -E -1 %1", username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
+		AddTodo( sformat (chage + " -E -1 %1", username), what, sformat(_("Can't change the password settings of the user %1"), username ), `user, uid);
 	}
 
 	map current_user = $[
@@ -310,7 +324,7 @@ y2error ("user: %1", user_in_work);
 	   string new_userlist = UserSettings::RemoveDefaultUserFromUserlist( old_gid, split_userlist);
 
 	   // build strings with the operation and save they to write_to_system_stack
-	   string  todo     = "/usr/sbin/groupmod";
+	   string  todo     = groupmod;
 	   boolean do_exist = true;
 
 
@@ -320,7 +334,7 @@ y2error ("user: %1", user_in_work);
 	       do_exist = false;
 
 	       // create the group
-	       AddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname ),
+	       AddTodo( sformat(groupadd + " -g %1 -o %2", gid, new_groupname ),
 			`add_group,
 			sformat(_("Can't create new group %1"), new_groupname), `group, gid);
 
@@ -329,11 +343,11 @@ y2error ("user: %1", user_in_work);
 	       {
 		   list split_userlist = splitstring( userlist , "," );
 		   foreach ( `user, split_userlist, ``{
-			integer uid = UserSettings::GetUid (user);
+		       integer uid = UserSettings::GetUid (user);
 		       string new_G = UserSettings::FindGroupsBelongUser(user);
 		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
 		       else new_G  = new_groupname;
-		       AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ),
+		       AddTodo( sformat(usermod + " -G '%1' %2", new_G, user ),
 				`edit_user,
 				sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		   });
@@ -366,7 +380,7 @@ y2error ("user: %1", user_in_work);
 			   string new_G = UserSettings::FindGroupsBelongUser(user);
 			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
 			   else new_G  = old_groupname;
-			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ),
+			   AddTodo( sformat(usermod + " -G '%1' %2", new_G , user ),
 					 `edit_user,
 					 sformat(_("Can't add user %1 to group %2"), user, new_G), `user, uid);
 		       });
@@ -383,7 +397,7 @@ y2error ("user: %1", user_in_work);
 			   string new_G      = UserSettings::FindGroupsBelongUser(user );
 			   list   new_G_list = splitstring( new_G , "," );
 			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
-			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
+			   AddTodo( sformat(usermod + " -G '%1' %2", new_new_G, user ),
 					 `edit_user,
 					 sformat(_("Can't add user %1 to group %2"), user, new_new_G), `user, uid);
 		       });
@@ -396,7 +410,7 @@ y2error ("user: %1", user_in_work);
 	       if ( lookup( UserSettings::GetGroup( old_gid ), "gid"       , "" ) != gid )
 		   todo = todo + " -g " + sformat("%1", gid) + " -o";
 
-	       if ( todo != "/usr/sbin/groupmod" )
+	       if ( todo != groupmod )
 		   AddTodo( (todo + " " +  old_groupname),
 				 `edit_group,
 				 sformat(_("Can't change the settings of the group %1"), old_groupname), `group, gid);
@@ -476,6 +490,8 @@ y2error ("user: %1", user_in_work);
 
 	integer value = 0;
 	boolean ok    = true;
+	boolean is_nis_master = UserSettings::isNisMaster ();
+is_nis_master = true;
 
 	foreach( `todomap, write_to_system_stack, ``{
 
@@ -517,6 +533,9 @@ y2error ("user: %1", user_in_work);
 		ret = (0 == SCR::Execute(.target.bash, todo ));
 	    }
 
+	    if (ret && is_nis_master)
+		ret = (0 == SCR::Execute(.target.bash, "make -C /var/yp"));
+
 	    if( ret == true )
 	    {
 		value	= value + 1;
@@ -545,6 +564,7 @@ y2error ("user: %1", user_in_work);
 are configured and usable"));
 	    }
 	}
+
 	return `next;
     }
 

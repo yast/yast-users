@@ -21,7 +21,7 @@
     import "Mode";
     import "UserDefs";
     import "UserAddDefs";
-
+    include "users/ui.ycp";
     include "users/passwd.ycp";
 
     /* TODO - make the maps local if possible */
@@ -30,12 +30,16 @@
     global list current_gshadow = [];
     global map current_shadow = $[];
 
-    path gshadow_path = .etc.gshadow;
-    path passwd_path  = .etc.passwd;
-    path group_path   = .etc.group;
-    path shadow_path  = .etc.shadow;
+    path gshadow_path = .userscfg.gshadow;
+    path passwd_path  = .userscfg.passwd;
+    path group_path   = .userscfg.group;
+    path shadow_path  = .userscfg.shadow;
+
+    global string base_dir = "/etc";
 
     global list auto_shadow_symbols = [ "warn", "inact", "max", "min", "expire" ];
+
+    global boolean aborted = false;
 
     /**
      * Read the file /etc/gshadow and save it to the list current_gshadow.
@@ -44,6 +48,44 @@
     global define boolean ReadGshadowFromDisk()``{
 
 	current_gshadow  = [];
+      string conf_path = base_dir + "/gshadow";
+      string tmpfile = SCR::Read (.target.tmpdir) + "/gshadow";
+      string data = sformat ("%1
+
+`ag_anyagent(
+  Description (
+      ``(File(\"%2\")), // real filename
+      \"#\",                      // Comment
+      false,
+      ``(List (
+        Or (
+          Tuple (
+          `groupname (String(\"\")),
+          \":\",
+          `password (String(\"\")),
+          \":\",
+          `disposer (String(\"\")),
+          \":\",
+          `userlist (String(\"\"))
+        ),
+
+        Tuple (
+          `groupname (Or (String(\"^:\"), \"\")),
+          \":\",
+          `password ( Or (String (\"^:\"), \"\") ),
+          \":\",
+          `disposer (Or (String (\"^:\"), \"\")),
+          \":\",
+          `userlist (Or (String (\"^\n\"), \"\"))
+        )),
+        \"\n\"
+      ))
+    )
+)", gshadow_path, conf_path);
+      SCR::Write (.target.string, tmpfile, data);
+      SCR::RegisterAgent(gshadow_path, tmpfile);
+
+
 	current_gshadow  = SCR::Read( gshadow_path );
 
 	if ( current_gshadow == nil || current_gshadow == [] )
@@ -66,7 +108,56 @@
     global define boolean ReadPasswdFromDisk( ) ``{
 
       current_users = $[];
-      list users  = SCR::Read( passwd_path  );
+      string conf_path = base_dir + "/passwd";
+      string tmpfile = SCR::Read (.target.tmpdir) + "/passwd";
+      string data = sformat ("%1
+
+`ag_anyagent(
+  Description (
+      ``(File(\"%2\")),  // real filename
+      \"#\",                      // Comment
+      true,
+      ``(List (
+        Or (
+          Tuple (
+          `username (String(\"+\")),
+          \":\",
+          `password (String (\"\")),
+          \":\",
+          `uid (String (\"\")),
+          \":\",
+          `gid (String (\"\")),
+          \":\",
+          `fullname (String (\"\")),
+          \":\",
+          `home (String (\"\")),
+          \":\",
+          `shell (String (\"\"))
+        ),
+
+        Tuple (
+          `username (String (\"^:\")),
+          \":\",
+          `password (Or (String (\"^:\"), \"\")),
+          \":\",
+          `uid (Number ()),
+          \":\",
+          `gid (Number ()),
+          \":\",
+          `fullname (Or (String (\"^:\"), \"\")),
+          \":\",
+          `home (String (\"^:\")),
+          \":\",
+          `shell (String (\"^\n\"))
+        )),
+        \"\n\"
+      ))
+    )
+)", passwd_path, conf_path);
+      SCR::Write (.target.string, tmpfile, data);
+      SCR::RegisterAgent(passwd_path, tmpfile);
+
+      list users  = SCR::Read( passwd_path );
 
       if( users == $[] || users == nil )
       {
@@ -79,15 +170,33 @@
 	  any i_uid = user["uid"]:0;
 
 	  user["exist"] = true;
-
 	  if( is( i_uid , integer ) )
 	  {
 	      user["fullname"] = consoleUncoding( user["fullname"]:"");
 	      user["org_home"] = user["home"]:"";
+	      user["type"] = `passwd;
 	      SetUser( i_uid , user );
 	  }
       });
+      if (! isNisMaster ())
+      {
+	users = SCR::Read (.run.getent.passwd);
+	if (users == nil)
+	    return;
+	foreach ( `user, users,  ``{
+	    any i_uid = user["uid"]:0;
+	    user["exist"] = true;
+            if( is( i_uid , integer ) )
+            {
+	        user["fullname"] = consoleUncoding( user["fullname"]:"");
+	        user["org_home"] = user["home"]:"";
+		user["type"] = `getent;
+		if (lookup (current_users, i_uid, $[]) == $[])
+		    SetUser( i_uid , user );
+	    }
 
+	});
+      }
       if( Mode::test ) y2milestone("Read file passwd: %1", current_users);
       return true;
     }
@@ -99,6 +208,44 @@
     global define boolean ReadGroupFromDisk( ) ``{
 
 	current_groups = $[];
+
+      string conf_path = base_dir + "/group";
+      string tmpfile = SCR::Read (.target.tmpdir) + "/group";
+      string data = sformat ("%1
+
+`ag_anyagent(
+  Description (
+      ``(File(\"%2\")),   // real filename
+      \"#\",                      // Comment
+      true,
+      ``(List (
+        Or (
+          Tuple (
+          `groupname (String(\"+\")),
+          \":\",
+          `password (String (\"\")),
+          \":\",
+          `gid (String (\"\")),
+          \":\",
+          `userlist (String (\"\"))
+        ),
+
+        Tuple (
+          `groupname (Username()),
+          \":\",
+          `password (Or (String (\"^:\"), \"\")),
+          \":\",
+          `gid (Number ()),
+          \":\",
+          `userlist (Or (String (\"^\n\"), \"\"))
+        )),
+        \"\n\"
+      ))
+    )
+)", group_path, conf_path);
+      SCR::Write (.target.string, tmpfile, data);
+      SCR::RegisterAgent(group_path, tmpfile);
+
 	list groups = SCR::Read( group_path );
 
 	if( groups == [] || groups == nil )
@@ -128,6 +275,63 @@
      * @return boolean
      */
     global define boolean ReadShadowFromDisk( ) ``{
+
+      string conf_path = base_dir + "/shadow";
+      string tmpfile = SCR::Read (.target.tmpdir) + "/shadow";
+      string data = sformat ("%1
+
+`ag_anyagent(
+  Description (
+      ``(File(\"%2\")),  // real filename
+      \"#\",                      // Comment
+      false,
+      ``(List (
+        Or (
+          Tuple (
+          `username (String(\"\")),
+          \":\",
+          `password (String(\"\")),
+          \":\",
+          `last_change (String(\"\")),
+          \":\",
+          `min (String(\"\")),
+          \":\",
+          `max (String(\"\")),
+          \":\",
+          `warn (String(\"\")),
+          \":\",
+          `inact (String(\"\")),
+          \":\",
+          `expire (String(\"\")),
+          \":\",
+          `flag (String(\"\"))
+        ),
+
+        Tuple (
+          `username (Or (String(\"^:\"), \"\")),
+          \":\",
+          `password ( Or (String (\"^:\"), \"\") ),
+          \":\",
+          `last_change ( Or (String (\"^:\"), \"\") ),
+          \":\",
+          `min (Or (String (\"^:\"), \"\")),
+          \":\",
+          `max (Or (String (\"^:\"), \"\")),
+          \":\",
+          `warn (Or (String (\"^:\"), \"\")),
+          \":\",
+          `inact (Or (String (\"^:\"), \"\")),
+          \":\",
+          `expire (Or (String (\"^:\"), \"\")),
+          \":\",
+          `flag (Or (String (\"^\n\"), \"\"))
+        )),
+        \"\n\"
+      ))
+    )
+)", shadow_path, conf_path);
+      SCR::Write (.target.string, tmpfile, data);
+      SCR::RegisterAgent(shadow_path, tmpfile);
 
       list shadow  = SCR::Read( shadow_path );
       current_shadow = $[];
@@ -187,8 +391,35 @@
     /**
      * Read all users and groups settings.
      */
-    global define void ReadSettingsFromDisk()``{
-
+    global define void ReadSettingsFromDisk(boolean interactive)``{
+//	if (interactive && isNisMaster ())
+//	{
+	    string ypdir = SCR::Read(.sysconfig.ypserv.YPPWD_SRCDIR);
+	    while (substring (ypdir, size (ypdir) - 1) == "/")
+		ypdir = substring (ypdir, 0, size (ypdir) -1);
+	    if ("" == ypdir)
+		ypdir = "/";
+	    if (ypdir != "/etc")
+	    {
+		symbol type = getConfigurationType (ypdir);
+		if (type == `abort)
+		{
+		    aborted = true;
+		    return false;
+		}
+		if (type == `nis)
+		{
+		    base_dir = ypdir;
+		    UserWriteStack::chage = sformat ("/usr/bin/chage -P %1 ", ypdir);
+		    UserWriteStack::useradd = sformat ("/usr/sbin/useradd -P %1 ", ypdir);
+		    UserWriteStack::usermod = sformat ("/usr/sbin/usermod -P %1 ", ypdir);
+		    UserWriteStack::userdel = sformat ("/usr/sbin/userdel -P %1 ", ypdir);
+		    UserWriteStack::groupadd = sformat ("/usr/sbin/groupadd -P %1 ", ypdir);
+		    UserWriteStack::groupdel = sformat ("/usr/sbin/groupdel -P %1 ", ypdir);
+		    UserWriteStack::groupmod = sformat ("/usr/sbin/groupmod -P %1 ", ypdir);
+		}
+	    }
+//	}
 	return (   ReadPasswdFromDisk()
 		 && ReadGroupFromDisk()
 		 && ReadGshadowFromDisk()
@@ -737,9 +968,9 @@
     global define void BackupConfFiles()``{
 	// save old settings
 	// TODO Fixme -> use local path values
-	SCR::Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save");
-	SCR::Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save");
-	SCR::Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save");
+	SCR::Execute(.target.bash, sformat ("/bin/cp %1/passwd %1/passwd.YaST2save", base_dir));
+	SCR::Execute(.target.bash, sformat ("/bin/cp %1/gshadow %1/gshadow.YaST2save", base_dir));
+	SCR::Execute(.target.bash, sformat ("/bin/cp %1/group %1/group.YaST2save", base_dir));
     }
 
 
@@ -929,5 +1160,13 @@
 	y2milestone("current_gshadow:---------------------------------------------");
 	y2milestone(sformat("%1",current_gshadow));
 
+    }
+
+    global define boolean isNisMaster () ``{
+	boolean helper = 0 == SCR::Execute (.target.bash, "test -f /usr/lib/yp/yphelper");
+	if (! helper)
+	    return false;
+	boolean master = 0 == SCR::Execute (.target.bash, "/usr/lib/yp/yphelper --domainname `domainname` --is-master passwd.byname");
+	return master;
     }
 }

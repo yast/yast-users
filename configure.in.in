@@ -7,6 +7,7 @@
 ## some common checks
 @YAST2-CHECKS-COMMON@
 @YAST2-CHECKS-YCP@
+@YAST2-CHECKS-TESTSUITE@
 
 ## and generate the output...
 @YAST2-OUTPUT@

@@ -45,7 +45,6 @@
 
   global define boolean Read()``{
       useradd_defaults = SCR::Read(.etc.default.useradd);
-	y2error ("UA: %1", useradd_defaults);
       if( useradd_defaults == $[] || useradd_defaults == nil )
 	  return false;
 

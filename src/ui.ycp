@@ -105,8 +105,45 @@
 	if( ret ) return `abort;
 	else return `back;
     }
-
-
+    /**
+      * Ask user for configuration type
+      * @return symbol `passwd or `nis or `abort
+      */
+    global define symbol getConfigurationType (string dir) ``{
+	term contents = `VBox (
+	    `Label (_("You have installed NIS master server.
+It is configured to use different database
+of users and groups than the local system 
+database in /etc directory.
+Select which one do you want to configure.")),
+	    `VSpacing (1),
+	    `RadioButtonGroup (`id (`configtype), `VBox (
+		`RadioButton (`id (`passwd), `opt (`hstretch), _("&Local (/etc directory)"), true),
+		`VSpacing (1),
+		`RadioButton (`id (`nis), `opt (`hstretch), sformat(_("&NIS (%1 directory)"), dir), false)
+	    )),
+	    `VSpacing (1),
+	    `HBox (
+		`HStretch (),
+		`PushButton (`id (`ok), OKButtonLabel()),
+		`HStretch (),
+		`PushButton (`id (`abort), AbortButtonLabel()),
+		`HStretch ()
+	    )
+	);
+	UI::OpenDialog (contents);
+	symbol ret = nil;
+	while (ret == nil)
+	{
+	    ret = UI::UserInput ();
+	    if (ret != `cancel && ret != `ok)
+		continue;
+	}
+	if (ret == `ok)
+	    ret = UI::QueryWidget (`id (`configtype), `CurrentButton);
+	UI::CloseDialog ();
+	return ret;
+    }
     /**
      * Read settings dialog
      * @return symbol `next if success, else `abort
@@ -190,8 +227,14 @@
 	    }
 	}
 
+	boolean settings = UserSettings::ReadSettingsFromDisk(true);
 
-	if ( ! UserSettings::ReadPasswdFromDisk( ) )
+	if ( (! settings) && UserSettings::aborted)
+	{
+	    return `abort;
+	}
+
+	if ( ! settings )
 	{
 	    Report::Error (_("Can not read the user settings!"));
 	}
@@ -208,11 +251,11 @@
 	}
 
 
-	if ( ! (UserSettings::ReadGroupFromDisk() &&
+/*	if ( ! (UserSettings::ReadGroupFromDisk() &&
 	        UserSettings::ReadGshadowFromDisk() ))
 	{
 	    Report::Error (_("Can not read the group settings!" ));
-	}
+	}*/
 
 
 	// read password settings
@@ -227,10 +270,10 @@
 	}
 
 
-	if ( ! (UserSettings::ReadShadowFromDisk() ))
+/*	if ( ! (UserSettings::ReadShadowFromDisk() ))
 	{
 	    Report::Error (_("Can not read the password settings!" ));
-	}
+	}*/
 
 
 	// increase the progress to "finish"
@@ -335,6 +378,7 @@
 	integer uid           = lookup( user_in_work , "uid"      , UserDefs::max_uid );
 	integer old_uid       = 0;
 	integer gid           = lookup( user_in_work, "gid"       , UserDefs::max_uid );
+	symbol user_type      = lookup (user_in_work, "type", `passwd);
 	fullname              = username + ", " + fullname;
 
 	list available_shells = UserAddDefs::GetAllShells(`items);
@@ -367,6 +411,8 @@
 			   `HSpacing(1),
 			   `VBox(
 				 `VSpacing(1),
+				user_type == `getent ? `Label(_("Only additionial group membership \ncan be changed for non-local users")) : `VSpacing (0),
+				user_type == `getent ? `VSpacing (1) : `VSpacing (0),
 				 // User account information, forename or first name
 				 `TextEntry(`id(`fullname), _("&Detaild profile for user:"), fullname),
 				 `VSpacing(1),
@@ -391,6 +437,15 @@
 				     usersEditUserDetailsHelp(),
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
+
+	if (user_type == `getent)
+	{
+	    UI::ChangeWidget (`id (`fullname), `Enabled, false);
+	    UI::ChangeWidget (`id (`uid), `Enabled, false);
+	    UI::ChangeWidget (`id (`home), `Enabled, false);
+	    UI::ChangeWidget (`id (`shell), `Enabled, false);
+	    UI::ChangeWidget (`id (`defaultgroup), `Enabled, false);
+	}
 
 	//Modify the dialog
 	UI::ChangeWidget(`id(`fullname), `Enabled, false );
@@ -564,7 +619,6 @@ Please try again."));
 		    }
 
 		    // update user_in_work
-	y2error ("New home: %1", new_home);
 		    user_in_work = add( user_in_work, "home"      , new_home );
 		    user_in_work = add( user_in_work, "shell"     , new_shell);
 		    user_in_work = add( user_in_work, "gid"       , gid      );
@@ -595,15 +649,12 @@ Please try again."));
 	string username       = user_in_work["username"]:"";
 	map shadow            = user_in_work["shadow"]:$[];
 
-	y2error(sformat("shadow %1", shadow));
-
 /*
 	    `Left (`Label ("Days since the account was locked")),
 			       `Left (`CheckBox (`id ("id_30"), "Lock account", false)),
 */
 	integer last_changed = shadow["last_change"]:0;
 	integer expires = shadow["expire"]:-1;
-	y2error ("Expires: %1", expires);
 	//Translators: this means the format for date. %1 will be substituted with month, %2 with day and %3 with year
 	string date_format = _("%1 %2, %3");
 	date_format = sformat (date_format, "%B", "%d", "%Y");
@@ -618,19 +669,19 @@ Please try again."));
 				      `Top(`Left (`Label (sformat (_("Date of the last password change: %1"), last_change )))),
 				      `VSpacing (1),
 				       `HSquash(`VBox(
-						      `IntField (`id ("warn"), _("How many day's warning before password expires?"), -1, 99999,
+						      `IntField (`id ("warn"), _("How many day's &warning before password expires?"), -1, 99999,
 								 shadow["warn"]:""),
 						      `VSpacing (0.5),
-						      `IntField (`id ("inact"), "How many days after password expires is the login usable", -1, 99999,
+						      `IntField (`id ("inact"), _("How many days &after password expires is the login usable"), -1, 99999,
 								 shadow["inact"]:""),
 						      `VSpacing (0.5),
-						      `IntField (`id ("max"), "Maximum number of days for the same password", -1, 99999,
+						      `IntField (`id ("max"), _("Ma&ximum number of days for the same password"), -1, 99999,
 								 shadow["max"]:""),
 						      `VSpacing (0.5),
-						      `IntField (`id ("min"), "Minimum number of days for the same password", -1, 99999,
+						      `IntField (`id ("min"), _("Mi&nimum number of days for the same password"), -1, 99999,
 								 shadow["min"]:""),
 						      `VSpacing (0.5),
-						      `TextEntry (`id ("expire"), "Expiration date", exp_date)
+						      `TextEntry (`id ("expire"), _("&Expiration date"), exp_date)
 						      )),
 				      `VStretch ()),
 			       `HSpacing (3));
@@ -664,13 +715,11 @@ Please try again."));
 		    });
 		    user_in_work["shadow"] = shadow;
 		    user_in_work = add (user_in_work, "pwd_chng", true);
-		    y2error ("UIW: %1", user_in_work);
 		}
 
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 
 	if ( ret == `next ) ret = lookup( user_in_work , "what"     , `back );
-	y2error ("PWD returning %1", ret);
 	return ret;
     }
 
@@ -808,8 +857,12 @@ Please try again."));
 	string  surname        = lookup( user_in_work, "surname" , "empty" );
 	string  forename       = lookup( user_in_work, "forename", "empty" );
 	string  password       = lookup( user_in_work, "password", "");
+	string  old_password   = lookup( user_in_work, "old_password", "***");
+	if (old_password == "***")
+	    old_password = password;
 	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
 	boolean pwd_chng       = lookup( user_in_work, "pwd_chng", false);
+	symbol  user_type      = lookup (user_in_work, "type", `passwd);
 	if ( grouplist == "empty" && what == `edit_user)  grouplist = UserSettings::FindGroupsBelongUser(username);
 	if ( grouplist == "empty" && what == `add_user )  grouplist = "dialout,uucp,video,audio";
 	if ( surname   == "empty" ) surname  =  usersSplitFullName(`surname,  fullname, uid);
@@ -845,6 +898,8 @@ Please try again."));
 	    `HSquash(`VBox(
 			   `VStretch(),
 			   `VBox(
+				 user_type == `getent ? `Label(_("Only additionial group membership \ncan be changed for non-local users")) : `VSpacing (0),
+                                 user_type == `getent ? `VSpacing (1) : `VSpacing (0),
 				 `TextEntry(`id(`forename), _("&First name:"), forename),
 				 `TextEntry(`id(`surname),  _("&Last name:"),  surname )
 				 ),
@@ -853,7 +908,7 @@ Please try again."));
 				     // input field for login name
 				     `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
 				     // push button to generate a login name from first and last name
-				     `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+				     user_type == `getent ? `HSpacing (0) : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
 				     )),
 			   // User account information, first version of user password, both versions must match
 			   `Password(`id(`pw1), _("&Enter a password:"), ""),
@@ -869,6 +924,16 @@ Please try again."));
 			             usersEditUserHelp(),
 			             UI::BackButtonLabel(),
 				     UI::NextButtonLabel());
+	if (user_type == `getent)
+	{
+	    UI::ChangeWidget (`id(`forename), `Enabled, false);
+	    UI::ChangeWidget (`id(`surname), `Enabled, false);
+	    UI::ChangeWidget (`id(`username), `Enabled, false);
+	    UI::ChangeWidget (`id(`pw1), `Enabled, false);
+	    UI::ChangeWidget (`id(`pw2), `Enabled, false);
+	    UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
+	}
+
 	UI::ChangeWidget (`id (`username), `ValidChars, UserDefs::valid_logname_chars);
 	// Modify the dialog
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
@@ -1027,7 +1092,6 @@ Please try another one.
 
 		    if (  pw1 != pw2 )
 		    {
-
 			//There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
@@ -1036,7 +1100,6 @@ of the password are different.
 Please try again."));
 			password = "";
 			// Invalidate any old password
-
 			// clear password inputfields in this case
 			UI::ChangeWidget(`id(`pw1), `Value, "");
 			UI::ChangeWidget(`id(`pw2), `Value, "");
@@ -1174,13 +1237,14 @@ Do you want to use it and change it's owner?.")))
 
 		    if ( what == `add_user ) user_in_work["org_home"] = home;
 		    if(Mode::test ) y2milestone(" user in work : %1", user_in_work );
-y2error ("New home: %1", home);
+
 		    user_in_work = $[
 				     "what"        :  what ,
 				     "fullname"    :  fullname,
 				     "gid"         :  gid,
 				     "home"        :  home,
 				     "password"    :  password,
+				     "old_password":  old_password,
 				     "shell"       :  shell,
 				     "uid"         :  uid,
 				     "username"    :  username,
@@ -1190,7 +1254,8 @@ y2error ("New home: %1", home);
 				     "org_home"    :  user_in_work["org_home"]:"",
 				     "shadow"      :  shadow,
 				     "create_home" :  create_home,
-				     "pwd_chng"	   :  pwd_chng
+				     "pwd_chng"	   :  pwd_chng,
+				     "type"	   :  user_type
 
 		    ];
 
@@ -1207,7 +1272,6 @@ y2error ("New home: %1", home);
 	    if ( ret == `additional ) ret = `next;
 	}
 	else start_sequencer_again = false;
-	y2error ("Edit returning %1", ret);
 	return ret;
     }
 
@@ -1225,15 +1289,13 @@ y2error ("New home: %1", home);
 	integer uid = lookup (user_in_work, "uid", UserDefs::max_uid);
 
 	// if the user has log on system
-	list proc  = SCR::Read(.run.procfiles);
-
-        // the user that should deleted is present
-	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
-				       (UserSettings::GroupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
+	string proc = lookup (SCR::Execute (.target.bash_output, sformat ("ps --no-headers -u %1", lookup (user_in_work , "uid", nil))), "stdout", "");
+	if (size (proc) != 0)
 	{
 	    Report::Error(_("You can not delete this user, because the user is present.
 Please log off the user first."));
 	    delete = false;
+	    return `next;
 	}
 
 	// if the user want to delete a system user
@@ -1304,7 +1366,7 @@ Do you really want to delete the user %1?
 			 _("Can't execute /usr/sbin/userdel.local"), `user, uid);
 	}
 
-	UserWriteStack::AddTodo("/usr/sbin/userdel " + username ,
+	UserWriteStack::AddTodo(UserWriteStack::userdel + " " + username ,
 		     `del_user,
 		     sformat(_("Can't delete the user %1"), username), `user, uid);
 
@@ -1855,7 +1917,7 @@ Do you really want to delete the group %1?
 	    UserSettings::DelGroup( group_in_work["gid"]:-1 );
 
 	    //add a shell delete command to write_to_system_stack
-	    UserWriteStack::AddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
+	    UserWriteStack::AddTodo((UserWriteStack::groupdel + " " + lookup( group_in_work, "groupname", "")),
 			 `del_group,
 			 sformat(_("Can't delete group %1 "),lookup( group_in_work, "groupname", "")), `group, gid);
 

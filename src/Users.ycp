@@ -27,8 +27,7 @@
 
 	UserAddDefs::Read();
 	UserDefs::Read();
-	UserSettings::ReadSettingsFromDisk();
-
+	UserSettings::ReadSettingsFromDisk(false);
     }
 
     /**
