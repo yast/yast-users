@@ -543,9 +543,9 @@ BEGIN { $TYPEINFO{GetMaxUID} = ["function",
 sub GetMaxUID {
 
     if (defined $max_uid{$_[0]}) {
-	return $max_uid{$_[0]};
+	return YaST::YCP::Integer ($max_uid{$_[0]});
     }
-    return 60000;
+    return YaST::YCP::Integer (60000);
 }
 
 ##------------------------------------
@@ -588,9 +588,9 @@ BEGIN { $TYPEINFO{GetMaxGID} = ["function",
 sub GetMaxGID {
 
     if (defined $max_gid{$_[0]}) {
-	return $max_gid{$_[0]};
+	return YaST::YCP::Integer ($max_gid{$_[0]});
     }
-    return 60000;
+    return YaST::YCP::Integer (60000);
 }
 
 
@@ -971,18 +971,17 @@ BEGIN { $TYPEINFO{InitConstants} = ["function",
 sub InitConstants {
 
     my $security = $_[0];
+    $min_uid{"local"}	= $security->{"UID_MIN"}	|| $min_uid{"local"};
+    $max_uid{"local"}	= $security->{"UID_MAX"}	|| $max_uid{"local"};
 
-    $min_uid{"local"}	= $security->{"UID_MIN"};
-    $max_uid{"local"}	= $security->{"UID_MAX"};
+    $min_uid{"system"}	= $security->{"SYSTEM_UID_MIN"} || $min_uid{"system"};
+    $max_uid{"system"}	= $security->{"SYSTEM_UID_MAX"} || $max_uid{"system"};
 
-    $min_uid{"system"}	= $security->{"SYSTEM_UID_MIN"};
-    $max_uid{"system"}	= $security->{"SYSTEM_UID_MAX"};
+    $min_gid{"local"}	= $security->{"GID_MIN"}	|| $min_gid{"local"};
+    $max_gid{"local"}	= $security->{"GID_MAX"}	|| $max_gid{"local"};
 
-    $min_gid{"local"}	= $security->{"GID_MIN"};
-    $max_gid{"local"}	= $security->{"GID_MAX"};
-
-    $min_gid{"system"}	= $security->{"SYSTEM_GID_MIN"};
-    $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"};
+    $min_gid{"system"}	= $security->{"SYSTEM_GID_MIN"} || $min_gid{"system"};
+    $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"} || $max_gid{"system"};
 }
 
 ##------------------------------------

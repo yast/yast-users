@@ -97,13 +97,13 @@ define symbol MainSequence(string start) ``{
 	"user_edit"		: ``(EditUserDialog("edit_user")),
 	"user_details"		: ``(EditUserDetailsDialog()),
 	"user_password"		: ``(EditUserPasswordDialog()),
-	"user_ldap"		: ``(LDAPSettingsDialog("user")),
+//	"user_ldap"		: ``(LDAPSettingsDialog("user")),
 	"user_plugin"		: ``(PluginDialog("user")),
 	"user_save"		: [``(UserSave()), true],
 
 	"group_add"		: ``(EditGroupDialog("add_group")),
 	"group_edit"		: ``(EditGroupDialog("edit_group")),
-	"group_ldap"		: ``(LDAPSettingsDialog("group")),
+//	"group_ldap"		: ``(LDAPSettingsDialog("group")),
 	"group_plugin"		: ``(PluginDialog("group")),
 	"group_save"		: [``(GroupSave()), true],
 
@@ -166,7 +166,8 @@ define symbol MainSequence(string start) ``{
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit",
-	    `ldap:		"user_ldap",
+//	    `ldap:		"user_ldap",
+	    `ldap:		"user_plugin",
 	],
 	"user_password": $[
             `abort:		"without_save",
@@ -174,6 +175,7 @@ define symbol MainSequence(string start) ``{
 	    `add_user:		"user_add",
 	    `edit_user:		"user_edit"
 	],
+	/*
 	"user_ldap": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
@@ -182,6 +184,7 @@ define symbol MainSequence(string start) ``{
 	    // here could be plugin dialog...
 	    `next:		"user_plugin"
 	],
+	*/
 	"user_plugin": $[
             `abort:		"without_save",
 	    `cancel:		"without_save",
@@ -196,22 +199,26 @@ define symbol MainSequence(string start) ``{
 	"group_add": $[
 	    `nosave		: "summary",
             `next		: "group_save",
-	    `ldap		: "group_ldap",
+//	    `ldap		: "group_ldap",
+	    `ldap		: "group_plugin",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
         "group_edit": $[
             `next		: "group_save",
-	    `ldap		: "group_ldap",
+	    `ldap		: "group_plugin",
+//	    `ldap		: "group_ldap",
 	    `abort		: `abort,
 	    `cancel		: `abort,
 	],
+	/*
         "group_ldap": $[
 	    `next:		"group_plugin",
 //	    `next:		"group_save",
 	    `cancel:		"without_save",
 	    `abort:		"without_save"
 	],
+	*/
 	"group_plugin": $[
 	    `next:		"group_save",
 	    `abort:		`abort,

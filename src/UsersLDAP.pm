@@ -125,10 +125,10 @@ my @available_plugins		= ();
 ##------------------------------------
 ##------------------- global imports
 
-YaST::YCP::Import ("Call");
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersUI");
 
@@ -462,15 +462,15 @@ sub InitConstants {
     %useradd_defaults	= %{$_[0]};
 }
 
-##------------------------------------
-# initialize list of plugins with the values from Users
-BEGIN { $TYPEINFO{InitPlugins} = ["function",
-    "void",
-    ["list", "string"]];
-}
-sub InitPlugins {
-    @available_plugins	= @{$_[0]};
-}
+###------------------------------------
+## initialize list of plugins with the values from Users
+#BEGIN { $TYPEINFO{InitPlugins} = ["function",
+#    "void",
+#    ["list", "string"]];
+#}
+#sub InitPlugins {
+#    @available_plugins	= @{$_[0]};
+#}
 
 ###------------------------------------
 #BEGIN { $TYPEINFO{GetLoginDefaults} = ["function",
@@ -896,11 +896,7 @@ sub WriteUsers {
 	my @plugin_args		= ();
 	push @plugin_args, "BeforeWrite";
 	push @plugin_args, $user;
-	foreach my $plugin (@available_plugins) {
-	    # 1. check if BeforeWrite is available (Interface)
-	    # 2. call the client
-	    Call::Function ($plugin, \@plugin_args);
-	}
+	UsersPlugins::Apply ("BeforeWrite", $user); #TODO params
 
 	# --------------------------------------------------------------------
         if ($action eq "added") {
@@ -959,11 +955,7 @@ sub WriteUsers {
 	    @plugin_args		= ();
 	    push @plugin_args, "Write";
 	    push @plugin_args, $user;
-	    foreach my $plugin (@available_plugins) {
-		# 1. check if Write is available (Interface)
-		# 2. call the client
-		Call::Function ($plugin, \@plugin_args);
-	    }
+	    UsersPlugins::Apply ("Write", $user); #TODO params
 	}
 	# --------------------------------------------------------------------
     }

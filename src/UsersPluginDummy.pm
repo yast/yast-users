@@ -12,63 +12,29 @@ use YaST::YCP;
 
 our %TYPEINFO;
 
- 
-##------------------------------------
-##------------------- global imports
+BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"]];}
+sub Interface {
 
-#YaST::YCP::Import ("SCR");
-#YaST::YCP::Import ("UsersCache");
-
-##------------------------------------
-
-##------------------------------------
-# Do a special action before writing user to LDAP
-BEGIN { $TYPEINFO{WriteUserBefore} = ["function",
-    "boolean",
-    ["map", "string", "any"]];
-}
-sub WriteUserBefore {
-
-    y2milestone ("plugin function to be done before writing user");
-    return 1;
+    return ("Write", "Summary", "GUIClient");
 }
 
-##------------------------------------
-# Do a special action before writing group to LDAP
-BEGIN { $TYPEINFO{WriteGroupBefore} = ["function",
-    "boolean",
-    ["map", "string", "any"]];
-}
-sub WriteGroupBefore {
+BEGIN { $TYPEINFO{GUIClient} = ["function", "string"];}
+sub GUIClient {
 
-    y2milestone ("plugin function to be done before writing group");
-    return 1;
+    return "users_plugin_dummy.ycp";
 }
 
-##------------------------------------
-# Do a special action before writing user to LDAP
-BEGIN { $TYPEINFO{WriteUser} = ["function",
-    "boolean",
-    ["map", "string", "any"]];
-}
-sub WriteUser {
+BEGIN { $TYPEINFO{Summary} = ["function", "string"];}
+sub Summary {
 
-    y2milestone ("plugin function to be done after writing user");
-    return 1;
+    return "Dummy";
 }
 
-##------------------------------------
-# Do a special action after writing group to LDAP
-BEGIN { $TYPEINFO{WriteGroup} = ["function",
-    "boolean",
-    ["map", "string", "any"]];
+BEGIN { $TYPEINFO{Write} = ["function", "void"];}
+sub Write {
+
+    y2internal ("Write Dummy called");
+    return;
 }
-sub WriteGroup {
-
-    y2milestone ("plugin function to be done after writing group");
-    return 1;
-}
-
-
 1
 # EOF

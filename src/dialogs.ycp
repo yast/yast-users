@@ -27,6 +27,7 @@ import "LdapPopup";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
+import "UsersPlugins";
 
 import "Label";
 import "Popup";
@@ -1221,9 +1222,11 @@ define symbol PluginDialog (string what) ``{
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
     map<string, any> tmp_object	= $[];
 
-    list plugins	= Users::GetAvailablePlugins ();
+    list plugins	= UsersPlugins::Get ("GUIClient");
     string plugin	= plugins[0]:"";
     any ret		= `not_next;
+
+    // TODO plugin should be available also for ldap users!
 
     if (plugin == "")// || plugin == "users_plugin_dummy.ycp")
     {
@@ -1231,15 +1234,16 @@ define symbol PluginDialog (string what) ``{
     }
     else
     {
-	string caption	= _("More for LDAP...");
+	string caption	= _("Plug-ins");
 	string help	= "general helptext for plugins";
 
-	list options	= [];
+	list items = [];
 	foreach (string plugin, plugins, ``{
-	    any name = WFM::CallFunction (plugin, ["Summary"]);
-	    if (is (name, string))
-		options = add (options, `item(`id(plugin), name, false));
+	    any summary = WFM::CallFunction (plugin, ["Summary"]);
+	    if (is (summary, string))
+		items = add (items, `item(`id(plugin), plugin, summary));
 	});
+	/*
 	term contents = `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()));
 	term plugin_list = `VBox (
 		`Tree (`id(`tree), `opt(`notify),
@@ -1248,11 +1252,25 @@ define symbol PluginDialog (string what) ``{
 	);
 
 	Wizard::ReplaceHelp (plugin_list);
+	*/
+	term contents = `VBox(
+	    `Table(`id(`table), `opt(`notify), `header(
+		// table header
+		_("Name"),
+		// table header
+		_("Description")
+		), items
+	    ),
+	    `HBox (
+		`Right (`PushButton(`id(`run), `opt(`key_F4), _("R&un")))
+	    )
+	);
 
 	// dialog caption
 	Wizard::SetContentsButtons(caption, contents, help,
 	    Label::BackButton(), Label::NextButton());
 
+	/*
 	UI::ChangeWidget (`id(`tree), `CurrentItem, plugin);
 	ret = `tree;
 	any really_ret = `tree;
@@ -1302,27 +1320,30 @@ define symbol PluginDialog (string what) ``{
 	    ret = UI::UserInput();
 
 	} until (contains ([`next, `abort, `back], really_ret));
-
-	if (ret == `next)
+	*/
+	repeat
 	{
-	    if (object["what"]:"" == "edit_user")
+	    ret = UI::UserInput();
+	    y2internal ("ret: %1", ret);
+	    if (ret == `run)
 	    {
-	        Users::EditUser (tmp_object);
+		plugin	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
+		any plugin_ret = WFM::CallFunction (plugin, ["Dialog", $[
+		    "what"	: what,
+		    "data"	: object
+		]]);
+		if (plugin_ret == `next)
+		{
+		    object	= (what == "user") ?
+			Users::GetCurrentUser (): Users::GetCurrentGroup ();
+		}
 	    }
-	    else if (object["what"]:"" == "add_user")
+	    if (ret == `abort || ret == `cancel)
 	    {
-	        Users::AddUser (tmp_object);
+		if (ReallyAbort() != `abort)
+		    ret = `not_next;
 	    }
-	    else if (object["what"]:"" == "edit_group")
-	    {
-	        Users::EditGroup (tmp_object);
-	    }
-	    else if (object["what"]:"" == "add_group")
-	    {
-	        Users::AddGroup (tmp_object);
-	    }
-	}
-	Wizard::RestoreHelp ("");
+	} until (contains ([`next, `abort, `back], ret));
     }
 
     if ( ret == `next )
@@ -1338,7 +1359,7 @@ define symbol PluginDialog (string what) ``{
 /**
  * Dialog for additional settings for LDAP users
  * @return symbol for wizard sequencer
- */
+ *
 define symbol LDAPSettingsDialog (string what) ``{
 
     map<string, any> object	= (what == "user") ?
@@ -1495,16 +1516,9 @@ Are you sure?"), req)))
          }
     } until (contains ([`next, `abort, `back, `cancel], ret));
 
-    /*
-    if ( ret == `next )
-    {
-	if ( what == "user")
-	    // go to the forst user edit/add dialog
-	    ret = string_to_symbol (object["what"]:"back");
-    }
-    */
     return (symbol)ret;
 }
+*/
 
 
 /**
