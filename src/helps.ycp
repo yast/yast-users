@@ -201,7 +201,8 @@ The <b>User Login</b> could be created from components of the full name by
 clicking <b>Suggestion</b> button. It may be modified, but use only
 letters (no accented characters), digits, and <tt>._-</tt>
 Do not use uppercase letters in this entry unless you really know what you are doing.
-User names have stricter restrictions than passwords. 
+User names have stricter restrictions than passwords. You can redefine the
+restrictions in /etc/login.defs file - read its man page to know more.
 </p>
 ");
     }
@@ -213,7 +214,8 @@ User names have stricter restrictions than passwords.
 When you modify the <b>User Login</b>, use only
 letters (no accented characters), digits, and <tt>._-</tt>
 Do not use uppercase letters in this entry unless you really know what you are doing.
-User names have stricter restrictions than passwords.
+User names have stricter restrictions than passwords. You can redefine the
+restrictions in /etc/login.defs file - read its man page to know more.
 </p>
 ");
     }
@@ -287,6 +289,8 @@ system. Here is what the different entries mean:
 <b>Group Name:</b>
 Enter the name of the group. Avoid 
 long names. Normal lengths are between two and eight characters.
+You can redefine the list of characters allowed for group names in
+/etc/login.defs file - read its man page to know more.
 </p>
 ") +
 	// help text 3/6, %1 is number

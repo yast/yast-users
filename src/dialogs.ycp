@@ -346,8 +346,6 @@ can be changed for non-local users.
         UI::ChangeWidget (`id(`passwordsettings), `Enabled, false);
     }
 
-    UI::ChangeWidget (`id (`username), `ValidChars, Users::ValidLognameChars());
-
     if (what == "add_user" && !Mode::cont)
     {
 	// change of button label
