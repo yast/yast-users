@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb  3 11:26:55 CET 2003 - jsuchome@suse.de
+
+- NIS+ entry in expert_login
+
+-------------------------------------------------------------------
 Fri Jan 31 12:55:14 CET 2003 - jsuchome@suse.de
 
 - expert settings for root: used only popup again

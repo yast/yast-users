@@ -96,6 +96,8 @@ You can configure these settings by running appropriate modules. Select the modu
             // just the name (do not translate)
             "nis"   : _("NIS"),
             // just the name (do not translate)
+            "nisplus"   : _("NIS+"),
+            // just the name (do not translate)
             "ldap"  : _("LDAP"),
             // the source of users sets
             "files" : _("Local Files"),
