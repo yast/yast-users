@@ -720,6 +720,95 @@ sub CreateGroupDN {
     return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, $group_base);
 }
 
+##------------------------------------ 
+# Take the object (user or group) and substitute the values of arguments with
+# default values (marked in object template). Translates attribute names from
+# LDAP types to internal yast-names.
+# @param what "user" or "group"
+# @param data map of already gathered keys and values
+# @example map of default values contains pair "homeDirectory": "/home/%uid"
+# -> value of "home" is set to "/home/" + username
+# @return new data map with substituted values
+BEGIN { $TYPEINFO{SubstituteValues} = ["function",
+    ["map", "string", "any" ],
+    "string", ["map", "string", "any" ]];
+}
+sub SubstituteValues {
+    
+    my $what	= $_[0];
+    my $data	= $_[1];
+    my %ret	= %{$data};
+
+    my @internal	= ($what eq "user") ?
+	@user_internal_keys : @group_internal_keys;
+
+    my %defaults	= ($what eq "user") ? %user_defaults : %group_defaults;
+
+    # 'value' of 'attr' should be changed
+    foreach my $attr (keys %{$data}) {
+
+	my $value	= $data->{$attr};
+	my $svalue 	= "";
+
+	if (!defined $value || ref ($value) eq "HASH") {
+	    next;
+	}
+	if (ref ($value) eq "ARRAY") {
+	    $svalue = $value->[0];
+	}
+	else {
+	    $svalue = $value;
+	}
+	# substitute only when current value is empty or contains "%"
+	if (contains (\@internal, $attr) ||
+	    ($svalue ne "" && !($svalue =~ m/%/))) {
+	    next;
+	}
+
+	# translate attribute names from LDAP to yast-type
+	my $ldap_attr = $ldap_attrs_conversion{$attr} || $attr;
+	my $val = $defaults{$ldap_attr};
+
+	if (defined ($val) && $val =~ m/%/) {
+	    my @parts	= split (/%/, $val);
+	    my $result	= $parts[0];
+	    my $i	= 1;
+	    while ($i < @parts) {
+		my $part	= $parts[$i];
+		my $replaced 	= 0;
+		# find a contens of substitution (filled in current user/group)
+		foreach my $at (sort keys %{$data}) {
+		    my $v = $data->{$at};
+		    if (!defined $v || contains (\@internal, $at) || $replaced){
+			next;
+		    }
+		    if (ref ($v) eq "HASH") {
+			next;
+		    }
+		    my $sv	= $v;
+		    if (ref ($v) eq "ARRAY") {
+			$sv = $v->[0];
+		    }
+		    my $a	= $ldap_attrs_conversion{$at} || $at;
+		    if (substr ($part, 0, length ($a)) eq $a) {
+			$result	= $result.$sv.substr ($part, length ($a));
+			$replaced = 1;
+		    }
+		}
+		if (!$replaced) {
+		    $result	= $result."%".$part;
+		}
+		$i ++;
+	    }
+	    if ($result ne $svalue) {
+		y2milestone ("attribute '$attr' changed from '$svalue' to '$result'");
+		$ret{$attr}	= $result;
+	    }
+	}
+    }
+    return \%ret;
+}
+
 
 ##------------------------------------
 # Convert internal map describing user or group to map that could be passed to
@@ -745,9 +834,9 @@ sub ConvertMap {
 	    if  (contains (["x","*","!"], $val)) {
 		next;
 	    }
-	    my $enc	= uc ($encryption);
-	    if ($enc ne "CLEAR" && !($val =~ m/^{$enc}/)) {
-		$val = sprintf ("{%s}%s", uc ($encryption), $val);
+	    my $enc	= lc ($encryption);
+	    if ($enc ne "clear" && !($val =~ m/^{$enc}/)) {
+		$val = sprintf ("{%s}%s", lc ($encryption), $val);
 	    }
 	}
 	# check if the attributes are allowed by objectClass
@@ -793,7 +882,7 @@ sub WriteUsers {
 	my $user		= $users->{$uid};
 
         my $action      = $user->{"modified"};
-        if (!defined ($action)) { #TODO return on first error || !%ret)
+        if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
         my $home	= $user->{"homeDirectory"} || "";
@@ -858,10 +947,7 @@ sub WriteUsers {
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"rdn"}		= $rdn;
 		$arg_map{"new_dn"}	= $dn;
-		# TODO enable moving in tree (editing the whole dn)
 	    }
-UsersCache::DebugMap (\%arg_map);
-UsersCache::DebugMap ($user);
 	    if (! SCR::Write (".ldap.modify", \%arg_map, $user)) {
 		%ret = %{Ldap::LDAPErrorMap ()};
 	    }
@@ -889,7 +975,9 @@ UsersCache::DebugMap ($user);
 	$modules{$user_config_dn}{"nextUniqueId"} =$user_config{"nextUniqueId"};
         %ret = %{Ldap::WriteToLDAP (\%modules)};
     }
-#    return ret;
+    if (%ret) {
+	return $ret{"msg"};
+    }
     return "";
 }
 
@@ -913,7 +1001,7 @@ sub WriteGroups {
 	my $group		= $groups->{$gid};
 
         my $action      = $group->{"modified"};
-        if (!defined ($action)) {
+        if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
 	my %new_group	= ();
@@ -1024,7 +1112,10 @@ sub WriteGroups {
         %ret = %{Ldap::WriteToLDAP (\%modules)};
     }
 
-    if (%ret) { UsersCache::DebugMap (\%ret); }
+    if (%ret) {
+	UsersCache::DebugMap (\%ret);
+	return $ret{"msg"};
+    }
     return "";
 }
 
