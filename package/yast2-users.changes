@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Feb 19 09:23:47 CET 2003 - jsuchome@suse.de
+
+- inst_auth: check if {ldap,nisplus}-client is available (#23762)
+
+-------------------------------------------------------------------
 Mon Feb 17 16:23:50 CET 2003 - jsuchome@suse.de
 
 - call "sux kbuildsycoca" after adding user during installation
