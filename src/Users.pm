@@ -109,6 +109,9 @@ my @available_groupsets		= ();
 my %all_shells 			= ();
 
 
+# if passwd/group/shadow entries should be read
+my $read_local			= 1;
+
 my $users_modified		= 0;
 my $groups_modified		= 0;
 my $ldap_modified		= 0;
@@ -1165,7 +1168,6 @@ sub ReadLDAPSet {
     $users_by_name{$type}	= \%{SCR->Read (".$type.users.by_name")};
     $groups{$type}		= \%{SCR->Read (".$type.groups")};
     $groups_by_name{$type}	= \%{SCR->Read(".$type.groups.by_name")};
-
     # read the necessary part of LDAP user configuration
     $min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
     $max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
@@ -1403,7 +1405,10 @@ sub Read {
     # users and group
     if ($use_gui) { Progress->NextStage (); }
 
-    $error_msg = $self->ReadLocal ();
+    if ($read_local) {
+	$error_msg = $self->ReadLocal ();
+    }
+
     if ($error_msg ne "") {
 	Report->Error ($error_msg);
 	return $error_msg;# problem with reading config files( /etc/passwd etc.)
@@ -1633,6 +1638,21 @@ sub DisableUser {
     if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
 	$plugins	= $user->{"plugins"};
     }
+    else {
+	my $result = UsersPlugins->Apply ("PluginPresent", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	}, $user);
+	if (defined ($result) && ref ($result) eq "HASH") {
+	    $plugins = [];
+	    foreach my $plugin (keys %{$result}) {
+		# check if plugin has done the 'PluginPresent' action
+		if (bool ($result->{$plugin}) && !contains ($plugins, $plugin)){
+		    push @{$plugins}, $plugin;
+		}
+	    }
+	}
+    }
 
     foreach my $plugin (sort @{$plugins}) {
 	my $result = UsersPlugins->Apply ("Disable", {
@@ -1657,7 +1677,9 @@ sub DisableUser {
     if (!defined $user->{"disabled"} || ! bool ($user->{"disabled"})) {
 	$user->{"disabled"}	= YaST::YCP::Boolean (1);
     }
-	
+    if (!defined $user->{"what"}) {
+	$user->{"what"}		= "edit_user";
+    }
     return $user;
 }
 
@@ -1677,6 +1699,21 @@ sub EnableUser {
     if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
 	$plugins	= $user->{"plugins"};
     }
+    else {
+	my $result = UsersPlugins->Apply ("PluginPresent", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	}, $user);
+	if (defined ($result) && ref ($result) eq "HASH") {
+	    $plugins = [];
+	    foreach my $plugin (keys %{$result}) {
+		# check if plugin has done the 'PluginPresent' action
+		if (bool ($result->{$plugin}) && !contains ($plugins, $plugin)){
+		    push @{$plugins}, $plugin;
+		}
+	    }
+	}
+    }
 
     foreach my $plugin (sort @{$plugins}) {
 	my $result = UsersPlugins->Apply ("Enable", {
@@ -1693,12 +1730,16 @@ sub EnableUser {
 
     if ($no_plugin && ($type eq "local" || $type eq "system")) {
 	# no plugins available: local user
-	# FIXME not ready
-	my $pw			= $user->{"userpassword"} || "";
+	my $pw	= $user->{"userpassword"} || "";
+	$pw	=~ s/^\!//;
+	$user->{"userpassword"}	= $pw;
     }
 
     if (!defined $user->{"enabled"} || ! bool ($user->{"enabled"})) {
 	$user->{"enabled"}	= YaST::YCP::Boolean (1);
+    }
+    if (!defined $user->{"what"}) {
+	$user->{"what"}		= "edit_user";
     }
 	
     return $user;
@@ -1942,6 +1983,7 @@ sub EditGroup {
 	"type"	=> $type,
     }, \%group_in_work);
     if (defined ($result) && ref ($result) eq "HASH") {
+        $plugins = [];
 	foreach my $plugin (keys %{$result}) {
 	    # check if plugin has done the 'PluginPresent' action
 	    if (bool ($result->{$plugin}) && ! contains ($plugins, $plugin)) {
@@ -2103,7 +2145,6 @@ sub AddUser {
 	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
     }
     my $plugins		= $user_in_work{"plugins"};
-    
     if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
 	$plugins	= $data{"plugins"};
     }
@@ -2388,7 +2429,8 @@ sub UserReallyModified {
     if (($user{"what"} || "") eq "group_change") {
         return 0;
     }
-    if (($user{"what"} || "") ne "edit_user") {
+    if (($user{"what"} || "") ne "edit_user" ||
+	bool ($user{"disabled"}) || bool ($user{"enabled"})) {
         return 1;
     }
 
@@ -2625,7 +2667,7 @@ sub CommitUser {
     elsif ( $what_user eq "delete_user" ) {
 
         # prevent the add & delete of the same user
-        if (!defined $user{"modified"}) {
+        if (!defined $user{"modified"} || $user{"modified"} ne "added") {
             $user{"modified"} = "deleted";
 	    $removed_users{$type}{$uid}	= \%user;
         }
@@ -2990,6 +3032,48 @@ sub DeleteUsers {
 }
 
 ##------------------------------------
+# After doing 'Write Changes Now', we must uncheck the 'modified' flags
+# of users/groups that were just written.
+# Otherwise, user previously added couldn't be deleted after such write...
+BEGIN { $TYPEINFO{UpdateUsersAfterWrite} = ["function", "void", "string"]; }
+sub UpdateUsersAfterWrite {
+
+    my $self	= shift;
+    my $type	= shift;
+	
+    if (ref ($modified_users{$type}) eq "HASH") {
+        foreach my $uid (keys %{$modified_users{$type}}) {
+	    my $a = $modified_users{$type}{$uid}{"modified"};
+	    if (!defined $a) { next;}
+	    if (defined $users{$type}{$uid} &&
+		$users{$type}{$uid}{"modified"} || "" eq $a) {
+		delete $users{$type}{$uid}{"modified"};
+	    }
+	}
+    }
+}
+
+BEGIN { $TYPEINFO{UpdateGroupsAfterWrite} = ["function", "void", "string"]; }
+sub UpdateGroupsAfterWrite {
+
+    my $self	= shift;
+    my $type	= shift;
+
+    if (ref ($modified_groups{$type}) eq "HASH") {
+        foreach my $gid (keys %{$modified_groups{$type}}) {
+	    my $a = $modified_groups{$type}{$gid}{"modified"};
+	    if (!defined $a) { next;}
+	    if (defined $groups{$type}{$gid} &&
+		$groups{$type}{$gid}{"modified"} || "" eq $a) {
+		delete $groups{$type}{$gid}{"modified"};
+	    }
+	}
+    }
+}
+
+
+
+##------------------------------------
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
 sub Write {
 
@@ -3059,6 +3143,7 @@ sub Write {
 		Ldap->LDAPErrorMessage ("users", $error_msg);
 	    }
 	    else {
+		$self->UpdateUsersAfterWrite ("ldap");
 		delete $modified_users{"ldap"};
 	    }
 	}
@@ -3079,6 +3164,7 @@ sub Write {
 		Ldap->LDAPErrorMessage ("groups", $error_msg);
 	    }
 	    else {
+		$self->UpdateGroupsAfterWrite ("ldap");
 		delete $modified_groups{"ldap"};
 	    }
 	}
@@ -3129,6 +3215,11 @@ sub Write {
 		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
 		}, $modified_groups{$type}{$gid});
 	    }
+	    # unset the 'modified' flags after write
+	    $self->UpdateGroupsAfterWrite ("local");
+	    $self->UpdateGroupsAfterWrite ("system");
+	    delete $modified_groups{"local"};
+	    delete $modified_groups{"system"};
 	}
 	if (!$write_only) {
 	    # remove the group cache for nscd (bug 24748)
@@ -3237,6 +3328,12 @@ sub Write {
 		}
 	    }
 	}
+	# unset the 'modified' flags after write
+	$self->UpdateUsersAfterWrite ("local");
+	$self->UpdateUsersAfterWrite ("system");
+	# not modified after successful write
+	delete $modified_users{"local"};
+	delete $modified_users{"system"};
     }
 
     # Write passwords
@@ -4062,9 +4159,11 @@ sub CheckUser {
 
     if ($error eq "") {
 	# do not check pw when it wasn't changed - must be tested directly
-	if ($user{"userpassword"} ne "x" || $user{"what"} ne "edit_user") {
+	if ($user{"userpassword"} ne "x" ||
+	    ($user{"what"} || "") eq "add_user") {
 	    $error	= $self->CheckPassword ($user{"userpassword"});
 	}
+#FIXME user can set 'x' as pasword!
     }
     
     if ($error eq "") {
@@ -4994,6 +5093,13 @@ sub SetWriteOnly {
     my $self	= shift;
     $write_only = $_[0];
 }
+
+BEGIN { $TYPEINFO{SetReadLocal} = ["function", "void", "boolean"];}
+sub SetReadLocal {
+    my $self	= shift;
+    $read_local	= $_[0];
+}
+
 
 # return state of $use_gui
 BEGIN { $TYPEINFO{GetGUI} = ["function", "boolean"];}

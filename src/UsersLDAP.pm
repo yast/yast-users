@@ -474,6 +474,8 @@ sub Read {
 	"group_attrs"		=> $group_attrs,
 	"member_attribute"	=> $member_attribute
     );
+y2internal ("user at: ", @{$user_attrs});
+y2internal ("group at: ", @{$group_attrs});
     if (!SCR->Execute (".ldap.users.search", \%args)) {
 	$ret = Ldap->LDAPError();
     }
@@ -1162,10 +1164,11 @@ sub WriteGroups {
 	}
 
 	my $group_oc	= "groupofnames";
+	my $other_oc	= "groupofuniquenames";
 	if (lc($member_attribute) eq "uniquemember") {
 	    $group_oc	= "groupofuniquenames";
+	    $other_oc	= "groupofnames";
 	}
-
 	# if there is no member of the group, group must be changed
 	# to namedObject
 	if ((!defined $group->{$member_attribute} ||
@@ -1192,6 +1195,12 @@ sub WriteGroups {
 	    # ... and create new one with altered objectclass
 	    delete $o_classes{"namedobject"};
 	    $o_classes{$group_oc}	= 1;
+	    if (contains (\@obj_classes, $other_oc, 1)) {
+		foreach my $o (keys %o_classes) {
+		    if (lc ($o) eq $other_oc) { $other_oc = $o; }
+		}
+		delete $o_classes{$other_oc};
+	    }
 	    %new_group			= %{$group};
 	}
 	my @ocs		= ();

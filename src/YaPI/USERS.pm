@@ -264,6 +264,8 @@ sub UserAdd {
     }
     $user->{"type"}	= $type;
 
+    Users->ResetCurrentUser ();
+    
     Users->AddUser ($user);
 
     # FIXME this should be called from Add/EditUser... (?)
@@ -322,10 +324,11 @@ sub UserModify {
 
     my $type	= $config->{"type"} || "local";
 
-    if ($type ne "ldap") {
-	$error = Users->Read ();
-	if ($error ne "") { return $error; }
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
     }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
 
     # config map could contain: user type, plugins to use, ... (?)
     # before we read LDAP, we could find here e.g. bind password
@@ -370,7 +373,8 @@ sub UserModify {
 	    UsersLDAP->SetCurrentUserFilter ($filter);
 	}
 	# Let's create the minimal list of neccessary attributes to get
-	my @necessary_user_attributes = ("uid", "uidnumber");
+	my @necessary_user_attributes = ("uid", "uidnumber", "objectclass");
+# FIXME nec. attrs. should be added every time?
 	if (!defined $config->{"user_attributes"}) {
 	    my @attrs	= keys (%{$data});
 	    foreach my $a (@necessary_user_attributes) {
@@ -439,10 +443,14 @@ BEGIN{$TYPEINFO{UserFeatureAdd} = ["function",
 }
 sub UserFeatureAdd {
 
-#FIXME just call UserModify with 'plugins' entry in $data hash
     my $self	= shift;
-    my $error	= "";
-    return $error;
+    my $config	= shift;
+
+    if (!defined $config->{"plugins"} || ref ($config->{"plugins"}) ne "ARRAY"){
+	return "no plugin defined";
+    }
+#TODO 'plugins' should be merged with existing list ...
+    return $self->UserModify ($config, { "plugins" => $config->{"plugins"} });
 }
 
 =item *
@@ -473,7 +481,15 @@ BEGIN{$TYPEINFO{UserFeatureDelete} = ["function",
 sub UserFeatureDelete {
 
     my $self	= shift;
-    return "";
+    my $config	= shift;
+
+    if (!defined $config->{"plugins"} || ref ($config->{"plugins"}) ne "ARRAY"){
+	return "no plugin defined";
+    }
+    my @plugins_to_remove	= @{$config->{"plugins"}};
+
+    return 
+    $self->UserModify ($config, { "plugins_to_remove" => \@plugins_to_remove });
 }
 
 
@@ -512,10 +528,11 @@ sub UserDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    if ($type ne "ldap") {
-	$error = Users->Read ();
-	if ($error ne "") { return $error; }
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
     }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
 
     # config map could contain: user type, plugins to use, ... (?)
     # before we read LDAP, we could find here e.g. bind password
@@ -586,9 +603,8 @@ EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
 		    "uidnumber"		=> 500,
-		    "plugins"		=> [ "UsersPluginsSambaAccount" ]
   };
-  # disables LDAP user (as it is defined in given plugin)
+  # disables LDAP user (as it is defined its plugins)
   my $error	= UserDisable ($config);
 
 =cut
@@ -601,10 +617,8 @@ sub UserDisable {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $ret	= "";
 
-    #TODO
-    return $ret;
+    return $self->UserModify ($config, { "disabled" => YaST::YCP::Boolean (1)});
 }
 
 =item *
@@ -633,10 +647,8 @@ sub UserEnable {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $ret	= "";
 
-    #TODO
-    return $ret;
+    return $self->UserModify ($config, { "enabled" => YaST::YCP::Boolean (1)});
 }
 
 =item *
@@ -681,10 +693,11 @@ sub UserGet {
 
     my $type	= $config->{"type"} || "local";
 
-    if ($type ne "ldap") {
-	$error = Users->Read ();
-	if ($error ne "") { return $ret; }
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
     }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
 
     # config map could contain: user type, plugins to use, ... (?)
     # before we read LDAP, we could find here e.g. bind password
@@ -784,10 +797,11 @@ sub UsersGet {
 
     my $type	= $config->{"type"} || "local";
 
-    if ($type ne "ldap") {	# for NIS, some data could be necessary
-	$error = Users->Read ();
-	if ($error ne "") { return $ret; }
+    if ($type eq "ldap") {
+	Users->SetReadLocal (0);
     }
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
 
     # config map could contain: user type, plugins to use, ... (?)
     # before we read LDAP, we could find here e.g. bind password
@@ -919,11 +933,99 @@ sub GroupModify {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1];
-    my $ret	= "";
-    my $group	= {};
+    my $error	= "";
 
-    #TODO
-    return $ret;
+    Users->SetGUI (0);
+
+    my $type	= $config->{"type"} || "local";
+
+    $error = Users->Read ();
+    if ($error ne "") { return $error; }
+
+    # config map could contain: group type, plugins to use, ... (?)
+    # before we read LDAP, we could find here e.g. bind password
+    InitializeConfiguration ($config);
+
+    # 1. select group
+    my $key	= "";
+    if (defined $config->{"dn"} && $type eq "ldap") {
+	$key	= "dn";
+    }
+    elsif (defined $config->{"cn"}) {
+	$key	= "cn";
+    }
+    elsif (defined $config->{"gidnumber"}) {
+	$key	= "gidnumber";
+    }
+
+    if ($type eq "ldap") {
+	# this initializes LDAP with the default values and read the
+	$error	= UsersLDAP->ReadSettings ();
+	if ($error ne "") { return $error; }
+
+	# now rewrite default values with given values
+	InitializeConfiguration ($config);
+
+	# If we want to atributes, that should be unique
+	# (uid/dn/uidnumber/home (TODO?) we must read everything to check
+	# possible conflicts...
+	my $read_all	= 0;
+	if (defined $data->{"cn"} || defined $data->{"gidnumber"}) {
+	    $read_all	= 1;
+	}
+
+	# search with proper filter (= one DN/uid/uidnumber)
+	# should be sufficient in this case...
+	if ($key eq "dn" && !$read_all) {
+	    UsersLDAP->SetGroupBase ($config->{$key});
+	}
+	elsif (!defined $config->{"group_filter"} && $key ne "" && !$read_all) {
+	    my $filter	= "$key=".$config->{$key};
+	    UsersLDAP->SetCurrentGroupFilter ($filter);
+	}
+	# Let's create the minimal list of neccessary attributes to get
+	my @necessary_group_attributes = ("cn", "gidnumber", "objectclass", "member");
+# FIXME nec. attrs. should be added every time?
+	if (!defined $config->{"group_attributes"}) {
+	    my @attrs	= keys (%{$data});
+	    foreach my $a (@necessary_group_attributes) {
+		if (!defined $data->{$a}) { push @attrs, $a;}
+	    }
+	    UsersLDAP->SetGroupAttributes (\@attrs);
+	}
+	
+	$error	= Users->ReadLDAPSet ();
+	if ($error ne "") { return $error; }
+    }
+    elsif ($type eq "nis") {
+	Users->ReadNewSet ($type);
+    }
+
+    if ($key eq "gidnumber") {
+	Users->SelectGroup ($config->{$key}, $type);
+    }
+    elsif ($key ne "") {
+	Users->SelectGroupByName ($config->{$key}, $type);
+    }
+    # 'dn' has to be passed in $data map so it could be changed
+    # TODO it is currently not possible to move entry deeper in the tree
+    # -> allow setting 'dn' in data map!
+    if ($type eq "ldap" && !defined $data->{"dn"}) {
+	my $group	= Users->GetCurrentGroup ();
+	$data->{"dn"}	= $group->{"dn"};
+    }
+
+    if (Users->EditGroup ($data)) {
+	$error = Users->CheckGroup ({});
+	if ($error eq "" && Users->CommitGroup ()) {
+	    $error = Users->Write ();
+	}
+    }
+    else {
+	$error	= "no such group"; # this text is surely somewhere...
+    }
+	
+    return $error;
 }
 
 =item *

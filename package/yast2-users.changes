@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Tue Mar 30 21:23:39 CEST 2004 - jsuchome@suse.cz
+
+- fix: update plugin list after PluginPresent (rhafer)
+- fix: after 'Write changes now', enable delete previously added user
+- fix: do not set both groupOfNames and groupOfUniqueNames for group
+- fix: widget difinition for CWM
+- YaPI: UserDisable, UserEnable, GroupModify
+- 2.9.23
+
+-------------------------------------------------------------------
 Mon Mar 29 13:37:28 CEST 2004 - jsuchome@suse.cz
 
 - plugins: check if plugin is defined for given user/group ('PluginPresent')
