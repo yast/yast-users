@@ -61,7 +61,7 @@
 	string action	= data["what"]:"";
 
 	map<string, any> tmp_data	= $[];
-	list<string> object_class = (list<string>)sort (data["objectClass"]:[]);
+	list<string> object_class = (list<string>)sort (data["objectclass"]:[]);
 
 	// if this plugin wasn't present in default plugin set, we have to call
 	// BeforeAdd/BeforeEdit e.g. to get object class!
@@ -71,18 +71,18 @@
 		data = UsersPluginLDAPAll::AddBefore (config, data);
 	    else if (action == "edit_user" || action == "edit_group")
 		data = UsersPluginLDAPAll::EditBefore (config, data);
-	    object_class = (list<string>)sort (data["objectClass"]:[]);
-	    tmp_data["objectClass"]	= object_class;
+	    object_class = (list<string>)sort (data["objectclass"]:[]);
+	    tmp_data["objectclass"]	= object_class;
 	}
 
 	// helptext 1/3
 	string help_text = _("<p>
 Here, see the table of all allowed attributes for the current LDAP entry that were not set in previous dialogs.</p>") +
 
-	// helptext 1/3 (don't translate objectClass"),
+	// helptext 1/3 (don't translate objectclass"),
         // %1 is list of values
 	sformat (_("<p>
-The list of attributes is given by the value of \"objectClass\"
+The list of attributes is given by the value of \"objectclass\"
 (which is currently:
 <br>%1).
 </p>
@@ -101,16 +101,16 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 
 	// which LDAP keys should not be edited here
 	// (either because they were edited before or it is to hard to edit
-	// them (objectClass, DN)
+	// them (objectclass, DN)
 	list do_not_show_keys	= (what == "user") ?
-	[ "uid", "username", "uidNumber", "homeDirectory",
-	// "givenName", "sn",
-	"userPassword", "objectClass", "loginShell", "gidNumber",
-	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
-	"shadowMin", "shadowMax", "shadowFlag"
+	[ "uid", "username", "uidnumber", "homedirectory",
+	// "givenname", "sn",
+	"userpassword", "objectclass", "loginshell", "gidnumber",
+	"shadowlastchange", "shadowwarning", "shadowinactive", "shadowexpire",
+	"shadowmin", "shadowmax", "shadowflag"
 	] :
 	// and now for groups
-	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
+	[ "groupname", "gidnumber", "userpassword", "objectclass", "userlist",
 	  "cn", Ldap::member_attribute
 	];
 
@@ -155,7 +155,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// we need to read available attributes from Ldap
 	foreach (string class, object_class, ``{
 	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), ``{
-		// remove already used (uid, uidNumber, homeDirectory etc.)
+		// remove already used (uid, uidnumber, homedirectory etc.)
 		if (!haskey (data, at) &&
 		    !contains (do_not_show_keys, at))
 		{

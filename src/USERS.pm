@@ -123,8 +123,8 @@ EXAMPLE:
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
   };
   my $data	= { "uid"		=> "ll",
-		    "uidNumber"		=> 1111,
-		    "userPassword"	=> "qqqqq"
+		    "uidnumber"		=> 1111,
+		    "userpassword"	=> "qqqqq"
 		    "givenName"		=> "l",
 		    "cn"		=> [ "ll" ]
 		    "description"	=> [ "first", "second" ],
@@ -160,12 +160,11 @@ sub UserAdd {
 return "";
     my %new_keys	= {
 	"username"	=> "uid",
-	"password"	=> "userPassword",
-	"home"		=> "homeDirectory",
-	"shell"		=> "loginShell",
+	"password"	=> "userpassword",
+	"home"		=> "homedirectory",
+	"shell"		=> "loginshell",
 	"fullname"	=> "cn",
-	"gid"		=> "gidNumber",
-#	"uid"		=> "uidNumber",#FIXME could conflict with other 'uid'!
+	"gid"		=> "gidnumber",
 	"groups"	=> "grouplist"
     };
     foreach my $key (keys %{$data}) {
@@ -175,7 +174,7 @@ return "";
 	}
 	my $value	= $data->{$key};
 	# TODO check correctly boolean values... ("create_home", "encrypted")
-#	if (new_key == "gidNumber")
+#	if (new_key == "gidnumber")
 #	{
 #	    # TODO check group existence!
 #	    if (!UsersCache::GIDExists (tointeger ((string)value)))
@@ -222,15 +221,15 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidNumber"		=> 500
+		    "uidnumber"		=> 500
   };
-  my $data	= { "userPassword"	=> "wwwww"
+  my $data	= { "userpassword"	=> "wwwww"
   };
   # changes a password of LDAP user (identified with id)
   my $error	= UserModify ($config, $data);
 
   # change GID value of local user (identified with name)
-  $error	= UserModify ({ "uid" => "hh" }, { "gidNumber" => 5555 });
+  $error	= UserModify ({ "uid" => "hh" }, { "gidnumber" => 5555 });
 
 =cut
 
@@ -358,7 +357,7 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidNumber"		=> 500,
+		    "uidnumber"		=> 500,
 		    "plugins"		=> [ "UsersPluginsSambaAccount" ]
   };
   # disables LDAP user (as it is defined in given plugin)
@@ -391,7 +390,7 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidNumber"		=> 500,
+		    "uidnumber"		=> 500,
   };
   # enables LDAP user (in a default way, defined for LDAP users)
   my $error	= UserEnable ($config);
@@ -420,10 +419,10 @@ Returns a map describing selected user.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "attributes"	=> [ "uid", "uidNumber", "cn" ],
-		    "uidNumber"		=> 500
+		    "attributes"	=> [ "uid", "uidnumber", "cn" ],
+		    "uidnumber"		=> 500
   };
-  # searches for LDAP user with uidNumber 500 and returns the hash with given
+  # searches for LDAP user with uidnumber 500 and returns the hash with given
   # attributes
   my $user	= UserGet ($config);
 
@@ -460,10 +459,10 @@ by UID number, unless statet otherwise in $config_hash.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "attributes"	=> [ "uid", "uidNumber", "cn" ],
+		    "attributes"	=> [ "uid", "uidnumber", "cn" ],
 		    "user_base"		=> "ou=people,dc=example,dc=com",
 		    "user_scope"	=> YaST::YCP::Integer (2),
-		    "user_filter"	=> [ "objectClass=posixAccount" ]
+		    "user_filter"	=> [ "objectclass=posixAccount" ]
 		    "index"		=> "dn"
   };
   # searches for LDAP users in given search base and returns the hash
@@ -500,7 +499,7 @@ EXAMPLE:
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
 		    "group_base"	=> "ou=groups,dc=example,dc=com"
   };
-  my $data	= { "gidNumber"		=> 5555,
+  my $data	= { "gidnumber"		=> 5555,
 		    "cn"		=> "lgroup",
 		    "member"		=> {
 			"uid=test,ou=people,dc=example,dc=com"	=> 1,
@@ -552,10 +551,10 @@ Returns an error message if operation failed or empty string otherwise.
 EXAMPLE
 
   # change GID value of local group (identified with name)
-  my $error	= GroupModify ({ "cn" => "users" }, { "gidNumber" => 101 });
+  my $error	= GroupModify ({ "cn" => "users" }, { "gidnumber" => 101 });
 
   my $config	= { "type"		=> "ldap",
-		    "gidNumber"		=> 5555
+		    "gidnumber"		=> 5555
   };
   my $data	= { "member"		=> [
 			"uid=test,ou=people,dc=example,dc=com",
@@ -607,7 +606,7 @@ EXAMPLE:
   my $config	= { "type"		=> "ldap",
 		    "plugins"		=> [ "UsersPluginSambaAccount" ],
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
-		    "gidNumber"		=> 5555
+		    "gidnumber"		=> 5555
   };
   my $user	= { "uid"		=> "my_user",
 		    "gecos"		=> [ "My new user in group 5555" ]
@@ -640,9 +639,9 @@ EXAMPLE:
   my $config	= { "type"		=> "ldap",
 		    "dn"		=> "cn=lgroup,dc=example,dc=com"
   };
-  my $user	= { "uidNumber"		=> 1000 }
+  my $user	= { "uidnumber"		=> 1000 }
 
-  # removes user with given uidNumber from group with given DN
+  # removes user with given uidnumber from group with given DN
   my $error	= GroupMemberDelete ($config, $data);
 
 =cut
@@ -696,10 +695,10 @@ Returns a map describing selected group.
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "attributes"	=> [ "cn", "gidNumber", "member" ],
-		    "gidNumber"		=> 500
+		    "attributes"	=> [ "cn", "gidnumber", "member" ],
+		    "gidnumber"		=> 500
   };
-  # searches for LDAP group with gidNumber 500 and returns the hash
+  # searches for LDAP group with gidnumber 500 and returns the hash
   # with given attributes
   my $group	= GroupGet ($config);
 

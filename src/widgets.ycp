@@ -424,9 +424,9 @@ define symbol DeleteUserPopup() ``{
     string type		= UsersCache::GetUserType ();
     map user		= Users::GetCurrentUser ();
     string username     = user["uid"]:"";
-    string home		= user["org_user","homeDirectory"]:user["org_homeDirectory"]:user["homeDirectory"]:"";
+    string home		= user["org_user","homedirectory"]:user["org_homedirectory"]:user["homedirectory"]:"";
     integer uid		= -1;
-    any uid_a		= user["org_user","uidNumber"]:user["org_uidNumber"]:user["uidNumber"]:"-1";
+    any uid_a		= user["org_user","uidnumber"]:user["org_uidnumber"]:user["uidnumber"]:"-1";
     if (is (uid_a, string))
 	uid = tointeger (uid_a);
     else uid = (integer) uid_a;

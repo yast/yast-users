@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 22 17:27:24 CET 2004 - jsuchome@suse.cz
+
+- use only lowercase user/group attribute names
+  (adapted also agent-nis and testusite for this change)
+
+-------------------------------------------------------------------
 Mon Mar 22 11:01:26 CET 2004 - jsuchome@suse.cz
 
 - do not lose data of first user during installation (#36543)

@@ -30,11 +30,11 @@ YaST::YCP::Import ("SCR");
 
 # default object classes of LDAP users
 my @user_object_class                  =
-    ("top","posixAccount","shadowAccount", "inetOrgPerson");
+    ("top","posixaccount","shadowaccount", "inetorgperson");
 
 # default object classes of LDAP groups
 my @group_object_class                 =
-    ( "top", "posixGroup", "groupOfNames");
+    ( "top", "posixgroup", "groupofnames");
 
 
 ##--------------------------------------
@@ -145,8 +145,8 @@ sub Check {
     # attribute conversion
     my @required_attrs		= ();
     my @object_classes		= ();
-    if (defined $data->{"objectClass"} && ref ($data->{"objectClass"}) eq "ARRAY") {
-	@object_classes		= @{$data->{"objectClass"}};
+    if (defined $data->{"objectclass"} && ref ($data->{"objectclass"}) eq "ARRAY") {
+	@object_classes		= @{$data->{"objectclass"}};
     }
 
     # get the attributes required for entry's object classes
@@ -154,7 +154,6 @@ sub Check {
 	my $object_class = SCR->Read (".ldap.schema.oc", {"name"=> $class});
 	if (!defined $object_class || ref ($object_class) ne "HASH" ||
 	    ! %{$object_class}) { next; }
-	
 	my $req = $object_class->{"must"};
 	if (defined $req && ref ($req) eq "ARRAY") {
 	    foreach my $r (@{$req}) {
@@ -165,13 +164,14 @@ sub Check {
 
     # check the presence of required attributes
     foreach my $req (@required_attrs) {
-	my $val	= $data->{$req};
+	my $attr	= lc ($req);
+	my $val		= $data->{$attr};
 	if (!defined $val || $val eq "" || 
 	    (ref ($val) eq "ARRAY" && 
 		((@{$val} == 0) || (@{$val} == 1 && $val->[0] eq "")))) {
 	    # error popup (user forgot to fill in some attributes)
 	    return sprintf (_("The attribute '%s' is required for this object according
-to its LDAP configuration, but it is currently empty."), $req);
+to its LDAP configuration, but it is currently empty."), $attr);
 	}
     }
     return "";
@@ -211,9 +211,9 @@ sub update_object_classes {
 
     # define the object class for new user/groupa
     my @orig_object_class	= ();
-    if (defined $data->{"objectClass"} && ref $data->{"objectClass"} eq "ARRAY")
+    if (defined $data->{"objectclass"} && ref $data->{"objectclass"} eq "ARRAY")
     {
-	@orig_object_class	= @{$data->{"objectClass"}};
+	@orig_object_class	= @{$data->{"objectclass"}};
     }
     my @ocs			= @user_object_class;
     if (($config->{"what"} || "") eq "group") {
@@ -225,7 +225,7 @@ sub update_object_classes {
 	}
     }
 
-    $data->{"objectClass"}	= \@orig_object_class;
+    $data->{"objectclass"}	= \@orig_object_class;
 
     return $data;
 }
@@ -240,7 +240,7 @@ sub AddBefore {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $data	= $_[1];
+    my $data	= $_[1]; # only new data that will be copied to current user map
 
     $data	= update_object_classes ($config, $data);
 
@@ -257,8 +257,7 @@ sub Add {
 
     my $self	= shift;
     my $config	= $_[0];
-    my $data	= $_[1];
-
+    my $data	= $_[1]; # the whole map of current user/group after Users::Edit
     y2internal ("Add LDAPAll called");
     return $data;
 }
@@ -273,8 +272,10 @@ sub EditBefore {
     my $self	= shift;
     my $config	= $_[0];
     my $data	= $_[1]; # only new data that will be copied to current user map
+    # data of original user/group are saved as a submap of $config
+    # data with key "org_data"
 
-    $data	= update_object_classes ($config, $data);
+#    $data	= update_object_classes ($config, $data);
 
     y2internal ("EditBefore LDAPAll called");
     return $data;
