@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Aug  1 10:48:47 CEST 2002 - jsrain@suse.cz
+
+- fixed reading values from /etc/login.defs
+- fixed forwarding root's mail
+- allowed to enter custom shell (Bug #10290)
+- 2.6.15
+
+-------------------------------------------------------------------
 Tue Jul 30 11:32:47 CEST 2002 - jsrain@suse.cz
 
 - fixed comments for translators

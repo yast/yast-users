@@ -459,7 +459,7 @@ Select which one to configure.
 	// combobox label
 	term edit_defaultgroup = `ComboBox(`id(`defaultgroup), `opt(`hstretch), _("Default &group"), available_groups );
 	// combobox label
-	term edit_shell        = `ComboBox(`id(`shell       ), `opt(`hstretch), _("Login &shell"), available_shells );
+	term edit_shell        = `ComboBox(`id(`shell       ), `opt(`hstretch, `editable), _("Login &shell"), available_shells );
 
 	term contents =
 		     `HBox(
@@ -633,6 +633,15 @@ Use it and change its owner?
 			}
 		    }
 
+                    list as = UserAddDefs::GetAllShells(`stringlist);
+
+                    if ((! contains (as, new_shell)) && (new_shell != lookup (user_in_work, "shell", "")))
+                    {
+                        if (! UI::YesNoPopup (_("If you select unexistent shell, user\nmay be unable to log in. Continue?")))
+                            continue;
+                    }
+
+
 		    // chech the grouplist
 		    if( new_grouplist != grouplist  )
 		    {
@@ -688,6 +697,7 @@ Please try again."));
 			    UI::SetFocus(`id(`grouplist));
 			    continue;
 			}
+
 		    }
 
 		    // update user_in_work

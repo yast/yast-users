@@ -580,7 +580,7 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    if (! ret)
 		// error popup
 		Report::Error(_("There was an error while setting forwarding root's mail"));
-	    ok = ok & ret;
+	    ok = ok && ret;
         }
 
 

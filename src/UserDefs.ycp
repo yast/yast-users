@@ -88,33 +88,33 @@
 	boolean blowfish = contains(splitstring(lookup(pam_unix_map , "arguments", ""), " "), "blowfish");
 
 	/* set defaults */
-	max_uid             = SCR::Read (.etc.login_defs.UID_MAX);
+	max_uid             = tointeger (SCR::Read (.etc.login_defs.UID_MAX));
 	if (nil == max_uid)
 	    max_uid = 60000;
-        max_gid             = SCR::Read (.etc.login_defs.GID_MAX);
+        max_gid             = tointeger (SCR::Read (.etc.login_defs.GID_MAX));
         if (nil == max_gid)
             max_gid = 60000;
-	max_system_uid             = SCR::Read (.etc.login_defs.UID_MIN) - 1;
+	max_system_uid             = tointeger (SCR::Read (.etc.login_defs.UID_MIN)) - 1;
         if (nil == max_system_uid)
             max_uid = 499;
-        max_system_gid             = SCR::Read (.etc.login_defs.GID_MIN) - 1;
+        max_system_gid             = tointeger (SCR::Read (.etc.login_defs.GID_MIN)) - 1;
         if (nil == max_system_uid)
             max_system_uid = 99;
 	max_length_uid      = size(sformat("%1", max_uid));
 	max_length_gid      = size(sformat("%1", max_gid));
-        max_length_pas      = SCR::Read (.etc.login_defs.PASS_MAX_LEN);
+        max_length_pas      = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
         if (nil ==  max_length_pas)
              max_length_pas = 8;
-        min_length_pas      = SCR::Read (.etc.login_defs.PASS_MIN_LEN);
+        min_length_pas      = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_LEN));
         if (nil ==  min_length_pas)
              min_length_pas = 5;
-        pass_max_days      = SCR::Read (.etc.login_defs.PASS_MAX_DAYS);
+        pass_max_days      = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_DAYS));
         if (nil ==  pass_max_days)
              pass_max_days = 99999;
-        pass_min_days      = SCR::Read (.etc.login_defs.PASS_MIN_DAYS);
+        pass_min_days      = tointeger (SCR::Read (.etc.login_defs.PASS_MIN_DAYS));
         if (nil ==   pass_min_days)
               pass_min_days = 0;
-        pass_warn_age      = SCR::Read (.etc.login_defs.PASS_WARN_AGE);
+        pass_warn_age      = tointeger (SCR::Read (.etc.login_defs.PASS_WARN_AGE));
         if (nil ==  pass_warn_age)
              pass_warn_age = 7;
 
