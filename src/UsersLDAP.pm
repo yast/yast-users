@@ -1045,10 +1045,10 @@ sub ConvertMap {
     my $org_object	= undef;
     my $org_ocs		= undef;
 
-    if (defined $data->{"org_user"}) {
+    if (defined $data->{"org_user"} && $data->{"modified"} eq "edited") {
 	$org_object	= $data->{"org_user"};
     }
-    if (defined $data->{"org_group"}) {
+    if (defined $data->{"org_group"} && $data->{"modified"} eq "edited") {
 	$org_object	= $data->{"org_group"};
     }
     if (defined $org_object->{"objectclass"}) {
@@ -1295,6 +1295,9 @@ sub WriteUsers {
 	);
 
         if ($action eq "added") {
+	    if ($org_dn ne "") {
+		$arg_map{"dn"}	= $new_dn;
+	    }
 	    if (!SCR->Write (".ldap.add",\%arg_map,$self->ConvertMap ($user))) {
 		%ret	= %{Ldap->LDAPErrorMap ()};
 	    }
@@ -1547,6 +1550,9 @@ sub WriteGroups {
 
 
         if ($action eq "added") {
+	    if ($org_dn ne "") {
+		$arg_map{"dn"}	= $new_dn;
+	    }
 	    if (!SCR->Write (".ldap.add",\%arg_map,$self->ConvertMap($group))) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
