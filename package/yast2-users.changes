@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Mon Sep  1 17:02:58 CEST 2003 - jsuchome@suse.cz
+
+- LDAP users: chek for object class existence
+
+-------------------------------------------------------------------
+Mon Sep  1 09:26:58 CEST 2003 - jsuchome@suse.cz
+
+- removed checking for kerberos
+- rearanged buttons for 'add user dialog' during installation
+  (from sh@suse.de, bug #29389)
+- 2.8.12
+
+-------------------------------------------------------------------
 Sun Aug 31 15:13:25 CEST 2003 - arvin@suse.de
 
 - use Popup::ConfirmAbort
