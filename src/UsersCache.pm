@@ -1053,10 +1053,7 @@ sub ReadUsers {
 	$last_uid{$type}= SCR::Read ("$path.users.last_uid");
     }
 
-y2internal ("type: $type");
-DebugMap ($homes{$type});
     $homes{$type} 	= \%{SCR::Read ("$path.users.homes")};
-DebugMap ($homes{$type});
     $usernames{$type}	= \%{SCR::Read ("$path.users.usernames")};
     $uids{$type}	= \%{SCR::Read ("$path.users.uids")};
 
