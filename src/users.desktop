@@ -14,9 +14,9 @@ X-SuSE-YaST-RootOnly=true
 X-SuSE-YaST-AutoInst=all
 X-SuSE-YaST-Geometry=
 X-SuSE-YaST-SortKey=
-X-SuSE-YaST-AutoinstResource=
-X-SuSE-YaST-AutoinstMerge=users,groups,user_defaults
-X-SuSE-YaST-AutoinstMergeTypes=list,list,map
+X-SuSE-YaST-AutoInstResource=
+X-SuSE-YaST-AutoInstMerge=users,groups,user_defaults
+X-SuSE-YaST-AutoInstMergeTypes=list,list,map
 
 Icon=user_add
 Exec=/sbin/yast2 users users
