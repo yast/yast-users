@@ -1,4 +1,4 @@
-## configure.in.in for y2c_users. Use y2tool y2autoconf to get configure.in
+## YCP module configure.in.in
 
 ## Initialize
 @YAST2-INIT-COMMON@

@@ -1,5 +1,5 @@
 #
-# Makefile.cvs for libycp
+# Makefile.cvs
 #
 configure: all
 	./configure

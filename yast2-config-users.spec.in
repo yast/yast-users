@@ -1,42 +1,23 @@
-#
-# spec file for package @RPMNAME@
-# 
-# Copyright  (c)  2000  SuSE GmbH  Nuernberg, Germany.
-#
-# please send bugfixes or comments to @MAINTAINER@
-#
-
+@HEADER-COMMENT@
 # neededforbuild yast2-devtools  autoconf automake ycpdoc 
 
-Vendor:       SuSE GmbH, Nuernberg, Germany
-Distribution: SuSE Linux 6.4 (i386)
-Name:         @RPMNAME@
-Release:      1
-Copyright:    (c) 2000 SuSE GmbH
+@HEADER@
 Requires:     yast2 yast2-trans-users yast2-config-security yast2-lib-sequencer yast2-lib-wizard yast2-agent-pam
-Group:        System Environment/YaST
+
 BuildArchitectures: noarch
 
-Packager:     @MAINTAINER@
-
 Summary:      YaST2 Modules for installation
-Version:      @VERSION@
-Source0:      @RPMNAME@-@VERSION@.tar.bz2
 
 %description
 -
 
-%prep
-%setup -n @RPMNAME@-@VERSION@
+@PREP@
 
-%build
-./configure
-make
+@BUILD-YCP@
 
-%install
-make install
-#make check
-%{?suse_check}
+@INSTALL-YCP@
+
+@CLEAN@
 
 %files
 %defattr(-,root,root)
@@ -49,5 +30,4 @@ make install
 @YAST2DIR@/menuentries/menuentry_groups.y2cc
 @YAST2DIR@/menuentries/menuentry_add_user.y2cc
 @YAST2DIR@/menuentries/menuentry_add_group.y2cc
-%docdir @DOCDIR@
-%doc @DOCDIR@/*
+%doc @DOCDIR@
