@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 26 09:30:16 CET 2004 - jsuchome@suse.cz
+
+- fixed calling from control center (#35006)
+
+-------------------------------------------------------------------
 Wed Feb 25 15:12:59 CET 2004 - jsuchome@suse.cz
 
 - initial support for plugins
