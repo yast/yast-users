@@ -27,7 +27,7 @@ global list additional_users = [];
 global list user_itemlist = [];
 global list group_itemlist = [];
 map uidlists = $[];
-global list gidlist = [];
+global map gidlists = $[];
 global list current_users = [];
 global list current_groups = [];
 global list user_custom_sets = [];
@@ -83,7 +83,9 @@ string dir) ``{
     current_groups = group_custom_sets;
 
     BuildGroups (groupmap);
-
+    foreach (`type, `groupsmap, groupmap, ``{
+        BuildGroups (groupsmap, type);
+    });
     groups_itemlists [ `custom ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ `custom ]:[];
 
@@ -105,7 +107,10 @@ global define boolean ReadFromFiles (string dir) ``{
     user_itemlist = users_itemlists [ `custom ]:[];
     PrintDate ("after merge");
 
-    ReadGroups ( start_sets, dir);
+//    ReadGroups ( start_sets, dir);
+    foreach (`type, start_sets , ``{
+        ReadGroups (type, dir);
+    });
     groups_itemlists [ `custom ] = MergeGroupTableItems();
     group_itemlist = groups_itemlists [ `custom ]:[];
 
@@ -119,8 +124,8 @@ global define boolean BuildUsers (map usersmap, symbol type) ``{
 
     PrintDate ("build users start");
 
-    homelists = add (homelists, type, BuildHomeList(usersmap));
-    usernamelists = add(usernamelists,type,BuildUsernameList(usersmap));
+    homelists = add (homelists, type, BuildHomeList (usersmap));
+    usernamelists = add (usernamelists, type, BuildUsernameList (usersmap));
     users_itemlists = add (users_itemlists, type,
         BuildUserItemList(usersmap));
     uidlists [type] = BuildUIDList(usersmap);
@@ -131,6 +136,33 @@ global define boolean BuildUsers (map usersmap, symbol type) ``{
 }
 
 /**
+ * Build the cache structures for group set
+ */
+global define boolean BuildGroups (map groupsmap, symbol type) ``{
+
+    if (groupnamelists [type]:nil == nil)
+        groupnamelists [type] = BuildGroupnameList (groupsmap);
+    groups_itemlists [type] = BuildGroupItemList(groupsmap);
+
+    gidlists [type] = BuildGIDList(groupsmap);
+}
+
+/**
+ * Build the cache structures for group set
+ *
+global define boolean BuildGroups (map groupmap) ``{
+
+    foreach (`type, `groupsmap, groupmap, ``{
+        if (groupnamelists [type]:nil == nil)
+            groupnamelists [type] = BuildGroupnameList (groupsmap);
+        groups_itemlists [type] = BuildGroupItemList(groupsmap);
+    });
+
+    gidlist = BuildGIDList(groupmap);
+}*/
+
+/**
+ * Read the prepared user data from the files
  */
 global define boolean ReadUsers (symbol type, string dir) ``{
 
@@ -157,35 +189,28 @@ global define boolean ReadUsers (symbol type, string dir) ``{
 }
 
 /**
- * Build the cache structures for group set
+ * Read the prepared group data from the files
  */
-global define boolean BuildGroups (map groupmap) ``{
+//global define boolean ReadGroups (list sets, string dir) ``{
+global define boolean ReadGroups (symbol type, string dir) ``{
 
-    foreach (`type, `groupsmap, groupmap, ``{
-        if (groupnamelists [type]:nil == nil)
-            groupnamelists [type] = BuildGroupnameList (groupsmap);
-        groups_itemlists [type] = BuildGroupItemList(groupsmap);
-    });
+    string stringtype = symbol_to_string[type]:"";
 
-    gidlist = BuildGIDList(groupmap);
-}
-
-/**
- */
-global define boolean ReadGroups (list sets, string dir) ``{
-
-    PrintDate ("build groups start");
-
+    gidlists [type] = SCR::Read (.target.ycp, dir + "/gidlist_" +
+        stringtype + ".ycp");
+    groupnamelists [type] = SCR::Read (.target.ycp, dir + "/groupnamelist_" +
+        stringtype + ".ycp");
+    groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
+        + stringtype + "_itemlist.ycp");
+    /*
     gidlist = SCR::Read (.target.ycp, dir + "/gidlist.ycp");
     groupnamelists = SCR::Read (.target.ycp, dir + "/groupnamelists.ycp");
-
-    PrintDate ("groupnamelits");
 
     foreach (`type, sets, ``{
         groups_itemlists [type] = SCR::Read(.target.ycp, dir + "/group_"
             + symbol_to_string [type]:"" + "_itemlist.ycp");
-    PrintDate ("group itemlits");
     });
+    */
 }
 
 
@@ -200,7 +225,7 @@ global define void EmptyStructures () ``{
     usernamelists = $[];
     uidlists = $[];
     groupnamelists = $[];
-    gidlist = [];
+    gidlists = $[];
 }
 
 /**
@@ -459,7 +484,7 @@ global define boolean UIDExists(integer uid) ``{
 
     boolean ret = false;
     foreach (`type, `uids, uidlists, ``{
-        if ( contains (uids, uid)) ret = true;
+        if ( !ret && contains (uids, uid)) ret = true;
     });
     return ret;
 }
@@ -468,8 +493,11 @@ global define boolean UIDExists(integer uid) ``{
  */
 global define boolean GIDExists(integer gid) ``{
 
-    if ( contains (gidlist, gid)) return true;
-    return false;
+    boolean ret = false;
+    foreach (`type, `gids, gidlists, ``{
+        if ( !ret && contains (gids, gid)) ret = true;
+    });
+    return ret;
 }
 
 /* -- check for nis names???
@@ -524,7 +552,7 @@ global define integer NextFreeGid() ``{
     integer gid = min;
     repeat
     {
-        if (contains (gidlist, gid))
+        if (GIDExists (gid))
             gid = gid + 1;
         else return gid;
     } until ( gid == max );
@@ -639,7 +667,7 @@ global define void ChangeGroup (symbol what, map group) ``{
 
     if (what == `add_group)
     {
-        gidlist = prepend (gidlist, gid);
+        gidlists [type] = prepend (gidlists [type]:[], gid);
         groupnamelists [type] = add (groupnamelists [type]:[], groupname);
         groups_itemlists [type] = merge (groups_itemlists [type]:[],
             BuildGroupItemList( $[ gid : group ] ));
@@ -649,8 +677,8 @@ global define void ChangeGroup (symbol what, map group) ``{
     {
         if (gid != org_gid)
         {
-            gidlist = filter (`g, gidlist, ``(g != org_gid));
-            gidlist = prepend (gidlist, gid);
+            gidlists [type] = filter (`g, gidlists [type]:[], ``(g != org_gid));
+            gidlists [type] = prepend (gidlists [type]:[], gid);
         }
         if (groupname != org_groupname)
         {
@@ -666,7 +694,7 @@ global define void ChangeGroup (symbol what, map group) ``{
     }
     else if (what == `delete_group)
     {
-        gidlist = filter (`g, gidlist, ``(g != gid));
+        gidlists [type] = filter (`g, gidlists [type]:[], ``(g != gid));
         groupnamelists [type] = filter (`g, groupnamelists [type]:[],
                 ``(g != groupname));
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],

@@ -116,7 +116,8 @@ global map users = $[
 /* Tha main map of groups */
 global map groups  = $[
     `system:    $[],
-    `local:     $[]];
+    `local:     $[],
+    `ldap:      $[]];
 
 // main maps of all local shadow and gshadow entries:
 global map shadow = $[
@@ -126,7 +127,8 @@ global map shadow = $[
 
 map gshadow = $[
     `system:    $[],
-    `local:     $[]];
+    `local:     $[],
+    `ldap:      $[]];
 
 /* structures *_by_name are used for searching */
 global map users_by_name = $[];
@@ -139,9 +141,9 @@ global map group_in_work = $[];
 // the first user, added during install
 global map saved_user = $[];
 
-// users, which has been deleted/modified:
+// users/groups, which has been deleted/modified:
 map modified_users = $[];
-//list modified_groups = [];
+map modified_groups = $[];
 
 // users/groups sets in "Custom" selection:
 global list user_custom_sets = [ `local ];
@@ -195,6 +197,7 @@ global boolean use_next_time = true; // what is it for ??
 
 // if anything was done
 global boolean modified = false;
+global boolean ldap_modified = false;
 
 // values to MenuItem in Summary dialog
 global map userset_to_string = $[
@@ -217,6 +220,8 @@ global map groupset_to_string = $[
     `system:    _("&System groups"),
     // the type of group set
     `local:     _("&Local groups"),
+    // the type of group set
+    `nis:       _("&NIS groups"),
     // the type of group set
     `ldap:      _("L&DAP groups"),
     // the type of group set
@@ -543,7 +548,6 @@ global define symbol Write (block abort, boolean useUI)``{
 	}
     BackupConfFiles(base_dir);
 
-    // currently I count only with system/local users
 	if ( useUI )
 	{
 	    Progress::NextStage ();
@@ -551,7 +555,8 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
 
-    foreach (`user, modified_users [`local]:[], ``{
+    // currently there are deleted users in MOdified_users
+    foreach (`uid, `user, modified_users [`local]:$[], ``{
         if (user["delete_home"]:false)
         {
             // -- what if the home was changed??
@@ -562,7 +567,7 @@ global define symbol Write (block abort, boolean useUI)``{
                 SCR::Execute(.target.bash, command));
         }
     });
-    foreach (`user, modified_users [`system]:[], ``{
+    foreach (`uid, `user, modified_users [`system]:$[], ``{
         if (user["delete_home"]:false)
         {
             // -- what if the home was changed??
@@ -585,18 +590,18 @@ global define symbol Write (block abort, boolean useUI)``{
     modified_users [`passwd] = WritePasswd (write_dir, users [`system]:$[],
         users[`local]:$[], plus_passwd);
 
-    if (modified_users [`passwd]:[] == nil)
+    if (modified_users [`passwd]:$[] == nil)
     {
         if ( useUI)
             // error popup
 	        Report::Error (_("Cannot write passwd file."));
         else
             y2error ("Cannot write passwd file.");
-        modified_users [`passwd] = [];
+        modified_users [`passwd] = $[];
     }
 
     // check for homedir changes
-    foreach (`user, modified_users [`passwd]:[], ``{
+    foreach (`uid, `user, modified_users [`passwd]:$[], ``{
         string home = user["home"]:"";
         string username = user["username"]:"";
         string command = "";
@@ -648,7 +653,6 @@ global define symbol Write (block abort, boolean useUI)``{
                         SCR::Execute(.target.bash, command));
                 }
             }
-            integer uid = user["uid"]:nil;
             integer org_uid = user["org_uid"]:uid;
             string groupname = user["groupname"]:default_groupname;
             if (uid != org_uid)
@@ -662,7 +666,7 @@ global define symbol Write (block abort, boolean useUI)``{
             }
         }
     });
-    // ldap
+    // ldap users and groups
     /*
 	if ( useUI )
 	{
@@ -670,21 +674,51 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}*/
-    if (size (modified_users [`ldap]:[]) > 0 )
+    if (ldap_modified)
     {
         // ask for bind password
         string pass = "";
         if (useUI)
             pass = GetLDAPPassword();
+        boolean succ = true;
 
-        if (! WriteLDAPUsers (
-                modified_users [`ldap]:[], is_ldap_server, tmpdir, pass))
+        // there are deleted users in modified_users [`ldap]
+        if (size (modified_users [`ldap]:$[]) > 0)
+        {
+            succ = WriteLDAPUsers (
+                modified_users [`ldap]:$[], is_ldap_server, tmpdir, pass);
+        }
+
+        // now write all other modifications
+        succ = succ && WriteLDAPUsers (
+            users [`ldap]:$[], is_ldap_server, tmpdir, pass);
+
+        if (!succ)
         {
             if (useUI)
                 // error popup
 	            Report::Error (_("Cannot write ldap users."));
             else
                 y2error ("Cannot write ldap users.");
+        }
+
+        succ = true;
+        // there are deleted groups in modified_groups [`ldap]
+        if (size (modified_groups [`ldap]:$[]) > 0)
+        {
+            succ = WriteLDAPGroups (modified_groups [`ldap]:$[], tmpdir, pass);
+        }
+
+        // now write all other groups modifications
+        succ = succ && WriteLDAPGroups (groups [`ldap]:$[], tmpdir, pass);
+
+        if (!succ)
+        {
+            if (useUI)
+                // error popup
+	            Report::Error (_("Cannot write ldap groups."));
+            else
+                y2error ("Cannot write ldap groups.");
         }
     }
 
@@ -863,11 +897,12 @@ global define boolean Import (list settings) ``{
             local_groups = RemoveDiskUsersFromGroups ($[ default_gid: group ]);
             groups [`local] = union (groups [`local]:$[], local_groups);
         }
-        groups_by_name = GroupsByName (system_groups);
+        groups_by_name [`system] = GroupsByName (system_groups);
     }
     if (groups [`local]:nil == nil)
         groups = add (groups, `local, $[]);
-    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
+//    groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
+    groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
     plus_group = ReadPlusGroup(tmpdir);
 
     if (shadow [`system]:nil == nil || shadow [`system]:nil == $[])
@@ -907,12 +942,18 @@ global define boolean Import (list settings) ``{
  */
 global define Set (list settings) ``{
 
+    // what about system users/groups ??
+
     users [`local] = settings[0, `local]:$[];
     users_by_name [`local] = UsersByName (users [`local]:$[]);
 
     groups [`local] = settings[1, `local]:$[];
+    // why reading??? check this !!
+    /*
     groups_by_name = union (ReadGroupsByName (tmpdir),
         GroupsByName (groups [`local]:$[]));
+    */
+    groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
 
     shadow [`local] = settings[2, `local]:$[];
     gshadow [`local] = settings[3, `local]:$[];
@@ -1014,6 +1055,9 @@ global define boolean Commit (string object, boolean cache)``{
         list group_list = splitstring (grouplist, ",");//remove ""
         group_list = filter (`g, group_list, ``(g != ""));
 
+        if (type == `ldap)
+            ldap_modified = true;
+
         // the action
         if ( what_user == `add_user )
         {
@@ -1021,7 +1065,7 @@ global define boolean Commit (string object, boolean cache)``{
             user_in_work ["modified"] = `added;
             // update the affected groups
             foreach (`group, group_list, ``{
-                group_in_work = eval (groups_by_name [group]:$[]);
+                group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[])
                 {
                     y2error("Group %1 doesn't exist!", group);
@@ -1040,7 +1084,7 @@ global define boolean Commit (string object, boolean cache)``{
                 }
             });
             // add user to his default group -- updating only cache variables
-            group_in_work = eval (groups_by_name [defgroup]:$[]);
+            group_in_work = GetGroupByName (defgroup, type);
             if (group_in_work == $[])
             {
                 y2error("Group %1 doesn't exist!", defgroup);
@@ -1056,10 +1100,6 @@ global define boolean Commit (string object, boolean cache)``{
             // modify global shadow map:
             shadow [type] = add(shadow [type]:$[],
                  username, user_in_work["shadow"]:$[]);
-
-            if (type == `ldap)
-                modified_users [type] = add (modified_users[type]:[],
-                    user_in_work);
         }
         else if ( what_user == `edit_user )
         {
@@ -1067,7 +1107,7 @@ global define boolean Commit (string object, boolean cache)``{
                 user_in_work ["modified"] = `edited;
             // check the change of additional group membership
             foreach (`group, group_list, ``{
-                group_in_work = eval (groups_by_name [group]:$[]);
+                group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[]) return;
                 string userlist = group_in_work ["userlist"]:"";
                 list l_userlist = splitstring (userlist, ",");
@@ -1095,7 +1135,7 @@ global define boolean Commit (string object, boolean cache)``{
             // check the removing user from some additional group
             list removed_group_list = user_in_work ["removed_grouplist"]:[];
             foreach (`group, removed_group_list, ``{
-                group_in_work = eval (groups_by_name [group]:$[]);
+                group_in_work = GetGroupByName (group, type);
                 if (group_in_work == $[]) return;
                 string userlist = group_in_work ["userlist"]:"";
                 list l_userlist = splitstring (userlist, ",");
@@ -1113,7 +1153,7 @@ global define boolean Commit (string object, boolean cache)``{
             if ((username != org_username) && (defgroup == org_defgroup))
             {
                 // change the user's name in current default group
-                group_in_work = eval (groups_by_name [defgroup]:$[]);
+                group_in_work = GetGroupByName (defgroup, type);
                 if (group_in_work != $[])
                 {
                     group_in_work ["what"] = `user_change;
@@ -1131,7 +1171,7 @@ global define boolean Commit (string object, boolean cache)``{
             {
                 // note: username could be also changed!
                 // remove the name from original group ...
-                group_in_work = eval (groups_by_name [org_defgroup]:$[]);
+                group_in_work = GetGroupByName (org_defgroup, type);
                 if (group_in_work != $[])
                 {
                     group_in_work ["what"] = `user_change;
@@ -1144,11 +1184,11 @@ global define boolean Commit (string object, boolean cache)``{
                     Commit ("group", cache);
                 }
                 // and add it to the new one;
-                group_in_work = eval (groups_by_name [defgroup]:$[]);
+                group_in_work = GetGroupByName (defgroup, type);
                 if (group_in_work != $[])
                 {
                     group_in_work ["what"] = `user_change;
-                    more_users = group_in_work ["more_users"]:"";
+                    string more_users = group_in_work ["more_users"]:"";
                     if (more_users != "") more_users = more_users + ",";
                     group_in_work ["more_users"] = more_users + username;
                     Commit ("group", cache);
@@ -1161,16 +1201,12 @@ global define boolean Commit (string object, boolean cache)``{
                     shadow [type] = remove (shadow[type]:$[], org_username);
                 shadow [type, username] = user_in_work["shadow"]:$[];
             }
-            if (type == `ldap)
-                modified_users [type] = eval (add (modified_users[type]:[],
-                    user_in_work));
-                // without that eval, there could be changed org_username
         }
         else if ( what_user == `delete_user )
         {
             // check the change of group membership
             foreach (`group, group_list, ``{
-                group_in_work = eval (groups_by_name [group]:$[]);
+                group_in_work = GetGroupByName (group, type);
                 if (group_in_work != $[])
                 {
                     string userlist = group_in_work ["userlist"]:"";
@@ -1186,7 +1222,7 @@ global define boolean Commit (string object, boolean cache)``{
                 }
             });
             // remove user from his default group -- only cache structures
-            group_in_work = eval (groups_by_name [defgroup]:$[]);
+            group_in_work = GetGroupByName (defgroup, type);
             group_in_work ["what"] = `user_change;
             string more_users = group_in_work ["more_users"]:"";
             list l_more_users = splitstring (more_users, ",");
@@ -1199,15 +1235,8 @@ global define boolean Commit (string object, boolean cache)``{
             if (user_in_work["modified"]:`nothing != `added)
             {
                 user_in_work ["modified"] = `deleted;
-                modified_users [type] = add (modified_users [type]:[],
-                    user_in_work);
-            }
-            else //was added and is beeing deleted
-            {
-                if (type == `ldap)
-                    modified_users [type] = filter(`u, modified_users [type]:[],
-                        ``(u ["username"]:"" != username));
-
+                modified_users [type] = add (modified_users [type]:$[],
+                    uid, user_in_work);
             }
             if (type != `ldap)
                 shadow [type] = remove (shadow [type]:$[], org_username);
@@ -1215,7 +1244,10 @@ global define boolean Commit (string object, boolean cache)``{
         else if ( what_user == `group_change)
         {
                 // prevent loading this argument with some unwanted value later
-                user_in_work ["modified"] = `nothing;
+                if (type == `ldap)
+                    user_in_work ["modified"] = `edited;
+                else
+                    user_in_work ["modified"] = `nothing;
         }
         // change the cache variables
         if (cache)
@@ -1238,7 +1270,8 @@ global define boolean Commit (string object, boolean cache)``{
 
             // this has to be done due to multiple changes of username -- ??
             // and what about the home and others??
-            users [type, uid, "org_username"] = username;
+            if (type != `ldap) // for changing ldap username old one is needed
+                users [type, uid, "org_username"] = username;
         }
     }
     else if ( object == "group" )
@@ -1252,11 +1285,13 @@ global define boolean Commit (string object, boolean cache)``{
         string org_groupname = group_in_work ["org_groupname"]:groupname;
         string userlist = group_in_work ["userlist"]:"";
         list l_userlist = splitstring (userlist, ",");
-//y2milestone("group: %1", group_in_work);
+//y2error("group: %1", group_in_work);
 
         if (org_groupname == "")
             org_groupname = groupname;
 
+        if (type == `ldap)
+            ldap_modified = true;
         if ( what_group == `add_group )
         {
             group_in_work ["modified"] = `added;
@@ -1272,10 +1307,10 @@ global define boolean Commit (string object, boolean cache)``{
                 Commit("user", cache);
             });
             // create an entry for global gshadow map:
-            gshadow [type, groupname] = $[
-               "password": password,
-               "disposer": "root", // default??
-               "userlist": ""]; // will be updated at the end
+            gshadow [type] = add (gshadow[type]:$[], groupname, $[
+                "password": password,
+                "disposer": "root", // default??
+                "userlist": ""]); // will be updated at the end
         }
         else if (what_group == `edit_group )
         {
@@ -1362,11 +1397,18 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else if (what_group == `delete_group )
         {
-            // deleted group had no members
-            group_in_work ["modified"] = `deleted;
+            if (group_in_work["modified"]:`nothing != `added)
+            {
+                group_in_work ["modified"] = `deleted;
+                modified_groups [type] = add (modified_groups [type]:$[],
+                    gid, group_in_work);
+            }
             groups [type] = remove (groups [type]:$[], org_gid);
-            groups_by_name = remove (groups_by_name, org_groupname);
-            gshadow [type] = remove (gshadow [type]:$[], org_groupname);
+            groups_by_name [type] = remove (groups_by_name [type]:$[],
+                org_groupname);
+            if (haskey (gshadow [type]:$[], org_groupname))
+                gshadow [type] = remove (gshadow [type]:$[], org_groupname);
+            // deleted group had no members -> no user change
         }
         else if ( what_group == `add_user ) // do not call Commit again
         {
@@ -1382,17 +1424,20 @@ global define boolean Commit (string object, boolean cache)``{
             if (gid != org_gid)
                 groups [ type ] = remove (groups [type]:$[], org_gid);
             groups [ type, gid ] = group_in_work;
+
             // name could have been changed !!
             if (groupname != org_groupname)
-                groups_by_name = remove (groups_by_name, org_groupname);
-            groups_by_name [ groupname ] = group_in_work;
+                groups_by_name [type] = remove (groups_by_name [type]:$[],
+                    org_groupname);
+            groups_by_name [type, groupname] = group_in_work;
 
-            // update userlist in gshadow??
+            // update userlist in gshadow
             if (haskey (gshadow [type]:$[], groupname))
                 gshadow [type, groupname, "userlist"] = userlist;
 
             // this has to be done due to multiple changes of groupname ??
-            groups [type, gid, "org_groupname"] = groupname;
+            if (type != `ldap)
+                groups [type, gid, "org_groupname"] = groupname;
         }
     }
     return true;
@@ -1414,6 +1459,7 @@ global define void ReadSourcesSettings () ``{
     if ( !is_nis_master && is_nis_available )
     {
             available_usersets = add ( available_usersets, `nis);
+            available_groupsets = add ( available_groupsets, `nis);
     }
 
     if ( is_ldap_available )
@@ -1423,6 +1469,7 @@ global define void ReadSourcesSettings () ``{
         is_ldap_server = IsLDAPServer (ldap_host);
 
         available_usersets = add ( available_usersets, `ldap);
+        available_groupsets = add ( available_groupsets, `ldap);
     }
 
     available_usersets = add ( available_usersets, `custom);
@@ -1654,7 +1701,6 @@ global define integer GetDefaultGid(boolean useUI)``{
 	        Report::Error(sformat(_("The default group with the id %1 does not exist.
 Please change the default group in /etc/default/useradd."), def_int ));
 
-
 	    // TODO If group 100/500 does not exists ?
 	    return default_gid;
     }
@@ -1758,6 +1804,9 @@ global define boolean ReadUsersCache(boolean read_prebuilded) ``{
 
 }
 
+/**
+ * Returns the map of users specified by its name
+ */
 global define map GetUserByName ( string name )``{
     map ret = $[];
     integer uid = -1;
@@ -1772,6 +1821,22 @@ global define map GetUserByName ( string name )``{
     return ret;
 }
 
+// gets the first group with this name - what if they are some with same name??
+global define map GetGroupByName (string name, symbol usertype)``{
+    map ret = $[];
+
+    ret = groups_by_name [usertype, name]:$[];
+    if (ret != $[])
+        return ret;
+
+    foreach (`type, `groupmap, groups_by_name, ``{
+        if (ret == $[])
+        {
+            ret = groupmap [name]:$[];
+        }
+    });
+    return ret;
+}
 /**
  * Finds the user specified by uid and set is as current
  * @param uid the user id
@@ -1872,17 +1937,22 @@ global define boolean UsernameExists(string username) ``{
 }
 
 /**
- * Change the current users set, additional reading could be necessary
+ * Read new set of users - "on demand"
  */
-global define void ChangeCurrentUsers(symbol new) ``{
+define void ReadNewSet (symbol type) ``{
 
-
-    if ( new == `custom )
-        current_users = eval (user_custom_sets);
-    else
-        current_users = [ new ];
-
-    if (contains (current_users, `ldap) && ldap_not_read)
+    if (type == `nis)
+    {
+        nis_not_read = false;
+        // first: run preparation script:
+        RunPrepare ("nis");
+        // read NIS users now
+        users [`nis] = ReadNISUsers (tmpdir);
+        users_by_name [`nis] = ReadNISUsersByName (tmpdir);
+        groups [`nis] = ReadNISGroups (tmpdir);
+        groups_by_name [`nis] = ReadNISGroupsByName (tmpdir);
+    }
+    else if (type == `ldap)
     {
         // first: check for required packages:
         if (SCR::Execute(.target.bash, "rpm -q perl-ldap cpu") !=0)
@@ -1904,41 +1974,26 @@ Do you want to install them now?")))
         if (!RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base)))
         {
             // Popup text (required application):
-            UI::WarningPopup(_("There was some problem with connecting to LDAP server."));
+            UI::WarningPopup(_("There was a problem with connecting the LDAP server."));
             return;
         }
-        // read the LDAP users now
+        // read the LDAP users and groups now
         users [`ldap ] = ReadLDAPUsers (tmpdir);
         users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
-        UsersCache::ReadUsers (`ldap, tmpdir);
-        // also groups have to be reloaded
-        CorrectGroups();
-        // correct also possible change in custom itemlist
-        if (new == `custom)
-            UsersCache::ChangeUserCustoms (current_users);
+        groups [`ldap] = ReadLDAPGroups (tmpdir);
+        groups_by_name [`ldap] = ReadLDAPGroupsByName (tmpdir);
     }
-    if (contains (current_users, `nis) && nis_not_read)
-    {
-        nis_not_read = false;
-        // first: run preparation script:
-        RunPrepare ("nis");
-        // read NIS users now
-        users [`nis] = ReadNISUsers (tmpdir);
-        users_by_name [`nis] = ReadNISUsersByName (tmpdir);
-        UsersCache::ReadUsers (`nis, tmpdir);
-        // also groups have to be reloaded
-        CorrectGroups();
-        // correct also possible change in custom itemlist
-        if (new == `custom)
-            UsersCache::ChangeUserCustoms (current_users);
-    }
+    UsersCache::ReadUsers (type, tmpdir);
+    UsersCache::ReadGroups (type, tmpdir);
 
-    UsersCache::current_users = current_users;// via some function?
+    // correct also possible change in custom itemlist
+    if (new == `custom)
+        UsersCache::ChangeUserCustoms (current_users);
 }
 
 /**
  * Update groups's more_users entries, after new read
- */
+ *
 global define void CorrectGroups() ``{
 
     map correction = SCR::Read(.target.ycp, tmpdir + "/group_correct.ycp");
@@ -1960,6 +2015,41 @@ global define void CorrectGroups() ``{
         // also the group's itemlist must be changed
         UsersCache::ChangeGroup (`itemlist, corrected_group);
     });
+}*/
+
+/**
+ * Check local groups for presence of non-local users, which was read now
+ * and correct that users's grouplists
+ */
+global define void CorrectUsers(symbol type) ``{
+
+    list new_users = UsersCache::usernamelists [type]:[];
+
+    /* 2 possible solutions:
+    1. walk through set of new users and call FindGroupsBelongUser -> too slow
+    2. walk through all groups (maybe except "users") and check the correctness
+        of its userlist entry -> bit strange
+    */
+}
+
+/**
+ * Change the current users set, additional reading could be necessary
+ */
+global define void ChangeCurrentUsers(symbol new) ``{
+
+
+    if ( new == `custom )
+        current_users = eval (user_custom_sets);
+    else
+        current_users = [ new ];
+
+    if (contains (current_users, `ldap) && ldap_not_read)
+        ReadNewSet (`ldap);
+
+    if (contains (current_users, `nis) && nis_not_read)
+        ReadNewSet (`nis);
+
+    UsersCache::current_users = current_users;// via some function?
 }
 
 /**
@@ -1971,6 +2061,11 @@ global define void ChangeCurrentGroups(symbol new) ``{
         current_groups = eval (group_custom_sets);
     else
         current_groups = [ new ];
+    if (contains (current_groups, `nis) && nis_not_read)
+        ReadNewSet(`nis);
+    if (contains (current_groups, `ldap) && ldap_not_read)
+        ReadNewSet(`ldap);
+
     UsersCache::current_groups = current_groups;// via some function?
 }
 
@@ -2039,8 +2134,8 @@ global define boolean RunPrepare(string type) ``{
     else if (type == "nis")
     {
         ret = SCR::Execute(.target.bash, sformat(
-        "%1/build_nis_structures.pl %2 %3 %4", Directory::bindir,
-        base_dir, tmpdir, encoding));
+        "%1/build_nis_structures.pl %2 %3", Directory::bindir, tmpdir,
+        encoding));
     }
     else if ( issubstring (type, "ldap") )// ldap has some additional parameters
     {
@@ -2103,8 +2198,13 @@ global define map BuildAdditional (string userlist, string more_users) ``{
 
     SCR::Write(.target.string, tmpdir + "/additional_userlist", userlist);
     SCR::Write(.target.string, tmpdir + "/additional_moreusers", more_users);
-    SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
-        UsersCache::usernamelists);
+    // do not write all usernames for non-local groups
+    if (UsersCache::group_type == `ldap)
+        SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
+            UsersCache::usernamelists[`ldap]:[]);
+    else
+        SCR::Write(.target.ycp, tmpdir + "/additional_usernames",
+            UsersCache::usernamelists);
 
     if (0 != SCR::Execute(.target.bash, sformat(
         "%1/build_additional_users.pl %2", Directory::bindir, tmpdir)))
@@ -2121,7 +2221,7 @@ global define map BuildAdditional (string userlist, string more_users) ``{
  */
 global define boolean StartAgain() ``{
 
-    y2debug ("reload unmodified values from disk...");
+    y2debug ("reloading unmodified values from disk...");
     Read ( nil, false);
     return true;
 }

@@ -72,8 +72,12 @@
     ];
 
     Users::groups_by_name = $[
-        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh,aaa", "type": `local ],
+     `local: $[
+        "users" : $[ "gid": 100, "groupname": "users", "userlist":"", "more_users": "hh,aaa", "type": `local ]
+      ],
+      `system: $[
         "audio" : $[ "gid": 17, "groupname": "audio", "userlist":"aaa,hh", "more_users": "", "type": `local ]
+      ]
     ];
 
     UsersCache::users_itemlists [`local] =

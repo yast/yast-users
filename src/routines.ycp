@@ -43,7 +43,11 @@ global define map ReadGroups(string dir)``{
 
 global define map ReadGroupsByName(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/group_byname.ycp");
+//    return SCR::Read(.target.ycp, dir + "/group_byname.ycp");
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/group_local_byname.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/group_system_byname.ycp")
+    ];
 }
 
 global define map ReadPasswd(string dir)``{
@@ -121,8 +125,8 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             "x",//group["password"]:"",// write x !!
             group["gid"]:max_gid,
             group["userlist"]:"");
-        if (group["modified"]:`nothing != `nothing)
-            modified_list = add (modified_list, group);
+//        if (group["modified"]:`nothing != `nothing)
+//            modified_list = add (modified_list, group);
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`gid, `group, local_groups, ``{
@@ -131,8 +135,8 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
             "x",//group["password"]:"",// write x !!
             group["gid"]:max_gid,
             group["userlist"]:"");
-        if (group["modified"]:`nothing != `nothing)
-            modified_list = add (modified_list, group);
+//        if (group["modified"]:`nothing != `nothing)
+//            modified_list = add (modified_list, group);
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
@@ -149,34 +153,34 @@ global define boolean WriteGroup(string basedir, map system_groups, map local_gr
 /**
  * Writes data to passwd file (probably /etc/passwd)
  */
-global define list WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
+global define map WritePasswd(string basedir, map system_users, map local_users, string plus) ``{
 
     string conf_path = basedir + "/passwd";
-    list modified_list = [];
+    map modified_map = $[];
     list list_to_save = maplist (`uid, `user, system_users, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",//user["password"]:"",// write x !!
-            user["uid"]:max_uid,
+            uid,
             user["gid"]:max_gid,
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
         if (user["modified"]:`nothing != `nothing)
-            modified_list = add (modified_list, user);
+            modified_map = add (modified_map, uid, user);
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`uid, `user, local_users, ``{
         string to_save = sformat("%1:%2:%3:%4:%5:%6:%7",
             user["username"]:"",
             "x",//user["password"]:"",// write x !!
-            user["uid"]:max_uid,
+            uid,
             user["gid"]:max_gid,
             user["fullname"]:"",
             user["home"]:"",
             user["shell"]:"");
         if (user["modified"]:`nothing != `nothing)
-            modified_list = add (modified_list, user);
+            modified_map = add (modified_map, uid, user);
         return to_save;
     }));
     string string_to_save = mergestring (list_to_save, "\n");
@@ -187,7 +191,7 @@ global define list WritePasswd(string basedir, map system_users, map local_users
     y2milestone("Succesfuly written %1: %2", conf_path, ret);
 
     if (ret)
-        return modified_list;
+        return modified_map;
     else
         return nil;
 }

@@ -57,7 +57,7 @@ global define symbol ReadDialog (boolean useUI ) ``{
  * @param useUI boolean use user interface (change progress bar)
  * @return symbol `next if success, else `abort
  */
-global define boolean WriteDialog (boolean useUI ) ``{
+global define symbol WriteDialog (boolean useUI ) ``{
 
     // Set help text
     if ( useUI ) Wizard::RestoreHelp ( WriteDialogHelp () );
@@ -190,6 +190,7 @@ global define symbol UsersDialog() ``{
 
         if ( contains (Users::available_usersets, ret) )
         {
+            UsersCache::PrintDate("before change of set");
             UI::OpenDialog (`opt(`decorated ),
                 // wait popup
                 `Label(_("Reading set of users, one moment please...")));
@@ -202,6 +203,7 @@ global define symbol UsersDialog() ``{
                 UsersCache::customized_usersview = true;
             else
                 UsersCache::customized_usersview = false;
+            UsersCache::PrintDate("after change of set");
 
             ret = `not_next;
         }
@@ -365,7 +367,14 @@ global define symbol GroupsDialog() ``{
             {
                 Users::SelectGroup( selected );
                 UsersCache::group_type = Users::group_in_work["type"]:`local;
-                if (ret == `delete)
+                if (UsersCache::group_type == `nis)
+                {
+                    // error popup
+                    Report::Message (_("If you want to edit or delete NIS group,
+you must do it on server."));
+                    ret = `not_next;
+                }
+                else if (ret == `delete)
                     ret = DeleteGroupPopup();
             }
             else
@@ -419,6 +428,10 @@ Please log off the user first."));
         return `not_next;
     }
 
+    boolean no_home = false;
+    if (UsersCache::user_type == `ldap && !Users::is_ldap_server)
+        no_home = true;
+
     // if the user want to delete a system user
     if ( UsersCache::user_type == `system )
     {
@@ -440,8 +453,9 @@ Please log off the user first."));
                 // question popup. %^1 is username
                 `Left(`Heading(sformat(_("Delete the user %1"), username ))),
                 `VSpacing(0.5),
+                no_home ? `VSpacing (0) :
                 // checkbox
-                `Left(`CheckBox(`id(`delete_home), sformat(_("delete &home directory
+                `Left (`CheckBox(`id(`delete_home), sformat(_("delete &home directory
 %1"), org_home ) )),
                 `VSpacing(1),
                 `HBox(
@@ -453,7 +467,7 @@ Please log off the user first."));
 
         UI::OpenDialog(`opt( `decorated ), contents );
         symbol ret  = UI::UserInput();
-        delete_home = UI::QueryWidget(`id(`delete_home), `Value);
+        delete_home = no_home ? false : UI::QueryWidget(`id(`delete_home), `Value);
 
         UI::CloseDialog();
 
@@ -491,8 +505,11 @@ global define symbol DeleteGroupPopup() ``{
 
     boolean delete = true;
     integer gid = Users::group_in_work["gid"]:-1;
-    //if no user in this group
-    if (Users::group_in_work["userlist"]:"" == "")
+
+
+    // if no user is in this group
+    if (Users::group_in_work["userlist"]:"" == "" &&
+        Users::group_in_work["more_users"]:"" == "")
     {
         //if the group is a system group ask the user ..
         if ( UsersCache::group_type == `system )
