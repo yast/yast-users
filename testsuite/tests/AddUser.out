@@ -46,14 +46,14 @@ Dump	---- current user:
 Dump	 $[]
 Return	true
 Dump	---- current user (empty add):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":"501", "userPassword":"", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "loginShell":"", "plugins":[], "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":"1000", "userPassword":"", "what":"add_user"]
 Return	true
 Dump	---- current user (after rich add):
-Dump	 $["cn":"users", "create_home":true, "encrypted":true, "gidNumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homeDirectory":"/local/home/aaa", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"aaa", "uidNumber":"501", "userPassword":"crypted_qqqqq", "what":"add_user"]
+Dump	 $["cn":"users", "create_home":true, "encrypted":true, "gidNumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homeDirectory":"/local/home/aaa", "loginShell":"", "plugins":[], "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"aaa", "uidNumber":"501", "userPassword":"crypted_qqqqq", "what":"add_user"]
 Return	true
 Dump	==========================================================
 Return	true
 Return	true
 Dump	---- current user (minimal add, used default values):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homeDirectory":"/home/hhh", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hhh", "uidNumber":"502", "userPassword":"", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homeDirectory":"/home/hhh", "loginShell":"", "plugins":[], "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"0", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hhh", "uidNumber":"1000", "userPassword":"", "what":"add_user"]
 Dump	==========================================================

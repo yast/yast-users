@@ -59,6 +59,8 @@
 	string caption	= UsersPluginLDAPAll::Name (config, $[]);
 	string what	= config["what"]:"user";
 
+	list<string> object_class = (list<string>)sort (data["objectClass"]:[]);
+
 
 	// helptext 1/3
 	string help_text = _("<p>
@@ -71,8 +73,7 @@ The list of attributes is given by the value of \"objectClass\"
 (which is currently:
 <br>%1).
 </p>
-"), mergestring (what == "user" ?
-	UsersLDAP::GetUserClass () : UsersLDAP::GetGroupClass (), ",<br>")) +
+"), mergestring (object_class, ",<br>")) +
 
 	// helptext 3/3
 	_("<p>
@@ -98,20 +99,15 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	] :
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
-	  "cn",
-	  UsersLDAP::GetMemberAttribute ()
+	  "cn", Ldap::member_attribute
 	];
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
 	    UsersLDAP::GetUserInternal () : UsersLDAP::GetGroupInternal ();
 
-	list required_attrs = (what == "user") ?
-	    UsersLDAP::GetUserRequiredAttributes () :
-	    UsersLDAP::GetGroupRequiredAttributes ();
-
 	// show only attributes allowed by schema
-	list allowed_attrs= Ldap::GetObjectAttributes (data["objectClass"]:[]);
+	list allowed_attrs= Ldap::GetObjectAttributes (object_class);
 
 	// generate table items from already existing values
         foreach (string attr, any val, data, ``{
@@ -145,7 +141,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// generate table items with empty values
 	// (not set for this user/group yet)
 	// we need to read available attributes from Ldap
-	foreach (string class, data["objectClass"]:[], ``{
+	foreach (string class, object_class, ``{
 	    foreach (string at,(list<string>)Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
 		if (!haskey (data, at) &&
@@ -181,6 +177,8 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// dialog caption
 	Wizard::SetContentsButtons(_("Additional LDAP Settings"),
 	    contents, help_text, Label::BackButton(), Label::NextButton());
+
+	Wizard::HideAbortButton ();
 
 	ret = `next;
         UI::SetFocus (`id(`table));
@@ -219,6 +217,12 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 		if (tmp_data == $[])
 		{
 		    break;
+		}
+		// if this plugin wasn't in default set, we must save its name
+		if (!contains (data["plugins"]:[], "UsersPluginLDAPAll"))
+		{
+		    tmp_data["plugins"] = add (tmp_data["plugins"]:[],
+			"UsersPluginLDAPAll");
 		}
 		// FIXME: use Plugin::Edit/Add or Users::Update?
 		if (data["what"]:"" == "edit_user")

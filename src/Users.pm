@@ -1461,43 +1461,99 @@ sub DeleteGroup {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{GetUserPlugins} = ["function", ["list", "string"], "string"]};
+sub GetUserPlugins {
+
+    if ($_[0] eq "ldap") {
+	return UsersLDAP::GetUserPlugins ();
+    }
+    else {
+    # FIXME where to get list of plugins for local users?
+	return [];
+    }
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{DisableUser} = ["function",
     ["map", "string", "any" ],
     ["map", "string", "any" ]];
 }
 sub DisableUser {
     
-    my $user	= $_[0];
+    my $user		= $_[0];
+    my $type		= $user->{"type"} || "";
+    my $plugins		= GetUserPlugins ($type);
+    my $no_plugin	= 1;
+    
+    if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
+	$plugins	= $user->{"plugins"};
+    }
 
-    my $plugins = UsersPlugins::Apply ("Interface", { "what" => "user"}, $user);
-    if (defined $plugins && ref ($plugins) eq "HASH") {
-	foreach my $plugin (keys %{$plugins}) {
-	    if (contains ($plugins->{$plugin}, "Disable")) {
-	        my $result = UsersPlugins::Apply ("Disable", {
-		    "what"	=> "user",
-		    "plugin"	=> $plugin }, $user);
-		if (defined $result->{$plugin} &&
-		    ref ($result->{$plugin}) eq "HASH") {
-		    $user	= $result->{$plugin};
-		}
-	    }
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins::Apply ("Disable", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, $user);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $user	= $result->{$plugin};
+	    $no_plugin	= 0;
 	}
     }
-    else {
+
+    if ($no_plugin && ($type eq "local" || $type eq "system")) {
 	# no plugins available: local user
 	# TODO not ready? shadowExpire
-	# TODO maybe we have plugin for local user, but without Disable...
-	my $type	= $user->{"type"} || "";
-	if ($type eq "local" || $type eq "system") {
-	    my $pw			= $user->{"userPassword"} || "";
-	    $user->{"userPassword"}	= "!".$pw;
+	my $pw			= $user->{"userPassword"} || "";
+	$user->{"userPassword"}	= "!".$pw;
+    }
 
-	    # FIXME old password should be stored until Enable...!
+    if (!defined $user->{"disabled"} || ! bool ($user->{"disabled"})) {
+	$user->{"disabled"}	= YaST::YCP::Boolean (1);
+    }
+	
+    return $user;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{EnableUser} = ["function",
+    ["map", "string", "any" ],
+    ["map", "string", "any" ]];
+}
+sub EnableUser {
+    
+    my $user		= $_[0];
+    my $type		= $user->{"type"} || "";
+    my $plugins		= GetUserPlugins ($type);
+    my $no_plugin	= 1;
+    
+    if (defined $user->{"plugins"} && ref ($user->{"plugins"}) eq "ARRAY") {
+	$plugins	= $user->{"plugins"};
+    }
+
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins::Apply ("Enable", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, $user);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $user	= $result->{$plugin};
+	    $no_plugin	= 0;
 	}
     }
-    if (!defined $user->{"user_disabled"} ||
-	! $user->{"user_disabled"}->value) {
-	$user->{"user_disabled"}	= YaST::YCP::Boolean (1);
+
+    if ($no_plugin && ($type eq "local" || $type eq "system")) {
+	# no plugins available: local user
+	# FIXME not ready
+	my $pw			= $user->{"userPassword"} || "";
+#	$user->{"userPassword"}	= "!".$pw;
+    }
+
+    if (!defined $user->{"enabled"} || ! bool ($user->{"enabled"})) {
+	$user->{"enabled"}	= YaST::YCP::Boolean (1);
     }
 	
     return $user;
@@ -1594,7 +1650,7 @@ sub EditUser {
 	    }
 	}
 	if ($key eq "create_home" || $key eq "encrypted" ||
-	    $key eq "no_skeleton" || $key eq "user_disabled") {
+	    $key eq "no_skeleton" || $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	    next;
 	}
@@ -1615,10 +1671,15 @@ sub EditUser {
     $user_in_work{"what"}	= "edit_user";
     UsersCache::SetUserType ($type);
     # now handle possible login disabling
-    if (defined $user_in_work{"user_disabled"} &&
-	ref ($user_in_work{"user_disabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"user_disabled"}->value) {
+    if (defined $user_in_work{"disabled"} &&
+	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"disabled"}->value) {
 	DisableUser (\%user_in_work);
+    }
+    if (defined $user_in_work{"enabled"} &&
+	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"enabled"}->value) {
+	EnableUser (\%user_in_work);
     }
     return 1;
 }
@@ -1755,9 +1816,31 @@ sub AddUser {
 	}
     }
 
+    # now call AddBefore function from plugins
+    if (!defined $user_in_work{"plugins"}) {
+	$user_in_work{"plugins"}	= GetUserPlugins ($type);
+    }
+    my $plugins		= $user_in_work{"plugins"};
+    
+    if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
+	$plugins	= $data{"plugins"};
+    }
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins::Apply ("AddBefore", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%data);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %data	= %{$result->{$plugin}};
+	}
+    }
+
+    # now copy the data to map of current user
     foreach my $key (keys %data) {
 	if ($key eq "create_home" || $key eq "encrypted" ||
-	    $key eq "no_skeleton" || $key eq "user_disabled") {
+	    $key eq "no_skeleton" || $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
 	# crypt password only once
@@ -1827,13 +1910,7 @@ sub AddUser {
     }
 
     if ($type eq "ldap") {
-	# add default object classes
-	if (!defined $user_in_work{"objectClass"}) {
-	    my @classes = @{UsersLDAP::GetUserClass()};
-	    $user_in_work{"objectClass"} = \@classes;
-	}
         # add other default values
-# FIXME this must be enabled by LDAP plugins!
 	my %ldap_defaults	= %{UsersLDAP::GetUserDefaults()};
 	foreach my $attr (keys %ldap_defaults) {
 	    if (!defined ($user_in_work{$attr})) {
@@ -1847,11 +1924,29 @@ sub AddUser {
 	    }
 	}
     }
+    # now call Add function from plugins...
+    foreach my $plugin (sort @{$plugins}) {
+	my $result = UsersPlugins::Apply ("Add", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	    "plugins"	=> [ $plugin ]
+	}, \%user_in_work);
+	# check if plugin has done the 'Disable' action
+	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    %user_in_work= %{$result->{$plugin}};
+	}
+    }
     # now handle possible login disabling
-    if (defined $user_in_work{"user_disabled"} &&
-	ref ($user_in_work{"user_disabled"}) eq "YaST::YCP::Boolean" &&
-	$user_in_work{"user_disabled"}->value) {
+    # FIXME should it really be called from Add/Edit functions...?
+    if (defined $user_in_work{"disabled"} &&
+	ref ($user_in_work{"disabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"disabled"}->value) {
 	DisableUser (\%user_in_work);
+    }
+    if (defined $user_in_work{"enabled"} &&
+	ref ($user_in_work{"enabled"}) eq "YaST::YCP::Boolean" &&
+	$user_in_work{"enabled"}->value) {
+	EnableUser (\%user_in_work);
     }
     return 1;
 }
@@ -2887,7 +2982,7 @@ sub CheckUIDUI {
     if (($ui_map{"local"} || 0) != 1) {
 	if ($type eq "system" &&
 	    $uid > UsersCache::GetMinUID ("local") &&
-	    $uid < UsersCache::GetMaxUID ("local"))
+	    $uid < UsersCache::GetMaxUID ("local") + 1)
 	{
 	    $ret{"question_id"}	= "local";
 	    # popup question
@@ -2901,13 +2996,13 @@ Really change type of user to 'local'?"), UsersCache::GetMinUID ("local"));
     if (($ui_map{"system"} || 0) != 1) {
 	if ($type eq "local" &&
 	    $uid > UsersCache::GetMinUID ("system") &&
-	    $uid < UsersCache::GetMaxUID ("system"))
+	    $uid < UsersCache::GetMaxUID ("system") + 1)
 	{
 	    $ret{"question_id"}	= "system";
 	    # popup question
 	    $ret{"question"}	= sprintf (_("The selected user ID is a system ID,
 because the ID is smaller than %i.
-Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system"));
+Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system") + 1);
 	    return \%ret;
 	}
     }
@@ -3541,7 +3636,11 @@ sub CheckUser {
     }
 
     my $error_map	=
-	UsersPlugins::Apply ("Check", { "what" => "user" }, \%user);
+	UsersPlugins::Apply ("Check", {
+	    "what" 	=> "user",
+	    "type"	=> $type,
+	    "modified"	=> $user{"modified"} || ""
+	 }, \%user);
 
     if (ref ($error_map) eq "HASH") {
 	foreach my $plugin (keys %{$error_map}) {
@@ -3585,7 +3684,11 @@ sub CheckGroup {
     }
 
     my $error_map	=
-	UsersPlugins::Apply ("Check", { "what" => "group" }, \%group);
+	UsersPlugins::Apply ("Check", {
+	    "what"	=> "group",
+	    "type"	=> $group{"type"} || "",
+	    "modified"	=> $group{"modified"} || ""
+	}, \%group);
 
     if (ref ($error_map) eq "HASH") {
 	foreach my $plugin (keys %{$error_map}) {
@@ -3699,7 +3802,7 @@ sub CryptPassword {
 	}
 	return _hashPassword ($method, $pw);
     }
-    # FIXME crypt using some perl function...
+    # TODO crypt using some perl function...
     return UsersUI::HashPassword ($method, $pw);
 }
 
@@ -4325,7 +4428,6 @@ sub Export {
 	foreach my $user (values %{$users{"local"}}) {
 	    if ($export_all || defined $user->{"modified"}) {
 		push @exported_users, ExportUser ($user);
-#TODO export only changed values for "edited"
 	    }
 	}
     }

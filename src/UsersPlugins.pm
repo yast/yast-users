@@ -87,17 +87,16 @@ sub Apply {
     y2milestone ("action to call on plugins: $action");
 
     my $type	= "";
-    if (defined $data && ref ($data) eq "HASH" && defined $data->{"type"}) {
-	$type	= $data->{"type"};
-#FIXME 'type' parameter must be part of config hash!
-#(plugins should work even without Users internal parameters)
+    if (defined $config->{"type"}) {
+	$type	= $config->{"type"};
     }
 
     my @plugins_to_call	= @available_plugins;
-    # Apply only for one plugin
-    if (defined $config->{"plugin"}) {
-	@plugins_to_call	= ( $config->{"plugin"} );
-    }	
+
+    # Apply only for selected plugins; if not present, apply for all
+    if (defined $config->{"plugins"} && ref ($config->{"plugins"}) eq "ARRAY") {
+	@plugins_to_call	= @{$config->{"plugins"}};
+    }
 
     foreach my $module (@plugins_to_call) {
 

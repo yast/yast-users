@@ -589,7 +589,7 @@ Please try again."));
 		// FIXME use some checkbox... !
 		if (pw1 == "")
 		{
-		    user["user_disabled"]	= true;
+		    user["disabled"]	= true;
 		}
 
 		if (failed)
@@ -1252,8 +1252,12 @@ define symbol PluginDialog (string what) ``{
 
     // UsersPlugins will filter out plugins we cannot use for given type
     map plugin_clients	= UsersPlugins::Apply ("GUIClient",
-	$[ "what"	: what ],
-	$[ "type"	: object["type"]:""]
+	$[ "what"	: what,
+	   "type"	: object["type"]:""
+//	   "plugins" entry not present => apply for all present plugins
+// (limited only to user type)
+	],
+	$[]
     );
 
     symbol ret			= `not_next;
@@ -1264,10 +1268,16 @@ define symbol PluginDialog (string what) ``{
     }
     else
     {
-	list<string> plugins	= maplist (string plugin, string client,
-	    (map<string,string>) plugin_clients, ``(client));
+	map client2plugin	= $[];
+	list<string> clients	= maplist (string plugin, string client,
+	    (map<string,string>) plugin_clients, ``{
 
-	string plugin	= plugins[0]:"";
+		client2plugin [client]	= plugin;
+		return client;
+	});
+
+	string client		= clients[0]:"";
+	string plugin		= client2plugin[client]:client;
 
 	// dialog caption
 	string caption	= _("Additional User Settings");
@@ -1284,108 +1294,37 @@ extensions of User and Group configuration.</p>") +
 	_("<p>You can start particular plug-in by pushing the <b>Launch</b> button.</p>");
 
 	list items = [];
-	foreach (string plugin, plugins, ``{
-	    /*
-	    any name = WFM::CallFunction (plugin, ["Name"]);
-	    if (!is (name, string))
-		name = plugin;
-	    */
-	    any summary = WFM::CallFunction (plugin,
+	foreach (string cl, clients, ``{
+	    any summary = WFM::CallFunction (cl,
 		["Summary", $[ "what" : what ] ]);
 	    if (is (summary, string))
-//		items = add (items, `item(`id(plugin), name, summary));
-		items = add (items, `item(`id(plugin), summary));
+		items = add (items, `item(`id(cl), summary));
 	});
-	/*
-	term contents = `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()));
-	term plugin_list = `VBox (
-		`Tree (`id(`tree), `opt(`notify),
-		    _("Available Options"), options),
-		`VSpacing (0.5)
-	);
-
-	*/
 	term contents = `VBox(
-	    /*
-	    `Table(`id(`table), `opt(`notify), `header(
-		// table header
-		_("Name"),
-		// table header
-		_("Description")
-		), items
-	    ),
-	    */
 	    `SelectionBox (`id(`table), `opt(`notify),
 	        _("A&vailable Plug-ins:"), items),
 	    `HBox (
 		// pushbutton label
 		`Right (`PushButton(`id(`run), `opt(`key_F4), _("&Launch")))
-	    )
+	    ),
+	    `VSpacing()
 	);
 
 	// dialog caption
 	Wizard::SetContentsButtons(caption, contents, help,
 	    Label::BackButton(), Label::NextButton());
 
-	/*
-	UI::ChangeWidget (`id(`tree), `CurrentItem, plugin);
-	ret = `tree;
-	any really_ret = `tree;
-
-	repeat
-	{
-	    if (ret == `tree)
-	    {
-		plugin	= (string) UI::QueryWidget (`id(`tree),`CurrentItem);
-		any plugin_dialog = WFM::CallFunction (plugin, ["Dialog", $[
-		    "what"	: what,
-		    "data"	: object
-		]]);
-		if (is (plugin_dialog, term))
-		{
-		    UI::ReplaceWidget (`id(`rp_plugin), (term) plugin_dialog);
-		    // now give the control of UserInput to plugin client
-		    ret = WFM::CallFunction (plugin, ["Change", $[
-			"what"	: what,
-			"data"	: object
-		    ]]);
-		    if (is (ret, map))
-		    {
-			// something was changed -> client returns map
-			object	= (map<string,any>) union (object, (map)ret);
-			tmp_object = (map<string,any>) union (tmp_object, (map) ret);
-			ret = `tree;
-		    }
-		    continue; // use ret value from client
-		}
-	    }
-	    if (ret == `abort || ret == `cancel)
-	    {
-		// TODO `abort should be handled inside a plugin
-		// (to not lost unsaved values)
-		if (ReallyAbort() == `abort)
-		    really_ret = `abort;
-		else
-		    ret = `tree;
-		continue;
-	    }
-	    if (ret == `back || ret == `next)
-	    {
-		really_ret = ret;
-		continue;
-	    }
-	    ret = UI::UserInput();
-
-	} until (contains ([`next, `abort, `back], really_ret));
-	*/
-	UI::ChangeWidget (`id(`table),`CurrentItem, plugin);
+	UI::ChangeWidget (`id(`table),`CurrentItem, client);
 	repeat
 	{
 	    ret = (symbol) UI::UserInput();
 	    if (ret == `run || ret == `table)
 	    {
-		plugin	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
-		any plugin_ret = WFM::CallFunction (plugin, ["Dialog", $[
+		client	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
+// FIXME if this plugin wasn't present in default, someone has to call
+// BeforeAdd/BeforeEdit e.g. to get object class!
+		plugin	= client2plugin[client]:client;
+		any plugin_ret = WFM::CallFunction (client, ["Dialog", $[
 		    "what"	: what ], object ]);
 		if (plugin_ret == `next)
 		{
