@@ -17,8 +17,6 @@ import "Wizard";
 import "Users";
 import "Mode";
 include "ui/common_messages.ycp";
-//include "users/nis_routines.ycp";
-
 
     // Help text 1/5
     string help_text = _("<p>
@@ -69,47 +67,58 @@ You can configure these settings by running appropriate modules. Select the modu
             "krb5"  : _("Kerberos")
          ];
 
-        string sources_text = "";
+        string sources_text = "<b>Summary</b>
+<p><i>The sources of user data are:</i><br>";
         foreach (`source, users_sources, ``{
 
-    //        UI::ChangeWidget(`id(passwd_source), `Value, true);
-            /*
-            if (passwd_source == "compat") // what doues this _really_ mean?
-            {
-                UI::ChangeWidget(`id("nis"), `Value, true);
-                UI::ChangeWidget(`id("files"), `Value, true);
-            }
-            */
             sources_text = sources_text + to_string [source]:"" + "<br>";
         });
-        UI::ChangeWidget(`id(`sources), `Value, sources_text);
+//        UI::ChangeWidget(`id(`sources), `Value, sources_text);
 
-        // check for pam settings (/etc/security/pam_unix2.conf)
-        map pam_auth_map = $[];
-        list pam_auth_list = SCR::Read (.pam.all.auth.pam_unix);
-        if (pam_auth_list != [] && pam_auth_list != nil)
-            pam_auth_map = select (pam_auth_list,0,$[]);
+        sources_text = sources_text + "</p>
+<p><i>Users are authenticated using:</i><br>";
 
-        list pam_args = splitstring ( pam_auth_map ["arguments"]:"", " ");
-        string auth_text = "";
+        // this looks to /etc/pam.d/login ...
+        string auth_text = sources_text;
 
-        if ( contains (pam_args, "use_ldap"))
-            auth_text = auth_text + to_string ["ldap"]:"" + "<br>";
-
-        // and this looks to /etc/pam.d/login ...
-        pam_auth_list = SCR::Read (.pam.login);
+        list pam_auth_list = SCR::Read (.pam.login);
         boolean auth_krb = false;
+        boolean auth_unix = false;
         foreach (`line, pam_auth_list, ``{
             if (issubstring (line["module"]:"", "pam_krb5.so") &&
                 line["type"]:"" == "auth")
                 auth_krb = true;
+            if (issubstring (line["module"]:"", "pam_unix") &&
+                line["type"]:"" == "auth")
+                auth_unix = true;
         });
         if (auth_krb)
             auth_text = auth_text + to_string ["krb5"]:"" + "<br>";
 
-        UI::ChangeWidget(`id(`auth), `Value, auth_text);
+        if (auth_unix)
+        {
+            auth_text = auth_text + to_string ["files"]:"" + "<br>";
+
+            // check for pam settings (/etc/security/pam_unix2.conf)
+            map pam_auth_map = $[];
+            pam_auth_list = SCR::Read (.pam.all.auth.pam_unix);
+            if (pam_auth_list != [] && pam_auth_list != nil)
+                pam_auth_map = select (pam_auth_list,0,$[]);
+
+            list pam_args = splitstring ( pam_auth_map ["arguments"]:"", " ");
+
+            if ( contains (pam_args, "use_ldap"))
+                auth_text = auth_text + to_string ["ldap"]:"" + "<br>";
+        }
+
+        auth_text = auth_text + "</p>";
+
+        UI::ChangeWidget(`id(`summary), `Value, auth_text);
+
+//        UI::ChangeWidget(`id(`auth), `Value, auth_text);
     }
 
+    /*
     term contents = `HBox(
         `HSpacing(1),
         `VBox(
@@ -121,11 +130,6 @@ You can configure these settings by running appropriate modules. Select the modu
             `HSpacing(1),
             `VBox(
                 `VSpacing( 0.5 ),
-                /*
-                `CheckBox (`id("nis"), "NIS", false),
-                `CheckBox (`id("ldap"), "LDAP", false),
-                `CheckBox (`id("files"), _("local files"), false),
-                `CheckBox (`id("compat"), _("compat"), false),*/
                 `RichText (`id(`sources), ""),
                 `VSpacing( 0.5 )
                 ),
@@ -155,6 +159,29 @@ You can configure these settings by running appropriate modules. Select the modu
             `item(`id(`conf_ldap), "LDAP"),
             `item(`id(`conf_krb), "Kerberos")]),
         `VSpacing( 1 )
+        )
+    );*/
+    term contents = `HBox(
+        `HSpacing(1),
+        `VBox(
+        `VSpacing( 1 ),
+        `HBox( `HSpacing(6),
+            `HBox(
+            `HSpacing(1),
+            `VBox(
+                `VSpacing( 0.5 ),
+                `RichText (`id(`summary), ""),
+                `VSpacing( 0.5 )
+                ),
+            `HSpacing(1)),
+        `HSpacing (6)),
+        `VSpacing (1),
+        // button label
+        `MenuButton(_("&Configure ..."), [
+            `item(`id(`conf_nis), "NIS"),
+            `item(`id(`conf_ldap), "LDAP"),
+            `item(`id(`conf_krb), "Kerberos")]),
+        `VSpacing (1)
         )
     );
 
