@@ -15,12 +15,24 @@
     import "Wizard";
     import "Mode";
     import "Product";
-//    Mode::cont = true;
-//    Wizard::CreateDialog ();
+    import "Users";
+
     // no user for imap server cd, y2c_imap will create it
     if (Product::imap_server || Product::openteam_server || Product::fwadmin_host)
         return `auto;
 
+    // what to call after inst_auth dialog
+    if (Users::after_auth == `nis)
+        return CallModule ("nis", WFM::Args ());
+
+    else if (Users::after_auth == `nisplus)
+        return CallModule ("nisplus", WFM::Args ());
+
+    else if (Users::after_auth == `ldap)
+        return CallModule ("ldap", WFM::Args ());
+
+
+    // else run the users module
     string start_mod = "user_inst_start";
     term   users_mod = `users( start_mod );
 
@@ -36,16 +48,6 @@
         y2warning( "Couldn't call 'users' module - is it installed?" );
         ret = `auto;
     }
-
-    /* call in user module
-    else if ( ret == `abort )
-    {
-      if ( CallFunction(`inst_confirm_abort(`incomplete) ) )
-      return `abort;
-      else
-      return `again;
-    }
-    */
 
     return ret;
 }
