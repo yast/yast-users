@@ -705,7 +705,8 @@ global define symbol Read (block abort, boolean useUI) ``{
     if( useUI ) Progress::NextStage ();
 
     // check for KDM (needed for autologin)
-    if (SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER) != "kdm")
+    if (SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER) != "kdm" ||
+	!Require::IsAnyPackageInstalled (["kdebase3-kdm"]))
     {
 	autologin_available = false;
 	autologin_used = false;
@@ -1814,6 +1815,10 @@ global define boolean Edit (string what, map data)``{
 		user_in_work["grouplist"] = FindGroupsBelongUser (username,
 		    data["dn"]:"");
 	    }
+	    // empty password entry for autoinstall config (do not want to
+	    // read password from disk: #30573)
+	    if (Mode::config && user_in_work["password"]:nil == "x")
+		user_in_work["password"] = "";
 	}
 	user_in_work["what"] = "edit_user";
 	UsersCache::user_type = type;

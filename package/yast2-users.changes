@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Sep 15 16:18:25 CEST 2003 - jsuchome@suse.cz
+
+- in autoyast config mode, clear password entries for system users (#30573)
+- fixed testsuite
+- 2.8.15
+
+-------------------------------------------------------------------
 Sat Sep 13 19:00:22 CEST 2003 - nashif@suse.de
 
 - Turn off progress during autoinstallation

@@ -16,8 +16,55 @@
 {
 
     include "testsuite.ycp";
+
+    map I_READ = $[
+	"target" : $[
+	    "size" : -1,
+	    "tmpdir" : "/tmp/",
+	    "yast2" : nil,
+	],
+	"sysconfig" : $[
+	    "console" : $[
+		"CONSOLE_FONT" : "",
+		"CONSOLE_SCREENMAP" : "",
+		"CONSOLE_UNICODEMAP" : "",
+		"CONSOLE_MAGIC" : "",
+		"CONSOLE_ENCODING" : "",
+	    ],
+	    "language" : $[
+		"RC_LANG" : "",
+		"DEFAULT_LANGUAGE" : "",
+	    ],
+	],
+	"etc" : $[
+	    "install_inf" : $[
+		"Cmdline" : "",
+		"InstMode" : nil,
+	    ],
+	],
+	"probe" : $[
+	    "architecture" : "i386",
+	    "has_apm" : true,
+	    "has_pcmcia" : false,
+	    "has_smp" : false,
+	    "system" : [],
+	    "memory" : [],
+	    "cpu" : [],
+	    "cdrom" : $[
+		"manual" : [],
+	    ],
+	    "floppy" : $[
+		"manual" : [],
+	    ],
+	],
+    ];
+    map I_WRITE = $[];
+    map I_EXEC = $[];
+    TESTSUITE_INIT ([I_READ, I_WRITE, I_EXEC], 0);
+
     import "Users";
     import "UsersCache";
+
 
     Users::group_in_work = $[
 	"gid":501,
@@ -52,7 +99,7 @@
 
     DUMP ( sformat ("local users:\n %1\n", Users::users [ "local" ]:$[]) );
 
-    TEST(``(Users::Commit ("group", false)), [], 0);
+    TEST(``(Users::Commit ("group", false)), [[],[], []], 0);
 
     DUMP ( sformat ("local groups modified:\n %1",
         Users::groups [ "local" ]:$[]) );
@@ -66,7 +113,7 @@
     DUMP ( sformat ("local group itemlist:\n %1",
         UsersCache::groups_itemlists [ "local" ]:[]) );
 
-    TEST(``(Users::Commit ("group", true)), [], 0);
+    TEST(``(Users::Commit ("group", true)), [[],[],[]], 0);
 
     DUMP ( sformat ("local group itemlist modified:\n %1",
         UsersCache::groups_itemlists [ "local" ]:[]) );

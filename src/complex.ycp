@@ -263,6 +263,7 @@ global define symbol UsersDialog() ``{
         if ( ret == `ldapconf )
         {
 	    // run LDAP client now
+	    // FIXME use CallFunction...
             if (`next == CallModule("ldap", []))
 	    {
 		if (!Users::ldap_not_read && !Users::ldap_modified &&
