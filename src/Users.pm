@@ -4769,6 +4769,12 @@ sub SetWriteOnly {
     $write_only = $_[0];
 }
 
+# return state of $use_gui
+BEGIN { $TYPEINFO{GetGUI} = ["function", "boolean"];}
+sub GetGUI {
+    return $use_gui;
+}
+
 BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
 sub SetGUI {
     my $self	= shift;

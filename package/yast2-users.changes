@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 22 11:01:26 CET 2004 - jsuchome@suse.cz
+
+- do not lose data of first user during installation (#36543)
+- 2.9.20
+
+-------------------------------------------------------------------
 Fri Mar 19 15:32:44 CET 2004 - jsuchome@suse.cz
 
 - plugins: support all current calls (Add/Edit/Write) also for groups
