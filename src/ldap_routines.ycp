@@ -83,6 +83,8 @@ global define boolean WriteLDAPUsers(map ldap_users, boolean server, string dir,
     if (pass != "")
         SCR::Write(.etc.cpu_cfg."bind_pass", pass);
 
+    // save also ldap_host bind_dn, base_dn, user_base etc. !!
+
     string skel = SCR::Read(.etc.cpu_cfg."skel_dir");
     // other values??
 
