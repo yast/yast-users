@@ -120,11 +120,36 @@ global define symbol ReallyAbort() ``{
     else return `back;
 }
 
+
 /**
  * The first of the two main (summary) dialogs -- list of the users.
  * @return symbol for wizard sequencer
  */
 global define symbol UsersDialog() ``{
+
+    /**
+     * Helper function for reading again current user/group lists if necessary
+     * For use inside UsersDialog
+     */
+    global define void re_read_ldap () ``{
+
+	// re-read the list when LDAP are shown
+	if (contains (UsersCache::current_users, "ldap"))
+	{
+	    string set = (size(UsersCache::current_users) == 1)?"ldap":"custom";
+	    Users::ChangeCurrentUsers (set);
+	    UsersCache::user_itemlist = UsersCache::users_itemlists[set]:[];
+	    UI::ChangeWidget(`id(`user_table), `Items,
+		UsersCache::user_itemlist);
+	}
+	// modify the list of groups also!
+	if (contains (UsersCache::current_groups, "ldap"))
+	{
+	    string set = (size(UsersCache::current_groups)== 1)?"ldap":"custom";
+	    Users::ChangeCurrentGroups (set);
+	    UsersCache::group_itemlist = UsersCache::groups_itemlists[set]:[];
+	}
+    }
 
     list expert_list = [
 	    // menubutton label
@@ -284,8 +309,15 @@ global define symbol UsersDialog() ``{
 	    // run LDAP client now
             if (`next == CallModule("ldap", []))
 	    {
-		Users::ReadLDAPSettings();
-		// FIXME: re-read also filters?
+		// yes/no popup
+		if (!Users::ldap_modified && Popup::YesNo (_("Re-read all data from LDAP server?")))
+		{
+		    Users::ldap_not_read = true;
+		    Users::ldap_filters_read = false;
+		    Users::ldap_initialized = false;
+		    Users::ReadLDAPSettings();
+		    re_read_ldap();
+		}
 	    }
             ret = `not_next;
         }
@@ -295,24 +327,7 @@ global define symbol UsersDialog() ``{
 	    if (LDAPSearchFilterPopup())
 	    {
 		Users::ldap_not_read = true;
-		// re-read the list when LDAP are shown
-		if (contains (UsersCache::current_users, "ldap"))
-		{
-		    string set = (size(UsersCache::current_users) == 1) ?
-			"ldap":"custom";
-		    Users::ChangeCurrentUsers (set);
-		    UsersCache::user_itemlist = UsersCache::users_itemlists[set]:[];
-		    UI::ChangeWidget(`id(`user_table), `Items,
-			UsersCache::user_itemlist);
-		}
-		// modify the list of groups also!
-		if (contains (UsersCache::current_groups, "ldap"))
-		{
-		    string set = (size(UsersCache::current_groups) == 1) ?
-			"ldap":"custom";
-		    Users::ChangeCurrentGroups (set);
-		    UsersCache::group_itemlist = UsersCache::groups_itemlists[set]:[];
-		}
+		re_read_ldap ();
 	    }
             ret = `not_next;
 	}
@@ -673,9 +688,6 @@ Remove these users from the group first.
  */
 global define boolean LDAPSearchFilterPopup () ``{
 
-    if (!Users::ldap_filters_read)
-	Users::ReadLDAPFilters();
-
     string default_user_f = Users::ldap_default_user_filter;
     string default_group_f = Users::ldap_default_group_filter;
 
@@ -693,9 +705,9 @@ global define boolean LDAPSearchFilterPopup () ``{
 
     UI::OpenDialog(`opt(`decorated), `HBox(`HSpacing(1.5),
         `VBox(
-            `HSpacing(45),
+            `HSpacing(50),
             `VSpacing(0.5),
-	        `Frame(_("Filter for Searching the LDAP Database"), `HBox(
+	        `Frame(_("Filter for Searching the LDAP Directory"), `HBox(
 		  `HSpacing (0.5),
 		  `VBox(
 		    `VSpacing(0.5),
@@ -712,7 +724,8 @@ global define boolean LDAPSearchFilterPopup () ``{
 	    `HBox(
 		`PushButton(`id(`ok), `opt(`default,`key_F10), Label::OKButton()),
 	        `PushButton(`id(`cancel), `opt(`key_F9), Label::CancelButton()),
-	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton())
+	        `PushButton(`id(`help), `opt(`key_F2), Label::HelpButton()),
+	        `PushButton(`id(`read), `opt(`key_F3), _("From &Server"))
 	    ),
             `VSpacing(0.5)),
         `HSpacing(1.5)
@@ -726,6 +739,16 @@ global define boolean LDAPSearchFilterPopup () ``{
 	if ( button == `help )
         {
 	    Wizard::ShowHelp( help_text );
+	}
+	if ( button == `read )
+	{
+	    if (Users::ReadLDAPFilters())
+	    {
+		UI::ChangeWidget(`id (`userf), `Value,
+		    Users::ldap_default_user_filter);
+		UI::ChangeWidget(`id (`groupf),`Value,
+		    Users::ldap_default_group_filter);
+	    }
 	}
 	if ( button == `ok)
 	{

@@ -219,12 +219,10 @@ global list current_groups = [];
 global boolean is_nis_available = false;
 global boolean is_nis_master = false;
 global boolean is_ldap_available = false;
-global boolean is_ldap_server = false; // TODO currently not used
+global boolean is_ldap_server = false; // currently not used
 // if ldap home directiories are on this machine
 global boolean ldap_file_server = false;
 global string ldap_encryption = "crypt";
-global integer ldap_version = 3;
-global integer ldap_port = 389;
 
 // type of pam kerberos authentication: required/optional/sufficient/""
 global string kerberos_auth = "";
@@ -265,33 +263,38 @@ string plus_group = "";
 string plus_shadow = "";
 string plus_gshadow = "";
 
-// ldap configuration from /etc/openldap/ldap.conf
-global string ldap_host = "";
 global string ldap_user_base = "";
 global string ldap_group_base = "";
-global string ldap_bind_dn = "";
 // default filters (read from Ldap module):
-global string ldap_default_user_filter = "";
-global string ldap_default_group_filter = "";
+global string ldap_default_user_filter = "objectClass=posixAccount";
+global string ldap_default_group_filter = "objectClass=posixGroup";
 // current filters (must be empty on start):
 global string ldap_user_filter = "";
 global string ldap_group_filter = "";
+
+// config maps (stored on LDAP server)
+global map ldap_user_config = $[];
+global map ldap_group_config = $[];
+global map ldap_user_template = $[];
+global map ldap_group_template = $[];
 
 // filters could be read alone
 global boolean ldap_filters_read = false;
 global boolean ldap_initialized = false;
 
-// TODO comment
-map ldap_shadow = $[];
-map ldap_defaults = $[];
-global string ldap_default_groupname = "users";
+// default shadow settings for LDAP users
+global map ldap_shadow = $[];
+// other default settings (home, shell, etc.) for LDAP users
+global map ldap_defaults = $[];
 
-// TODO comment
-global list ldap_user_class = [];
-global list ldap_group_class = [];
-// password to LDAP server
-string ldap_bind_pass = nil;
-global boolean ldap_anonymous = false;
+global string ldap_default_groupname = "users";//TODO strange?
+global string ldap_default_grouplist = "";
+
+// default object classes of LDAP users (read from Ldap module)
+global list ldap_user_class = ["top","posixAccount","shadowAccount",
+    "inetOrgPerson"];
+// default object classes of LDAP groups (read from Ldap module)
+global list ldap_group_class = [ "top", "posixGroup", "groupOfNames"];
 
 string tmpdir = "/tmp"; // do not write to /tmp only!
 
@@ -840,13 +843,13 @@ global define symbol Write (block abort, boolean useUI)``{
 	map error = $[];
 
 	// TODO do not ask again when anonymous was set?
-        if ((ldap_anonymous || ldap_bind_pass == nil) && useUI)
+        if ((Ldap::anonymous || Ldap::bind_pass == nil) && useUI)
 	{
-	    ldap_bind_pass = LDAPAskAndBind();
+	    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
         }
 
         // nil means "canceled"
-        if (ldap_bind_pass != nil)
+        if (Ldap::bind_pass != nil)
         {
 	    // 1st: delete users in modified_users ["ldap"]
 	    do
@@ -860,14 +863,14 @@ global define symbol Write (block abort, boolean useUI)``{
 			Ldap::LDAPErrorMessage ("users", error["msg"]:"");
 			if (error["code"]:0 == 8)
 			{
-			    ldap_bind_pass = LDAPAskAndBind();
+			    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
 			}
 		    }
 		}
 	    }
 	    // when anonymous is set, bind is OK, but writing not
 	    // error LDAP_STRONG_AUTH_REQUIRED is returned after LDAP command
-	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
+	    while (error["code"]:0 == 8 && Ldap::bind_pass!=nil && useUI);
 
             // 2nd: now write all other user modifications (add/edit)
 	    do
@@ -878,11 +881,11 @@ global define symbol Write (block abort, boolean useUI)``{
 		    Ldap::LDAPErrorMessage ("users", error["msg"]:"");
 		    if (error["code"]:0 == 8)
 		    {
-			ldap_bind_pass = LDAPAskAndBind();
+			Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
 		    }
 		}
 	    }
-	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
+	    while (error["code"]:0 == 8 && Ldap::bind_pass!=nil && useUI);
 
             // 3rd: there are deleted groups in modified_groups ["ldap"]
 	    do
@@ -895,12 +898,12 @@ global define symbol Write (block abort, boolean useUI)``{
 			Ldap::LDAPErrorMessage ("users", error["msg"]:"");
 			if (error["code"]:0 == 8)
 			{
-			    ldap_bind_pass = LDAPAskAndBind();
+			    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
 			}
 		    }
 		}
 	    }
-	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
+	    while (error["code"]:0 == 8 && Ldap::bind_pass!=nil && useUI);
 
 	    // 4th: now write all other groups modifications
 	    do
@@ -911,11 +914,11 @@ global define symbol Write (block abort, boolean useUI)``{
 		    Ldap::LDAPErrorMessage ("users", error["msg"]:"");
 		    if (error["code"]:0 == 8)
 		    {
-			ldap_bind_pass = LDAPAskAndBind();
+			Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
 		    }
 		}
 	    }
-	    while (error["code"]:0 == 8 && ldap_bind_pass!=nil && useUI);
+	    while (error["code"]:0 == 8 && Ldap::bind_pass!=nil && useUI);
 	}
     }
 
@@ -1483,7 +1486,8 @@ global define boolean Add (string what, map data)``{
 	// what could be in "data":
 	// - something from saved_user...
 	// - calling Add User->Details->Next
-	// - base values, like username/uid/fullname??? TODO really here?
+	// - base values, like username/uid/fullname???
+	// TODO really here? - check all for cmd-line usage...
         user_in_work = eval (data);
 	// create some default values
 	if (type == nil)
@@ -1507,22 +1511,29 @@ global define boolean Add (string what, map data)``{
 	    Report::Error(_("There is no free UID for this type of user."));
 	    return false;
 	}
-	string username		= data["username"]:""; //TODO: where to check?
+	string username		= data["username"]:"";
 	user_in_work["username"] = username;
 	user_in_work["fullname"] = data["fullname"]:"";
-	user_in_work["home"]	= data["home"]:
-	    (GetDefaultHome (true, type) + username);
-	    //TODO: where to check? FIXME 1st parameter!
 	user_in_work["groupname"] = data["groupname"]:GetDefaultGroupname(type);
 	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
-	user_in_work["gid"]	= data["gid"]:GetDefaultGid (true, type);
+
+	// Do not use default value (["default"]:GetDefault()), bacause it is
+	// evaluated always and warning could be shown when not necessary...
+	user_in_work["home"]	= data["home"]:nil;
+	if (user_in_work ["home"]:nil == nil)
+	    user_in_work ["home"] = GetDefaultHome (true, type) + username;
+
+	user_in_work["gid"]	= data["gid"]:nil;
+	if (user_in_work ["gid"]:nil == nil)
+	    user_in_work ["gid"] = GetDefaultGid (true, type);
+
 	user_in_work["shell"]	= data["shell"]:GetDefaultShell(type);
 	map user_shadow		= data["shadow"]:GetDefaultShadow(type);
 	if (type == "ldap")
 	    user_in_work = union (user_in_work, user_shadow);
 	else
 	    user_in_work["shadow"] = user_shadow;
-	user_in_work["password"] = data["password"]:""; // TODO: how to enter/check?
+	user_in_work["password"] = data["password"]:"";
 	user_in_work["create_home"] = data["create_home"]:true;
 	user_in_work["what"] = "add_user";
     }
@@ -1578,7 +1589,7 @@ global define boolean Edit (string what, map data)``{
 	    if (type == "ldap")
 	    {
 		// convert values with wrong type to string
-// 		user_in_work = CorrectLDAPValues(data);TODO not needed any more?
+//		user_in_work = CorrectLDAPValues(data);TODO not needed any more?
 		data = eval (user_in_work);
 	    }
 	    // local users have to load shadow settings from global map
@@ -1656,6 +1667,7 @@ global define boolean UserReallyModified () ``{
 		user_in_work["org_user",key]:"", value);
 	}
     });
+    // FIXME Ldap users are saved although not really modified!
     return ret;
 }
 /**
@@ -1683,7 +1695,8 @@ global define boolean Commit (string object, boolean cache)``{
 
 //y2warning ("user: %1", user_in_work);
         if ((type == "local" || type == "system") &&
-            !users_modified && UserReallyModified()) users_modified = true;
+            !users_modified && UserReallyModified())
+	    users_modified = true;
         if (type == "ldap" && !ldap_modified && UserReallyModified())
             ldap_modified = true;
 
@@ -2615,8 +2628,6 @@ global define map GetGroupByName (string name, string usertype)``{
         }
     });
     return ret;
-
-    // FIXME: what if there are groups with same name and id ?? (local & ldap)
 }
 
 /**
@@ -2780,13 +2791,15 @@ Install it now?"),
 "<b>yast2-ldap-client</b>")))
                 return false;
 
+
 	// read all needed LDAP settings now:
 	ReadLDAPSettings ();
 	string ldap_mesg = "";
 
+	/* TODO not necessary?
 	if (!ldap_initialized)
 	{
-	    ldap_mesg = LDAPInit ();
+	    ldap_mesg = Ldap::LDAPInit ();
 	    if ( ldap_mesg != "")
 	    {
 		Ldap::LDAPErrorMessage("init", ldap_mesg);
@@ -2795,12 +2808,13 @@ Install it now?"),
 	    ldap_initialized = true;
 	}
 
-        if (ldap_bind_pass == nil && !ldap_anonymous)
+        if (Ldap::bind_pass == nil && !Ldap::anonymous)
 	{
-	    ldap_bind_pass = LDAPAskAndBind();
+	    Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
         }
-        if (ldap_bind_pass == nil)
+        if (Ldap::bind_pass == nil)
 	    return false;
+	*/
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
@@ -3013,9 +3027,10 @@ global define string GetDefaultGrouplist (string type) ``{
     // check for existence of groups !!
     if (type == "local")
         return "dialout,uucp,video,audio";
+    else if (type == "ldap")
+	return ldap_default_grouplist;
     else
         return "";
-    // TODO defaults for another types? (ldap)
 }
 
 /**

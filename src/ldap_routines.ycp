@@ -7,12 +7,13 @@
  * $Id$
  *
  * Important! It is supposed that this file is included from Users.ycp,
- * some variables are used from here...
+ * some variables are used from here... (every ldap_*)
  */
 
 {
 
 import "Label";
+import "Users";
 
 textdomain "users";
 
@@ -53,26 +54,76 @@ global define map ReadLDAPGroupsByName()``{
 }
 
 /**
- * Read user and group filter for LDAP search
- * (must be done before selecting LDAP users/groups to load)
+ * Initializes LDAP connection and reads users and groups configuration
  */
-global define void ReadLDAPFilters() ``{
-
-// TODO - read config maps with some ReadConfig,ReadTemplate...
-// FIXME: read filters from server on demand...
+global define boolean InitializeLDAP () ``{
 
     import "Ldap";
     Ldap::Read();
-    /*
-    map ldap_config_modules = Ldap::ReadConfigModules ();
-    map ldap_templates = Ldap::ReadTemplates ();
-    */
 
-    // not configurable, default until change in Ldap module
-    ldap_default_user_filter	= "objectClass=posixAccount";//TODO: check maps
-    ldap_default_group_filter	= "objectClass=posixGroup";
+    string ldap_mesg = Ldap::LDAPInit ();
+    if ( ldap_mesg != "")
+    {
+	Ldap::LDAPErrorMessage("init", ldap_mesg);
+	return false;
+    }
+    if (Ldap::bind_pass == nil && !Ldap::anonymous)
+    {
+	Ldap::bind_pass = Ldap::LDAPAskAndBind(true);
+    }
+    if (Ldap::bind_pass == nil)
+	return false; //canceled
+
+    Ldap::InitSchema ();
+
+    foreach (`dn, `config_module, Ldap::ReadConfigModules (), ``{
+	if (contains (config_module["objectClass"]:[], "userConfiguration"))
+	    Users::ldap_user_config = config_module;
+	if (contains (config_module["objectClass"]:[], "groupConfiguration"))
+	    Users::ldap_group_config = config_module;
+    });
+
+    foreach (`dn, `template, Ldap::ReadTemplates (), ``{
+	if (contains (template["objectClass"]:[], "userTemplate"))
+	    Users::ldap_user_template = template;
+	if (contains (template["objectClass"]:[], "groupTemplate"))
+	    Users::ldap_group_template = template;
+    });
+    ldap_initialized = true;
+    return true;
+}
+
+
+/**
+ * Read user and group filter needed LDAP search
+ * Fiters are read from config modules stored in LDAP directory
+ */
+global define boolean ReadLDAPFilters() ``{
+
+    boolean init = true;
+
+    if (!ldap_initialized)
+	init = InitializeLDAP();
+
+    if (!init)
+	return false;
+    // get the default filters from config modules (already read)
+    ldap_default_user_filter	=
+	ldap_user_config["searchFilter",0]:ldap_default_user_filter;
+    ldap_default_group_filter	=
+	ldap_group_config["searchFilter",0]:ldap_default_group_filter;
 
     ldap_filters_read = true;
+    return true;
+}
+
+/**
+ * Get first value from dn (it is assumed to be "cn")
+ */
+global define string get_first (string dn) ``{
+
+    list dn_list = splitstring (dn, ",");
+    return substring (dn_list[0]:"", find (dn_list[0]:"", "=")+1);
 }
 
 /**
@@ -83,74 +134,66 @@ global define void ReadLDAPSettings () ``{
     if (!ldap_filters_read)
 	ReadLDAPFilters();
 
-// TODO - read config maps with some ReadConfig,ReadTemplate...
-    ldap_user_base	= Ldap::user_base;
-    ldap_group_base	= Ldap::group_base;
-    ldap_host		= Ldap::GetFirstServer (Ldap::server);
-    is_ldap_server	= IsLDAPServer (ldap_host);
+    // currently not used for anything
+    is_ldap_server	= IsLDAPServer (Ldap::GetFirstServer (Ldap::server));
+
     ldap_file_server	= Ldap::file_server;
-    ldap_version	= Ldap::ldap_v2 ? 2 : 3;
-    ldap_encryption	= Ldap::pam_password;//FIXME only crypt works?
-    ldap_bind_dn	= Ldap::bind_dn;
-    ldap_user_class	= ["top", "posixAccount", "inetOrgPerson" ];
-    ldap_group_class	= [ "top", "posixGroup" ]; //TODO check maps from LDAP
-    ldap_shadow		= $[];// FIXME Ldap::GetDefaultShadow();
-    ldap_defaults	= $[ "skel": default_skel,
-			     "home": "/local/home/",
-			     "group": "100",
-			     "shell":  default_shell ];//Ldap::GetUserDefaults
-    ldap_default_groupname = "users";//FIXME ReadDefaultGroup?
-    ldap_port		= Ldap::GetFirstPort (Ldap::server);
-}
 
-global define string LDAPError () ``{
+    map user_config	= Users::ldap_user_config;
+    map user_template	= Users::ldap_user_template;
+    map group_config	= Users::ldap_group_config;
+    map group_template	= Users::ldap_group_template;
 
-    map err_map = LDAPErrorMap ();
-    return err_map["msg"]:"";
-}
+    // every time take the first value from the list...
+    ldap_user_base	= user_config ["defaultBase",0]:Ldap::nss_base_passwd;
+    if (ldap_user_base == "")
+	ldap_user_base = Ldap::GetDomain();
+    ldap_encryption	= user_config ["passwordHash",0]:Ldap::pam_password;
+    ldap_user_class	= user_template ["defaultObjectClass"]:ldap_user_class;
 
-global define map LDAPErrorMap () ``{
+    ldap_group_base	= group_config ["defaultBase",0]:Ldap::nss_base_group;
+    if (ldap_group_base == "")
+	ldap_group_base = ldap_user_base;
+    ldap_group_class	= group_template["defaultObjectClass"]:ldap_group_class;
 
-    return SCR::Read(.ldap.error);
-}
-
-
-/**
- * Initializes the LDAP settings
- * @return error message or empty string on success
- */
-global define string LDAPInit () ``{
-
-    string ret = "";
-    map ldap = $[
-	"hostname":	ldap_host,
-	"port":		ldap_port,
-	"version":	ldap_version
+    map user_defaults = listmap (`value, user_template["defaultValue"]:[], ``{
+	list line = splitstring (value, "=");
+	return [line[0]:"", line[1]:""];
+    });
+    // default shadow (for new users)
+    ldap_shadow		= $[
+	"shadowWarning"		: user_defaults ["shadowWarning"]:"",
+	"shadowInactive"	: user_defaults ["shadowInactive"]:"",
+	"shadowExpire"		: user_defaults ["shadowExpire"]:"0",
+	"shadowMin"		: user_defaults ["shadowMin"]:"",
+	"shadowMax"		: user_defaults ["shadowMax"]:"",
     ];
-    if (!SCR::Execute (.ldap, ldap))
-	ret = LDAPError();
-    return ret;
-}
+    // other defaults (for new users)
+    ldap_defaults	= $[
+	"skel": user_config ["skelDir",0]:Users::default_skel,
+	"home": user_defaults ["homeDirectory"]:Users::GetDefaultHome(false,"local"),
+	"group": user_defaults["gidNumber"]:Users::GetDefaultGid(false,"local"),
+	"shell": user_defaults["loginShell"]:Users::GetDefaultShell("local"),
+    ];
 
-// TODO: use Ldap:: functions?
+    // TODO password length -> PE dialog has to be marked "local/system only"
+    // *UniqueId
 
-/**
- * Tries to bind to LDAP server with current password
- * @param pass password
- * @return error message or empty string on success
- */
-global define string LDAPBind (string pass) ``{
+    // set default secondary groups
+    // FIXME there are DN's, but we expect only names...
+    string grouplist = Users::ldap_default_grouplist;
+    foreach (`dn, user_template ["secondaryGroup"]:[], ``{
+	if (grouplist != "")
+	    grouplist = grouplist + ",";
+	grouplist = grouplist + get_first (dn);
+    });
+    Users::ldap_default_grouplist = grouplist;
 
-    string ret = "";
-    if (pass != nil)
-    {
-	map args = $[];
-	if (!ldap_anonymous)
-	    args = $[ "bind_dn": ldap_bind_dn, "bind_pw": pass];
-	if (!SCR::Execute (.ldap.bind, args))
-	    ret = LDAPError();
-    }
-    return ret;
+    ldap_default_groupname = "users";
+    //FIXME ReadDefaultGroup - use ldap_defaults [gidNumber...
+
+    //FIXME only crypt works?
+    ldap_encryption	= user_config ["passwordHash",0]:Ldap::pam_password;
 }
 
 
@@ -166,89 +209,24 @@ global define string ReadLDAP () ``{
     string group_filter = (ldap_group_filter != "") ?
 	    ldap_group_filter: ldap_default_group_filter;
 
-    // TODO where to get attributes?
-    list ldap_user_attrs = [
-	// posixaccount
-	"uid", "uidNumber", "gidNumber", "homeDirectory",
-	"loginShell", "cn",
-	// inetorgperson:
-	 "mail", "sn", "givenName", "gecos",
-	 "homePhone", "telephoneNumber", "roomNumber",
-	 // shadowaccount
-	"shadowLastChange", "shadowWarning", "shadowInactive",
-	"shadowExpire", "shadowMin", "shadowMax"];
-    list ldap_group_attrs = [ "cn", "gidNumber", "memberUid" ];
+    list ldap_user_attrs = []; // TODO use allowed/required attrs from config?
+    // if yes, objectClass must be in required!
+    list ldap_group_attrs = [];
 
     if (!SCR::Execute (.ldap.users.search, $[
 	"user_base"	: ldap_user_base,
 	"group_base"	: ldap_group_base,
 	"user_filter"	: user_filter,
 	"group_filter"	: group_filter,
-	"user_scope"	: 2,// TODO Ldap::user_scope,
-	"group_scope"	: 2, //Ldap::group_scope,
+	"user_scope"	: 2,//sub
+	"group_scope"	: 2,
 	"user_attrs"	: ldap_user_attrs,
 	"group_attrs"	: ldap_group_attrs,
 	"itemlists"	: true
 	 ]))
-	ret = LDAPError();
+	ret = Ldap::LDAPError();
 
     return ret;
-}
-
-
-/**
- * Gets the bind password to LDAP database
- * @return password
- */
-global define string GetLDAPPassword() ``{
-
-    UI::OpenDialog (`opt(`decorated),
-        `VBox(
-            `HSpacing(40),
-            // password entering label
-            `Password(`id(`pw), _("&Enter the Password for LDAP Server:")),
-            `HBox(
-              `PushButton (`id(`ok),`opt(`key_F10, `default),
-		Label::OKButton()),
-              // button label
-	      `PushButton (`id(`anon), `opt(`key_F6), _("&Anonymous Access")),
-              `PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
-            )
-        )
-    );
-    UI::SetFocus (`id(`pw));
-    any ret = UI::UserInput();
-    string pw = "";
-    if (ret == `ok)
-    {
-        pw = UI::QueryWidget(`id(`pw), `Value);
-	ldap_anonymous = false;
-    }
-    else if (ret == `cancel)
-        pw = nil;
-    else ldap_anonymous = true;
-    UI::CloseDialog();
-    return pw;
-}
-
-/**
- * Asks for LDAP password and tries to bind with it
- * @return password entered, nil on cancel
- */
-global define string LDAPAskAndBind () ``{
-
-    string pw = GetLDAPPassword();
-    if (pw != nil)
-    {
-	string ldap_msg = LDAPBind(pw);
-	while (pw != nil && ldap_msg != "")
-	{
-	    Ldap::LDAPErrorMessage ("bind", ldap_msg);
-	    pw = GetLDAPPassword();
-	    ldap_msg = LDAPBind(pw);
-	}
-    }
-    return pw;
 }
 
 global define map ConvertUserToLDAP (map user) ``{
@@ -343,7 +321,7 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
         if (action == "added")
         {
 	    if (! SCR::Write (.ldap.add, arg_map, user))
-		ret = LDAPErrorMap();
+		ret = Ldap::LDAPErrorMap();
             // on server, we can modify homes
             else if (server)
             {
@@ -355,7 +333,7 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
         else if (action == "deleted")
         {
 	    if (! SCR::Write (.ldap.delete, arg_map))
-		ret = LDAPErrorMap();
+		ret = Ldap::LDAPErrorMap();
             else if (server && delete_home)
             {
                 DeleteHome (home);
@@ -363,14 +341,12 @@ global define map WriteLDAPUsers(map ldap_users, boolean server) ``{
         }
         else if (action == "edited")
         {
-	    if (dn != new_dn)
-{
-y2internal ("dn: %1, new_dn: %2", dn, new_dn);
+	    // DN doesn't differ in case
+	    if (tolower (dn) != tolower (new_dn))
 		arg_map = add (arg_map, "rdn", rdn);
-		// TODO enable moving in tree (editing the rest of dn)
-}
+		// TODO enable moving in tree (editing the whole dn)
 	    if (! SCR::Write (.ldap.modify, arg_map, user))
-		ret = LDAPErrorMap();
+		ret = Ldap::LDAPErrorMap();
             else if (server && home != org_home)
             {
 		if (create_home)
@@ -412,19 +388,19 @@ global define map WriteLDAPGroups(map ldap_groups)``{
         if (action == "added")
         {
 	    if (! SCR::Write (.ldap.add, arg_map, group))
-		ret = LDAPError();
+		ret = Ldap::LDAPErrorMap();
         }
         else if (action == "deleted")
         {
 	    if (! SCR::Write (.ldap.delete, arg_map))
-		ret = LDAPError();
+		ret = Ldap::LDAPErrorMap();
         }
         else if (action == "edited")
         {
-	    if (dn != new_dn)
+	    if (tolower (dn) != tolower (new_dn))
 		arg_map = add (arg_map, "rdn", rdn);
 	    if (! SCR::Write (.ldap.modify, arg_map, group))
-		ret = LDAPError();
+		ret = Ldap::LDAPErrorMap();
         }
     });
     return ret;
