@@ -111,7 +111,8 @@
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "IO_SCHEDULER"		: "",
 		    "UI_MODE"			: "simple",
-		    "EVMS_CONFIG"		: "no"
+		    "EVMS_CONFIG"		: "no",
+		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
 		]
 	],
     ];
