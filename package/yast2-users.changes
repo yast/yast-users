@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Dec  7 15:53:36 CET 2004 - jsuchome@suse.cz
+
+- fixed helptext: group password is necessary for non-members (#48997)
+
+-------------------------------------------------------------------
 Wed Nov 24 09:47:52 CET 2004 - jsuchome@suse.cz
 
 - use UMASK from /etc/login.defs when creating new directories (#48372)

@@ -306,7 +306,7 @@ warns you if you try to use an already set one.
 	// help text 4/6
 		_("<p>
 <b>Enter a Password:</b>
-To require the members of the group to identify themselves while
+To require the non-members of the group to identify themselves while
 switching to this new group (see man page of <tt>newgrp</tt>), assign a
 password to this group. For security reasons, this password is not shown
 here. This entry is not required.
