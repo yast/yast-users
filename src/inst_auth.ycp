@@ -14,6 +14,7 @@
     import "Wizard";
     import "Users";
     import "Lan";
+    import "Internet";
 
     list lan_devices = Lan::GetDevices("all");
     y2debug ("lan devices: %1", lan_devices);
@@ -21,6 +22,13 @@
     // check if lan is configured
     if (size (lan_devices) == 0)
     {
+	    Users::after_auth = `users;
+	    return `auto;
+    }
+    Internet::Fastest();
+    if (issubstring (Internet::device, "dsl"))
+    {
+        y2debug ("only DSL is present...");
 	    Users::after_auth = `users;
 	    return `auto;
     }
