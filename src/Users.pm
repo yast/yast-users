@@ -765,8 +765,10 @@ BEGIN { $TYPEINFO{GetUserByName} = [ "function",
 sub GetUserByName {
 
     my $username	= $_[0];
-#    if (issubstring (name, "=")) #TODO LDAP
-#	name = get_first (name);
+    if ($username =~ m/=/) {
+	$username = UsersCache::get_first ($username);
+# TODO maybe we should have users_by_dn set!
+    }
 
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
@@ -1084,7 +1086,6 @@ sub ReadNewSet {
 BEGIN { $TYPEINFO{ReadLocal} = ["function", "string"]; }
 sub ReadLocal {
 
-    y2warning ("ReadLocal start");
     my %configuration = (
 	"max_system_uid"	=> UsersCache::GetMaxUID ("system"),
 	"max_system_gid"	=> UsersCache::GetMaxGID ("system"),
@@ -1109,7 +1110,6 @@ sub ReadLocal {
     $plus_passwd	= SCR::Read (".passwd.passwd.plusline");
     $plus_shadow	= SCR::Read (".passwd.shadow.plusline");
     $plus_group		= SCR::Read (".passwd.group.plusline");
-    y2warning ("ReadLocal finish");
     return "";
 }
 
@@ -1188,7 +1188,7 @@ sub Read {
     $error_msg = CheckHomeMounted();
 
     if ($use_gui && $error_msg ne "" && !Popup::YesNo ($error_msg)) {
-	return 0;
+	return 0; # problem with home directory: do not continue
     }
 
     # default system settings
@@ -1224,7 +1224,7 @@ sub Read {
     $error_msg = ReadLocal ();
     if ($error_msg) {
 	Report::Error ($error_msg);
-	return 0;
+	return 0; # problem with reading config files ( /etc/passwd etc.)
     }
 
     # Build the cache structures
@@ -1552,6 +1552,18 @@ sub EditGroup {
 	    my %removed = ();
 	    foreach my $user (keys %{$group_in_work{"userlist"}}) {
 		if (!defined $data{"userlist"}{$user}) {
+		    $removed{$user} = 1;
+		}
+	    }
+	    if (%removed) {
+		$group_in_work{"removed_userlist"} = \%removed;
+	    }
+	}
+	# same, but for LDAP groups
+	if ($key eq "uniqueMember" && defined $group_in_work{"uniqueMember"}) {
+	    my %removed = ();
+	    foreach my $user (keys %{$group_in_work{"uniqueMember"}}) {
+		if (!defined $data{"uniqueMember"}{$user}) {
 		    $removed{$user} = 1;
 		}
 	    }
@@ -1887,7 +1899,6 @@ sub CommitUser {
 
 	if ($type eq "ldap") {
 	    %user = %{UsersLDAP::SubstituteValues ("user", \%user)};
-	    # FIXME where else to call this?
 	}
 
         # update the affected groups
@@ -2105,8 +2116,11 @@ sub CommitGroup {
     if ($type eq "system" || $type eq "local") {
 	$groups_modified = 1;
     }
-    elsif ($type eq "ldap" && $what_group ne "") {
+    if ($type eq "ldap" && $what_group ne "") {
 	$ldap_modified	= 1;
+	if (defined $group{"uniqueMember"}) {
+	    %userlist	= %{$group{"uniqueMember"}};
+	}
     }
 
     # 1. specific action
@@ -2154,7 +2168,7 @@ sub CommitGroup {
         foreach my $user (keys %{$group{"removed_userlist"}}) {
             %user_in_work = %{GetUserByName ($user, "")};
             if (%user_in_work) {
-                if (!defined $user_in_work{"grouplist"}{$org_groupname}) {
+                if (defined $user_in_work{"grouplist"}{$org_groupname}) {
 		    delete $user_in_work{"grouplist"}{$org_groupname};
                     $user_in_work{"what"}	= "group_change";
                     CommitUser ();
@@ -2946,7 +2960,7 @@ sub CheckLDAPAttributes {
     foreach my $req (UsersLDAP::GetUserRequiredAttributes ()) {
 
 	my $a = $ldap2yast_user_attrs{$req} || $req;
-	if (!defined $user->{$a}) {
+	if (!defined $user->{$a} || $user->{$a} eq "") {
 	    return sprintf (_("The attribute '%s' is required for this object according
 to its LDAP configuration, but it is currently empty."), $req);
 	}
@@ -3235,6 +3249,53 @@ sub SetEncryptionMethod {
     }
 }
 
+# code provided by Ralf Haferkamp
+sub _hashPassword {
+
+    use MIME::Base64 qw(encode_base64); #FIXME to requires...
+    use Digest::MD5;
+    use Digest::SHA1 qw(sha1);
+
+    my ($mech, $password) = @_;
+    if ($mech  eq "crypt" ) {
+        my $salt =  pack("C2",(int(rand 26)+65),(int(rand 26)+65));
+        $password = crypt $password,$salt;
+	$password = "{crypt}".$password;
+    }
+    elsif ($mech eq "md5") {
+        my $ctx = new Digest::MD5();
+        $ctx->add($password);
+        $password = "{md5}".encode_base64($ctx->digest, "");
+    }
+    elsif ($mech eq "smd5") {
+        my $salt =  pack("C5",(int(rand 26)+65),
+                              (int(rand 26)+65),
+                              (int(rand 26)+65),
+                              (int(rand 26)+65), 
+                              (int(rand 26)+65)
+                        );
+        my $ctx = new Digest::MD5();
+        $ctx->add($password);
+        $ctx->add($salt);
+        $password = "{smd5}".encode_base64($ctx->digest.$salt, "");
+    }
+    elsif( $mech eq "sha") {
+        $password = sha1($password);
+        $password = "{sha}".encode_base64($password, "");
+    }
+    elsif( $mech eq "ssha") {
+        my $salt =  pack("C5", (int(rand 26)+65),
+                               (int(rand 26)+65),
+                               (int(rand 26)+65),
+                               (int(rand 26)+65), 
+                               (int(rand 26)+65)
+                        );
+        $password = sha1($password.$salt);
+        $password = "{ssha}".encode_base64($password.$salt, "");
+    }
+    return $password;
+}
+
 ##------------------------------------
 BEGIN { $TYPEINFO{CryptPassword} = ["function",
     "string",
@@ -3243,36 +3304,22 @@ sub CryptPassword {
 
     my $pw	= $_[0];
     my $type	= $_[1];
-    my $method	= uc ($encryption_method);
+    my $method	= lc ($encryption_method);
     
     if (!defined $pw || $pw eq "") {
 	return $pw;
     }
 
     if ($type eq "ldap") {
-	$method = uc (UsersLDAP::GetEncryption ());
-	if ($method eq "CLEAR") {
+	$method = lc (UsersLDAP::GetEncryption ());
+	if ($method eq "clear") {
 	    return $pw;
 	}
-	if ((contains (["MD5", "SMD5", "SHA", "SSHA"], $method)) &&
-	    (SCR::Read (".target.size", "/usr/sbin/slappasswd") != -1)) {
-
-	    my $in	= $tmpdir."/pwin";
-	    my $out 	= $tmpdir."/pwout";
-	    SCR::Write (".target.string", $in, $pw);
-	    SCR::Execute (".target.bash", "/bin/chmod 400 $in");
-	    SCR::Execute (".target.bash",
-		"/usr/sbin/slappasswd -h {$method} -T $in > $out");
-	    my $crypted = SCR::Read (".target.string", $out);
-	    SCR::Execute (".target.remove", $in);
-	    SCR::Execute (".target.remove", $out);
-	    chomp $crypted;
-	    return $crypted;
-	}
+	return _hashPassword ($method, $pw);
     }
     my %out = ();
     # FIXME do not use openssl
-    if ($method eq "MD5" ) {
+    if ($method eq "md5" ) {
 	%out = %{SCR::Execute (".target.bash_output", "/usr/bin/openssl passwd -1 $pw")};
     }
 #    elsif ($method eq "BLOWFISH" ) { TODO
