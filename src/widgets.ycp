@@ -1492,7 +1492,7 @@ define any AdvancedButtonsHandler (string widget_id, map event) ``{
     return ev_id;
 }
 
-map widgets = $[
+map <string, map <string, any> > widgets = $[
     "rb_users_groups" : $[
         "widget"		: `custom,
 	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox (

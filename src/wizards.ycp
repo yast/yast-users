@@ -66,18 +66,20 @@ define symbol SummaryDialog() ``{
 	"advanced_buttons"
     );
 
-    any ret = CWM::ShowAndRun (
-	["rb_users_groups", "table", "advanced_buttons" ],
-	widgets,
-	contents,
+    any ret = CWM::ShowAndRun ($[
+	"widget_names"	: ["rb_users_groups", "table", "advanced_buttons" ],
+	"widget_descr"	: widgets,
+	"contents"	: contents,
 	// dialog caption
-	_("User and Group Administration"),
-	Label::BackButton (),
-	Mode::cont ? Label::NextButton() : Label::FinishButton (),
-	$[
+	"caption"	: _("User and Group Administration"),
+	"back_button"	: Label::BackButton (),
+	"next_button"	: Mode::cont ?
+	    Label::NextButton() : Label::FinishButton (),
+	"fallback_functions"	: $[
 	    `back: ReallyBack
-	]
-    );
+	],
+    ]);
+
     if (ret != nil &&
 	is (ret,symbol) && contains ([`new, `edit, `delete], (symbol) ret))
     {
