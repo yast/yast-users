@@ -13,7 +13,7 @@ include_DATA =			\
 
 clients_DATA = 			\
 	users.ycp
-	#users_write.ycp
+#	users_write.ycp
 
 menu_DATA = menuentry_users.ycp	\
 	menuentry_groups.ycp	\
