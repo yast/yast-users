@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep 19 15:42:18 CEST 2003 - jsuchome@suse.cz
+
+- fixed: non-ISO-1 chars in fullname not shown (#31405)
+- fixed testsuite
+- 2.8.19
+
+-------------------------------------------------------------------
 Thu Sep 18 22:58:39 CEST 2003 - nashif@suse.de
 
 - fixed testsuite
