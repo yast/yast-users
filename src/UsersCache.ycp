@@ -518,6 +518,7 @@ global define boolean UIDExists(integer uid) ``{
 
     boolean ret = false;
     foreach (`type, `uids, uidlists, ``{
+y2warning("uids: %1", uids);
         if ( !ret && contains (uids, uid)) ret = true;
     });
     return ret;
@@ -704,7 +705,7 @@ global define void ChangeUser(symbol what, map user) ``{
 global define void ChangeGroup (symbol what, map group) ``{
 
     integer gid = group["gid"]:nil;
-    integer org_gid = group["gid"]:gid;
+    integer org_gid = group["org_gid"]:gid;
     string groupname = group["groupname"]:nil;
     string org_groupname = group["org_groupname"]:groupname;
     symbol type = group["type"]:`local;
@@ -717,7 +718,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
-    else if (what == `edit_group || what == `user_change)
+    if (what == `edit_group)
     {
         if (gid != org_gid)
         {
@@ -730,13 +731,17 @@ global define void ChangeGroup (symbol what, map group) ``{
                 ``(u != org_groupname));
             groupnamelists [type] = prepend (groupnamelists[type]:[],groupname);
         }
+    }
+    if (what == `edit_group || what == `user_change ||
+             what == `user_change_default)
+    {
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));
         groups_itemlists [type] = merge (groups_itemlists [type]:[], //add?
             BuildGroupItemList( $[ gid : group ] ));
         UpdateGroupItemlist ();
     }
-    else if (what == `delete_group)
+    if (what == `delete_group)
     {
         gidlists [type] = filter (`g, gidlists [type]:[], ``(g != gid));
         groupnamelists [type] = filter (`g, groupnamelists [type]:[],
@@ -745,7 +750,7 @@ global define void ChangeGroup (symbol what, map group) ``{
             ``(select(item,1,"") != groupname));
         UpdateGroupItemlist ();
     }
-    else if (what == `itemlist)
+    if (what == `itemlist)
     {
         groups_itemlists [type] = filter (`item, groups_itemlists [type]:[],
             ``(select(item,1,"") != org_groupname));

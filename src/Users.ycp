@@ -1372,7 +1372,7 @@ global define boolean Commit (string object, boolean cache)``{
 
     if (object == "user")
     {
-//y2milestone("user : %1", user_in_work );
+//y2warning("user : %1", user_in_work );
         integer uid = user_in_work ["uid"]:max_uid;
         integer org_uid = user_in_work ["org_uid"]:uid;
         symbol what_user = user_in_work ["what"]:`nothing;
@@ -1420,7 +1420,7 @@ global define boolean Commit (string object, boolean cache)``{
             }
             else
             {
-                group_in_work ["what"] = `user_change;
+                group_in_work ["what"] = `user_change_default;
                 string more_users = group_in_work ["more_users"]:"";
                 if (more_users != "") more_users = more_users + ",";
                 group_in_work ["more_users"] = more_users + username;
@@ -1485,7 +1485,7 @@ global define boolean Commit (string object, boolean cache)``{
                 group_in_work = GetGroupByName (defgroup, type);
                 if (group_in_work != $[])
                 {
-                    group_in_work ["what"] = `user_change;
+                    group_in_work ["what"] = `user_change_default;
                     string more_users = group_in_work ["more_users"]:"";
                     list l_more_users = splitstring (more_users, ",");
                     l_more_users = filter (`u, l_more_users,
@@ -1503,7 +1503,7 @@ global define boolean Commit (string object, boolean cache)``{
                 group_in_work = GetGroupByName (org_defgroup, type);
                 if (group_in_work != $[])
                 {
-                    group_in_work ["what"] = `user_change;
+                    group_in_work ["what"] = `user_change_default;
                     string more_users = group_in_work ["more_users"]:"";
                     list l_more_users = splitstring (more_users, ",");
                     l_more_users = filter (`u, l_more_users,
@@ -1516,7 +1516,7 @@ global define boolean Commit (string object, boolean cache)``{
                 group_in_work = GetGroupByName (defgroup, type);
                 if (group_in_work != $[])
                 {
-                    group_in_work ["what"] = `user_change;
+                    group_in_work ["what"] = `user_change_default;
                     string more_users = group_in_work ["more_users"]:"";
                     if (more_users != "") more_users = more_users + ",";
                     group_in_work ["more_users"] = more_users + username;
@@ -1527,7 +1527,8 @@ global define boolean Commit (string object, boolean cache)``{
             if (type == `local || type == `system) // - also for groups !
             {
                 if (username != org_username)
-                    shadow [type] = remove (shadow[type]:$[], org_username);
+                    if (haskey (shadow[type]:$[], org_username))
+                        shadow [type] = remove (shadow[type]:$[], org_username);
                 shadow [type, username] = user_in_work["shadow"]:$[];
             }
         }
@@ -1552,7 +1553,7 @@ global define boolean Commit (string object, boolean cache)``{
             });
             // remove user from his default group -- only cache structures
             group_in_work = GetGroupByName (defgroup, type);
-            group_in_work ["what"] = `user_change;
+            group_in_work ["what"] = `user_change_default;
             string more_users = group_in_work ["more_users"]:"";
             list l_more_users = splitstring (more_users, ",");
             l_more_users = filter (`u, l_more_users, ``(u != username));
@@ -1572,11 +1573,11 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else if ( what_user == `group_change)
         {
-                // prevent loading this argument with some unwanted value later
                 if (type == `ldap)
                     user_in_work ["modified"] = `edited;
-                else
-                    user_in_work ["modified"] = `nothing;
+                // prevent loading this argument with some unwanted value later
+//                else
+//                    user_in_work ["modified"] = `nothing;
         }
         // change the cache variables
         if (cache)
@@ -1590,7 +1591,7 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else // also `group_change !
         {
-            if (uid != org_uid)
+            if (uid != org_uid && haskey (users[type]:$[], org_uid))
             {
                 users_by_name [type, username ] = uid;
                 users [type] = remove (users [type]:$[], org_uid);
@@ -1719,9 +1720,10 @@ global define boolean Commit (string object, boolean cache)``{
             if (groupname != org_groupname)
             {
                 gshadow [type, groupname] = gshadow [type, org_groupname]:$[];
-                gshadow [type] = remove (gshadow [type]:$[], org_groupname);
+                if (haskey (gshadow [type]:$[], org_groupname))
+                    gshadow [type] = remove (gshadow [type]:$[], org_groupname);
             }
-            if (password != "x" && password != "*")
+            if (password != "x" && password != "*" && password != "!")
                 gshadow [type, groupname, "password"] = password;
         }
         else if (what_group == `delete_group )
@@ -1746,6 +1748,11 @@ global define boolean Commit (string object, boolean cache)``{
                 group_in_work ["modified"] = `edited;
             }
         }
+        else if ( what_group == `user_change_default )
+        {
+            // current group is some user's default - changin only cache
+            // structures and don't set modified flag
+        }
         // change the cache variables
         if (cache)
             UsersCache::ChangeGroup(what_group, group_in_work);
@@ -1753,12 +1760,13 @@ global define boolean Commit (string object, boolean cache)``{
         if (what_group != `delete_group) // also for `change_user!
         {
             // the main action: update groups
-            if (gid != org_gid)
+            if (gid != org_gid && haskey (groups [type]:$[], org_gid))
                 groups [ type ] = remove (groups [type]:$[], org_gid);
             groups [ type, gid ] = group_in_work;
 
             // name could have been changed !!
-            if (groupname != org_groupname)
+            if (groupname != org_groupname &&
+                haskey (groups_by_name [type]:$[], org_groupname))
                 groups_by_name [type] = remove (groups_by_name [type]:$[],
                     org_groupname);
             groups_by_name [type, groupname] = group_in_work;

@@ -19,7 +19,7 @@ textdomain "users";
 
 global map SystemUsers = $[
 '
-
+# FIXME: get only first part of gecos
 # main()
 cat $passwd| sed 's/#.*$//g' | grep -v '^$'| cut -d: -f1,5 |
     while IFS=: read user name; do
