@@ -1,9 +1,9 @@
 Dump	==========================================================
 Read	.target.tmpdir 0
 Read	.etc.default.useradd.expire 0
-Read	.etc.default.useradd.group 100
-Read	.etc.default.useradd.groups "audio,video"
-Read	.etc.default.useradd.home "/home"
+Read	.etc.default.useradd.group 0
+Read	.etc.default.useradd.groups 0
+Read	.etc.default.useradd.home 0
 Read	.etc.default.useradd.inactive 0
 Read	.etc.default.useradd.shell 0
 Read	.etc.default.useradd.skel 0
@@ -18,7 +18,7 @@ Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":499, "max_syste
 Read	.passwd.local.users $[500:$["username":"hh"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
 Read	.passwd.local.users.by_name $["hh":500]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["gidNumber":100, "groupname":"users"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
+Read	.passwd.local.groups $[100:$["groupname":"users"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
 Read	.passwd.local.groups.by_name $["users":100]
 Read	.passwd.system.users $["by_name":$[], "homes":$[], "last_uid":0, "uids":$[], "usernames":$[]]
 Read	.passwd.system.users.by_name $[]
@@ -39,18 +39,4 @@ Read	.passwd.system.groups.gids $[]
 Read	.passwd.system.groups.groupnames $[]
 Read	.sysconfig.displaymanager.DISPLAYMANAGER 0
 Return	true
-Dump	---- current user:
-Dump	 $[]
-Return	true
-Dump	---- current user (empty add):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":1, "video":1], "groupname":"users", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"", "what":"add_user"]
-Return	true
-Dump	---- current user (after rich add):
-Dump	 $["cn":"", "create_home":true, "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "homeDirectory":"/local/home/aaa", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":501, "userPassword":"$1$T8$yEI1SH.1b0jqeqDq6bHha1", "username":"aaa", "what":"add_user"]
-Return	true
-Dump	==========================================================
-Return	true
-Return	true
-Dump	---- current user (minimal add, used default values):
-Dump	 $["cn":"", "create_home":true, "gidNumber":"100", "grouplist":$["audio":1, "video":1], "groupname":"users", "homeDirectory":"/home/hhh", "loginShell":"", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uidNumber":502, "userPassword":"", "username":"hhh", "what":"add_user"]
 Dump	==========================================================

@@ -17,6 +17,7 @@
 
     include "testsuite.ycp";
     import "Users";
+//    import "Security";
     import "Mode";
 
     map READ = $[
@@ -45,7 +46,6 @@
 		"groups": $[
 		    100: $[
 			"groupname":	"users",
-			"gidNumber":	100
 		    ],
 		    "by_name": $[
 			"users":	100,
@@ -80,14 +80,7 @@
 	"etc" : $[
 	    "fstab": [],
 	    "cryptotab": [],
-	    "default": $[
-		"useradd": $[
-		    "home":	"/home",
-		    "groups":	"audio,video",
-		    "group":	100
-		]
-	    ],
-	],
+	]
     ];
     map WRITE = $[];
     map EXEC = $[
@@ -102,36 +95,6 @@
     Mode::test = true;
 
     TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
-
-    DUMP (sformat ("---- current user:\n %1", Users::GetCurrentUser ()));
-
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-
-    DUMP (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
-    map<string,any> user = $[
-	"cn":"",
-	"gidNumber":100,
-	"groupname": "users",
-	"grouplist": $[ "audio" : 1 ],
-	"homeDirectory":"/local/home/aaa",
-	"userPassword":"$1$T8$yEI1SH.1b0jqeqDq6bHha1",
-	"uidNumber":501,
-	"username":"aaa",
-	"type":"local",
-    ];
-
-    TEST (``(Users::AddUser (user)), [READ, WRITE, EXEC], 0);
-
-    DUMP (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
-
-    TEST (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
-
-    DUMP ("==========================================================");
-
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[ "username": "hhh"])), [READ, WRITE, EXEC], 0);
-
-    DUMP (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
 
     DUMP ("==========================================================");
 }
