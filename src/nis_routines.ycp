@@ -7,6 +7,8 @@
  */
 
 {
+textdomain "users";
+
 /*
  * Reads the prepared map of NIS users
  */

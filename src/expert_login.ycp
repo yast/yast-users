@@ -1,12 +1,10 @@
 /**
+ * File:	clients/expert_login.ycp
+ * Package: Configuration of users and groups
+ * Summary: Expert settings (authentication, password encryption)
+ * Authors: Jiri Suchomel <jsuchome@suse.cz>
  *
  * $Id$
- *
- * Module:
- *
- * Author:
- *
- * Purpose:
  */
 
 {

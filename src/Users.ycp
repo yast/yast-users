@@ -2155,7 +2155,7 @@ define string GetLDAPPassword() ``{
         `VBox(
             `HSpacing(36),
             // password entering label
-            `Password(`id(`pw), "&Enter the bind password for LDAP server:"),
+            `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
             `PushButton(UI::OKButtonLabel())
             )
     );

@@ -64,7 +64,8 @@ global define symbol WriteDialog (boolean useUI ) ``{
 
     // A callback function for abort
     block abort = ``{
-        if (UI::PollInput () == `abort && UI::YesNoPopup ("Do you really want to abort writing process?"))
+        // popup text
+        if (UI::PollInput () == `abort && UI::YesNoPopup (_("Do you really want to abort writing process?")))
             return true;
         return false;
     };

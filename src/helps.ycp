@@ -35,7 +35,7 @@ least belongs to one group.
 	// help text 1/2
       return _("<p>
 Users and groups are arranged to various sets. You can change the set currently showed in the table with the <b>Set filter</b> button.
-You can also customize your view filter after pushing <b>Customize filter</b>.")
+You can also customize your view filter after pushing <b>Customize filter</b>.</p>")
 
 	// help text 1/2
          + _("<p>
@@ -187,11 +187,11 @@ click <b>Edit</b> or <b>Delete</b>.
 
 	// help text 5/6
 		_("<p>
-To change the default settings used for new users, select the <b>Set defaults</b> button.") +
+To change the default settings used for new users, select the <b>Set defaults</b> button.</p>") +
 
 	// help text 6/6
     _("<p>
-If you want to change passwords encryption or user authentication, push the <b>Expert options...</b> button") +
+If you want to change passwords encryption or user authentication, push the <b>Expert options...</b> button.</p>") +
 
      help_main_end() );
   }
@@ -268,12 +268,12 @@ the password. This starting procedure is traditionally known as the
     if (mail)
         // help text 4/5
         help = help + _("<p>
-The mail for root will be forwarded to this user, if you check the option \"This user will recieve system mail\".<p>");
+The mail for root will be forwarded to this user, if you check the option \"This user will recieve system mail\".</p>");
 
 	// help text 5/5
     help = help + _("<p>
 To see more details like the home directory or the user ID push
-<b>Details</b>
+<b>Details</b>.
 </p>
 ");
     return help;
@@ -368,7 +368,7 @@ by the system for special purposes and pseudo logins.
 If you change UID of an existing user, the rights of the files
 this user owns must be changed. This will be done automatically
 for the files in user's home directory, but not for the files 
-located on the other places!") +
+located on the other places!</p>") +
 
 	// help text 4/7
 		_("<p>
