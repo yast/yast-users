@@ -846,56 +846,174 @@ global define string Summary() ``{
 }
 
 /**
+ * Converts autoyast's user's map for users module usage
+ */
+define map ImportUser (map user) ``{
+
+    string forename = user["furename"]:"";
+    string surname = user["surname"]:"";
+    string fullname = "";
+
+    if( forename != "" )
+    {
+        if( surname != "") fullname = forename + " " + surname;
+        else fullname = forename;
+    }
+    else fullname = surname;
+
+    symbol type = `local;
+    if (user["uid"]:-1 <= max_system_uid || user["username"]:"" == "nobody")
+        type = `system;
+
+    map user_shadow = user ["password_settings"]:$[];
+    string pass = user ["user_password"]:"x";
+    if (user_shadow != $[])
+    {
+        if (!user["encrypted"]:true && pass != "x")
+        {
+            // encrypt password for shadow
+            if (encryption == `md5)
+                pass = cryptmd5 (pass);
+            else if (encryption == `blowfish)
+                pass = cryptblowfish (pass);
+            else
+                pass = crypt (pass);
+        }
+        user_shadow = add (user_shadow, "password", pass);
+    }
+
+    return $[
+        "encrypted":        user ["encrypted"]:true,
+        //can be distinct (uncrypted) from pass (which is always crypted)
+        "password":         user ["user_password"]:"x",
+        "username":         user ["username"]:"",
+        "forename":         forename,
+        "surname":          surname,
+        "fullname":         fullname,
+        "shell":            user ["shell"]:default_shell,
+        "uid":              user ["uid"]:-1,
+        "gid":              user ["gid"]:default_gid,
+        "grouplist":        user ["grouplist"]:"",
+        "type":             type,
+        "shadow":           user_shadow
+    ];
+};
+
+/**
+ * Converts autoyast's group's map for groups module usage
+ */
+define map ImportGroup (map group) ``{
+
+    string groupname = group["groupname"]:"";
+    symbol type = `local;
+    if ((group["gid"]:-1 <= max_system_gid ||
+        groupname == "nobody" ||
+        groupname == "nogroup") &&
+        groupname != "users")
+
+        type = `system;
+    return $[
+        "password":         group ["group_password"]:"x",
+        "groupname":        groupname,
+        "gid":              group ["gid"]:-1,
+        "userlist":         group ["userlist"]:"",
+        "type":             type
+    ];
+};
+
+/**
  * Get all the user configuration from the list of maps.
  * Is called users_auto (preparing autoinstallation data).
  * @param settings	A list of maps of type:
- * [ users, groups, shadow, gshadow, useradds_defaults ]
+ * [ users, groups, useradds_defaults ]
  * to be added to the system.
- * @return	success
+ * @return true
  */
 global define boolean Import (list settings) ``{
 
-    y2debug("importing: %1", settings);
+    y2warning("importing: %1", settings);
 
-    users = settings[0]:users;
-    groups = settings[1]:groups;
-    shadow = settings[2]:shadow;
-    gshadow = settings[3]:gshadow;
-
-    if (settings[4]:$[] == $[])
+    if (settings[2]:$[] == $[])
         ReadLoginDefaults(false);
     else
-        useradd_defaults = settings[4]:$[];
+        useradd_defaults = settings[2]:$[];
 
     ReadSystemDefaults();
     tmpdir = SCR::Read(.target.tmpdir);
-    RunPrepare("passwd"); // creates the files with data structures in tmpdir
+    RunPrepare("passwd");
 
-    // read the system users from local file if they're not in parameters
-// TODO system users must be read every time and compared with imported
-    if (users [`system]:nil == nil || users [`system]:nil == $[])
-    {
-        map passwd_users = ReadPasswd (tmpdir);
-        users [`system] = passwd_users [`system]:$[];
-        map passwd_users_by_name = ReadPasswdByName (tmpdir);
-        users_by_name [`system] = passwd_users_by_name[`system]:$[];
-    }
-    if (users [`local]:nil == nil)
-        users = add (users, `local, $[]);
+    // --- get shadow
+    map all_shadow = ReadShadow (tmpdir);
+    shadow [`system] = all_shadow[`system]:$[];
+    shadow [`local] = $[];
 
-    users_by_name [`local] = UsersByName (users [`local]:$[]);
-    // -- move the plus_strings to if sections ??
-    plus_passwd = ReadPlusPasswd (tmpdir);
+    plus_shadow = ReadPlusShadow(tmpdir);
 
-    if (groups [`system]:nil == nil || groups [`system]:nil == $[])
-    {
-        map all_groups = ReadGroups (tmpdir);
-        map system_groups = all_groups [`system]:$[];
-        // but we're not interested in local userlists...
-        system_groups = RemoveDiskUsersFromGroups(system_groups);
-        groups [`system] = system_groups;
-    }
-    groups_by_name [`system] = GroupsByName (groups [`system]:$[]);
+    // --- get users
+    map passwd_users = ReadPasswd (tmpdir);
+
+    // system users must be read every time and compared with imported ones
+    users [`system] = passwd_users [`system]:$[];
+    users [`local] = $[];
+
+    foreach (`imp_user, settings[0]:[], ``{
+        map user = ImportUser (imp_user);
+        symbol type = user ["type"]:`local;
+        users [type] = add (users[type]:$[], user["uid"]:-1, user);
+        // TODO: what if uid was changed??
+
+        // update shadow
+        map users_shadow = user ["shadow"]:$[];
+        shadow [type] = add (shadow[type]:$[],user["username"]:"",users_shadow);
+    });
+
+    users_by_name [`system] = UsersByName (users[`system]:$[]);
+    users_by_name [`local] = UsersByName (users[`local]:$[]);
+
+    plus_passwd = ReadPlusPasswd (tmpdir);// TODO use this for autoinstall??
+
+    // --- get igshadow
+    map all_gshadow = ReadGshadow (tmpdir);
+    gshadow [`system] = all_gshadow[`system]:$[];
+    gshadow [`local] = $[];
+
+    plus_gshadow = ReadPlusGshadow(tmpdir);
+
+    // --- get groups
+    map all_groups = ReadGroups (tmpdir);
+    map system_groups = all_groups [`system]:$[];
+    // but we're not interested in local userlists...
+    system_groups = RemoveDiskUsersFromGroups(system_groups);
+    // group users should be `local
+    if (system_groups [100, "groupname"]:"" == "users")
+        system_groups = remove (system_groups, 100);
+    if (system_groups [500, "groupname"]:"" == "users")
+        system_groups = remove (system_groups, 500);
+
+    groups [`system] = system_groups;
+    groups [`local] = $[];
+
+    foreach (`imp_group, settings[1]:[], ``{
+        map group = ImportGroup (imp_group);
+        symbol type = group ["type"]:`local;
+        string groupname = group ["groupname"]:"";
+        groups [type] = add (groups[type]:$[], group["gid"]:-1, group);
+        // TODO: what if gid was changed??
+
+        // update gshadow
+        map gshadow_entry = gshadow [type, groupname]:$[];
+        if (gshadow_entry == $[])
+        {
+            gshadow_entry = $["password":"*", "disposer":"root", "userlist":""];
+        }
+        gshadow_entry ["userlist"] = group["userlist"]:"";
+        string pass = group["password"]:"x";
+        if ( pass != "x" && pass != "*" && pass != "!" )
+            gshadow_entry ["password"] = pass;
+
+        gshadow [type] = add (gshadow[type]:$[], group ["groupname"]:"",
+            gshadow_entry);
+    });
 
     if (groups[`local, 100, "groupname"]:"" != "users" &&
         groups[`local, 500, "groupname"]:"" != "users")
@@ -908,75 +1026,47 @@ global define boolean Import (list settings) ``{
         gshadow [`local] = add (gshadow [`local]:$[], "users",
             $[ "password": "*", "disposer": "root", "userlist": ""]);
     }
-    if (groups [`local]:nil == nil)
-        groups = add (groups, `local, $[]);
+
+    groups_by_name [`system] = GroupsByName (groups [`system]:$[]);
     groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
+
     plus_group = ReadPlusGroup(tmpdir);
 
-    if (shadow [`system]:nil == nil || shadow [`system]:nil == $[])
-    {
-        map all_shadow = ReadShadow (tmpdir);
-        shadow [`system] = all_shadow[`system]:$[];
-    }
-    if (shadow [`local]:nil == nil)
-        shadow = add (shadow, `local, $[]);
-    plus_shadow = ReadPlusShadow(tmpdir);
-
-    if (gshadow [`system]:nil == nil || gshadow [`system]:nil == $[])
-    {
-        map all_gshadow = ReadGshadow (tmpdir);
-        gshadow [`system] = all_gshadow[`system]:$[];
-    }
-    if (gshadow [`local]:nil == nil)
-        gshadow = add (gshadow, `local, $[]);
-    plus_gshadow = ReadPlusGshadow(tmpdir);
-
-    // maybe the `system users/groups shouldn't be available??
     available_usersets = [`local, `system];
     available_groupsets = [`local, `system];
 
     ReadAllShells();
     ReadDefaultGroup(false);
 
-// TODO: define more_users (for groups) and grouplist (for users)
+    // define more_users (for groups), grouplist and groupname (for users)
+    // TODO move this block to ReadCache?
+    foreach (`type, [`system, `local], ``{
 
-    foreach (`uid, `user, users [`local]:$[], ``{
-        string username = user["username"]:":";
-        user["grouplist"] = FindGroupsBelongUser (username);
-        map group = GetGroupFromAll (user["gid"]:default_gid);
-        user["groupname"] = group ["groupname"]:default_groupname;
-        users [`local, uid] = user;
+        foreach (`uid, `user, users [type]:$[], ``{
+            string username = user["username"]:":";
+            user ["grouplist"] = FindGroupsBelongUser (username);
+            integer gid = user["gid"]:default_gid;
+            // hack: change of default group's gid - is it correct?
+            if (gid == 100 && default_gid != 100)
+            {
+                gid = default_gid;
+                user ["gid"] = gid;
+            }
+            map group = GetGroupFromAll (gid);
+            user ["groupname"] = group ["groupname"]:default_groupname;
+            users [type, uid] = user;
 
-        // update the group's more_users (use Commit?)
-        string more_users = group ["more_users"]:"";
-        list more_list = splitstring (more_users, ",");
-        if (! contains (more_list, username))
-        {
-            if (more_users != "") more_users = more_users + ",";
-            group ["more_users"] = more_users + username;
-            groups [ group["type"]:`local, user["gid"]:default_gid] = group;
-        }
-
+            // update the group's more_users (use Commit?)
+            string more_users = group ["more_users"]:"";
+            list more_list = splitstring (more_users, ",");
+            if (! contains (more_list, username))
+            {
+                if (more_users != "") more_users = more_users + ",";
+                group ["more_users"] = more_users + username;
+                groups [ group["type"]:`local, gid] = group;
+            }
+        });
     });
-
-    foreach (`uid, `user, users [`system]:$[], ``{
-        string username = user["username"]:":";
-        user["grouplist"] = FindGroupsBelongUser (username);
-        map group = GetGroupFromAll (user["gid"]:default_gid);
-        user["groupname"] = group ["groupname"]:default_groupname;
-        users [`system, uid] = user;
-
-        // update the group's more_users (use Commit?)
-        string more_users = group ["more_users"]:"";
-        list more_list = splitstring (more_users, ",");
-        if (! contains (more_list, username))
-        {
-            if (more_users != "") more_users = more_users + ",";
-            group ["more_users"] = more_users + username;
-            groups [ group["type"]:`system, user["gid"]:default_gid] = group;
-        }
-    });
-
 
     ReadUsersCache(false);
     return true;
@@ -995,11 +1085,6 @@ global define void Set (list settings) ``{
     users_by_name [`local] = UsersByName (users [`local]:$[]);
 
     groups [`local] = settings[1, `local]:$[];
-    // why reading??? check this !!
-    /*
-    groups_by_name = union (ReadGroupsByName (tmpdir),
-        GroupsByName (groups [`local]:$[]));
-    */
     groups_by_name [`local] = GroupsByName (groups [`local]:$[]);
 
     shadow [`local] = settings[2, `local]:$[];
@@ -1013,56 +1098,91 @@ global define void Set (list settings) ``{
 }
 
 /**
+ * Converts user's map for autoyast usage
+ */
+define map ExportUser (map user) ``{
+
+    symbol type = user["type"]:`local;
+    string full = user["fullname"]:"";
+    string username = user["username"]:"";
+    map user_shadow = user ["shadow"]:$[];
+    if (user_shadow != $[])
+        user_shadow = remove (user_shadow, "password");
+
+    return $[
+        "encrypted":        user ["encrypted"]:true,
+        "user_password":    user ["password"]:"x",
+        "username":         username,
+        "forename":         SplitFullName (`forename, full, type),
+        "surname":          SplitFullName (`surname, full, type),
+        "shell":            user ["shell"]:default_shell,
+        "uid":              user ["uid"]:-1,
+        "gid":              user ["gid"]:default_gid,
+        "grouplist":        user ["grouplist"]:"",
+        "password_settings":user_shadow
+    ];
+
+};
+
+/**
+ * Converts group's map for autoyast usage
+ */
+define map ExportGroup (map group) ``{
+
+    return $[
+        "group_password":   group ["password"]:"x",
+        "groupname":        group ["groupname"]:"",
+        "gid":              group ["gid"]:-1,
+        "userlist":         group ["userlist"]:""
+    ];
+};
+
+
+/**
  * Dump the users settings to list of maps
  * (For use by autoinstallation.)
  * @return map Dumped settings (later acceptable by Import ())
  */
 global define map Export() ``{
 
-    map system_users = modified_users[`system]:$[]; // these are deleted!
-    map system_shadow = $[];
+    // all local users:
+    list exported_users = maplist (`uid, `user, users [`local]:$[], ``{
+        return ExportUser (user);
+    });
+    /* deleted system users (??):
+    foreach (`uid, `user, modified_users[`system]:$[], ``{
+        exported_users = add (exported_users, ExportUser(user));
+    });*/
+
+    // modified system users:
     foreach (`uid, `user, users[`system]:$[], ``{
 
         if (user["modified"]:`nothing != `nothing)
         {
-            system_users = add (system_users, uid, user);
-            string name = user["username"]:"";
-            system_shadow = add (system_shadow, name,
-                shadow[`system, name]:$[]);
+            exported_users = add (exported_users, ExportUser(user));
         }
     });
-    map system_groups = modified_groups[`system]:$[];
-    map system_gshadow = $[];
-    foreach (`gid, `group, groups[`system]:$[], ``{
+
+    // all local groups:
+    list exported_groups = maplist (`uid, `group, groups [`local]:$[], ``{
+        return ExportGroup (group);
+    });
+    /* deleted system groups (??):
+    foreach (`uid, `group, modified_groups[`system]:$[], ``{
+        exported_groups = add (exported_groups, ExportGroup(group));
+    });*/
+
+    // modified system groups:
+    foreach (`uid, `group, groups[`system]:$[], ``{
 
         if (group["modified"]:`nothing != `nothing)
         {
-            system_groups = add (system_groups, gid, group);
-            string name = group["groupname"]:"";
-                system_shadow = add (system_shadow, name,
-                    shadow[`system, name]:$[]);
+            exported_groups = add (exported_groups, ExportGroup(group));
         }
     });
 
-    return [
-        $[
-            `system: system_users, // only modified (also deleted)
-            `local: users [`local]:$[] // all
-        ],
-        $[
-            `system: system_groups,
-            `local: groups [`local]:$[]
-        ],
-        $[
-            `system: system_shadow,
-            `local: shadow [`local]:$[]
-        ],
-        $[
-            `system: system_gshadow,
-            `local: gshadow [`local]:$[]
-        ],
-        useradd_defaults
-    ];
+    return [ exported_users, exported_groups, useradd_defaults ];
+
 }
 
 /**
@@ -2008,8 +2128,10 @@ global define map GetGroupFromAll( integer gid )``{
         if (group == $[])
         {
             group = groupset [gid]:$[];
+            /*
             if (group != $[] && group["type"]:`no == `no)// FIXME
                 group ["type"] = grouptype;
+                */
         }
     });
 	return group;

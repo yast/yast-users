@@ -42,69 +42,21 @@
     y2debug("param=%1", param);
 
 
-    // settings form /etc/default/useradd:
-    // can be set the new ones here:
-    map useradd_defaults  = $[
-        "group": "100",
-        "home": "/local_home",
-        "inactive": "-1",
-        "expire": "",
-        "shell": "/bin/bash",
-        "skel": "/etc/skel"
-    ];
-    // and passed to Import, or give empty map to Import and defaults
-    // will be read from the system
+    list users = [
+        $[ "username":"my_user",
+           "user_password":"pass",
+           "encrypted": false,
+           "uid":501,
+           "gid":500,
+           "password_settings":$[
+                "expire":""
+            ]
+        ]
+     ];
 
+    list groups = [];
 
-    // Q: as parameter for Import, there should be always only local
-    // users/groups, or optionaly the system ones?
-
-    // examples of input structure:
-    /*
-    map users = $[
-     `local: $[
-        501:$["fullname":"A", "gid":100, "grouplist":"somegr", "groupname":"users", "home":"/local/ab", "org_home":"/local/ab", "password":"x", "shadow":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"], "shell":"/bin/bash", "uid":501, "username":"ab"]]
-    ];
-
-    map shadow = $[
-     `local: $[
-        "ab":$["expire":"", "flag":"", "inact":"", "last_change":"12011", "max":"99999", "min":"0", "password":"rcFmrt.5wOQ4E", "warn":"7"]]
-    ];
-
-    map groups = $[
-     `local: $[
-        501:$["gid":501, "groupname":"somegr", "more_users":"", "password":"x", "userlist":"ab"]
-        ]];
-
-    map gshadow = $[
-     `local: $[
-        "somegr":$["disposer":"root", "password":"*", "userlist":"ab"]]];
-
-    // settings = [ users, groups, shadow, gshadow, useradd_defaults ];
-    */
-
-    map users = $[
-     `local: $[
-        501: $[ "username":"my_user", "uid":501, "gid":500, "password":"pass" ]
-     ]];
-
-    map shadow = $[
-     `local: $[
-        "my_user":$["password":"pass"]
-     ]];
-
-    map groups = $[];
-/*     `local: $[
-        500: $[ "groupname":"users", "gid":500, "more_users": "my_user" ]
-     ]];*/
-
-    map gshadow = $[];
-/*     `local: $[
-        "users":$["disposer":"root", "password":"*"]
-     ]];*/
-
-
-//    param = [ users, groups, shadow, gshadow, $[] ];
+//    param = [users, groups, $[]];
 
     /* create a  summary*/
     if (func == "Summary") {
