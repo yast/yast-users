@@ -1,0 +1,115 @@
+YaST2 Users module: time comparison between 8.1 and 8.2 version
+---------------------------------------------------------------
+
+I have done some testing to compare the speed of old and new users modules.
+The old module (version 2.6.29) is taken from standard 8.1 distribution, the
+new one has the version number 2.7.4 and will be included in SL 8.2.
+All tests were run on the same computer (test02.suse.cz) with AMD K6 procesor
+and 126548 kB RAM.
+
+========================================================
+Testing old users module, from 8.1 on test02.suse.cz (K6)
+========================================================
+1000 users
+
+reading + show table:                        1:47 min
+switch to group table:                          5 sec
+switch to users table:                       1:31 min 
+edit group:
+ open dialog:                                  10 sec 
+ close dialog & show groups table:             58 sec
+edit user:
+ open dialog:                                   1 sec
+ open details:                                  1 sec
+ close details:                                 1 sec
+ close dialog & show users table:            1:31 min
+write:                                          2 sec
+
+-----------------------------------------------------
+4000 users
+
+reading + show table:                       27:30 min 
+switch to group table:                         48 sec
+reading only groups + show table             1:58 min
+switch to users table:                      26:14 min    
+edit group:
+ open dialog:                                2:32 min 
+ close dialog & show groups table:        several hours (>8) !!!    
+edit user:
+ close dialog & show users table:           36:19 min       
+write:                                          2 sec
+
+==============================================================================
+Testing new users module, to include in 8.2 on
+1. test02.suse.cz AMD K6              with 126548 kB RAM
+2. gorgon.suse.cz AMD Athlon XP 1600+ with 514516 kB RAM
+==============================================================================
+
+                                          test02: K6            gorgon: Athlon
+
+1000 local users
+
+reading + show table:                          7 sec
+switch to group table:                       < 1 sec
+edit user:
+ close dialog & show users table:              2 sec
+write:                                         6 sec
+
+------------------------------------------------------------------------------
+4000 local users
+
+reading + show table:                         18 sec                     5 sec
+switch to group table:                       < 1 sec                   < 1 sec
+switch to users table:                         3 sec                   < 1 sec 
+edit group:
+ open dialog:                                  6 sec                     4 sec
+ close dialog & show groups table:             3 sec                   < 1 sec
+edit user:
+ open dialog:                                < 1 sec                   < 1 sec
+ open details dialog:                        < 1 sec                   < 1 sec
+ close details dialog:                       < 1 sec                   < 1 sec
+ close dialog & show users table:              6 sec                     1 sec
+write:                                        20 sec                     3 sec
+
+------------------------------------------------------------------------------
+8000 local users
+
+reading + show table:                         33 sec                     8 sec
+switch to group table:                         1 sec                   < 1 sec
+switch to users table:                         5 sec                     1 sec
+edit group:
+ open dialog:                                  8 sec                     8 sec
+ close dialog & show groups table:             6 sec                     1 sec
+edit user:
+ open dialog:                                  1 sec                   < 1 sec 
+ open details dialog:                        < 1 sec                   < 1 sec 
+ close details dialog:                       < 1 sec                   < 1 sec
+ close dialog & show users table:              5 sec                     1 sec
+write:                                        40 sec                     4 sec
+
+------------------------------------------------------------------------------
+8000 nis users    
+
+reading + show table:                         21 sec                     4 sec
+
+------------------------------------------------------------------------------
+8000 ldap users
+
+reading + show table:                       1:17 min                    10 sec
+
+
+===============================================================================
+
+Notes:
+
+The times for writing are worse in new module. It is because all the contens of
+/etc/passwd file (and the others under /etc) is written even if only one change
+was done. In older version, single "usermod/useradd" was called in this
+situation. For future, this could be fasten by using some extern script for
+writing (as it is already done for reading).
+
+The values for writing time in old module will raise when there are more
+changes (testing was done only with one small change of one user), while the 
+writing time in new module remains constant.
+
+Jiri Suchomel <jsuchome@suse.cz>
