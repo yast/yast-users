@@ -6,7 +6,8 @@ yncludedir = @yncludedir@/users
 
 module_DATA =			\
 	Users.ycp		\
-	UsersCache.ycp
+	UsersCache.ycp  \
+    Kerberos.ycp
 
 ynclude_DATA =		\
 	complex.ycp		\
@@ -24,7 +25,8 @@ client_DATA = 		\
 	users_write.ycp	\
 	inst_root.ycp	\
 	inst_user.ycp   \
-    auth.ycp
+    auth.ycp        \
+    kerberos.ycp
 
 config_DATA =			\
 	users.y2cc		\
@@ -34,7 +36,9 @@ config_DATA =			\
 #	add_group.y2cc
 
 ybin_SCRIPTS =  \
-    build_users_structures.pl
+    build_passwd_structures.pl  \
+    build_nis_structures.pl  \
+    build_ldap_structures.pl
 
 ydata_DATA = accounts.ycp
 
