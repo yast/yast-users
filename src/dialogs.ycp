@@ -166,6 +166,9 @@ define symbol EditUserDialog (string what) ``{
     string org_username = user["org_uid"]:username;
     integer uid		= GetInt (user, "uidnumber", nil);
     string dn		= user["dn"]:"";
+    boolean enabled	= user["enabled"]:true;
+    if (user["disabled"]:false)
+	enabled		= false;
 
     // only for LDAP users:
     string sn		= "";
@@ -208,14 +211,6 @@ define symbol EditUserDialog (string what) ``{
 
     if (user_type == "ldap")
     {
-	/*
-	name_entries = `VBox(
-            // text entry
-            `TextEntry(`id(`givenname), _("F&irst Name"), givenname),
-            // text entry
-            `TextEntry(`id(`sn),  _("&Last Name"),  sn ));
-	*/
-
 	name_entries = `HBox(
             `HWeight(50,
 		// text entry
@@ -288,31 +283,18 @@ can be changed for non-local users.
     else
     {
 	optionbox = `HVCenter ( `HSquash( buttonbox  ) );
-	if (what == "edit_user" && !do_not_edit)
+	if (!do_not_edit && !Mode::cont)
 	{
-	    // helptext
-	    string enable_help	= _("<p>To disallow this user to
-log in, check <b>Disable User Login</b> option.</p>");
-
 	    enable_term = `VBox (
 		`VSpacing (1),
 		// check box label
-		`CheckBox (`id(`ena), _("Disable User Login")),
+		`CheckBox (`id(`ena), _("D&isable User Login"), !enabled),
 		`VSpacing (0.5)
 	    );
-	    /*
-	    term checkboxes = `VBox(
-		// checkbox label
-		`Left( `CheckBox (`id (`ena),_("Disable User Login")))
-	    );
-	    optionbox = `HBox(
-			  `HStretch(),
-			  `HVCenter( `HVSquash( checkboxes ) ),
-			  `HSpacing( 1 ),
-			  `HVCenter( `HVSquash( buttonbox  ) ),
-			  `HSpacing( 1 )
-			  );
-	    */
+	    optionbox = `VSquash (`VBox(
+		optionbox,
+		enable_term
+	    ));
 	}
     }
 
@@ -612,12 +594,6 @@ Please try again."));
 		    }
 		} while (error_map != $[] && !failed);
 
-		// FIXME use some checkbox... !
-		if (pw1 == "")
-		{
-		    user["disabled"]	= true;
-		}
-
 		if (failed)
 		{
 		    clear_password_fields ();
@@ -642,7 +618,6 @@ Please try again."));
 		if ( home == default_home  || home == "")
                     home = home + username;
             }
-
 	    // -------------------------------------- directory checks
 	    if (!details && home != org_home) {
 		error = Users::CheckHome (home);
@@ -683,6 +658,22 @@ Please try again."));
 		    continue;
 		}
             }
+	    // -------------------------------------- enable/disable checks
+
+	    enabled	= ! (boolean) UI::QueryWidget(`id(`ena), `Value);
+	    if (enabled)
+	    {
+		user["enabled"]		= true;
+		if (haskey (user,"disabled"))
+		    user ["disabled"]	= false;
+	    }
+	    else
+	    {
+		user["disabled"]	= true;
+		if (haskey (user,"enabled"))
+		    user ["enabled"]	= false;
+	    }
+
 	    // ------------------------- last check of all (because of plugins)
 	    if (!details)
 	    {
@@ -776,6 +767,7 @@ define symbol EditUserDetailsDialog( ) ``{
     list additional_ldap_groups	= [];
     list removed = [];
     string grouplist		= "";
+    boolean no_skel	= user["no_skeleton"]:false;
 
     string new_type = user_type;
 
@@ -885,10 +877,9 @@ define symbol EditUserDetailsDialog( ) ``{
            do_not_edit ? `Label(_("Only additional group memberships
 can be changed for non-local users.")) : `VSpacing (0),
            do_not_edit ? `VSpacing (1) : `VSpacing (0),
-           // frame label, user name follows
            `VSpacing(0.5),
-           `Frame(sformat(_("Detailed Profile for User \"%1\""),
-		username),
+           // frame label, user name follows
+//           `Frame(sformat(_("Detailed Profile for User \"%1\""), username),
            `HBox(
 		`HSpacing (1),
                 `VBox(
@@ -896,7 +887,13 @@ can be changed for non-local users.")) : `VSpacing (0),
                     // textentry label
                     `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
                         sformat("%1",uid ))),
-                    `Top(`HBox ( home_w, browse)),
+                    `Top(`VBox(
+			`HBox ( home_w, browse),
+			what != "add_user" ? `VSpacing (0) :
+			`Left (
+			    `CheckBox (`id(`skel), _("&Empty home"), no_skel)
+			)
+		    )),
                     additional_data,
                     `Top(edit_shell),
                     `Top(edit_defaultgroup),
@@ -915,7 +912,8 @@ can be changed for non-local users.")) : `VSpacing (0),
 		    : `Empty()
 		    ),
 		`HSpacing (1)
-            )),
+//            )),
+	    ),
             `VSpacing(0.5)
            ),
            `HSpacing(1)
@@ -924,7 +922,7 @@ can be changed for non-local users.")) : `VSpacing (0),
     // dialog caption
     Wizard::SetContentsButtons(_("Add/Edit User Properties - Details"),
                     contents,
-                    EditUserDetailsDialogHelp(user_type),
+                    EditUserDetailsDialogHelp (user_type, what),
                     Label::BackButton(),
                     Label::NextButton());
 
@@ -970,11 +968,12 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    // map with id's of confirmed questions
 	    map<string,integer> ui_map		= $[];
 
-            string  new_shell = (string)UI::QueryWidget(`id(`shell), `Value);
-            string  new_uid   = (string)UI::QueryWidget(`id(`uid),   `Value);
+            string  new_shell	= (string)UI::QueryWidget(`id(`shell), `Value);
+            string  new_uid	= (string)UI::QueryWidget(`id(`uid),   `Value);
             string  new_defaultgroup = (string)
 		UI::QueryWidget(`id(`defaultgroup),`Value);
-            string  new_home  = (string) UI::QueryWidget(`id(`home),  `Value);
+            string  new_home	= (string) UI::QueryWidget(`id(`home),  `Value);
+            boolean no_skel	= (boolean) UI::QueryWidget(`id(`skel),`Value);
 	    if ((findlastof (new_home, "/") + 1) == size (new_home))
 	    {
 		new_home = substring (new_home, 0, size(new_home)-1);
@@ -1108,6 +1107,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 		"type"			: new_type,
 		"create_home"		: create_home,
 		"addit_data"		: addit_data,
+		"no_skeleton"		: no_skel,
 	    ];
 	    string error_msg = "";
 	    if (what == "add_user")
@@ -1661,6 +1661,25 @@ Please try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
+		    clear_password_fields ();
+		    continue;
+		}
+		boolean failed			= false;
+		do
+		{
+		    error_map = Users::CheckPasswordUI (groupname, pw1, ui_map);
+		    if (error_map != $[])
+		    {
+			if (!Popup::YesNo (error_map ["question"]:""))
+			{
+			    failed = true;
+			}
+			else
+			    ui_map[ error_map["question_id"]:"" ] = 1;
+		    }
+		} while (error_map != $[] && !failed);
+		if (failed)
+		{
 		    clear_password_fields ();
 		    continue;
 		}

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jun 29 20:50:54 CEST 2004 - jsuchome@suse.cz
+
+- enable/disable user checkbox (#32587)
+- enable creating of empty home (#35466)
+- check group passwords
+
+-------------------------------------------------------------------
 Mon Jun 21 17:34:32 CEST 2004 - jsuchome@suse.cz
 
 - command-line: ask for password, if not given
