@@ -29,8 +29,9 @@
     
     /**
      * Define the switch between Users and Groups administration.
-     * This is used in <TT>usersUsersDialog()</TT> and <TT>usersGroupsDialog</TT>.
-     * @param symbol what can be <TT>`users</TT> or <TT>`groups</TT>
+     * This is used in usersUsersDialog and usersGroupsDialog.
+     * @param what what can be `users or `groups
+     * @return symbol
      */
     global define rbUsersGroup(symbol what) ``{
 	return 
@@ -46,7 +47,7 @@
   
     
     /**
-     * The dialog that appears when the [Abort] button is pressed
+     * The dialog that appears when the [Abort] button is pressed.
      * @return boolean true if user really wants to abort
      */
     global define usersReallyAbort() ``{
@@ -75,6 +76,7 @@
     
     /**
      * The first of the two main dialogs -- list of the users.
+     * @return symbol
      */
     global define usersUsersDialog() ``{
 
@@ -126,7 +128,7 @@
     
     /**
      * Details of adding/cloning/editing dialog
-     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
+     * @return symbol
      */
     global define usersEditUserDetails( ) ``{
 
@@ -367,8 +369,10 @@ Please try again.")));
 
 
      /**
-     * Propose a username 
-     * @param 
+     * Propose a username.
+     * @param forename forename
+     * @param surname surname
+     * @return string
      */
     global define usersProposeUsername( string forename, string surname ) ``{
 
@@ -436,8 +440,11 @@ Please try again.")));
     
 
     /**
-     * Split fullname in forename and surname
-     * @param 
+     * Split fullname in forename and surname.
+     * @param what `surname or `forename
+     * @param fullname fullname
+     * @param uid uid
+     * @return string
      */
     global define usersSplitFullName( symbol what, string fullname, integer uid) ``{
 
@@ -469,8 +476,9 @@ Please try again.")));
 
     
     /**
-     * Function that adds or edits a user
-     * @param term what <TT>`add_user</TT> or <TT>`edit_user</TT>
+     * Function that adds or edits a user.
+     * @param what `add_user or `edit_user
+     * @return symbol
      */
     global define usersEditUser(symbol what) ``{
 	map dialog_labels = $[
@@ -765,8 +773,8 @@ Please press button Details and edit home directory.")));
     
     /**
      * Delete the user saved in user_in_work from current_users and
-     * add a entry with a shell delete command to the map user_settings
-     * @param 
+     * add a entry with a shell delete command to the map user_settings.
+     * @return symbol
      */
     global define usersDeleteUser() ``{
 
@@ -847,6 +855,7 @@ Please press button Details and edit home directory.")));
 
     /**
      * The second of the two main dialogs.
+     * @return symbol
      */
     global define usersGroupsDialog() ``{
 
@@ -899,7 +908,8 @@ Please press button Details and edit home directory.")));
 
     /**
      * Details of adding/cloning/editing dialog
-     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
+     * @param what `add_user, `clone_user or `edit_user
+     * @return symbol
      */
     global define usersEditGroup(symbol what ) ``{
 
@@ -1278,8 +1288,8 @@ Please try again.")));
     
     /**
      * Delete the Group saved in group_in_work from current_groups and
-     * add a entry with a shell delete command to the map user_settings
-     * @param 
+     * add a entry with a shell delete command to the map user_settings.
+     * @return symbol
      */
     global define usersDeleteGroup() ``{
 
@@ -1329,7 +1339,7 @@ Delete this users first.")));
 
      /**
      * Dialog to save the Groups and Usersettings to system
-     * @param 
+     * @return symbol
      */
     global define usersSaveDialog() ``{
 	

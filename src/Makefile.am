@@ -9,7 +9,6 @@ clientsdir = $(YAST2DIR)/clients
 include_DATA =			\
 	io.ycp			\
 	ui.ycp			\
-	functions.ycp		\
 	help.ycp
 
 clients_DATA = 			\

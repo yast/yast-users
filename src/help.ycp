@@ -16,7 +16,11 @@
  */
 {
   textdomain "users";
-  
+
+  /**
+   * First part of the help text.
+   * @return string
+   */
   global define help_main_start()``{
       
         return ( UI(_("<p>
@@ -28,6 +32,10 @@ least belongs to one group.
   }
 
 
+  /**
+   * Last part of the help text.
+   * @return string
+   */
   global define help_main_end()``{
 
       return ( UI(_("<p>
@@ -36,7 +44,11 @@ To save the modified user and group setting to your system push the button
 </p>")));
   }
 	
-    
+
+  /**
+   * Password help text.
+   * @return string
+   */    
   global define help_password()``{
 
       return ( UI(_("<p>
@@ -61,6 +73,10 @@ repeat it exactly in a second field. Make sure you don't forget your password!
 
 
   
+  /**
+   * Help for usersUsersDialog.
+   * @return string
+   */    
   global define usersUsersDialogHelp() ``{
 
       return ( help_main_start() + UI(_("
@@ -85,6 +101,10 @@ push the button <b>Edit</b> or <b>Delete</b>.
 
 
 
+  /**
+   * Help for usersGroups.
+   * @return string
+   */    
   global define usersGroupsDialogHelp()``{
 
       return ( help_main_start() +  UI(_("
@@ -109,6 +129,10 @@ push the button <b>Edit</b> or <b>Delete</b>.
 
   
  
+  /**
+   * Help for usersEditUser.
+   * @return string
+   */    
   global define usersEditUserHelp() ``{
       
       return ( UI(_("<p>
@@ -142,6 +166,10 @@ To see more details like the home directory or the user Id push the button
 
  
 
+  /**
+   * Help for usersEditGroup.
+   * @return string
+   */    
   global define usersEditGroupHelp() ``{
 
       return ( UI(_("<p>
@@ -186,6 +214,10 @@ peter,anna,book,news
 
 
 
+  /**
+   * Help for usersEditUserDetails.
+   * @return string
+   */    
   global define usersEditUserDetailsHelp() ``{
       
       return (
@@ -224,8 +256,10 @@ audio,video,dialout.
   }
 
 
-
-  
+  /**
+   * Help for usersSave.
+   * @return string
+   */    
   global define usersSaveDialogHelp() ``{
       
       return (UI(_("<p>

@@ -3,10 +3,10 @@
  *   menuentry_add_user.ycp
  *
  * Module:
- *   user
+ *   Configuration of the users and groups
  *
  * Summary:
- *   user add  menuentry
+ *   User add menuentry
  *
  * Authors:
  *   Johannes Buchhold  <jbuch@suse.de>

@@ -61,7 +61,6 @@
     string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
 
-    //include "users/security_io.ycp";
 
     include "security/io.ycp";              
     map security  = SecurityRead();

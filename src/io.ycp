@@ -23,8 +23,9 @@
   
   
     /**
-     * Return the group password if the group have a password ( use current_gshadow ) 
-     * @param string  <TT>groupname</TT>
+     * Return the group password if the group have a password ( use current_gshadow ).
+     * @param groupname name of the group
+     * @return string/nil
      */
     global define usersGroupPassword( string groupname ) ``{
 	
@@ -39,8 +40,9 @@
 
     
     /**
-     * Delete the group with the groupname from current_gshadow
-     * @param string  <TT>groupname</TT>
+     * Delete the group with the groupname from current_gshadow.
+     * @param groupname name of the group
+     * @return nil
      */
     global define usersDeleteGroupFromShadow( string groupname )``{
 	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname") != groupname ) );
@@ -48,8 +50,9 @@
 
 
     /**
-     * Return the group with the groupname from current_gshadow
-     * @param string  <TT>groupname</TT>
+     * Return the group with the groupname from current_gshadow.
+     * @param groupname name of the group
+     * @return map
      */
     global define usersReturnGroupFromShadow( string groupname ) ``{
 	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
@@ -62,7 +65,7 @@
    /**
    * Read the /etc/gshadow file and save it to current_gshadow. 
    * This is used in users.ycp and in usersSaveDialog()
-   * @param 
+   * @return nil
    */
     global define  usersGroupsShadowReadFromDisk() ``{
 	
@@ -72,10 +75,10 @@
     }  
     
   /**
-   * This define returns the groups of a user
-   * This is used in <TT>usersUserSaveToMap </TT> and <TT>usersGroupSaveToMap</TT> and
-   * <TT>usersUsersRead</TT> and <TT>usersEditUser</TT>
-   * @param string <TT>username</TT>
+   * This define returns the groups of a user.
+   * This is used in usersUserSaveToMap, usersGroupSaveToMap, usersUsersRead and usersEditUser.
+   * @param username string
+   * @return string
    */
   global define findGroupsBelongUser( string username ) ``{
 
@@ -99,9 +102,10 @@
 
   
    /**
-   * This define returns the users of a group
-   * This is used in <TT>usersGroupRead </TT> and <TT>usersEditGroup</TT>
-   * @param integer <TT>gid</TT>
+   * This define returns the users of a group.
+   * This is used in usersGroupRead  and usersEditGroup.
+   * @param gid integer
+   * @return string
    */
   global define findUsersBelongGroup( integer gid ) ``{
 
@@ -122,7 +126,7 @@
   /**
    * Read the /etc/passwd file and save it to current_users. 
    * This is used in users.ycp 
-   * @param 
+   * @return nil
    */
   global define usersUsersReadFromDisk() ``{
 
@@ -142,8 +146,8 @@
 
   /**
    * Read the /etc/group file and save it to current_groups. 
-   * This is used in users.ycp 
-   * @param 
+   * This is used in users.ycp.
+   * @return nil
    */
   global define usersGroupsReadFromDisk() ``{
 
@@ -164,9 +168,10 @@
     }
  
    /**
-    * Return the groupId of a groupname  
+    * Return the groupId of a groupname.
     * Not used 
-    * @param string <TT>groupname</TT> 
+    * @param groupname string
+    * @return integer 
     */
    global define groupNameToId( string groupname) ``{
 
@@ -184,9 +189,10 @@
 
    
    /**
-    * Return the groupname of a groupId 
-    * Used in <TT>usersUserSaveToMap</TT>
-    * @param integer <TT>Id</TT> 
+    * Return the groupname of a groupId.
+    * Used in usersUserSaveToMap.
+    * @param Id integer
+    * @return string
     */
     global define groupIdToName( integer Id ) ``{
 	return lookup(lookup( current_groups, Id), "groupname", "");
@@ -194,9 +200,10 @@
 
 
     /**
-     * Return the username of a userId 
-     * Used in <TT>usersUserSaveToMap</TT>
-     * @param integer <TT>Id</TT> 
+     * Return the username of a userId.
+     * Used in usersUserSaveToMap.
+     * @param Id integer
+     * @return string
      */
     global define userIdToName( integer Id ) ``{
 	return lookup( lookup( current_users, Id), "username", "");
@@ -204,9 +211,9 @@
 
 
     /**
-     * Return the size of the map user_settings 
-     * Used in <TT>usersAddTodo</TT>
-     * @param 
+     * Return the size of the map user_settings.
+     * Used in usersAddTodo.
+     * @return integer
      */
     global define findNextTodoPos() ``{
 	return  ( size( user_settings) + 1);
@@ -215,11 +222,14 @@
 
     
     /**
-     * Add a string to the map user_settings for a todo position 
-     * Used in <TT>usersAddMakeHomeDir</TT>, <TT>usersAddMoveDir</TT>, <TT>usersAddChownHome</TT>,
-     * <TT>usersUserSaveToMap</TT>, <TT>usersGroupSaveToMap</TT>, <TT>usersDeleteUser</TT> and
-     * <TT>usersDeleteGroup</TT>
-     * @param string <TT>todo</TT>
+     * Add a string to the map user_settings for a todo position.
+     * Used in usersAddMakeHomeDir, usersAddMoveDir, usersAddChownHome,
+     * usersUserSaveToMap, usersGroupSaveToMap, usersDeleteUser and
+     * usersDeleteGroup
+     * @param todo string
+     * @param what symbol
+     * @param error string
+     * @return boolean
      */
     global define usersAddTodo( string todo, symbol what, string error ) ``{
 	
@@ -231,9 +241,10 @@
 
     
     /**
-     * Add a string to the map user_settings for creating a home dir for a new user 
-     * Used in <TT>usersAddMoveDir</TT> and <TT>usersUserSaveToMap</TT>
-     * @param string <TT>home</TT>
+     * Add a string to the map user_settings for creating a home dir for a new user.
+     * Used in usersAddMoveDir and usersUserSaveToMap.
+     * @param home string
+     * @return nil
      */
     global define usersAddMakeHomeDir( string home ) ``{
 
@@ -253,9 +264,11 @@
 
     
     /**
-     * Add a string to the map user_settings for creating a home dir for a new user 
-     * Used in <TT>usersAddMoveDir</TT> and <TT>usersUserSaveToMap</TT>
-     * @param string <TT>home</TT>
+     * Add a string to the map user_settings for creating a home dir for a new user.
+     * Used in usersAddMoveDir and usersUserSaveToMap.
+     * @param home string
+     * @param old_home string
+     * @return nil
      */ 
     global define usersAddMoveDir(string old_home, string  home )``{
 
@@ -268,9 +281,10 @@ to new home directory %2")), old_home, home));
     }
 
     /**
-     * Add a string to the map user_settings for removing a home directory 
-     * Used in <TT>usersDeleteUser</TT>
-     * @param string <TT>home</TT>
+     * Add a string to the map user_settings for removing a home directory.
+     * Used in usersDeleteUser.
+     * @param home string
+     * @return nil
      */ 
     global define usersAddRmDir( string  home )``{
 
@@ -279,9 +293,12 @@ to new home directory %2")), old_home, home));
 		      sformat(UI(_("Can't remove home directory %1.")),  home));
     }
     /**
-     * Add a string to the map user_settings to set the home dir access right
-     * Used in <TT>usersUserSaveToMap</TT>
-     * @param string <TT>home</TT>, string <TT>user</TT> and string <TT>group</TT>
+     * Add a string to the map user_settings to set the home dir access right.
+     * Used in usersUserSaveToMap.
+     * @param home string
+     * @param user string
+     * @param group string
+     * @return nil
      */ 
     global define usersAddChownHome( string home, string user, string group)``{
 
@@ -316,9 +333,9 @@ to new home directory %2")), old_home, home));
     
     
     /**
-     * Add a string to the map user_settings to save a new or modified user 
-     * Used in sequenser
-     * @param 
+     * Add a string to the map user_settings to save a new or modified user.
+     * Used in sequenser.
+     * @return symbol
      */ 
     global define usersUserSaveToMap() ``{
 
@@ -512,9 +529,9 @@ to new home directory %2")), old_home, home));
 
     
      /**
-     * Add a string to the map user_settings to save a new or modified group 
-     * Used in sequenser
-     * @param 
+     * Add a string to the map user_settings to save a new or modified group. 
+     * Used in sequenser.
+     * @return symbol
      */ 
     global define  usersGroupSaveToMap( ) ``{
 
@@ -702,9 +719,10 @@ to new home directory %2")), old_home, home));
        }
 
     /**
-     * Return counts of blanks 
-     * This is used in <TT>usersGroupsRead</TT> and <TT>usersUsersRead</TT>.
-     * @param integer <TT>count</TT>
+     * Return counts of blanks.
+     * This is used in usersGroupsRead and usersUsersRead.
+     * @param count integer
+     * @return string
      */ 
     global define AddBlanks(integer count ) ``{
 	string  blanks = "";
@@ -722,9 +740,10 @@ to new home directory %2")), old_home, home));
 
     
     /**
-     * Read the map current_groups
-     * This is used in <TT>usersGroupsDialog</TT> and <TT>usersEditGroup</TT>.
-     * @param symbol what can be <TT>`items</TT> or <TT>`groupnamelist</TT> 
+     * Read the map current_groups.
+     * This is used in usersGroupsDialog and usersEditGroup.
+     * @param todo `items or `groupnamelist
+     * @return list
      */
     global define usersGroupsRead(symbol todo ) ``{
 	
@@ -763,9 +782,10 @@ to new home directory %2")), old_home, home));
 
     
     /**
-     * Read the map current_users
-     * This is used in <TT>usersUsersDialog</TT> and <TT>usersEditUser</TT> 
-     * @param symbol what can be <TT>`items</TT> or <TT>`usernamelist</TT> of <TT>`homelist</TT>
+     * Read the map current_users.
+     * This is used in usersUsersDialog and usersEditUser.
+     * @param todo `items, `usernamelist or `homelist
+     * @return list
      */
     global define usersUsersRead(symbol todo) ``{
 	
@@ -821,9 +841,10 @@ to new home directory %2")), old_home, home));
 
 
     /**
-     * Return the next free Uid
-     * This is used in <TT>usersEditUser</TT> 
-     * @param 
+     * Return the next free Uid.
+     * This is used in usersEditUser.
+     * @param current_users map
+     * @return integer
      */
     global define usersFreeUid(map current_users) ``{
 
@@ -846,9 +867,10 @@ to new home directory %2")), old_home, home));
 
 
     /**
-     * Return the next free Gid
-     * This is used in <TT>usersEditGroup</TT> 
-     * @param 
+     * Return the next free Gid.
+     * This is used in usersEditGroup .
+     * @param current_groups map
+     * @return integer
      */
     global define usersFreeGid(map current_groups) ``{
 
@@ -876,9 +898,10 @@ to new home directory %2")), old_home, home));
 
     
     /**
-     * Read the /etc/shells file and return a item list or a string shell list
-     * This is used in <TT>usersEditUserDetails</TT>.
-     * @param symbol what can be <TT>`items</TT> or <TT>`stringlist</TT> 
+     * Read the /etc/shells file and return a item list or a string shell list.
+     * This is used in usersEditUserDetails.
+     * @param todo `items or `stringlist 
+     * @return list
      */
     global define  usersReadShells(symbol todo ) ``{
 
@@ -910,9 +933,10 @@ to new home directory %2")), old_home, home));
 
 
     /**
-     * Uncode the fullname
-     * This is used in <TT>usersUsersReadFromDisk</TT>.
-     * @param string <TT>fullname</TT>  
+     * Uncode the fullname.
+     * This is used in usersUsersReadFromDisk.
+     * @param fullname string
+     * @return boolean
      */
     global define usersConsoleUncoding( string fullname ) ``{
 	
@@ -920,9 +944,10 @@ to new home directory %2")), old_home, home));
     }
 
     /**
-     * Encode the fullname
-     * This is used in <TT>usersUserSaveToMap</TT>.
-     * @param string <TT>fullname</TT>  
+     * Encode the fullname.
+     * This is used in usersUserSaveToMap.
+     * @param fullname string
+     * @return boolean
      */
     global define usersConsoleEncoding( string fullname ) ``{
 
