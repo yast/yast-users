@@ -107,6 +107,9 @@ global map SystemUsers = $[
     /* User name for user: "vdr" */
     "Video Disk Recorder" : _("Video Disk Recorder"),
 
+    /* User name for user: "icecream" */
+    "Icecream Daemon" : _("Icecream Daemon"),
+
 ];
 
 /* EOF */

@@ -8,9 +8,18 @@
  */
 {
 
-import "Label";
-import "Users";
 import "Autologin";
+import "Wizard";
+import "Label";
+import "Popup";
+import "Report";
+import "Mode";
+
+import "Users";
+import "UsersCache";
+
+
+textdomain "users";
 
     // values to MenuItem in Summary dialog
     map userset_to_string = $[
@@ -276,7 +285,7 @@ Try again.
  **/
 define boolean AutologinPopup() ``{
 
-    string help_text = AutologinPopupHelp();
+    string help_text = "";//FIXME AutologinPopupHelp();
     boolean ret = false;
 
     string user		= Autologin::user;
