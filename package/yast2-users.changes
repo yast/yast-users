@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Sat Mar 13 19:09:34 CET 2004 - arvin@suse.de
+
+- require yast2-perl-bindings (bug #35914)
+
+-------------------------------------------------------------------
 Wed Mar 10 14:53:26 CET 2004 - jsuchome@suse.cz
 
 - agent-passwd moved to yast2-pam package
@@ -19,7 +24,7 @@ Wed Mar 10 09:45:36 CET 2004 - jsuchome@suse.de
 Wed Mar 10 02:05:12 CET 2004 - sh@suse.de
 
 - V 2.9.13
-- Migration to new wizard 
+- Migration to new wizard
 
 -------------------------------------------------------------------
 Mon Mar  8 17:40:31 CET 2004 - jsuchome@suse.cz
@@ -39,7 +44,7 @@ Thu Mar  4 20:45:29 CET 2004 - jsuchome@suse.cz
 - plugins: differs user from groups (=2 map parameters to every function)
     check plugin availability for given user/group type,
     "rest of LDAP attributes" is default plugin,
-- LDAP: check attributes required by the LDAP schema 
+- LDAP: check attributes required by the LDAP schema
 
 -------------------------------------------------------------------
 Wed Mar  3 16:55:39 CET 2004 - jsuchome@suse.cz
