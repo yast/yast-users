@@ -113,3 +113,53 @@ changes (testing was done only with one small change of one user), while the
 writing time in new module remains constant.
 
 Jiri Suchomel <jsuchome@suse.cz>
+
+
+
+
+
+
+
+
+
+====================== 9.1: Users.pm, ag_passwd: all in Perl, 12.2.2004 Athlon
+
+normal passwd, ~50 users:
+
+10:26:20  ReadLocal start
+10:26:20  ReadLocal finish
+10:26:20  ReadUsersCache start
+10:26:20  ReadUsersCache 1
+10:26:20  ReadUsersCache 2
+10:26:20  ReadUsersCache 3
+10:26:20  ReadUsersCache finish
+
+nis server->  30000 users in passwd:
+
+a) with error logging (shadow entry missing)
+
+10:33:19 ReadLocal start
+10:34:19 ReadLocal finish		-> 1min agent reads and process users
+10:34:19 ReadUsersCache start
+10:34:31 ReadUsersCache 1
+10:34:33 ReadUsersCache 2
+10:34:34 ReadUsersCache 3		
+10:34:34 ReadUsersCache finish		-> 15 sec table items are builded
+10:34:35 SummaryTableInit start
+10:34:39 SummaryTableInit finish	-> 4-5 sec table is beeing shown
+
+-> 1:20
+
+b) reduced error logging from agent
+
+10:39:05 ReadLocal start
+10:40:03 ReadLocal finish
+10:40:03 ReadUsersCache start
+10:40:15 ReadUsersCache 1
+10:40:17 ReadUsersCache 2
+10:40:18 ReadUsersCache 3
+10:40:18 ReadUsersCache finish
+10:40:19 SummaryTableInit start
+10:40:23 SummaryTableInit finish
+
+-> 1:18
