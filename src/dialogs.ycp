@@ -58,7 +58,6 @@ global define symbol EditUserDialog(symbol what) ``{
     string  home        = Users::user_in_work["home"]:Users::default_home;
     string  org_home    = Users::user_in_work["org_home"]:home;
     string  shell       = Users::user_in_work["shell"]:Users::default_shell;
-    integer uid         = Users::user_in_work["uid"]:nil;
     string  password    = Users::user_in_work["password"]:"";
     string  grouplist   = Users::user_in_work["grouplist"]:"empty";
     symbol  user_type   = Users::user_in_work["type"]:nil;
@@ -113,6 +112,7 @@ global define symbol EditUserDialog(symbol what) ``{
     if ( grouplist == "empty" && what == `add_user)
         grouplist = Users::GetDefaultGrouplist(user_type);
 
+    integer uid         = Users::user_in_work["uid"]:nil;
     if ( uid ==  nil )
     {
         uid = UsersCache::NextFreeUid(); // this uses user_type
@@ -123,6 +123,7 @@ global define symbol EditUserDialog(symbol what) ``{
             return `nosave;
         }
     }
+    integer org_uid         = Users::user_in_work["org_uid"]:uid;
 
     map shadow = $[];
     if (Users::user_in_work["shadow"]:$[] == $[] && what == `add_user )
@@ -547,7 +548,6 @@ Use it and change its owner?
                      "home"        :  home,
                      "org_home"    :  org_home,
                      "password"    :  password,
-//                     "old_password":  old_password,
                      "shell"       :  shell,
                      "uid"         :  uid,
                      "username"    :  username,
@@ -556,11 +556,10 @@ Use it and change its owner?
                      "surname"     :  surname,
                      "shadow"      :  shadow,
                      "create_home" :  create_home,
-//                     "pwd_chng"    :  pwd_chng,   //where is the action done??
                      "type"        :  user_type
             ];
 
-            // username changed -> new entry
+            // something has changed -> new entry
             if ( org_username != username )
                 Users::user_in_work["org_username"] = org_username;
 
@@ -569,6 +568,12 @@ Use it and change its owner?
 
             if ( org_groupname != groupname)
                 Users::user_in_work["org_groupname"] = org_groupname;
+
+            if ( org_uid != uid )
+            {
+                Users::user_in_work["org_uid"] = org_uid;
+                UsersCache::focusline_user = uid;
+            }
 
             y2debug ("edited user: %1", Users::user_in_work );
 
@@ -629,27 +634,9 @@ global define symbol EditUserDetailsDialog( ) ``{
     list list_grouplist = splitstring (grouplist, ",");
     list removed = [];
 
-    /* fill the list available_groups and set the user default group true
-    foreach ( `key, `group,  Users::groups, ``{
-
-        if ( key == gid )
-        {
-            available_groups = add( available_groups,
-                `item( `id(lookup( group , "groupname" , "" )),
-                lookup( group , "groupname" , "" ) , true));
-        }
-        else
-        {
-            available_groups = add( available_groups,
-                `item( `id(lookup( group , "groupname" , "" )),
-                lookup( group , "groupname" , "" )));
-        }
-    });
-    */
-
     /* fill the list available_groups and set the user default group true */
     // -- this could evia ChangeWidget ??
-    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{ // not all sets!!
+    foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
         foreach ( `group, groupset, ``{
 
             if ( group == defaultgroup )
@@ -735,8 +722,9 @@ can be changed for non-local users.")) : `VSpacing (0),
     //Modify the dialog
     UI::ChangeWidget(`id(`fullname), `Enabled, false );
     UI::ChangeWidget(`id(`shell),    `Value,   shell );
+
     // uid cannot be edited??
-    if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
+    // if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
 
     // user input
     symbol ret = `next;
@@ -765,12 +753,12 @@ can be changed for non-local users.")) : `VSpacing (0),
 
             list new_list_grouplist = UI::QueryWidget(`id(`grouplist),
                 `SelectedItems );
-//            new_list_grouplist = filter(`g, new_list_grouplist, ``( g != ""));
             string new_grouplist = mergestring( new_list_grouplist, ",");
             integer new_i_uid    = tointeger( new_uid );
 
             // check the uid -- only for adding??
-            if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
+//            if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
+            if ( (what == `add_user) && (new_i_uid != uid) )
             {
             if( ! ( new_i_uid >= 0  && new_i_uid <= Users::max_uid )  ||
                 nil != findfirstnotof( new_uid , Users::valid_id_chars ) )
@@ -905,15 +893,16 @@ Please try again."));
             Users::user_in_work ["groupname"] = new_defaultgroup;
             Users::user_in_work ["org_groupname"] = defaultgroup;
             Users::user_in_work ["removed_grouplist"] = removed;
+
+            if ( new_i_uid != uid )
+                Users::user_in_work ["org_uid"] = uid;
+
         } // ret = `next
     } until (ret == `next || ret == `abort  || ret == `back || ret == `cancel);
 
 //  if (Mode::cont && Users::start_dialog == "user_add" && ret == `next)
 //      ret =
     if ( ret == `next ) ret = what;
-
-//    if( Mode::test )
-//        y2milestone("user in work  %1: ",Users::user_in_work);
 
     return ret;
 }

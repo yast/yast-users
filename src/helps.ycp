@@ -339,11 +339,11 @@ Select which users should be members of this group.
    */
   global define string EditUserDetailsDialogHelp() ``{
 
-	// help text 1/6
+	// help text 1/7
       return _("<p>
 The meaning of the fields are described below:
 </p>") +
-	// help text 2/6, %1 is number
+	// help text 2/7, %1 is number
 		sformat(_("<p>
 <b>User ID (uid):</b>
 Each user is known to the system by a unique number,
@@ -352,27 +352,35 @@ a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
 "), Users::max_system_uid ) +
-	// help text 3/6
+
+	// help text 3/7
+ _("<p>
+If you change UID of an existing user, the rights of the files
+this user owns must be changed. This will be done automatically
+for the files in user's home directory, but not for the files 
+located on the other places!") +
+
+	// help text 4/7
 		_("<p>
 <b>Default Group:</b>
 The group to which the user belongs. Select one group
 from the list of all groups existing on your system.
 </p>") +
-	// help text 4/6
+	// help text 5/7
 		_("<p>
 <b>Home directory:</b>
 The home directory of the user. Normally this is
 /home/username.
 </p>
 ") +
-	// help text 5/6
+	// help text 6/7
 		_("<p>
 <b>Login shell:</b>
 The login shell (\"command interpreter\") for the user.
 Select one shell from the list of all shells installed
 on your system.
 </p>") +
-	// help text 6/6
+	// help text 7/7
 		_("<p>
 <b>Additional group membership:</b>
 All additional memberships in groups for the user.

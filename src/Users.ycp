@@ -635,12 +635,24 @@ global define symbol Write (block abort, boolean useUI)``{
                 else // directory already exists
                 {
                     // change the rights
-                    string groupname = user["groupname"]:default_group;
+                    string groupname = user["groupname"]:default_groupname;
                     command = sformat("/bin/chown -R %1:%2 %3", username,
                         groupname, home);
                     y2debug("chown return value: %1",
                         SCR::Execute(.target.bash, command));
                 }
+            }
+            integer uid = user["uid"]:nil;
+            integer org_uid = user["org_uid"]:uid;
+            string groupname = user["groupname"]:default_groupname;
+            if (uid != org_uid)
+            {
+                // change the rights of user's files
+                y2milestone ("UID of user %1 was changed, changing rights of files in %2", username, home);
+                command = sformat("/bin/chown -R %1:%2 %3", username,
+                    groupname, home);
+                y2debug("chown return value: %1",
+                    SCR::Execute(.target.bash, command));
             }
         }
     });
@@ -985,6 +997,7 @@ global define boolean Commit (string object, boolean cache)``{
     {
 //y2milestone("user : %1", user_in_work );
         integer uid = user_in_work ["uid"]:max_uid;
+        integer org_uid = user_in_work ["org_uid"]:uid;
         symbol what_user = user_in_work ["what"]:`nothing;
         symbol type = user_in_work ["type"]:`local;
         string username = user_in_work ["username"]:"";
@@ -1209,9 +1222,12 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else // also `group_change !
         {
+            if (uid != org_uid)
+            {
+                users_by_name [type, username ] = uid;
+                users [type] = remove (users [type]:$[], org_uid);
+            }
             users [ type, uid ] = eval (user_in_work);
-            // only when uid was changed:
-            //users_by_name [ type, username ] = new_uid;
 
             // this has to be done due to multiple changes of username -- ??
             // and what about the home and others??
