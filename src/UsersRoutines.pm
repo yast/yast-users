@@ -50,6 +50,11 @@ sub CreateHome {
     }
     # now copy homedir from skeleton
     else {
+	my %stat	= %{SCR::Read (".target.stat", $home)};
+	if (%stat) {
+	    y2error ("some directory already exists at this place: no mkdir");
+	    return 0;
+	}
 	my $command	= "/bin/cp -r $skel $home";
 	my %out		= %{SCR::Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
@@ -78,13 +83,13 @@ sub ChownHome {
     my $home	= $_[2];
 
     my %stat	= %{SCR::Read (".target.stat", $home)};
-    if (!%stat) {
-	#no such directory
-	return 1;
+    if (!%stat || !($stat{"isdir"} || 0)) {
+	y2warning ("directory does not exist or is not a directory: no chown");
+	return 0;
     }
 
     if (($uid == ($stat{"uid"} || -1)) && ($gid == ($stat{"gid"} || -1))) {
-	# directory already exists and chown is not needed
+	y2milestone ("directory already exists and chown is not needed");
 	return 1;
     }
 
@@ -117,6 +122,17 @@ sub MoveHome {
     if (!%{SCR::Read (".target.stat", $home_path)}) {
 	SCR::Execute (".target.mkdir", $home_path);
     }
+    my %stat	= %{SCR::Read (".target.stat", $org_home)};
+    if (!($stat{"isdir"} || 0)) {
+	y2warning ("new 'home directory' is not a directory: no moving");
+	return 0;
+    }
+
+    %stat	= %{SCR::Read (".target.stat", $org_home)};
+    if (!%stat || !($stat{"isdir"} || 0)) {
+	y2warning ("old home does not exist or is not a directory: no moving");
+	return 0;
+    }
 
     my $command = "/bin/mv $org_home $home";
     my %out	= %{SCR::Execute (".target.bash_output", $command)};
@@ -137,6 +153,11 @@ sub DeleteHome {
 
     my $home		= $_[0];
 
+    my %stat	= %{SCR::Read (".target.stat", $home)};
+    if (!%stat || !($stat{"isdir"} || 0)) {
+	y2warning("home directory does not exist or is not a directory: no rm");
+	return 0;
+    }
     my $command	= "/bin/rm -rf $home";
     my %out	= %{SCR::Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {

@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Fri Feb 20 15:11:53 CET 2004 - jsuchome@suse.cz
+
+- do not break special files (e.g. /dev/null) when set as home dir
+
+-------------------------------------------------------------------
+Fri Feb 20 11:25:53 CET 2004 - jsuchome@suse.cz
+
+- autoyast interface
+- 2.9.9
+
+-------------------------------------------------------------------
 Wed Feb 18 16:43:46 CET 2004 - jsuchome@suse.cz
 
 - do not import Kerberos,Samba,Nis
