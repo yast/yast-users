@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Feb 12 12:38:45 CET 2003 - jsuchome@suse.de
+
+- additional text corrected 
+
+-------------------------------------------------------------------
 Tue Feb 11 13:27:57 CET 2003 - jsuchome@suse.de
 
 - check for installed {nis,nisplus,ldap}-client module before called
