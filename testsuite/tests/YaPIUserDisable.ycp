@@ -122,6 +122,17 @@
 		    ]
 		]
 	    ],
+	    // /etc/security/pam_*
+	    "security": $[
+		"section": $[
+		    "/etc/security/pam_unix2.conf": $[],
+		],
+		"v": $[
+		    "/etc/security/pam_unix2.conf": $[
+			"auth"	: ""
+		    ],
+		]
+	    ],
 	],
 	"target": $[
 	    "stat"	: $[],

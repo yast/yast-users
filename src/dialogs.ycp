@@ -493,7 +493,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 			`HBox ( home_w, browse),
 			what != "add_user" ? `VSpacing (0) :
 			`Left (
-			    `CheckBox (`id(`skel), _("&Empty Home"), no_skel)
+			    `CheckBox (`id(`skel), _("E&mpty Home"), no_skel)
 			)
 		    )),
                     additional_data,
@@ -939,6 +939,7 @@ Please try again."));
 		    user["encrypted"]	= false;
 		user ["userpassword"]		= pw1;
 		user ["shadowlastchange"]	= Users::LastChangeIsNow();
+		password			= pw1;
 	    }
 
             // build default home dir
@@ -951,7 +952,23 @@ Please try again."));
 		    home = user["homedirectory"]:default_home;
 		}
 		if (home == default_home || home == "")
-                    home = home + username;
+                    home = default_home + username;
+            }
+	    if (ret != `details && username != org_username)
+	    {
+		string generated_home	= default_home + username;
+		if (user_type == "ldap" && issubstring (home, "%"))
+		{
+		    map tmp_user = UsersLDAP::SubstituteValues ("user", user);
+		    generated_home = tmp_user["homedirectory"]:home;
+		}
+		if (home != generated_home &&
+		    (what == "add_user" || Popup::YesNo (sformat (
+// popup question
+_("Change home directory to %1?"), generated_home))))
+		{
+			home	= generated_home;
+		}
             }
 	    // -------------------------------------- directory checks
 	    if (!tab && home != org_home)
@@ -992,7 +1009,7 @@ Please try again."));
 		    focus_tab (current, `username);
 		    continue;
 		}
-            }
+	    }
 	    // -------------------------------------- enable/disable checks
 
 	    boolean new_enabled	= !(boolean) UI::QueryWidget(`id(`ena), `Value);
