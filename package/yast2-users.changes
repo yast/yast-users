@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Mon Mar 15 17:09:56 CET 2004 - jsuchome@suse.cz
+
+- plugins: changed calling convention (call only default ones,
+    saved in LDAP configuration, unless directly choosed)
+  internal information (like user type, type of modification)
+    moved to config map
+  many minor fixes
+- 2.9.18
+
+-------------------------------------------------------------------
 Mon Mar 15 11:16:55 CET 2004 - jsuchome@suse.cz
 
 - changed internal key names: "username" -> "uid", "groupname" -> "cn"

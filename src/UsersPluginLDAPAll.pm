@@ -20,17 +20,42 @@ use POSIX ();
 POSIX::setlocale(LC_MESSAGES, "");
 textdomain("users");	# TODO own textdomain for new plugins
 
-##------------------------------------
-##------------------- global imports
+##--------------------------------------
+##--------------------- global imports
 
-YaST::YCP::Import ("UsersLDAP");
+YaST::YCP::Import ("SCR");
 
-##------------------------------------
+##--------------------------------------
+##--------------------- global variables
+
+# default object classes of LDAP users
+my @user_object_class                  =
+    ("top","posixAccount","shadowAccount", "inetOrgPerson");
+
+# default object classes of LDAP groups
+my @group_object_class                 =
+    ( "top", "posixGroup", "groupOfNames");
+
+
+##--------------------------------------
 
 # All functions have 2 "any" parameters: this will probably mean
 # 1st: configuration map (hash) - e.g. saying if we work with user or group
 # 2nd: data map (hash) of user (group) to work with
 
+# in 'config' map there is a info of this type:
+# "what"		=> "user" / "group"
+# "modified"		=> "added"/"edited"/"deleted"
+# "enabled"		=> 1/ key not present
+# "disabled"		=> 1/ key not present
+
+# 'data' map contains the atrtributes of the user. It could also contain
+# some keys, which Users module uses internaly (like 'groupname' for name of
+# user's default group). Just ignore these values
+    
+##------------------------------------
+
+ 
 
 # return names of provided functions
 BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"], "any", "any"];}
@@ -91,6 +116,7 @@ BEGIN { $TYPEINFO{Restriction} = ["function",
     ["map", "string", "any"], "any", "any"];}
 sub Restriction {
 
+    # this plugin applies only for LDAP users and groups
     return { "ldap"	=> 1 };
 }
 
@@ -101,7 +127,6 @@ sub Restriction {
 # return error message
 BEGIN { $TYPEINFO{Check} = ["function",
     "string",
-#    ["map", "string", "any"]];
     "any",
     "any"];
 }
@@ -109,19 +134,29 @@ sub Check {
 
     my $config	= $_[0];
     my $data	= $_[1];
-    my $what	= "user";
-    
-    if (defined $config->{"what"}) {
-	$what	= $config->{"what"};
-    }
     
     # attribute conversion
-    my @required_attrs		= @{UsersLDAP::GetUserRequiredAttributes ()};
-    if ($what eq "group") {
-	@required_attrs		= @{UsersLDAP::GetGroupRequiredAttributes ()};
+    my @required_attrs		= ();
+    my @object_classes		= ();
+    if (defined $data->{"objectClass"} && ref ($data->{"objectClass"}) eq "ARRAY") {
+	@object_classes		= @{$data->{"objectClass"}};
     }
 
-# TODO required attributes should be checked against current objectClass
+    # get the attributes required for entry's object classes
+    foreach my $class (@object_classes) {
+	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
+	if (!defined $object_class || ref ($object_class) ne "HASH" ||
+	    ! %{$object_class}) { next; }
+	
+	my $req = $object_class->{"must"};
+	if (defined $req && ref ($req) eq "ARRAY") {
+	    foreach my $r (@{$req}) {
+		push @required_attrs, $r;
+	    }
+	}
+    }
+
+    # check the presence of required attributes
     foreach my $req (@required_attrs) {
 	my $val	= $data->{$req};
 	if (!defined $val || $val eq "" || 
@@ -190,13 +225,23 @@ sub AddBefore {
     my $config	= $_[0];
     my $data	= $_[1];
 
+    # define the object class for new user/group
+    if (!defined $data->{"objectClass"}) {
+	$data->{"objectClass"}	= \@user_object_class;
+	if (($config->{"what"} || "") eq "group") {
+	    $data->{"objectClass"}	= \@group_object_class;
+	}
+#FIXME objectClass must be merged with existing one!
+    }
+
     y2internal ("AddBefore LDAPAll called");
     return $data;
 }
 
 
-# this will be called just after Users::Add
-# coould be called multiple times!
+# This will be called just after Users::Add - the data map probably contains
+# the values which we could use to create new ones
+# Could be called multiple times!
 BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
 sub Add {
 
@@ -208,12 +253,10 @@ sub Add {
 }
 
 
-
 # what should be done before user is finally written to LDAP
 BEGIN { $TYPEINFO{WriteBefore} = ["function", "boolean", "any", "any"];}
 sub WriteBefore {
 
-#FIXME in 'config' map we need the info added/modified/deleted/disabled/enabled
     y2internal ("WriteBefore LDAPAll called");
     return;
 }
@@ -222,7 +265,8 @@ sub WriteBefore {
 BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
-#FIXME in 'config' map we need the info added/modified/deleted/disabled/enabled
+    my $config	= $_[0];
+    my $data	= $_[1];
     y2internal ("Write LDAPAll called");
     return;
 }

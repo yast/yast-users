@@ -100,9 +100,6 @@ my $customized_groupsview	= 1;
 # the final answer ;-)
 my $the_answer			= 42;
 
-# which attribute have groups for list of members
-my $ldap_member_attribute	= "member";
-
 ##------------------------------------
 ##------------------- global imports
 
@@ -685,13 +682,6 @@ sub SetGroupType {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{SetLDAPMemberAttribute} = ["function", "void", "string"]; }
-sub SetLDAPMemberAttribute {
-    $ldap_member_attribute	= $_[0];
-}
-
-
-##------------------------------------
 # build item for one user
 sub BuildUserItem {
     
@@ -769,6 +759,9 @@ sub BuildGroupItem {
     if (defined ($group{"more_users"})) {
 	%more_users	= %{$group{"more_users"}};
     }
+    # which attribute have groups for list of members
+    my $ldap_member_attribute	= Ldap::member_attribute ();
+
     if ($group{"type"} eq "ldap" && defined ($group{$ldap_member_attribute})) {
 	foreach my $dn (keys %{$group{$ldap_member_attribute}}) {
 	    my $user		= get_first ($dn);
@@ -1135,7 +1128,7 @@ sub BuildAdditional {
 	    foreach my $dn (keys %userdns) {
 	    
 		my $id = YaST::YCP::Term ("id", $dn);
-		if (defined $group->{$ldap_member_attribute}{$dn}) {
+		if (defined $group->{Ldap::member_attribute ()}{$dn}) {
 		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn, $true);
 		}
 		elsif (!defined $group->{"more_users"}{$dn}) {

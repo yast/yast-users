@@ -71,6 +71,12 @@ my @user_class 			=
 my @group_class 		=
     ( "top", "posixGroup", "groupOfNames");
 
+# plugin used as defaults for LDAP users
+my @default_user_plugins	= ( "UsersPluginLDAPAll" );
+
+# plugin used as defaults for LDAP groups
+my @default_group_plugins	= ( "UsersPluginLDAPAll" );
+
 # naming attrributes (to be used when creating DN)
 my $user_naming_attr 		= "uid";
 my $group_naming_attr 		= "cn";
@@ -97,7 +103,7 @@ my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
      "org_uid",
      "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
-     "org_type", "what", "encrypted", "no_skeleton", "user_disabled",
+     "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
 
 my @group_internal_keys		=
@@ -123,8 +129,10 @@ my %ldap2yast_group_attrs	= (
     "cn"		=> "groupname"
 );
 
-# list of available plugin clients with features, enhabcing users module
-my @available_plugins		= ();
+# defualt scope for searching, set it by SetUserScope
+my $user_scope			= 2;
+my $group_scope			= 2;
+
  
 ##------------------------------------
 ##------------------- global imports
@@ -312,33 +320,6 @@ sub ReadSettings {
 	$user_base = Ldap::GetDomain();
     }
 
-    if (defined $user_template{"defaultObjectClass"}) {
-	@user_class = @{$user_template{"defaultObjectClass"}};
-    }
-
-    my @u_required_attrs	= ();
-
-    if (defined ($user_template{"requiredAttribute"})) {
-	@u_required_attrs	= @{$user_template{"requiredAttribute"}};
-    }
-
-    # read the attributes required by schema 
-    foreach my $class (@user_class) {
-	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
-	if (!defined $object_class || ref ($object_class) ne "HASH" ||
-	    ! %{$object_class}) { next; }
-	
-	my $req = $object_class->{"must"};
-	if (defined $req && ref ($req) eq "ARRAY") {
-	    foreach my $r (@{$req}) {
-		if (!contains (\@u_required_attrs, $r)) {
-		    push @u_required_attrs, $r;
-		}
-	    }
-	}
-	$user_template{"requiredAttribute"}	= \@u_required_attrs;
-    }
-
     if (defined $group_config{"defaultBase"}) {
 	$group_base = $group_config{"defaultBase"}[0];
     }
@@ -349,39 +330,14 @@ sub ReadSettings {
 	$group_base = $user_base;
     }
 
-    if (defined $group_template{"defaultObjectClass"}) {
-	@group_class = @{$group_template{"defaultObjectClass"}};
-	if (contains (\@group_class, "groupOfUniqueNames")) {
-	    $member_attribute	= "uniqueMember";
-	}
-	else {
-	    $member_attribute	= "member";
-	}
-	UsersCache::SetLDAPMemberAttribute ($member_attribute);
-	# FIXME what about only posixGroup or anything else???
+    $member_attribute	= Ldap::member_attribute ();
+
+    if (defined $user_template{"plugin"}) {
+	@default_user_plugins = @{$user_template{"plugin"}};
     }
 
-    my @g_required_attrs	= ();
-
-    if (defined ($group_template{"requiredAttribute"})) {
-	@g_required_attrs	= @{$group_template{"requiredAttribute"}};
-    }
-
-    # read the attributes required by schema 
-    foreach my $class (@group_class) {
-	my $object_class = SCR::Read (".ldap.schema.oc", {"name"=> $class});
-	if (!defined $object_class || ref ($object_class) ne "HASH" ||
-	    ! %{$object_class}) { next; }
-	
-	my $req = $object_class->{"must"};
-	if (defined $req && ref ($req) eq "ARRAY") {
-	    foreach my $r (@{$req}) {
-		if (!contains (\@g_required_attrs, $r)) {
-		    push @g_required_attrs, $r;
-		}
-	    }
-	}
-	$group_template{"requiredAttribute"}	= \@g_required_attrs;
+    if (defined $group_template{"plugin"}) {
+	@default_group_plugins = @{$group_template{"plugin"}};
     }
 
     if (defined $user_template{"default_values"}) {
@@ -512,9 +468,9 @@ sub Read {
 	"group_base"		=> $group_base,
 	"user_filter"		=> $user_filter,
 	"group_filter"		=> $group_filter,
-	"user_scope"		=> YaST::YCP::Integer (2),
-	# = sub - FIXME configurable?
-	"group_scope"		=> YaST::YCP::Integer (2),
+	"user_scope"		=> YaST::YCP::Integer ($user_scope),
+	# 2 = sub - FIXME configurable?
+	"group_scope"		=> YaST::YCP::Integer ($group_scope),
 	"user_attrs"		=> \@user_attrs,
 	"group_attrs"		=> \@group_attrs,
 	"itemlists"		=> YaST::YCP::Boolean (1),
@@ -536,23 +492,6 @@ sub InitConstants {
     %useradd_defaults	= %{$_[0]};
 }
 
-###------------------------------------
-## initialize list of plugins with the values from Users
-#BEGIN { $TYPEINFO{InitPlugins} = ["function",
-#    "void",
-#    ["list", "string"]];
-#}
-#sub InitPlugins {
-#    @available_plugins	= @{$_[0]};
-#}
-
-###------------------------------------
-#BEGIN { $TYPEINFO{GetLoginDefaults} = ["function",
-#    ["map", "string", "string"]];
-#}
-#sub GetLoginDefaults {
-#    return \%useradd_defaults;
-#}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function", "string"];}
@@ -591,26 +530,6 @@ sub GetMaxPasswordLength {
 }
 
 ##------------------------------------
-# return list of attributesm required for LDAP user
-BEGIN { $TYPEINFO{GetUserRequiredAttributes} = ["function", ["list","string"]];}
-sub GetUserRequiredAttributes {
-
-    if (defined ($user_template{"requiredAttribute"})) {
-	return $user_template{"requiredAttribute"};
-    }
-    return \();
-}
-
-# return list of attributesm required for LDAP group
-BEGIN {$TYPEINFO{GetGroupRequiredAttributes} = ["function", ["list","string"]];}
-sub GetGroupRequiredAttributes {
-    if (defined ($group_template{"requiredAttribute"})) {
-	return $group_template{"requiredAttribute"};
-    }
-    return \();
-}
-
-##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
     [ "map", "string", "string"]];
 }
@@ -619,9 +538,9 @@ sub GetDefaultShadow {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetUserClass} = ["function", ["list", "string"]];}
-sub GetUserClass {
-    return \@user_class;
+BEGIN { $TYPEINFO{GetUserPlugins} = ["function", ["list", "string"]];}
+sub GetUserPlugins {
+    return \@default_user_plugins;
 }
 
 ##------------------------------------
@@ -653,6 +572,7 @@ BEGIN { $TYPEINFO{GetUserAttrsLDAP2YaST} = ["function",
     ["map", "string", "string"]];
 }
 sub GetUserAttrsLDAP2YaST {
+# OBSOLETE!
     return \%ldap2yast_user_attrs;
 }
 
@@ -674,11 +594,17 @@ sub SetCurrentUserFilter {
     $user_filter = $_[0];
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{SetUserScope} = ["function", "void", "integer"];}
+sub SetUserScope {
+    $user_scope = $_[0];
+}
+
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetGroupClass} = ["function", ["list", "string"]];}
-sub GetGroupClass {
-    return \@group_class;
+BEGIN { $TYPEINFO{GetGroupPlugins} = ["function", ["list", "string"]];}
+sub GetGroupPlugins {
+    return \@default_group_plugins;
 }
 
 ##------------------------------------
@@ -710,6 +636,7 @@ BEGIN { $TYPEINFO{GetGroupAttrsLDAP2YaST} = ["function",
     ["map", "string", "string"]];
 }
 sub GetGroupAttrsLDAP2YaST {
+# OBSOLETE!
     return \%ldap2yast_group_attrs;
 }
 
@@ -729,6 +656,12 @@ sub GetCurrentGroupFilter {
 BEGIN { $TYPEINFO{SetCurrentGroupFilter} = ["function", "void", "string"];}
 sub SetCurrentGroupFilter {
     $group_filter = $_[0];
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetGroupScope} = ["function", "void", "integer"];}
+sub SetGroupScope {
+    $group_scope = $_[0];
 }
 
 ##------------------------------------
@@ -765,9 +698,6 @@ sub CreateUserDN {
     my $user		= $_[0];
     my $dn_attr		= $user_naming_attr;
     my $user_attr	= $dn_attr;
-#    if (defined $ldap2yast_user_attrs{$dn_attr}) {
-#	$user_attr	= $ldap2yast_user_attrs{$dn_attr};
-#    }
     if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
 	return undef;
     }
@@ -784,9 +714,6 @@ sub CreateGroupDN {
     my $group		= $_[0];
     my $dn_attr		= $group_naming_attr;
     my $group_attr	= $dn_attr;
-#    if (defined $ldap2yast_group_attrs{$dn_attr}) {
-#	$group_attr	= $ldap2yast_group_attrs{$dn_attr};
-#    }
     if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
 	return undef;
     }
@@ -907,7 +834,7 @@ sub ConvertMap {
 	    next;
 	}
 	if ($key eq "userPassword") {
-	    if  (contains (["x","*","!"], $val)) {
+	    if ($val eq "x" || $val eq "*") {
 		next;
 	    }
 	    my $enc	= lc ($encryption);
@@ -916,7 +843,6 @@ sub ConvertMap {
 	    }
 	}
 	# check if the attributes are allowed by objectClass
-#	my $attr = $ldap_attrs_conversion{$key} || $key;
 	if (!contains (\@attributes, $key)) {
 	    y2warning ("Attribute '$key' is not allowed by schema");
 	    next;
@@ -989,10 +915,22 @@ sub WriteUsers {
 	);
 
 	# ----------- now call the "before-write" plugin function for this user
-	my @plugin_args		= ();
-	push @plugin_args, "BeforeWrite";
-	push @plugin_args, $user;
-	UsersPlugins::Apply ("BeforeWrite", $user); #TODO params
+
+	my $plugins		= $user->{"plugins"};
+	if (!defined $plugins) {
+	    $plugins	= \@default_user_plugins;
+	}
+    
+	foreach my $plugin (sort @{$plugins}) {
+	    my $result = UsersPlugins::Apply ("WriteBefore", {
+		"what"		=> "user",
+		"type"		=> "ldap",
+		"plugins"	=> [ $plugin ],
+		"modified"	=> $action,
+#FIXME "enabled"/"disabled"
+	    }, $user);
+#TODO check the return value?
+	}
 
 	# --------------------------------------------------------------------
         if ($action eq "added") {
@@ -1048,10 +986,14 @@ sub WriteUsers {
         }
 	# ----------- now call the "write" plugin function for this user
 	if (!defined $ret{"msg"}) {
-	    @plugin_args		= ();
-	    push @plugin_args, "Write";
-	    push @plugin_args, $user;
-	    UsersPlugins::Apply ("Write", $user); #TODO params
+	    my $result = UsersPlugins::Apply ("Write", {
+		"what"		=> "user",
+		"type"		=> "ldap",
+		"plugins"	=> $plugins,
+		"modified"	=> $action,
+#FIXME "enabled"/"disabled"
+	    }, $user);
+#TODO check the return value?
 	}
 	# --------------------------------------------------------------------
     }
@@ -1211,7 +1153,6 @@ sub WriteGroups {
     }
 
     if (%ret) {
-	UsersCache::DebugMap (\%ret);
 	return $ret{"msg"};
     }
     return "";
