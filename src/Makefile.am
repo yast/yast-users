@@ -29,7 +29,8 @@ client_DATA = 		\
     inst_root.ycp	\
     inst_user.ycp	\
     inst_auth.ycp	\
-    users_auto.ycp
+    users_auto.ycp	\
+    users_plugin_dummy.ycp
 
 desktop_DATA =		\
     users.desktop	\

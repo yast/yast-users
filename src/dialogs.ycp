@@ -238,6 +238,7 @@ can be changed for non-local users.
 
     boolean complex_layout = Mode::cont && Users::StartDialog ("user_add");
 
+    term enable_term	= `Empty();
     if ( complex_layout )
     {
 	term checkboxes = `VBox(
@@ -259,7 +260,17 @@ can be changed for non-local users.
     }
     else
     {
-	optionbox = `HVCenter( `HSquash( buttonbox  ) );
+	optionbox = `HVCenter ( `HSquash( buttonbox  ) );
+	if (what == "edit_user" && !do_not_edit)
+	{
+	    // FIXME not ready
+	    enable_term = `VBox (
+		`VSpacing (1),
+		// check box label
+		`CheckBox (`id(`ena), _("Disable User Login")),
+		`VSpacing (0.5)
+	    );
+	}
     }
 
     term contents = `VBox(
@@ -277,7 +288,8 @@ can be changed for non-local users.
 		       `HSpacing( 2 )),
 		`VSpacing( 0.5 )
 	    )
-	))
+	)),
+	enable_term
     );
 
 
@@ -1037,7 +1049,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 
     if ( ret == `next )
     {
-	ret = string_to_symbol (what);
+	ret = string_to_symbol (what); // `back has same effect
 	if (user_type == "ldap")
 	    ret = `ldap;
     }
@@ -1192,6 +1204,79 @@ define symbol EditUserPasswordDialog() ``{
 	    Users::EditUser (shadow);
 
 	ret = string_to_symbol (what);
+    }
+    return (symbol)ret;
+}
+
+/**
+ * DIalog with additional (plugin) settings
+ * @return symbol for wizard sequencer
+ */
+define symbol PluginDialog (string what) ``{
+
+    map<string, any> object	= (what == "user") ?
+	Users::GetCurrentUser (): Users::GetCurrentGroup ();
+
+    list plugins	= Users::GetAvailablePlugins ();
+y2internal ("available plugins: %1", plugins);
+    string plugin	= Users::GetCurrentPlugin ();
+    any ret		= `not_next;
+
+    if (plugin == "")// || plugin == "users_plugin_dummy.ycp")
+    {
+	ret = `next;
+    }
+    else
+    {
+	// 1. one client hanldes all (via "Dialog")
+	// "product-based" plugin
+	/*
+	ret = WFM::CallFunction (plugin, ["Dialog", $[ "what": what ]]);
+
+	y2milestone ("plugin '%1' returned: %2", plugin, ret);
+
+	if (!is (ret, symbol))
+	    ret = `next;
+	*/
+
+	// 2. many plugins (clients?) for many actions
+	// "feature-based" plugins
+	string caption	= _("More for LDAP...");
+	string help	= "general helptext for plugins";
+
+	list options	= [];
+	foreach (string plugin, plugins, ``{
+	    any name = WFM::CallFunction (plugin, ["Summary"]);
+	    if (is (name, string))
+		options = add (options, `item(`id(name), name, false));
+	});
+	term contents = `HBox(
+	    `HSquash (`VBox (
+		`Tree (`id(`tree), `opt(`notify),
+		    _("Available Options"), options
+		))
+	    ),
+	    `VBox (
+		`ReplacePoint (`id(`rp), `HVCenter (`Label (_("Plugin..."))))
+	    )
+	);
+
+	// dialog caption
+	Wizard::SetContentsButtons(caption, contents, help,
+	    Label::BackButton(), Label::NextButton());
+
+	repeat
+	{
+	    ret = UI::UserInput();
+	} until (contains ([`next, `abort, `back, `cancel], ret));
+    }
+
+    if ( ret == `next )
+    {
+	if (what == "user") {
+	    string what_user = object["what"]:"back";
+	    ret = string_to_symbol (what_user);
+	}
     }
     return (symbol)ret;
 }
@@ -1352,12 +1437,14 @@ Are you sure?"), req)))
          }
     } until (contains ([`next, `abort, `back, `cancel], ret));
 
+    /*
     if ( ret == `next )
     {
 	if ( what == "user")
 	    // go to the forst user edit/add dialog
 	    ret = string_to_symbol (object["what"]:"back");
     }
+    */
     return (symbol)ret;
 }
 
