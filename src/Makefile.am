@@ -38,7 +38,13 @@ desktop_DATA =		\
     users.desktop	\
     groups.desktop
 
-EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
+YaPI_perldir = @moduledir@/YaPI
+
+YaPI_perl_DATA = \
+    YaPI/USERS.pm
+
+
+EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(YaPI_perl_DATA)
 
 users:
 	ln -sf . users

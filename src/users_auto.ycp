@@ -94,14 +94,14 @@
 	import "Progress";
 	Users::SetExportAll (true);
 	Progress::off();
-	ret = Users::Read ();
+	ret = (Users::Read () == "");
 	Progress::on();
     }
     else if (func == "Write") {
 	import "Progress";
 	Users::SetWriteOnly (true);
 	Progress::off();
-	ret = Users::Write ();
+	ret = (Users::Write () == "");
 	Progress::on();
     }
     /* unknown function */

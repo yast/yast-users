@@ -241,7 +241,7 @@ only obtain users with a user name beginning with 'u'.</p>
 	{
 	    if (Ldap::bind_pass == nil)
 		Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-	    if (UsersLDAP::ReadFilters())
+	    if (UsersLDAP::ReadFilters() != "")
 	    {
 		UI::ChangeWidget(`id (`userf), `Value,
 		    UsersLDAP::GetDefaultUserFilter ());

@@ -41,7 +41,7 @@ Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
 Read	.sysconfig.displaymanager.DISPLAYMANAGER 0
-Return	true
+Return	
 Dump	---- current user:
 Dump	 $[]
 Return	true

@@ -11,6 +11,12 @@ use strict;
 use ycp;
 use YaST::YCP qw(Boolean);
 
+use Locale::gettext;
+use POSIX ();     # Needed for setlocale()
+
+POSIX::setlocale(LC_MESSAGES, "");
+textdomain("users");
+
 our %TYPEINFO;
 
 # If YaST UI (Qt,ncurses) should be used
@@ -70,6 +76,10 @@ my @user_class 			=
 # default object classes of LDAP groups (read from Ldap module)
 my @group_class 		=
     ( "top", "posixgroup", "groupofnames");
+
+# attributes for LDAP search; if empty, all non-empty attrs will be returned
+my @user_attributes		= ();
+my @group_attributes		= ();
 
 # plugin used as defaults for LDAP users
 my @default_user_plugins	= ( "UsersPluginLDAPAll" );
@@ -163,6 +173,7 @@ sub ReadAvailable {
 
 ##------------------------------------
 # Initializes LDAP connection and reads users and groups configuration
+# return value is error message
 sub Initialize {
 
     Ldap->Read();
@@ -171,28 +182,30 @@ sub Initialize {
     my $ldap_mesg = Ldap->LDAPInit ();
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
-	return 0;
+	return $ldap_mesg;
     }
     if (!Ldap->anonymous () && !defined (Ldap->bind_pass ())) {
 	y2error ("no password to LDAP - cannot bind!");
-	return 0;
+	# error message
+	return _("No password to LDAP was entered");
     }
 
     $ldap_mesg = Ldap->LDAPBind (Ldap->bind_pass ());
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
-	return 0;
+	Ldap->SetBindPassword (undef);
+	return $ldap_mesg;
     }
     $ldap_mesg = Ldap->InitSchema ();
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("schema", $ldap_mesg);
-	return 0;
+	return $ldap_mesg;
     }
 
     $ldap_mesg = Ldap->ReadConfigModules ();
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("read", $ldap_mesg);
-	return 0;
+	return $ldap_mesg;
     }
 
     my %modules = %{Ldap->GetConfigModules ()};
@@ -240,24 +253,24 @@ sub Initialize {
 	Ldap->GetLDAPEntry ($group_template_dn))};
 
     $initialized = 1;
-    return 1;
+    return "";
 }
 
 
 ##------------------------------------
 # Read user and group filter needed LDAP search
 # Fiters are read from config modules stored in LDAP directory
-BEGIN { $TYPEINFO{ReadFilters} = ["function", "boolean"];}
+BEGIN { $TYPEINFO{ReadFilters} = ["function", "string"];}
 sub ReadFilters {
 
     my $self	= shift;
-    my $init	= 1;
+    my $init	= "";
 
     if (!$initialized) {
 	$init = Initialize ();
     }
 
-    if (!$init) { return 0; }
+    if ($init ne "") { return $init; }
 
     # get the default filters from config modules (already read)
     if (defined $user_config{"searchfilter"}) {
@@ -268,22 +281,22 @@ sub ReadFilters {
     }
 
     $filters_read = 1;
-    return 1;
+    return $init;
 }
 
 ##------------------------------------
 # Read settings from LDAP users and groups configuration
 # ("config modules", configurable by ldap-client)
-BEGIN { $TYPEINFO{ReadSettings} = ["function", "boolean"];}
+BEGIN { $TYPEINFO{ReadSettings} = ["function", "string"];}
 sub ReadSettings {
 
     my $self	= shift;
-    my $init	= 1;
+    my $init	= "";
 
     if (!$filters_read) {
 	$init = $self->ReadFilters();
     }
-    if (!$init) { return 0; }
+    if ($init ne "") { return $init; }
 
     my %tmp_user_config		= %user_config;
     my %tmp_user_template	= %user_template;
@@ -423,7 +436,7 @@ sub ReadSettings {
     if ($encryption eq "") {
 	$encryption	= "crypt"; # same as "des"
     }
-    return 1;
+    return $init;
 }
 
 
@@ -442,9 +455,9 @@ sub Read {
     # TODO use allowed/required attrs from config?
     # (if yes, objectclass must be in required!)
     # For now, we get all:
-    my @user_attrs	= ();
+    my $user_attrs	= \@user_attributes;
 #    my @user_attrs	= ( "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory" );
-    my @group_attrs 	= ();
+    my $group_attrs 	= \@group_attributes;
 
     my %args = (
 	"user_base"		=> $user_base,
@@ -454,9 +467,9 @@ sub Read {
 	"user_scope"		=> YaST::YCP::Integer ($user_scope),
 	# 2 = sub - TODO configurable?
 	"group_scope"		=> YaST::YCP::Integer ($group_scope),
-	"user_attrs"		=> \@user_attrs,
-	"group_attrs"		=> \@group_attrs,
-#	"itemlists"		=> YaST::YCP::Boolean (0),
+	"user_attrs"		=> $user_attrs,
+	"group_attrs"		=> $group_attrs,
+#	"itemlists"		=> YaST::YCP::Boolean (1),
 	"member_attribute"	=> $member_attribute
     );
     if (!SCR->Execute (".ldap.users.search", \%args)) {
@@ -530,6 +543,33 @@ sub GetUserPlugins {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetUserPlugins} = ["function", "void", ["list", "string"]];}
+sub SetUserPlugins {
+    my $self	= shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@default_user_plugins	= @{$_[0]};
+    }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetUserAttributes} = ["function", "void",["list", "string"]];}
+sub SetUserAttributes {
+    my $self	= shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@user_attributes	= @{$_[0]};
+    }
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetGroupAttributes} = ["function", "void",["list","string"]];}
+sub SetGroupAttributes {
+    my $self	= shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@group_attributes	= @{$_[0]};
+    }
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetUserDefaults} = ["function", ["map", "string","string"]];}
 sub GetUserDefaults {
     return \%user_defaults;
@@ -545,6 +585,13 @@ sub GetUserNamingAttr {
 BEGIN { $TYPEINFO{GetUserBase} = ["function", "string"];}
 sub GetUserBase {
     return $user_base;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetUserBase} = ["function", "void", "string"];}
+sub SetUserBase {
+    my $self	= shift;
+    $user_base	= $_[0];
 }
 
 ##------------------------------------
@@ -587,6 +634,15 @@ sub GetGroupPlugins {
 }
 
 ##------------------------------------
+BEGIN { $TYPEINFO{SetGroupPlugins} = ["function", "void", ["list", "string"]];}
+sub SetGroupPlugins {
+    my $self	= shift;
+    if (ref ($_[0]) eq "ARRAY") {
+	@default_group_plugins	= @{$_[0]};
+    }
+}
+
+##------------------------------------
 BEGIN { $TYPEINFO{GetGroupDefaults} = ["function", ["map", "string","string"]];}
 sub GetGroupDefaults {
     return \%group_defaults;
@@ -602,6 +658,13 @@ sub GetGroupNamingAttr {
 BEGIN { $TYPEINFO{GetGroupBase} = ["function", "string"];}
 sub GetGroupBase {
     return $group_base;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{SetGroupBase} = ["function", "void", "string"];}
+sub SetGroupBase {
+    my $self	= shift;
+    $group_base	= $_[0];
 }
 
 ##------------------------------------

@@ -18,6 +18,9 @@ textdomain("users");
 
 our %TYPEINFO;
 
+# If YaST UI (Qt,ncurses) should be used
+my $use_gui                     = 1;
+
 my $user_type		= "local";
 my $group_type		= "local";
 
@@ -941,9 +944,10 @@ sub CommitUser {
 	if (defined $removed_usernames{$type}{$username}) {
 	    delete $removed_usernames{$type}{$username};
 	}
-	$user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
-
-	$focusline_user = $uid;
+	if ($use_gui) {
+	    $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
+	    $focusline_user = $uid;
+	}
     }
     elsif ($what eq "edit_user" || $what eq "group_change") {
         if ($uid != $org_uid) {
@@ -970,14 +974,16 @@ sub CommitUser {
 		$userdns{$dn}	= 1;
 	    }
         }
-        delete $user_items{$org_type}{$org_uid};
-        $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
+	if ($use_gui) {
+	    delete $user_items{$org_type}{$org_uid};
+	    $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
 
-	if ($what ne "group_change") {
-	    $focusline_user = $uid;
-	}
-	if ($org_type ne $type) {
-	    undef $focusline_user;
+	    if ($what ne "group_change") {
+		$focusline_user 	= $uid;
+	    }
+	    if ($org_type ne $type) {
+		undef $focusline_user;
+	    }
 	}
     }
     elsif ($what eq "delete_user") {
@@ -987,12 +993,14 @@ sub CommitUser {
         delete $uids{$type}{$uid};
         delete $homes{$type}{$home};
         delete $usernames{$type}{$username};
-	delete $user_items{$type}{$uid};
 
 	$removed_uids{$type}{$uid}		= 1;
 	$removed_usernames{$type}{$username}	= 1;
 
-	undef $focusline_user;
+	if ($use_gui) {
+	    delete $user_items{$type}{$uid};
+	    undef $focusline_user;
+	}
     }
 }
 
@@ -1019,8 +1027,10 @@ sub CommitGroup {
     if ($what eq "add_group") {
         $gids{$type}{$gid}		= 1;
         $groupnames{$type}{$groupname}	= 1;
-	$group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
-	$focusline_group = $gid;
+	if ($use_gui) {
+	    $group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
+	    $focusline_group 		= $gid;
+	}
     }
     if ($what eq "edit_group") {
         if ($gid != $org_gid) {
@@ -1036,9 +1046,10 @@ sub CommitGroup {
     if ($what eq "edit_group" || $what eq "user_change" ||
         $what eq "user_change_default") {
 
-	delete $group_items{$org_type}{$org_gid};
-	
-	$group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
+	if ($use_gui) {
+	    delete $group_items{$org_type}{$org_gid};
+	    $group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
+	}
 	if ($org_type ne $type) {
 	    undef $focusline_group;
 	}
@@ -1046,8 +1057,10 @@ sub CommitGroup {
     if ($what eq "delete_group") {
         delete $gids{$org_type}{$org_gid};
         delete $groupnames{$org_type}{$org_groupname};
-	delete $group_items{$org_type}{$org_gid};
-	undef $focusline_group;
+	if ($use_gui) {
+	    delete $group_items{$org_type}{$org_gid};
+	    undef $focusline_group;
+	}
     }
 }
 
@@ -1248,6 +1261,12 @@ sub BuildAdditional {
 	push @additional, $additional{$key};
     }
     return \@additional;
+}
+
+BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
+sub SetGUI {
+    my $self 		= shift;
+    $use_gui 		= $_[0];
 }
 
 1

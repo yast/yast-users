@@ -53,7 +53,7 @@ define symbol ReadDialog (boolean useUI) ``{
 
     Users::SetGUI (useUI);
     symbol ret = `next;
-    if (!Users::Read ())
+    if (Users::Read () != "")
     {
 	ret = `back;
 	if (Mode::cont)
@@ -89,7 +89,7 @@ define symbol WriteDialog (boolean useUI) ``{
 
     Users::SetGUI (useUI);
     symbol ret = `next;
-    if (!Users::Write ())
+    if (Users::Write () != "")
     {
 	if (!Mode::cont) ret = `abort;
     }
