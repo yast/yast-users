@@ -1,6 +1,9 @@
 #
 # Makefile.am for users/src
+# $Id$
 #
+
+SUBDIRS = scripts
 
 yncludedir = @yncludedir@/users
 
@@ -30,17 +33,12 @@ config_DATA =			\
 	users.y2cc		\
 	groups.y2cc
 
-ybin_SCRIPTS =  \
-    build_passwd_structures.pl  \
-    build_nis_structures.pl     \
-    build_ldap_structures.pl    \
-    build_additional_users.pl
+#ydata_DATA = accounts.ycp# FIXME: not used any more
 
-ydata_DATA = accounts.ycp
-
-noinst_DATA = passwd.sh
+#noinst_DATA = passwd.sh# FIXME: not used any more
 
 #passwd.ycp: passwd.sh /etc/passwd
 #	./passwd.sh > passwd.ycp
 
-EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA) $(ydata_DATA) $(noinst_DATA) $(ybin_SCRIPTS)
+EXTRA_DIST = $(client_DATA) $(config_DATA) $(ynclude_DATA) $(module_DATA)
+#$(ydata_DATA) $(noinst_DATA)

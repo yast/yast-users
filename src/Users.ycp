@@ -255,7 +255,8 @@ global string start_dialog = "users";
 global boolean use_next_time = false;
 
 // if anything was done
-global boolean modified = false;
+global boolean users_modified = false;
+global boolean groups_modified = false;
 global boolean customs_modified = false;
 global boolean defaults_modified = false;
 global boolean ldap_modified = false;
@@ -428,6 +429,8 @@ global define symbol Read (block abort, boolean useUI) ``{
     if ( !RunPrepare("passwd") )
     {
 	    Report::Error (_("Cannot run preparation script."));
+        // TODO add some popup if there are duplicate uids (#25394)
+        return `abort;
     }
     UsersCache::PrintDate ("after run prepare");
 
@@ -613,9 +616,8 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    if (modified) // TODO better structure of modfied
+    if (users_modified || groups_modified)
         BackupConfFiles(base_dir); // should be removed at the end?
-
 
     // write group before passwd! (bug #24130)
 	if ( useUI )
@@ -624,7 +626,7 @@ global define symbol Write (block abort, boolean useUI)``{
 	    if (eval (abort))
 		    return `abort;
 	}
-    if (modified)
+    if (groups_modified)
     {
         if (! WriteGroup (write_dir, groups [`system]:$[], groups[`local]:$[],
              plus_group))
@@ -679,7 +681,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
 
-    if (modified)
+    if (users_modified)
     {
         // add the edited or new users to modified_users
         modified_users [`passwd] = WritePasswd (write_dir, users [`system]:$[],
@@ -776,7 +778,7 @@ global define symbol Write (block abort, boolean useUI)``{
 		    return `abort;
 	}
 
-    if (modified)
+    if (users_modified)
     {
         // TODO send whole structure and decide in the write function
         if (! WriteShadow(write_dir, shadow[`system]:$[], shadow[`local]:$[],
@@ -788,7 +790,9 @@ global define symbol Write (block abort, boolean useUI)``{
             else
                 y2error ("Cannot write shadow file.");
         }
-
+    }
+    if (groups_modified)
+    {
         if (! WriteGshadow(write_dir, gshadow[`system]:$[], gshadow[`local]:[],
                 plus_gshadow))
         {
@@ -801,7 +805,7 @@ global define symbol Write (block abort, boolean useUI)``{
     }
 
     // call make on NIS server
-    if (modified && is_nis_master)
+    if ((users_modified || groups_modified) && is_nis_master)
     {
         map ret = SCR::Execute(.target.bash_output, "/usr/bin/make -C /var/yp");
         if (ret["exit"]:1 != 0)
@@ -1132,8 +1136,10 @@ global define boolean Import (map settings) ``{
     users_by_name [`system] = UsersByName (users[`system]:$[]);
     users_by_name [`local] = $[];
 
-    if (settings["users"]:[] != [] || settings["groups"]:[] != [])
-        modified = true;
+    if (settings["users"]:[] != [])
+        users_modified = true;
+    if (settings["groups"]:[] != [])
+        groups_modified = true;
 
     // Problem: what if UID is not provided?
     list without_uid = [];
@@ -1480,11 +1486,12 @@ global define boolean Delete (string what, map data)``{
  */
 global define boolean Commit (string object, boolean cache)``{
 
-    modified = true;
 
     if (object == "user")
     {
 //y2warning("user : %1", user_in_work );
+        users_modified = true;
+
         integer uid = user_in_work ["uid"]:max_uid;
         integer org_uid = user_in_work ["org_uid"]:uid;
         symbol what_user = user_in_work ["what"]:`nothing;
@@ -1718,6 +1725,8 @@ global define boolean Commit (string object, boolean cache)``{
     }
     else if ( object == "group" )
     {
+        groups_modified = true;
+
         integer gid = group_in_work ["gid"]:max_gid;
         integer org_gid = group_in_work ["org_gid"]:gid;
         symbol what_group = group_in_work ["what"]:`nothing;
@@ -2094,9 +2103,9 @@ global define boolean ReadSystemDefaults()``{
     sec = Security::Settings["OBSCURE_CHECKS_ENAB"]:"no";
     obscure_checks = (sec == "yes") ? true: false;
 
-    y2debug ("encryption: %1", Users::encryptionMethod);
+    y2debug ("encryption: %1", Users::encryptionMethod)
 
-	// set maximal password length
+	// set maximal password length -- is 128 right value??
 	if ("des" != encryptionMethod)
 	    max_length_pas = 128;
 
@@ -2661,8 +2670,6 @@ global define boolean ChangeCustoms(string what, list new) ``{
  * @param groupname the name of dew default group
  */
 global define void SetDefaults (map new_defaults, string groupname)``{
-
-    modified = true;
 
     foreach (`key, `value, new_defaults, ``{
         if (value != "")
