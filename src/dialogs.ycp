@@ -139,6 +139,11 @@ global define symbol EditUserDialog(string what) ``{
             // checkbox label
             `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
                 Users::root_mail != ""),
+
+	    `VSpacing (0.5),
+            // checkbox label
+            `CheckBox (`id (`autologin),_("Enable &Auto Login"), true),
+
             `VStretch (),
             detailsmorebox);
     }
@@ -660,6 +665,8 @@ _("<p>Really use the entered value?</p>");
     if (Users::start_dialog == "user_add" && Mode::cont)
     {
         Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
+            ? username : "";
+        Users::autologin = UI::QueryWidget (`id (`autologin), `Value)
             ? username : "";
     }
     if( ret == `additional ||  ret == `nosave )

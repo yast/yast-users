@@ -345,8 +345,12 @@ the password. This starting procedure is traditionally known as the
 
     if (mail) // these are used only during installation time
     {
+	// help text 3.5/7 (only during installation)
+	help = help + _("<p>
+The <b>login</b> procedure could be skipped if <b>Enable Auto Login</b> option is set. In such case, this user will be logged in automatically.</p>") +
+
         // help text 4/7
-        help = help + _("<p>
+        _("<p>
 The mail for root will be forwarded to this user if you check the option \"Receive System Mail\".</p>
 ") +
 
