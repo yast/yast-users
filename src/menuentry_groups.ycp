@@ -34,7 +34,7 @@
      
       ////////////////////////////////////////////////////////////////////////////////
       // group (one of the groups in /usr/lib/YaST2/etc/y2contolcenter.conf         //
-     `group        : "Misc", 
+     `group        : "Security", 
    
      ////////////////////////////////////////////////////////////////////////////////
      // Icon used in y2contolcenter                                                //
