@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Sep 10 17:51:43 CEST 2003 - jsuchome@suse.cz
+
+- check if autologin is available (only works for KDM, bug #30385)
+
+-------------------------------------------------------------------
 Tue Sep  9 09:41:54 CEST 2003 - jsuchome@suse.cz
 
 - flush /etc/sysconfig/displaymanager after write during installation

@@ -215,65 +215,6 @@ can be changed for non-local users.
 	contents = add( contents, `VStretch() );
     }
 
-    /*
-    term detailsmorebox =
-        `HBox(
-            // push button
-            `PushButton(`id(`details),`opt(`key_F2), _("&Details...")),
-            `PushButton(`id(`passwordsettings),`opt(`key_F7),
-		// push button label
-                _("&Password Settings"))
-	);
-
-    if( Mode::cont && Users::start_dialog == "user_add" )
-    {
-        detailsmorebox = `VBox (
-	    `HSquash(`HBox(`VBox(
-		// checkbox label
-		`Left(`CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
-		    Users::root_mail != "")),
-
-		`VSpacing (0.5),
-		// checkbox label
-		`Left(`CheckBox (`id (`autologin),_("Enable &Auto Login"), true))
-	    ))),
-	    `VSpacing (0.5),
-            detailsmorebox,
-	    `VSpacing (0.5),
-            `PushButton(`id(`additional), `opt(`key_F3),
-                // push button
-                _("Additional Users and &Groups")));
-    }
-    detailsmorebox = add(detailsmorebox, `VStretch());
-
-    term contents =
-        `HSquash(`VBox(
-            `VStretch(),
-            `VBox(
-                // label text
-                do_not_edit ? `Label(_("Only additional group memberships
-can be changed for non-local users.
-")) : `VSpacing (0),
-                do_not_edit ? `VSpacing (1) : `VSpacing (0),
-		name_entries
-            ),
-            `VSquash(
-            `HBox(
-                // input field for login name
-                `Bottom(`TextEntry(`id(`username), _("&User Login"), username)),
-                (what != "add_user") ? `HSpacing (0)
-                    // push button to generate login from first and last name
-                    : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-            )),
-            // first version of user password
-            `Password(`id(`pw1), _("&Enter a Password"), ""),
-            // second version of user password, retyped to avoid typos
-            // please use newline if it is longer than 48 characters
-            `Password(`id(`pw2), _("Reenter the Password for &Verification"), ""),
-            `VStretch(),
-            detailsmorebox ));
-    */
-
     Wizard::SetContentsButtons(
             dialog_labels [ what, user_type ]:"",
             contents,
@@ -319,6 +260,9 @@ can be changed for non-local users.
         UI::ChangeWidget(`id(`pw1), `Value, Users::default_pw);
         UI::ChangeWidget(`id(`pw2), `Value, Users::default_pw);
     }
+
+    if (complex_layout && !Users::autologin_available)
+	UI::ChangeWidget(`id(`autologin), `Enabled, false );
 
     any ret = `next;
     repeat
@@ -764,9 +708,12 @@ _("<p>Really use the entered value?</p>");
     {
         Users::root_mail = UI::QueryWidget (`id (`root_mail), `Value)
             ? username : "";
-        Users::autologin = UI::QueryWidget (`id (`autologin), `Value)
-            ? username : "";
-	Users::autologin_used = UI::QueryWidget (`id (`autologin), `Value);
+	if (Users::autologin_available)
+	{
+	    Users::autologin = UI::QueryWidget (`id (`autologin), `Value)
+		? username : "";
+	    Users::autologin_used = UI::QueryWidget (`id (`autologin), `Value);
+	}
     }
     if( ret == `additional ||  ret == `nosave )
     {

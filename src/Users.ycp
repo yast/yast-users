@@ -166,6 +166,7 @@ global string root_mail = "";
 // autologin without showing kdm (value is username)
 global string autologin = "";
 global boolean autologin_used = true;
+global boolean autologin_available = true;
 
 // list of user sources - passwd entry from /etc/nsswitch.conf
 list user_sources = [];
@@ -699,6 +700,13 @@ global define symbol Read (block abort, boolean useUI) ``{
     // increase the progress to "finish"
     if( useUI ) Progress::NextStage ();
 
+    // check for KDM (needed for autologin)
+    if (SCR::Read (.sysconfig.displaymanager.DISPLAYMANAGER) != "kdm")
+    {
+	autologin_available = false;
+	autologin_used = false;
+    }
+
     return `next;
 }
 
@@ -1029,13 +1037,16 @@ global define symbol Write (block abort, boolean useUI)``{
             // error popup
             Report::Error(_("There was an error while setting forwarding for root's mail."));
 
-	// write autologin information
-	SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN,
-	    autologin);
-	SCR::Write(.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
-	    autologin == "" ? "no" : "yes");
-	// flush changes (#30124)
-	SCR::Write(.sysconfig.displaymanager, nil);
+	if (autologin_available)
+	{
+	    // write autologin information
+	    SCR::Write (.sysconfig.displaymanager.DISPLAYMANAGER_AUTOLOGIN,
+		autologin);
+	    SCR::Write(.sysconfig.displaymanager.DISPLAYMANAGER_PASSWORD_LESS_LOGIN,
+		autologin == "" ? "no" : "yes");
+	    // flush changes (#30124)
+	    SCR::Write(.sysconfig.displaymanager, nil);
+	}
     }
 
     // increase the progress to "finish"
