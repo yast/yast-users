@@ -1,12 +1,12 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-packager
+# neededforbuild yast2-devel-packages yast2-country yast2-installation yast2-security yast2-packager cracklib-devel gpp libgpp
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-pam yast2-security yast2-packager
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 
-BuildArchitectures:	noarch
+#BuildArchitectures:	noarch
 
 Summary:	Configuration of users
 
@@ -27,9 +27,13 @@ Summary:	Configuration of users
 @clientdir@/*.ycp
 @configdir@/*.y2cc
 @moduledir@/*.ycp
-@scrconfdir@/*.scr
 @yncludedir@/users/*
 @ybindir@/*.pl
+#agents:
+@scrconfdir@/*.scr
 @agentdir@/ag_uid
 @agentdir@/ag_ldap
+@plugindir@/libpy2ag_crack.so.*
+@plugindir@/libpy2ag_crack.so
+@plugindir@/libpy2ag_crack.la
 %doc @docdir@

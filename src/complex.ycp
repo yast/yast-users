@@ -152,7 +152,7 @@ global define symbol UsersDialog() ``{
     }
 
     /*
-    symbol current_filter = "local";//FIXME: current users!
+    symbol current_filter = "local";//current users!
     list available_filters = [];
     foreach (`type, Users::available_usersets, ``{
 	if (current_filter == type)

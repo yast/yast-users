@@ -1,0 +1,24 @@
+/**
+ * File:	crack.scr
+ * Summary:	Agent for testing passwords witch cracklib library
+ * Author:	Jiri Suchomel <jsuchome@suse.cz>
+ * Access:	read-only
+ * See:		cracklib: /usr/share/doc/cracklib
+ *
+ * Example:
+ *   Read(.crack, password)
+ *   ("OK")
+ **
+ *   Read(.crack, "qqqqq")
+ *   ("it doeas not contain enough DIFFERENT characters")
+ *
+ * Return value:
+ *   error message if password is not strong enough, "OK" when OK
+ *
+ * $Id$
+ */
+.crack
+
+`ag_crack(
+  CrackAgent()
+)

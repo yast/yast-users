@@ -622,7 +622,7 @@ global define string LDAPSearchFilterPopupHelp() ``{
     _("<p><b>Example:</b>
 <br>With user filter
 <br>
-<tt>&(objectClass=person)(uid=u*)</tt>
+<tt>(&(objectClass=person)(uid=u*))</tt>
 <br>
 you get only users with username begining with 'u'.</p>");
 
