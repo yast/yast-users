@@ -70,6 +70,7 @@ my %last_uid		= (
 my %last_gid		= (
     "local"		=> 1000,
     "system"		=> 100,
+    "ldap"		=> 1000
 );
 
 my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
@@ -677,7 +678,7 @@ sub NextFreeGID {
     my $self	= shift;
     my $ret;
     my $max	= $self->GetMaxGID ($group_type);
-    my $gid	= 500;
+    my $gid	= $last_gid{$group_type};
     do {
         if ($self->GIDExists ($gid)) {
             $gid++;
