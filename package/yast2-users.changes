@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug  8 11:36:17 CEST 2002 - jsrain@suse.de
+
+- added more testsuites
+- 2.6.17
+
+-------------------------------------------------------------------
 Mon Aug  5 15:01:47 CEST 2002 - jsrain@suse.cz
 
 - added more verbose error logging

@@ -1,0 +1,50 @@
+/**
+ * File:
+ *  groupSave.ycp
+ *
+ * Module:
+ *  Users configurator
+ *
+ * Summary:
+ *  User save test.
+ *
+ * Authors:
+ *  Jiri Srain <jsrain@suse.cz>
+ *
+ * $Id$
+ *
+ */
+
+{
+    global define UI::OpenDialog(term t)``{}
+    global define UI::CloseDialog()``{}
+    global define term UI::UserInput()``{return `lprng ;}
+    global define UI::SetConsoleFont (string console_magic, string font, string screen_map, string unicode_map, string encoding) ``{}
+    global define UI::Recode (string s1, string s2, string s) ``{return s;}
+
+    include "testsuite.ycp";
+    import "UserWriteStack";
+
+
+    map group = $["gid":500,
+	"groupname":"group1",
+	"old_gid":500,
+	"password":"$1$Bzzzezzz$rQpMFTBx5dSZVRZnSWQDv/",
+	"userlist":"adabas,amanda,at,bin",
+	"what":`add_group];
+
+    TEST(``(UserWriteStack::GroupSave (group, false)), [], 0);
+    DUMP (sformat ("%1", UserWriteStack::write_to_system_stack));
+    DUMP ("==========================================================");
+
+    group = $["gid":501,
+        "groupname":"group2",
+        "old_gid":501,
+        "password":"$1$Bzzzezzz$rQpMFTBx5dSZVRZnSWQDv/",
+        "userlist":"adabas,amanda,at,bin",
+        "what":`add_group];
+
+
+    TEST(``(UserWriteStack::GroupSave (group, false)), [], 0);
+    DUMP (sformat ("%1", UserWriteStack::write_to_system_stack));
+}

@@ -452,7 +452,7 @@
       */
     global define integer GetUid( string username )``{
 
-        integer gid = UserDefs::max_gid;
+        integer uid = UserDefs::max_uid;
         foreach ( `key, `user,  current_users, ``{
             if( lookup( user, "username", "") == username )
             {

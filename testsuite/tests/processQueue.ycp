@@ -1,22 +1,19 @@
 /**
  * File:
- *  misc.ycp
+ *  processQueue.ycp
  *
  * Module:
- *  Printer configurator
+ *  Users configurator
  *
  * Summary:
- *  Miscelaneous tests.
+ *  Processing todo queue test.
  *
  * Authors:
- *  Petr Blahos <pblahos@suse.cz>
+ *  Jiri Srain <jsrain@suse.cz>
  *
  * $Id$
  *
- * Miscelaneous tests.
  */
-
-// FIXME: printcapTable testing disabled until UI gets clear
 
 {
     global define UI::OpenDialog(term t)``{}

@@ -327,7 +327,6 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
      * Update the virtual user and groups settings.
      */
     global define symbol GroupSave(map group_in_work , boolean save_directly ) ``{
-
 	   //load the manipulated group settings from group_in_work
 	   symbol what             = lookup( group_in_work , "what" ,     "");
 	   string new_groupname    = lookup( group_in_work, "groupname",  "");

@@ -1,0 +1,17 @@
+Read	.etc.shells ["/bin/ash", "/bin/bash", "/bin/bash1", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]
+Read	.target.size "/bin/ash" 0
+Read	.target.size "/bin/bash" 0
+Read	.target.size "/bin/csh" 0
+Read	.target.size "/bin/false" 0
+Read	.target.size "/bin/ksh" 0
+Read	.target.size "/bin/sh" 0
+Return	[`item (`id ("/bin/ash"), "/bin/ash"), `item (`id ("/bin/bash"), "/bin/bash"), `item (`id ("/bin/csh"), "/bin/csh"), `item (`id ("/bin/false"), "/bin/false"), `item (`id ("/bin/ksh"), "/bin/ksh"), `item (`id ("/bin/sh"), "/bin/sh")]
+Dump	==========================================================
+Read	.etc.shells ["/bin/ash", "/bin/bash", "/bin/bash1", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]
+Read	.target.size "/bin/ash" 0
+Read	.target.size "/bin/bash" 0
+Read	.target.size "/bin/csh" 0
+Read	.target.size "/bin/false" 0
+Read	.target.size "/bin/ksh" 0
+Read	.target.size "/bin/sh" 0
+Return	["/bin/ash", "/bin/bash", "/bin/csh", "/bin/false", "/bin/ksh", "/bin/sh"]
