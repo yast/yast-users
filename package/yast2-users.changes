@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb  4 14:32:03 CET 2005 - jsuchome@suse.cz
+
+- call GROUPADD_CMD if provided in /etc/login.defs
+- simplify adding 1st user in installation (= no tabs, #50475)
+- 2.11.10
+
+-------------------------------------------------------------------
 Mon Jan 31 14:13:22 CET 2005 - jsuchome@suse.cz
 
 - call /usr/sbin/useradd.local at the end of adding (#50242)

@@ -111,6 +111,9 @@
 		    "EVMS_CONFIG"		: "no"
 		]
 	],
+	"target": $[
+	    "stat"	: $[],
+	],
     ];
 
     map WRITE = $[];

@@ -23,14 +23,15 @@
 
     map READ = $[
 	"target" : $[
-	    "string" :
+	    "string"	:
 "/bin/ash
 /bin/bash
 /bin/bash1
 /bin/csh
 /bin/false
 /bin/ksh
-/bin/sh"
+/bin/sh",
+	    "stat"	: $[ 1: 1], // means 'file exists'
 	]
     ];
 

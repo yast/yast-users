@@ -18,11 +18,7 @@
 
     include "testsuite.ycp";
     import "Users";
-//    import "UsersCache";
-//    import "UsersLDAP";
     import "Mode";
-//    import "Progress";
-//    import "Report";
 
     map READ = $[
 	"passwd": $[
@@ -127,9 +123,7 @@
 	    ],
 	],
 	"target": $[
-	    "stat"	: $[
-		"isdir"	: true
-	    ],
+	    "stat"	: $[],
 	    "size"	: -1,
 	    "tmpdir"	: "/tmp/YaST"
 	],
@@ -159,6 +153,9 @@
     Mode::SetTest ("test");
 
     TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+
+    // for home directory checks
+    READ["target","stat","isdir"]	= true;
 
     Users::SelectUserByName ("hh");
 
