@@ -1270,7 +1270,7 @@ sub Read {
     if ($error_msg) {
 	Report::Error ($error_msg);
 	return 0; # problem with reading config files ( /etc/passwd etc.)
-	# TODO enable continue at "users risk"?
+	# TODO enable to continue at "users risk"?
     }
 
     # Build the cache structures
@@ -1280,9 +1280,8 @@ sub Read {
 
     Autologin::Read ();
 
-    if (Mode::cont ()) {
+    if (Mode::cont () && Autologin::available ()) {
 	Autologin::Use (YaST::YCP::Boolean (1));
-	Autologin::pw_less (1);#FIXME is it necessary?
     }
 
     ReadAvailablePlugins ();
@@ -2396,7 +2395,6 @@ BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
     SCR::Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save");
-    # FIXME return value when write fails!
     return SCR::Write (".passwd.groups", \%groups);
 }
 
@@ -3125,32 +3123,6 @@ Please try again.");
 }
 
 ##------------------------------------
-# check atributes of an LDAP user
-BEGIN { $TYPEINFO{CheckLDAPAttributes} = ["function",
-    "string",
-    ["map", "string", "any"]];
-}
-sub CheckLDAPAttributes {
-
-    my $user	= $_[0];
-
-    # TODO required attributes should be enhanced by all attributes
-    # required by schema!
-    foreach my $req (UsersLDAP::GetUserRequiredAttributes ()) {
-
-	my $a = $ldap2yast_user_attrs{$req} || $req;
-	if (!defined $user->{$a} || $user->{$a} eq "") {
-	    # error popup (user forgot to fill in some attributes)
-	    return sprintf (_("The attribute '%s' is required for this object according
-to its LDAP configuration, but it is currently empty."), $req);
-	}
-    }
-    return "";
-}
-
-
-
-##------------------------------------
 # check the home directory of current user - part 2
 BEGIN { $TYPEINFO{CheckHomeUI} = ["function",
     ["map", "string", "string"],
@@ -3406,7 +3378,10 @@ sub CheckUser {
     }
 
     if ($error eq "") {
-	$error	= CheckPassword ($user{"userPassword"});
+	# do not check pw when it wasn't changed - must be tested directly
+	if ($user{"userPassword"} ne "x" || $user{"what"} ne "edit_user") {
+	    $error	= CheckPassword ($user{"userPassword"});
+	}
     }
     
     if ($error eq "") {
@@ -3421,35 +3396,72 @@ sub CheckUser {
 	$error	= CheckGECOS ($user{"addit_data"});
     }
 
-    if ($error eq "" && $type eq "ldap") {
-	$error	= CheckLDAPAttributes (\%user);
-    }
+# TODO Check*UI (?)
 
-#TODO Check*UI (?)
-# FIXME Check from plugins...
+    my $error_map	=
+	UsersPlugins::Apply ("Check", { "what" => "user" }, \%user);
+
+    if (ref ($error_map) eq "HASH") {
+	foreach my $plugin (keys %{$error_map}) {
+	    if ($error ne "") {
+		next;
+	    }
+	    if (defined $error_map->{$plugin} && $error_map->{$plugin} ne ""){
+		$error = $error_map->{$plugin};
+	    }
+	}
+    }
 
     # disable commit
     if ($error ne "") {
 	$user_in_work{"check_error"} = $error;
     }
+    elsif (defined ($user_in_work{"check_error"})) {
+	delete $user_in_work{"check_error"};
+    }
+    
     return $error;
 }
 
 
 ##------------------------------------
 # check correctness of current group data
-BEGIN { $TYPEINFO{CheckGroup} = ["function", "string"]; }
+BEGIN { $TYPEINFO{CheckGroup} = ["function", "string", ["map","string","any"]];}
 sub CheckGroup {
 
-    my $error = CheckGID ();
+#FIXME this is never called from sequence !!!
+# - there will be a problem when member is required!
+    my %group	= %{$_[0]};
+    if (!%group) {
+	%group = %group_in_work;
+    }
+
+    my $error = CheckGID ($group{"gidNumber"});
 
     if ($error eq "") {
-	$error = CheckGroupname ();
+	$error = CheckGroupname ($group{"groupname"});
     }
-    
+
+    my $error_map	=
+	UsersPlugins::Apply ("Check", { "what" => "group" }, \%group);
+
+    if (ref ($error_map) eq "HASH") {
+	foreach my $plugin (keys %{$error_map}) {
+	    if ($error ne "") {
+		next;
+	    }
+	    if (defined $error_map->{$plugin} && $error_map->{$plugin} ne ""){
+		$error = $error_map->{$plugin};
+	    }
+	}
+    }
+
     # disable commit
     if ($error ne "") {
 	$group_in_work{"check_error"} = $error;
+    }
+    elsif (defined ($group_in_work{"check_error"})) {
+	delete $group_in_work{"check_error"};
     }
     return $error;
 }

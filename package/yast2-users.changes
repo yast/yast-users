@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Mar  4 20:45:29 CET 2004 - jsuchome@suse.cz
+
+- plugins: differs user from groups (=2 map parameters to every function)
+    check plugin availability for given user/group type,
+    "rest of LDAP attributes" is default plugin,
+- LDAP: check attributes required by the LDAP schema 
+
+-------------------------------------------------------------------
 Wed Mar  3 16:55:39 CET 2004 - jsuchome@suse.cz
 
 - LDAP: configurable group member attribute (member vs. uniqueMember)

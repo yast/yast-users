@@ -14,50 +14,73 @@
 
 
 {
-    textdomain "users"; //FIXME - own textdomain (so the new plugin package
-			// won't affect original users package)
+    textdomain "users"; // use own textdomain for new plugins
+
     import "Label";
     import "Popup";
+    import "Report";
     import "Wizard";
 
     import "Ldap";
     import "LdapPopup";
     import "Users";
     import "UsersLDAP";
-    import "UsersPluginLDAPAll";//import module, which does low-level changes
+    import "UsersPluginLDAPAll"; // plugin module
 
     any ret = nil;
-    string func = "";
-    map<string,any> param = $[];
+    string func			= "";
+    map<string,any> config	= $[];
+    map<string,any> data	= $[];
+
     /* Check arguments */
     if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
 	func = (string) WFM::Args(0);
 	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
-	    param = (map<string,any>)WFM::Args(1);
+	    config = (map<string,any>)WFM::Args(1);
+	if(size(WFM::Args()) > 2 && is(WFM::Args(2), map))
+	    data = (map<string,any>)WFM::Args(2);
     }
     y2milestone("----------------------------------------");
-    y2milestone("users dummy plugin started");
+    y2milestone("users plugin started: LDAPAll");
 
-    y2internal ("func=%1", func);
-    y2debug ("param=%1", param);
+    y2debug ("func=%1", func);
+    y2debug ("config=%1", config);
+    y2debug ("data=%1", data);
 
     if (func == "Summary") {
-	// plugin name
-	ret = UsersPluginLDAPAll::Summary ();
+	ret = UsersPluginLDAPAll::Summary (config, $[]);
     }
     else if (func == "Name") {
-	// plugin name
-	ret = UsersPluginLDAPAll::Name ();
+	ret = UsersPluginLDAPAll::Name (config, $[]);
     }
     else if (func == "Dialog") {
 	// define the dialog for this plugin and return it's contents
 
-	string caption	= _("LDAP Settings");
-	string help	= "";//FIXME LDAPSettingsDialogHelp(what),
-	map object	= param["data"]:$[];
-	string what	= param["what"]:"user";
+	string caption	= UsersPluginLDAPAll::Name (config, $[]);
+	string what	= config["what"]:"user";
 
-	map<string, any> tmp_object	= $[];
+
+	// helptext 1/3
+	string help_text = _("<p>
+Here, see the table of all allowed attributes for the current LDAP entry that were not set in previous dialogs.</p>") +
+
+	// helptext 1/3 (don't translate objectClass"),
+        // %1 is list of values
+	sformat (_("<p>
+The list of attributes is given by the value of \"objectClass\"
+(which is currently:
+<br>%1).
+</p>
+"), mergestring (what == "user" ?
+	UsersLDAP::GetUserClass () : UsersLDAP::GetGroupClass (), ",<br>")) +
+
+	// helptext 3/3
+	_("<p>
+Edit each attribute using <b>Edit</b>. Some attributes 
+could be required, as defined in the user template in the <b>LDAP Client Module</b>.</p>
+");
+
+	map<string, any> tmp_data	= $[];
         list items			= [];
         list used_attributes	= [];
         list new_attributes		= [];
@@ -75,6 +98,7 @@
 	// and now for groups
 	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
 	  UsersLDAP::GetMemberAttribute () ];
+	// FIXME problem when these parameters are required!
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
@@ -86,10 +110,10 @@
 
 	// show only attributes allowed by schema
 
-	list allowed_attrs= Ldap::GetObjectAttributes(object["objectClass"]:[]);
+	list allowed_attrs= Ldap::GetObjectAttributes (data["objectClass"]:[]);
 
 	// generate table items from already existing values
-        foreach (string attr, any val, object, ``{
+        foreach (string attr, any val, data, ``{
 	    if (contains (internal_keys, attr))
 		return;
 	    if (contains (already_edited_keys, attr))
@@ -102,7 +126,7 @@
 	    if (is (val, string))
 	    {
 		value = [ (string)val ];
-		object [attr] = value;
+		data [attr] = value;
 	    }
 	    else value = (list<string>)val;
 	    used_attributes = add (used_attributes, attr);
@@ -115,13 +139,13 @@
 	map ldap2yast = (what == "user") ? UsersLDAP::GetUserAttrsLDAP2YaST():
 	    UsersLDAP::GetGroupAttrsLDAP2YaST();
 
-	foreach (string class, object["objectClass"]:[], ``{
+	foreach (string class, data["objectClass"]:[], ``{
 	    foreach (string at, Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
-		if (!haskey (object, ldap2yast [at]:at) &&
+		if (!haskey (data, ldap2yast [at]:at) &&
 		    !contains (already_edited_keys, ldap2yast [at]:at))
 		{
-		    object[at] = [];
+		    data[at] = [];
 		    new_attributes = add (new_attributes, at);
 		    items = add (items, `item (`id(at), at, ""));
 		}
@@ -149,68 +173,65 @@
 
 	// dialog caption
 	Wizard::SetContentsButtons(_("Additional LDAP Settings"),
-	    contents, help, Label::BackButton(), Label::NextButton());
+	    contents, help_text, Label::BackButton(), Label::NextButton());
 
-	any ret = `next;
+	ret = `next;
         UI::SetFocus (`id(`table));
 	repeat
 	{
-        ret = UI::UserInput();
-	if ( ret == `edit || ret == `table)
-	{
-	    string attr	= (string) UI::QueryWidget (`id(`table), `CurrentItem);
-	    list<string> value		= tmp_object [attr]:object[attr]:[];
-	    value = LdapPopup::EditAttribute (attr, value, [],
-		Ldap::SingleValued (attr), []);
-	    if (value == tmp_object [attr]:object[attr]:[])
+	    ret = UI::UserInput();
+	    if ( ret == `edit || ret == `table)
 	    {
-		ret = `notnext;
-		continue;
+		string attr		=
+		    (string) UI::QueryWidget (`id(`table), `CurrentItem);
+		list<string> value	= tmp_data [attr]:data[attr]:[];
+		value			= LdapPopup::EditAttribute (
+		    attr, value, [], Ldap::SingleValued (attr), []);
+		if (value == tmp_data [attr]:data[attr]:[])
+		{
+		    ret = `notnext;
+		    continue;
+		}
+		UI::ChangeWidget (`id(`table),`Item(attr,1),
+		    mergestring(value,","));
+		tmp_data [attr] = value;
 	    }
-	    UI::ChangeWidget (`id(`table),`Item(attr,1),mergestring(value,","));
-	    tmp_object [attr] = value;
-	}
-        if ( ret == `next )
-        {
-	    // FIXME move this to Plugin API
-	    // FIXME include also required by schema
-	    // check for required attributes
-	    foreach (string req, required_attrs, ``{
-		if (ret == `notnext) return;
-		if ((contains (used_attributes, req) ||
-		     contains (new_attributes, req)) &&
-		    tmp_object[req]:object[req]:[] == [])
-		    // question, %1 is attribute name
-		    if (!Popup::YesNo (sformat (_("The attribute '%1' is required for this object according
-to its LDAP configuration, but it is currently empty.
-Are you sure?"), req)))
-		    {
-			ret = `notnext;
-		    }
-	    });
-	    if (ret == `notnext) continue;
-	    // update global variables
-	    if (tmp_object == $[])
+	    if ( ret == `next )
 	    {
-		break;
+		string err = UsersPluginLDAPAll::Check (
+		    config,
+		    (map<string,any>) union (data, tmp_data));
+		// FIXME what about old (internal) parameters (givenName) ???
+		// they are not shown in this dialog but they could be missing!
+		if (err != "")
+		{
+		    Report::Error (err);
+		    ret = `notnext;
+		    continue;
+		}
+
+		if (tmp_data == $[])
+		{
+		    break;
+		}
+		// FIXME: use Plugin::Edit/Add or Users::Update?
+		if (data["what"]:"" == "edit_user")
+		{
+		    Users::EditUser (tmp_data);
+		}
+		else if (data["what"]:"" == "add_user")
+		{
+		    Users::AddUser (tmp_data);
+		}
+		else if (data["what"]:"" == "edit_group")
+		{
+		    Users::EditGroup (tmp_data);
+		}
+		else if (data["what"]:"" == "add_group")
+		{
+		    Users::AddGroup (tmp_data);
+		}
 	    }
-	    if (object["what"]:"" == "edit_user")
-	    {
-		Users::EditUser (tmp_object);
-	    }
-	    else if (object["what"]:"" == "add_user")
-	    {
-		Users::AddUser (tmp_object);
-	    }
-	    else if (object["what"]:"" == "edit_group")
-	    {
-		Users::EditGroup (tmp_object);
-	    }
-	    else if (object["what"]:"" == "add_group")
-	    {
-		Users::AddGroup (tmp_object);
-	    }
-         }
 	} until (contains ([`next, `abort, `back, `cancel], ret));
 	Wizard::CloseDialog ();
     }
