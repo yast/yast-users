@@ -188,4 +188,12 @@ global define string ReadNISConfigurationType (string basedir)``{
     return ypdir;
 }
 
+/**
+ * recode the string from "environment encoding" to UTF-8
+ */
+global define string RecodeUTF (string text) ``{
+
+    return (string) UI::Recode (WFM::GetEnvironmentEncoding(), "UTF-8",text);
+}
+
 }//EOF
