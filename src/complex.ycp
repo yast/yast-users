@@ -321,12 +321,6 @@ global define symbol UsersDialog() ``{
         }
         if ( ret == `new )
         {
-            if (Users::kerberos_auth == "required")// only this ??
-            {
-                // error popup
-                Report::Message (_("As you are using only Kerberos for authentication, you cannot add local users."));
-                ret = `not_next;
-            }
             Users::user_in_work = $[];
         }
 
