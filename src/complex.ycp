@@ -12,18 +12,16 @@
 
 textdomain "users";
 
-import "Wizard";
-import "Mode";
+import "Autologin";
+import "Label";
+import "Ldap";
+import "Popup";
 import "Report";
 import "Security";
-import "Autologin";
-import "Ldap";
-
+import "Stage";
 import "Users";
 import "UsersCache";
-
-import "Popup";
-import "Label";
+import "Wizard";
 
 include "users/helps.ycp";
 
@@ -56,7 +54,7 @@ define symbol ReadDialog (boolean useUI) ``{
     if (Users::Read () != "")
     {
 	ret = `back;
-	if (Mode::cont)
+	if (Stage::cont ())
 	    ret = `nextmodule;
     }
     Users::SetGUI (true);
@@ -96,7 +94,7 @@ define symbol WriteDialog (boolean useUI) ``{
     symbol ret = `next;
     if (Users::Write () != "")
     {
-	if (!Mode::cont) ret = `abort;
+	if (!Stage::cont ()) ret = `abort;
     }
     Users::SetGUI (true);
     return ret;
@@ -121,7 +119,7 @@ define symbol ReallyAbort() ``{
 
     boolean ret = true;
 
-    if ( ! Mode::cont )
+    if ( ! Stage::cont () )
     {
         ret = Popup::ReallyAbort (Modified());
     }

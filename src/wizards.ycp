@@ -18,6 +18,7 @@ import "Ldap";
 import "Mode";
 import "Popup";
 import "Sequencer";
+import "Stage";
 import "UsersCache";
 import "Users";
 import "Wizard";
@@ -30,7 +31,7 @@ include "users/widgets.ycp";
 // --------------------------------------------------------------------------
 
 define boolean ReallyBack () ``{
-    if (!Mode::cont && Users::Modified())
+    if (!Stage::cont () && Users::Modified())
 	return Popup::ReallyAbort (Users::Modified());
     else return true;
 }
@@ -73,7 +74,7 @@ define symbol SummaryDialog() ``{
 	// dialog caption
 	"caption"	: _("User and Group Administration"),
 	"back_button"	: Label::BackButton (),
-	"next_button"	: Mode::cont ?
+	"next_button"	: Stage::cont () ?
 	    Label::NextButton() : Label::FinishButton (),
 	"fallback_functions"	: $[
 	    `back: ReallyBack
@@ -100,7 +101,7 @@ define symbol SummaryDialog() ``{
 	ret = update_symbol [ret, UsersCache::GetCurrentSummary ()]:`back;
     }
 
-    if (ret == `back && Mode::cont)
+    if (ret == `back && Stage::cont ())
     {
 	Users::SetStartDialog ("user_add");
 	Users::SetUseNextTime (true);
@@ -301,7 +302,7 @@ define symbol MainSequence(string start) ``{
 define symbol UsersSequence(string start) ``{
 
     map aliases = $[
-	"read"  : [ ``( ReadDialog(!Mode::cont)), true ],
+	"read"  : [ ``( ReadDialog(!Stage::cont ())), true ],
 	"main"	:   ``( MainSequence( start ) ),
 	"write" : [ ``( WriteDialog( true )), true ]// true as parameter ??
     ];
@@ -328,7 +329,7 @@ define symbol UsersSequence(string start) ``{
     string caption = _("User and Group Configuration");
     term contents = `Label(_("Initializing ..."));
 
-    if( ! Mode::cont )
+    if( ! Stage::cont () )
     {
 	Wizard::CreateDialog();
     }
@@ -336,7 +337,7 @@ define symbol UsersSequence(string start) ``{
 
     any ret = Sequencer::Run (aliases, sequence);
 
-    if( ! Mode::cont )
+    if( ! Stage::cont () )
 	UI::CloseDialog();
 
     // read LDAP again in the next run
@@ -361,7 +362,7 @@ define symbol AutoSequence(string start) {
 	    Label::BackButton(), Label::NextButton());
 
     // initialization: ---------------- (simulate empty Import: bug #44660)
-    if (Mode::config && !Users::Modified ())
+    if (Mode::config () && !Users::Modified ())
     {
 	Users::Initialize ();
     }

@@ -172,7 +172,7 @@
     import "Mode";
     import "Ldap";
 
-    Mode::test = true;
+    Mode::SetTest ("test");
 
     DUMP ("==========================================================");
 

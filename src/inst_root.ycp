@@ -19,27 +19,28 @@
 {
 textdomain "users";
 
-import "Wizard";
-import "Mode";
-import "Report";
 import "Label";
+import "Linuxrc";
+import "Mode";
 import "Popup";
+import "Report";
 import "Security"; // Perl module (Users.pm) donesn't call constructor...
-
+import "Stage";
 import "Users";
 import "UsersCache";
+import "Wizard";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
     string valid_password_chars = "-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*() ,;:._+/|?{}=[]";
 
-    if (Mode::cont && ! Mode::usessh)
+    if (Stage::cont () && ! Linuxrc::usessh ())
     {
         // what is this for??
         SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
     }
 
-    boolean this_is_for_real = ! Mode::test;
+    boolean this_is_for_real = ! Mode::test ();
 
     Users::ReadSystemDefaults ();
     string encryptionMethod = Users::EncryptionMethod ();

@@ -133,7 +133,7 @@
     import "YaPI::USERS";
     import "Mode";
 
-    Mode::test = true;
+    Mode::SetTest ("test");
 
     DUMP ("==========================================================");
 

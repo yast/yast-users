@@ -33,7 +33,7 @@
 
     DUMP ("==========================================================");
 
-    Mode::test = true;
+    Mode::SetTest ("test");
 
     map<string,any> user = $[
 	"dn"		: "uid=test2,ou=people,dc=suse,dc=cz",
