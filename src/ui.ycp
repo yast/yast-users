@@ -9,7 +9,6 @@
  *  Screens and UI routines for the users module
  *
  * Authors:
- *  Jan Holesovsky <kendy@suse.cz>, 2001
  *  Johannes Buchhold <jbuch@suse.de>
  *
  * $Id$
@@ -21,13 +20,45 @@
     import "Wizard";
     import "Mode";
     import "Report";
-
+    import "UserDefs";
+    import "UserSettings";
+    import "UserWriteStack";
+    import "UserAddDefs";
+    import "Progress";
+    
     // ===== includes =================================================
-    //include "ui/wizard_dialog.ycp";
     include "ui/common_messages.ycp";
     include "ui/common_popups.ycp";
-    include "users/io.ycp";
     include "users/help.ycp";
+
+
+    
+     global define void save_focus( integer table_input, any ret , symbol what) ``{
+
+	integer l_focusline = 0;
+	
+	if ( what == `group )
+	    l_focusline = focusline_group;
+	if ( what == `user )
+	    l_focusline = focusline_user;
+	
+	
+	if ( is ( table_input, integer ))
+	{
+	    l_focusline = table_input;
+	    if( ret == `delete )
+		l_focusline = 0;
+	}
+	if( l_focusline == nil || l_focusline < 0 )
+	{
+	    l_focusline = 0;
+	}
+
+	if ( what == `group )
+	    focusline_group = l_focusline;
+	if ( what == `user )
+	    focusline_user = l_focusline;
+    }
 
     
     /**
@@ -81,6 +112,141 @@
     }
 
 
+    /**
+     * Read settings dialog
+     * @return symbol `next if success, else `abort
+     */
+    global define symbol ReadDialog (boolean useUI ) ``{
+
+	// Set help text
+	if ( useUI ) Wizard::RestoreHelp ( ReadDialogHelp () );
+
+	
+	// A callback function for abort
+	block abort = ``{
+	    return UI::PollInput () == `abort;
+	};
+	
+	boolean read_aborted = false;
+	string caption = _("Initializing user and group configuration");
+	integer no_of_steps = 5;
+
+	// We do not set help text here, because it was set outside
+	if( useUI )
+	    Progress::New ( caption, " ", no_of_steps,
+		       [ _("Read the default login settings"),
+			 _("Read the default system settings"),
+			 _("Read the user settings"),
+			 _("Read the group settings"),
+			 _("Read the password settings") ],
+		       [ _("Reading the default login settings ..."),	
+			 _("Reading the default system setttings ..."),
+			 _("Reading the user settings ..."),
+			 _("Reading the group settings ..."),
+			 _("Reading the password settings ..."), 
+			 _("Finished") ],
+			    "" );
+
+
+	// read default login settings
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    read_aborted = eval (abort);
+	    if (read_aborted)
+	    {
+		return !read_aborted;
+	    }
+	}
+	
+
+	if ( ! UserAddDefs::Read() )	
+	{
+	    Report::Warning (_("Can not read the default login settings!"));
+	}
+
+	// read default system settings
+	if ( useUI )
+	{
+	    Progress::NextStage ();
+	    read_aborted = eval (abort);
+	    if (read_aborted)
+	    {
+		return !read_aborted;
+	    }
+	}
+	
+
+	if ( ! UserDefs::Read() )
+	{
+	    Report::Error (_("Can not read the default systems settings!"));
+	}
+
+	
+	// read user settings
+	if( useUI )
+	{
+	    Progress::NextStage ();
+
+	    read_aborted = eval (abort);
+	    if (read_aborted)
+	    {	
+		return !read_aborted;
+	    }
+	}
+	
+
+	if ( ! UserSettings::ReadPasswdFromDisk( ) )
+	{
+	    Report::Error (_("Can not read the user settings!"));
+	}
+
+	// read group settings
+	if( useUI )
+	{
+	    Progress::NextStep ();
+	    read_aborted = eval (abort);
+	    if (read_aborted)
+	    {
+		return !read_aborted;
+	    }
+	}
+	
+
+	if ( ! (UserSettings::ReadGroupFromDisk() &&
+	        UserSettings::ReadGshadowFromDisk() ))
+	{
+	    Report::Error (_("Can not read the group settings!" ));
+	}
+
+
+	// read password settings
+	if( useUI )
+	{
+	    Progress::NextStep ();
+	    read_aborted = eval (abort);
+	    if (read_aborted)
+	    {
+		return !read_aborted;
+	    }
+	}
+	
+
+	if ( ! (UserSettings::ReadShadowFromDisk() ))
+	{
+	    Report::Error (_("Can not read the password settings!" ));
+	}
+	
+	
+	// increase the progress to "finish"
+	if( useUI ) Progress::NextStage ();
+
+	return ( !read_aborted? `next : `abort );
+    }
+
+
+  
+    
     
     /**
      * The first of the two main dialogs -- list of the users.
@@ -93,7 +259,7 @@
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
 
-		  `Table(`id(`user_table), `opt(`notify), `header( _("Login"), _("Name"), _("UID"), _("Groups")), usersUsersRead(`items  )),
+		  `Table(`id(`user_table), `opt(`notify), `header( _("Login"), _("Name"), _("UID"), _("Groups")), UserSettings::UsersRead(`items ,view_all_users )),
 		  // not only sysem user 
 		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system users"), view_all_users )),
 	          `HBox
@@ -128,7 +294,7 @@
 		if( ret == `show_all )
 		{
 		    view_all_users = UI::QueryWidget(`id(`show_all), `Value );
-		    UI::ChangeWidget(`id(`user_table), `Items,  usersUsersRead(`items ));
+		    UI::ChangeWidget(`id(`user_table), `Items,  UserSettings::UsersRead(`items,view_all_users ));
 		    ret = `not_next;
 		}
 		
@@ -141,7 +307,7 @@
 		    any user_table_input   = UI::QueryWidget(`id(`user_table), `CurrentItem);
 		    if (user_table_input != nil)
 		    {
-			user_in_work = lookup( current_users , user_table_input ,nil);
+			user_in_work = UserSettings::GetUser( user_table_input ); // Default nil ??
 		    }
 		    else
 		    {
@@ -151,12 +317,6 @@
 		   
 		}
 	    } until ( ret != `not_next  );
-	
-	// if ( ret == `back) ret = `exit;
-	//
-	// Holy rule: DO NOT change any of the predefined IDs!
-	// Somebody calling this might need to rely on them - in their USUAL usage!
-	// sh 2001-01-09
 
 	save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
@@ -178,21 +338,19 @@
         string fullname       = lookup( user_in_work , "fullname" , ""   ); 
 	string home           = lookup( user_in_work , "home"     , ""   );
 	string shell          = lookup( user_in_work , "shell"    , ""   );
-	
-	//y2milestone( " grouplist %1", lookup( user_in_work , "grouplist", ""   ));
-	
 	string grouplist      = lookup( user_in_work , "grouplist", ""   );
-	list  list_grouplist  = groupString2groupList (lookup( user_in_work , "grouplist", ""   ));
-	integer uid           = lookup( user_in_work , "uid"      , max_uid );
+	list  list_grouplist  = UserSettings::GroupString2groupList (lookup( user_in_work , "grouplist", ""   ));
+	integer uid           = lookup( user_in_work , "uid"      , UserDefs::max_uid );
 	integer old_uid       = 0;
-	integer gid           = lookup( user_in_work, "gid"       , max_uid );
+	integer gid           = lookup( user_in_work, "gid"       , UserDefs::max_uid );
 	fullname              = username + ", " + fullname;
-	list available_shells = usersReadShells(`items);
+
+	list available_shells = UserAddDefs::GetAllShells(`items);
 	list available_groups = [];
 	
 
 	// fill the list available_groups and set the user default group true
-	foreach ( `key, `group,  current_groups, ``{
+	foreach ( `key, `group,  UserSettings::current_groups, ``{
 
 	    if ( lookup(group ,"todo", "" ) != `delete )
 	    {
@@ -229,8 +387,6 @@
 					     `Top(edit_shell),
 					     `Top(edit_defaultgroup),
 					     `VStretch()
-					     // input field for login name,
-					  
 					     ),
 				       `HSpacing(2),
 					     
@@ -269,30 +425,29 @@
 		    list_grouplist            = UI::QueryWidget(`id(`grouplist),   `SelectedItems );
 		    boolean input_ok          = true;
 		    integer new_i_uid         = tointeger( new_uid );
-		    
 		    string new_grouplist      = mergestring( list_grouplist, ",");
-		    //y2milestone( "new_grouplist %1", new_grouplist );
+
 		    
 		    // check the uid
 		    if ( (what == `add_user) && (new_uid != sformat("%1",uid)) )
 		    {
 			
-			if( !( new_i_uid >= 0  && new_i_uid <= max_uid )  ||
-			    nil != findfirstnotof( new_uid ,  valid_id_chars ) )
+			if( !( new_i_uid >= 0  && new_i_uid <= UserDefs::max_uid )  ||
+			    nil != findfirstnotof( new_uid ,  UserDefs::valid_id_chars ) )
 			{
 			    string error = sformat(_("The selected User Id is not allowed.
-Please select a valid integer between 0 and %1"), max_uid );
+Please select a valid integer between 0 and %1"),  UserDefs::max_uid );
 			    Report::Error( error );
 			    UI::SetFocus(`id(`uid));
 			    continue;
 			}
 		   
-			if( new_i_uid <= max_system_uid )
+			if( new_i_uid <=  UserDefs::max_system_uid )
 			{
 			    
 			    // tell the max_system_uid
 			    string error = sformat(_("The selected User Id is a system Id,
-because the Id is smaller than %1. \nDo you really want to create a new system user"), max_system_uid );
+because the Id is smaller than %1. \nDo you really want to create a new system user"),  UserDefs::max_system_uid );
 			    if( ! UI::YesNoPopup( error ))
 			    {
 				UI::SetFocus(`id(`uid));
@@ -301,7 +456,7 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
 			    
 			}
 
-			if(  haskey( current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
+			if(  haskey( UserSettings::current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
 			{
 			    Report::Error(_("The inputted User Id is reserved.
 Please select a another User Id"));
@@ -313,10 +468,10 @@ Please select a another User Id"));
 
 		    
 		    // check the defaultgroup ( replace by filter!! )
-		    foreach ( `key, `group,  current_groups, ``{
+		    foreach ( `key, `group,  UserSettings::current_groups, ``{
 			if( lookup( group, "groupname", "") == new_defaultgroup )
 			{
-			    gid = lookup(group, "gid", max_gid);
+			    gid = lookup(group, "gid",  UserDefs::max_gid);
 			}
 		    });
 
@@ -326,7 +481,7 @@ Please select a another User Id"));
 		    // check the homedirectory
 		    if ( home != new_home || what == `add_user )
 		    {
-			if( (nil != findfirstnotof( new_home, valid_home_chars )) ||
+			if( (nil != findfirstnotof( new_home, UserDefs::valid_home_chars )) ||
 			    (  0 != findfirstof( new_home, "/")   ))
 			{
 			    //TODO FIXME - ADD "-_" to message - not start with "-"
@@ -337,17 +492,18 @@ Please try again."));
 			    UI::SetFocus(`id(`home));
 			    continue;
 			}
+	
 			
-			
-			if( test_mode ) y2milestone("newhome: %1,  org_home: %2", new_home, user_in_work["org_home"]:""  );
+			if( Mode::test ) y2milestone("newhome: %1,  org_home: %2", new_home, user_in_work["org_home"]:""  );
 
 			if ( what == `edit_user && ( new_home != user_in_work["org_home"]:"" )
 			     || what == `add_user )
+
 			{
-			    if (test_mode)  y2milestone("homelist %1",   usersUsersRead(`homelist)  );
+			    if (Mode::test )  y2milestone("homelist %1",   UserSettings::UsersRead(`homelist,view_all_users )  );
 
 			    /* TODO new popup for existing dir */
-			    if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1 )
+			    if ( contains( UserSettings::UsersRead(`homelist, view_all_users), new_home ) || SCR::Read(.target.size, new_home ) !=-1 )
 			    {
 				Report::Error(_("The home directory is used from another user.
 Please try again."));
@@ -369,7 +525,7 @@ Please try again."));
 		    // chech the grouplist
 		    if( new_grouplist != grouplist  )
 		    {
-			if( nil == findfirstnotof( new_grouplist ,  valid_grouplist_chars ) )
+			if( nil == findfirstnotof( new_grouplist ,  UserDefs::valid_grouplist_chars ) )
 			{ 
 			    // remove last,""
 			    list new_groups  = splitstring(new_grouplist, "," );
@@ -396,7 +552,7 @@ Please try again."));
 				if( input_ok )
 				{
 				    boolean found = false;
-				    foreach(`key, `exist_group, current_groups, ``{
+				    foreach(`key, `exist_group, UserSettings::current_groups, ``{
 					if( lookup( exist_group, "groupname", "") == new_group )
 					{
 					    found = true;
@@ -434,14 +590,99 @@ Please try again."));
 		}    
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 	
+
 	if ( ret == `next ) ret = what;
 
-	if( test_mode ) y2milestone("user in work  %1: ",user_in_work);
+	if( Mode::test ) y2milestone("user in work  %1: ",user_in_work);
 	return ret;
     }
 
 
-     /**
+
+    /**
+     * Details of adding/cloning/editing dialog
+     * @return symbol
+     */
+    global define symbol usersEditUserPassword() ``{
+
+	/************************************************
+         *  TODO 
+         * 
+         */
+	
+	string username       = user_in_work["username"]:"";
+	map shadow            = user_in_work["shadow"]:$[];
+
+	y2milestone(sformat("shadow %1", shadow));
+
+/*
+	    `Left (`Label ("Days since the account was locked")),
+			       `Left (`CheckBox (`id ("id_30"), "Lock account", false)),
+*/
+	
+	term contents = `HBox (`HSpacing (3),
+			       `VBox (
+				      `VStretch(),
+				      `Top(`Left (`Label (_("Date of the last password change ") + shadow["lstchg"]:"" ))),
+				      `VSpacing (1),
+				      /*
+				      `Top(`HBox (`IntField (`id ("id_129"), "Days until password expires", 1, 9, 4),
+					     `HSpacing (2),
+					     `TextEntry (`id ("id_237"), "Date on witch password expires", ""))),
+				      */
+				      `VSpacing (1),
+				       `HSquash(`VBox(
+						      `IntField (`id ("warn"), _("How many day's warning before password expires?"), -1, 99999,
+								 shadow["warn"]:""),
+						      `VSpacing (0.5),
+						      `IntField (`id ("inact"), "How many days after password expires is the login usable", -1, 99999,
+								 shadow["inact"]:""),
+						      `VSpacing (0.5),
+						      `IntField (`id ("max"), "Maximum number of days for the same password", -1, 99999,
+								 shadow["max"]:""),
+						      `VSpacing (0.5),
+						      `IntField (`id ("min"), "Minimum number of days for the same password", -1, 99999,
+								 shadow["min"]:"")
+						      )),
+				      `VStretch ()),
+			       `HSpacing (3));
+	   
+		    
+	    
+	Wizard::SetContentsButtons(_("Password settings for user ") + username +":",
+		                     contents,
+				     usersEditUserPasswordHelp(),
+			             UI::BackButtonLabel(),
+				     UI::NextButtonLabel());
+
+
+	
+	// user input
+	symbol ret = `next;
+	repeat
+	    {
+		ret = UI::UserInput();
+		
+		if( ret == `next )
+		{
+		    foreach(`autosymbol, UserSettings::auto_shadow_symbols, ``{
+			shadow[autosymbol] =  UI::QueryWidget(`id(autosymbol), `Value);
+			
+		    });
+		    user_in_work["shadow"] = shadow;
+
+		}
+	
+	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
+	
+	if ( ret == `next ) ret = lookup( user_in_work , "what"     , `back ); 
+
+	return ret;
+    }
+
+
+    
+    /**
      * Propose a username.
      * @param forename forename
      * @param surname surname
@@ -458,7 +699,7 @@ Please try again."));
 	
 	while (true)
 	{
-	    if (  contains( usersUsersRead(`usernamelist), test_login_name ) )
+	    if (  contains( UserSettings::UsersRead(`usernamelist, view_all_users ), test_login_name ) )
 	    {	
 		default_login_count = default_login_count + 1;
 		test_login_name  = default_login_name  + sformat("%1",default_login_count);
@@ -471,10 +712,10 @@ Please try again."));
 	}
 
 	
-	string f_name = filterchars(tolower(forename), valid_logname_chars);
+	string f_name = filterchars(tolower(forename), UserDefs::valid_logname_chars);
 	integer f_len = size( f_name );
 
-	string s_name = filterchars(tolower(surname), valid_logname_chars);
+	string s_name = filterchars(tolower(surname), UserDefs::valid_logname_chars);
 	integer s_len = size( s_name );
 		    
 	if ( f_len == 0 && s_len == 0 )	// both are missing
@@ -530,7 +771,7 @@ Please try again."));
 	string surname  = "";
 	string forename = "";
 	
-	if( uid <= max_system_uid )
+	if( uid <=  UserDefs::max_system_uid )
 	{
 	    if ( what == `surname  ) return fullname;
 	    if ( what == `forename ) return "";
@@ -567,23 +808,38 @@ Please try again."));
 	
 	string  username       = lookup( user_in_work, "username", "");
 	string  fullname       = lookup( user_in_work, "fullname", "");
-	integer gid            = lookup( user_in_work, "gid"     , getDefaultGid());
-	string  home           = lookup( user_in_work, "home"    , getDefaultHome());
-	string  shell          = lookup( user_in_work, "shell"   , getDefaultShell());
-	integer uid            = lookup( user_in_work, "uid"     , max_uid );
+	integer gid            = lookup( user_in_work, "gid"     , UserAddDefs::GetDefaultGid());
+	string  home           = lookup( user_in_work, "home"    , UserAddDefs::GetDefaultHome());
+	string  shell          = lookup( user_in_work, "shell"   , UserAddDefs::GetDefaultShell());
+	integer uid            = lookup( user_in_work, "uid"     , UserDefs::max_uid );
 	string  surname        = lookup( user_in_work, "surname" , "empty" ); 
 	string  forename       = lookup( user_in_work, "forename", "empty" ); 
 	string  password       = lookup( user_in_work, "password", "");
 	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
-	if ( grouplist == "empty" && what == `edit_user)  grouplist = findGroupsBelongUser(username);
+	if ( grouplist == "empty" && what == `edit_user)  grouplist = UserSettings::FindGroupsBelongUser(username);
 	if ( grouplist == "empty" && what == `add_user )  grouplist = "dialout,uucp,video,audio";
 	if ( surname   == "empty" ) surname  =  usersSplitFullName(`surname,  fullname, uid);
 	if ( forename  == "empty" ) forename =  usersSplitFullName(`forename, fullname, uid);
-	if ( uid == max_uid )  uid = usersFreeUid(current_users);
+	if ( uid ==  UserDefs::max_uid )  uid = UserSettings::NextFreeUid();
 
+	
+	map shadow 	       = $[];
+	if (user_in_work["shadow"]:$[] == $[] && what == `add_user )
+	{
+	    shadow = UserDefs::GetDefaultShadow();
+	}
+	else
+	{
+	    foreach( `key, `value, user_in_work["shadow"]:$[], ``{
+		shadow[key] = value;
+	    });
+	}
+	
 	
 	term detailsmorebox = 	`HBox(
 				      `PushButton(`id(`details), _("&Details...")),
+				      `VStretch(),
+				      `PushButton(`id(`passwordsettings), _("&Password settings")),
 				      `VStretch()
 				      );
 	
@@ -595,37 +851,27 @@ Please try again."));
 	    
 	term contents = 
 	    `HSquash(`VBox(
-	     
-	        `VStretch(),
-		// User account information, forename or first name
-	       //   name_edit,
-
-	       `VBox(
-		     `TextEntry(`id(`forename), _("&First name:"), forename),
-		     `TextEntry(`id(`surname),  _("&Last name:"),  surname )
-		     ),
+			   `VStretch(),
+			   `VBox(
+				 `TextEntry(`id(`forename), _("&First name:"), forename),
+				 `TextEntry(`id(`surname),  _("&Last name:"),  surname )
+				 ),
 	       
-		`VSquash(`HBox
-		(
-		    // input field for login name
-		    `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
-		    // push button to generate a login name from first and last name
-		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-		)),
-
-		
-		// User account information, first version of user password, both versions must match
-		`Password(`id(`pw1), _("&Enter a password:"), ""),
-		// User account information, second version of user password, retyped to avoid typos
-		// This is a label, please use newline if it is longer than 48 characters
-	       `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
-		
-	       `VStretch(),
-		detailsmorebox
-	    ));
-
-	
-	
+			   `VSquash(`HBox
+				    (
+				     // input field for login name
+				     `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
+				     // push button to generate a login name from first and last name
+				     `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+				     )),	
+			   // User account information, first version of user password, both versions must match
+			   `Password(`id(`pw1), _("&Enter a password:"), ""),
+			   // User account information, second version of user password, retyped to avoid typos
+			   // This is a label, please use newline if it is longer than 48 characters
+			   `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+			   `VStretch(),
+			   detailsmorebox
+			   ));
 
 	
 	Wizard::SetContentsButtons(lookup(dialog_labels, what, ""),
@@ -640,20 +886,21 @@ Please try again."));
 	// Modify the dialog 
 	//if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
 	if( what == `add_user &&( ! Mode::cont) )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
-	//else  if( what == `edit_user)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 
 
 	if( what == `add_user ) UI::SetFocus(`id(`forename));
+
 	
-	if( uid <= max_system_uid && what == `edit_user )
+
+	if( uid <=  UserDefs::max_system_uid && what == `edit_user )
 	{
 	    UI::ChangeWidget(`id(`propose), `Enabled, false );
 	    UI::ChangeWidget(`id(`forename),`Enabled, false );
 	}
 	if( password != "")
 	{
-	    UI::ChangeWidget(`id(`pw1), `Value ,default_pw);
-	    UI::ChangeWidget(`id(`pw2), `Value, default_pw);
+	    UI::ChangeWidget(`id(`pw1), `Value ,UserDefs::default_pw);
+	    UI::ChangeWidget(`id(`pw2), `Value, UserDefs::default_pw);
 	}
 
 	
@@ -662,8 +909,8 @@ Please try again."));
 	    {
 		ret = UI::UserInput();
 		
-		
-		if (ret == `propose  && ( !(what == `edit_user && uid <= max_system_uid) ) )
+		// generate a login name from first and last name
+		if (ret == `propose  && ( !(what == `edit_user && uid <=  UserDefs::max_system_uid) ) )
 		{
 		    string forename = UI::QueryWidget(`id(`forename), `Value);
 		    string surname  = UI::QueryWidget(`id(`surname), `Value);
@@ -672,18 +919,23 @@ Please try again."));
 		}
 
 
+		// only in continue mode
 		if( ret == `additional )
 		{
+
 		    if( ! UI::YesNoPopup(_("Do you want to create one user first?")) )
 		    {
 			ret = `nosave;
 		    }
 		}
 
-		
-		if (( ! Mode::cont && ( ret == `next || ret == `details) )
-		 || (   Mode::cont && ( ret == `details || ret == `additional || ret == `next )))
+		boolean details =  ( ret == `details || ret == `passwordsettings );
+
+		// check the settings
+		if (( ! Mode::cont && ( ret == `next || details ) )
+		 || (   Mode::cont && ( details || ret ==  ret == `additional || ret == `next )))
 		{
+		    
 		    string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
 		    string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
 		    username     = UI::QueryWidget(`id(`username), `Value);
@@ -702,14 +954,8 @@ Please try again."));
 			}
 		    }
 		    else fullname = surname;
-		    
-
-		    if ( Mode::test )
-		    {	
-			// return `next;
-		    }
-		    
 		
+
 		    if ( username == "" )
 		    {
 			// The user login field is empty, this is allowed if the
@@ -717,7 +963,7 @@ Please try again."));
 			// Ask the user about this in a Yes/No popup
 			// The first string is the title of the popup.
 
-			if( Mode::cont && ret != `details && ret != `additional && start_dialog == "user_add" )
+			if( Mode::cont && !details && ret != `additional && start_dialog == "user_add" )
 			{
 			    if (  UI::YesNoHeadlinePopup(_("Empty user login"), _("Leaving the user name empty only makes sense
 in a network environment with a NIS server.
@@ -761,8 +1007,9 @@ Please try again.
 		    string firstchar = substring(username, 0, 1);
 
 
+
 		    if ( ( ! ( (firstchar >= "a" && firstchar <= "z" ) || firstchar == "_"  ) ||
-                           nil != findfirstnotof( username, valid_logname_chars ) ) )
+                           nil != findfirstnotof( username, UserDefs::valid_logname_chars ) ) )
 		    {
 			
 			// There is a check whether the information from the UI is
@@ -780,7 +1027,7 @@ Please try again.
 		    
 		    // check login against passwd contents
 		    if ( (username != lookup( user_in_work , "username", "")) &&
-			 contains( usersUsersRead(`usernamelist), username ) )
+			 contains( UserSettings::UsersRead(`usernamelist, view_all_users ), username ) )
 		    {
 			
 			// Tell the user that the login he entered conflicts with
@@ -793,21 +1040,6 @@ Please try another one.
 			UI::SetFocus(`id(`username));
 			continue;
 		    }
-
-		    /* Bugzilla Bug  13417 
-		    if ( (what == `add_user  && fullname == "") ||
-			 (what == `edit_user && fullname == "" && ( lookup( user_in_work , "fullname", "") != "") )
-			 && username != "" )
-		    {
-			
-			// There is a check whether the information from the UI is
-			// correct and complete.  The name information is not
-			// complete, the user is asked to complete the information
-			Report::Error(_("Please enter a name."));
-			UI::SetFocus(`id(`surname));
-			continue;
-		    }
-		    */
 
 		    
 		    if (  pw1 != pw2 )
@@ -832,7 +1064,7 @@ Please try again."));
 		    
 		    // Use the old password (if any) if no passwords were entered.
 		    // only check pw1 here, its identical with pw2 as checked before
-		    if ( (pw1 != default_pw) && (pw2 != default_pw ))
+		    if ( (pw1 !=  UserDefs::default_pw) && (pw2 != UserDefs::default_pw ))
 		    {
 			if ( pw1 == "" )
 			{    
@@ -849,15 +1081,16 @@ Please try again."));
 			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
-			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
+			if ( size (pw1) <  UserDefs::min_length_pas || size(pw1) >  UserDefs::max_length_pas  )
 			{
 			   
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
 			    Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
-						      min_length_pas,
-						      max_length_pas));
+						       UserDefs::min_length_pas,
+						       UserDefs::max_length_pas));
+
 			    password = "";
 			    
 			    // clear password inputfields in this case
@@ -867,10 +1100,11 @@ Please try again."));
 			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
-			
-			if ( size(pw1) >= min_length_pas )
+
+			if ( size(pw1) >=  UserDefs::min_length_pas )
+
 			{
-			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
+			    if ( nil != findfirstnotof( pw1, UserDefs::valid_password_chars ) )
 			    {
 				
 				// There is a check whether the information from the
@@ -891,7 +1125,8 @@ Please try again."));
 			    }	
 			}
 
-			if( pam )
+			if( UserDefs::pam )
+
 			{
 			    password = cryptmd5(pw1);
 			}
@@ -903,7 +1138,8 @@ Please try again."));
 
 		    // bild default home dir
 		    // TODO Fixme 
-		    if ( what == `add_user && home == getDefaultHome() )
+		    if ( what == `add_user && home == UserAddDefs::GetDefaultHome() )
+
 		    {
 			home = home + username;
 		    }
@@ -911,8 +1147,9 @@ Please try again."));
 		    if( home != user_in_work["org_home"]:"" )
 		    {
 			// TODO new popup for existing dir
-			if(  (contains( usersUsersRead(`homelist), home ) || SCR::Read(.target.size, home ) != -1 )
-			     && ret !=`details )  
+			if(  (contains( UserSettings::UsersRead(`homelist, view_all_users ), home ) || SCR::Read(.target.size, home ) != -1 )
+			     && ! details )  
+
 			{
 			    Report::Error(_("The default home directory is used from another user.
 Please press button Details and edit home directory."));
@@ -927,14 +1164,16 @@ Please press button Details and edit home directory."));
 			*/
 		    }
 
+
 		    if ( what == `add_user )  user_in_work["org_home"] = home;
 			
 			
 		  
 			  
-		    if(test_mode ) y2milestone(" user in work : %1", user_in_work );
+		    if(Mode::test ) y2milestone(" user in work : %1", user_in_work );
 			
 		    
+
 		    user_in_work = $[
 				     "what"        :  what ,
 				     "fullname"    :  fullname,
@@ -947,12 +1186,14 @@ Please press button Details and edit home directory."));
 				     "grouplist"   :  grouplist,
 				     "forename"    :  forename,
 				     "surname"     :  surname,
-				     "org_home"    :  user_in_work["org_home"]:""
+				     "org_home"    :  user_in_work["org_home"]:"",
+				     "shadow"      :  shadow
+
 		    ];
 
 		}
-		
-	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional || ret == `nosave );
+	    } until ( ret == `next || details || ret == `abort  || ret == `back || ret == `cancel || ret == `additional || ret == `nosave );
+
 
 	
 	
@@ -974,7 +1215,7 @@ Please press button Details and edit home directory."));
     
     /**
      * Delete the user saved in user_in_work from current_users and
-     * add a entry with a shell delete command to the map user_settings.
+     * add a entry with a shell delete command to the map write_to_system_stack.
      * @return symbol
      */
     global define symbol usersDeleteUser() ``{
@@ -983,15 +1224,14 @@ Please press button Details and edit home directory."));
 	boolean delete_home   = false;
 	string username       = lookup( user_in_work, "username", "");
 	string home           = lookup( user_in_work, "home", "");
-
-	map new_current_users = $[];
+	
 	
 	// if the user has log on system
 	list proc  = SCR::Read(.run.procfiles);
 
         // the user that should deleted is present
 	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
-				       (groupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
+				       (UserSettings::GroupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
 	{
 	    Report::Error(_("You can not delete this user, because the user is present.
 Please log off the user first."));
@@ -1001,7 +1241,7 @@ Please log off the user first."));
 	
 	
 	// if the user want to delete a system user
-	if ( lookup(user_in_work , "uid", nil) <= max_system_uid )
+	if ( lookup(user_in_work , "uid", nil) <=  UserDefs::max_system_uid )
 	{	
 	    if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user?")))
 	    {
@@ -1059,28 +1299,25 @@ Do you really want to delete the user %1?
 
 
 	// delete the user from the map current_users
-	foreach(`key, `user, current_users, ``{
-	    if( lookup( user_in_work, "uid", nil) != key) new_current_users = add( new_current_users , key, user);
-	});
-	current_users = new_current_users;
+	UserSettings::DelUser( user_in_work["uid"]:nil );
 
+	
 	if (  SCR::Read(.target.size,"/usr/sbin/userdel.local") != -1 )
 	{
-	    usersAddTodo(("/usr/sbin/userdel.local " + username),
+	    UserWriteStack::AddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
 			 _("Can't execute /usr/sbin/useradd.local"));
 	}
 	    
-	usersAddTodo("/usr/sbin/userdel " + username ,
+	UserWriteStack::AddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
 		     sformat(_("Can't delete the user %1"), username) );
 
 	
 	
-        //build a shell delete command and save it to user_settings
+        //build a shell delete command and save it to write_to_system_stack
 	if(! lookup( user_in_work, "exist", true ))
 	{
-	    //UI(`MessagePopup( lookup( user_in_work , "home", "" )));
 	    if( lookup( user_in_work , "home", "" ) != "") 
 		usersAddRmDir( lookup( user_in_work , "home", "" ));
 	}
@@ -1089,39 +1326,13 @@ Do you really want to delete the user %1?
 	  if( delete_home )
 	  {
 	      usersAddRmDir( lookup( user_in_work, "home", "" ));
-	      if( test_mode ) y2milestone("delete home");
+	      if( Mode::test ) y2milestone("delete home");
 	  }
 	}
 	   
-	
-		    
-		    
-	//delete the user from the map current_groups (userlist)
-	map tmp_current_groups = current_groups;
-	foreach( `key, `group, tmp_current_groups, ``{
 
-	    string userlist  = lookup(group, "userlist" , "");
-	    map    new_group = group;
-	    
-	    if( issubstring( userlist, username ) )
-	    {
-		list split_userlist = splitstring( userlist, ",");
-		string new_userlist = "";
-		
-		foreach( `entry, split_userlist, ``{
-		    
-		    if( entry != username )
-		    {
-			if( new_userlist == "") new_userlist = entry;
-			else new_userlist = new_userlist + "," + entry;
-		    }
-		});
-		new_group = add( new_group, "userlist", new_userlist );
-		current_groups = add( current_groups, key , new_group );
-	    }
-	});
+	UserSettings::DelUserFromAllGroups( username );
 
-	if (test_mode ) SCR::Write(.dumpto.tmp.user_set,   user_settings  );
 	user_in_work = $[];
 	return `next;
     }
@@ -1139,7 +1350,7 @@ Do you really want to delete the user %1?
 	term contents = 
 	    `VBox(rbUsersGroup(`groups),
 		  `Table(`id(`group_table ), `opt(`notify) , `header(_("Group name"), _("Group ID"), _("Group members")),
-		         usersGroupsRead(`items) ),
+		         UserSettings::GroupsRead(`items, view_all_groups) ),
 		  `Left(`CheckBox(`id(`show_all), `opt(`notify), _("Also &view system groups"), view_all_groups )),
 		  
 	          `HBox
@@ -1174,7 +1385,7 @@ Do you really want to delete the user %1?
 		if( ret == `show_all )
 		{
 		    view_all_groups = UI::QueryWidget(`id(`show_all), `Value );
-		    UI::ChangeWidget(`id(`group_table), `Items,  usersGroupsRead(`items ));
+		    UI::ChangeWidget(`id(`group_table), `Items,  UserSettings::GroupsRead(`items, view_all_groups ));
 		    ret = `not_next;
 		}
 		
@@ -1187,7 +1398,7 @@ Do you really want to delete the user %1?
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
 		    integer group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
-		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input ,nil);
+		    if( group_table_input != nil ) group_in_work = UserSettings::GetGroup( group_table_input );
 		    else
 		    {
 			Report::Error(_("Please select an entry in the group table"));
@@ -1223,10 +1434,10 @@ Do you really want to delete the user %1?
 	// load group saved in group_in_work
 	string  groupname     = lookup( group_in_work, "groupname", "");
 	string  password      = lookup( group_in_work, "password" , "x");
-	integer gid           = lookup( group_in_work, "gid", max_gid );
-	string  userlist      = findUsersBelongGroup(gid, `string);
-	list  list_userlist   = findUsersBelongGroup(gid, `list);
-	if( gid == max_gid )   gid = usersFreeGid(current_groups);
+	integer gid           = lookup( group_in_work, "gid",  UserDefs::max_gid );
+	string  userlist      = UserSettings::FindUsersBelongGroup(gid, `string);
+	list  list_userlist   = UserSettings::FindUsersBelongGroup(gid, `list);
+	if( gid ==  UserDefs::max_gid )   gid = UserSettings::NextFreeGid();
 
 	
 	// make dialog
@@ -1275,8 +1486,8 @@ Do you really want to delete the user %1?
 	{
 	    if( password != "x"  )
 	    {
-		UI::ChangeWidget(`id(`pw1), `Value, default_pw);
-		UI::ChangeWidget(`id(`pw2), `Value, default_pw);
+		UI::ChangeWidget(`id(`pw1), `Value, UserDefs::default_pw);
+		UI::ChangeWidget(`id(`pw2), `Value, UserDefs::default_pw);
 	    }
 	}
 
@@ -1327,7 +1538,7 @@ Please try again.
 		    string firstchar = substring( new_groupname, 0, 1);
 		    
 		    if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
-			   nil != findfirstnotof(  new_groupname, valid_group_chars ) ) )
+			   nil != findfirstnotof(  new_groupname, UserDefs::valid_group_chars ) ) )
 		    {
 			// There is a check whether the information from the UI is
 			// correct and complete.  The groupname may contain only
@@ -1343,7 +1554,7 @@ Please try again.
 		    
 		
 		    if ( (((what == `edit_group ) && ( new_groupname != groupname )) || ( what != `edit_group )) &&
-			 contains( usersGroupsRead(`groupnamelist ),  new_groupname ) )
+			 contains( UserSettings::GroupsRead(`groupnamelist , view_all_groups),  new_groupname ) )
 		    {
 			// Tell the user that the groupname he entered conflicts with
 			// predefined groupnames in the groups file.
@@ -1377,17 +1588,17 @@ Please try again.")) ;
 		    // Use the old password (if any) if no passwords were entered.
 		    // only check pw1 here, its identical with pw2 as checked before
 		    if (  ( pw1 != "") &&
-			  ( (pw1 != default_pw) && (pw2 != default_pw))  )
+			  ( (pw1 != UserDefs::default_pw) && (pw2 != UserDefs::default_pw))  )
 		    {
 			
-			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
+			if ( size (pw1) <  UserDefs::min_length_pas || size(pw1) >  UserDefs::max_length_pas  )
 			{
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The user password
 			    // information must have a minimal size - 5 characters.
 			    Report::Error(sformat(_("The password must have between %1 and %2 characters.\nPlease try again."),
-						   min_length_pas,
-						   max_length_pas));
+						    UserDefs::min_length_pas,
+						    UserDefs::max_length_pas));
 			    password = "x";
 			    
 			    // clear password inputfields in this case
@@ -1402,7 +1613,7 @@ Please try again.")) ;
 			
 			if ( pw1 != "" )
 			{
-			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
+			    if ( nil != findfirstnotof( pw1, UserDefs::valid_password_chars ) )
 			    {
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
@@ -1422,8 +1633,8 @@ Please try again."));
 			    }	
 			}
 
-			
-			if( pam )
+			if( UserDefs::pam )
+
 			{
 			    password  = cryptmd5(pw1);
 			}
@@ -1459,7 +1670,7 @@ Please try again."));
 			});
 			new_userlist  = mergestring( new_users ,",");
 			
-			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as valid_userlist_chars
+			if( nil == findfirstnotof( new_userlist ,  UserDefs::valid_grouplist_chars ) ) // the same as valid_userlist_chars
 			{
 			   
 			    boolean all_found = true;
@@ -1467,7 +1678,7 @@ Please try again."));
 			    foreach( `new_user, new_users , ``{
 
 				boolean found = false;
-				foreach(`key, `exist_user, current_users, ``{
+				foreach(`key, `exist_user, UserSettings::current_users, ``{
 
 				    if( lookup( exist_user, "username", "") == new_user )
 				    {
@@ -1500,8 +1711,8 @@ Please try again."));
 				    if( ! issubstring( new_userlist, old_user ) )
 				    {
 					// some user was deleted by the user
-					if(   issubstring( findUsersBelongGroup( gid, `string ), old_user ) &&
-					      ( !issubstring( lookup( lookup( current_groups, gid, $[]),  "userlist", ""), old_user )))
+					if(   issubstring( UserSettings::FindUsersBelongGroup( gid, `string ), old_user ) &&
+					      ( !issubstring(lookup( UserSettings::GetGroup( gid ),  "userlist", ""), old_user )))
 					{
 					    string error_text = sformat(_("You can't delete the user -%1- from this group,
 because the user's defaultgroup is this group"), old_user );
@@ -1529,19 +1740,19 @@ Please try again."));
 		    {
 			integer new_i_gid = tointeger(new_gid);
 			
-			if( (!( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil )) ||
-			    nil !=  findfirstnotof( new_gid, valid_id_chars ))
+			if( (!( new_i_gid >= 0  && ( new_i_gid <=  UserDefs::max_gid )) && ( new_i_gid != nil )) ||
+			    nil !=  findfirstnotof( new_gid, UserDefs::valid_id_chars ))
 			{
 			    Report::Error(sformat(_("The selected Group Id is not allowed.
-Please select a valid integer between 0 and %1"), max_gid));
+Please select a valid integer between 0 and %1"),  UserDefs::max_gid));
 			    UI::SetFocus(`id(`gid));
 			    continue;
 			}
 			
 			
-			if ( haskey( current_groups , new_i_gid) && ( gid != new_i_gid ))
+			if ( haskey( UserSettings::current_groups , new_i_gid) && ( gid != new_i_gid ))
 			{
-			    if ( lookup(lookup( current_groups, new_i_gid ,$[]), "todo", "") != `delete )
+			    if ( lookup( UserSettings::SetGroup( new_i_gid ), "todo", "") != `delete )
 			    {
 				Report::Error(_("The inputted Group Id is reserved.
 Please select a another Group Id"));
@@ -1550,7 +1761,7 @@ Please select a another Group Id"));
 			    }
 			}
 
-			if ( (what != `add_group ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
+			if ( (what != `add_group ) &&  (new_i_gid  <= UserDefs::max_system_gid ) && ( gid >  UserDefs::max_system_gid ) )
 			{
 			    Report::Error(_("The inputted Group Id is a system Id.
 Please try again."));
@@ -1558,7 +1769,7 @@ Please try again."));
 			    continue;
 			}
 
-			if ( (what != `add_group ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
+			if ( (what != `add_group ) && (new_i_gid  >  UserDefs::max_system_gid ) && ( gid <=  UserDefs::max_system_gid ) )
 			{
 			    Report::Error(_("The inputted Group Id is not a system Id.
 Please try again."));
@@ -1601,19 +1812,19 @@ Please try again."));
     
     /**
      * Delete the Group saved in group_in_work from current_groups and
-     * add a entry with a shell delete command to the map user_settings.
+     * add a entry with a shell delete command to the map write_to_system_stack.
      * @return symbol
      */
     global define usersDeleteGroup() ``{
 
 	boolean delete = true;
 	//if no  user in this group
-	if ( (size ( filter(`k, `v, current_users , ``(lookup(v,"gid", -1) == lookup(group_in_work , "gid", -1)))) == 0) &&
+	if ( (size ( filter(`k, `v, UserSettings::current_users , ``(lookup(v,"gid", -1) == lookup(group_in_work , "gid", -1)))) == 0) &&
 	     (lookup( group_in_work , "userlist", "") == "" ) )
 	{
 	    
 	    //if the group a system group ask the user ..
-	    if ( lookup(group_in_work , "gid", -1 ) <= max_system_gid )
+	    if ( lookup(group_in_work , "gid", -1 ) <=  UserDefs::max_system_gid )
 	    {	
 		if(! UI::YesNoHeadlinePopup(_("The marked group is a system group."), _("Do you really want to delete this group")))
 		{
@@ -1638,19 +1849,10 @@ Do you really want to delete the group %1?
 	    }
 
 	    
-	    //copy all other groups in new_current_groups
-	    map new_current_groups = $[];
-	    foreach(`key, `group, current_groups, ``{
-		if( lookup(group_in_work , "gid", -1 ) != key) new_current_groups = add( new_current_groups , key, group);
-	    });
-	    current_groups = new_current_groups;
-
-
-	    //delete the group in current_gshadow
-	    //usersDeleteGroupFromShadow( lookup( group_in_work, "groupname", ""));
+	    UserSettings::DelGroup( group_in_work["gid"]:-1 );
 	    
-	    //add a shell delete command to user_settings
-	    usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
+	    //add a shell delete command to write_to_system_stack
+	    UserWriteStack::AddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "")),
 			 `del_group,
 			 sformat(_("Can't delete group %1 "),lookup( group_in_work, "groupname", "")));
 	  
@@ -1663,125 +1865,12 @@ Delete this users first."));
 	    save_focus( lookup(group_in_work, "gid", 0), `nodelete, `group );
 	}
 
-	if( test_mode ) SCR::Write(.dumpto.tmp.user_set,   user_settings  );
+
 	group_in_work = $[];
 	return `next;
     }
 
 
-     /**
-     * Dialog to save the Groups and Usersettings to system
-     * @return symbol
-     */
-    global define symbol usersSaveDialog() ``{
-	
-	if ( size ( user_settings ) == $[] ) return `next;
-
-	SCR::Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save");
-	SCR::Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save");
-	SCR::Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save");
-
-	// normal, running system
-	if( ! Mode::cont && ! Mode::autoinst)
-	{
-	    term contents =   `VBox(
-				    `VSpacing( 2 ),
-				    `Left(`Heading (_("Save modified settings to system."))),
-				    `HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
-				    `VSpacing( 2 )	
-				    );
-
-	    Wizard::SetContentsButtons(  "" ,
-					 contents,
-					 usersSaveDialogHelp(),
-					 UI::BackButtonLabel(),
-					 UI::NextButtonLabel());
-	}
-
-
-
-	if( test_mode ) SCR::Write(.dumpto.tmp.current_users_final,     current_users );
-	if( test_mode ) SCR::Write(.dumpto.tmp.current_groups_final,    current_groups );
-	if( test_mode ) SCR::Write(.dumpto.tmp.user_settings_final,     user_settings  );
-	integer value = 0;
-	boolean ok    = true;
-	    
-	if ( size( user_settings ) != 0)
-	{
-	
-	    foreach( `key, `todomap, user_settings,``{
-		
-		symbol what  = lookup ( todomap , "what" , `error );
-		any    ret   = 1;
-		
-		if( what == `set_group_password )
-		{
-		   
-		    string groupname = lookup ( todomap , "groupname" ,"");
-		    string password  = lookup ( todomap , "password"  ,"");
-
-                    //read the /etc/gshado file new
-		    usersGroupsShadowReadFromDisk();
-
-		    //get groupmap from  current_gshadow 
-		    map group       = usersReturnGroupFromShadow(  groupname );
-
-		    //delete this map in current_gshadow
-		    if ( group != $[] )  usersDeleteGroupFromShadow( groupname );
-
-		    //add a new  groupmap to current_gshadow
-		    map new_group       = $[
-					    "password" : password,
-					    "disposer" : "root" ,
-					    "groupname": groupname,
-					    "userlist" : lookup( group , "userlist" ,"")
-		    ];
-		   
-		    current_gshadow = add( current_gshadow, new_group);
-
-		    //save /etc/gshado file 
-		    ret = SCR::Write(.etc.gshadow, current_gshadow );
-		}
-		else
-		{
-		    // execute the save string from user_settings 
-		    string todo  = lookup ( todomap , "todo" , "" );
-		    ret =  SCR::Execute(.target.bash, todo );
-		}
-
-		if( ret == 0 )
-		{
-		    value	= value + 1;
-		    if( ! Mode::cont && ! Mode::autoinst) {
-			UI::ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) );
-		    }
-		}
-		else
-		{
-		    ok = false;
-		    Report::Error( lookup ( todomap , "error", "" ));
-		}
-	    });
-
-	    if ( !ok)
-	    {
-		Report::Error(_("The new user and group are not configured."));	
-
-	    }
-	    else
-	    {
-		// normal, running system
-		if( ! Mode::cont && ! Mode::autoinst)
-		{
-		    Report::Message(_("The new user and group settings
-are configured and usable"));	
-		}
-	    }
-	}
-	
-	return `next;
-    }
-
-
+ 
     
 } // End

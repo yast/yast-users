@@ -3,13 +3,12 @@
  *  users.ycp
  *
  * Module:
- *  Configuration of the users and groups
+ *  Configuration of the users and groups stettings
  *
  * Summary:
- *  Main file of users.
+ *  Main file.
  *
  * Authors:
- *  Jan Holesovsky <kendy@suse.cz>, 2001
  *  Johannes Buchhold <jbuch@suse.de> 	
  *
  * $Id$
@@ -23,34 +22,31 @@
      */
 
     textdomain "users";
+
+    // ===== import modules =========================================== 
     import "Wizard";
     import "Console";
     import "Mode";
     import "Report";
-
-    y2milestone("mode %1", Mode::cont );
     
-    // ===== arguments ================================================
+    import "UserDefs";    
+    import "UserAddDefs";
+    import "UserSettings";
+    import "UserWriteStack";
 
-    boolean test_mode     = false;
-    boolean use_security  = true;
-    boolean start_sequencer_again = false;
-    string  start_dialog = "users";
-    integer arg = 0;
+    
+    // ===== arguments ================================================ 
+    string  start_dialog 	   = "users";
+    integer arg 		   = 0;
+    list    possible_start_dialogs = ["user_add", "group_add", "groups", "users" ];
 
     
     while ( arg < size( Args() ) )
     {
+	// TODO .test in Mode
 	y2debug( "arg #%1: %2", arg, Args( arg ) );
-	if ( Args( arg ) == .test )
-	{
-	    test_mode = true;
-	}
-	else if ( Args( arg ) == .nosecurity )
-	{
-	    use_security = false;
-	}
-	else
+	
+	if ( contains( possible_start_dialogs, Args( arg )  ))
 	{
 	    start_dialog = Args( arg );
 	}
@@ -58,145 +54,51 @@
     }
 
 
-    y2debug( "Starting with %1 - test mode: %2", start_dialog, test_mode );
-    
-    // ===== Definitions ==============================================
-    
-    // The most important variable
-    map user_settings = $[];
+    y2debug( "Starting with %1 - test mode: %2", start_dialog, Mode::test );
 
-    // For cloning and so
-    map  current_users   = $[];
-    map  current_groups  = $[];
-    list current_gshadow = [];
-
+    
+    // ===== Definitions ==============================================   
     map group_in_work = $[];
     map user_in_work  = $[];
 
-    // ===== global values=============================================
-    string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz-_";
-    string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
-    string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_-";
-    string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-_";
-    string valid_id_chars       = "0123456789";
-    
-   
-
-    
-    include "security/io.ycp";              
-    map security  		= $[];
-    
-    if( use_security ) security = SecurityRead();
-    
-    integer max_uid             = tointeger(lookup( security, "UID_MAX" , 60000));
-    integer max_gid             = tointeger(lookup( security, "GID_MAX" , 60000));
-    integer max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)); 
-    integer max_system_gid      = tointeger(lookup( security, "GID_MIN" , 100));
-    integer max_length_uid      = size(sformat("%1", max_uid));
-    integer max_length_gid      = size(sformat("%1", max_gid));
-    integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN",8));
-    integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN",5));
-    boolean pam                 = lookup( security, "MD5_SUPPORT", "no") == "yes" ; 
-
-    
-    if( test_mode )
-    {
-	SCR::Write(.dumpto.tmp.security, security  );
-	y2milestone("pam ? %1", pam );
-    }
-    
-    max_system_gid = max_system_gid - 1;
-    max_system_uid = max_system_uid - 1;
-    string default_pw           = "******";
     integer focusline_group = 0;
     integer focusline_user  = 0;
     boolean view_all_users  = false;
     boolean view_all_groups = false;
 
+    boolean start_sequencer_again  = false;
     
     // ===== includes =================================================
-    //include "ui/wizard_dialog.ycp";
     include "wizard/sequencer.ycp";
-    
     include "users/ui.ycp";
-    include "users/io.ycp";
 
-   
-    string language = UI::GetLanguage(true);
-    string encoding = Console::SelectFont( language);
     
-    usersGroupsShadowReadFromDisk();
-    usersUsersReadFromDisk();
-    usersGroupsReadFromDisk();
-
-    /*
-    list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
-    map  pam_map  = select( pam_list, 0, $[]);
-    boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
-    */
-
-    /*
-    boolean pam   = false;
-    list pam_list = [];
-    if ( ! disable_pam )
-    {
-	map pam_unix_map = $[];
-	pam_list         = SCR::Read(.pam.all.password.pam_unix2);
-	if(pam_list != [] && pam_list != nil)
-	    pam_unix_map = select(pam_list,0,$[]);
-
-	 pam = contains(splitstring(lookup(pam_unix_map , "arguments", ""), " "), "md5");
-    }
-    */
-
-    /*
-      map pam_check_map = $[];
-    pam_list = SCR::Read(.pam.all.password.pam_pwcheck);
-    if(pam_list != [] && pam_list != nil)
-	pam_check_map = select(pam_list,0,$[]);
-    */
-    
-    map useradd_defaults  = SCR::Read(.etc.default.useradd);
-
-    if (test_mode )
-    {
-	y2milestone(" uasd %1",useradd_defaults);
-	y2milestone(" getGroup : %1", getDefaultGid());
-	y2milestone(" getDefaultHome ; %1", getDefaultHome());
-	y2milestone(" getDefaultShell : %1", getDefaultShell());
-    }
-    
-    // test pam -md5
-    if( test_mode ) {
-	y2milestone(" orgi pam : %1 ", pam );
-	y2milestone(" cryptmd5 : %1 ",   cryptmd5( "askldjfhakjsh"));
-	y2milestone(" crypt    : %1 ",  crypt( "askldjfhakjsh"));
-	// SCR(`Write(.dumpto.tmp.pam, pam_list ));
-    }
-
-    if( pam )
-    {
-	max_length_pas = 128;
-    }
-    
+    // ===== change start dialog =========================================
     // if in inst-system and one user was already created switsch to overview
+
+
     if( start_dialog == "user_add" && ( Mode::cont ))
     {
-	//y2milestone(" users  %1 ", current_users );
-	map non_system_user = filter(`key, `user, current_users, ``( ( user["uid"]:0 >   max_system_uid) && user["username"]:"" != "nobody"  ));
+	map non_system_user = filter(`key, `user, UserSettings::current_users,
+				     ``( ( user["uid"]:0 >   UserDefs::max_system_uid) && user["username"]:"" != "nobody"  ));
+	
 	if( size( non_system_user ) > 0 )
 	{
 	    start_dialog = "users";
 	}
     }
     
+
     // ===== Open UI ==================================================
     if( ! Mode::cont )
     {
 	Wizard::CreateDialog();
     }
+
+    // ===== Read all system settings =================================
+    if ( ReadDialog(! Mode::cont ) == `abort ) return `abort;
 	
+    
     
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
@@ -205,20 +107,19 @@
         "user_clone":    ``(usersEditUser(`clone_user)),
         "user_edit":     ``(usersEditUser(`edit_user)),
 	"user_details":  ``(usersEditUserDetails()),
+	"user_password": ``(usersEditUserPassword()),
         "user_delete":   ``(usersDeleteUser()),
-	"user_save":     ``(usersUserSaveToMap()),
+	"user_save":     ``(UserWriteStack::UserSave(user_in_work, start_dialog == "user_add" )),
 	
 	"groups":        ``(usersGroupsDialog()),
         "group_add":     ``(usersEditGroup(`add_group)),
         "group_clone":   ``(usersEditGroup(`clone_group)),
         "group_edit":    ``(usersEditGroup(`edit_group)),
-	//"group_details": ``(usersEditGroupDetails()),
         "group_delete":  ``(usersDeleteGroup()),
-	"group_save"  :  ``(usersGroupSaveToMap()),
+	"group_save"  :  ``(UserWriteStack::GroupSave(group_in_work,  start_dialog == "group_add")),
 
 	"without_save" :  ``(usersReallyAbort()),
-	"save_to_system": ``(usersSaveDialog())
-
+	"save_to_system": ``(UserWriteStack::SaveDialog(true ))
     ];
 
     map main_sequence = $[
@@ -237,11 +138,13 @@
 			    `nosave:         `next,
 			    `next:           "user_save",
 	      		    `details:        "user_details",
+			    `passwordsettings: "user_password",
 			    `abort:          "without_save",
 			    `cancel:         "without_save",
 			    `back:           "users" ],
 	"user_clone":    $[ `next:           "user_save",
 			    `details:        "user_details",
+			    `passwordsettings: "user_password",
 			    `cancel:         "without_save",
 	                    `abort:          "without_save" ],
 	"user_details":  $[ `abort:          "without_save",
@@ -249,8 +152,14 @@
 			    `cancel:         "without_save",
 			    `clone_user:     "user_clone",
   			    `edit_user:      "user_edit"],
+	"user_password":  $[ `abort:         "without_save",
+			    `add_user:       "user_add",
+			    `cancel:         "without_save",
+			    `clone_user:     "user_clone",
+  			    `edit_user:      "user_edit"],
 	"user_edit":     $[ `next:           "user_save",
 			    `details:        "user_details",
+			    `passwordsettings: "user_password",
 			    `cancel:         "without_save",
 	                    `abort:          "without_save" ],
 	"user_delete":   $[ `next:           "users",
@@ -268,26 +177,22 @@
 			    `cancel:         "without_save",
 			    `exit:           `abort ],
 	"group_add":     $[ `next:           "group_save",
-			  //`details:        "group_details",
 	                    `abort:          "without_save",
 			    `cancel:         "without_save",
 			    `back:           "groups" ],
 	"group_clone":   $[ `next:           "group_save",
-			  //`details:        "group_details",
 			    `cancel:         "without_save",
 	                    `abort:          "group_save" ],
 	"group_edit":    $[ `next:           "group_save",
-			  //`details:        "group_details",
 			    `cancel:         "without_save",
 	                    `abort:          "without_save" ],
-	//"group_details": $[ `abort:          "without_save" ],
 	"group_delete":  $[ `next:           "groups",
 			    `abort:          "without_save" ],
 	"group_save"  :  $[ `next:           "groups",
 			    `save:           "save_to_system" ],
-	"without_save":  $[ `next  :          `next,
-			    `abort :          `abort,
-			    `back  :          `back   ],
+	"without_save":  $[ `next  :         `next,
+			    `abort :         `abort,
+			    `back  :         `back   ],
 	"save_to_system": $[ `next: 	     `next ]
 	
     ];
@@ -296,29 +201,29 @@
     
 	
     // ===== Start the sequence =======================================
-    
     any ret = WizardSequencer(aliases, main_sequence);
 
+
+    // ===== Restart the sequence =====================================
     if ( start_sequencer_again )
     {
-	if(test_mode ) y2milestone(" Start sequencer again");
+
+	if( Mode::test ) y2milestone(" Start sequencer again");
 	start_sequencer_again = false;
-	
-	user_settings = $[];
-	current_users   = $[];
-	current_groups  = $[];
-	current_gshadow = [];
+
+	UserWriteStack::Reset();
 
 	group_in_work = $[];
 	user_in_work  = $[];
 
-	usersGroupsShadowReadFromDisk();
-	usersUsersReadFromDisk();
-	usersGroupsReadFromDisk();
-	start_dialog = "users";
-	main_sequence["ws_start"]="users";
-	ret = WizardSequencer(aliases, main_sequence);
+	UserSettings::ReadSettingsFromDisk();
+
+
+	start_dialog 		  ="users";
+	main_sequence["ws_start"] ="users";
 	
+	ret = WizardSequencer(aliases, main_sequence);	
+
     }
 
     if( ! Mode::cont )

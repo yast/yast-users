@@ -21,7 +21,7 @@
    * First part of the help text.
    * @return string
    */
-  global define help_main_start()``{
+  global define string help_main_start()``{
 
         return _("<p>
 Linux is a <b>multiuser system</b>. Several different users can be logged in the
@@ -37,7 +37,7 @@ least belongs to one group.
    * Last part of the help text.
    * @return string
    */
-  global define help_main_end()``{
+  global define string help_main_end()``{
 
       return _("<p>
 To save the modified user and group setting to your system push the button
@@ -50,7 +50,7 @@ To save the modified user and group setting to your system push the button
    * Password help text.
    * @return string
    */
-  global define help_password()``{
+  global define string help_password()``{
 
       string help_text =  _("<p>
 When entering a password, you must distinguish between uppercase and lowercase. A
@@ -58,18 +58,16 @@ password should have at least 5 characters and, as a rule, not contain any
 special characters (e.g., accented characters).
 </p>
 ");
-      // TODO FIXME 
-      textdomain "user";
+      
       
       help_text = help_text + _("<p>
 Valid password characters are letters, digits, blanks, and
 <tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}</tt>.
 </p>");
-
-      textdomain "users";
-      // TODO FIXMDE END
+  
       
       help_text = help_text +
+
 _("<p>
 It's enough to use a password with a length of approximately 8 alpha-numeric
 characters. To ensure that the password was entered correctly, you are asked to
@@ -82,12 +80,31 @@ repeat it exactly in a second field. Make sure you don't forget your password!
 
 
 
+      /**
+     * Help for the ReadDialog () dialog.
+     * @return string The help text.
+     */
+    global define string ReadDialogHelp () ``{
+	// TODO FIXME: Modify it to your needs!
+	return
+	    // For translators: joe read dialog help, part 1 of 2
+_("<P><B><BIG>Initializing joe</BIG></B><BR>
+Please wait for a while...
+<BR></P>") +
+	    // For translators: joe read dialog help, part 2 of 2
+_("<P><B><BIG>Aborting the initialization:</BIG></B><BR>
+You can safely abort the configuration utility by pressing the <B>Abort</B>
+button now.
+</P>");
+    }
+
+
 
   /**
    * Help for usersUsersDialog.
    * @return string
    */
-  global define usersUsersDialogHelp() ``{
+  global define string usersUsersDialogHelp() ``{
 
       return ( help_main_start() + _("
 <p>
@@ -119,7 +136,7 @@ click <b>Edit</b> or <b>Delete</b>.
    * Help for usersGroups.
    * @return string
    */
-  global define usersGroupsDialogHelp()``{
+  global define string usersGroupsDialogHelp()``{
 
       return ( help_main_start() +  _("
 <p>
@@ -151,7 +168,7 @@ push the button <b>Edit</b> or <b>Delete</b>.
    * Help for usersEditUser.
    * @return string
    */
-  global define usersEditUserHelp() ``{
+  global define string usersEditUserHelp() ``{
 
       return _("<p>
 If you fill out the fields (<b>First Name</b> and <b>Last Name</b>), a new
@@ -191,7 +208,7 @@ To see more details like the home directory or the user ID push
    * Help for usersEditGroup.
    * @return string
    */
-  global define usersEditGroupHelp() ``{
+  global define string usersEditGroupHelp() ``{
 
       return _("<p>
 YaST provides an easy means of maintaining user groups on your
@@ -213,7 +230,7 @@ internal representation. These values are between 0 and
 %1. Some of the IDs are already assigned during installation. YaST2
 warns you if you try to use an already set one.
 </p>
-"), max_gid) +
+"), UserDefs::max_gid) +
 		_("<p>
 <b>Enter a  password:</b>
 If you want the members of the group to identify themselves while
@@ -243,7 +260,7 @@ peter,anna,book,news
    * Help for usersEditUserDetails.
    * @return string
    */
-  global define usersEditUserDetailsHelp() ``{
+  global define string usersEditUserDetailsHelp() ``{
 
       return _("<p>
 The meaning of the fields are described below:
@@ -255,7 +272,7 @@ the \"User ID\". For normal users, you should use
 a UID bigger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
-"), max_system_uid ) +
+"), UserDefs::max_system_uid ) +
 		_("<p>
 <b>Default Group:</b>
 The group to which the user belongs. Select one group
@@ -285,7 +302,7 @@ All additional memberships in groups for the user.
    * Help for usersSave.
    * @return string
    */
-  global define usersSaveDialogHelp() ``{
+  global define string usersSaveDialogHelp() ``{
 
       return _("<p>
 Save the current user and group settings to system
@@ -293,4 +310,12 @@ Save the current user and group settings to system
 
   }
 
+
+  global define string  usersEditUserPasswordHelp() ``{
+      return _("<p>
+TODO
+</p>");
+  }
+
+  
 }

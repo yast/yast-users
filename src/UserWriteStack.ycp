@@ -1,0 +1,603 @@
+ /**
+ * Module:		UserWriteStack.ycp
+ *
+ * Authors:		Johannes Buchhold <jbuch@suse.de>
+ *
+ * Purpose:		this module handles a stack that
+ *			contains all system changes executed
+ *			by finishing the user module.
+ *                       
+ *
+ * $Id$
+ */
+{
+
+  module "UserWriteStack";
+  textdomain "users";
+
+  import "Wizard";	
+  import "Report";
+  import "Mode";
+  import "UserDefs";
+  import "UserSettings";
+
+  include "users/help.ycp";
+
+
+  map write_to_system_stack = $[];
+
+  /**
+   * Delete stack data.
+   */
+  global define void Reset()``{
+      write_to_system_stack = $[];  
+  }
+
+  /**
+   * Return true if the stack is empty.
+   * @return boolean
+   */
+  global define boolean IsEmpty()``{
+      return write_to_system_stack == $[];
+  }
+  
+  /**
+   * Return the next stack position.
+   * @return integer
+   */
+  define integer findNextTodoPos() ``{
+      return  ( size( write_to_system_stack) + 1);
+  }	
+
+
+  /**
+   * Add an entry to the map write_to_system_stack for a todo position.
+   * @param todo exec string
+   * @param what
+   *  `set_group_password
+   *  `add_user_local
+   *  `add_user
+   *  `edit_user
+   *  `add_group
+   *  `edit_user
+   *  `mkdir
+   *  `mv
+   *  `del_user_local
+   *  `del_user
+   *  `del_group
+   * @param error error message 
+   * @return boolean
+   */
+  global define boolean AddTodo( string todo, symbol what, string error ) ``{
+	
+      write_to_system_stack[ findNextTodoPos()] =   $[ "todo" : todo,
+						       "what" : what,
+						       "error": error ];
+      return true;
+  }
+
+
+  /**
+   * Add a entry to the map write_to_system_stack to set a group password
+   * @param groupname the name of the group
+   * @param password the new group password
+   * @return boolean 
+   */
+  define boolean addSetGroupPassword( string groupname, string password ) ``{
+
+      write_to_system_stack[ findNextTodoPos() ] =  $[
+						      "groupname" : groupname,
+						      "password"  : password,
+						      "what" : `set_group_password, 
+						      "error": _("Can' set group password" )
+      ];
+      return true;
+  }
+    
+  
+
+  
+  /**
+   * Encode the fullname of a user.
+   * @param fullname the fullname of a user
+   * @return boolean
+   */
+  define boolean consoleEncoding( string fullname ) ``{
+
+	
+	any ret = findfirstof( fullname , "\"" );
+	
+	if(  ret != nil )
+	{
+	    string split_list = splitstring( fullname, "\"");
+	    fullname = "";
+	    
+	    foreach ( `split , split_list, ``{
+		if( fullname == "" ) fullname = split;
+		else fullname = fullname + "\\\"" + split; 
+	    });
+	}
+	
+	return  UI::Recode("UTF-8", UserDefs::encoding, sformat("\"%1\"", fullname ));
+    }
+
+  
+  
+    
+    /**
+     * Add entries to the map write_to_system_stack to save a new or modified user.
+     * Update the virtual user and group settings in UserSettings.
+     * @return symbol
+     */ 
+    global define symbol UserSave(map user_in_work, boolean save_directly ) ``{
+
+	symbol  what     = lookup( user_in_work , "what"      , `nix );
+	string  fullname = lookup( user_in_work , "fullname"  , ""   );
+	integer gid      = lookup( user_in_work , "gid"       ,  UserDefs::max_gid );
+	string  home     = lookup( user_in_work , "home"      , ""   );
+	string  password = lookup( user_in_work , "password"  , ""   );
+	string  shell    = lookup( user_in_work , "shell"     , ""   );
+	integer uid      = lookup( user_in_work , "uid"       , UserDefs::max_uid );
+	string  username = lookup( user_in_work , "username"  , ""   );
+	string  grouplist= lookup( user_in_work , "grouplist" , ""   );
+	string  todo     = "/usr/sbin/usermod";
+	boolean do_exist = true;
+	map     org_user = UserSettings::GetUser( uid );
+	string  comment  = consoleEncoding( fullname );
+
+	
+	if ( what == `add_user )
+	{
+	    do_exist = false;
+
+	    //add the shell, home, initial_group, password, uid to the todo string
+	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell,
+			   home, UserSettings::GroupIdToName(gid), password, uid);
+
+	    //add the fullname to the todo string (comment)
+	    if ( comment  != "") todo = todo + " -c " + comment;
+
+	    //add the grouplist to the todo string
+	    if ( grouplist != "") todo = todo + " -G " + grouplist;
+
+	    //add the username to the todo string
+	    todo = todo + " " + username;
+
+	    //add the todo string to the write stack
+	    AddTodo( todo , `add_user,  sformat(_("Can't create the new user %1"), username ));
+
+	    //add a call of useradd.local to the write stack
+	    if(  SCR::Read(.target.size, "/usr/sbin/useradd.local" ) != -1  )
+	    {	
+		AddTodo( ("/usr/sbin/useradd.local " + username ),
+			      `add_user_local,
+			      _("Can't execute /usr/sbin/useradd.local"));
+	    }
+	}
+	else
+	{
+	    //add the gid to the todo string
+	    if ( org_user["gid"]:""  != gid )
+		todo = todo + " -g "  + UserSettings::GroupIdToName(gid );
+
+	    //add the fullname to the todo string 
+	    if ( org_user["fullname"]:"" != fullname )
+		todo = todo + " -c " + comment ;
+
+	    //add the home_dir to the todo string
+	    if ( org_user["home"]:""  != home     )
+		todo = todo + " -d "  + home + " -m";
+	    
+	    //add the password to the todo string 
+	    if ( "x" != password )
+		todo = todo + " -p '"  + password + "'";
+
+	    //add the loginname to the todo string
+	    if ( org_user["username"]:""  != username )
+		todo = todo + " -l "  + username;
+
+	    //add the shell to the todo string
+	    if ( org_user["shell"]:"" != shell )
+		todo = todo + " -s " + shell;
+	    
+	    //add the grouplist to the todo string
+	    if ( UserSettings::FindGroupsBelongUser(username )    != grouplist)
+	    {
+		if ( grouplist == "" ) grouplist = "''";
+		todo = todo + " -G "  + grouplist;
+	    }
+
+	    //add the todo string to the write stack
+	    if( todo !=  "/usr/sbin/usermod" )
+	    {
+		todo = todo + " " + UserSettings::UserIdToName( uid );
+	    
+		AddTodo( todo,
+			      `edit_user,
+			      sformat(_("Can't change the settings of the user %1"), username ));
+	    }
+	}
+
+	
+	map current_user = $[
+			     "exist"    : do_exist,
+			     "fullname" : fullname,
+			     "gid"      : gid,
+			     "home"     : home,
+			     "password" : password,
+			     "shell"    : shell,
+			     "uid"      : uid,
+			     "username" : username,
+			     "org_home" : user_in_work["org_home"]:"",
+			     "shadow"	: user_in_work["shadow"]:$[]
+	];	
+
+	
+
+
+	// if the username has been changed update the map current_groups 
+	UserSettings::ChangeUserNameInGroups( org_user["username"]:"", username);
+
+	// if the userlist has been changed update the map current_groups
+	UserSettings::ChangeUserlistInGroups( username, grouplist );
+
+	// write changed user to current_users
+	UserSettings::SetUser( uid, current_user );
+
+	//leave the module with save
+	if ( save_directly ) return `save;
+
+	return `next;
+    }
+
+    
+     /**
+     * Add entries to the map write_to_system_stack to save a new or modified group. 
+     * Update the virtual user and groups settings.
+     */ 
+    global define symbol GroupSave(map group_in_work , boolean save_directly ) ``{
+
+	   //load the manipulated group settings from group_in_work
+	   symbol what             = lookup( group_in_work , "what" ,     "");
+	   string new_groupname    = lookup( group_in_work, "groupname",  "");
+	   string password         = lookup( group_in_work, "password",   "x");
+	   string userlist         = lookup( group_in_work, "userlist",   "");
+	   integer gid             = lookup( group_in_work, "gid",        "");
+	   integer old_gid         = lookup( group_in_work, "old_gid",    "");
+
+	   // remove default user from the userlist
+	   list   split_userlist = splitstring( userlist, ",");
+
+	   string new_userlist = UserSettings::RemoveDefaultUserFromUserlist( old_gid, split_userlist);
+	 
+	   // build strings with the operation and save they to write_to_system_stack
+	   string  todo     = "/usr/sbin/groupmod";	
+	   boolean do_exist = true;
+
+	   
+	   if ( what == `add_group )
+	   {
+	       // create a new group
+	       do_exist = false;
+
+	       // create the group
+	       AddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname ),
+			`add_group,
+			sformat(_("Can't create new group %1"), new_groupname));
+
+	       // add users to the group
+	       if ( userlist != "" )
+	       {
+		   list split_userlist = splitstring( userlist , "," );
+		   foreach ( `user, split_userlist, ``{  
+		       string new_G = UserSettings::FindGroupsBelongUser(user);
+		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
+		       else new_G  = new_groupname;
+		       AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ),
+				`edit_user,
+				sformat(_("Can't add user %1 to group %2"), user, new_G));
+		   });
+	       }
+	   }
+	   else
+	   {
+	       // modify a existing group
+	       string old_groupname = UserSettings::GetGroupname( old_gid );
+	       
+	       if ( UserSettings::GetUserlist( old_gid ) != userlist )
+	       {
+		   
+		   string old_userlist       = UserSettings::GetUserlist( old_gid );
+		   list   old_split_userlist = splitstring( old_userlist, ",");
+		   list       split_userlist = splitstring(     userlist, ",");
+		   symbol add_or_delete      = `add;
+		   list  work_userlist       = [];
+		   
+		   
+		   if ( size ( old_userlist ) < size( userlist ) )
+		   {
+		       //add users to group
+		       foreach(`user, split_userlist ,``{
+			   if( !contains( old_split_userlist, user) ) work_userlist = add( work_userlist, user );
+		       });
+		       
+		       foreach( `user, work_userlist, ``{
+			   string new_G = UserSettings::FindGroupsBelongUser(user);
+			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
+			   else new_G  = old_groupname;
+			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ),
+					 `edit_user,
+					 sformat(_("Can't add user %1 to group %2"), user, new_G));
+		       });
+		   }
+		   else
+		   {
+		       //delete users from group
+		       add_or_delete = `delete;
+		       foreach(`user, old_split_userlist ,``{
+			   if( !contains( split_userlist, user) ) work_userlist = add( work_userlist, user );
+		       });
+		       foreach( `user, work_userlist, ``{
+			   string new_G      = UserSettings::FindGroupsBelongUser(user );			   
+			   list   new_G_list = splitstring( new_G , "," );
+			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
+			   AddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ),
+					 `edit_user,
+					 sformat(_("Can't add user %1 to group %2"), user, new_new_G));
+		       });
+		       
+		   }
+	       }
+		
+	       if ( old_groupname != new_groupname )
+		   todo = todo + " -n " + new_groupname;
+	       if ( lookup( UserSettings::GetGroup( old_gid ), "gid"       , "" ) != gid )
+		   todo = todo + " -g " + sformat("%1", gid) + " -o";
+
+	       if ( todo != "/usr/sbin/groupmod" )
+		   AddTodo( (todo + " " +  old_groupname),
+				 `edit_group,
+				 sformat(_("Can't change the settings of the group %1"), old_groupname) );
+	       
+	      
+	   }
+	   
+	   // build todo aktion for gshadow
+	   if( password != "x" )
+	   {	
+	       addSetGroupPassword( new_groupname, password );
+
+	       // modify password entry in current_groups
+	       if ( password == "*" ) password = "x";
+	   }
+	   
+	   map current_group = $[
+				 "exist"         : do_exist,
+				 "gid"           : gid,
+				 "groupname"     : new_groupname,
+				 "password"      : password, 
+				 "userlist"      : new_userlist
+	   ];
+
+
+	   
+	   // upadate current_users and current_groups if the gid was modified
+	   if( old_gid != gid ) 
+	   {
+	       UserSettings::ChangeGid( old_gid, gid ,current_group );
+	   }
+	   else
+	   {
+	       // save current_group to current_groups
+	       UserSettings::SetGroup( gid, current_group );
+	   }
+
+	   if (  save_directly  ) return `save; 
+	   return `next;
+       }
+
+
+
+
+  
+  /**
+   * Dialog to save the Groups and Usersettings to system
+   * @return symbol
+   */
+  global define symbol SaveDialog(boolean useUI ) ``{
+	
+	if ( IsEmpty() ) return `next;
+
+	UserSettings::BackupConfFiles();
+
+	// normal, running system
+	if( ! Mode::cont && ! Mode::autoinst && useUI )
+	{
+	    term contents =   `VBox(
+				    `VSpacing( 2 ),
+				    `Left(`Heading (_("Save modified settings to system."))),
+				    `HVCenter(`ProgressBar(`id(`bar), _("save ......"))),
+				    `VSpacing( 2 )	
+				    );
+
+	    Wizard::SetContentsButtons(  "" ,
+					 contents,
+					 usersSaveDialogHelp(),
+					 UI::BackButtonLabel(),
+					 UI::NextButtonLabel());
+	}
+
+
+
+	if( Mode::test ) SCR::Write(.dumpto.tmp.current_users_final,     UserSettings::current_users );
+	if( Mode::test ) SCR::Write(.dumpto.tmp.current_groups_final,    UserSettings::current_groups );
+
+	integer value = 0;
+	boolean ok    = true;
+	    
+	foreach( `key, `todomap, write_to_system_stack, ``{
+		
+	    symbol what  = lookup ( todomap , "what" , `error );
+	    any    ret   = 1;
+		
+	    if( what == `set_group_password )
+	    {
+		   
+		string groupname = lookup ( todomap , "groupname" ,"");
+		string password  = lookup ( todomap , "password"  ,"");
+
+		//read the /etc/gshado file new
+		UserSettings::ReadGshadowFromDisk();
+
+		//get groupmap from  current_gshadow 
+		map group       = UserSettings::GetGroupFromShadow(  groupname );
+
+		//delete this map in current_gshadow
+		if ( group != $[] )  UserSettings::DeleteGroupFromShadow( groupname );
+
+		//add a new  groupmap to current_gshadow
+		map new_group       = $[
+					"password" : password,
+					"disposer" : "root" ,
+					"groupname": groupname,
+					"userlist" : lookup( group , "userlist" ,"")
+		];
+		   
+		UserSettings::AddGshadowEntry(new_group);
+
+		//save /etc/gshado file 
+		ret = SCR::Write(.etc.gshadow, UserSettings::current_gshadow );
+	    }
+	    else
+	    {
+		// execute the save string from write_to_system_stack 
+		string todo  = lookup ( todomap , "todo" , "" );
+		ret =  SCR::Execute(.target.bash, todo );
+	    }
+
+	    if( ret == 0 )
+	    {
+		value	= value + 1;
+		if( ! Mode::cont && ! Mode::autoinst) {
+		    UI::ChangeWidget(`id(`bar), `Value, ((value / size(write_to_system_stack))  * 100 ) );
+		}
+	    }
+	    else
+	    {
+		ok = false;
+		Report::Error( lookup ( todomap , "error", "" ));
+	    }
+	});
+
+	if ( !ok)
+	{
+	    Report::Error(_("The new user and group are not configured."));	
+	    
+	}
+	else
+	{
+	    // normal, running system
+	    if( ! Mode::cont && ! Mode::autoinst && useUI )
+	    {
+		Report::Message(_("The new user and group settings
+are configured and usable"));	
+	    }
+	}
+	return `next;
+    }
+
+    
+  
+    /**
+     * Add a string to the map write_to_system_stack for creating a home dir for a new user.
+     * Used in AddMoveDir and usersUserSaveToMap.
+     * @param home string
+     * @return nil
+     */
+    /*
+    define void AddMakeHomeDir( string home ) ``{
+
+	list   split_home = splitstring( home, "/");
+	string tmp_dir    = "";
+
+	foreach( `sub_dir, split_home , ``{
+	    if( sub_dir != "" )
+	    {
+		tmp_dir = tmp_dir + "/"+sub_dir;
+		//milestone("be 2. dir");
+		//if( nil == SCR(`Read(.target.dir , tmp_dir) ))
+		if( SCR::Read(.target.size, tmp_dir ) == -1  )
+		    AddTodo( ("/bin/mkdir " + tmp_dir),
+				  `mkdir,
+				  sformat(_("Can't make directory %1"), tmp_dir));
+	    }
+	});
+    }
+    */
+    
+    /**
+     * Add a string to the map write_to_system_stack for creating a home dir for a new user.
+     * Used in AddMoveDir and usersUserSaveToMap.
+     * @param home string
+     * @param old_home string
+     * @return nil
+     */
+    /*
+    define void AddMoveDir(string old_home, string  home )``{
+
+	AddTodo( ("/bin/mv " + old_home + " " +  home ),
+		      `mv,
+		      sformat(_("Can't move old home directory %1
+to new home directory %2"), old_home, home));
+	
+
+    }
+    */
+
+    /**
+     * Add a string to the map write_to_system_stack for removing a home directory.
+     * Used in usersDeleteUser.
+     * @param home string
+     * @return nil
+     */
+    /*
+    define void AddRmDir( string  home )``{
+
+	AddTodo( ("/bin/rm " +home + " -r" ),
+		      `rm,
+		      sformat(_("Can't remove home directory %1."),  home));
+    }
+    */
+
+    
+    /**
+     * Add a string to the map write_to_system_stack to set the home dir access right.
+     * Used in usersUserSaveToMap.
+     * @param home string
+     * @param user string
+     * @param group string
+     * @return nil
+     */
+    /*
+    define void AddChownHome( string home, string user, string group)``{
+
+	AddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
+		     `chown,
+		     _("Can't set user and group variable to the home directory"));
+
+	// FIXME, check general security level
+	if (false)
+	{
+	    AddTodo(("/bin/chmod g-rx " + home ),
+			`chown,
+			_("Can't set read and write permissions to the home directory"));
+
+	    AddTodo(("/bin/chmod o-rx " + home ),
+			`chown,
+			_("Can't set read and write permissions to the home directory"));
+	}
+    }
+    */
+  
+
+}

@@ -9,7 +9,11 @@ modulesdir = $(YAST2DIR)/modules
 
 
 modules_DATA =			\
-	Users.ycp
+	Users.ycp		\
+	UserDefs.ycp		\
+	UserSettings.ycp	\
+	UserWriteStack.ycp	\
+	UserAddDefs.ycp
 
 include_DATA =			\
 	io.ycp			\
