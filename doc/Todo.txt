@@ -14,15 +14,6 @@ Kerberos:
 - edit password 
     - problem: password changing utilities are interactive
 
-Dialogs behaviour:
-
-- groups and users summary to one dialog
-
 System users:
 
 - script to gather all system users from rpms
-
-Performance:
-
-- writing with perl script (agent)
-- read scripts change to perl agents
