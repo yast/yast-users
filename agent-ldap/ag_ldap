@@ -204,15 +204,14 @@ while ( <STDIN> )
 	    # ---------- bind to LDAP server
 	    
 	    my $res;
-	    
 	    my $pass = $argument;
-	    if ($pass eq "") {
+
+	    if (!defined $pass) {	# ----- anonymous bind
 		$res = $ldap->bind ();
 	    }
 	    else {
 		$res = $ldap->bind ($bind_dn, password => $pass);
 	    }
-
 	    ycp::Return (LDAPerror ($res->code));
 	    # ---------------------------------------
 	}
