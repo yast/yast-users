@@ -33,10 +33,10 @@ Here you can choose the authentication method of users on your system.
 </p>") +
 
     // helptext 2/3
-    _("<p>Select <b>Stand alone machine</b> if you want to authenticate users only by using local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
+    _("<p>Select <b>Stand-Alone Machine</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
 
     // helptext 3/3
-    _("<p>If you are using NIS, NIS+ or LDAP server to store user data, select <b>Network  client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
+    _("<p>If you are using NIS, NIS+, or LDAP server to store user data, select <b>Network  Client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
 
 
     term net_buttons =
@@ -60,10 +60,10 @@ Here you can choose the authentication method of users on your system.
 	`RadioButtonGroup (`VBox (
 				  `Left(`RadioButton(`id(`local), `opt(`notify),
 						     // radiobutton to select local user auth.
-						     _("S&tand alone machine"))),
+						     _("S&tand-Alone Machine"))),
 				  `Left(`RadioButton(`id(`network), `opt(`notify),
 						     // radiobutton to select network user auth.
-						     _("N&etwork client"))),
+						     _("N&etwork Client"))),
 				  `VSpacing(0.5),
 				  `HBox (
 					 `HSpacing (4),

@@ -274,7 +274,8 @@ the password. This starting procedure is traditionally known as the
     if (mail)
         // help text 4/5
         help = help + _("<p>
-The mail for root will be forwarded to this user, if you check the option \"Recieve System Mail\".</p>");
+The mail for root will be forwarded to this user if you check the option \"Recieve System Mail\".</p>
+");
 
 	// help text 5/5
     help = help + _("<p>
@@ -395,8 +396,9 @@ LDAP server.</p>") +
 
     // alternate helptext 5.5/8
     _("<p>
-<b>E-mail:</b>
-You can set user's e-mail adress here.</p>");
+<b>E-Mail:</b>
+You can set user's e-mail adress here.</p>
+");
 
     else if (user_type == `system || user_type == `local)
         helptext = helptext +
@@ -404,8 +406,9 @@ You can set user's e-mail adress here.</p>");
     _("<p><b>Additional Information</b>
 Some additional user data could be set here. These field may contain up to
 three parts separated by commas. The standard usage is to write
-<i>office</i>,<i>work phone</i>,<i>home phone</i>. These informations will
-be shown when you use <i>finger</i> command on this user.</p>");
+<i>office</i>,<i>work phone</i>,<i>home phone</i>. This information will
+be shown when you use the <i>finger</i> command on this user.</p>
+");
 
 	// help text 6/8
 	helptext = helptext + _("<p>

@@ -304,44 +304,44 @@ global define symbol Read (block abort, boolean useUI) ``{
 	// We do not set help text here, because it was set outside
 	if( useUI )
 	    Progress::New (caption, " ", no_of_steps,
-			// progress label
+			// progress stage label
 		       [ _("Read the default login settings"),
-			// progress label
+			// progress stage label
 			 _("Read the default system settings"),
-			// progress label
+			// progress stage label
 			 _("Read the configuration type"),
-			// progress label
+			// progress stage label
 			 _("Build the data structures"),
-			// progress label
+			// progress stage label
 			 _("Read the password settings"),
-			// progress label
+			// progress stage label
 			 _("Read the group settings"),
-			// progress label
+			// progress stage label
 			 _("Read the user settings"),
-			// progress label
+			// progress stage label
 			 _("Read the custom settings"),
-			// progress label
+			// progress stage label
 			 _("Build the cache structures")
            ],
-			// progress label
+			// progress step label
 		       [ _("Reading the default login settings..."),
-			// progress label
+			// progress step label
 			 _("Reading the default system setttings..."),
-			// progress label
+			// progress step label
 			 _("Reading the configuration type..."),
-			// progress label
+			// progress step label
 			 _("Building the data structures..."),
-			// progress label
+			// progress step label
 			 _("Reading the password settings..."),
-			// progress label
+			// progress step label
 			 _("Reading the group settings..."),
-			// progress label
+			// progress step label
 			 _("Reading the user settings..."),
-			// progress label
+			// progress step label
 			 _("Reading the custom settings..."),
-			// progress label
+			// progress step label
 			 _("Building the cache structures..."),
-			// progress label
+			// final progress step label
 			 _("Finished") ],
 			    "" );
 
@@ -565,40 +565,40 @@ global define symbol Write (block abort, boolean useUI)``{
 	// We do not set help text here, because it was set outside
 	if( useUI )
 	    Progress::New (caption, " ", no_of_steps, [
-			// progress label
+			// progress stage label
 			_("Back up the configuration files"),
-			// progress label
+			// progress stage label
 			_("Check for deleted users"),
-			// progress label
+			// progress stage label
 			_("Write users"),
-			// progress label
+			// progress stage label
 			_("Write passwords"),
-			// progress label
+			// progress stage label
 			_("Write groups"),
-			// progress label
+			// progress stage label
 			_("Write LDAP users and groups"),
-			// progress label
+			// progress stage label
 			_("Write the custom settings"),
-			// progress label
+			// progress stage label
 		    _("Write the default login settings")
            ],
-			// progress label
+			// progress step label
 		  [ _("Creating backup of configuration files..."),
-			// progress label
+			// progress step label
 			_("Checking deleted users..."),
-			// progress label
+			// progress step label
 			_("Writing users..."),
-			// progress label
+			// progress step label
 			_("Writing passwords..."),
-			// progress label
+			// progress step label
 			_("Writing groups..."),
-			// progress label
+			// progress step label
 			_("Writing LDAP users and groups..."),
-			// progress label
+			// progress step label
 			_("Writing the custom settings..."),
-			// progress label
+			// progress step label
 		    _("Writing the default login settings..."),
-			// progress label
+			// final progress step label
 			_("Finished") ],
 			    "" );
 
@@ -2842,15 +2842,17 @@ global define string CheckObscurity (string username, string pw) ``{
     if (issubstring (pw, username))
     {
         // yes/no popup
-        return _("You have used username as a part of the password.
-This is not good security practice. Are you sure?");
+        return _("You have used the user name as a part of the password.
+This is not good security practice. Are you sure?
+");
     }
     // check for lowercase
     if (deletechars (pw, "abcdefghijklmnopqrstuvwxyz") == "")
     {
         // yes/no popup
-        return _("You have used only lower case letters for the password.
-This is not good security practice. Are you sure?");
+        return _("You have used only lowercase letters for the password.
+This is not good security practice. Are you sure?
+");
     }
     // check for numbers
     if (deletechars (pw, "0123456789") == "")
