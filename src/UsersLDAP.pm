@@ -1123,4 +1123,6 @@ BEGIN { $TYPEINFO{SetGUI} = ["function", "void", "boolean"];}
 sub SetGUI {
     $use_gui = $_[0];
 }
+
+1
 # EOF
