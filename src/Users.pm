@@ -1662,17 +1662,23 @@ sub AddUser {
     if (!defined $user_in_work{"cn"}) {
 	$user_in_work{"cn"}	= "";
     }
+    if (!defined $user_in_work{"gidNumber"}) {
+	$user_in_work{"gidNumber"}	= GetDefaultGID ($type);
+    }
     if (!defined $user_in_work{"groupname"}) {
-	$user_in_work{"groupname"}	= GetDefaultGroupname ($type);
+	my %group	= %{GetGroup ($user_in_work{"gidNumber"}, "")};
+	if (%group) {
+	    $user_in_work{"groupname"}	= $group{"groupname"};
+	}
+	else {
+	    $user_in_work{"groupname"}	= GetDefaultGroupname ($type);
+	}
     }
     if (!defined $user_in_work{"grouplist"}) {
 	$user_in_work{"grouplist"}	= GetDefaultGrouplist ($type);
     }
     if (!defined $user_in_work{"homeDirectory"} && defined ($username)) {
 	$user_in_work{"homeDirectory"} = GetDefaultHome ($type).$username;
-    }
-    if (!defined $user_in_work{"gidNumber"}) {
-	$user_in_work{"gidNumber"}	= GetDefaultGID ($type);
     }
     if (!defined $user_in_work{"loginShell"}) {
 	$user_in_work{"loginShell"}	= GetDefaultShell ($type);
@@ -2239,10 +2245,11 @@ sub CommitGroup {
             delete $groups_by_name{$org_type}{$org_groupname};
 	}
 
-        # this has to be done due to multiple changes of groupname TODO ???
-        $group{"org_groupname"}		= $groupname;
+        # this has to be done due to multiple changes of groupname
+        $group{"org_groupname"}			= $groupname;
+        $group{"org_gidNumber"}			= $gid;
 
-        $groups{$type}{$gid}		= \%group;
+        $groups{$type}{$gid}			= \%group;
         $groups_by_name{$type}{$groupname}	= $gid;
 
 	if (($group{"modified"} || "") ne "") {
@@ -2359,10 +2366,8 @@ sub DeleteUsers {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
+BEGIN { $TYPEINFO{Write} = ["function", "boolean"]; }
 sub Write {
-
-    my $ret	= ""; #FIXME return value???
 
     # progress caption
     my $caption 	= _("Writing user and group configuration...");
@@ -2411,7 +2416,7 @@ sub Write {
     if ($groups_modified) {
         if (! WriteGroup ()) {
             Report::Error (_("Cannot write group file."));
-	    $ret = _("Cannot write group file.");
+	    return 0;
         }
         # remove the group cache for nscd (bug 24748)
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
@@ -2423,7 +2428,7 @@ sub Write {
     if ($users_modified) {
         if (!DeleteUsers ()) {
             Report::Error (_("Error while removing users."));
-	    $ret = _("Error while removing users.");
+	    return 0;
 	}
     }
 
@@ -2433,7 +2438,7 @@ sub Write {
     if ($users_modified) {
         if (!WritePasswd ()) {
             Report::Error (_("Cannot write passwd file."));
-	    $ret = _("Cannot write passwd file.");
+	    return 0;
 	}
 	# remove the passwd cache for nscd (bug 24748)
         SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
@@ -2484,8 +2489,8 @@ sub Write {
 
     if ($users_modified) {
         if (! WriteShadow ()) {
-	    $ret = _("Cannot write shadow file.");
             Report::Error (_("Cannot write shadow file."));
+	    return 0;
         }
     }
 
@@ -2543,7 +2548,8 @@ sub Write {
 	!MailAliases::SetRootAlias ($root_mail)) {
         
 	# error popup
-        $ret =_("There was an error while setting forwarding for root's mail.");
+        Report::Error (_("There was an error while setting forwarding for root's mail."));
+	return 0;
     }
 
     Autologin::Write (Mode::cont () || $write_only);
@@ -2554,8 +2560,7 @@ sub Write {
         undef %saved_user;
         undef %user_in_work;
     }
-
-    return $ret;
+    return 1;
 }
 
 ##-------------------------------------------------------------------------
@@ -2599,6 +2604,15 @@ sub CheckUID {
 Select another user ID.");
 	}
     }
+    my $username	= $user_in_work{"username"} || "";
+
+    if ($type eq "system" && $username eq "nobody" && $uid == 65534) {
+	return "";
+    }
+    if ($type eq "system" && $uid< UsersCache::GetMinUID("system") && $uid >=0){
+	# system id's 0..100 are ok
+	return "";
+    }
 
     if (($type ne "system" && $type ne "local" && ($uid < $min || $uid > $max))
 	||
@@ -2614,8 +2628,6 @@ Select another user ID.");
     {
 	return sprintf (_("The selected user ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
-#FIXME: 1. user 'nobody' 
-#	2. small id's are possible...	
     }
     return "";
 }
@@ -2802,7 +2814,7 @@ sub CrackPassword {
     }
     if (!defined ($ret)) { $ret = ""; }
 
-    return $ret;#TODO ret should be recoded!
+    return UsersUI::RecodeUTF ($ret);
 }
 
 ##------------------------------------
@@ -3077,7 +3089,7 @@ BEGIN { $TYPEINFO{CheckGID} = ["function", "string", "integer"]; }
 sub CheckGID {
 
     my $gid	= $_[0];
-    my $type	= UsersCache::GetUserType ();
+    my $type	= UsersCache::GetGroupType ();
     my $min 	= UsersCache::GetMinGID ($type);
     my $max	= UsersCache::GetMaxGID ($type);
 
@@ -3094,6 +3106,17 @@ sub CheckGID {
 	    return _("The group ID entered is already in use.
 Select another group ID.");
 	}
+    }
+    my $groupname	= $group_in_work{"groupname"} || "";
+    
+    if ($type eq "system" &&
+	($groupname eq "nobody" && $gid == 65533) ||
+	($groupname eq "nogroup" && $gid == 65534)) {
+	return "";
+    }
+    if ($type eq "system" && $gid< UsersCache::GetMinGID("system") && $gid >=0){
+	# system id's 0..100 are ok
+	return "";
     }
 
     if (($type ne "system" && $type ne "local" && ($gid < $min || $gid > $max))
@@ -3723,8 +3746,7 @@ sub Import {
 	    else {
 		$users{$type}{$uid}		= \%user;
 		$users_by_name{$type}{$username}= $uid;
-	    $	shadow{$type}{$username}       	= CreateShadowMap (\%user);
-#FIXME when we have special grouplist, groups are not adapted!
+		$shadow{$type}{$username}      	= CreateShadowMap (\%user);
 	    }
 	}
 
@@ -3783,8 +3805,8 @@ sub Import {
         $groups_by_name{"local"}{"users"}	= $gid;
     }
 
-    @available_usersets		= ( "local", "system" );
-    @available_groupsets	= ( "local", "system" );
+    @available_usersets		= ( "local", "system", "custom" );
+    @available_groupsets	= ( "local", "system", "custom" );
 
     ReadAllShells ();
 
@@ -3832,14 +3854,22 @@ sub Import {
         }
     }
 
-    ReadUsersCache ();
+    # initialize UsersCache: 1. system users and groups:
+    UsersCache::ReadUsers ("system");
+    UsersCache::ReadGroups ("system");
 
-    # and again:
+    UsersCache::BuildUserItemList ("system", $users{"system"});
+    UsersCache::BuildGroupItemList ("system", $groups{"system"});
+
+    # 2. and local ones (probably empty or imported)
     UsersCache::BuildUserLists ("local", $users{"local"});
     UsersCache::BuildUserItemList ("local", $users{"local"});
 
     UsersCache::BuildGroupLists ("local", $groups{"local"});
     UsersCache::BuildGroupItemList ("local", $groups{"local"});
+
+    UsersCache::SetCurrentUsers (\@user_custom_sets);
+    UsersCache::SetCurrentGroups (\@group_custom_sets);
 
     return 1;
 }
@@ -3851,31 +3881,34 @@ sub Import {
 sub ExportUser {
 
     my $user	= $_[0];
-    return $user;
 
-#    my $type	= $user->{"type"} || "local";
-#    my $full 	= $user->{"cn"}	|| "";
-#    string username = user["username"]:"";
-#    map user_shadow = user ["shadow"]:shadow[type, username]:$[];
-#    string pass = user_shadow["password"]:user ["password"]:"x";
-#    if (user_shadow != $[])
-#        user_shadow = remove (user_shadow, "password");
-#
-#    return {
-#        "encrypted":        user ["encrypted"]:true,
-#        "user_password":    pass,
-#        "username":         username,
-#        "forename":         SplitFullName (`givenName, full),
-#        "surname":          SplitFullName (`sn, full),
-#	"cn":		    full,
-#        "shell":            user ["shell"]:default_shell,
-#        "uid":              user ["uid"]:-1,
-#        "gid":              user ["gid"]:default_gid,
-#        "grouplist":        user ["grouplist"]:"",
-#        "home":             user ["home"]:"",
+    my $type	= $user->{"type"} || "local";
+    my $username = $user->{"username"} || "";
+    my %user_shadow	= %{CreateShadowMap ($user)};
+#TODO Translate keys of user_shadow...?
+
+    my $encrypted	= $user->{"encrypted"};
+    if (!defined $encrypted) {
+	$encrypted	= 1;
+    }
+    my $grouplist	= "";
+    if (defined $user->{"grouplist"}) {
+	$grouplist	= join (",", keys %{$user->{"grouplist"}});
+    }
+    return {
+        "encrypted"		=> $encrypted,
+        "user_password"		=> $user->{"userPassword"} || "x",
+        "username"		=> $username,
+	"cn"			=> $user->{"cn"} || "",
+        "shell"			=> $user->{"loginShell"} || "",
+        "uid"			=> $user->{"uidNumber"},
+        "gid"			=> $user->{"gidNumber"},
+        "home"			=> $user->{"homeDirectory"} || "",
+        "grouplist"		=> $grouplist,
 #        "password_settings":user_shadow
-#    };
+    };
 #FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
+# better would be: leave the new values, but remove 'internal' ones
 
 }
 
@@ -3886,14 +3919,18 @@ sub ExportUser {
 sub ExportGroup {
 
     my $group	= $_[0];
-    return $group;
 
-    return (
+    my $userlist	= "";
+    if (defined $group->{"userlist"}) {
+	$userlist	= join (",", keys %{$group->{"userlist"}});
+    }
+       
+    return {
         "group_password"	=> $group->{"userPassword"} 	|| "x",
         "groupname"		=> $group->{"groupname"}	|| "",
         "gid"			=> $group->{"gidNumber"},
-        "userlist"		=> $group->{"userlist"}
-    );
+        "userlist"		=> $userlist
+    };
 #FIXME: ask Anas, if he want to convert user to use old values (e.g. grouplist as string etc.)
 };
 
@@ -3930,7 +3967,7 @@ sub Export {
     if (defined $groups{"local"}) {
 	foreach my $group (values %{$groups{"local"}}) {
 	    if ($export_all || defined $group->{"modified"}) {
-		push @exported_groups, ExportUser ($group);
+		push @exported_groups, ExportGroup ($group);
 	    }
 	}
     }
@@ -3939,7 +3976,7 @@ sub Export {
     if (defined $groups{"system"}) {
 	foreach my $group (values %{$groups{"system"}}) {
             if ($export_all || defined $group->{"modified"}) {
-	        push @exported_groups, ExportUser ($group);
+	        push @exported_groups, ExportGroup ($group);
 	    }
 	}
     }
@@ -4030,4 +4067,5 @@ sub SetPlusGroup {
     }
 }
 
+1
 # EOF
