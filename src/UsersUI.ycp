@@ -188,7 +188,7 @@ global define string ReadNISConfigurationType (string basedir)``{
     return ypdir;
 }
 
-global define map ChooseTemplates (list user_templates, list group_templates)``{
+global define map ChooseTemplates (list<string> user_templates, list<string> group_templates)``{
 
     string user_template	= user_templates[0]:"";
     string group_template	= group_templates[0]:"";
@@ -281,7 +281,7 @@ _("There are more groups with the same name (\"%2\") in the file %1.
 ];
 
     // default error message
-    return read_error[errno]: _("Cannot run read user and/or group data.");
+    return read_error[errno]: _("Cannot read user and/or group data.");
 }
 
 

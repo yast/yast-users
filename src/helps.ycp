@@ -232,8 +232,8 @@ the password. This starting procedure is traditionally known as the
     {
 	// help text 3.5/7 (only during installation)
 	help = help + _("<p>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, this user will be logged in automatically. This feature is only
-available, if you are using KDM as a login manager.</p>
+The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, this user is logged in automatically. This feature is only
+available when using KDM as a login manager.</p>
 ") +
 
         // help text 4/7

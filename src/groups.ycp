@@ -115,7 +115,7 @@ define boolean GroupsShowHandler (map options ) ``{
     if (group == $[])
     {
 	// error message
-	CommandLine::Print (_("There is no such group"));
+	CommandLine::Print (_("There is no such group."));
 	return false;
     }
 
@@ -165,7 +165,7 @@ define boolean UsersGUI ()``{
 map cmdline = $[
     "id"		: "groups",
     // translators: command line help text for Users module
-    "help"		: _("Groups configuration module."),
+    "help"		: _("Group configuration module."),
     "guihandler"	: UsersGUI,
     "initialize"	: UsersRead,
     "finish"		: UsersWrite,

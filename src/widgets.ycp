@@ -307,17 +307,20 @@ define boolean AutologinPopup() ``{
 // helptext 1/3 - caption and general info
 _("<p><b>Login Settings</b></p>
 <p>
-The features desribed below are only available, if you are using KDM as a login manager.
-</p>") +
+The features described below are only available if you are using KDM as a login manager.
+</p>
+") +
 
 // helptext 2/3
 _("<p><b>Auto Login</b><br>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user choosed from the list will be logged in automatically.</p>") +
+The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user choosen from the list is logged in automatically.</p>
+") +
 
 // helptext 3/3
-_("<p><b>Password less logins</b><br>
-If this option is checked, all users will be allowed to login without entering
-the password. Otherwise, you will be asked for the password even if you set a user to login automatically.</p>");
+_("<p><b>Passwordless Logins</b><br>
+If this option is checked, all users are allowed to login without entering
+the password. Otherwise, you are asked for the password even if you set a user to log in automatically.</p>
+");
 
 
     boolean ret = false;
@@ -347,12 +350,12 @@ the password. Otherwise, you will be asked for the password even if you set a us
 			`HSpacing (4), // move text under the checkbox
 			`Left(`ComboBox (`id(`autouser),
 			    // textentry label
-			    _("&User to log in"), usernames))
+			    _("&User to Log in"), usernames))
 		    ),
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`pw_less),
 			// checkbox label
-			_("Password &Less Logins"), pw_less)),
+			_("Password&less Logins"), pw_less)),
 		    `VSpacing(0.5)
 		  ),
 		  `HSpacing(0.5)
@@ -453,7 +456,7 @@ Please log off the user first."));
     if (type == "system")
     {
         // yes-no popup headline
-        if(! Popup::YesNoHeadline(_("The selected user is a system user."),
+        if(! Popup::YesNoHeadline(_("The Selected User Is a System User"),
 	    // yes-no popup contents
 	    _("Do you really want to delete this user?")))
         {
@@ -473,8 +476,9 @@ Please log off the user first."));
 		    `VSpacing(0.5),
 		    `Left (`CheckBox(`id(`delete_home),
 			// checkbox label
-			sformat(_("Delete &home directory
-%1"), home )
+			sformat(_("Delete &Home Directory
+%1
+"), home )
 		    )),
 		    `VSpacing(1),
 		    `HBox (
@@ -914,7 +918,7 @@ you must do it on server.
         else
         {
 	    // error popup
-            Report::Message(_("Please select an entry in the table"));
+            Report::Message(_("Select an entry from the table."));
             return nil;
         }
     }
