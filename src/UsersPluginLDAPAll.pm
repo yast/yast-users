@@ -36,7 +36,7 @@ YaST::YCP::Import ("UsersLDAP");
 BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"], "any", "any"];}
 sub Interface {
 
-    return (
+    my @interface = (
 	    "GUIClient",
 	    "Check",
 	    "Name",
@@ -45,6 +45,7 @@ sub Interface {
 	    "WriteBefore",
 	    "Write"
     );
+    return \@interface;
 }
 
 # return plugin name, used for GUI (translated)
@@ -110,10 +111,10 @@ sub Check {
     
     # attribute conversion
     my $ldap2yast_attrs		= UsersLDAP::GetUserAttrsLDAP2YaST ();
-    my @required_attrs		= UsersLDAP::GetUserRequiredAttributes ();
+    my @required_attrs		= @{UsersLDAP::GetUserRequiredAttributes ()};
     if ($what eq "group") {
 	$ldap2yast_attrs	= UsersLDAP::GetGroupAttrsLDAP2YaST ();
-	@required_attrs		= UsersLDAP::GetGroupRequiredAttributes ();
+	@required_attrs		= @{UsersLDAP::GetGroupRequiredAttributes ()};
     }
 
 # TODO required attributes should be checked against current objectClass

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 10 14:09:14 CET 2004 - jsuchome@suse.cz
+
+- .pm files adapted for new perl-bindings (use array reference, not array)
+
+-------------------------------------------------------------------
 Wed Mar 10 09:45:36 CET 2004 - jsuchome@suse.de
 
 - disabled testsuite
