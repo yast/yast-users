@@ -13,7 +13,7 @@ Distribution: SuSE Linux 6.4 (i386)
 Name:         @RPMNAME@
 Release:      1
 Copyright:    (c) 2000 SuSE GmbH
-Requires:     yast2 yast2-trans-users
+Requires:     yast2 yast2-trans-users yast2-config-security
 Group:        System Environment/YaST
 BuildArchitectures: noarch
 
