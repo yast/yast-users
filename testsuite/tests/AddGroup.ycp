@@ -31,7 +31,8 @@
 		    "USE_DESKTOP_SCHEDULER"	: "no",
 		    "ENABLE_AUTOLOGIN"		: "false",
 		    "IO_SCHEDULER"		: "",
-		    "EVMS_CONFIG"		: "no"
+		    "EVMS_CONFIG"		: "no",
+		    "UI_MODE"			: "simple",
 		]
 	],
 	"passwd": $[
