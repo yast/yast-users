@@ -1289,7 +1289,7 @@ global define symbol LDAPUserSettingsDialog() ``{
  */
 global define symbol EditGroupDialog(string what ) ``{
 
-y2internal ("----------- group: %1", Users::group_in_work);
+//y2internal ("----------- group: %1", Users::group_in_work);
 
     map dialog_labels = $[
         "add_group": $[
@@ -1310,6 +1310,12 @@ y2internal ("----------- group: %1", Users::group_in_work);
         ]
     ];
 
+    if (what == "add_group")
+    {
+	if (!Users::Add("group", $[]))
+	    return `nosave;
+    }
+
     // load group saved in group_in_work
     string  groupname		= Users::group_in_work["groupname"]:"";
     string  password		= Users::group_in_work["password"]:"x";
@@ -1323,12 +1329,6 @@ y2internal ("----------- group: %1", Users::group_in_work);
     list list_more_users	= splitstring (more_users, ",");
     map additional_users	= $[];
     list removed = [];
-
-    if (what == "add_group")
-    {
-	if (!Users::Add("group", $[]))
-	    return `nosave;
-    }
 
     // now, the additional userlist should be builded:
     additional_users = Users::BuildAdditional (userlist, more_users);
