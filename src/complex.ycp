@@ -81,10 +81,15 @@ define symbol WriteDialog (boolean useUI) ``{
         return false;
     };
 
-    if (Users::LDAPModified () && Ldap::anonymous)
+    if (Users::LDAPModified () && (Ldap::anonymous || Ldap::bind_pass == nil))
     {
 	// ask for real LDAP password if reading was anonymous
 	Ldap::SetBindPassword (Ldap::LDAPAskAndBind (false));
+	if (Ldap::bind_pass == nil)
+	{
+	    if (Popup::YesNo (_("Really abort the writing process?")))
+		return `back;
+	}
     }
 
     Users::SetGUI (useUI);
