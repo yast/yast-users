@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Sep 17 16:01:52 CEST 2004 - jsuchome@suse.cz
+
+- correct initialization of what to show in Summary (#45536)
+- 2.10.8
+
+-------------------------------------------------------------------
 Wed Sep 15 10:43:21 CEST 2004 - jsuchome@suse.cz
 
 - correctly check presence of groupname in group password (#45268)
