@@ -119,7 +119,7 @@ global define string GetLDAPPassword() ``{
             `Password(`id(`pw), _("&Enter the bind password for LDAP server:")),
             `CheckBox (`id(`anon), `opt(`notify),
                 // checkbox label
-                _("Use the &anonymous access")),
+                _("Use &anonymous Access")),
             `PushButton (`id(`ok),`opt(`key_F10), UI::OKButtonLabel())
             )
     );

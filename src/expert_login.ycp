@@ -50,16 +50,18 @@ As a general rule of thumb, use DES if you are unsure.
 
     // Help text 1/5
     help_text = help_text + _("<p>
-<b>User sources</b><br>
-Here you can see the sources of user's accounts. The possible values here can be:
-</p>");
+<b>User Sources</b><br>
+View the sources of user's accounts. The possible values here can be:
+</p>
+");
     // help text 2/5  - do not translate Compat
     help_text = help_text + _("<p>
-<b>Local files</b> - data are stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
-<b>NIS</b> - user data can be retrieved from NIS server<br>
-<b>Compat</b> - both previous sources can be used<br>
-<b>LDAP</b> - user database is on the LDAP server
-</p>");
+<b>Local Files</b> -- data is stored in the local files <i>/etc/passwd</i> and <i>/etc/shadow</i><br>
+<b>NIS</b> -- user data can be retrieved from the NIS server<br>
+<b>Compat</b> -- both previous sources can be used<br>
+<b>LDAP</b> -- user database is on the LDAP server
+</p>
+");
     // help text 3/5
     help_text = help_text + _("<p>
 For more information, look at the file <i>/etc/nsswitch.conf</i> and its documentation.
@@ -67,16 +69,18 @@ For more information, look at the file <i>/etc/nsswitch.conf</i> and its documen
 
     // help text 4/5
     help_text = help_text + _("<p>
-<b>Additional authentication</b>
+<b>Additional Authentication</b>
 This is the partial list of your PAM settings. It shows the authentication types, which can be used by users on your system. As a default, users are authenticated by comparing their passwords with the ones saved in local files or on the NIS server.<br>
-Other possibility for authenication is using the LDAP server or Kerberos.
-</p>");
+Other possibility for authentication is using the LDAP server or Kerberos.
+</p>
+");
 
     // help text 5/5
     help_text = help_text + _("<p>
-<b>Changing the values</b><br>
+<b>Changing the Values</b><br>
 You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
-</p>");
+</p>
+");
 
     //    list supported_users_sources = [ "nis", "ldap", "files", "compat" ];
 
@@ -93,7 +97,7 @@ You can configure these settings by running appropriate modules. Select the modu
             // just the name (do not translate)
             "ldap"  : _("LDAP"),
             // the source of users sets
-            "files" : _("Local files"),
+            "files" : _("Local Files"),
             // the source of users sets (do not translate)
             "compat": _("Compat"),
             // just the name (do not translate)
@@ -182,7 +186,7 @@ You can configure these settings by running appropriate modules. Select the modu
             `HSpacing (0.5))),
             `VSpacing( 1 ),
             // frame label
-            `Frame( _("User sources and authentication"),
+            `Frame( _("User Sources and Authentication"),
             `HBox(
             `HSpacing (1),
             `VBox(
@@ -190,7 +194,7 @@ You can configure these settings by running appropriate modules. Select the modu
                 `RichText (`id(`summary), ""),
                 `VSpacing( 0.5 ),
                 // button label
-                `MenuButton(`opt(`key_F4), _("&Configure ..."), [
+                `MenuButton(`opt(`key_F4), _("&Configure..."), [
                     `item(`id(`conf_nis), "&NIS"),
                     `item(`id(`conf_ldap), "&LDAP"),
                     `item(`id(`conf_krb), "&Kerberos")]),
@@ -227,7 +231,8 @@ You can configure these settings by running appropriate modules. Select the modu
             if ( RequireAndConflictButtons ( ["yast2-nis-client"], [],
                 // popup label (package to install)
                 _("Package yast2-nis-client is not installed.
-Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+Install it now?
+"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             {
                 WFM::CallModule("nis", []);
                 reload_config ();
@@ -239,7 +244,8 @@ Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             if ( RequireAndConflictButtons ( ["yast2-ldap-client"], [],
                 // popup label (package to install)
                 _("Package yast2-ldap-client is not installed.
-Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+Install it now?
+"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             {
                 WFM::CallModule("ldap", []);
                 reload_config ();
@@ -251,7 +257,8 @@ Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             if ( RequireAndConflictButtons ( ["yast2-kerberos-client"], [],
                 // popup label (package to install)
                 _("Package yast2-kerberos-client is not installed.
-Do you want to install it now?"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
+Install it now?
+"), UI::OKButtonLabel(), UI::CancelButtonLabel()))
             {
                 WFM::CallModule("kerberos", []);
                 reload_config ();

@@ -213,30 +213,30 @@ global boolean ldap_modified = false;
 // values to MenuItem in Summary dialog
 global map userset_to_string = $[
     // the type of user set
-    `system:    _("&System users"),
+    `system:    _("&System Users"),
     // the type of user set
-    `local:     _("&Local users"),
+    `local:     _("&Local Users"),
     // the type of user set
-    `nis:       _("&NIS users"),
+    `nis:       _("&NIS Users"),
     // the type of user set
-    `ldap:      _("L&DAP users"),
+    `ldap:      _("L&DAP Users"),
     // the type of user set
-    `samba:     _("Sam&ba users"),
+    `samba:     _("Sam&ba Users"),
     // the type of user set
     `custom:    _("&Custom")
 ];
 
 global map groupset_to_string = $[
     // the type of group set
-    `system:    _("&System groups"),
+    `system:    _("&System Groups"),
     // the type of group set
-    `local:     _("&Local groups"),
+    `local:     _("&Local Groups"),
     // the type of group set
-    `nis:       _("&NIS groups"),
+    `nis:       _("&NIS Groups"),
     // the type of group set
-    `ldap:      _("L&DAP groups"),
+    `ldap:      _("L&DAP Groups"),
     // the type of group set
-    `samba:     _("Sam&ba groups"),
+    `samba:     _("Sam&ba Groups"),
     // the type of group set
     `custom:    _("&Custom")
 ];
@@ -291,9 +291,9 @@ global define symbol Read (block abort, boolean useUI) ``{
 			// progress label
 			 _("Reading the user settings..."),
 			// progress label
-			 _("Reading the custom settings"),
+			 _("Reading the custom settings..."),
 			// progress label
-			 _("Building the cache structures"),
+			 _("Building the cache structures..."),
 			// progress label
 			 _("Finished") ],
 			    "" );
@@ -512,14 +512,14 @@ global define symbol Write (block abort, boolean useUI)``{
     string write_dir = base_dir;//"/tmp"; // -- just for testing
 
 	// progress caption
-	string caption = _("Writing user and group configuration");
+	string caption = _("Writing user and group configuration...");
 	integer no_of_steps = 7;
 
 	// We do not set help text here, because it was set outside
 	if( useUI )
 	    Progress::New (caption, " ", no_of_steps, [
 			// progress label
-			_("Backup the configuration files"),
+			_("Back up the configuration files"),
 			// progress label
 			_("Check for deleted users"),
 			// progress label
@@ -714,7 +714,7 @@ global define symbol Write (block abort, boolean useUI)``{
         {
             if (useUI)
                 // error popup
-	            Report::Error (_("Cannot write ldap users."));
+	            Report::Error (_("Cannot write LDAP users."));
             else
                 y2error ("Cannot write ldap users.");
         }
@@ -733,7 +733,7 @@ global define symbol Write (block abort, boolean useUI)``{
         {
             if (useUI)
                 // error popup
-	            Report::Error (_("Cannot write ldap groups."));
+	            Report::Error (_("Cannot write LDAP groups."));
             else
                 y2error ("Cannot write ldap groups.");
         }
@@ -2023,8 +2023,9 @@ global define string GetDefaultHome(boolean useUI)``{
     if (SCR::Read(.target.size, def_home ) == -1 && useUI)
     {
         // Popup tex
-        if (UI::YesNoPopup(sformat (_("The default home directory \"%1\" doesn't exist.
-Create it now?"), def_home)))
+        if (UI::YesNoPopup(sformat (_("The default home directory \"%1\" does not exist.
+Create it now?
+"), def_home)))
             SCR::Execute (.target.mkdir, def_home);
     }
     if ( (findlastof( def_home, "/") +1) != size(def_home ) )
@@ -2350,7 +2351,7 @@ define void ReadNewSet (symbol type) ``{
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
-            `Label(_("Reading sets of users and groups, wait please...")));
+            `Label(_("Reading sets of users and groups. Please wait...")));
 
         // first: run preparation script:
         RunPrepare ("nis");
@@ -2369,9 +2370,10 @@ define void ReadNewSet (symbol type) ``{
             if (RequireAndConflict (["perl-ldap","cpu","yast2-ldap-client"], [],
                 // Popup text (required application):
                 _("For managing LDAP users, the packages
-\"perl-ldap\", \"cpu\" and \"yast2-ldap-client\"
+\"perl-ldap\", \"cpu\", and \"yast2-ldap-client\"
 are necessary, but some of them are not present.
-Do you want to install them now?")) == false)
+Install them now?
+")) == false)
                 return;
         }
         ldap_not_read = false;
@@ -2379,9 +2381,10 @@ Do you want to install them now?")) == false)
         if (!CpuConfigured (ldap_host, ldap_base))
         {
             // popup text
-            if (UI::YesNoPopup(_("It looks like your \"cpu\" program is not configured. 
-(It is used for updating LDAP users and groups.)
-Do you want to do configure it now?")))
+            if (UI::YesNoPopup(_("Your \"cpu\" program does not appear to be configured. 
+It is used for updating LDAP users and groups.
+Configure it now?
+")))
             {
                 import "Ldap"; // could it be here ??
                 Ldap::Read();
@@ -2395,7 +2398,7 @@ Do you want to do configure it now?")))
 
         UI::OpenDialog (`opt(`decorated ),
             // wait popup
-            `Label(_("Reading sets of users and groups, wait please...")));
+            `Label(_("Reading sets of users and groups.  Please wait...")));
 
         // run preparation script for geting users and groups from server:
         if (!RunPrepare ("ldap"))
@@ -2759,13 +2762,13 @@ global define boolean CheckHomeMounted() ``{
             return UI::YesNoPopup(
 // Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
 // For more info, look at the bug #20365
-sformat(_("In %2 there is a mount point for directory
-%1 which is used as a default home directory for new
-users, but this directory is not mounted now.
-If you will add new users using the default values,
-their home directories will be created in current %1.
-This can imply that these directories won't be accessible
-after you mount correctly. Continue users configuration?
+sformat(_("In %2, there is a mount point for the directory
+%1, which is used as a default home directory for new
+users, but this directory is not currently mounted.
+If you add new users using the default values,
+their home directories will be created in the current %1.
+This can imply that these directories will not be accessible
+after you mount correctly. Continue user configuration?
 "), home, mountpoint_in));
 
     }

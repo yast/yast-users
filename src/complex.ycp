@@ -67,7 +67,7 @@ global define symbol WriteDialog (boolean useUI ) ``{
     // A callback function for abort
     block abort = ``{
         // popup text
-        if (UI::PollInput () == `abort && UI::YesNoPopup (_("Do you really want to abort writing process?")))
+        if (UI::PollInput () == `abort && UI::YesNoPopup (_("Really abort the writing process?")))
             return true;
         return false;
     };
@@ -144,12 +144,12 @@ global define symbol SummaryDialog(symbol what) ``{
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set filter"),
+            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
                 Users::available_usersets_items),
             // PushButon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
-            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et defaults")),
+            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
             (Mode::config || what == `group) ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
@@ -289,12 +289,12 @@ global define symbol UsersDialog() ``{
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set filter"),
+            `MenuButton(`id(`usersets), `opt(`key_F2), _("&Set Filter"),
                 Users::available_usersets_items),
             // PushButon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
-            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et defaults")),
+            `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
             Mode::config ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
@@ -433,10 +433,10 @@ global define symbol GroupsDialog() ``{
             `HStretch()),
         `HBox(
             // MenuButton label
-            `MenuButton(`opt(`key_F2), _("&Set filter"),
+            `MenuButton(`opt(`key_F2), _("&Set Filter"),
                 Users::available_groupsets_items),
             // PushButyon
-            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze filter")),
+            `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             `HStretch())
     );
 
@@ -502,8 +502,9 @@ global define symbol GroupsDialog() ``{
                 if (UsersCache::group_type == `nis)
                 {
                     // error popup
-                    Report::Message (_("If you want to edit or delete NIS group,
-you must do it on server."));
+                    Report::Message (_("To edit or delete a NIS group,
+you must do it on server.
+"));
                     ret = `not_next;
                 }
                 else if (ret == `delete)
@@ -546,7 +547,7 @@ global define symbol DeleteUserPopup() ``{
     if (UsersCache::user_type == `nis)
     {
         // error popup
-        Report::Message (sformat (_("Can't delete the user %1, it has to be done on NIS server"), username));
+        Report::Message (sformat (_("Cannot delete the user %1. It must be done on the NIS server."), username));
         return `not_next;
     }
 
@@ -653,7 +654,7 @@ global define symbol DeleteGroupPopup() ``{
             // yes-no popup headline
             if(!UI::YesNoHeadlinePopup(_("The marked group is a system group."),
             /// yes-no popup contents
-            _("Do you really want to delete this group?")))
+            _("Really delete this group?")))
 
                 return `not_next;
         }
@@ -670,9 +671,10 @@ Do you really want to delete the group %1?
     else
     {
         // warning popup
-        UI::WarningPopup(_("You can't delete this group because
+        UI::WarningPopup(_("You cannot delete this group because
 there are users in the group.
-Remove these users from the group first."));
+Remove these users from the group first.
+"));
         return `not_next;
     }
 
@@ -699,7 +701,7 @@ global define boolean CustomizePopup(string what) ``{
         custom_sets = Users::user_custom_sets;
         set_to_string = Users::userset_to_string;
 		// Frame label
-        label = _("Customize the view of the user list");
+        label = _("Customize the View of the User List");
     }
     else
     {
@@ -707,7 +709,7 @@ global define boolean CustomizePopup(string what) ``{
         custom_sets = Users::group_custom_sets;
         set_to_string = Users::groupset_to_string;
 		// Frame label
-        label = _("Customize the view of the group list");
+        label = _("Customize the View of the Group List");
     }
 
     foreach (`set, sets, ``{
