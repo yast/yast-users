@@ -1,5 +1,5 @@
 #
-# Makefile.am for users/agent-uid
+# Makefile.am for users/agent-passwd
 #
 
 agentdir = @execcompdir@/servers_non_y2
