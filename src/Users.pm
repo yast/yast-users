@@ -2387,12 +2387,15 @@ sub WriteSecurity {
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
+    SCR::Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save");
+    # FIXME return value when write fails!
     return SCR::Write (".passwd.groups", \%groups);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
+    SCR::Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save");
     return SCR::Write (".passwd.users", \%users);
 }
 
@@ -2400,6 +2403,7 @@ sub WritePasswd {
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
     
+    SCR::Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save");
     return SCR::Write (".passwd.shadow", \%shadow);
 }
 
@@ -2482,11 +2486,14 @@ sub Write {
 
     if ($groups_modified) {
         if (! WriteGroup ()) {
+	    # error popup
             Report::Error (_("Cannot write group file."));
 	    return 0;
         }
-        # remove the group cache for nscd (bug 24748)
-        SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
+	if (!$write_only) {
+	    # remove the group cache for nscd (bug 24748)
+	    SCR::Execute (".target.bash", "/usr/sbin/nscd -i group");
+	}
     }
 
     # Check for deleted users
@@ -2494,7 +2501,8 @@ sub Write {
 
     if ($users_modified) {
         if (!DeleteUsers ()) {
-            Report::Error (_("Error while removing users."));
+       	    # error popup
+	    Report::Error (_("Error while removing users."));
 	    return 0;
 	}
     }
@@ -2504,11 +2512,14 @@ sub Write {
 
     if ($users_modified) {
         if (!WritePasswd ()) {
+	    # error popup
             Report::Error (_("Cannot write passwd file."));
 	    return 0;
 	}
-	# remove the passwd cache for nscd (bug 24748)
-        SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	if (!$write_only) {
+	    # remove the passwd cache for nscd (bug 24748)
+	    SCR::Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	}
 
 	# check for homedir changes
         foreach my $type (keys %modified_users)  {
@@ -2556,6 +2567,7 @@ sub Write {
 
     if ($users_modified) {
         if (! WriteShadow ()) {
+	    # error popup
             Report::Error (_("Cannot write shadow file."));
 	    return 0;
         }
@@ -2669,6 +2681,7 @@ sub CheckUID {
     my $max	= UsersCache::GetMaxUID ($type);
 
     if (!defined $uid) {
+	# error popup
 	return _("There is no free UID for this type of user.");
     }
 
@@ -2678,6 +2691,7 @@ sub CheckUID {
 		 $user_in_work{"org_uidNumber"} != $uid)) {
 
 	if (UsersCache::UIDExists ($uid)) {
+	    # error popup
 	    return _("The user ID entered is already in use.
 Select another user ID.");
 	}
@@ -2704,6 +2718,7 @@ Select another user ID.");
 	 )
 	)) 
     {
+	# error popup
 	return sprintf (_("The selected user ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
     }
@@ -2729,6 +2744,7 @@ sub CheckUIDUI {
 	    $uid < UsersCache::GetMaxUID ("local"))
 	{
 	    $ret{"question_id"}	= "local";
+	    # popup question
 	    $ret{"question"}	= sprintf(_("The selected user ID is a local ID,
 because the ID is greater than %i.
 Really change type of user to 'local'?"), UsersCache::GetMinUID ("local"));
@@ -2742,8 +2758,8 @@ Really change type of user to 'local'?"), UsersCache::GetMinUID ("local"));
 	    $uid < UsersCache::GetMaxUID ("system"))
 	{
 	    $ret{"question_id"}	= "system";
-	    $ret{"question"}	= sprintf (
-_("The selected user ID is a system ID,
+	    # popup question
+	    $ret{"question"}	= sprintf (_("The selected user ID is a system ID,
 because the ID is smaller than %i.
 Really change type of user to 'system'?"), UsersCache::GetMaxUID ("system"));
 	    return \%ret;
@@ -2761,6 +2777,7 @@ sub CheckUsername {
     my $username	= $_[0];
 
     if (!defined $username || $username eq "") {
+	# error popup
         return _("You didn't enter a user name.
 Try again.");
     }
@@ -2768,6 +2785,7 @@ Try again.");
     if (length ($username) < $UsersCache::min_length_login ||
 	length ($username) > $UsersCache::max_length_login ) {
 
+	# error popup
 	return sprintf (_("The user name must be between %i and %i characters in length.
 Try again."), $UsersCache::min_length_login, $UsersCache::max_length_login);
     }
@@ -2777,6 +2795,7 @@ Try again."), $UsersCache::min_length_login, $UsersCache::max_length_login);
 
     my $first = substr ($username, 0, 1);
     if ($first ne "_" && ($first lt "A" || $first gt "z" ) || $filtered ne "") { 
+	# error popup
 	return _("The user login may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
@@ -2789,6 +2808,7 @@ Try again.");
 		 $user_in_work{"org_username"} ne $username)) {
 
 	if (UsersCache::UsernameExists ($username)) {
+	    # error popup
 	    return _("There is a conflict between the entered
 user name and an existing user name.
 Try another one.");
@@ -2806,6 +2826,7 @@ sub CheckFullname {
     my $fullname	= $_[0];
 
     if ($fullname =~ m/[:,]/) {
+	# error popup
         return _("The full user name cannot contain
 \":\" or \",\" characters.
 Try again.");
@@ -2824,12 +2845,14 @@ sub CheckGECOS {
 	return "";
     }
     if ($gecos =~ m/:/) {
-        return _("The \"Additional User Information\" entry cannot
+       	# error popup
+	return _("The \"Additional User Information\" entry cannot
 contain a colon (:).  Try again.");
     }
     
     my @gecos_l = split (/,/, $gecos);
     if (@gecos_l > 3 ) {
+	# error popup
         return _("The \"Additional User Information\" entry can consist
 of up to three sections separated by commas.
 Remove the surplus.");
@@ -2851,11 +2874,13 @@ sub CheckPassword {
     #TODO enable not entering the password... (bug#32587)
     if (($pw || "") eq "") {
             
+	# error popup
 	return _("You didn't enter a password.
 Try again.");
     }
 
     if (length ($pw) < $min_length) {
+	# error popup
         return sprintf (_("The password must have between %i and %i characters.
 Try again."), $min_length, $max_length);
     }
@@ -2864,6 +2889,7 @@ Try again."), $min_length, $max_length);
     $filtered =~ s/$valid_password_chars//g;
 
     if ($filtered ne "") {
+	# error popup
 	return _("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
 Try again.");
@@ -2907,6 +2933,7 @@ sub CheckObscurity {
     my $pw 		= $_[1];
 
     if ($pw =~ m/$username/) {
+	# popup question
         return _("You have used the user name as a part of the password.
 This is not good security practice. Are you sure?");
     }
@@ -2915,6 +2942,7 @@ This is not good security practice. Are you sure?");
     my $filtered 	= $pw;
     $filtered 		=~ s/[a-z]//g;
     if ($filtered eq "") {
+	# popup question
         return _("You have used only lowercase letters for the password.
 This is not good security practice. Are you sure?");
     }
@@ -2923,6 +2951,7 @@ This is not good security practice. Are you sure?");
     $filtered 		= $pw;
     $filtered 		=~ s/[0-9]//g;
     if ($filtered eq "") {
+	# popup question
         return _("You have used only digits for the password.
 This is not good security practice. Are you sure?");
     }
@@ -3036,6 +3065,7 @@ sub CheckHome {
     $filtered 		=~ s/$valid_home_chars//g;
 
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {
+	# error popup
         return _("The home directory may only contain the following characters:
 a..zA..Z0..9_-/
 Try again.");
@@ -3046,6 +3076,7 @@ Try again.");
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = IsDirWritable ($home_path);
         if ($home_path ne "") {
+	    # error popup
             return sprintf (_("The directory %s is not writable.
 Choose another path for the home directory."), $home_path);
 	}
@@ -3085,6 +3116,7 @@ sub CheckLDAPAttributes {
 
 	my $a = $ldap2yast_user_attrs{$req} || $req;
 	if (!defined $user->{$a} || $user->{$a} eq "") {
+	    # error popup (user forgot to fill in some attributes)
 	    return sprintf (_("The attribute '%s' is required for this object according
 to its LDAP configuration, but it is currently empty."), $req);
 	}
@@ -3174,6 +3206,7 @@ sub CheckShellUI {
 
 	if (!defined ($all_shells{$shell})) {
 	    $ret{"question_id"}	= "shell";
+	    # popup question
 	    $ret{"question"}	= _("If you select a nonexistent shell, the user may be unable to log in.
 Are you sure?");
 	}
@@ -3192,6 +3225,7 @@ sub CheckGID {
     my $max	= UsersCache::GetMaxGID ($type);
 
     if (!defined $gid) {
+	# error popup
 	return _("There is no free GID for this type of group.");
     }
 
@@ -3201,6 +3235,7 @@ sub CheckGID {
 		 $group_in_work{"org_gidNumber"} != $gid)) {
 
 	if (UsersCache::GIDExists ($gid)) {
+	    # error popup
 	    return _("The group ID entered is already in use.
 Select another group ID.");
 	}
@@ -3229,6 +3264,7 @@ Select another group ID.");
 	 )
 	)) 
     {
+	# error popup
 	return sprintf (_("The selected group ID is not allowed.
 Select a valid integer between %i and %i."), $min, $max);
     }
@@ -3254,6 +3290,7 @@ sub CheckGIDUI {
 	    $gid < UsersCache::GetMaxGID ("local"))
 	{
 	    $ret{"question_id"}	= "local";
+	    # popup question
 	    $ret{"question"}	= sprintf (_("The selected group ID is a local ID,
 because the ID is greater than %i.
 Really change type of group to 'local'?"), UsersCache::GetMinGID ("local"));
@@ -3267,6 +3304,7 @@ Really change type of group to 'local'?"), UsersCache::GetMinGID ("local"));
 	    $gid < UsersCache::GetMaxGID ("system"))
 	{
 	    $ret{"question_id"}	= "system";
+	    # popup question
 	    $ret{"question"}	= sprintf(_("The selected group ID is a system ID,
 because the ID is smaller than %i.
 Really change type of group to 'system'?"), UsersCache::GetMaxGID ("system"));
@@ -3284,6 +3322,7 @@ sub CheckGroupname {
     my $groupname	= $_[0];
 
     if (!defined $groupname || $groupname eq "") {
+	# error popup
         return _("You didn't enter a group name.
 Try again.");
     }
@@ -3291,6 +3330,7 @@ Try again.");
     if (length ($groupname) < $UsersCache::min_length_groupname ||
 	length ($groupname) > $UsersCache::max_length_groupname ) {
 
+	# error popup
 	return sprintf (_("The group name must be between %i and %i characters in length.
 Try again."), $UsersCache::min_length_groupname,
 	     $UsersCache::max_length_groupname);
@@ -3301,6 +3341,7 @@ Try again."), $UsersCache::min_length_groupname,
 
     my $first = substr ($groupname, 0, 1);
     if ($first lt "A" || $first gt "z" || $filtered ne "") { 
+	# error popup
 	return _("The group name may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter.
@@ -3313,6 +3354,7 @@ Try again.");
 		 $group_in_work{"org_groupname"} ne $groupname)) {
 
 	if (UsersCache::GroupnameExists ($groupname)) {
+	    # error popup
 	    return _("There is a conflict between the entered
 group name and an existing group name.
 Try another one.");
@@ -3360,6 +3402,7 @@ sub CheckUser {
     }
 
 #TODO Check*UI (?)
+# FIXME Check from plugins...
 
     # disable commit
     if ($error ne "") {
@@ -3409,7 +3452,9 @@ sub SetEncryptionMethod {
     }
 }
 
-# code provided by Ralf Haferkamp
+##------------------------------------
+# hash user password for LDAP users
+# (code provided by rhafer)
 sub _hashPassword {
 
     my ($mech, $password) = @_;
@@ -4056,7 +4101,7 @@ sub ExportGroup {
     if (defined $group->{"userlist"}) {
 	$userlist	= join (",", keys %{$group->{"userlist"}});
     }
-       
+#FIXME export only changed values! 
     return {
         "group_password"	=> $group->{"userPassword"} 	|| "x",
         "groupname"		=> $group->{"groupname"}	|| "",
