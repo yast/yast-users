@@ -181,6 +181,7 @@ sub ProposeUsername {
     return $login;
 }
 
+BEGIN { $TYPEINFO{DebugMap} = ["function", "void", "any"];}
 sub DebugMap {
 
     if (!defined $_[0]) { return; }
@@ -215,6 +216,7 @@ sub SetCurrentUsers {
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
     undef $focusline_user;
+    SetUserType ($current_users[0]);
 }
 
 ##------------------------------------
@@ -242,6 +244,7 @@ sub SetCurrentGroups {
 	# e.g. ( pointer to "local items", pointer to "system items")
     };
     undef $focusline_group;
+    SetGroupType ($current_groups[0]);
 }
 
 ##------------------------------------

@@ -118,14 +118,19 @@ my %ldap2yast_user_attrs	= (
 my %ldap2yast_group_attrs	= (
     "cn"		=> "groupname"
 );
+
+# list of available plugin clients with features, enhabcing users module
+my @available_plugins		= ();
  
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("Call");
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersRoutines");
+YaST::YCP::Import ("UsersUI");
 
 ##------------------------------------
 
@@ -219,48 +224,13 @@ sub Initialize {
     my $group_template_dn	= $group_templates[0] || "";
 
     # read only one default template
-    if (@user_templates > 1 || @group_templates > 1) {
-	y2warning ("more templates"); # -> ReadTemplates function
-#	term rbu_buttons = `VBox( `Left(`Label (_("User Templates"))));
-#	term rbg_buttons = `VBox( `Left(`Label (_("Group Templates"))));
-#	foreach (string templ, user_templates, ``{
-#	    rbu_buttons = add (rbu_buttons,
-#		`Left(`RadioButton (`id(templ), templ, true)));
-#	});
-#	foreach (string templ, group_templates, ``{
-#	    rbg_buttons = add (rbg_buttons,
-#		`Left(`RadioButton (`id(templ), templ, true)));
-#	});
-#	term rb_users = `RadioButtonGroup (`id(`rbu), rbu_buttons);
-#	term rb_groups = `RadioButtonGroup (`id(`rbg), rbg_buttons);
-#
-#	UI::OpenDialog (`opt(`decorated), `HBox (`HSpacing (1),
-#        `VBox(
-#            `HSpacing(50),
-#	    `VSpacing (0.5),
-#	    // label
-#            `Label (_("There are multiple templates defined as default. Select the one to read.")),
-#	    `VSpacing (0.5),
-#	    user_templates == [] ? `Empty(): rb_users,
-#	    `VSpacing (0.5),
-#	    group_templates == [] ? `Empty() : rb_groups,
-#            `HBox(
-#              `PushButton (`id(`ok),`opt(`key_F10, `default),
-#		Label::OKButton()),
-#              // button label
-#              `PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
-#            )),
-#	`HSpacing (1))
-#	);
-#	any ret = UI::UserInput();
-#	if (ret == `ok)
-#	{
-#	    if (user_templates != [])
-#		user_template = (string) UI::QueryWidget (`id(`rbu), `CurrentButton);
-#	    if (group_templates != [])
-#		group_template = (string)UI::QueryWidget (`id(`rbg), `CurrentButton);
-#	}
-#	UI::CloseDialog();
+    if ((@user_templates > 1 || @group_templates > 1) && $use_gui) {
+	my %templ =
+	    %{UsersUI::ChooseTemplates (\@user_templates, \@group_templates)};
+	if (%templ) {
+	    $user_template_dn	= $templ{"user"} || $user_template_dn;
+	    $group_template_dn	= $templ{"group"} || $group_template_dn;
+	}
     }
     %user_template = %{Ldap::ConvertDefaultValues (
 	Ldap::GetLDAPEntry ($user_template_dn))};
@@ -490,6 +460,16 @@ BEGIN { $TYPEINFO{InitConstants} = ["function",
 }
 sub InitConstants {
     %useradd_defaults	= %{$_[0]};
+}
+
+##------------------------------------
+# initialize list of plugins with the values from Users
+BEGIN { $TYPEINFO{InitPlugins} = ["function",
+    "void",
+    ["list", "string"]];
+}
+sub InitPlugins {
+    @available_plugins	= @{$_[0]};
 }
 
 ###------------------------------------
@@ -843,7 +823,6 @@ sub ConvertMap {
 	my $attr = $ldap_attrs_conversion{$key} || $key;
 	if (!contains (\@attributes, $attr)) {
 	    y2warning ("Attribute '$attr' is not allowed by schema");
-	    y2warning ("Allowed attributes are: ", @attributes);
 	    next;
 	}
 	if ($key eq "uniqueMember" || $key eq "member") {
@@ -912,6 +891,18 @@ sub WriteUsers {
 	my %arg_map		= (
 	    "dn"	=> $org_dn ne "" ? $org_dn : $new_dn
 	);
+
+	# ----------- now call the "before-write" plugin function for this user
+	my @plugin_args		= ();
+	push @plugin_args, "BeforeWrite";
+	push @plugin_args, $user;
+	foreach my $plugin (@available_plugins) {
+	    # 1. check if BeforeWrite is available (Interface)
+	    # 2. call the client
+	    Call::Function ($plugin, \@plugin_args);
+	}
+
+	# --------------------------------------------------------------------
         if ($action eq "added") {
 	    if (! SCR::Write (".ldap.add", \%arg_map, $user)) {
 		%ret	= %{Ldap::LDAPErrorMap ()};
@@ -963,6 +954,18 @@ sub WriteUsers {
 		}
             }
         }
+	# ----------- now call the "write" plugin function for this user
+	if (!defined $ret{"msg"}) {
+	    @plugin_args		= ();
+	    push @plugin_args, "Write";
+	    push @plugin_args, $user;
+	    foreach my $plugin (@available_plugins) {
+		# 1. check if Write is available (Interface)
+		# 2. call the client
+		Call::Function ($plugin, \@plugin_args);
+	    }
+	}
+	# --------------------------------------------------------------------
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
 	# set nextUniqueId in user config module

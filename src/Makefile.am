@@ -13,7 +13,8 @@ module_DATA =		\
     UsersCache.pm	\
     UsersLDAP.pm	\
     UsersRoutines.pm	\
-    UsersUI.ycp
+    UsersUI.ycp		\
+    UsersPluginDummy.pm
 
 ynclude_DATA =		\
     complex.ycp		\
