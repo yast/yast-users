@@ -93,7 +93,7 @@ global define map ReadPasswd(string dir)``{
 
     map ret = $[
         "local": SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
-        // this is due to translations of fullnames in users/passwd.ycp
+        // this is due to translations of cn's in users/passwd.ycp
         "system": eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
     ];
     SCR::Execute (.target.remove, dir + "/passwd_local.ycp");
@@ -271,7 +271,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
     string conf_path = basedir + "/passwd";
     map modified_map = $[];
     list list_to_save = maplist (`uid, `user, system_users, ``{
-        string gecos = user["fullname"]:"";
+        string gecos = user["cn"]:"";
         if (user["addit_data"]:"" != "")
             gecos = gecos + "," + user["addit_data"]:"";
         gecos = UI::Recode ("UTF-8", encoding, gecos);
@@ -288,7 +288,7 @@ global define map WritePasswd(string basedir, map system_users, map local_users,
         return to_save;
     });
     list_to_save = merge(list_to_save, maplist (`uid, `user, local_users, ``{
-        string gecos = user["fullname"]:"";
+        string gecos = user["cn"]:"";
         if (user["addit_data"]:"" != "")
             gecos = gecos + "," + user["addit_data"]:"";
         gecos = UI::Recode ("UTF-8", encoding, gecos);
@@ -430,17 +430,27 @@ global define boolean CreateHome (string skeleton, string home) ``{
     if (SCR::Read(.target.stat, home_path) == $[])
 	SCR::Execute(.target.mkdir, home_path);
 
-    // copy homedir from skel
-    string command = sformat("/bin/cp -r %1 %2", skeleton, home);
-
-    map out = SCR::Execute(.target.bash_output, command);
-    if (out["stderr"]:"" != "")
+    // skeleton not exist or should not be copied
+    if (SCR::Read(.target.stat, skeleton) == $[])// || !copy TODO
     {
-	y2error ("error calling %1: %2", command, out["stderr"]:"");
-	return false;
+	if (!SCR::Execute(.target.mkdir, home))
+	{
+	    y2error ("error creating %1", home);
+	    return false;
+	}
+    }
+    // copy homedir from skeleton
+    else
+    {
+	string command = sformat("/bin/cp -r %1 %2", skeleton, home);
+	map out = SCR::Execute(.target.bash_output, command);
+	if (out["stderr"]:"" != "")
+	{
+	    y2error ("error calling %1: %2", command, out["stderr"]:"");
+	    return false;
+	}
     }
     y2milestone ("The directory %1 was created", home);
-
     return true;
 }
 
@@ -515,24 +525,24 @@ global define boolean DeleteHome (string home) ``{
 }
 
 /**
- * Split fullname in forename and surname.
+ * Split cn (fullname) in forename and surname.
  * @param what `surname or `forename
- * @param fullname fullname
+ * @param cn fullname
  * @param type user type
  * @return string selected part of user name
  */
-global define string SplitFullName(symbol what,string fullname) ``{
+global define string SplitFullName(symbol what,string cn) ``{
 
 // TODO: used only for LDAP users (->agent?) and autoyast (-> not necessary?)
 
-    if( fullname == nil )
-        fullname = "";
+    if( cn == nil )
+        cn = "";
 
-    // if fullname is to be substituted, do not try to resolve givenName/sn
-    if (issubstring (fullname, "%"))
+    // if cn is to be substituted, do not try to resolve givenName/sn
+    if (issubstring (cn, "%"))
 	return "";
 
-    list    strs    = splitstring(fullname , " ");
+    list    strs    = splitstring(cn , " ");
     integer i       = 1;
     string sn  = "";
     string givenName = "";

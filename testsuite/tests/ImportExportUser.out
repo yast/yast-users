@@ -18,6 +18,6 @@ Dump	 $["encrypted":true, "forename":"aa", "gid":500, "grouplist":"audio", "home
 Dump	==== processing ImportUser... ============================
 Execute	.target.bash_output "date +%s" $[]
 Read	.target.size "" nil
-Return	$["encrypted":true, "fullname":"aa A", "gid":500, "grouplist":"audio", "home":"/home/aaa", "modified":"imported", "password":"5OkhN2nLxMfEY", "shadow":$["inact":-1, "max":99999, "min":0, "password":"5OkhN2nLxMfEY", "warn":7], "shell":"/bin/bash", "type":"local", "uid":500, "username":"aaa"]
+Return	$["cn":"aa A", "encrypted":true, "gid":500, "grouplist":"audio", "home":"/home/aaa", "modified":"imported", "password":"5OkhN2nLxMfEY", "shadow":$["inact":-1, "max":99999, "min":0, "password":"5OkhN2nLxMfEY", "warn":7], "shell":"/bin/bash", "type":"local", "uid":500, "username":"aaa"]
 Dump	==== processing ExportUser... ============================
-Return	$["encrypted":true, "forename":"aa", "fullname":"aa A", "gid":500, "grouplist":"audio", "home":"/home/aaa", "password_settings":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"A", "uid":500, "user_password":"5OkhN2nLxMfEY", "username":"aaa"]
+Return	$["cn":"aa A", "encrypted":true, "forename":"aa", "gid":500, "grouplist":"audio", "home":"/home/aaa", "password_settings":$["inact":-1, "max":99999, "min":0, "warn":7], "shell":"/bin/bash", "surname":"A", "uid":500, "user_password":"5OkhN2nLxMfEY", "username":"aaa"]

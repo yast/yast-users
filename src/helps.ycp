@@ -475,6 +475,7 @@ The home directory of the user. Normally this is
 To select an existing directory, click <b>Browse</b>.
 </p>
 ");
+    // FIXME: Copy Skeleton only for adding...
 
     if (user_type == "ldap")
         helptext = helptext +

@@ -186,7 +186,7 @@ list user_sources = [];
  * users = $[
  *  "local":$[
  *	500 :$[
- *	    "fullname":"Hans H", "gid":100, "home":"/local/hh",
+ *	    "cn":"Hans H", "gid":100, "home":"/local/hh",
  *	    "password":"x","shell":"/bin/bash",
  *	    "uid":500, "username":"hh",
  *	    "shadow":$[
@@ -421,7 +421,6 @@ global map ldap_attrs_conversion = $[
     "uid":		"uidNumber",
     "gid":		"gidNumber",
     "home":		"homeDirectory",
-    "fullname":		"cn",
     "password":		"userPassword",
     "shell":		"loginShell",
     // shadow settings:
@@ -442,7 +441,6 @@ global map ldap_attrs_conversion = $[
 global map ldap2yast_user_attrs = $[
     "uid":		"username",
     "uidNumber":	"uid",
-    "cn":		"fullname",
     "homeDirectory":	"home",
     "loginShell":	"shell",
     "gidNumber":	"gid",
@@ -1109,7 +1107,7 @@ global define string Summary() ``{
         foreach (`uid, `user, users [type]:$[], ``{
             if (user ["modified"]:"no" != "no")
                 ret = ret + sformat(" %1 %2 %3<br>", uid, user["username"]:"",
-                    user["fullname"]:"" );
+                    user["cn"]:"" );
         });
     });
     ret = ret + "<h3>Groups</h3>";
@@ -1135,20 +1133,20 @@ define map ImportUser (map user) ``{
     map currentUser = eval(user);
     string forename = currentUser["forename"]:"";
     string surname = currentUser["surname"]:"";
-    string fullname = currentUser["fullname"]:"";
+    string cn = currentUser["cn"]:currentUser["fullname"]:"";
     string username = currentUser["username"]:"";
     y2debug("Username=%1", username);
 
     integer uid = currentUser["uid"]:-1 ;
 
-    if (fullname == "")
+    if (cn == "")
     {
 	if( forename != "" )
 	{
-	    if( surname != "") fullname = forename + " " + surname;
-	    else fullname = forename;
+	    if( surname != "") cn = forename + " " + surname;
+	    else cn = forename;
 	}
-	else fullname = surname;
+	else cn = surname;
     }
 
     string type = "local";
@@ -1196,8 +1194,8 @@ define map ImportUser (map user) ``{
 		finalpw = existing["password"]:"x";
 
 	    if (!haskey (user,"forename") && !haskey (user, "surname") &&
-		fullname == "")
-		fullname = existing["fullname"]:"";
+		cn == "")
+		cn = existing["cn"]:"";
 
 	    map ret = $[
 		"encrypted":    user ["encrypted"]:existing["encrypted"]:true,
@@ -1205,7 +1203,7 @@ define map ImportUser (map user) ``{
 		"username":     username,
 //		"forename":     currentUser["forename"]:existing["forename"]:"",
 //		"surname":      currentUser["surname"]:existing["surname"]:"",
-		"fullname":     fullname,
+		"cn":		cn,
 		"shell": currentUser ["shell"]:existing["shell"]:default_shell,
 		"uid":          existing["uid"]:-1,
 		"gid":          currentUser ["gid"]:existing["gid"]:default_gid,
@@ -1226,7 +1224,7 @@ define map ImportUser (map user) ``{
         "username":         username,
 //        "forename":         forename,
 //        "surname":          surname,
-        "fullname":         fullname,
+        "cn":		    cn,
         "shell":            currentUser ["shell"]:default_shell,
         "uid":              uid,
         "gid":              currentUser ["gid"]:default_gid,
@@ -1465,7 +1463,7 @@ global define boolean Import (map settings) ``{
 define map ExportUser (map user) ``{
 
     string type = user["type"]:"local";
-    string full = user["fullname"]:"";
+    string full = user["cn"]:"";
     string username = user["username"]:"";
     map user_shadow = user ["shadow"]:shadow[type, username]:$[];
     string pass = user_shadow["password"]:user ["password"]:"x";
@@ -1479,7 +1477,8 @@ define map ExportUser (map user) ``{
 	// TODO: are fore/surname needed for autoast? -> ask Anas
         "forename":         SplitFullName (`givenName, full),
         "surname":          SplitFullName (`sn, full),
-	"fullname":		full,
+	"cn":		    full,
+	// TODO: should cn be exported as fullname? -> ask Anas
         "shell":            user ["shell"]:default_shell,
         "uid":              user ["uid"]:-1,
         "gid":              user ["gid"]:default_gid,
@@ -1698,7 +1697,7 @@ global define boolean Add (string what, map data)``{
 	// what could be in "data":
 	// - something from saved_user (during installation sequence)
 	// - calling Add User->Details->Next = one more Add call
-	// - TODO base values, like username/uid/fullname(in cmd-line interface)
+	// - TODO base values, like username/uid/cn(in cmd-line interface)
         user_in_work = eval (data);
 	// create some default values
 	if (type == nil)
@@ -1725,7 +1724,7 @@ global define boolean Add (string what, map data)``{
 	}
 	string username		= data["username"]:"";
 	user_in_work["username"] = username;
-	user_in_work["fullname"] = data["fullname"]:"";
+	user_in_work["cn"]	= data["cn"]:"";
 	user_in_work["groupname"] = data["groupname"]:GetDefaultGroupname(type);
 	user_in_work["grouplist"] = data["grouplist"]:GetDefaultGrouplist(type);
 

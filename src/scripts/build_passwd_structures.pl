@@ -401,7 +401,7 @@ foreach my $user (<PASSWD>)
         print $YCP_PASSWD "\t\t\"uid\": $uid,\n";
         print $YCP_PASSWD "\t\t\"gid\": $gid,\n";
             
-        print $YCP_PASSWD "\t\t\"fullname\": \"$full\",\n";
+        print $YCP_PASSWD "\t\t\"cn\": \"$full\",\n";
         if ($additional ne "")
         {
             print $YCP_PASSWD "\t\t\"addit_data\": \"$additional\",\n";

@@ -151,7 +151,7 @@ foreach my $user (@ypcat)
     print YCP_NIS "\t\t\"password\": \"$password\",\n";
     print YCP_NIS "\t\t\"uid\": $uid,\n";
     print YCP_NIS "\t\t\"gid\": $gid,\n";
-    print YCP_NIS "\t\t\"fullname\": \"$full\",\n";
+    print YCP_NIS "\t\t\"cn\": \"$full\",\n";
     print YCP_NIS "\t\t\"home\": \"$home\",\n";
     print YCP_NIS "\t\t\"org_home\": \"$home\",\n";
     print YCP_NIS "\t\t\"shell\": \"$shell\",\n";
