@@ -1882,7 +1882,20 @@ global define void ChangeCurrentUsers(symbol new) ``{
 
     if (contains (current_users, `ldap) && ldap_not_read)
     {
-        // first: run preparation script:
+        // first: check for perl-ldap:
+        if (SCR::Execute(.target.bash, "rpm -q perl-ldap") !=0)
+        {
+            // Popup text (required application):
+            if (UI::YesNoPopup(_("For getting list of LDAP users from the server, 
+the package \"perl-ldap\" is necessary.
+Do you want to install it now?")))
+            {
+                include "require.ycp"; // is it possible to have it here??
+                DoInstallAndRemove(["perl-ldap"], []);
+            }
+            else return;
+        }
+        // run preparation script:
         RunPrepare (sformat("ldap %1 %2", ldap_host, ldap_base));
         // read the LDAP users now
         users [`ldap ] = ReadLDAPUsers (tmpdir);
@@ -1989,9 +2002,27 @@ global define string LastChangeIsNow () ``{
  */
 global define boolean RunPrepare(string type) ``{
 
-    integer ret = SCR::Execute(.target.bash, sformat(
-        "%1/build_users_structures.pl %2 %3 %4 %5 %6 %7", Directory::bindir,
-        base_dir, tmpdir, max_system_uid, max_system_gid, encoding, type));
+    integer ret = 1;
+
+    if (type == "passwd")
+    {
+        ret = SCR::Execute(.target.bash, sformat(
+        "%1/build_passwd_structures.pl %2 %3 %4 %5 %6", Directory::bindir,
+        base_dir, tmpdir, max_system_uid, max_system_gid, encoding));
+    }
+    else if (type == "nis")
+    {
+        ret = SCR::Execute(.target.bash, sformat(
+        "%1/build_nis_structures.pl %2 %3 %4", Directory::bindir,
+        base_dir, tmpdir, encoding));
+    }
+    else if ( issubstring (type, "ldap") )// ldap has some additional parameters
+    {
+        // check for perl-ldap here !!
+        ret = SCR::Execute(.target.bash, sformat(
+        "%1/build_ldap_structures.pl %2 %3 %4", Directory::bindir,
+        tmpdir, encoding, type));
+    }
     return (ret == 0);
 }
 
