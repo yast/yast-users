@@ -92,19 +92,23 @@
     include "users/ui.ycp";
     include "users/io.ycp";
 
+   
     map    settings = $[];
     string language = UI( `GetLanguage(true));
     settings        = SelectConsoleFont( language);
     string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
-
+  
+    
     usersGroupsShadowReadFromDisk();
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
 
+  
     list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
     map  pam_map  = select( pam_list, 0);
     boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
 
+ 
     
     // test pam -md5
     if( test_mode ) {

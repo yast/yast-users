@@ -285,7 +285,7 @@
 		tmp_dir = tmp_dir + "/"+sub_dir;
 		y2milestone("be 2. dir");
 		//if( nil == SCR(`Read(.target.dir , tmp_dir) ))
-		if( ! fileexist( tmp_dir ) )
+		if( SCR::Read(.target.size, tmp_dir ) == -1  )
 		    usersAddTodo( ("/bin/mkdir " + tmp_dir),
 				  `mkdir,
 				  sformat(UI(_("Can't make directory %1")), tmp_dir));
@@ -403,7 +403,7 @@ to new home directory %2")), old_home, home));
 
 	    usersAddMakeHomeDir( home );
 
-	    if( fileexist ("/usr/sbin/useradd.local") )
+	    if(  SCR::Read(.target.size, "/usr/sbin/useradd.local" ) != -1  )
 	    {	
 		usersAddTodo( ("/usr/sbin/useradd.local " + username ),
 			      `add_user_local,
@@ -948,7 +948,7 @@ to new home directory %2")), old_home, home));
 		    (! issubstring( shell_entry, "passwd")) &&
 		    (! issubstring( shell_entry, "bash1")) )
 		{
-		    if( fileexist( shell_entry ) )
+		    if(  SCR::Read(.target.size, shell_entry  )  != -1  )
 		    {
 			if ( todo == `items      )  available_shells = add( available_shells, `item( `id(shell_entry), shell_entry ));
 			if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);

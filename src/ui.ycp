@@ -298,7 +298,7 @@ Please try again.")));
 			}
 			y2milestone("be1 . dir");
 			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
-			if ( contains( usersUsersRead(`homelist), new_home ) || fileexist( new_home ) )
+			if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1  )
 			{
 			    UI(`ErrorPopup(_("The home directory is used from another user.
 Please try again.")));
@@ -768,7 +768,7 @@ Please try again.")));
 			home = home + username;
 			
 			//if( SCR(`Read(.target.dir , home )) != nil )
-			if(  fileexist( home ) )
+			if(    SCR::Read(.target.size, home ) != -1  )
 			{
 			    UI(`ErrorPopup(_("The default home directory is used from another user.
 Please press button Details and edit home directory.")));
@@ -843,7 +843,7 @@ Please log off the user first.")));
 	});
 	current_users = new_current_users;
 
-	if ( fileexist("/usr/sbin/userdel.local") )
+	if (  SCR::Read(.target.size,"/usr/sbin/userdel.local") != -1 )
 	{
 	    usersAddTodo(("/usr/sbin/userdel.local " + username),
 			 `del_user_local,
