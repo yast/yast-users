@@ -33,7 +33,7 @@
      * @param what what can be `users or `groups
      * @return symbol
      */
-    global define rbUsersGroup(symbol what) ``{
+    global define term rbUsersGroup(symbol what) ``{
 	return 
 	    `Left(`RadioButtonGroup(`HBox
 	    (
@@ -50,12 +50,12 @@
      * The dialog that appears when the [Abort] button is pressed.
      * @return boolean true if user really wants to abort
      */
-    global define usersReallyAbort() ``{
+    global define symbol usersReallyAbort() ``{
 	if (size( user_settings ) == 0 )
 	{ 
 	    return `next;
 	}
-        boolean ret = UI(`AnyQuestionPopup
+        boolean ret = UI::AnyQuestionPopup
 	       (
 	           // message box label
 		   _("Exit without saving"),
@@ -66,7 +66,7 @@
 		   // push button 
 		   _("&Cancel abort"),
 		   `focus_yes
-               ));
+               );
 
 	if( ret ) return `next;
 	else return `back;
@@ -78,7 +78,7 @@
      * The first of the two main dialogs -- list of the users.
      * @return symbol
      */
-    global define usersUsersDialog() ``{
+    global define symbol usersUsersDialog() ``{
 
 	user_in_work = $[];
 
@@ -98,11 +98,11 @@
 		  )
 	    );
 
-	UI(`SetWizardContentsButtons(_("User and group administration"),
+	UI::SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 				     usersUsersDialogHelp(),
 			             UI::BackButtonLabel(),
-				     UI::FinishButtonLabel()));
+				     UI::FinishButtonLabel());
 
 
 	if( focusline_user != 0) 
@@ -111,7 +111,7 @@
 	symbol ret = `next;
 	repeat
 	    {
-		ret = UI(`UserInput());
+		ret = UI::UserInput();
 
 		if( ret == `show_all )
 		{
@@ -126,11 +126,11 @@
 		
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
-		    any  user_table_input   = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
-		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input );
+		    any  user_table_input   = UI::QueryWidget(`id(`user_table), `CurrentItem);
+		    if(  user_table_input != nil ) user_in_work = lookup( current_users , user_table_input ,nil);
 		    else
 		    {
-			UI(`MessagePopup(_("Please select an entry in the user table")));
+			UI::MessagePopup(_("Please select an entry in the user table"));
 			ret = `not_next;
 		    }
 		   
@@ -148,7 +148,7 @@
      * Details of adding/cloning/editing dialog
      * @return symbol
      */
-    global define usersEditUserDetails( ) ``{
+    global define symbol usersEditUserDetails( ) ``{
 
 	
 
@@ -223,30 +223,30 @@
 	
 	
 	    
-	UI(`SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
+	UI::SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 				     usersEditUserDetailsHelp(),
 			             UI::BackButtonLabel(),
-				     UI::OKButtonLabel()));
+				     UI::OKButtonLabel());
 
 	//Modify the dialog 
-	UI(`ChangeWidget(`id(`fullname), `Enabled, false ));
-	UI(`ChangeWidget(`id(`shell),    `Value,   shell ));
-	if ( what == `edit_user ) UI(`ChangeWidget(`id(`uid), `Enabled, false ));
+	UI::ChangeWidget(`id(`fullname), `Enabled, false );
+	UI::ChangeWidget(`id(`shell),    `Value,   shell );
+	if ( what == `edit_user ) UI::ChangeWidget(`id(`uid), `Enabled, false );
 
 
 	// user input
 	symbol ret = `next;
 	repeat
 	    {
-		ret = UI(`UserInput());
+		ret = UI::UserInput();
 		if ( ret == `next )
 		{
-		    string  new_home          = UI(`QueryWidget(`id(`home),        `Value));
-		    string  new_shell         = UI(`QueryWidget(`id(`shell),       `Value));
-		    string  new_uid           = UI(`QueryWidget(`id(`uid),         `Value));
-		    string  new_defaultgroup  = UI(`QueryWidget(`id(`defaultgroup),`Value));
-		    list_grouplist            = UI(`QueryWidget(`id(`grouplist),   `SelectedItems ));
+		    string  new_home          = UI::QueryWidget(`id(`home),        `Value);
+		    string  new_shell         = UI::QueryWidget(`id(`shell),       `Value);
+		    string  new_uid           = UI::QueryWidget(`id(`uid),         `Value);
+		    string  new_defaultgroup  = UI::QueryWidget(`id(`defaultgroup),`Value);
+		    list_grouplist            = UI::QueryWidget(`id(`grouplist),   `SelectedItems );
 		    boolean input_ok          = true;
 		    integer new_i_uid         = tointeger( new_uid );
 		    
@@ -262,8 +262,8 @@
 			{
 			    string error = sformat(UI(_("The selected User Id is not allowed.
 Please select a valid integer between 0 and %1")), max_uid );
-			    UI(`ErrorPopup( error ));
-			    UI(`SetFocus(`id(`uid)));
+			    UI::ErrorPopup( error );
+			    UI::SetFocus(`id(`uid));
 			    continue;
 			}
 		   
@@ -273,9 +273,9 @@ Please select a valid integer between 0 and %1")), max_uid );
 			    // tell the max_system_uid
 			    string error = sformat(UI(_("The selected User Id is a system Id,
 because the Id is smaller than %1. \nDo you really want to create a new system user")), max_system_uid );
-			    if( ! UI(`YesNoPopup( error )))
+			    if( ! UI::YesNoPopup( error ))
 			    {
-				UI(`SetFocus(`id(`uid)));
+				UI::SetFocus(`id(`uid));
 				continue;
 			    }
 			    
@@ -283,9 +283,9 @@ because the Id is smaller than %1. \nDo you really want to create a new system u
 
 			if(  haskey( current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
 			{
-			    UI(`ErrorPopup(_("The inputted User Id is reserved.
-Please select a another User Id")));
-			    UI(`SetFocus(`id(`uid)));
+			    UI::ErrorPopup(_("The inputted User Id is reserved.
+Please select a another User Id"));
+			    UI::SetFocus(`id(`uid));
 			    continue;
 			}
 		    }
@@ -307,19 +307,19 @@ Please select a another User Id")));
 			if( (nil != findfirstnotof( new_home, valid_home_chars )) ||
 			    (  0 != findfirstof( new_home, "/")   ))
 			{
-			    UI(`ErrorPopup(_("The home directory  may only contain the following characters:
+			    UI::ErrorPopup(_("The home directory  may only contain the following characters:
 a..zA..Z0..9/
-Please try again.")));
-			    UI(`SetFocus(`id(`home)));
+Please try again."));
+			    UI::SetFocus(`id(`home));
 			    continue;
 			}
 			//y2milestone("be1 . dir");
 			//if ( contains( usersUsersRead(`homelist), new_home ) || ( SCR(`Read (.target.dir , new_home )) != nil) )
 			if ( contains( usersUsersRead(`homelist), new_home ) || SCR::Read(.target.size, new_home ) !=-1  )
 			{
-			    UI(`ErrorPopup(_("The home directory is used from another user.
-Please try again.")));
-			    UI(`SetFocus(`id(`home)));
+			    UI::ErrorPopup(_("The home directory is used from another user.
+Please try again."));
+			    UI::SetFocus(`id(`home));
 			    continue;
 			    
 			}
@@ -363,10 +363,10 @@ Please try again.")));
 				    });
 				    if ( found == false )
 				    {
-					UI(`ErrorPopup(_("You can only assign the user
+					UI::ErrorPopup(_("You can only assign the user
 groups that really exists.
-Please try again.")));
-					UI(`SetFocus(`id(`grouplist)));
+Please try again."));
+					UI::SetFocus(`id(`grouplist));
 					input_ok = false;
 				    }
 				}
@@ -375,10 +375,10 @@ Please try again.")));
 			}
 			else
 			{
-			    UI(`ErrorPopup(_("The groupfield may contain only
+			    UI::ErrorPopup(_("The groupfield may contain only
 letters and digits.
-Please try again.")));
-			    UI(`SetFocus(`id(`grouplist)));
+Please try again."));
+			    UI::SetFocus(`id(`grouplist));
 			    continue;
 			}
 		    }
@@ -404,7 +404,7 @@ Please try again.")));
      * @param surname surname
      * @return string
      */
-    global define usersProposeUsername( string forename, string surname ) ``{
+    global define string usersProposeUsername( string forename, string surname ) ``{
 
 	string  username             = "";
 	string  default_login_name   = "lxuser";
@@ -412,6 +412,7 @@ Please try again.")));
 	integer part_len             = 3;
 	integer login_len            = part_len * 2;
 	string  test_login_name      = default_login_name;
+	
 	while (true)
 	{
 	    if (  contains( usersUsersRead(`usernamelist), test_login_name ) )
@@ -476,7 +477,7 @@ Please try again.")));
      * @param uid uid
      * @return string
      */
-    global define usersSplitFullName( symbol what, string fullname, integer uid) ``{
+    global define string usersSplitFullName( symbol what, string fullname, integer uid) ``{
 
 	list    strs    = splitstring(fullname , " ");
 	integer i       = 1;
@@ -510,7 +511,7 @@ Please try again.")));
      * @param what `add_user or `edit_user
      * @return symbol
      */
-    global define usersEditUser(symbol what) ``{
+    global define symbol usersEditUser(symbol what) ``{
 	map dialog_labels = $[
 	    `add_user:   UI(_("Add a new user")),
 	    `clone_user: UI(_("Add a new user by cloning user ")),
@@ -520,9 +521,9 @@ Please try again.")));
 	
 	string  username       = lookup( user_in_work, "username", "");
 	string  fullname       = lookup( user_in_work, "fullname", "");
-	integer gid            = lookup( user_in_work, "gid"     , 100 );
-	string  home           = lookup( user_in_work, "home"    , "/home/");
-	string  shell          = lookup( user_in_work, "shell"   , "/bin/bash");
+	integer gid            = lookup( user_in_work, "gid"     , getDefaultGid());
+	string  home           = lookup( user_in_work, "home"    , getDefaultHome());
+	string  shell          = lookup( user_in_work, "shell"   , getDefaultShell());
 	integer uid            = lookup( user_in_work, "uid"     , max_uid );
 	string  surname        = lookup( user_in_work, "surname" , "empty" ); 
 	string  forename       = lookup( user_in_work, "forename", "empty" ); 
@@ -570,53 +571,53 @@ Please try again.")));
 	
 
 	
-	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
+	UI::SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditUserHelp(),
 			             UI::BackButtonLabel(),
-				     UI::NextButtonLabel()));
+				     UI::NextButtonLabel());
 
 	
 	
 
 	// Modify the dialog 
-	if( what == `clone_user )      UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
-	else  if( what == `add_user )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
-	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Ok")));
+	if( what == `clone_user )      UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
+	else  if( what == `add_user )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	else  if( what == `edit_user)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 	
 	if( uid <= max_system_uid && what == `edit_user )
 	{
-	    UI(`ChangeWidget(`id(`propose), `Enabled, false ));
-	    UI(`ChangeWidget(`id(`forename),`Enabled, false ));
+	    UI::ChangeWidget(`id(`propose), `Enabled, false );
+	    UI::ChangeWidget(`id(`forename),`Enabled, false );
 	}
 	if( password != "")
 	{
-	    UI(`ChangeWidget(`id(`pw1), `Value ,default_pw));
-	    UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+	    UI::ChangeWidget(`id(`pw1), `Value ,default_pw);
+	    UI::ChangeWidget(`id(`pw2), `Value, default_pw);
 	}
 
 	
 	symbol ret = `next;
 	repeat
 	    {
-		ret = UI(`UserInput());
+		ret = UI::UserInput();
 		
 		
 		if (ret == `propose  && ( !(what == `edit_user && uid <= max_system_uid) ) )
 		{
-		    string forename = UI(`QueryWidget(`id(`forename), `Value));
-		    string surname  = UI(`QueryWidget(`id(`surname), `Value));
+		    string forename = UI::QueryWidget(`id(`forename), `Value);
+		    string surname  = UI::QueryWidget(`id(`surname), `Value);
 		    string username = usersProposeUsername( forename, surname );
-		    UI(`ChangeWidget(`id(`username), `Value, username));
+		    UI::ChangeWidget(`id(`username), `Value, username);
 		}
 		    	
 		if ( ret == `next || ret == `details )
 		{
-		    string pw1   = UI(`QueryWidget(`id(`pw1),      `Value));
-		    string pw2   = UI(`QueryWidget(`id(`pw2),      `Value));
-		    username     = UI(`QueryWidget(`id(`username), `Value));
-		    forename     = UI(`QueryWidget(`id(`forename), `Value));
-		    surname      = UI(`QueryWidget(`id(`surname ), `Value));
+		    string pw1   = UI::QueryWidget(`id(`pw1),      `Value);
+		    string pw2   = UI::QueryWidget(`id(`pw2),      `Value);
+		    username     = UI::QueryWidget(`id(`username), `Value);
+		    forename     = UI::QueryWidget(`id(`forename), `Value);
+		    surname      = UI::QueryWidget(`id(`surname ), `Value);
 
 		    if( forename != "" ) fullname = forename + " " + surname;
 		    else                 fullname = surname;
@@ -628,8 +629,8 @@ Please try again.")));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The name information is not
 			// complete, the user is asked to complete the information
-			UI(`ErrorPopup(_("Please enter a name.")));
-			UI(`SetFocus(`id(`surname)));
+			UI::ErrorPopup(_("Please enter a name."));
+			UI::SetFocus(`id(`surname));
 			continue;
 		    }
 		    
@@ -638,10 +639,10 @@ Please try again.")));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username is empty (no user
 			//  input).
-			UI(`ErrorPopup(_("You didn't enter a username.
+			UI::ErrorPopup(_("You didn't enter a username.
 Please try again.
-")));	
-			UI(`SetFocus(`id(`username)));
+"));	
+			UI::SetFocus(`id(`username));
                         continue;
 		    }	
 		    
@@ -650,10 +651,10 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The username must have a size
 			// between 2 and 8 characters.
-			UI(`ErrorPopup(_("The username must be between 2 and 8 characters in length.
+			UI::ErrorPopup(_("The username must be between 2 and 8 characters in length.
 Please try again.
-")));
-			UI(`SetFocus(`id(`username)));
+"));
+			UI::SetFocus(`id(`username));
 			continue;
 		    }
 		    
@@ -665,12 +666,12 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The login name may contain only
 			// certain characters and must begin with a letter.
-			UI(`ErrorPopup(_("The username may contain only
+			UI::ErrorPopup(_("The username may contain only
 lower case letters and digits
 and must begin with a letter.
 Please try again.
-")));
-			UI(`SetFocus(`id(`username)));
+"));
+			UI::SetFocus(`id(`username));
 			continue;
 		    }
 
@@ -681,12 +682,12 @@ Please try again.
 		    {
 			// Tell the user that the login he entered conflicts with
 			// predefined logins in the passwd file.
-			UI(`ErrorPopup(_("There is a conflict between the entered
+			UI::ErrorPopup(_("There is a conflict between the entered
 login name and a predefined username.
 
 Please try another one.
-")));
-			UI(`SetFocus(`id(`username)));
+"));
+			UI::SetFocus(`id(`username));
 			continue;
 		    }
 		    
@@ -695,17 +696,17 @@ Please try another one.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
-			UI(`ErrorPopup(_("The first and the second version
+			UI::ErrorPopup(_("The first and the second version
 of the password are different.
-Please try again.")));
+Please try again."));
 			password = "";
 			// Invalidate any old password
 			
 			// clear password inputfields in this case
-			UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			UI::ChangeWidget(`id(`pw1), `Value, "");
+			UI::ChangeWidget(`id(`pw2), `Value, "");
 
-			UI(`SetFocus(`id(`pw1)));
+			UI::SetFocus(`id(`pw1));
 			continue;
 		    }
 		    
@@ -718,14 +719,14 @@ Please try again.")));
 			    // There is a check whether the information from the
 			    // UI is correct and complete.  The first user password
 			    // information is empty (no user input)
-			    UI(`ErrorPopup(_("You didn't enter a password.\nPlease try again.")));
+			    UI::ErrorPopup(_("You didn't enter a password.\nPlease try again."));
 			    password = "";
 			  		    
 			    // clear password inputfields in this case
-			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    UI::ChangeWidget(`id(`pw1), `Value, "");
+			    UI::ChangeWidget(`id(`pw2), `Value, "");
 			    
-			    UI(`SetFocus(`id(`pw1)));
+			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
 			if ( size (pw1) < min_length_pas || size(pw1) > max_length_pas  )
@@ -739,10 +740,10 @@ Please try again.")));
 			    password = "";
 			    
 			    // clear password inputfields in this case
-			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    UI::ChangeWidget(`id(`pw1), `Value, "");
+			    UI::ChangeWidget(`id(`pw2), `Value, "");
 			    
-			    UI(`SetFocus(`id(`pw1)));
+			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
 			
@@ -753,17 +754,17 @@ Please try again.")));
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
 				// contain only certain characters
-				UI(`ErrorPopup(_("The password may only contain the following characters:
+				UI::ErrorPopup(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
-Please try again.")));
+Please try again."));
 				password = "";
 				
 				
 				// clear password inputfields in this case
-				UI(`ChangeWidget(`id(`pw1), `Value, ""));
-				UI(`ChangeWidget(`id(`pw2), `Value, ""));
+				UI::ChangeWidget(`id(`pw1), `Value, "");
+				UI::ChangeWidget(`id(`pw2), `Value, "");
 				
-				UI(`SetFocus(`id(`pw1)));
+				UI::SetFocus(`id(`pw1));
 				continue;
 			    }	
 			}
@@ -779,15 +780,15 @@ Please try again.")));
 		    }
 
 		    // bild default home dir
-		    if ( what == `add_user && home == "/home/" )
+		    if ( what == `add_user && home == getDefaultHome() )
 		    {
 			home = home + username;
 			
 			//if( SCR(`Read(.target.dir , home )) != nil )
 			if(    SCR::Read(.target.size, home ) != -1  )
 			{
-			    UI(`ErrorPopup(_("The default home directory is used from another user.
-Please press button Details and edit home directory.")));
+			    UI::ErrorPopup(_("The default home directory is used from another user.
+Please press button Details and edit home directory."));
 			    continue;
 			}
 		    }
@@ -821,21 +822,21 @@ Please press button Details and edit home directory.")));
      * add a entry with a shell delete command to the map user_settings.
      * @return symbol
      */
-    global define usersDeleteUser() ``{
+    global define symbol usersDeleteUser() ``{
 	string username       = lookup( user_in_work, "username", "");
 	map new_current_users = $[];
 	
 	// if the user has log on system
-	SCR(`Execute(.target.bash, "/bin/ls -l /proc >/tmp/lsl"));
-	list proc  = SCR(`Read(.tmp.lsl ));
-	SCR(`Execute(.target.bash, "/bin/rm /tmp/lsl"));
+	SCR::Execute(.target.bash, "/bin/ls -l /proc >/tmp/lsl");
+	list proc  = SCR::Read(.tmp.lsl );
+	SCR::Execute(.target.bash, "/bin/rm /tmp/lsl");
 
         // the user that should deleted is present
 	if( size( filter(`k, proc, ``( (username == lookup(k, "username", "")) &&
 				       (groupIdToName(lookup( user_in_work , "gid", 100)) == lookup( k, "groupname", ""))))) > 0 )
 	{
-	    UI(`ErrorPopup(_("You can not delete this user, because the user is present.
-Please log off the user first.")));
+	    UI::ErrorPopup(_("You can not delete this user, because the user is present.
+Please log off the user first."));
 	    user_in_work = $[];
 	    return `next; 
 	}
@@ -843,9 +844,9 @@ Please log off the user first.")));
 	
 	
 	// if the user want to delete a system user
-	if ( lookup(user_in_work , "uid") <= max_system_uid )
+	if ( lookup(user_in_work , "uid", nil) <= max_system_uid )
 	{	
-	    if(! UI(`YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user"))))
+	    if(! UI::YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user")))
 	    {
 		user_in_work = $[];
 		return `next;
@@ -855,7 +856,7 @@ Please log off the user first.")));
 
 	// delete the user from the map current_users
 	foreach(`key, `user, current_users, ``{
-	    if( lookup( user_in_work, "uid") != key) new_current_users = add( new_current_users , key, user);
+	    if( lookup( user_in_work, "uid", nil) != key) new_current_users = add( new_current_users , key, user);
 	});
 	current_users = new_current_users;
 
@@ -869,7 +870,7 @@ Please log off the user first.")));
 	usersAddTodo("/usr/sbin/userdel " + username ,
 		     `del_user,
 		     sformat(UI(_("Can't delete the user %1")), username) );
-	usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
+	//usersAddChownHome( lookup( user_in_work, "home", "" ), "root", "root" );
 
 	
         //build a shell delete command and save it to user_settings
@@ -908,7 +909,7 @@ Please log off the user first.")));
 	    }
 	});
 
-	if (test_mode ) SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	if (test_mode ) SCR::Write(.dumpto.tmp.user_set,   user_settings  );
 	user_in_work = $[];
 	return `next;
     }
@@ -919,7 +920,7 @@ Please log off the user first.")));
      * The second of the two main dialogs.
      * @return symbol
      */
-    global define usersGroupsDialog() ``{
+    global define symbol usersGroupsDialog() ``{
 
 	group_in_work = $[];
 	
@@ -939,11 +940,11 @@ Please log off the user first.")));
 		  )
 	    );
 
-	UI(`SetWizardContentsButtons(_("User and group administration"),
+	UI::SetWizardContentsButtons(_("User and group administration"),
 		                     contents,
 			             usersGroupsDialogHelp(),
 			             UI::BackButtonLabel(),
-				     UI::FinishButtonLabel()));
+				     UI::FinishButtonLabel());
 
 	if( focusline_group != 0 )
 	    UI::ChangeWidget(`id(`group_table), `CurrentItem, focusline_group );
@@ -952,7 +953,7 @@ Please log off the user first.")));
 	symbol ret = `next;
 	repeat
 	    {
-		ret = UI(`UserInput());
+		ret = UI::UserInput();
 
 		if( ret == `show_all )
 		{
@@ -970,10 +971,10 @@ Please log off the user first.")));
 		if ( ret == `edit  || ret == `clone  || ret == `delete )
 		{
 		    integer group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
-		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input );
+		    if( group_table_input != nil ) group_in_work = lookup( current_groups , group_table_input ,nil);
 		    else
 		    {
-			UI(`ErrorPopup(_("Please select an entry in the group table")));
+			UI::ErrorPopup(_("Please select an entry in the group table"));
 			ret = `not_next;
 		    }
 		   
@@ -995,7 +996,7 @@ Please log off the user first.")));
      * @param what `add_user, `clone_user or `edit_user
      * @return symbol
      */
-    global define usersEditGroup(symbol what ) ``{
+    global define symbol usersEditGroup(symbol what ) ``{
 
 	map dialog_labels = $[
 			      `add_group:   UI(_("Add a new group")),
@@ -1040,25 +1041,25 @@ Please log off the user first.")));
 			   
 	
 	
-	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
+	UI::SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             usersEditGroupHelp(),
 			             UI::BackButtonLabel(),
-				     UI::NextButtonLabel()));
+				     UI::NextButtonLabel());
 
 	
 
 
-	if( what == `clone_group )       UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
-	else   if( what == `add_group )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
-	else   if( what == `edit_group)  UI(`ChangeWidget(`id(`next) , `Label, _("&Ok")));
+	if( what == `clone_group )       UI::ChangeWidget(`id(`next) , `Label, _("&Clone"));
+	else   if( what == `add_group )  UI::ChangeWidget(`id(`next) , `Label, _("&Create"));
+	else   if( what == `edit_group)  UI::ChangeWidget(`id(`next) , `Label, _("&Ok"));
 
 	if( what == `edit_group  )
 	{
 	    if( password != "x"  )
 	    {
-		UI(`ChangeWidget(`id(`pw1), `Value, default_pw));
-		UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+		UI::ChangeWidget(`id(`pw1), `Value, default_pw);
+		UI::ChangeWidget(`id(`pw2), `Value, default_pw);
 	    }
 	}
 
@@ -1066,16 +1067,16 @@ Please log off the user first.")));
 	symbol ret = `next;
 	repeat
 	    {
-		ret = UI(`UserInput());
+		ret = UI::UserInput();
 
 		
 		if ( ret == `next  )
 		{
-		    string pw1            = UI(`QueryWidget(`id(`pw1),       `Value));
-		    string pw2            = UI(`QueryWidget(`id(`pw2),       `Value));
-		    string new_groupname  = UI(`QueryWidget(`id(`groupname), `Value));
-		    string new_gid        = UI(`QueryWidget(`id(`gid),       `Value));
-		    list_userlist         = UI(`QueryWidget(`id(`userlist),  `SelectedItems ));  
+		    string pw1            = UI::QueryWidget(`id(`pw1),       `Value);
+		    string pw2            = UI::QueryWidget(`id(`pw2),       `Value);
+		    string new_groupname  = UI::QueryWidget(`id(`groupname), `Value);
+		    string new_gid        = UI::QueryWidget(`id(`gid),       `Value);
+		    list_userlist         = UI::QueryWidget(`id(`userlist),  `SelectedItems );  
 		    string new_userlist   = mergestring( list_userlist, "," );
 
 		    
@@ -1086,10 +1087,10 @@ Please log off the user first.")));
 			// There is a check whether the information from the UI is
 			// correct and complete.  The new_groupname is empty (no group
 			//  input).
-			UI(`ErrorPopup(_("You didn't enter a groupname.
+			UI::ErrorPopup(_("You didn't enter a groupname.
 Please try again.
-")));	
-			UI(`SetFocus(`id(`groupname)));
+")) ;	
+			UI::SetFocus(`id(`groupname)) ;
                         continue;
 		    }	
 
@@ -1099,10 +1100,10 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The groupname must have a size
 			// between 2 and 8 characters.
-			UI(`ErrorPopup(_("The groupname must be between 2 and 8 characters in length.
+			UI::ErrorPopup(_("The groupname must be between 2 and 8 characters in length.
 Please try again.
-")));
-			UI(`SetFocus(`id(`groupname)));
+")) ;
+			UI::SetFocus(`id(`groupname)) ;
 			continue;
 		    }
 		    
@@ -1114,12 +1115,12 @@ Please try again.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The groupname may contain only
 			// certain characters and must begin with a letter.
-			UI(`ErrorPopup(_("The groupname may contain only
+			UI::ErrorPopup(_("The groupname may contain only
 lower case letters and digits
 and must begin with a letter.
 Please try again.
-")));
-			UI(`SetFocus(`id(`groupname)));
+")) ;
+			UI::SetFocus(`id(`groupname)) ;
 			continue;
 		    }
 		    
@@ -1133,7 +1134,7 @@ Please try again.
 groupname and a predefined groupname.
 Please try another one.
 ")));
-			UI(`SetFocus(`id(`groupname)));
+			UI::SetFocus(`id(`groupname)) ;
 			continue;
 		    }
 		    
@@ -1142,17 +1143,17 @@ Please try another one.
 			// There is a check whether the information from the UI is
 			// correct and complete.  The two user password information
 			// do not match
-			UI(`ErrorPopup(_("The first and the second version
+			UI::ErrorPopup(_("The first and the second version
 of the password are different.
-Please try again.")));
+Please try again.")) ;
 			password = "x";
 			// Invalidate any old password
 			
 			// clear password inputfields in this case
-			UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			UI::ChangeWidget(`id(`pw1), `Value, "");
+			UI::ChangeWidget(`id(`pw2), `Value, "");
 
-			UI(`SetFocus(`id(`pw1)));
+			UI::SetFocus(`id(`pw1)) ;
 			continue;
 		    }
 		    
@@ -1173,10 +1174,10 @@ Please try again.")));
 			    password = "x";
 			    
 			    // clear password inputfields in this case
-			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
-			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    UI::ChangeWidget(`id(`pw1), `Value, "");
+			    UI::ChangeWidget(`id(`pw2), `Value, "");
 			    
-			    UI(`SetFocus(`id(`pw1)));
+			    UI::SetFocus(`id(`pw1));
 			    continue;
 			}
 		
@@ -1189,17 +1190,17 @@ Please try again.")));
 				// There is a check whether the information from the
 				// UI is correct and complete.  The user password may
 				// contain only certain characters
-				UI(`ErrorPopup(_("The password may only contain the following characters:
+				UI::ErrorPopup(_("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
-Please try again.")));
+Please try again."));
 				password = "x";
 				
 				
 				// clear password inputfields in this case
-				UI(`ChangeWidget(`id(`pw1), `Value, ""));
-				UI(`ChangeWidget(`id(`pw2), `Value, ""));
+				UI::ChangeWidget(`id(`pw1), `Value, "");
+				UI::ChangeWidget(`id(`pw2), `Value, "");
 				
-				UI(`SetFocus(`id(`pw1)));
+				UI::SetFocus(`id(`pw1));
 				continue;
 			    }	
 			}
@@ -1260,10 +1261,10 @@ Please try again.")));
 				{
 				    if ( new_user != "")
 				    {		
-					UI(`ErrorPopup(_("You can only assign the group
+					UI::ErrorPopup(_("You can only assign the group
 users that really exists.
-Please try again.")));
-					UI(`SetFocus(`id(`userlist)));
+Please try again."));
+					UI::SetFocus(`id(`userlist));
 					all_found = false;
 				    }
 				}
@@ -1283,13 +1284,13 @@ Please try again.")));
 				    {
 					// some user was deleted by the user
 					if(   issubstring( findUsersBelongGroup( gid, `string ), old_user ) &&
-					      ( !issubstring( lookup( lookup( current_groups, gid),  "userlist", ""), old_user )))
+					      ( !issubstring( lookup( lookup( current_groups, gid, $[]),  "userlist", ""), old_user )))
 					{
 					    string error_text = sformat(UI(_("You can't delete the user -%1- from this group,
 because the user's defaultgroup is this group")), old_user );
-					    UI(`ErrorPopup(error_text ));
-					    UI(`ChangeWidget(`id(`userlist), `Value, userlist));
-					    UI(`SetFocus(`id(`userlist)));
+					    UI::ErrorPopup(error_text );
+					    UI::ChangeWidget(`id(`userlist), `Value, userlist);
+					    UI::SetFocus(`id(`userlist));
 					    all_found = false;
 					}	
 				    }
@@ -1299,9 +1300,9 @@ because the user's defaultgroup is this group")), old_user );
 			}
 			else
 			{
-			    UI(`ErrorPopup(_("Syntax in Members of this group is not ok.
-Please try again.")));
-			    UI(`SetFocus(`id(`userlist)));
+			    UI::ErrorPopup(_("Syntax in Members of this group is not ok.
+Please try again."));
+			    UI::SetFocus(`id(`userlist));
 			    continue;
 			}
 		    }
@@ -1314,37 +1315,37 @@ Please try again.")));
 			if( (!( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && ( new_i_gid != nil )) ||
 			    nil !=  findfirstnotof( new_gid, valid_id_chars ))
 			{
-			    UI(`ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
-Please select a valid integer between 0 and %1")), max_gid)));
-			    UI(`SetFocus(`id(`gid)));
+			    UI::ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
+Please select a valid integer between 0 and %1")), max_gid));
+			    UI::SetFocus(`id(`gid));
 			    continue;
 			}
 			
 			
 			if ( haskey( current_groups , new_i_gid) && ( gid != new_i_gid ))
 			{
-			    if ( lookup(lookup( current_groups, new_i_gid ), "todo", "") != `delete )
+			    if ( lookup(lookup( current_groups, new_i_gid ,$[]), "todo", "") != `delete )
 			    {
-				UI(`ErrorPopup(_("The inputted Group Id is reserved.
-Please select a another Group Id")));
-				UI(`SetFocus(`id(`gid)));
+				UI::ErrorPopup(_("The inputted Group Id is reserved.
+Please select a another Group Id"));
+				UI::SetFocus(`id(`gid));
 				continue;
 			    }
 			}
 
 			if ( (what != `add_group ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
 			{
-			    UI(`ErrorPopup(_("The inputted Group Id is a system Id.
-Please try again.")));
-			    UI(`SetFocus(`id(`gid)));
+			    UI::ErrorPopup(_("The inputted Group Id is a system Id.
+Please try again."));
+			    UI::SetFocus(`id(`gid));
 			    continue;
 			}
 
 			if ( (what != `add_group ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
 			{
-			    UI(`ErrorPopup(_("The inputted Group Id is not a system Id.
-Please try again.")));
-			    UI(`SetFocus(`id(`gid)));
+			    UI::ErrorPopup(_("The inputted Group Id is not a system Id.
+Please try again."));
+			    UI::SetFocus(`id(`gid));
 			    continue;
 			    
 			}
@@ -1390,14 +1391,14 @@ Please try again.")));
 
 	
 	//if no  user in this group
-	if ( (size ( filter(`k, `v, current_users , ``(lookup(v,"gid") == lookup(group_in_work , "gid")))) == 0) &&
+	if ( (size ( filter(`k, `v, current_users , ``(lookup(v,"gid", -1) == lookup(group_in_work , "gid", -1)))) == 0) &&
 	     (lookup( group_in_work , "userlist", "") == "" ) )
 	{
 	    
 	    //if the group a system group ask the user ..
-	    if ( lookup(group_in_work , "gid") <= max_system_gid )
+	    if ( lookup(group_in_work , "gid", -1 ) <= max_system_gid )
 	    {	
-		if(! UI(`YesNoHeadlinePopup(_("The marked group is a system group."), _("Do you really want to delete this group"))))
+		if(! UI::YesNoHeadlinePopup(_("The marked group is a system group."), _("Do you really want to delete this group")))
 		    return `next;
 	    }
 
@@ -1405,7 +1406,7 @@ Please try again.")));
 	    //copy all other groups in new_current_groups
 	    map new_current_groups = $[];
 	    foreach(`key, `group, current_groups, ``{
-		if( lookup(group_in_work , "gid") != key) new_current_groups = add( new_current_groups , key, group);
+		if( lookup(group_in_work , "gid", -1 ) != key) new_current_groups = add( new_current_groups , key, group);
 	    });
 	    current_groups = new_current_groups;
 
@@ -1421,12 +1422,12 @@ Please try again.")));
 	}
 	else
 	{	
-	    UI(`WarningPopup(_("You can't delete this group because
+	    UI::WarningPopup(_("You can't delete this group because
 there are users in the group.
-Delete this users first.")));
+Delete this users first."));
 	}
 
-	if( test_mode ) SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+	if( test_mode ) SCR::Write(.dumpto.tmp.user_set,   user_settings  );
 	group_in_work = $[];
 	return `next;
     }
@@ -1436,13 +1437,13 @@ Delete this users first.")));
      * Dialog to save the Groups and Usersettings to system
      * @return symbol
      */
-    global define usersSaveDialog() ``{
+    global define symbol usersSaveDialog() ``{
 	
 	if ( size ( user_settings ) == 0 ) return `next;
 
-	SCR(`Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save"));
-	SCR(`Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save"));
-	SCR(`Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save"));
+	SCR::Execute(.target.bash, "/bin/cp /etc/passwd /etc/passwd.YaST2save");
+	SCR::Execute(.target.bash, "/bin/cp /etc/gshadow /etc/gshadow.YaST2save");
+	SCR::Execute(.target.bash, "/bin/cp /etc/group /etc/group.YaST2save");
 	
 	term contents =   `VBox(
 				`VSpacing( 2 ),
@@ -1451,17 +1452,17 @@ Delete this users first.")));
 				`VSpacing( 2 )	
 				);
 
-	UI(`SetWizardContentsButtons(  "" ,
+	UI::SetWizardContentsButtons(  "" ,
 				       contents,
 				       usersSaveDialogHelp(),
 				       UI::BackButtonLabel(),
-				       UI::NextButtonLabel()));
+				       UI::NextButtonLabel());
 
 
 
-	if( test_mode ) SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
-	if( test_mode ) SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
-	if( test_mode ) SCR( `Write(.dumpto.tmp.user_settings_final,     user_settings  ));
+	if( test_mode ) SCR::Write(.dumpto.tmp.current_users_final,     current_users );
+	if( test_mode ) SCR::Write(.dumpto.tmp.current_groups_final,    current_groups );
+	if( test_mode ) SCR::Write(.dumpto.tmp.user_settings_final,     user_settings  );
 	integer value = 0;
 	boolean ok    = true;
 	    
@@ -1499,36 +1500,36 @@ Delete this users first.")));
 		    current_gshadow = add( current_gshadow, new_group);
 
 		    //save /etc/gshado file 
-		    ret = SCR(`Write(.etc.gshadow, current_gshadow ));
+		    ret = SCR::Write(.etc.gshadow, current_gshadow );
 		}
 		else
 		{
 		    // execute the save string from user_settings 
 		    string todo  = lookup ( todomap , "todo" , "" );
-		    ret =  SCR(`Execute(.target.bash, todo ));
+		    ret =  SCR::Execute(.target.bash, todo );
 		}
 
 		if( ret == 0 )
 		{
 		    value	= value + 1;
-		    UI(`ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) ));
+		    UI::ChangeWidget(`id(`bar), `Value, ((value / size(user_settings))  * 100 ) );
 		}
 		else
 		{
 		    ok = false;
-		    UI(`ErrorPopup( lookup ( todomap , "error", "" )));
+		    UI::ErrorPopup( lookup ( todomap , "error", "" ));
 		}
 	    });
 
 	    if ( !ok)
 	    {
-		UI(`ErrorPopup(_("The new user and group are not configured.")));	
+		UI::ErrorPopup(_("The new user and group are not configured."));	
 
 	    }
 	    else
 	    {
-		UI(`MessagePopup(_("The new user and group settings
-are configured and usable")));	
+		UI::MessagePopup(_("The new user and group settings
+are configured and usable"));	
 
 	    }
 	}

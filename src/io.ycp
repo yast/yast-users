@@ -22,7 +22,7 @@
   textdomain "users";
   
     
-    global define save_focus( integer table_input, any ret , symbol what) ``{
+    global define void save_focus( integer table_input, any ret , symbol what) ``{
 
 	integer l_focusline = 0;
 	
@@ -55,12 +55,12 @@
      * @param groupname name of the group
      * @return string/nil
      */
-    global define usersGroupPassword( string groupname ) ``{
+    global define string usersGroupPassword( string groupname ) ``{
 	
-	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname","") == groupname ) );
 	if( size (password_group_list ) == 0 ) return ( nil ) ;
 	
-	string password = lookup( select(password_group_list, 0) , "password", "" );
+	string password = lookup( select(password_group_list, 0,$[]) , "password", "" );
 	if( (password != "*" ) &&
 	    ( password  != "!" ) ) return password;
 	return ( nil ) ;
@@ -72,8 +72,8 @@
      * @param groupname name of the group
      * @return nil
      */
-    global define usersDeleteGroupFromShadow( string groupname )``{
-	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname") != groupname ) );
+    global define void usersDeleteGroupFromShadow( string groupname )``{
+	current_gshadow  = filter(`k, current_gshadow , ``( lookup(k, "groupname", "") != groupname ) );
     }
 
 
@@ -82,10 +82,10 @@
      * @param groupname name of the group
      * @return map
      */
-    global define usersReturnGroupFromShadow( string groupname ) ``{
-	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname") == groupname ) );
+    global define map usersReturnGroupFromShadow( string groupname ) ``{
+	list password_group_list  = filter(`k, current_gshadow , ``( lookup(k, "groupname","") == groupname ) );
 	if ( size ( password_group_list ) == 0 ) return $[]; 
-	return select(password_group_list, 0);
+	return select(password_group_list, 0,$[]);
     }
 
 
@@ -95,11 +95,11 @@
    * This is used in users.ycp and in usersSaveDialog()
    * @return nil
    */
-    global define  usersGroupsShadowReadFromDisk() ``{
+    global define void usersGroupsShadowReadFromDisk() ``{
 	
-	current_gshadow  = SCR(`Read(.etc.gshadow));
+	current_gshadow  = SCR::Read(.etc.gshadow);
 	current_gshadow  = filter(`k, current_gshadow , ``( size(k) > 1 ) );
-	if( test_mode )    SCR(`Write(.dumpto.tmp.current_gshadow,  current_gshadow  ));
+	if( test_mode )    SCR::Write(.dumpto.tmp.current_gshadow,  current_gshadow  );
     }
 
     
@@ -110,16 +110,16 @@
    * @param username string
    * @return string
    */
-  global define findGroupsBelongUser( string username ) ``{
+  global define string findGroupsBelongUser( string username ) ``{
    
       if( username == "" ) return "";
       string grouplist = "";
       foreach( `key, `group, current_groups , ``{
 	  
-	  string userlist = lookup( group, "userlist");
+	  string userlist = lookup( group, "userlist","");
 	  if ( issubstring(userlist , username ))
 	  {
-	      string groupname = lookup( group, "groupname");
+	      string groupname = lookup( group, "groupname","");
 	      if( grouplist == "" ) grouplist = groupname;
 	      else grouplist = grouplist + "," + groupname;
 	  }
@@ -131,7 +131,7 @@
 
 
   
-  global define groupString2groupList(string str_grouplist )``{
+  global define list groupString2groupList(string str_grouplist )``{
 
       list false_grouplist = [];
       list true_grouplist  = [];
@@ -176,10 +176,10 @@
 
       if( what == `string )
       {
-	  string userlist = lookup( lookup( current_groups, gid),  "userlist", "");
+	  string userlist = lookup( lookup( current_groups, gid, $[]),  "userlist", "");
 	  foreach( `key, `user, current_users , ``{
 	  
-	      if ( gid == lookup(user, "gid") &&(! issubstring(userlist,  lookup( user, "username", "") )))
+	      if ( gid == lookup(user, "gid", -1 ) &&(! issubstring(userlist,  lookup( user, "username", "") )))
 	      {
 		  if( userlist == "") userlist = lookup( user, "username", "");
 		  else userlist = userlist + "," + lookup( user, "username", "");
@@ -209,7 +209,7 @@
 	      
 	      if( (! contains(str_list_userlist,  username ) ))
 	      {  
-		  if ( gid == lookup(user, "gid"))
+		  if ( gid == lookup(user, "gid", -1))
 		  {
 		      term    a       = `item(`id(username), username, true );
 		      true_userlist  =  add( true_userlist, a );  
@@ -242,9 +242,9 @@
    * This is used in users.ycp 
    * @return nil
    */
-  global define usersUsersReadFromDisk() ``{
+  global define void usersUsersReadFromDisk() ``{
 
-	list users  = SCR(`Read(.etc.passwd));
+	list users  = SCR::Read(.etc.passwd);
 	foreach ( `user, users,  ``{
 	    any i_uid = lookup(  user, "uid", 0);
 	    user = add( user ,"exist", true);
@@ -263,9 +263,9 @@
    * This is used in users.ycp.
    * @return nil
    */
-  global define usersGroupsReadFromDisk() ``{
+  global define void usersGroupsReadFromDisk() ``{
 
-	list groups = SCR(`Read(.etc.group ));    
+	list groups = SCR::Read(.etc.group );    
 	foreach ( `group, groups,  ``{
 	    any i_gid = lookup( group, "gid", 0);
 	    group = add(group, "exist", true);
@@ -287,7 +287,7 @@
     * @param groupname string
     * @return integer 
     */
-   global define groupNameToId( string groupname) ``{
+   global define integer groupNameToId( string groupname) ``{
 
 	integer ret = max_gid;
 	foreach( `key, `group, current_groups, ``{
@@ -308,8 +308,8 @@
     * @param Id integer
     * @return string
     */
-    global define groupIdToName( integer Id ) ``{
-	return lookup(lookup( current_groups, Id), "groupname", "");
+    global define string groupIdToName( integer Id ) ``{
+	return lookup(lookup( current_groups, Id,$[]), "groupname", "");
     }
 
 
@@ -319,8 +319,8 @@
      * @param Id integer
      * @return string
      */
-    global define userIdToName( integer Id ) ``{
-	return lookup( lookup( current_users, Id), "username", "");
+    global define string userIdToName( integer Id ) ``{
+	return lookup( lookup( current_users, Id,$[]), "username", "");
     }
 
 
@@ -329,7 +329,7 @@
      * Used in usersAddTodo.
      * @return integer
      */
-    global define findNextTodoPos() ``{
+    global define integer findNextTodoPos() ``{
 	return  ( size( user_settings) + 1);
     }
 
@@ -345,7 +345,7 @@
      * @param error string
      * @return boolean
      */
-    global define usersAddTodo( string todo, symbol what, string error ) ``{
+    global define boolean usersAddTodo( string todo, symbol what, string error ) ``{
 	
 	user_settings = add( user_settings ,  findNextTodoPos(),  $[ "todo" : todo,
 								     "what" : what,
@@ -360,7 +360,7 @@
      * @param home string
      * @return nil
      */
-    global define usersAddMakeHomeDir( string home ) ``{
+    global define void usersAddMakeHomeDir( string home ) ``{
 
 	list   split_home = splitstring( home, "/");
 	string tmp_dir    = "";
@@ -387,7 +387,7 @@
      * @param old_home string
      * @return nil
      */ 
-    global define usersAddMoveDir(string old_home, string  home )``{
+    global define void usersAddMoveDir(string old_home, string  home )``{
 
 	usersAddTodo( ("/bin/mv " + old_home + " " +  home ),
 		      `mv,
@@ -403,7 +403,7 @@ to new home directory %2")), old_home, home));
      * @param home string
      * @return nil
      */ 
-    global define usersAddRmDir( string  home )``{
+    global define void usersAddRmDir( string  home )``{
 
 	usersAddTodo( ("/bin/rm " +home + " -r" ),
 		      `rm,
@@ -417,7 +417,7 @@ to new home directory %2")), old_home, home));
      * @param group string
      * @return nil
      */ 
-    global define usersAddChownHome( string home, string user, string group)``{
+    global define void usersAddChownHome( string home, string user, string group)``{
 
 	usersAddTodo(("/bin/chown  " + user + ":" + group + " " + home ),
 		     `chown,
@@ -433,7 +433,7 @@ to new home directory %2")), old_home, home));
     }
 
 
-    global define usersAddSetGroupPassword( string groupname, string password ) ``{
+    global define boolean usersAddSetGroupPassword( string groupname, string password ) ``{
 
 	user_settings = add( user_settings ,
 			     findNextTodoPos(),
@@ -454,7 +454,7 @@ to new home directory %2")), old_home, home));
      * Used in sequenser.
      * @return symbol
      */ 
-    global define usersUserSaveToMap() ``{
+    global define symbol usersUserSaveToMap() ``{
 
 	symbol  what     = lookup( user_in_work , "what"      , `nix );
 	string  fullname = lookup( user_in_work , "fullname"  , ""   );
@@ -546,13 +546,14 @@ to new home directory %2")), old_home, home));
 			      `edit_user,
 			      sformat(UI(_("Can't change the settings of the user %1")), username ));
 	    
-
+		/*
 		if ( lookup( org_user, "username" ,"")  != username  ||
 		     lookup( org_user, "gid" ,     "" ) != gid       ||
 		     lookup( org_user, "home" ,    "" ) != home      	 )
 		{  
 		    usersAddChownHome( home, username , groupIdToName(gid ));
 		}
+		*/
 	    }
 	}
 
@@ -579,7 +580,7 @@ to new home directory %2")), old_home, home));
 	string old_username       = lookup( org_user , "username" , "" );
 	if ( old_username != username )
 	{
-	    map groups_with_old_username = filter(`k, `v, current_groups, ``( issubstring(lookup(v,"userlist"),old_username) == true ));
+	    map groups_with_old_username = filter(`k, `v, current_groups, ``( issubstring(lookup(v,"userlist",nil),old_username) == true ));
 	    foreach( `key, `group, current_groups, ``{
 		
 		string userlist       =  lookup( group , "userlist" ,"");
@@ -605,7 +606,7 @@ to new home directory %2")), old_home, home));
 	    string userlist  = lookup(group, "userlist" , "");
 	    map    new_group = group;
 	    
-	    if( issubstring( userlist, username ) &&( ! contains(search_groups, lookup( group, "groupname")) ))
+	    if( issubstring( userlist, username ) &&( ! contains(search_groups, lookup( group, "groupname","")) ))
 	    {
 		//UI(`MessagePopup("delete " + username + " from " +  lookup( group, "groupname") ));
 		// delete username from userlist
@@ -623,7 +624,7 @@ to new home directory %2")), old_home, home));
 		new_group = add( new_group, "userlist", new_userlist );
 		current_groups = add( current_groups, key , new_group );
 	    }
-	    if(	 contains(search_groups, lookup( group, "groupname")) &&( ! issubstring( userlist, username )))
+	    if(	 contains(search_groups, lookup( group, "groupname","")) &&( ! issubstring( userlist, username )))
 	    {
 		//UI(`MessagePopup("add " + username + " to " + lookup( group, "groupname") ));
 		// add username to userlist
@@ -637,7 +638,7 @@ to new home directory %2")), old_home, home));
 	current_users = add( current_users , uid, current_user );
 
 	
-	if( test_mode ) SCR(`Write(.dumpto.tmp.user_settings,   user_settings  ));
+	if( test_mode ) SCR::Write(.dumpto.tmp.user_settings,   user_settings  );
 
 	//leave the module with save
 	if (  start_dialog == "user_add" ) return `save;
@@ -650,7 +651,7 @@ to new home directory %2")), old_home, home));
      * Used in sequenser.
      * @return symbol
      */ 
-    global define  usersGroupSaveToMap( ) ``{
+    global define symbol usersGroupSaveToMap( ) ``{
 
 	   //load the manipulated group from group_in_work
 	   symbol what             = lookup( group_in_work , "what" ,     "");
@@ -664,11 +665,11 @@ to new home directory %2")), old_home, home));
 	   // remove default user from the userlist
 	   list   split_userlist = splitstring( userlist, ",");
 	   string new_userlist   = "";
-	   map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid") == old_gid) );
+	   map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid",nilinteger) == old_gid) );
 	   foreach(`entry, split_userlist, ``{
 	      
-	       if(  (size(filter(`k, `v, default_users, ``(lookup(v,"username") == entry ))) == 0 ) ||
-		    ( issubstring(lookup(lookup(current_groups, old_gid , $[] ), "userlist"), entry ) ))
+	       if(  (size(filter(`k, `v, default_users, ``(lookup(v,"username",nilinteger ) == entry ))) == 0 ) ||
+		    ( issubstring(lookup(lookup(current_groups, old_gid , $[] ), "userlist",""), entry ) ))
 		   {
 		       if( new_userlist == "") new_userlist = entry;
 		       else new_userlist = new_userlist + "," + entry;       
@@ -829,7 +830,7 @@ to new home directory %2")), old_home, home));
 	   // }
 
 	   //if test_mode
-	   if( test_mode ) SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+	   if( test_mode ) SCR::Write(.dumpto.tmp.user_set_next,   user_settings  );
 
 	   if (  start_dialog == "group_add" ) return `save; 
 	   return `next;
@@ -841,7 +842,7 @@ to new home directory %2")), old_home, home));
      * @param count integer
      * @return string
      */ 
-    global define AddBlanks(integer count ) ``{
+    global define string AddBlanks(integer count ) ``{
 	string  blanks = "";
 	integer blanks_counter = 0;
 	
@@ -862,7 +863,7 @@ to new home directory %2")), old_home, home));
      * @param todo `items or `groupnamelist
      * @return list
      */
-    global define usersGroupsRead(symbol todo ) ``{
+    global define list usersGroupsRead(symbol todo ) ``{
 	
 	//build a list for the Group Table
 	list    items         = [];
@@ -905,7 +906,7 @@ to new home directory %2")), old_home, home));
      * @param todo `items, `usernamelist or `homelist
      * @return list
      */
-    global define usersUsersRead(symbol todo) ``{
+    global define list usersUsersRead(symbol todo) ``{
 	
 	
 	list     todo_list    = [];
@@ -928,7 +929,7 @@ to new home directory %2")), old_home, home));
 		    a = add(a, lookup( user , "fullname" , "" ));
 		    a = add(a, s_uid );
 
-		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0)), "groupname");
+		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0),$[]), "groupname","");
 		    string more_groups = findGroupsBelongUser( username );
 	
 		    
@@ -942,13 +943,14 @@ to new home directory %2")), old_home, home));
 		    
 		    items = add( items, a );
 		}
-		else if ( todo == `usernamelist )
+		else if ( todo == `usernamelist && username != "")
 		{
-		    todo_list = add( todo_list, lookup(user, "username" ));
+		    todo_list = add(todo_list, username );
+	
 		}
-		else if ( todo == `homelist )
+		else if ( todo == `homelist && username != "" )
 		{
-		    todo_list = add( todo_list, lookup( user, "home" ));
+		    todo_list = add(todo_list, username );
 		}
 	    }
 	});
@@ -965,13 +967,13 @@ to new home directory %2")), old_home, home));
      * @param current_users map
      * @return integer
      */
-    global define usersFreeUid(map current_users) ``{
+    global define integer usersFreeUid(map current_users) ``{
 
 	integer uid     = max_system_uid + 1 ;
 	repeat {
 	    if (  haskey( current_users , uid) )
 	    {
-		map user =  lookup ( current_users , uid );
+		map user =  lookup ( current_users , uid ,$[]);
 		if( lookup(user, "todo","") == `delete) return uid;
 		else
 		{
@@ -980,7 +982,8 @@ to new home directory %2")), old_home, home));
 	    }
 	    else return uid;
 		  
-	} until ( uid == max_uid );	      
+	} until ( uid == max_uid );
+	return uid;
     }
 
 
@@ -991,7 +994,7 @@ to new home directory %2")), old_home, home));
      * @param current_groups map
      * @return integer
      */
-    global define usersFreeGid(map current_groups) ``{
+    global define integer usersFreeGid(map current_groups) ``{
 
 	integer gid  = max_system_gid + 1;
 	// can't delet gid 101 with groupdel ????
@@ -1001,7 +1004,7 @@ to new home directory %2")), old_home, home));
 	repeat {
 	    if ( haskey( current_groups, gid ) )
 	    {
-		map group = lookup( current_groups, gid );
+		map group = lookup( current_groups, gid ,$[]);
 		if( lookup( group, "todo", "")  == `delete) return gid;
 		else
 		{
@@ -1022,10 +1025,10 @@ to new home directory %2")), old_home, home));
      * @param todo `items or `stringlist 
      * @return list
      */
-    global define  usersReadShells(symbol todo ) ``{
+    global define  list usersReadShells(symbol todo ) ``{
 
 	list available_shells =  [];
-	list shells_read = SCR(`Read(.etc.shells));
+	list shells_read = SCR::Read(.etc.shells);
 	
 	foreach( `shell_entry, shells_read, ``{
 	    
@@ -1057,9 +1060,9 @@ to new home directory %2")), old_home, home));
      * @param fullname string
      * @return boolean
      */
-    global define usersConsoleUncoding( string fullname ) ``{
+    global define boolean usersConsoleUncoding( string fullname ) ``{
 	
-	return UI(`Recode ( encoding,"utf-8",  fullname ));
+	return UI::Recode( encoding,"utf-8",  fullname );
     }
 
     /**
@@ -1068,7 +1071,7 @@ to new home directory %2")), old_home, home));
      * @param fullname string
      * @return boolean
      */
-    global define usersConsoleEncoding( string fullname ) ``{
+    global define boolean usersConsoleEncoding( string fullname ) ``{
 
 	
 	any ret = findfirstof( fullname , "\"" );
@@ -1084,8 +1087,44 @@ to new home directory %2")), old_home, home));
 	    });
 	}
 	
-	return  UI(`Recode ("utf-8", encoding, sformat("\"%1\"", fullname )));
+	return  UI::Recode("utf-8", encoding, sformat("\"%1\"", fullname ));
     }
 
 
+
+    global define integer getDefaultGid()``{
+	
+	string def_gid  = useradd_defaults["group"]:"100";
+	integer def_int = tointeger(def_gid);
+	
+	if( lookup ( current_groups , def_int ,$[]) == $[])
+	{
+	    UI::ErrorPopup(sformat(_("The default group with the id %1 does not exist.
+Please change the default group in /etc/default/useradd."),def_int ));
+
+	    /* TODO If group 100 does not exists ? */
+	    return 100;
+	}
+	
+	y2milestone("default integer : %1", def_int);
+	return def_int;
+	
+    }
+
+    global define string getDefaultHome()``{
+	string def_home = useradd_defaults["home"]:"/home";
+
+	/* TODO check if the directory exists */
+	if ( (findlastof( def_home, "/") +1) != size(def_home ) )
+	{
+	    def_home = def_home + "/";
+	}
+	return def_home;
+	
+    }
+    
+    global define string getDefaultShell()``{
+	return useradd_defaults["shell"]:"/bin/bash";
+    }
+    
 }

@@ -63,20 +63,21 @@
     string valid_id_chars       = "0123456789";
     
    
+
     
     include "security/io.ycp";              
     map security  		= SecurityRead();
-    integer max_uid             = tointeger(lookup( security, "UID_MAX" ));
-    integer max_gid             = tointeger(lookup( security, "GID_MAX" ));
-    integer max_system_uid      = tointeger(lookup( security, "UID_MIN" )); 
-    integer max_system_gid      = tointeger(lookup( security, "GID_MIN" ));
+    integer max_uid             = tointeger(lookup( security, "UID_MAX" , 60000));
+    integer max_gid             = tointeger(lookup( security, "GID_MAX" , 60000));
+    integer max_system_uid      = tointeger(lookup( security, "UID_MIN" , 500)); 
+    integer max_system_gid      = tointeger(lookup( security, "GID_MIN" , 100));
     integer max_length_uid      = size(sformat("%1", max_uid));
     integer max_length_gid      = size(sformat("%1", max_gid));
-    integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN"));
-    integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN"));
-						    
+    integer max_length_pas 	= tointeger(lookup( security,"PASS_MAX_LEN",8));
+    integer min_length_pas 	= tointeger(lookup( security,"PASS_MIN_LEN",5));
     
-    if( test_mode )    SCR(`Write(.dumpto.tmp.security, security  ));
+    
+    if( test_mode )    SCR::Write(.dumpto.tmp.security, security  );
     
     max_system_gid = max_system_gid - 1;
     max_system_uid = max_system_uid - 1;
@@ -85,6 +86,7 @@
     integer focusline_user  = 0;
     boolean view_all_users  = false;
     boolean view_all_groups = false;
+
     
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
@@ -96,7 +98,7 @@
 
    
     map    settings = $[];
-    string language = UI( `GetLanguage(true));
+    string language = UI::GetLanguage(true);
     settings        = SelectConsoleFont( language);
     string encoding = lookup ( settings, "console_encoding", "ISO-8859-1");
   
@@ -107,10 +109,16 @@
 
   
     list pam_list = SCR::Read(.pam.passwd.password.pam_unix);
-    map  pam_map  = select( pam_list, 0);
+    map  pam_map  = select( pam_list, 0, $[]);
     boolean pam   = contains( splitstring( lookup( pam_map , "arguments", ""), " "), "md5");
 
- 
+    map useradd_defaults  = SCR::Read(.etc.default.useradd);
+    y2milestone(" uasd %1",useradd_defaults);
+
+
+    y2milestone(" getGroup : %1", getDefaultGid());
+    y2milestone(" getDefaultHome ; %1", getDefaultHome());
+    y2milestone(" getDefaultShell : %1", getDefaultShell());
     
     // test pam -md5
     if( test_mode ) {
@@ -129,7 +137,7 @@
     
  
     // ===== Open UI ==================================================
-    UI(`CreateWizardDialog());
+    UI::CreateWizardDialog();
     
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
@@ -231,7 +239,7 @@
     
     WizardSequencer(aliases, main_sequence);
 
-    return UI(`CloseDialog());
+    return UI::CloseDialog();
     // ===== Write ====================================================
    
 } // End
