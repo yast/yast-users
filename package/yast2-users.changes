@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Aug 23 11:41:25 CEST 2002 - jsrain@suse.cz
+
+- fixed provides and obsoletes
+- sorting made more effective (and removed where not needed)
+- 2.6.20
+
+-------------------------------------------------------------------
 Fri Aug 16 13:27:03 CEST 2002 - jsrain@suse.cz
 
 - fixed kdoc comments

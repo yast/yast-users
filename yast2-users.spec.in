@@ -3,8 +3,8 @@
 
 @HEADER@
 Requires:	yast2 yast2-country yast2-pam
-Obsoletes:	yast2-config-users y2c_users
-Provides:	yast2-config-users y2c_users
+Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users
+Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users
 
 BuildArchitectures:	noarch
 

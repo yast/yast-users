@@ -528,8 +528,8 @@
 	  true_grouplist     = add( true_grouplist ,  a );
       });
 
-      true_grouplist  = sort(`x, `y, true_grouplist,  ``( x <= y ));
-      false_grouplist = sort(`x, `y, false_grouplist, ``( x <= y ));
+      true_grouplist  = sort(true_grouplist);
+      false_grouplist = sort(false_grouplist);
 
       return union( true_grouplist, false_grouplist);
 
@@ -600,8 +600,8 @@
 	      true_userlist = add( true_userlist, a );
 	  });
 
-	  true_userlist  = sort(`x, `y, true_userlist,  ``( x <= y ));
-	  false_userlist = sort(`x, `y, false_userlist, ``( x <= y ));
+	  true_userlist  = sort(true_userlist);
+	  false_userlist = sort(false_userlist);
 
 	  return union( true_userlist, false_userlist );
 
@@ -675,7 +675,7 @@
 	    }
 	});
 
-	if( todo == `items              ) return sort(`x, `y, items, ``( x > y ));
+	if( todo == `items              ) return items;
 	else if (todo == `groupnamelist ) return groupnamelist;
     }
 
@@ -779,7 +779,7 @@
 	    }
 	});
 
-	if( todo == `items                               ) return  items;//sort (items);//sort(`x, `y, items, ``( x > y ));
+	if( todo == `items                               ) return  items;
 	else if( todo == `usernamelist || todo == `homelist ) return todo_list;
 
     }
