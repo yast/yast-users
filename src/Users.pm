@@ -3373,8 +3373,8 @@ sub UpdateGroupsAfterWrite {
 		    delete $groups{$type}{$gid}{"modified"};
 		}
 		# org_group map must be also removed (e.g. for multiple renames)
-		if (defined $groups{$type}{$uid}{"org_group"}) {
-		    delete $groups{$type}{$uid}{"org_group"};
+		if (defined $groups{$type}{$gid}{"org_group"}) {
+		    delete $groups{$type}{$gid}{"org_group"};
 		}
 	    }
 	}
