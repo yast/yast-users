@@ -52,7 +52,7 @@ Here you can choose the authentication method of users on your system.
 </p>") +
 
 // helptext 2/3
-_("<p>Select <b>Local</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>");
+_("<p>Select <b>Local</b> to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>");
 
 map button_labels = $[
     // radiobutton to select ldap user auth.
@@ -79,7 +79,7 @@ if (contains (available_clients, "nis"))
     {
 	help = help +
 	// helptext 3/3 -- nis & samba & ldap avialable
-_("<p>If you are using a NIS or LDAP server to store user data or if you want to authenticate users against NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
+_("<p>If you are using a NIS or LDAP server to store user data or if you want to authenticate users against an NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
     }
     else
     {
@@ -94,13 +94,13 @@ else
     {
 	help = help +
 	// helptext 3/3 -- samba &ldap available
-_("<p>If you are using a LDAP server to store user data or if you want to authenticate users against NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
+_("<p>If you are using a LDAP server to store user data or if you want to authenticate users against an NT server, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
     }
     else
     {
 	help = help +
 	// helptext 3/3 -- only ldap available
-_("<p>If you are using a LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
+_("<p>If you are using an LDAP server to store user data, choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b>.</p>");
     }
 }
 

@@ -86,7 +86,7 @@ map cmdline = $[
 	    "help"	: _("List of available groups"),
 	    "options"	: [ "non_strict" ],
 	    // help text for unknown parameter name
-	    "non_strict_help":	_("User parameters, which should be listed"),
+	    "non_strict_help":	_("User parameters that should be listed"),
 	],
 	"show" :$[
 	    "handler"	: GroupShowHandler,
@@ -149,7 +149,7 @@ map cmdline = $[
 	],
 	"userlist"	:$[
 	    // translators: command line help text for 'user' option
-	    "help"	: _("List of group members - usualy user names, separated by commas. The list of LDAP user DN's must be separated by colons."),
+	    "help"	: _("List of group members, usually user names, separated by commas. The list of LDAP user DNs must be separated by colons."),
 	    "type"	: "string"
 	],
 	"new_groupname"	:$[
@@ -164,12 +164,12 @@ map cmdline = $[
 	],
 	"type"	:$[
 	    // translators: command line help text for show option
-	    "help"	: _("Type of the group (local/system/nis/ldap)"),
+	    "help"	: _("Type of the group (local, system, nis, ldap)"),
 	    "type"	: "string"
 	],
 	"ldap_password"	:$[
 	    // translators: command line help text for ldap_password option
-	    "help"	: _("Password to LDAP server"),
+	    "help"	: _("Password for LDAP server"),
 	    "type"	: "string"
 	],
     ],

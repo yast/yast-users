@@ -197,12 +197,12 @@ the corresponding field.
 	help = help +
 	// help text 2/7
 	_("<p>
-The <b>User Login</b> could be created from components of the full name by
-clicking <b>Suggestion</b> button. It may be modified, but use only
+Create the <b>User Login</b> from components of the full name by
+clicking <b>Suggestion</b>. It may be modified, but use only
 letters (no accented characters), digits, and <tt>._-</tt>
 Do not use uppercase letters in this entry unless you really know what you are doing.
 User names have stricter restrictions than passwords. You can redefine the
-restrictions in /etc/login.defs file - read its man page to know more.
+restrictions in the /etc/login.defs file. Read its man page for information.
 </p>
 ");
     }
@@ -215,7 +215,7 @@ When you modify the <b>User Login</b>, use only
 letters (no accented characters), digits, and <tt>._-</tt>
 Do not use uppercase letters in this entry unless you really know what you are doing.
 User names have stricter restrictions than passwords. You can redefine the
-restrictions in /etc/login.defs file - read its man page to know more.
+restrictions in the /etc/login.defs file.  Read its man page for information.
 </p>
 ");
     }
@@ -290,7 +290,7 @@ system. Here is what the different entries mean:
 Enter the name of the group. Avoid 
 long names. Normal lengths are between two and eight characters.
 You can redefine the list of characters allowed for group names in
-/etc/login.defs file - read its man page to know more.
+the /etc/login.defs file. Read its man page for information.
 </p>
 ") +
 	// help text 3/6, %1 is number
@@ -377,9 +377,10 @@ To select an existing directory, click <b>Browse</b>.
 	map defaults        = Users::GetLoginDefaults ();
         helptext = helptext +
 	// alternate helptext 4.5/8; %1 is directory (e.g. '/etc/skel')
-	sformat (_("<p>If you want to create only empty home directory,
+	sformat (_("<p>To create only an empty home directory,
 check <b>Empty Home</b>. Otherwise, the new user home directory
-will be created from the default skeleton (%1).</p>"), defaults["skel"]:"");
+is created from the default skeleton (%1).</p>
+"), defaults["skel"]:"");
     }
 
     if (user_type == "ldap")

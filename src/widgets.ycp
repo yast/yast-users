@@ -171,14 +171,14 @@ define symbol AskForNISServerEncryptionPopup (string encr) {
 You have changed the default encryption for user passwords.</p>") +
 
     // help text 2/3
-    _("<p>It seems that you are running NIS server. In some network enviroments,
-you could be unable to login at a NIS client when user password is
-crypted with different a method than DES.
+    _("<p>It seems that you are running a NIS server. In some network enviroments,
+you could be unable to login to a NIS client when a user password is
+crypted with a different method than DES.
 </p>
 ") +
 
     // help text 3/3
-    _("<p>Are you sure to use selected method?</p>");
+    _("<p>Really use the selected method?</p>");
 
     UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (14),
 	`VBox (
@@ -266,9 +266,10 @@ _("<p><b>LDAP Search Filter Changes</b></p>") +
 _("<p>Here, extend the search filters for users and groups beyond the default search filters.</p>") +
 
 // helptext 3/4
-_("<p>With <b>Default</b> button, load the default filter from User and Group
-Configuration Modules, saved on the LDAP server (values of 'susesearchfilter' attributes).
-If you are not connected yet, you will be asked for password.</p>") +
+_("<p>With <b>Default</b>, load the default filter from the user and group
+configuration modules, saved on the LDAP server (values of 'susesearchfilter' attributes).
+If you are not connected yet, you are prompted for the password.</p>
+") +
 
 // helptext 4/4 (do not translate the value (written as <tt> font))
 _("<p><b>Example:</b>
@@ -294,7 +295,7 @@ only obtain users with a user name beginning with 'u'.</p>
 	`TextEntry (`id(`currf), "", curr_shown == `users ? user_f : group_f),
 	`VSpacing(0.5),
 	// frame label
-	`Frame (_("Add new condition to current filter"), `HBox (
+	`Frame (_("Add New Condition to Current Filter"), `HBox (
 	    `HSpacing (0.5), `VBox (
 		`Left (`ComboBox (`id(`andor), "", connectives)),
 		`HBox (
@@ -311,7 +312,7 @@ only obtain users with a user name beginning with 'u'.</p>
 		    `TextEntry (`id(`val), _("&Value"), "")
 		),
 		// pushbuttton label
-		`Right (`PushButton (`id(`addu), _("A&dd to filter")))
+		`Right (`PushButton (`id(`addu), _("A&dd to Filter")))
 	    ),
 	    `HSpacing (0.5)
 	)),
@@ -394,7 +395,8 @@ only obtain users with a user name beginning with 'u'.</p>
 		if (!issubstring (tolower (curr_user_f),tolower(default_user_f))
 		    // yes/no popup question
 		    && !Popup::YesNo (_("The new user filter does not contain the default user filter.
-Are you sure?")))
+Really use it?
+")))
 		{
 		    UI::SetFocus (`id(`currf));
 		    button = `notnext;
@@ -418,7 +420,8 @@ Are you sure?")))
 		{
 		    // yes/no popup question
 		    if (!Popup::YesNo (_("The new group filter does not contain the default group filter.
-Are you sure?")))
+Really use it?
+")))
 		    {
 			UI::SetFocus (`id(`currf));
 			button = `notnext;
