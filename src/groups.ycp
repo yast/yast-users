@@ -27,6 +27,7 @@ import "UsersCache";
 import "CommandLine";
 
 include "users/wizards.ycp";
+include "users/cmdline.ycp";
 
 string  start_dialog	= "summary";
 any	ret		= nil;
@@ -69,98 +70,6 @@ if (no_cmdline)
 y2milestone( "Starting with arguments: %1", WFM::Args() );
 
 
-// --------------------------------------------------------------------------
-// --------------------------------- cmd-line handlers
-
-/**
- * List groups
- * @return boolean false
- */
-define boolean GroupsListHandler (map<string,string> options ) ``{
-
-    list<string> sets = maplist (string type, string val, options, ``(type));
-    if (sets == [])
-	sets = ["local"];
-
-    foreach (string type, sets, ``{
-	if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
-	{
-	    Users::ReadNewSet ("nis");
-	}
-	foreach (string groupname, UsersCache::GetGroupnames (type), ``{
-	    CommandLine::Print (groupname);
-	});
-    });
-    return false; // do not call Write...
-}
-
-/**
- * Show one group information
- * @return boolean false
- */
-define boolean GroupsShowHandler (map options ) ``{
-
-    map<string,any> group = $[];
-    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
-    string groupname = options ["groupname"]:"";
-
-    if (gid != -1)
-    {
-	group = Users::GetGroup (gid, "");
-    }
-    else if (groupname != "")
-    {
-	group = Users::GetGroupByName (groupname, "");
-    }
-    if (group == $[])
-    {
-	// error message
-	CommandLine::Print (_("There is no such group."));
-	return false;
-    }
-
-    string out = "";
-    map keys = $[
-	// label shown at command line (user attribute)
-	"cn"		: _("Group Name:"),
-	// label shown at command line (user attribute)
-	"gidnumber"	: _("GID:"),
-	// label shown at command line (user attribute)
-	"userlist"	: _("List of Members:"),
-    ];
-    foreach (string key, any value, group, ``{
-	key = keys[key]:"";
-	if (key == "") return;
-	string svalue = sformat ("%1", value);
-	if (is (value, map))
-	{
-	    svalue = mergestring ((list<string>)
-		maplist (string k, any v, (map<string,any>) value, ``(k)), ",");
-	}
-	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
-    });
-
-    return false; // do not call Write...
-}
-
-
-define boolean UsersRead () ``{
-
-    Users::SetGUI (false);
-    return Users::Read () == "";
-}
-
-define boolean UsersWrite () ``{
-
-    Users::SetGUI (false);
-    return Users::Write () == "";
-}
-
-define boolean UsersGUI ()``{
-    return (UsersSequence (start_dialog) == `next);
-}
-
-
 /* the command line description map */
 map cmdline = $[
     "id"		: "groups",
@@ -173,12 +82,18 @@ map cmdline = $[
 	"list" :$[
 	    "handler"	: GroupsListHandler,
 	    // translators: command line help text for list action
-	    "help"	: _("List of available groups")
+	    "help"	: _("List of available groups"),
+	    "options"	: [ "non_strict" ]
 	],
 	"show" :$[
-	    "handler"	: GroupsShowHandler,
+	    "handler"	: GroupShowHandler,
 	    // translators: command line help text for show action
 	    "help"	: _("Show information of selected group")
+	],
+	"delete" :$[
+	    "handler"	: GroupDeleteHandler,
+	    // translators: command line help text for delete action
+	    "help"	: _("Delete an existing group.")
 	],
     ],
     "options"		: $[
@@ -208,10 +123,21 @@ map cmdline = $[
 	    "help"	: _("Name of the group"),
 	    "type"	: "string"
 	],
+	"type"	:$[
+	    // translators: command line help text for show option
+	    "help"	: _("Type of the group (local/system/nis/ldap)"),
+	    "type"	: "string"
+	],
+	"ldap_pw"	:$[
+	    // translators: command line help text for ldap_pw option
+	    "help"	: _("Password to LDAP server"),
+	    "type"	: "string"
+	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
-	"show"  : [ "gid", "groupname"],
+	"show"  : [ "gid", "groupname", "type"],
+	"delete": [ "groupname", "gid", "type", "ldap_pw" ],
     ]
 ];
 

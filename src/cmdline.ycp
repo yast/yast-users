@@ -1,0 +1,471 @@
+/**
+ * File:	include/users/cmdline.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Command line interface functions.
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ *
+ * All command line interface functions.
+ */
+{
+
+textdomain "users";
+
+import "Users";
+import "UsersLDAP";
+import "CommandLine";
+import "Ldap";
+
+// --------------------------------------------------------------------------
+// --------------------------------- cmd-line handlers for users ------------
+
+define map<string,any> convert_keys (map<string,any> input) ``{
+
+    map<string,any> ret	= $[];
+    map keys = $[
+	"username"	: "uid",
+	"password"	: "userpassword",
+	"home"		: "homedirectory",
+	"shell"		: "loginshell",
+	"fullname"	: "cn",
+	"gid"		: "gidnumber",
+	"uid"		: "uidnumber",
+	"no_home"	: "create_home",
+	"groups"	: "grouplist",
+	"userlist"	: UsersLDAP::GetMemberAttribute (),
+    ];
+    foreach (string key, any value, input, ``{
+	string new_key	= keys[key]:key;
+	if (new_key == "create_home")
+	    value = false;
+	if (new_key == "gidnumber" && value != "")
+	{
+	    // check group existence!
+	    if (!UsersCache::GIDExists (tointeger ((string)value)))
+		return;
+	}
+	if (new_key == "grouplist" && is (value, string))
+	{
+	    value = listmap (string g, splitstring ((string)value,","),
+		``($[g : 1]));
+	}
+	if (new_key == "ldap_pw")
+	    return;
+	ret [ new_key ] = value;
+    });
+    return ret;
+}
+
+/**
+ * List users
+ * @return boolean false
+ */
+define boolean UsersListHandler (map<string,any> options ) ``{
+
+    list<string> sets		= [];
+    list<string> attributes	= [];
+    map<string,any> amap	= $[];
+    foreach (string key, any val, options, ``{
+	if (contains (["local","system","ldap","nis"], key))
+	    sets = add (sets, key);
+	else
+//	    attributes	= (list<string>) union (attributes, [type]);
+	    amap [key]	= val;
+    });
+    if (sets == [])
+	sets		= ["local"];
+    attributes = maplist (string k,any val, convert_keys (amap), ``(k));
+    if (!contains (attributes, "uid"))
+	attributes	= prepend (attributes, "uid");
+
+    foreach (string type, sets, ``{
+	if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+	{
+	    Users::ReadNewSet ("nis");
+	}
+	if (type == "ldap" && Users::LDAPAvailable () && Users::LDAPNotRead ())
+	{
+	    Ldap::SetAnonymous (true);
+	    Users::ReadNewSet ("ldap");
+	}
+	foreach (string uname, map user, (map<string,map>) Users::GetUsers ("uid",type), ``{
+	    string out = "";
+	    // FIXME when using convert_keys, the order is broken...
+	    foreach (string attr, attributes, ``{
+		if (haskey (user,attr))
+		{
+		    if (is (user[attr]:nil, string))
+			out = out + user[attr]:"" + " ";
+		    if (is (user[attr]:nil, map))
+			out = out + mergestring (
+			    maplist (string k, any v,user[attr]:$[],``(k)),",")
+			+ " ";
+		}
+	    });
+	    CommandLine::Print (out);
+	});
+    });
+    return false; // do not call Write...
+}
+
+/**
+ * Show one user information
+ * @return boolean false
+ */
+define boolean UserShowHandler (map options ) ``{
+
+    map<string,any> user = $[];
+    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
+    string username = options ["username"]:"";
+
+    string type = options ["type"]:"local";
+
+    if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+    {
+	Users::ReadNewSet ("nis");
+    }
+    if (type == "ldap" && Users::LDAPAvailable () && Users::LDAPNotRead ())
+    {
+	Ldap::SetAnonymous (true);
+	Users::ReadNewSet ("ldap");
+    }
+
+    if (uid != -1)
+    {
+	user = Users::GetUser (uid, "");
+    }
+    else if (username != "")
+    {
+	user = Users::GetUserByName (username, "");
+    }
+    if (user == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such user."));
+	return false;
+    }
+
+    string out = "";
+    map keys = $[
+	// label shown at command line (user attribute)
+	"cn"		: _("Full Name:"),
+	// label shown at command line (user attribute)
+	"uid"		: _("Login Name:"),
+	// label shown at command line (user attribute)
+	"homedirectory"	: _("Home Directory:"),
+	// label shown at command line (user attribute)
+	"loginshell"	: _("Login Shell:"),
+	// label shown at command line (user attribute)
+	"uidnumber"	: _("UID:"),
+	// label shown at command line (user attribute)
+	"groupname"	: _("Default Group:"),
+	// label shown at command line (user attribute)
+	"grouplist"	: _("List of Groups:"),
+    ];
+    foreach (string key, any value, user, ``{
+	key = keys[key]:"";
+	if (key == "") return;
+	string svalue = sformat ("%1", value);
+	if (is (value, map))
+	{
+	    svalue = mergestring ((list<string>)
+		maplist (string k, any v, (map<string,any>) value, ``(k)), ",");
+	}
+	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
+    });
+
+    return false; // do not call Write...
+}
+
+/**
+ * Add user
+ * @return boolean false
+ */
+define boolean UserAddHandler (map <string, any> options ) ``{
+
+    if (options["username"]:"" == "")
+    {
+	// error message
+	CommandLine::Print (_("Enter a user name."));
+	return false;
+    }
+
+    map <string, any> user = convert_keys (options);
+    string type = user["type"]:"local";
+    if (type == "ldap")
+    {
+	if (Users::LDAPAvailable() && Users::LDAPNotRead())
+	{
+	    if (Ldap::bind_pass == nil)
+	    {
+		if (options["ldap_pw"]:"" == "")
+		{
+		    // error message
+		    CommandLine::Print (_("You have to enter password to LDAP server ('ldap_pw' parameter)."));
+		    return false;
+		}
+		Ldap::SetBindPassword (options["ldap_pw"]:"");
+	    }
+	    Users::ReadNewSet ("ldap");
+	}
+	if (!haskey (user,"sn"))
+	    user["sn"] = user["uid"]:"";
+    }
+
+    Users::ResetCurrentUser ();
+    string error = Users::AddUser (user);
+
+    if (error != "")
+    {
+	CommandLine::Print (error);
+	return false;
+    }
+
+    if (user["type"]:"local" == "ldap")
+    {
+	Users::SubstituteUserValues ();
+    }
+
+    error = Users::CheckUser ($[]);
+    if (error != "")
+    {
+	CommandLine::Print (error);
+	return false;
+    }
+
+    return Users::CommitUser ();
+}
+
+/**
+ * Delete user
+ * @return boolean false
+ */
+define boolean UserDeleteHandler (map  <string, any>options ) ``{
+
+    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
+// FIXME with wrong uid, 0 (=root) is returned!!!
+    string username = options ["username"]:"";
+    boolean delete_home = haskey (options, "delete_home");
+
+    string type = options["type"]:"local";
+    if (type == "ldap")
+    {
+	if (Users::LDAPAvailable() && Users::LDAPNotRead())
+	{
+	    if (Ldap::bind_pass == nil)
+	    {
+		if (options["ldap_pw"]:"" == "")
+		{
+		    // error message
+		    CommandLine::Print (_("You have to enter password to LDAP server ('ldap_pw' parameter)."));
+		    return false;
+		}
+		Ldap::SetBindPassword (options["ldap_pw"]:"");
+	    }
+	    Users::ReadNewSet ("ldap");
+	}
+    }
+    if (uid != -1)
+    {
+	Users::SelectUser (uid);
+    }
+    else if (username != "")
+    {
+	Users::SelectUserByName (username);
+    }
+    if (Users::GetCurrentUser () == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such user."));
+	return false;
+    }
+
+    Users::DeleteUser (delete_home);
+    Users::CommitUser ();
+    return true;
+}
+
+// --------------------------------------------------------------------------
+// --------------------------------- cmd-line handlers for groups -----------
+
+/**
+ * List groups
+ * @return boolean false
+ */
+define boolean GroupsListHandler (map<string,string> options ) ``{
+
+    list<string> sets		= [];
+    list<string> attributes	= [];
+    map<string,any> amap	= $[];
+    foreach (string key, any val, options, ``{
+	if (contains (["local","system","ldap","nis"], key))
+	    sets = add (sets, key);
+	else
+	    amap [key]	= val;
+    });
+    if (sets == [])
+	sets		= ["local"];
+
+    attributes = maplist (string k,any val, convert_keys (amap), ``(k));
+    if (!contains (attributes, "cn"))
+	attributes	= prepend (attributes, "cn");
+
+    foreach (string type, sets, {
+	if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+	{
+	    Users::ReadNewSet ("nis");
+	}
+	if (type == "ldap" && Users::LDAPAvailable () && Users::LDAPNotRead ())
+	{
+	    Ldap::SetAnonymous (true);
+	    Users::ReadNewSet ("ldap");
+	}
+	foreach (string name, map group, (map<string,map>) Users::GetGroups ("cn",type), {
+	    string out = "";
+	    foreach (string attr, attributes, ``{
+		if (haskey (group,attr))
+		{
+		    if (is (group[attr]:nil, string))
+			out = out + group[attr]:"" + " ";
+		    if (is (group[attr]:nil, map))
+			out = out + mergestring (
+			    maplist (string k, any v,group[attr]:$[],``(k)),",")
+			+ " ";
+		}
+	    });
+	    CommandLine::Print (out);
+	});
+    });
+    return false; // do not call Write...
+}
+
+/**
+ * Show one group information
+ * @return boolean false
+ */
+define boolean GroupShowHandler (map options ) ``{
+
+    map<string,any> group = $[];
+    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
+    string groupname = options ["groupname"]:"";
+
+    string type = options ["type"]:"local";
+
+    if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+    {
+	Users::ReadNewSet ("nis");
+    }
+    if (type == "ldap" && Users::LDAPAvailable () && Users::LDAPNotRead ())
+    {
+	Ldap::SetAnonymous (true);
+	Users::ReadNewSet ("ldap");
+    }
+
+    if (gid != -1)
+    {
+	group = Users::GetGroup (gid, "");
+    }
+    else if (groupname != "")
+    {
+	group = Users::GetGroupByName (groupname, "");
+    }
+    if (group == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such group."));
+	return false;
+    }
+
+    string out = "";
+    map keys = $[
+	// label shown at command line (user attribute)
+	"cn"		: _("Group Name:"),
+	// label shown at command line (user attribute)
+	"gidnumber"	: _("GID:"),
+	// label shown at command line (user attribute)
+	"userlist"	: _("List of Members:"),
+	// label shown at command line (user attribute)
+	UsersLDAP::GetMemberAttribute ():	_("List of Members:"),
+    ];
+    foreach (string key, any value, group, ``{
+	key = keys[key]:"";
+	if (key == "") return;
+	string svalue = sformat ("%1", value);
+	if (is (value, map))
+	{
+	    svalue = mergestring ((list<string>)
+		maplist (string k, any v, (map<string,any>) value, ``(k)), ",");
+	}
+	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
+    });
+
+    return false; // do not call Write...
+}
+
+/**
+ * Delete group
+ * @return boolean false
+ */
+define boolean GroupDeleteHandler (map<string,any> options ) {
+
+    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
+// FIXME with wrong uid, 0 (=root) is returned!!!
+    string groupname = options ["cn"]:options["groupname"]:"";
+
+    string type = options["type"]:"local";
+    if (type == "ldap")
+    {
+	if (Users::LDAPAvailable() && Users::LDAPNotRead())
+	{
+	    if (Ldap::bind_pass == nil)
+	    {
+		if (options["ldap_pw"]:"" == "")
+		{
+		    // error message
+		    CommandLine::Print (_("You have to enter password to LDAP server ('ldap_pw' parameter)."));
+		    return false;
+		}
+		Ldap::SetBindPassword (options["ldap_pw"]:"");
+	    }
+	    Users::ReadNewSet ("ldap");
+	}
+    }
+    if (gid != -1)
+    {
+	Users::SelectGroup (gid);
+    }
+    else if (groupname != "")
+    {
+	Users::SelectGroupByName (groupname);
+    }
+    if (Users::GetCurrentGroup () == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such group."));
+	return false;
+    }
+    return Users::DeleteGroup () && Users::CommitGroup ();
+}
+
+// --------------------------------------------------------------------------
+// --------------------------------- common cmd-line handlers ---------------
+
+
+define boolean UsersRead () ``{
+
+    Users::SetGUI (false);
+    return Users::Read () == "";
+}
+
+define boolean UsersWrite () ``{
+
+    Users::SetGUI (false);
+    return Users::Write () == "";
+}
+
+define boolean UsersGUI () {
+    return (UsersSequence (Users::GetStartDialog()) == `next);
+}
+
+} //EOF
