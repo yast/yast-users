@@ -1226,7 +1226,7 @@ define symbol PluginDialog (string what) ``{
     string plugin	= plugins[0]:"";
     any ret		= `not_next;
 
-    // TODO plugin should be available also for ldap users!
+    // FIXME plugins should be available also for non-ldap users!
 
     if (plugin == "")// || plugin == "users_plugin_dummy.ycp")
     {
@@ -1235,13 +1235,17 @@ define symbol PluginDialog (string what) ``{
     else
     {
 	string caption	= _("Plug-ins");
-	string help	= "general helptext for plugins";
+
+	string help	= "general helptext for plugins FIXME";
 
 	list items = [];
 	foreach (string plugin, plugins, ``{
+	    any name = WFM::CallFunction (plugin, ["Name"]);
+	    if (!is (name, string))
+		name = plugin;
 	    any summary = WFM::CallFunction (plugin, ["Summary"]);
 	    if (is (summary, string))
-		items = add (items, `item(`id(plugin), plugin, summary));
+		items = add (items, `item(`id(plugin), name, summary));
 	});
 	/*
 	term contents = `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()));
@@ -1262,7 +1266,8 @@ define symbol PluginDialog (string what) ``{
 		), items
 	    ),
 	    `HBox (
-		`Right (`PushButton(`id(`run), `opt(`key_F4), _("R&un")))
+		// pushbutton label
+		`Right (`PushButton(`id(`run), `opt(`key_F4), _("&Launch")))
 	    )
 	);
 
@@ -1355,171 +1360,6 @@ define symbol PluginDialog (string what) ``{
     }
     return (symbol)ret;
 }
-
-/**
- * Dialog for additional settings for LDAP users
- * @return symbol for wizard sequencer
- *
-define symbol LDAPSettingsDialog (string what) ``{
-
-    map<string, any> object	= (what == "user") ?
-	Users::GetCurrentUser (): Users::GetCurrentGroup ();
-    map<string, any> tmp_object	= $[];
-    list items			= [];
-    list used_attributes	= [];
-    list new_attributes		= [];
-    boolean modified		= false;
-
-    // list of attributes that are edited elsewhere
-    // They don't have to really be set for current user! (e.g.shadow*)
-    // (There are LDAP names for shadow* in this list -> they cannot be in
-    // ldap2yast, because no "translation to yast names" is needed.)
-    list already_edited_keys = (what == "user") ?
-	[ "username", "uidNumber", "homeDirectory", "givenName", "sn",
-	"userPassword", "objectClass", "loginShell", "gidNumber",
-	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
-	"shadowMin", "shadowMax", "shadowFlag" ] :
-	// and now for groups
-	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
-	"uniqueMember" ];
-
-    // keys in user's map which are not saved anywhere (internal use only :-))
-    list internal_keys = (what == "user") ?
-	UsersLDAP::GetUserInternal () : UsersLDAP::GetGroupInternal ();
-
-    list required_attrs = (what == "user") ?
-	UsersLDAP::GetUserRequiredAttributes () :
-	UsersLDAP::GetGroupRequiredAttributes ();
-
-    // show only attributes allowe by schema
-
-    list allowed_attrs	= Ldap::GetObjectAttributes (object["objectClass"]:[]);
-
-    // generate table items from already existing values
-    foreach (string attr, any val, object, ``{
-	if (contains (internal_keys, attr))
-	    return;
-	if (contains (already_edited_keys, attr))
-	    return;
-	if (is (val, map) || val == nil)
-	    return;
-	if (!contains (allowed_attrs, attr))
-	    return;
-	list<string> value = [];
-	if (is (val, string))
-	{
-	    value = [ (string)val ];
-	    object [attr] = value;
-	}
-	else value = (list<string>)val;
-	used_attributes = add (used_attributes, attr);
-	items = add (items, `item (`id(attr), attr, mergestring(value,",")));
-    });
-
-    // generate table items with empty values (not set for this user/group yet)
-    // we need to read available attributes from Ldap
-    map ldap2yast = (what == "user") ?
-	UsersLDAP::GetUserAttrsLDAP2YaST(): UsersLDAP::GetGroupAttrsLDAP2YaST();
-
-    foreach (string class, object["objectClass"]:[], ``{
-	foreach (string at, Ldap::GetAllAttributes (class), ``{
-	    // remove already used (uid, uidNumber, homeDirectory etc.)
-	    if (!haskey (object, ldap2yast [at]:at) &&
-		!contains (already_edited_keys, ldap2yast [at]:at))
-	    {
-		object[at] = [];
-		new_attributes = add (new_attributes, at);
-		items = add (items, `item (`id(at), at, ""));
-	    }
-	});
-    });
-
-    term contents = `HBox(`HSpacing (1.5), `VBox(
-        `VSpacing(0.5),
-	`Table(`id(`table), `opt(`notify), `header(
-	    // table header 1/2
-	    _("Attribute"),
-	    // table header 2/2
-	    _("Value")),
-	    items),
-        `HBox (
-            `PushButton(`id(`edit), `opt(`key_F4), Label::EditButton()),
-	    `HStretch()
-	),
-	`VSpacing (0.5)
-	),
-	`HSpacing (1.5));
-
-    // dialog caption
-    Wizard::SetContentsButtons(_("Additional LDAP Settings"),
-        contents,
-        LDAPSettingsDialogHelp(what),
-        Label::BackButton(), Label::NextButton());
-
-    any ret = `next;
-    UI::SetFocus (`id(`table));
-    repeat
-    {
-        ret = UI::UserInput();
-	if ( ret == `edit || ret == `table)
-	{
-	    string attr	= (string) UI::QueryWidget (`id(`table), `CurrentItem);
-	    list<string> value		= tmp_object [attr]:object[attr]:[];
-	    value = LdapPopup::EditAttribute (attr, value, [],
-		Ldap::SingleValued (attr), []);
-	    if (value == tmp_object [attr]:object[attr]:[])
-	    {
-		ret = `notnext;
-		continue;
-	    }
-	    UI::ChangeWidget (`id(`table),`Item(attr,1),mergestring(value,","));
-	    tmp_object [attr] = value;
-	}
-        if ( ret == `next )
-        {
-	    // check for required attributes
-	    foreach (string req, required_attrs, ``{
-		if (ret == `notnext) return;
-		if ((contains (used_attributes, req) ||
-		     contains (new_attributes, req)) &&
-		    tmp_object[req]:object[req]:[] == [])
-		    // question, %1 is attribute name
-		    if (!Popup::YesNo (sformat (_("The attribute '%1' is required for this object according
-to its LDAP configuration, but it is currently empty.
-Are you sure?"), req)))
-		    {
-			ret = `notnext;
-		    }
-	    });
-	    if (ret == `notnext) continue;
-	    // update global variables
-	    if (tmp_object == $[])
-	    {
-		break;
-	    }
-	    if (object["what"]:"" == "edit_user")
-	    {
-		Users::EditUser (tmp_object);
-	    }
-	    else if (object["what"]:"" == "add_user")
-	    {
-		Users::AddUser (tmp_object);
-	    }
-	    else if (object["what"]:"" == "edit_group")
-	    {
-		Users::EditGroup (tmp_object);
-	    }
-	    else if (object["what"]:"" == "add_group")
-	    {
-		Users::AddGroup (tmp_object);
-	    }
-         }
-    } until (contains ([`next, `abort, `back, `cancel], ret));
-
-    return (symbol)ret;
-}
-*/
-
 
 /**
  * Details of adding/editing group dialog
