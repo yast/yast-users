@@ -45,12 +45,12 @@
 	// plugin name
 	ret = UsersPluginLDAPAll::Summary ();
     }
+    else if (func == "Name") {
+	// plugin name
+	ret = UsersPluginLDAPAll::Name ();
+    }
     else if (func == "Dialog") {
 	// define the dialog for this plugin and return it's contents
-
-	// FIXME some attributes have already been edited in Users module
-	// probably string value are exepted for them, not lists
-	// UID/Username and other checks have to be done!
 
 	string caption	= _("LDAP Settings");
 	string help	= "";//FIXME LDAPSettingsDialogHelp(what),
@@ -62,6 +62,19 @@
         list used_attributes	= [];
         list new_attributes		= [];
         boolean modified		= false;
+
+	// list of attributes that are edited elsewhere
+        // They don't have to really be set for current user! (e.g.shadow*)
+        // (There are LDAP names for shadow* in this list -> they cannot be in
+        // ldap2yast, because no "translation to yast names" is needed.)
+        list already_edited_keys = (what == "user") ?
+	[ "username", "uidNumber", "homeDirectory", "givenName", "sn",
+	"userPassword", "objectClass", "loginShell", "gidNumber",
+	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
+	"shadowMin", "shadowMax", "shadowFlag" ] :
+	// and now for groups
+	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
+	"uniqueMember" ];
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
@@ -77,21 +90,23 @@
 
 	// generate table items from already existing values
         foreach (string attr, any val, object, ``{
-	if (contains (internal_keys, attr))
-	    return;
-	if (is (val, map) || val == nil)
-	    return;
-	if (!contains (allowed_attrs, attr))
-	    return;
-	list<string> value = [];
-	if (is (val, string))
-	{
-	    value = [ (string)val ];
-	    object [attr] = value;
-	}
-	else value = (list<string>)val;
-	used_attributes = add (used_attributes, attr);
-	items = add (items, `item (`id(attr), attr, mergestring(value,",")));
+	    if (contains (internal_keys, attr))
+		return;
+	    if (contains (already_edited_keys, attr))
+		return;
+	    if (!contains (allowed_attrs, attr))
+		return;
+	    if (is (val, map) || val == nil)
+		return;
+	    list<string> value = [];
+	    if (is (val, string))
+	    {
+		value = [ (string)val ];
+		object [attr] = value;
+	    }
+	    else value = (list<string>)val;
+	    used_attributes = add (used_attributes, attr);
+	    items = add (items,`item (`id(attr), attr, mergestring(value,",")));
 	});
 
 	// generate table items with empty values
@@ -103,7 +118,8 @@
 	foreach (string class, object["objectClass"]:[], ``{
 	    foreach (string at, Ldap::GetAllAttributes (class), ``{
 		// remove already used (uid, uidNumber, homeDirectory etc.)
-		if (!haskey (object, ldap2yast [at]:at))
+		if (!haskey (object, ldap2yast [at]:at) &&
+		    !contains (already_edited_keys, ldap2yast [at]:at))
 		{
 		    object[at] = [];
 		    new_attributes = add (new_attributes, at);
