@@ -14,44 +14,8 @@
   import "Mode";
   import "Users";
   import "UsersCache";
+  import "UsersLDAP";
   import "Label";
-
-  /**
-   * First part of the help text.
-   * @return string help text
-   */
-  define string help_main_start()``{
-	// help text 1/1
-        return _("<p>
-Linux is a <b>multiuser system</b>. Several different users can be logged in the
-system at the same time.  To avoid confusion, each user must have
-a unique identity if they want to use Linux. Furthermore, every user at
-least belongs to one group.
-</p>
-");
-  }
-
-
-  /**
-   * Last part of the help text.
-   * @return string help text
-   */
-  define string help_main_end()``{
-    // button label (without shortcut sign)
-    string button = Mode::cont ? _("Next") : _("Finish");
-	// help text 1/2
-      return _("<p>
-Users and groups are arranged in various sets. Change the set currently shown in the table with <b>Set Filter</b>.
-Customize your view filter with <b>Customize Filter</b>.</p>
-")
-
-	// help text 1/2, %1 is translated button label
-         + sformat(_("<p>
-To save the modified user and group setting to your system, press
-<b>%1</b>.
-</p>
-"), button);
-  }
 
 
   /**
@@ -59,7 +23,7 @@ To save the modified user and group setting to your system, press
    * @param type user type
    * @return string help text
    */
-  define string help_password(string type)``{
+  define string help_password (string type)``{
     string password_length = "";
     map enc_to_string = $[
 	// encryption type
@@ -72,9 +36,8 @@ To save the modified user and group setting to your system, press
 	"blowfish" : _("Blowfish")
     ];
     string method = Users::EncryptionMethod ();
-    /* TODO
     if (type == "ldap")
-	method = Users::ldap_encryption;
+	method = UsersLDAP::GetEncryption ();
 
 	// help text 1/4
     string help_text =  _("<p>
@@ -86,8 +49,8 @@ When entering a password, distinguish between uppercase and lowercase. It should
     help_text = help_text + sformat(_("<p>
 With the current password encryption (%1), the password length should be between
  %2 and %3 characters.
-</p>"), enc_to_string[method]:"",
-	Users::pass_length [type, "min"]:5, Users::pass_length [type, "max"]:8);
+</p>"), enc_to_string[method]:method,
+	Users::GetMinPasswordLength (type), Users::GetMaxPasswordLength (type));
 
     // help text 3/4
     help_text = help_text + _("<p>
@@ -101,8 +64,7 @@ To ensure that the password was entered correctly,
 repeat it exactly in a second field. Do not forget your password.
 </p>
 ");
-    */
-    return "FIXME";
+    return help_text;
 
   }
 
@@ -196,86 +158,6 @@ An additional dialog will inform you whether it is safe to do so.
 </P>
 ");
  }
-
-
-  /**
-   * Help for UsersDialog.
-   * @return string help text
-   */
-  define string UsersDialogHelp() ``{
-	// help text 1/6
-      return ( help_main_start() + _("
-<p>
-In this dialog, get information about existing <b>Users</b>.
-</p>
-") +
-
-	// help text 2/6
-		_("<p>
-To shift to the group dialog, select <b>Groups</b>.
-</p>
-") +
-
-	// help text 3/6
-		_("
-<p>
-To create a new user, push the button <b>Add</b>.
-</p>
-") +
-
-	// help text 4/6
-		_("<p>
-To edit or delete an existing user, select one user from the list and
-click <b>Edit</b> or <b>Delete</b>.
-</p>
-") +
-
-	// help text 6/6
-_("<p>
-Click <b>Expert Options</b> to edit various expert settings:
-password encryption type, user authentication method, default values for new
-users, or LDAP client configuration.
-</p>
-") +
-
-     help_main_end() );
-  }
-
-
-
-  /**
-   * Help for usersGroups.
-   * @return string help text
-   */
-  define string GroupsDialogHelp()``{
-	// help text 1/4
-      return ( help_main_start() +  _("
-<p>
-In this dialog, get information about existing <b>Groups</b>.
-</p>
-") +
-	// help text 2/4
-		_("<p>
-To shift to the user dialog, select <b>Users</b>.
-</p>
-") +
-
-	// help text 3/4
-		_("
-<p>
-To create a new group, push the button <b>Add</b>.
-</p>
-") +
-	// help text 4/4
-		_("<p>
-To edit or delete an existing group, select one group from the list and
-push the button <b>Edit</b> or <b>Delete</b>.
-</p>
-")     + help_main_end() );
-
-  }
-
-
 
 
   /**
@@ -615,9 +497,8 @@ The list of attributes is given by the value of \"objectClass\"
 (which is, by default,
 %2).
 </p>
-"), first, "FIXME" )
-// mergestring (what == "user" ?
-//	Users::ldap_user_class : Users::ldap_group_class, ","))
+"), first, mergestring (what == "user" ?
+	UsersLDAP::GetUserClass () : UsersLDAP::GetGroupClass (), ","))
  +
 
     // helptext 2/2
@@ -627,54 +508,6 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 ");
 
     return help_text;
-
-}
-
-/**
- * Help for changing the LDAP search filter
- * @return string help text
- */
-define string LDAPSearchFilterPopupHelp() ``{
-
-    return
-    // helptext 1/4 - caption
-    _("<p><b>LDAP Search Filter Changes</b></p>") +
-
-    // helptext 2/4
-    _("<p>Here, extend the search filters for users and groups beyond the default search filters.</p>") +
-
-    // helptext 3/5
-    _("<p>With <b>From Server</b>, load the filter values from the LDAP server, as entered in the <b>YaST LDAP Client</b> module. If you are not connected yet, you will be asked for password.</p>") +
-
-    // helptext 3/4
-    _("<p>Only extensions of default filters are allowed, so the values entered here are checked to verify they contain the default values as substrings.</p>") +
-
-    // helptext 3/4 (do not translate the value (written as <tt> font))
-    _("<p><b>Example:</b>
-<br>With user filter
-<br>
-<tt>(&(objectClass=posixAccount)(uid=u*))</tt>
-<br>
-only obtain users with a user name beginning with 'u'.</p>
-");
-
-}
-
-/**
- * @return string help text
- */
-define string AutologinPopupHelp() ``{
-
-    return
-    // helptext 1/4 - caption
-    _("<p><b>Autologin Settings</b></p>") +
-
-    // FIXME write helptext...
-    _("<p><b>Autologin</b>... only for KDM</p>") +
-
-    _("<p><b>List of users</b>...</p>") +
-
-    _("<p><b>Password less logins</b>...indepenent on autologin</p>");
 }
 
 }// EOF
