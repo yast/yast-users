@@ -59,9 +59,9 @@
 	    roomNumber	= mergestring ((list<string>)roomNumber, ",");
 	else roomNumber = sformat ("%1", roomNumber);
 
-	term contents = `HBox (`HSpacing (0.5), `VBox (
+	term contents = `HBox (`HSpacing (), `VBox (
 	    `VSpacing (),
-	    `Frame (`id(`f), _("Dummy options"), `VBox(
+	    `Frame (`id(`f), _("Dummy options"), `HBox (`HSpacing (0.5), `VBox(
 		`VSpacing (5),
 		`TextEntry (`id(`d), _("Dummy Value"), data["dummy"]:""),
 		`VSpacing (1),
@@ -72,8 +72,8 @@
 		`Bottom (`HBox (
 		    `Right (`PushButton (`id(`apply), _("Apply")))
 		))
-	    )),
-	    `VSpacing ()), `HSpacing (0.5)
+	    ),`HSpacing (0.5))),
+	    `VSpacing ()), `HSpacing ()
 	);
 
 	ret = contents;
@@ -108,7 +108,7 @@ FIXME booleans are broken by Perl...
     else if (func == "Edit") {
 	// TODO
 	// take map of user/group as parameter and update its settings
-	// - use e.g. in cmd-line interface
+	// - use e.g. in cmd-line or web interface
 	ret = false;
     }
     else if (func == "BeforeWrite") {

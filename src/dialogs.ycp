@@ -1240,14 +1240,14 @@ define symbol PluginDialog (string what) ``{
 	    if (is (name, string))
 		options = add (options, `item(`id(plugin), name, false));
 	});
-	term contents = `HBox(
-	    `HSquash (`VBox (
+	term contents = `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()));
+	term plugin_list = `VBox (
 		`Tree (`id(`tree), `opt(`notify),
 		    _("Available Options"), options),
 		`VSpacing (0.5)
-	    )),
-	    `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()))
 	);
+
+	Wizard::ReplaceHelp (plugin_list);
 
 	// dialog caption
 	Wizard::SetContentsButtons(caption, contents, help,
@@ -1255,6 +1255,7 @@ define symbol PluginDialog (string what) ``{
 
 	UI::ChangeWidget (`id(`tree), `CurrentItem, plugin);
 	ret = `tree;
+	any really_ret = `tree;
 
 	repeat
 	{
@@ -1283,8 +1284,25 @@ define symbol PluginDialog (string what) ``{
 		    continue; // use ret value from client
 		}
 	    }
+	    if (ret == `abort || ret == `cancel)
+	    {
+		// TODO `abort should be handled inside a plugin
+		// (to not lost unsaved values)
+		if (ReallyAbort() == `abort)
+		    really_ret = `abort;
+		else
+		    ret = `tree;
+		continue;
+	    }
+	    if (ret == `back || ret == `next)
+	    {
+		really_ret = ret;
+		continue;
+	    }
 	    ret = UI::UserInput();
-	} until (contains ([`next, `abort, `back, `cancel], ret));
+
+	} until (contains ([`next, `abort, `back], really_ret));
+
 	if (ret == `next)
 	{
 	    if (object["what"]:"" == "edit_user")
@@ -1304,6 +1322,7 @@ define symbol PluginDialog (string what) ``{
 	        Users::AddGroup (tmp_object);
 	    }
 	}
+	Wizard::RestoreHelp ("");
     }
 
     if ( ret == `next )
