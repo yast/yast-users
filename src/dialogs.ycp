@@ -306,7 +306,7 @@ Try again.
 	if (ret == `passwordsettings && user_type == "ldap" &&
 	    !contains (user["objectClass"]:[], "shadowAccount"))
 	{
-		// error, do not translate 'shadowAccount'
+		// error, do not translate 'shadowAccount' (LDAP user parameter)
 		Popup::Error (_("User does not have 'shadowAccount' as the Object Class,
 so the password settings cannot be edited.
 "));
