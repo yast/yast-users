@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Feb 10 17:09:33 CET 2003 - jsuchome@suse.de
+
+- check for Lan in inst_auth
+- fix: check if home directory can be created
+
+-------------------------------------------------------------------
+Mon Feb 10 12:40:07 CET 2003 - jsuchome@suse.de
+
+- proofreaded texts: 3rd round
+
+-------------------------------------------------------------------
 Wed Feb  5 13:06:09 CET 2003 - jsuchome@suse.de
 
 - inst_user: calling modules after inst_auth dialog

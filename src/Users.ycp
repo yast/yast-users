@@ -2778,6 +2778,44 @@ global define boolean SetRootPassword() ``{
 }
 
 /**
+ * Check if it is possible to write (=create homes) to given directory
+ * @param dir the directory
+ * @return result
+ */
+global define boolean IsDirWritable (string dir) ``{
+
+    // maybe more directories in path don't exist
+    // FIXME: but all the new created dirs has to be removed!
+    /*
+    if (SCR::Read(.target.stat, dir) == $[])
+    {
+        if (SCR::Execute(.target.mkdir, dir))
+        {
+            SCR::Execute(.target.bash, "/bin/rmdir " + dir);
+            return true;
+        }
+        return false;
+    }
+    */
+
+    string tmpfile = dir + "/tmpfile";
+    while (SCR::Execute (.target.bash, "/usr/bin/test -e " + tmpfile) == 0)
+        tmpfile = tmpfile + "0";
+
+    y2warning ("file: %1", tmpfile);
+    map out =  SCR::Execute (.target.bash_output, "/bin/touch " + tmpfile);
+    y2warning ("touch: %1", out);
+
+    if (out["exit"]:1 == 0)
+    {
+        SCR::Execute (.target.bash_output, "/bin/rm " + tmpfile);
+        return true;
+    }
+    else
+        return false;
+}
+
+/**
  * Checks if the home directory is properly mounted (bug #20365)
  * @return if user wants to continue
  */
@@ -2802,7 +2840,6 @@ global define boolean CheckHomeMounted() ``{
                 mountpoint_in = "/etc/cryptotab";
         });
     }
-
     if (mountpoint_in != "")
     {
         boolean mounted = false;

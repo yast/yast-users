@@ -454,8 +454,22 @@ Use it and change its owner?
                     }
                     create_home = false;
                 }
-            }
 
+                if (what == `add_user  && user_type != `ldap && !details &&
+                    !Mode::config)
+                {
+                    string home_root = "/" +
+                        select(splitstring (home, "/"), 1, "");
+                    if (!Users::IsDirWritable (home_root))
+                    {
+                        // error popup (%1 is part of home path, e.g. "/home")
+                        Report::Error(sformat (_("The directory %1 is not writable.
+Please press button Details and edit home directory."), home_root));
+                        home = Users::default_home;
+                        continue;
+                    }
+                }
+            }
 
             if (  pw1 != pw2 )
             {
@@ -930,6 +944,20 @@ Please select a another User Id"));
             // check the homedirectory
             if ( home != new_home || what == `add_user )
             {
+                if (!Mode::config)
+                {
+                    string home_root = "/" +
+                        select(splitstring (new_home, "/"), 1, "");
+                    if (!Users::IsDirWritable (home_root))
+                    {
+                        // error popup (%1 is part of home path, e.g. "/home")
+                        Report::Error(sformat (_("The directory %1 is not writable.
+Choose another path to home directory."), home_root));
+                        UI::SetFocus(`id(`home));
+                        continue;
+                    }
+                }
+
             if( (nil != findfirstnotof( new_home, Users::valid_home_chars )) ||
                 (  0 != findfirstof( new_home, "/")   ))
             {
