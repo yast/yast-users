@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Fri Jan 24 18:22:00 CET 2003 - jsuchome@suse.cz
+
+- reading and saving custom settings
+- testing for nis via Runlevel module
+- fixed sequence in expert dialog
+- fix of cursor "bug" (#23048)
+- saving only modified customs/defaults
+- fixed generating grouplist for nis/ldap
+- added tests
+- 2.7.8
+
+-------------------------------------------------------------------
 Wed Jan 22 15:43:56 CET 2003 - jsuchome@suse.de
 
 - autoinstalation: only modified users and groups exported

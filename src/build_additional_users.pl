@@ -26,6 +26,13 @@ $usernames_file   = $dir."/additional_usernames";
 $output_ulist      = $dir."/additional_ulist.ycp";
 $output_more       = $dir."/additional_more.ycp";
 
+# for debugging
+sub print_date {
+
+    my ($message) = @_;
+    $date = `date +%X`;
+    print STDERR "$message: $date";
+}
 
 open USERLIST, "< $userlist_file";
 
@@ -77,7 +84,6 @@ open ULIST, "> $output_ulist";
 open MORE, "> $output_more";
 print ULIST "[\n";
 print MORE "[\n";
-
 
 %more_map = ();
 foreach $user (@more_list)

@@ -189,7 +189,12 @@ foreach $entry ($mesg->all_entries)
     my $gid = $entry->get_value("gidNumber");
     print YCP_LDAP "\t\"gid\": $gid,\n";
     
-    print YCP_LDAP "\t\"groupname\": \"$groups{$gid}\",\n";
+    my $def_group = $groups{$gid};
+    if (! defined ($def_group))
+    {
+        $def_group = "";
+    }
+    print YCP_LDAP "\t\"groupname\": \"$def_group\",\n";
 
 #        print YCP_LDAP "\t\"grouplist\": \"\",\n";
 
@@ -227,8 +232,16 @@ foreach $entry ($mesg->all_entries)
     print YCP_LDAP_HOMES "\"$home\", ";
     
     $uid_wide = addBlanks ($uid);
+
+    
+    my $all_groups = $def_group;
+    if ($def_group ne "")
+    {
+        $all_groups .= ",...";
+    }
+
     print YCP_LDAP_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-        "\"$fullname\", \"$uid_wide\", \"$groups{$gid}\"),\n";
+        "\"$fullname\", \"$uid_wide\", \"$all_groups\"),\n";
 
     if ($last_ldap_uid < $uid)
     {

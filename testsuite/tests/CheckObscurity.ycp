@@ -1,0 +1,17 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+
+    define Test_pw (string username, string pw) ``{
+
+        DUMP ("==========================================================");
+        DUMP (sformat("username: %1, password: %2", username, pw));
+        TEST(``(Users::CheckObscurity (username, pw)), [], 0);
+    }
+
+    Test_pw ("user1", "password");
+    Test_pw ("user1", "uuser11!");
+    Test_pw ("user1", "23534677");
+    Test_pw ("user1", "us235467");
+}

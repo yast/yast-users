@@ -1,0 +1,25 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+    import "UsersCache";
+
+    map READ = $[  "target": $[ "ycp": [
+            `item (`id ("aa"), "aa", "", true)
+    ]]];
+
+    map WRITE = $[ "target": $[ "string": true ]];
+
+    UsersCache::group_type = `local;
+    UsersCache::usernamelists = $[
+        `local: [ "aa", "bb", "hh" ],
+        `ldap:  [ "ldap1", "ldap2" ]
+    ];
+
+    string userlist = "aa";
+    string more_users = "hh";
+
+
+    TEST(``(Users::BuildAdditional (userlist, more_users)), [ READ, WRITE], 0);
+
+}

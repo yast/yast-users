@@ -1,12 +1,12 @@
 /**
  * File:
- *  userSave.ycp
+ *  AddGroup.ycp
  *
  * Module:
  *  Users configurator
  *
  * Summary:
- *  Saving user tests.
+ *  Saving group tests.
  *
  * Authors:
  *  Jiri Suchomel <jsuchome@suse.cz>

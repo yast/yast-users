@@ -1,0 +1,12 @@
+Dump	==========================================================
+Dump	username: user1, password: password
+Return	You have used only lower case letters for the password.
+Dump	==========================================================
+Dump	username: user1, password: uuser11!
+Return	You have used username as a part of the password.
+Dump	==========================================================
+Dump	username: user1, password: 23534677
+Return	You have used only digits for the password.
+Dump	==========================================================
+Dump	username: user1, password: us235467
+Return	OK

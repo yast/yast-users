@@ -390,7 +390,7 @@ LDAP server.</p>") +
     // alternate helptext 5.5/8
     _("<p>
 <b>E-mail:</b>
-You can set user's e-mail adress here.");
+You can set user's e-mail adress here.</p>");
 
     else if (user_type == `system || user_type == `local)
         helptext = helptext +
@@ -399,7 +399,7 @@ You can set user's e-mail adress here.");
 Some additional user data could be set here. These field may contain up to
 three parts separated by commas. The standard usage is to write
 <i>office</i>,<i>work phone</i>,<i>home phone</i>. These informations will
-be shown when you use <i>finger</i> command on this user.");
+be shown when you use <i>finger</i> command on this user.</p>");
 
 	// help text 6/8
 	helptext = helptext + _("<p>

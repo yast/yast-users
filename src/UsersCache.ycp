@@ -19,21 +19,30 @@ include "users/passwd.ycp";
 
 // map of list of home directories
 global map homelists = $[];
+// map of list of usernames
 global map usernamelists = $[];
+// map of list of groupnames
 global map groupnamelists = $[];
+// map of list of all items in user table
 global map users_itemlists = $[];
+// map of list of all items in group table
 global map groups_itemlists = $[];
+// map of list of current items in user table
+global list user_itemlist = [];
+// map of list of current items in group table
+global list group_itemlist = [];
 // item list of all users used in edit group dialog
 global list additional_users = [];
-global list user_itemlist = [];
-global list group_itemlist = [];
+// map of list of uid's
 map uidlists = $[];
+// map of list of gid's
 global map gidlists = $[];
 global list current_users = [];
 global list current_groups = [];
 global list user_custom_sets = [];
 global list group_custom_sets = [];
 
+// type of current user/group
 global symbol user_type = `local;
 global symbol group_type = `local;
 
@@ -47,6 +56,7 @@ global integer max_system_gid = 0;
 global integer max_length_uid = 0;
 global integer max_length_gid = 0;
 
+// if currrent view is "customized"
 global boolean customized_usersview = true;
 global boolean customized_groupsview = true;
 
@@ -116,7 +126,6 @@ global define void ReadFromFiles (string dir) ``{
     user_itemlist = users_itemlists [ `custom ]:[];
     PrintDate ("after merge");
 
-//    ReadGroups ( start_sets, dir);
     foreach (`type, start_sets , ``{
         ReadGroups (type, dir);
     });
@@ -455,8 +464,8 @@ global define void ChangeUserCustoms (list new) ``{
 
     user_custom_sets = new;
     users_itemlists [`custom] = MergeUserTableItems();
-    if (customized_usersview)
-        user_itemlist = users_itemlists [`custom]:[];
+    customized_usersview = true;
+    user_itemlist = users_itemlists [`custom]:[];
 }
 
 /**
@@ -467,8 +476,8 @@ global define void ChangeGroupCustoms (list new) ``{
 
     group_custom_sets = new;
     groups_itemlists [`custom] = MergeGroupTableItems();
-    if (customized_groupsview)
-        group_itemlist = groups_itemlists [`custom]:[];
+    customized_groupsview = true;
+    group_itemlist = groups_itemlists [`custom]:[];
 }
 
 

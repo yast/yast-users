@@ -1,0 +1,36 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+
+    Users::groups_by_name [`local ] = $[
+        "users": $[
+            "groupname": "users", "userlist":"", "more_users": "hh",
+            "type": `local
+        ],
+        "audio": $[
+            "groupname": "audio", "userlist":"hh", "more_users": "",
+            "type": `system
+        ]
+    ];
+
+    Users::groups_by_name [`ldap ] = $[
+        "users": $[
+            "groupname": "users", "userlist":"", "more_users": "u1,u2",
+            "type": `ldap
+        ]
+    ];
+
+    DUMP ( "first group with this name:" );
+
+    TEST(``(Users::GetGroupByName ("users", `not_known)), [], 0);
+
+    DUMP ( "non-existent group:" );
+
+    TEST(``(Users::GetGroupByName ("video", `local)), [], 0);
+
+    DUMP ( "type specified:" );
+
+    TEST(``(Users::GetGroupByName ("users", `local)), [], 0);
+
+}

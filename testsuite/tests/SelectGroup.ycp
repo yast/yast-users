@@ -1,0 +1,38 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+
+    Users::groups [`local ] = $[
+        100: $[ "groupname": "users", "userlist":"", "more_users": "hh","type": `local ],
+        17:  $[ "groupname": "audio", "userlist":"hh", "more_users": "","type": `local ]
+    ];
+
+    Users::groups [`ldap ] = $[
+        100: $[ "groupname": "users", "userlist":"", "more_users": "u1,u2","type": `ldap ]
+    ];
+
+    DUMP (sformat ("local groups::\n %1", Users::groups [`local]:$[]));
+
+    DUMP (sformat ("ldap groups::\n %1", Users::groups [`ldap]:$[]));
+
+    DUMP ("==========================================================");
+
+    Users::current_groups = [`local, `ldap];
+
+    integer gid = 17;
+
+    TEST(``(Users::SelectGroup (gid)), [], 0);
+
+    DUMP (sformat ("selected group with id %1:\n %2",gid,Users::group_in_work));
+
+    DUMP ("==========================================================");
+
+    gid = 100;
+
+    TEST(``(Users::SelectGroup (gid)), [], 0);
+
+    DUMP (sformat ("selected group with id %1:\n %2",gid,Users::group_in_work));
+
+
+}

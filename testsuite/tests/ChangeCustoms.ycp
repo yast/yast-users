@@ -1,0 +1,76 @@
+{
+
+    include "testsuite.ycp";
+    import "Users";
+    import "UsersCache";
+
+    // items "produced" by build_nis_structures.pl
+    map READ = $[
+        "target": $[
+            "ycp": [
+                `item (`id (5000), "jsuchome", "", "5000", "users,audio,video"),
+                `item (`id (5001), "nis_user", "", "5001", "users,audio"),
+                ]
+            ]
+    ];
+
+
+    UsersCache::users_itemlists [`local] =
+        [`item (`id (500), "aaa", "", "500", "users,audio")];
+
+    UsersCache::user_itemlist = UsersCache::users_itemlists [`local]:[];
+
+    UsersCache::users_itemlists [`system] =
+        [`item (`id (0), "root", "", "0", "")];
+
+    Users::user_custom_sets = [`local];
+    Users::nis_not_read = true;
+
+    DUMP ( sformat ("actual user itemlist:\n %1", UsersCache::user_itemlist));
+
+    DUMP ("==========================================================");
+    DUMP ("===== adding nis users, not known -> read via script =====");
+    DUMP ("==========================================================");
+
+    list new = [`local, `nis];
+
+    DUMP ( sformat ("actual user customs: %1", Users::user_custom_sets) );
+    DUMP ( sformat ("new user customs: %1", new) );
+
+    DUMP ("= testing ================================================");
+
+    TEST(``(Users::ChangeCustoms ("user", new)), [ READ ], 0);
+
+    DUMP ( sformat ("new user itemlist:\n %1", UsersCache::user_itemlist) );
+
+    DUMP ("==========================================================");
+    DUMP ("===== adding system users, already known =================");
+    DUMP ("==========================================================");
+
+    new = [`local, `system];
+
+    DUMP ( sformat ("actual user customs: %1", Users::user_custom_sets) );
+    DUMP ( sformat ("new user customs: %1", new) );
+
+    DUMP ("= testing ================================================");
+
+    TEST(``(Users::ChangeCustoms ("user", new)), [], 0);
+
+    DUMP ( sformat ("new user itemlist:\n %1", UsersCache::user_itemlist) );
+
+
+    DUMP ("==========================================================");
+    DUMP ("===== adding nis users, already known ====================");
+    DUMP ("==========================================================");
+
+    new = [`local, `nis];
+
+    DUMP ( sformat ("actual user customs: %1", Users::user_custom_sets) );
+    DUMP ( sformat ("new user customs: %1", new) );
+
+    TEST(``(Users::ChangeCustoms ("user", new)), [ READ ], 0);
+
+    DUMP ( sformat ("new user itemlist:\n %1", UsersCache::user_itemlist) );
+
+
+}

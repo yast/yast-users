@@ -1,0 +1,40 @@
+Dump	actual user itemlist:
+Dump	 [`item (`id (500), "aaa", "", "500", "users,audio")]
+Dump	==========================================================
+Dump	===== adding nis users, not known -> read via script =====
+Dump	==========================================================
+Dump	actual user customs: [`local]
+Dump	new user customs: [`local, `nis]
+Dump	= testing ================================================
+Execute	.target.bash "/usr/lib/YaST2/bin/build_nis_structures.pl /tmp " 0
+Read	.target.ycp "/tmp/nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/nis_byname.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/group_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/group_nis_byname.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/homelist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/usernamelist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/itemlist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/uidlist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/gidlist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/groupnamelist_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Read	.target.ycp "/tmp/group_nis_itemlist.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Return	nil
+Dump	new user itemlist:
+Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
+Dump	==========================================================
+Dump	===== adding system users, already known =================
+Dump	==========================================================
+Dump	actual user customs: [`local, `nis]
+Dump	new user customs: [`local, `system]
+Dump	= testing ================================================
+Return	nil
+Dump	new user itemlist:
+Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (0), "root", "", "0", "")]
+Dump	==========================================================
+Dump	===== adding nis users, already known ====================
+Dump	==========================================================
+Dump	actual user customs: [`local, `system]
+Dump	new user customs: [`local, `nis]
+Return	nil
+Dump	new user itemlist:
+Dump	 [`item (`id (500), "aaa", "", "500", "users,audio"), `item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
