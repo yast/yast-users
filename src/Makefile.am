@@ -1,5 +1,5 @@
 #
-# Makefile.am for y2c_users/src
+# Makefile.am for users/src
 #
 
 yncludedir = @yncludedir@/users
@@ -23,11 +23,12 @@ client_DATA = 		\
 	users_auto.ycp	\
 	inst_root.ycp	\
 	inst_user.ycp   \
+	inst_auth.ycp	\
     expert_login.ycp
 
 config_DATA =			\
 	users.y2cc		\
-	groups.y2cc	
+	groups.y2cc
 
 ybin_SCRIPTS =  \
     build_passwd_structures.pl  \
