@@ -47,7 +47,6 @@ define symbol SummaryDialog() ``{
 	Label::BackButton (), Label::NextButton (),
 	$[]
     );
-    y2internal ("Summary ret: -%1-", ret);
     if (ret != nil && contains ([`new, `edit, `delete], ret))
     {
 	map update_symbol = $[
@@ -68,7 +67,6 @@ define symbol SummaryDialog() ``{
     }
 
     return (symbol) ret;
-    // TODO before writing LDAP, check password..
 }
 
 
@@ -93,7 +91,6 @@ define symbol MainSequence(string start) ``{
 	"user_password":    ``(EditUserPasswordDialog()),
 	"user_ldap":		``(LDAPSettingsDialog("user")),
 	"user_save":        [``(UserSave()), true],
-	"user_setup":	    [ ``(userSetup ()), true],
 
 	"group_add":        ``(EditGroupDialog("add_group")),
 	"group_edit":       ``(EditGroupDialog("edit_group")),
@@ -120,12 +117,13 @@ define symbol MainSequence(string start) ``{
 	    `cancel		: "without_save",
 	    `next		: `next,
             `nosave		: `nosave,
-	    `exit		: `abort
+	    `exit		: `abort,
+	    `summary		: "summary"
 	],
 	"user_add": $[
             `nextmodule		: `next,
 	    `nosave		: "summary",
-	    `additional		: "user_setup", // only install
+	    `additional		: "user_save", // only install
 	    `next		: "user_save",  // -> Commit
 	    `details		: "user_details",
 	    `passwordsettings	: "user_password",
@@ -136,8 +134,7 @@ define symbol MainSequence(string start) ``{
 	"user_add_inst": $[
             `nextmodule		: `next, // no user and next pressed (install)
             `nosave		: "summary",
-//no "first user" was added(install) FIXME start_dialog is not set to "summary"
-            `additional		: "user_setup",
+            `additional		: "user_save",
             `next		: "user_save",
             `details		: "user_details",
             `passwordsettings	: "user_password",
@@ -154,9 +151,6 @@ define symbol MainSequence(string start) ``{
 	],
 	"user_inst_start": $[
             `next:          "user_add_inst"
-	],
-	"user_setup": $[
-            `next :         "user_save"
 	],
 	"user_details": $[
 	    // next is predefined to add or edit
