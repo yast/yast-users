@@ -69,7 +69,10 @@
     integer max_gid             = tointeger(lookup( security, "GID_MAX" ));
     integer max_system_uid      = tointeger(lookup( security, "UID_MIN" )); 
     integer max_system_gid      = tointeger(lookup( security, "GID_MIN" ));
-   
+    integer max_length_uid      = size(sformat("%1", max_uid));
+    integer max_length_gid      = size(sformat("%1", max_gid));
+  
+    
     max_system_gid = max_system_gid - 1;
     max_system_uid = max_system_uid - 1;
     string default_pw           = "******";
@@ -86,7 +89,7 @@
     usersUsersReadFromDisk();
     usersGroupsReadFromDisk();
    
-    
+ 
     // ===== Open UI ==================================================
     UI(`CreateWizardDialog());
     

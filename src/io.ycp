@@ -699,8 +699,22 @@ to new home directory %2")), old_home, home));
 	   return `next;
        }
 
-    
-
+    /**
+     * Return counts of blanks 
+     * This is used in <TT>usersGroupsRead</TT> and <TT>usersUsersRead</TT>.
+     * @param integer <TT>count</TT>
+     */ 
+    global define AddBlanks(integer count ) ``{
+	string  blanks = "";
+	integer blanks_counter = 0;
+	
+	while (  blanks_counter <= count )
+	{
+	    blanks_counter = blanks_counter + 1;
+	    blanks         = blanks + " ";
+	}
+	return blanks;
+    }
 
     
 
@@ -723,7 +737,9 @@ to new home directory %2")), old_home, home));
 		{
 		    string  s_gid = sformat("%1", key   );
 		    term    a     = `item(`id(key));
-		
+
+		     if( size( s_gid) != max_length_gid ) s_gid = AddBlanks( max_length_gid - size(s_gid)) + s_gid;
+		     
 		    a = add(a, lookup( group , "groupname" , "" ));
 		    a = add(a, s_gid);
 		    a = add(a, findUsersBelongGroup(key) );
@@ -741,8 +757,6 @@ to new home directory %2")), old_home, home));
 	if( todo == `items              ) return items;
 	else if (todo == `groupnamelist ) return groupnamelist;
     }
-
-
 
 
     
@@ -767,6 +781,7 @@ to new home directory %2")), old_home, home));
 		    string  s_uid = sformat("%1", key );
 		    term    a     = `item(`id(key));
 		    
+		    if( size( s_uid) != max_length_uid ) s_uid = AddBlanks( max_length_uid - size(s_uid)) + s_uid;
 		    
 		    a =	add(a , username );
 		    a = add(a, lookup( user , "fullname" , "" ));
