@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan 21 15:31:21 CET 2005 - jsuchome@suse.cz
+
+- offer adaptation of home directory when user name was changed
+- 2.11.6 
+
+-------------------------------------------------------------------
 Wed Jan  5 15:42:07 CET 2005 - jsuchome@suse.cz
 
 - use tabs in Edit User and Edit Group dialogs
