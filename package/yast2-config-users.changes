@@ -1,7 +1,10 @@
 -------------------------------------------------------------------
 Mon May 14 15:30:34 CEST 2001 - jbuch@suse.de
 
-- added if( test_mode) for test output 
+- added if( test_mode) for test output
+  else the user can read a map saved in the directory /tmp/..
+  that contains crypted passwords and other user and group 
+  informations     
 
 -------------------------------------------------------------------
 Thu May 10 16:19:30 MEST 2001 - gs@suse.de
