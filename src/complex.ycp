@@ -51,9 +51,14 @@ define symbol ReadDialog (boolean useUI) ``{
     };
 
     Users::SetGUI (useUI);
-    symbol ret = Users::Read () ? `next : `back;
+    symbol ret = `next;
+    if (!Users::Read ())
+    {
+	ret = `back;
+	if (Mode::cont)
+	    ret = `nextmodule;
+    }
     Users::SetGUI (true);
-
     return ret;
 }
 
