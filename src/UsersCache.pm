@@ -922,7 +922,7 @@ sub CommitUser {
     my $org_type	= $user{"org_type"} || $type;
     my $uid		= $user{"uidnumber"};
     my $org_uid		= $user{"org_uidnumber"} || $uid;
-    my $home		= $user{"homedirectory"};
+    my $home		= $user{"homedirectory"} || "";
     my $org_home	= $user{"org_homedirectory"} || $home;
     my $username	= $user{"uid"};
     my $org_username	= $user{"org_uid"} || $username;
