@@ -24,7 +24,7 @@ Icon = sysadmin.png
 Helptext = _("Edit and create groups")
 
 ; arguments, seperated by space
-Arguments =  groups
+Arguments = groups
 
 ; whether root privileges are required to run this module
 RequiresRoot = true
