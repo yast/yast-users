@@ -934,8 +934,14 @@ define map ImportUser (map user) ``{
             ];
             if (haskey (user,"forename") || haskey (user, "surname"))
                 ret = add (ret, "fullname", fullname);
+            else
+                ret = add (ret, "fullname", existing["fullname"]:"");
+
             if (haskey (user,"password_settings"))
                 ret = add (ret, "shadow", user_shadow);
+            else
+                ret = add (ret, "shadow", existing["shadow"]:$[]);
+
             return ret;
         }
     }
