@@ -129,6 +129,9 @@
 	],
 	"target" : $[
 	    "bash"	: 0,
+	    "bash_output":$[
+		"stdout": "",
+	    ],
 	],
     ];
 
@@ -158,6 +161,8 @@
     TEST (``(Users::AddGroup (group)), [READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current group (after rich add):\n %1", Users::GetCurrentGroup ()));
+
+    EXEC ["target", "bash_output", "stdout"] = "testgrp";
 
     string error = (string) TEST(``(Users::CheckGroup ($[])), [READ, WRITE, EXEC], 0);
 

@@ -1,0 +1,212 @@
+/**
+ * File:
+ *  AddGroup.ycp
+ *
+ * Module:
+ *  Users configurator
+ *
+ * Summary:
+ *  Saving group tests.
+ *
+ * Authors:
+ *  Jiri Suchomel <jsuchome@suse.cz>
+ *
+ */
+
+{
+    // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm
+
+    include "testsuite.ycp";
+    import "Users";
+//    import "UsersCache";
+//    import "UsersLDAP";
+    import "Mode";
+//    import "Progress";
+//    import "Report";
+
+    map READ = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    500: $[
+			"uid"		: "hh",
+			"uidnumber"	: 500,
+			"type"		: "local",
+			"userpassword"	: "x",
+			"sn"		: "HH",
+			"grouplist"	: $[
+			    "users"	: 1
+			],
+			"homedirectory"	: "/home/hh",
+		    ],
+		    "by_name": $[
+			"hh":	500,
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+			"/home/hh":	1,
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    100: $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local",
+			"userlist"	: $[
+			    "hh":	1
+			],
+		    ],
+		    "by_name": $[
+			"users":	100,
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    0:	$[
+			"uid"		: "root",
+			"uidnumber"	: 0
+		    ],
+		    "by_name": $[
+			"root"		: 0
+		    ],
+		    "last_uid": 0,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"root"		: 1,
+		    ],
+		    "uids": $[
+			0		: 1
+		    ],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    0: $[
+			"cn"		: "root",
+			"uidnumber"	: 0,
+			"gidnumber"	: 0,
+			"type"		: "system"
+		    ],
+		    "by_name": $[
+			"root"	: 0
+		    ],
+		    "gids": $[
+			0	: 1
+		    ],
+		    "groupnames": $[
+			"root"	: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[
+		"isdir"	: true
+	    ],
+	    "size"	: 0,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "EVMS_CONFIG"		: "no"
+		]
+	],
+    ];
+    map WRITE = $[];
+    map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target" : $[
+	    "bash"		: 0,
+	    "bash_output"	: $[],
+	],
+    ];
+
+    DUMP ("==========================================================");
+
+    Mode::test = true;
+
+    TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+
+    Users::SelectUserByName ("hh");
+
+    DUMP (sformat ("---- user 'hh':\n %1", Users::GetCurrentUser ()));
+
+    map<string,any> changes = $[
+	"uidnumber"	: 501,
+    ];
+
+    TEST (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- user 'hh':\n %1", Users::GetCurrentUser ()));
+
+    EXEC ["target", "bash_output", "stdout"] = "hh";
+
+    string error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    DUMP (sformat ("---- check user after edit:\n %1", error));
+
+    DUMP ("---- commit user:");
+    TEST (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
+
+    // home changed its owner because of uid change
+    TEST (``(Users::Write ()), [READ, WRITE, EXEC], 0);
+
+    Users::SelectUser (500);
+    DUMP (sformat ("---- user 500:\n %1", Users::GetCurrentUser ()));
+
+    Users::SelectUser (501);
+    DUMP (sformat ("---- user 501:\n %1", Users::GetCurrentUser ()));
+
+    changes = $[
+	"homedirectory"	: "/new/home/hh",
+	"create_home"	: true,
+    ];
+
+    TEST (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);
+
+    DUMP (sformat ("---- user 'hh':\n %1", Users::GetCurrentUser ()));
+
+    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    DUMP (sformat ("---- check user after edit:\n %1", error));
+
+    DUMP ("---- commit user:");
+    TEST (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
+
+    // home directory was changed -> move it
+    READ ["target", "stat"] = $[];
+
+    TEST (``(Users::Write ()), [READ, WRITE, EXEC], 0);
+
+    DUMP ("==========================================================");
+}

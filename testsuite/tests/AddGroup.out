@@ -53,6 +53,7 @@ Dump	 $["gidnumber":"1000", "plugins":[], "type":"local", "what":"add_group"]
 Return	
 Dump	---- current group (after rich add):
 Dump	 $["cn":"testgrp", "gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]
+Execute	.target.bash_output "echo 'testgrp' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["stdout":"testgrp"]
 Return	
 Dump	---- check group after add:
 Dump	 
@@ -78,6 +79,7 @@ Return
 Return	
 Dump	---- current group after add):
 Dump	 $["cn":"testgrp", "gidnumber":"1000", "plugins":[], "type":"local", "what":"add_group"]
+Execute	.target.bash_output "echo 'testgrp' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["stdout":"testgrp"]
 Return	There is a conflict between the entered
 Dump	---- check group after add:
 Dump	 There is a conflict between the entered

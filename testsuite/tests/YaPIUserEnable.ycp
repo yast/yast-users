@@ -124,6 +124,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output": $[],
 	],
     ];
 
@@ -137,6 +138,7 @@
     map<string,any> config_map  = $[
 	"uid"		: "hh"
     ];
+    E ["target", "bash_output", "stdout"] = "hh";
 
     DUMP ("============ enable local user 'hh': =====================");
     TEST (``(YaPI::USERS::UserEnable (config_map)), [R,W,E], 0);

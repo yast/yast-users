@@ -121,6 +121,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output"	: $[]
 	]
     ];
 
@@ -133,6 +134,7 @@
 	"uid"           : "jj",
 	"userpassword"  : "q",
     ];
+    E ["target", "bash_output", "stdout"] = "jj";
 
     DUMP ("============ add new user 'jj': ==========================");
     TEST (``(YaPI::USERS::UserAdd (config_map, data_map)), [R,W,E], 0);
@@ -143,6 +145,9 @@
 	"uid"           : "hh",
 	"userpassword"  : "q",
     ];
+
+    E ["target", "bash_output", "stdout"] = "hh";
+
     string error = (string)
 	TEST (``(YaPI::USERS::UserAdd (config_map, data_map)), [R,W,E], 0);
     DUMP (sformat ("------------ UserAdd return value:\n%1", error));

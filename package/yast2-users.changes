@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Tue Jul 20 15:04:22 CEST 2004 - jsuchome@suse.cz
+
+- change owner of home directory of user with modified UID number (#43132)
+- updated testsuite
+
+-------------------------------------------------------------------
+Mon Jul 19 21:21:45 CEST 2004 - jsuchome@suse.cz
+
+- enable short passwords for users (#43033)
+- enable starting Samba client from authentization dialog (installation)
+
+-------------------------------------------------------------------
 Fri Jul 16 15:49:46 CEST 2004 - jsuchome@suse.cz
 
 - advanced check for user/group name contents (#43053)

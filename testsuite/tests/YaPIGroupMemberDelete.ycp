@@ -144,6 +144,7 @@
 	],
 	"target": $[
 	    "mkdir"	: true,
+	    "bash_output": $[],
 	],
     ];
 
@@ -159,6 +160,8 @@
 	"cn"		: "some_group",
     ];
     map<string,any> user_map  = $[];
+
+    E ["target", "bash_output", "stdout"] = "some_group";
 
     DUMP ("================ (no user) =======================");
     TEST (``(YaPI::USERS::GroupMemberDelete (config_map, user_map)), [R,W,E],0);

@@ -3986,7 +3986,8 @@ sub Write {
 		}
 		elsif ($user_mod eq "edited") {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
-		    if ($home ne $org_home) {
+		    my $org_uid = $user{"org_user"}{"uidnumber"} || $uid;
+		    if ($home ne $org_home || $uid ne $org_uid) {
 			# move the home directory
 			if (bool ($create_home)) {
 			    UsersRoutines->MoveHome ($org_home, $home);
@@ -4268,7 +4269,7 @@ Try again."), $min, $max);
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
-	y2error ("username $username doesn't match to $character_class");
+	y2warning ("username $username doesn't match to $character_class");
 	# error popup
 	return __("The user login may contain only
 letters, digits, \"-\", \".\", and \"_\"
@@ -4856,7 +4857,7 @@ Try again."), $min, $max);
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
-	y2error ("groupname $groupname doesn't match to $character_class");
+	y2warning ("groupname $groupname doesn't match to $character_class");
 	# error popup
 	return __("The group name may contain only
 letters, digits, \"-\", \".\", and \"_\"
