@@ -30,5 +30,5 @@ Summary:	Configuration of users
 @scrconfdir@/*.scr
 @yncludedir@/users/*
 @ydatadir@/accounts.ycp
-@ybindir@/build_users_structures.pl
+@ybindir@/*.pl
 %doc @docdir@
