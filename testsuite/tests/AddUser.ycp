@@ -19,6 +19,7 @@
     import "Users";
     import "Mode";
     import "Directory";
+    import "Progress";
 
     map READ = $[
 	"passwd": $[
@@ -46,7 +47,8 @@
 		"groups": $[
 		    100: $[
 			"groupname":	"users",
-			"gidNumber":	100
+			"gidNumber":	100,
+			"type"	:	"local"
 		    ],
 		    "by_name": $[
 			"users":	100,
@@ -94,7 +96,9 @@
     map EXEC = $[
 	"target" : $[
 	    "bash" :	0,
-	    "bash_output" : $[],
+	    "bash_output" : $[
+		"stdout": "$1$T8$yEI1SH.1b0jqeqDq6bHha1"
+	    ],
 	],
     ];
 
