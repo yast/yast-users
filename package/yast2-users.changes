@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Jul 14 17:53:32 CEST 2004 - jsuchome@suse.cz
+
+- LDAP users: initially, read only minimal set of attributes; the rest
+  is read in Edit function when it is called for first time
+- use Ldap::GetRequiredAttributes for geting required attributes
+  of an object class
+
+-------------------------------------------------------------------
 Mon Jul 12 15:45:06 CEST 2004 - jsuchome@suse.cz
 
 - fix of editing the LDAP user or group that was just added (#42777)

@@ -1838,7 +1838,7 @@ sub EnableUser {
     return "";
 }
 
-# read the rest of attributes of LDAP user
+# read the rest of attributes of LDAP user which will be edited
 sub ReadLDAPUser {
 
     my $dn	= $user_in_work{"dn"} || "";
@@ -1848,13 +1848,14 @@ sub ReadLDAPUser {
         "single_values" => YaST::YCP::Boolean (1)
     });
     my $u	= {};
-    if (defined $res && ref ($res) eq "ARRAY") {
+    if (defined $res && ref ($res) eq "ARRAY" && ref ($res->[0]) eq "HASH") {
 	$u	= $res->[0];
     }
+    
     foreach my $key (keys %$u) {
 	if (!defined $user_in_work{$key}) {
-	    y2internal ("------ new key: $key");
 	    $user_in_work{$key}	= $u->{$key};
+	    next;
 	}
 	if ($key eq "userpassword" && ($user_in_work{$key} || "x") eq "x" &&
 	    $user_in_work{$key} ne $u->{$key}) {
@@ -1886,10 +1887,10 @@ sub EditUser {
     # check if user is edited for first time
     if (!defined $user_in_work{"org_user"} &&
 	($user_in_work{"what"} || "") ne "add_user") {
-	# TODO read the rest of LDAP (if necessary???)
-#	if ($type eq "ldap") {
-#	    ReadLDAPUser ();
-#	}
+	# read the rest of LDAP if necessary
+	if ($type eq "ldap" && ($user_in_work{"modified"} || "") ne "added") {
+	    ReadLDAPUser ();
+	}
 
 	# password we have read was real -> set "encrypted" flag
 	my $pw	= $user_in_work{"userpassword"} || "";

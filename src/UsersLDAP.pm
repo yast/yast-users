@@ -485,10 +485,10 @@ sub Read {
     my $group_filter = $group_filter ne ""? $group_filter:$default_group_filter;
 
     my $user_attrs	= \@user_attributes;
-#    if (@$user_attrs < 1) {
-#	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory", "userpassword" ];
-#	y2milestone ("minimal set of user attrs to read: ", @$user_attrs);
-#    }
+    if (@$user_attrs < 1) {
+	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory", "userpassword" ];
+	y2milestone ("minimal set of user attrs to read: ", @$user_attrs);
+    }
     my $group_attrs 	= \@group_attributes;
 
     my %args = (

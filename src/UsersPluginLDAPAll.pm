@@ -214,13 +214,12 @@ sub Check {
 
     # get the attributes required for entry's object classes
     foreach my $class (@object_classes) {
-	my $object_class = SCR->Read (".ldap.schema.oc", {"name"=> $class});
-	if (!defined $object_class || ref ($object_class) ne "HASH" ||
-	    ! %{$object_class}) { next; }
-	my $req = $object_class->{"must"};
+	my $req = Ldap->GetRequiredAttributes ($class);
 	if (defined $req && ref ($req) eq "ARRAY") {
 	    foreach my $r (@{$req}) {
-		push @required_attrs, $r;
+		if (!contains (\@required_attrs, $r, 1)) {
+		    push @required_attrs, $r;
+		}
 	    }
 	}
     }
