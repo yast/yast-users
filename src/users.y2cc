@@ -38,4 +38,11 @@ SortKey =
 ; which textdomain to use for translations (important!)
 Textdomain = users
 
+; autoinst enabled
+Autoinst = all
+
+; data type
+AutoinstDataType = list
+
+
 ; vim:syntax=dosini
