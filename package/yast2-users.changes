@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Oct  4 17:05:08 CEST 2004 - jsuchome@suse.cz
+
+- do not read settings from Security module if it were already modified
+  (#46545)
+
+-------------------------------------------------------------------
 Wed Sep 29 19:04:59 CEST 2004 - jsuchome@suse.cz
 
 - do not discard local users added from rpm scripts during
