@@ -351,7 +351,7 @@ define symbol UsersSequence(string start) ``{
  * @param start the first dialog
  * @return sequence result
  */
-define symbol AutoSequence(string start) ``{
+define symbol AutoSequence(string start) {
     string caption = _("User and Group Configuration");
     term contents = `Label(_("Initializing ..."));
 
@@ -360,7 +360,14 @@ define symbol AutoSequence(string start) ``{
     Wizard::SetContentsButtons(caption, contents, "",
 	    Label::BackButton(), Label::NextButton());
 
-    symbol ret = MainSequence(start);
+    // initialization: ---------------- (simulate empty Import: bug #44660)
+    if (Mode::config && !Users::Modified ())
+    {
+	Users::Initialize ();
+    }
+    // --------------------------------
+
+    symbol ret = MainSequence (start);
 
     UI::CloseDialog();
     return ret;
