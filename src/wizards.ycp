@@ -50,7 +50,7 @@ define symbol SummaryDialog() ``{
 	contents,
 	// dialog caption
 	_("User and Group Administration"),
-	Label::BackButton (), Label::NextButton (),
+	Label::BackButton (), Label::FinishButton (),
 	$[
 	    `back: ReallyBack
 	]
