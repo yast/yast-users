@@ -200,6 +200,7 @@ YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersLDAP");
+YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersUI");
 
@@ -326,10 +327,10 @@ sub GetAvailableGroupSets {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetAvailablePlugins} = ["function", ["list", "string"]]; }
-sub GetAvailablePlugins {
-    return @available_plugins;
-}
+#BEGIN { $TYPEINFO{GetAvailablePlugins} = ["function", ["list", "string"]]; }
+#sub GetAvailablePlugins {
+#    return @available_plugins;
+#}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
@@ -532,7 +533,7 @@ _("In %s, there is a mount point for the directory
 users, but this directory is not currently mounted.
 If you add new users using the default values,
 their home directories will be created in the current %s.
-This can imply that these directories will not be accessible
+This can result in these directories not being accessible
 after you mount correctly. Continue user configuration?"),
 	    $mountpoint_in, $home, $home);
 	}
@@ -996,26 +997,28 @@ sub ReadSystemDefaults {
     if ($use_gui) { Progress::on (); }
 
     my %security	= %{Security::Export ()};
-    $pass_warn_age	= $security{"PASS_WARN_AGE"};
-    $pass_min_days	= $security{"PASS_MIN_DAYS"};
-    $pass_max_days	= $security{"PASS_MAX_DAYS"};
+    $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
+    $pass_min_days	= $security{"PASS_MIN_DAYS"}	|| $pass_min_days;
+    $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
 
     # command running before/after adding/deleting user
     $useradd_cmd 	= $security{"USERADD_CMD"};
     $userdel_precmd 	= $security{"USERDEL_PRECMD"};
     $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
 
-    $encryption_method	= $security{"PASSWD_ENCRYPTION"};
+    $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     $cracklib_dictpath	= $security{"CRACKLIB_DICTPATH"};
     $use_cracklib 	= ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
     $obscure_checks 	= ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
 
-    $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"};
-    $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"};
+    $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
+    $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
 
     my %max_lengths		= %{Security::PasswordMaxLengths ()};
-    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
-    $max_pass_length{"system"}	= $max_pass_length{"local"};
+    if (defined $max_lengths{$encryption_method}) {
+	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
+	$max_pass_length{"system"}	= $max_pass_length{"local"};
+    }
 
     UsersCache::InitConstants (\%security);
 }
@@ -1160,19 +1163,20 @@ sub ReadAvailablePlugins {
 
     if (Mode::test ()) { return; }
 
-    my $find = "/usr/bin/find ".Directory::clientdir();
-    $find .= " -name users_plugin_*.ycp"; #TODO use some variable for the name
-    my $out	= SCR::Execute (".target.bash_output", $find);
-    my $clients = $out->{"stdout"} || "";
-    foreach my $client (split (/\n/, $clients)) {
-	my @cl = split (/\//, $client);
-	my $cl = $cl[-1] || "";
-	$cl =~ s/\.ycp$//g;
-	if ($cl ne "") {
-	    push @available_plugins, $cl;
-	}
-    }
-    UsersLDAP::InitPlugins (\@available_plugins);
+#    my $find = "/usr/bin/find ".Directory::clientdir();
+#    $find .= " -name users_plugin_*.ycp"; #TODO use some variable for the name
+#    my $out	= SCR::Execute (".target.bash_output", $find);
+#    my $clients = $out->{"stdout"} || "";
+#    foreach my $client (split (/\n/, $clients)) {
+#	my @cl = split (/\//, $client);
+#	my $cl = $cl[-1] || "";
+#	$cl =~ s/\.ycp$//g;
+#	if ($cl ne "") {
+#	    push @available_plugins, $cl;
+#	}
+#    }
+#    UsersLDAP::InitPlugins (\@available_plugins);
+    UsersPlugins::Read ();
 }
 
 ##------------------------------------
@@ -2746,8 +2750,8 @@ sub CheckUsername {
     my $username	= $_[0];
 
     if (!defined $username || $username eq "") {
-        return _("You didn't enter a username.
-Please try again.");
+        return _("You didn't enter a user name.
+Try again.");
     }
     
     if (length ($username) < $UsersCache::min_length_login ||
@@ -2837,12 +2841,12 @@ sub CheckPassword {
     if (($pw || "") eq "") {
             
 	return _("You didn't enter a password.
-Please try again.");
+Try again.");
     }
 
     if (length ($pw) < $min_length) {
         return sprintf (_("The password must have between %i and %i characters.
-Please try again."), $min_length, $max_length);
+Try again."), $min_length, $max_length);
     }
 
     my $filtered = $pw;
@@ -2851,7 +2855,7 @@ Please try again."), $min_length, $max_length);
     if ($filtered ne "") {
 	return _("The password may only contain the following characters:
 0..9, a..z, A..Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
-Please try again.");
+Try again.");
     }
     return "";
 }
@@ -3108,7 +3112,7 @@ sub CheckHomeUI {
 
 	$ret{"question_id"}	= "not_dir";
 	# yes/no popup: user seleceted something strange as a home directory
-	$ret{"question"}	= _("The path for selected home directory already exists,
+	$ret{"question"}	= _("The path for the selected home directory already exists,
 but it is not a directory.
 Are you sure?");
 	return \%ret;
@@ -3269,8 +3273,8 @@ sub CheckGroupname {
     my $groupname	= $_[0];
 
     if (!defined $groupname || $groupname eq "") {
-        return _("You didn't enter a groupname.
-Please try again.");
+        return _("You didn't enter a group name.
+Try again.");
     }
     
     if (length ($groupname) < $UsersCache::min_length_groupname ||
@@ -3387,8 +3391,10 @@ sub SetEncryptionMethod {
 	$encryption_method 		= $_[0];
 	$security_modified 		= 1;
 	my %max_lengths			= %{Security::PasswordMaxLengths ()};
-	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
-	$max_pass_length{"system"}	= $max_pass_length{"local"};
+	if (defined $max_lengths{$encryption_method}) {
+	    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
+	    $max_pass_length{"system"}	= $max_pass_length{"local"};
+	}
     }
 }
 

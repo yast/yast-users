@@ -440,8 +440,8 @@ while ( <STDIN> )
     
 	if ( $path eq '.init' ) {
 	    if (ref ($argument) eq "HASH") {
-		$max_system_uid	= ${%{$argument}}{"max_system_uid"};
-		$max_system_gid	= ${%{$argument}}{"max_system_gid"};
+		$max_system_uid	= $argument->{"max_system_uid"};
+		$max_system_gid	= $argument->{"max_system_gid"};
 		if (defined ($argument->{"base_directory"})) {
 		    $base_directory	= $argument->{"base_directory"};
 		}

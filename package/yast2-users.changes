@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar  1 17:36:19 CET 2004 - jsuchome@suse.cz
+
+- merged texts from proofread
+- change of plugin handling
+- 2.9.10
+
+-------------------------------------------------------------------
 Thu Feb 26 09:30:16 CET 2004 - jsuchome@suse.cz
 
 - fixed calling from control center (#35006)

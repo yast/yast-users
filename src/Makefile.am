@@ -14,7 +14,8 @@ module_DATA =		\
     UsersLDAP.pm	\
     UsersRoutines.pm	\
     UsersUI.ycp		\
-    UsersPluginDummy.pm
+    UsersPlugins.pm	\
+    UsersPluginLDAPAll.pm
 
 ynclude_DATA =		\
     complex.ycp		\
@@ -31,7 +32,7 @@ client_DATA = 		\
     inst_user.ycp	\
     inst_auth.ycp	\
     users_auto.ycp	\
-    users_plugin_dummy.ycp
+    users_plugin_ldap_all.ycp
 
 desktop_DATA =		\
     users.desktop	\
