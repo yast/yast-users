@@ -40,13 +40,13 @@
     integer arg		   = 0;
     list    possible_start_dialogs = ["user_add", "group_add", "groups", "users", "user_inst_start" ];
 
-    while ( arg < size( WFM::Args() ) )
+    while ( arg < size( Args() ) )
     {
 	// TODO .test in Mode
-	string a = WFM::Args( arg );
+	string a = Args( arg );
 	if ( contains( possible_start_dialogs, a))
 	{
-	    start_dialog = WFM::Args( arg );
+	    start_dialog = Args( arg );
 	}
 	arg = arg + 1;
     }
@@ -102,8 +102,8 @@
     map aliases = $[
 	"users":         ``(usersUsersDialog()),
         "user_add":      ``(usersEditUser(`add_user)),
-	"user_add_inst": [``(usersEditUser(`add_user)), true],
-	"user_inst_start":``(usersInstStart ()),
+	"user_add_inst": ``(usersEditUser(`add_user)),
+	"user_inst_start":[``(usersInstStart ()), true],
         "user_clone":    ``(usersEditUser(`clone_user)),
         "user_edit":     ``(usersEditUser(`edit_user)),
 	"user_details":  ``(usersEditUserDetails()),
@@ -215,28 +215,6 @@
 
     // ===== Start the sequence =======================================
     any ret = WizardSequencer(aliases, main_sequence);
-
-
-    // ===== Restart the sequence =====================================
-    if ( start_sequencer_again )
-    {
-
-	if( Mode::test ) y2milestone(" Start sequencer again");
-	start_sequencer_again = false;
-
-	UserWriteStack::Reset();
-
-	group_in_work = $[];
-	user_in_work  = $[];
-
-	UserSettings::ReadSettingsFromDisk(true);
-
-	start_dialog		  ="users";
-	main_sequence["ws_start"] ="users";
-
-	ret = WizardSequencer(aliases, main_sequence);
-
-    }
 
     if( ! Mode::cont )
 	UI::CloseDialog();

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jul 16 10:50:05 CEST 2002 - jsrain@suse.cz
+
+- Removed namaspace using for Args and CallFunction
+- Added support for seting forwaring root's mail during 
+  installation
+
+-------------------------------------------------------------------
 Mon Jul 15 18:43:37 CEST 2002 - jsrain@suse.cz
 
 - Fixed installation workflow (Bug #14079)

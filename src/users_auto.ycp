@@ -28,23 +28,23 @@
     include "users/io.ycp";
 
     include "wizard/sequencer.ycp";
-    list args = WFM::Args ();
+    list args = Args ();
     if ( size (args) <= 0 )
     {
 	y2error ("Did not get the settings, probably some mistake...");
 	return false;
     }
-    if ( !is ( WFM::Args (0), list ) )
+    if ( !is ( Args (0), list ) )
     {
-	y2error ("Bad argument for users_auto: %1", WFM::Args (0));
+	y2error ("Bad argument for users_auto: %1", Args (0));
 	return false;
     }
     list settings = [];
     {
 	integer i = 0;
-	while (i < size (WFM::Args()))
+	while (i < size (Args()))
 	{
-	    if (is (WFM::Args (i), list) && nil != WFM::Args (i))	settings = WFM::Args (i);
+	    if (is (Args (i), list) && nil != Args (i))	settings = Args (i);
 	    i = i + 1;
 	}
     }

@@ -52,6 +52,7 @@
 
     /**
      * Return a map with the defaults for the shadow entry
+     * @return map of shadow settings
      */
     global define map GetDefaultShadow()``{
 
@@ -69,6 +70,7 @@
 
     /**
      * Read the security settings from the system.
+     * @return boolean true on success
      */
     global define boolean Read()``{
 

@@ -42,6 +42,10 @@
     // last name
     global string surname = "";
 
+    /**
+      * Creates user account
+      * @return 0 on success
+      */
     global define integer CreateSysUser()
     ``{
 	// FIXME: should be looked up dynamically (first free above 500)
@@ -60,8 +64,11 @@
 	return ret;
     }
 
-
-    global define SetRootPassword()
+    /**
+      * Writes password of superuser
+      * @return true on success
+      */
+    global define boolean SetRootPassword()
    ``{
 	return (SCR::Write(.target.passwd.root, rootPassword));
     }

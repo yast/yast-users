@@ -20,8 +20,10 @@
   import "Mode";
   import "UserDefs";
   import "UserSettings";
+  import "Mail";
 
   include "users/help.ycp";
+  include "users/ui.ycp";
 
   global string chage = "/usr/bin/chage";
   global string useradd = "/usr/sbin/useradd";
@@ -30,6 +32,8 @@
   global string groupadd = "/usr/sbin/groupadd";
   global string groupdel = "/usr/sbin/groupdel";
   global string groupmod = "/usr/sbin/groupmod";
+
+  global string root_mail = "";
 
   list write_to_system_stack = [];
 
@@ -550,6 +554,15 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 	    }
 	});
 
+	if (Mode::cont && root_mail != "")
+        {
+            boolean ret = Mail::SetRootAlias (root_mail);
+	    if (! ret)
+		Report::Error(_("There was an error while setting forwarding root's mail"));
+	    ok = ok & ret;
+        }
+
+
 	if ( !ok)
 	{
 	    Report::Error(_("The new user and group are not configured."));
@@ -564,6 +577,8 @@ mv %4/passwd.y2backup %4/passwd;", grouplist, UserSettings::UserIdToName( uid ),
 are configured and usable"));
 	    }
 	}
+
+
 
 	return `next;
     }

@@ -42,7 +42,10 @@
    */
   global string pass_expire_date = "";
 
-
+  /**
+    * Reads settings from /etc/defaults/useradd and /etc/shells
+    * @return true on success
+    */
   global define boolean Read()``{
       useradd_defaults = SCR::Read(.etc.default.useradd);
       if( useradd_defaults == $[] || useradd_defaults == nil )
@@ -58,6 +61,7 @@
 
   /**
    * Return the default group id for a new user.
+   * @return integer gid
    */
   global define integer GetDefaultGid()``{
 
@@ -79,6 +83,7 @@ Please change the default group in /etc/default/useradd."), def_int ));
 
   /**
    * Return the default home value for a new user.
+   * @return string home directory
    */
   global define string GetDefaultHome()``{
       string def_home = useradd_defaults["home"]:"/home";
@@ -94,6 +99,7 @@ Please change the default group in /etc/default/useradd."), def_int ));
 
   /**
    * Return the default shell for a new user.
+   * @return string shell name
    */
   global define string GetDefaultShell()``{
       return useradd_defaults["shell"]:"/bin/bash";
@@ -103,7 +109,7 @@ Please change the default group in /etc/default/useradd."), def_int ));
   /**
    * Read the /etc/shells file and return a item list or a string shell list.
    * @param todo `items or `stringlist
-   * @return list
+   * @return list of shells
    */
   global define list GetAllShells(symbol todo ) ``{
 
@@ -130,8 +136,9 @@ Please change the default group in /etc/default/useradd."), def_int ));
 	return available_shells;
     }
 
-
-
+  /**
+    * Test Users module
+    */
   global define void Test()``{
 
       y2milestone(" useradd_defaults %1",   useradd_defaults);

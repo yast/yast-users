@@ -197,7 +197,7 @@ Do not forget this \"root\" password!
 </p>"));
 
 
-  Wizard::SetContents(title, contents, helptext, WFM::Args(0), WFM::Args(1));
+  Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
 
   if ("" == UI::QueryWidget(`id(`pw1), `Value))
 	UI::SetFocus (`id (`pw1));
@@ -218,7 +218,7 @@ Do not forget this \"root\" password!
 
       ret = Wizard::UserInput();
 
-      if ( ret == `abort && WFM::CallFunction(`inst_confirm_abort(`incomplete) ) )
+      if ( ret == `abort && CallFunction(`inst_confirm_abort(`incomplete) ) )
 	  return `abort;
 
       if (ret == `cancel)

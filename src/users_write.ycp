@@ -28,17 +28,17 @@
 
     import "Users";
 
-    if (size (WFM::Args ()) != 1)
+    if (size (Args ()) != 1)
     {
 	y2error ("Exactly one argument required.");
 	return false;
     }
-    if (! is (WFM::Args (0), list))
+    if (! is (Args (0), list))
     {
 	y2error ("The argument must be a list.");
 	return false;
     }
 
     // The write is a simple one so we don't use Progress
-    return Users::Import (WFM::Args (0)) && Users::Write ();
+    return Users::Import (Args (0)) && Users::Write ();
 }

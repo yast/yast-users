@@ -33,6 +33,7 @@
     include "users/help.ycp";
 
     global map saved_user = $[];
+    global boolean use_next_time = true;
 
     global define symbol userSetup () ``{
 	start_dialog = "users" ;
@@ -112,7 +113,7 @@
 	}
 	else
 	{
-	    ret = WFM::CallFunction(`inst_confirm_abort(`incomplete));
+	    ret = CallFunction(`inst_confirm_abort(`incomplete));
 	}
 
 	if( ret ) return `abort;
@@ -367,6 +368,15 @@ Select which one do you want to configure.")),
 		    }
 		}
 	    } until ( ret != `not_next  );
+
+	if (ret == `back)
+	{
+	    start_dialog = "user_add";
+	    UserWriteStack::Reset ();
+	    if (Mode::cont)
+		UserSettings::ReadSettingsFromDisk(false);
+	    use_next_time = true;
+	}
 
 	save_focus( UI::QueryWidget(`id(`user_table), `CurrentItem), ret, `user);
 
@@ -640,6 +650,8 @@ Please try again."));
 		}
 	    } until ( ret == `next || ret == `abort  || ret == `back || ret == `cancel );
 
+//	if (Mode::cont && start_dialog == "user_add" && ret == `next)
+//	    ret =
 	if ( ret == `next ) ret = what;
 
 	if( Mode::test ) y2milestone("user in work  %1: ",user_in_work);
@@ -852,10 +864,10 @@ Please try again."));
 	    `clone_user: _("Add a new user by cloning user "),
 	    `edit_user:  _("Edit an existing user")
 	];
-	if (start_dialog == "user_add" && Mode::cont)
+	if (start_dialog == "user_add" && Mode::cont && use_next_time)
 	{
-	    y2error ("Using");
 	    user_in_work = saved_user;
+	    use_next_time = false;
 	}
 
 	boolean create_home    = lookup (user_in_work, "create_home", true);
@@ -903,6 +915,11 @@ Please try again."));
 	if( Mode::cont &&  start_dialog == "user_add" )
 	{
 	    detailsmorebox = add(detailsmorebox, `PushButton(`id(`additional), _("Additional users/&groups")));
+	    detailsmorebox = `VBox (
+		`CheckBox (`id (`root_mail), _("Forward root's mail to this user"), UserWriteStack::root_mail != ""),
+		`VStretch (),
+		detailsmorebox
+	    );
 	}
 
 	term contents =
@@ -1270,6 +1287,9 @@ Do you want to use it and change it's owner?.")))
 				     "type"	   :  user_type
 
 		    ];
+
+
+
 /*		    if (start_dialog == user_add && Mode::cont)
 		    {
 			saved_user = user_in_work;
@@ -1282,6 +1302,10 @@ Do you want to use it and change it's owner?.")))
 	// only in inst-sys
 	// create more users and groups
 	// leave sequencer and start it again with new start_dialog
+	if (start_dialog == "user_add" && Mode::cont)
+	{
+	    UserWriteStack::root_mail = UI::QueryWidget (`id (`root_mail), `Value) ? username : "";
+	}
 	if( ret == `additional ||  ret == `nosave )
 	{
 	    saved_user = user_in_work;

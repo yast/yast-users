@@ -23,6 +23,9 @@
 
     map user_in_work  = $[];
 
+    /**
+      * Module constructor
+      */
     global define void Users()``{
 
 	UserAddDefs::Read();
@@ -86,7 +89,6 @@
 
     /**
      * Saves users into the system
-     * @param writeonly	 true for autoinstal - don't start the service yet
      * @return true on success
      */
     global define boolean Write ()``{
