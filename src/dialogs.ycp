@@ -137,7 +137,6 @@ global define symbol EditUserDialog (string what) ``{
 
     // use local map here...
     map<string,any>user	= Users::GetCurrentUser ();
-y2internal ("user: %1", user);
 
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
@@ -479,14 +478,36 @@ Please try again."));
                 continue;
             }
 	    // --------------------------------- password checks
-	    // TODO:
-	    // YesNoPopups - MaxLength, Obscure, Cracklib
-            if (pw1 != "x" && pw1 != "" && pw1 != default_pw)
+            if (pw1 != "x" && (pw1 != "" || !details) && pw1 != default_pw)
             {
 		error = Users::CheckPassword (pw1);
 		if (error != "")
 		{
 		    Report::Error (error);
+		    clear_password_fields ();
+		    continue;
+		}
+		map error_map			= $[];
+		// map with id's of confirmed questions
+		map<string,string> ui_map	= $[];
+		//TODO ui_map 'more' global? (now new check after Details)
+		boolean failed			= false;
+		do
+		{
+		    error_map = Users::CheckPasswordUI (username, pw1, ui_map);
+		    if (error_map != $[])
+		    {
+			if (!Popup::YesNo (error_map ["question"]:""))
+			{
+			    failed = true;
+			}
+			else
+			    ui_map[ error_map["question_id"]:"" ] = 1;
+		    }
+		} while (error_map != $[] && !failed);
+
+		if (failed)
+		{
 		    clear_password_fields ();
 		    continue;
 		}
@@ -516,13 +537,33 @@ Please try again."));
             }
 
 	    // -------------------------------------- directory checks
-	    // TODO:
-	    // YesNoPopups: change owner, dir writable
 	    if (!details) {
 		error = Users::CheckHome (home);
 		if (error != "")
 		{
 		    Report::Error (error);
+		    ret = `notnext;
+		    continue;
+		}
+		map error_map			= $[];
+		// map with id's of confirmed questions
+		map<string,string> ui_map	= $[];
+		boolean failed			= false;
+		do
+		{
+		    error_map = Users::CheckHomeUI (uid, home, ui_map);
+		    if (error_map != $[])
+		    {
+			if (!Popup::YesNo (error_map ["question"]:""))
+			    failed = true;
+			else
+			    ui_map[ error_map["question_id"]:"" ] = 1;
+			    // TODO how to set "create_home" ???
+		    }
+		} while (error_map != $[] && !failed);
+
+		if (failed)
+		{
 		    ret = `notnext;
 		    continue;
 		}
@@ -547,7 +588,7 @@ Please try again."));
 		if (user_type == "ldap" && org_username != username &&
 		    org_username !="")
 		{
-//FIXME		    user ["dn"]	= Users::CreateUserDN (user);
+		    user ["dn"]	= Users::CreateUserDN (user);
 		}
 		Users::EditUser (user);
             }
@@ -555,7 +596,7 @@ Please try again."));
 	    {
 		if (user_type == "ldap")
 		{
-//FIXME		    user ["dn"] = Users::CreateUserDN (user);
+		    user ["dn"] = Users::CreateUserDN (user);
 		    if (details)
 			user = Users::SubstituteValues ("user", user);
 		}
@@ -809,7 +850,6 @@ can be changed for non-local users.")) : `VSpacing (0),
 		    dir = substring (dir, 0, size(dir)-1);
 		UI::ChangeWidget (`id(`home), `Value, dir);
 	    }
-	    // TODO: add directory checks here...
 	}
         if (ret == `next)
         {
@@ -833,8 +873,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    // additional data in GECOS field (passwd only)
             if (user_type == "local" || user_type == "system")
             {
-		// TODO use CheckGECOS
-                addit_data  = (string)UI::QueryWidget(`id(`addd),  `Value);
+                addit_data  = (string) UI::QueryWidget(`id(`addd),  `Value);
 		string error = Users::CheckGECOS (addit_data);
 		if (error != "")
 		{
@@ -858,56 +897,34 @@ can be changed for non-local users.")) : `VSpacing (0),
 		    ret = `notnext;
 		    continue;
 		}
-		/* TODO change of type -> question
-		if (!UsersCache::CheckUIDInterval (new_i_uid, user_type))
+		map<string,string> error_map	= $[];
+		// map with id's of confirmed questions
+		map<string,string> ui_map	= $[];
+		boolean failed			= false;
+		do
 		{
-		    integer minimum = Users::min_uid[user_type]:0;
-		    if (user_type == "system")
-			minimum = 0;
+		    error_map = Users::CheckUIDUI (new_i_uid, ui_map);
+		    if (error_map != $[])
+		    {
+			if (!Popup::YesNo (error_map ["question"]:""))
+			    failed = true;
+			else
+			{
+			    ui_map[ error_map["question_id"]:"" ] = 1;
+			    // change of type!
+			    new_type = error_map["question_id"]:"local";
+			    // FIXME UsersCache::Set right here?
+			    // (it will fail for more changes)
+			}
+		    }
+		} while (error_map != $[] && !failed);
 
-		    // change the type to system?
-		    if (user_type == "local" &&
-			UsersCache::CheckUIDInterval (new_i_uid, "system"))
-		    {
-			if (! Popup::YesNo( sformat(
-_("The selected user ID is a system ID,
-because the ID is smaller than %1.
-Really change type of user to 'system'?"), Users::max_uid["system"]:499 + 1 )))
-			{
-			    UI::SetFocus(`id(`uid));
-			    ret = `notnext;
-			    continue;
-			}
-			new_type = "system";
-		    }
-		    // change the type to local?
-		    else if (user_type == "system" &&
-			     UsersCache::CheckUIDInterval (new_i_uid, "local"))
-		    {
-			if (! Popup::YesNo( sformat(
-_("The selected user ID is a local ID,
-because the ID is greater than %1.
-Really change type of user to 'local'?"), Users::max_uid["system"]:499 )))
-			{
-			    UI::SetFocus(`id(`uid));
-			    ret = `notnext;
-			    continue;
-			}
-			new_type = "local";
-		    }
-		    // uid not in valid interval
-		    else
-		    {
-			Report::Error(sformat(
-_("The selected user ID is not allowed.
-Select a valid integer between %1 and %2.
-"),  minimum, Users::max_uid[user_type]:60000 ));
-			UI::SetFocus(`id(`uid));
-			ret = `notnext;
-			continue;
-		    }
+		if (failed)
+		{
+		    ret = `notnext;
+		    UI::SetFocus(`id(`uid));
+		    continue;
 		}
-		*/
             } // end of uid checks
 
             if ( defaultgroup != new_defaultgroup )
@@ -917,7 +934,7 @@ Select a valid integer between %1 and %2.
             }
 
             // check the homedirectory
-            if ( home != new_home || what == "add_user" )
+            if (home != new_home || what == "add_user")
             {
 		string error = Users::CheckHome (new_home);
 		if (error != "")
@@ -927,67 +944,36 @@ Select a valid integer between %1 and %2.
 		    ret = `notnext;
 		    continue;
 		}
-		y2internal ("newhome: %1,  org_home: %2", new_home, org_home);
+		map<string,string> error_map	= $[];
+		// map with id's of confirmed questions
+		map<string,string> ui_map	= $[];
+		boolean failed			= false;
+		do
+		{
+		    error_map = Users::CheckHomeUI(new_i_uid, new_home, ui_map);
+		    if (error_map != $[])
+		    {
+			if (!Popup::YesNo (error_map ["question"]:""))
+			    failed = true;
+			else
+			    ui_map[ error_map["question_id"]:"" ] = 1;
+		    }
+		} while (error_map != $[] && !failed);
 
-	    // TODO chown home
-	    /*
-            if ( (what == "edit_user" && ( new_home != org_home ))
-                 || what == "add_user" )
-            {
-                create_home = Users::user_in_work["create_home"]:true;
-                if( UsersCache::HomeExists(new_home) )
-                {
-                    // error popup
-                    Report::Error(_("The home directory is used from another user.
-Please try again."));
-                    UI::SetFocus(`id(`home));
+		if (failed)
+		{
 		    ret = `notnext;
-                    continue;
-                }
-                // do not check local directories in autoinst config
-                if (SCR::Read(.target.size, new_home ) != -1 && !Mode::config &&
-		    (user_type != "ldap" || Users::ldap_file_server))
-                {
-                    integer dir_uid = lookup ((map)SCR::Read(.target.stat, new_home), "uidNumber", -1);
-                    string question =
-// yes-no popup
-_("The home directory selected already exists.
-Use it and change its owner?");
-                    if (new_i_uid == dir_uid) // chown is not needed (#25200)
-                        question =
-// yes-no popup
-_("The home directory selected already exists
-and is owned by the currently edited user.
-Use this directory?
-");
-		    // maybe it is home of some user marked to delete...
-		    else if (contains (Users::removed_homes, home))
-			question = sformat(
-// yes-no popup
-_("The home directory selected (%1)
-already exists as a former home directory of
-a user currently marked for deletion.
-Use this directory?
-"), home);
-
-                    if (! Popup::YesNo(question))
-                    {
-                        UI::SetFocus(`id(`home));
-			ret = `notnext;
-                        continue;
-                    }
-                    create_home = false;
-                }
-            }
-	    */
-            }
+		    UI::SetFocus(`id(`home));
+		    continue;
+		}
+	    }
 
 	    // TODO use CheckShell?
             if (new_shell != shell && !contains (Users::AllShells(), new_shell))
             {
                 // Yes-No popup
-                if (! Popup::YesNo (_("If you select a nonexistent shell, the user
-may be unable to log in. Continue?
+                if (! Popup::YesNo (_("If you select a nonexistent shell, the user may be unable to log in.
+Are you sure?
 ")))
 		{
 		    ret = `notnext;
@@ -1066,23 +1052,7 @@ global define symbol EditUserPasswordDialog() ``{
     if (expires == "")
 	expires = "0";
 
-    /*
-    string work = user["shadowInactive"]:"";
-//TODO    if( work == "" ) work = sformat("%1", Users::pass_inact_days);
-    integer inact = tointeger( work );
-
-    work = user["shadowMax"]:"";
-//    if ( work == "" ) work = sformat("%1", Users::pass_max_days );
-    integer max = tointeger( work );
-
-    work = user["shadowMin"]:"";
-//    if( work == "") work = sformat("%1", Users::pass_min_days );;
-    integer min = tointeger( work );
-
-    work = user["shadowWarning"]:"";
-//    if( work == "") work = sformat("%1", Users::pass_warn_age );
-    integer warn = tointeger( work );
-    */
+    //TODO correct default values
     integer inact = GetInt (user, "shadowInactive", 0);
     integer max	= GetInt (user, "shadowMax", 0);
     integer min = GetInt (user, "shadowMin", 0);
@@ -1100,8 +1070,7 @@ global define symbol EditUserPasswordDialog() ``{
         last_change = _("never");
     }
     string exp_date = "";
-    if (expires != "0" && expires != "-1" )//FIXME use Users
-
+    if (expires != "0" && expires != "-1" )//FIXME to module
     {
         exp_date = lookup ((map)SCR::Execute (.target.bash_output, (sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"")), "stdout", "");
         // remove \n from the end
@@ -1386,8 +1355,6 @@ Are you sure?"), req)))
  */
 global define symbol EditGroupDialog(string what ) ``{
 
-    return `back;
-    /*
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
 
@@ -1410,6 +1377,7 @@ global define symbol EditGroupDialog(string what ) ``{
     map additional_users	= $[];
     list removed		= [];
 
+    /* TODO - we need to get Term from Perl...
     // now, the additional userlist should be builded:
     if (group_type == "ldap")
     {
@@ -1418,10 +1386,20 @@ global define symbol EditGroupDialog(string what ) ``{
     }
     else
         additional_users = Users::BuildAdditional (userlist, more_users);
+    */
+    integer i = 0;
+    list more_users_items	= [];
+    foreach (string u, integer val, more_users, ``{
+	if (i <42)
+	    more_users_items = add (more_users_items, `item (`id(u), u, true ));
+	if (i == 42)
+	    more_users_items = add (more_users_items,
+		`item (`id("-"), "...", false ));
+	i = i + 1;
+    });
 
-    boolean more = false;
-    if (size(more_users) > 0)
-        more = true;
+
+    boolean more = size (more_users) > 0;
 
     map dialog_labels = $[
         "add_group": $[
@@ -1461,7 +1439,6 @@ global define symbol EditGroupDialog(string what ) ``{
             `VSpacing(1)
         )),
         `HSpacing(2),
-//        `HStretch(),
         `VBox(
             `VSpacing(1),
             // selection box label
@@ -1469,8 +1446,9 @@ global define symbol EditGroupDialog(string what ) ``{
                 additional_users [`ulist]:[]),
             more ? `VSpacing(1) : `VSpacing (0),
             // selection box label
-            more ? `MultiSelectionBox( `id(`more_users), "",
-                additional_users [`more]:[]) : `VSpacing (0),
+            more ? `MultiSelectionBox ( `id(`more_users), "",
+                more_users_items) : `VSpacing (0),
+//                additional_users [`more]:[]) : `VSpacing (0),
             `VSpacing(1)
         ));
 
@@ -1516,71 +1494,22 @@ global define symbol EditGroupDialog(string what ) ``{
 
         if (ret == `next)
         {
-            string pw1            = (string) UI::QueryWidget(`id(`pw1), `Value);
-            string pw2            = (string)UI::QueryWidget(`id(`pw2),`Value);
-            string new_groupname  = (string)UI::QueryWidget(`id(`groupname), `Value);
-            string new_gid        = (string)UI::QueryWidget(`id(`gid), `Value);
-            list<string> new_users = (list<string>)
-		UI::QueryWidget(`id(`userlist), `SelectedItems );
+            string pw1          = (string) UI::QueryWidget(`id(`pw1), `Value);
+            string pw2          = (string)UI::QueryWidget(`id(`pw2),`Value);
+            string new_gid	= (string)UI::QueryWidget(`id(`gid), `Value);
+            integer new_i_gid	= tointeger(new_gid);
+            string new_groupname	= (string)
+		UI::QueryWidget(`id(`groupname), `Value);
 
 	    // --------------------------------- groupname checks
-	    // TODO use CheckGroupname
-            if ( new_groupname == "" )
-            {
-                // groupname is empty (no group input).
-                // error popup
-                Report::Error(_("You didn't enter a groupname.
-Please try again.
-")) ;
-                UI::SetFocus(`id(`groupname));
+	    string error = Users::CheckGroupname (new_groupname);
+	    if (error != "")
+	    {
+		Report::Error (error);
+                UI::SetFocus (`id(`groupname));
 		ret = `notnext;
-                continue;
-            }
-
-            if ( size( new_groupname ) < UsersCache::min_length_groupname ||
-		 size( new_groupname ) > UsersCache::max_length_groupname )
-            {
-                // The groupname has incorrect length
-                // error popup, %1 is minimum, %2 is maximum
-                Report::Error(sformat(_("The group name must be between %1 and %2 characters in length.
-Try again.
-"),UsersCache::min_length_groupname, UsersCache::max_length_groupname)) ;
-                UI::SetFocus(`id(`groupname)) ;
-		ret = `notnext;
-                continue;
-            }
-
-            string firstchar = substring( new_groupname, 0, 1);
-            if ( ( ! (firstchar >= "A" && firstchar <= "z") ||
-               nil != findfirstnotof(new_groupname, Users::valid_group_chars)))
-            {
-                // The groupname contains restricted characters
-                // error popup
-                Report::Error(_("The group name may contain only
-letters, digits, \"-\", \".\", and \"_\"
-and must begin with a letter.
-Try again.
-")) ;
-                UI::SetFocus(`id(`groupname)) ;
-		ret = `notnext;
-                continue;
-            }
-
-            if ( (((what == "edit_group" ) && ( new_groupname != groupname ))
-                 || ( what == "add_group" ))
-                 &&  UsersCache::GroupnameExists(new_groupname))
-            {
-                // The entered groupname conflicts with some existing groupname
-                // error popup
-                Popup::Error(_("There is a conflict between the entered
-group name and an existing group name.
-Try another one.
-"));
-                UI::SetFocus(`id(`groupname)) ;
-		ret = `notnext;
-                continue;
-            }
-
+		continue;
+	    }
 	    // --------------------------------- password checks
             if ( pw1 != pw2 )
             {
@@ -1593,10 +1522,9 @@ Please try again.")) ;
 		clear_password_fields();
                 continue;
             }
-
             if ( pw1 != "" && pw1 != default_pw )
             {
-		string error = Users::CheckPassword (pw1);
+		error = Users::CheckPassword (pw1);
 		if (error != "")
 		{
 		    Report::Error (error);
@@ -1605,24 +1533,21 @@ Please try again.")) ;
 		}
 		password = Users::CryptPassword (pw1, group_type);
             }
-
             // need for update /etc/gshadow (! is for empty password)
             if( pw1 == "" ) password = "!";
 
 	    // --------------------------------- gid checks
-            integer new_i_gid = tointeger(new_gid);
+	    error = Users::CheckGID (new_i_gid);
+	    if (error != "")
+	    {
+		Report::Error (error);
+                UI::SetFocus (`id(`gid));
+		ret = `notnext;
+		continue;
+	    }
+	    /* TODO: YesNo...
             if( new_i_gid != gid)
             {
-                if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
-                {
-                    // error popup
-                    Report::Error(_("The group ID entered is reserved.
-Select a another group ID.
-"));
-                    UI::SetFocus(`id(`gid));
-		    ret = `notnext;
-                    continue;
-                }
 		if (!UsersCache::CheckGIDInterval (new_i_gid, group_type))
 		{
 		    // change the type to system?
@@ -1672,88 +1597,40 @@ Select a valid integer between %1 and %2.
 		    }
 		}
             }
+	    */
 
 	    // --------------------------------- update userlist
-            string new_userlist   = "";
-            foreach (string user, list_userlist, ``{
-                if (!contains (new_users, user))
-                    removed = add (removed, user);
-            });
-	    if (group_type != "ldap")
-	    {
-		new_userlist = mergestring(new_users, "," );
-		new_users = [];
-	    }
+	    map new_userlist = listmap (string user, (list<string>)
+		UI::QueryWidget (`id(`userlist), `SelectedItems), ``{
+		    return $[ user: 1 ];
+	    });
 
 	    // --------------------------------- now everything should be OK
+            group["groupname"]		= new_groupname;
+            group["userPassword"]	= password;
+            group["more_users"]		= more_users;
+            group["gidNumber"]		= new_i_gid;
+            group["type"]		= new_type;
 	    if (group_type == "ldap")
-		ret = `ldap;
-            // if something has changed
-            if ( ((what == "edit_group") && (
-                                (gid != new_i_gid)  ||
-                                (groupname != new_groupname ) ||
-                                (!contains (["x", "*", "!"], password)) ||
-                                (userlist  != new_userlist  ) ||
-				(uniqueMember != new_users)))
-                 || (what == "add_group" ))
-            {
-                // save the current group changes in group_in_work
-                group["what"]		= what;
-                group["groupname"]	= new_groupname;
-                group["userPassword"]	= password;
-                group["more_users"]	= more_users;
-                group["gidNumber"]		= new_i_gid;
-                group["type"]		= group_type;
-		if (group_type == "ldap")
-		    group["uniqueMember"]= new_users;
-		else
-		    group["userlist"]	= new_userlist;
+	    {
+		group["uniqueMember"]	= new_userlist;
+		group ["dn"]		= Users::CreateGroupDN (group);
+		group = Users::SubstituteValues ("group", group);
+		ret			= `ldap; // additional settings
+	    }
+	    else
+	    {
+		group["userlist"]	= new_userlist;
+	    }
 
-		if (group_type != new_type)
-		{
-		    group ["org_type"]   = group_type;
-		    group ["type"]	 = new_type;
-		}
-                if (what == "edit_group")
-                {
-                    if (gid != new_i_gid)
-                        group ["org_gidNumber"] = gid;
-                    if (removed != [])
-                        group["removed_userlist"] = removed;
-                    if (groupname != new_groupname)
-		    {
-                        group["org_groupname"] = groupname;
-			if (group_type == "ldap")
-			{
-			    if (!haskey (group, "org_dn"))
-				group ["org_dn"] = dn;
-			    group ["dn"] = Users::CreateGroupDN (group);
-			}
-		    }
-		}
-		else
-		{
-		    if (group_type == "ldap")
-		    {
-			group = Users::SubstituteValues ("group", group);
-			new_dn		= Users::CreateGroupDN (group);
-			group ["dn"]	= new_dn;
-			group ["org_dn"]= new_dn;
-		    }
-		}
-		Users::group_in_work = (map) eval (group);
-            }
-            else
-            {
-                // nothing has changed - no save
-		if (group_type != "ldap")
-		    ret = `back;
-            }
+	    if (what == "edit_group")
+		Users::EditGroup (group);
+	    else
+		Users::AddGroup (group);
         }
     } until ( contains ([`next, `abort, `back, `ldap], ret));
 
     return (symbol)ret;
-    */
 }
 
 /**

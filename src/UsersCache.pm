@@ -9,7 +9,8 @@ use strict;
 
 # temporary for in-place development FIXME
 #use lib '../../src';
-#use YCP; FIXME "redefinition"
+use lib '/usr/lib/perl5/vendor_perl/5.8.1/i586-linux-thread-multi/YaST';
+use YCP; #FIXME "redefinition"
 use ycp;
 
 our %TYPEINFO;
@@ -65,13 +66,13 @@ my %last_gid		= (
     "system"		=> 100,
 );
 
-my %min_pass_length	= (
+our %min_pass_length	= (
     "local"		=> 5,
     "ldap"		=> 5,
     "system"		=> 5
 );
 
-my %max_pass_length	= (
+our %max_pass_length	= (
     "local"		=> 8,
     "ldap"		=> 8,
     "system"		=> 8
@@ -79,6 +80,9 @@ my %max_pass_length	= (
 
 our $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
 our $min_length_login 	= 2;
+
+our $max_length_groupname 	= 8; # TODO:reason?
+our $min_length_groupname	= 2;
 
 # UI-related variables:
 my $focusline_user;
@@ -193,7 +197,6 @@ sub DebugMap {
 sub UIDConflicts {
 
     my $ret = SCR::Read (".uid.uid", $_[0]);
-    y2internal (" ------------------------ uid ($_[0]) conflict: -$ret-");
     return $ret ? "false" : "true";
 }
  
@@ -468,7 +471,7 @@ sub NextFreeUID {
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMinGID} = ["function",
     "integer",
-    "string"]; #user type
+    "string"];
 }
 sub GetMinGID {
 
@@ -606,7 +609,7 @@ sub BuildGroupItem {
 #TODO merge with more_users
 
     return
-    "`item(`id($gid), ".$group{"groupname"}.", \"$gid\", \"$all_users\")";
+    "`item(`id($gid), \"".$group{"groupname"}."\", \"$gid\", \"$all_users\")";
 }
 
 sub UpdateGroupItemlist {
@@ -754,14 +757,12 @@ sub CommitGroup {
     if ($what eq "edit_group" || $what eq "user_change" ||
         $what eq "user_change_default") {
 
-DebugMap (\%{$group_items{$org_type}});
 	delete $group_items{$org_type}{$org_gid};
 	$group_items{$type}{$gid}	= BuildGroupItem (\%group);
 	if ($org_type ne $type) {
 	    UpdateGroupItemlist ($org_type);
 	    undef $focusline_group;
 	}
-DebugMap (\%{$group_items{$type}});
         UpdateGroupItemlist ($type);
     }
     if ($what eq "delete_group") {
