@@ -17,6 +17,7 @@
 
     include "testsuite.ycp";
     import "Users";
+    import "UsersCache";
     import "Mode";
     import "Directory";
     import "Progress";
