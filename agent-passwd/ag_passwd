@@ -298,15 +298,15 @@ sub write_passwd {
 	foreach my $uid (sort {$a <=> $b} keys %{$users_w{$type}}) {
 
 	    my %user	= %{$users_w{$type}{$uid}};
-	    my $pass	= "x"; #TODO: always "x"?
+	    my $pass	= "x";
 	    my $userline	= join (":", (
-		$user{"username"},
+		$user{"username"} || "",
 		$pass,
 		$uid,
-		$user{"gidNumber"},
-		$user{"cn"},
-		$user{"homeDirectory"},
-		$user{"loginShell"},
+		$user{"gidNumber"} || "",
+		$user{"cn"} || "",
+		$user{"homeDirectory"} || "",
+		$user{"loginShell"} || "",
 	    ));
 	    print PASSWD "$userline\n";
 	}
@@ -333,14 +333,14 @@ sub write_shadow {
 	    my %shadow_entry	= %{$shadow_w{$type}{$uname}};
 	    my $shadowline	= join (":", (
 		$uname,
-		$shadow_entry{"userPassword"},
-		$shadow_entry{"shadowLastChange"},
-		$shadow_entry{"shadowMin"},
-		$shadow_entry{"shadowMax"},
-		$shadow_entry{"shadowWarning"},
-		$shadow_entry{"shadowInactive"},
-		$shadow_entry{"shadowExpire"},
-		$shadow_entry{"shadowFlag"}
+		$shadow_entry{"userPassword"} || "",
+		$shadow_entry{"shadowLastChange"} || "",
+		$shadow_entry{"shadowMin"} || "",
+		$shadow_entry{"shadowMax"} || "",
+		$shadow_entry{"shadowWarning"} || "",
+		$shadow_entry{"shadowInactive"} || "",
+		$shadow_entry{"shadowExpire"} || "",
+		$shadow_entry{"shadowFlag"} || ""
 	    ));
 	    print SHADOW "$shadowline\n";
 	}
