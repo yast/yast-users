@@ -186,7 +186,8 @@ define symbol MainSequence(string start) ``{
             `abort:		"without_save",
 	    `cancel:		"without_save",
 	    `add_user:		"user_add",
-	    `edit_user:		"user_edit"
+	    `edit_user:		"user_edit",
+	    `abort:		`abort,
 	],
 	"user_save": $[
             `next		: "summary",
@@ -213,7 +214,7 @@ define symbol MainSequence(string start) ``{
 	],
 	"group_plugin": $[
 	    `next:		"group_save",
-	    `abort:		"without_save"
+	    `abort:		`abort,
 	],
         "group_save"  : $[
             `next		: "summary"
