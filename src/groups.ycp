@@ -22,7 +22,9 @@ textdomain "users";
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
 
+import "Users";
 import "UsersCache";
+import "CommandLine";
 
 include "users/wizards.ycp";
 
@@ -48,7 +50,155 @@ if (start_dialog == "summary")
 }
 
 y2milestone( "Starting with %1", start_dialog);
-ret = UsersSequence(start_dialog);
+
+// --------------------------------------------------------------------------
+// --------------------------------- cmd-line handlers
+
+/**
+ * List groups
+ * @return boolean false
+ */
+define boolean GroupsListHandler (map options ) ``{
+
+    list sets = maplist (string type, any val, options, ``(type));
+    if (sets == [])
+	sets = ["local"];
+
+    foreach (string type, sets, ``{
+	if (type == "nis" && Users::NISAvailable () && Users::NISNotRead ())
+	{
+	    Users::ReadNewSet ("nis");
+	}
+	foreach (string groupname, UsersCache::GetGroupnames (type), ``{
+	    CommandLine::Print (groupname);
+	});
+    });
+    return false; // do not call Write...
+}
+
+/**
+ * Show one group information
+ * @return boolean false
+ */
+define boolean GroupsShowHandler (map options ) ``{
+
+    map group = $[];
+    integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
+    string groupname = options ["groupname"]:"";
+
+    if (gid != -1)
+    {
+	group = Users::GetGroup (gid, "");
+    }
+    else if (groupname != "")
+    {
+	group = Users::GetGroupByName (groupname, "");
+    }
+    if (group == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such group"));
+	return false;
+    }
+
+    string out = "";
+    map keys = $[
+	// label shown at command line (user attribute)
+	"groupname"	: _("Group Name:"),
+	// label shown at command line (user attribute)
+	"gidNumber"	: _("GID:"),
+	// label shown at command line (user attribute)
+	"userlist"	: _("List of Members:"),
+    ];
+    foreach (string key, any value, group, ``{
+	key = keys[key]:"";
+	if (key == "") return;
+	string svalue = sformat ("%1", value);
+	if (is (value, map))
+	{
+	    svalue = mergestring ((list<string>)
+		maplist (string k, any v, (map) value, ``(k)), ",");
+	}
+	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
+    });
+
+    return false; // do not call Write...
+}
+
+
+define boolean UsersRead () ``{
+
+    Users::SetGUI (false);
+    return Users::Read ();
+}
+
+define boolean UsersWrite () ``{
+
+    Users::SetGUI (false);
+    return Users::Write ();
+}
+
+define boolean UsersGUI ()``{
+    return (UsersSequence (start_dialog) == `next);
+}
+
+
+/* the command line description map */
+map cmdline = $[
+    "id"		: "groups",
+    // translators: command line help text for Users module
+    "help"		: _("Groups configuration module."),
+    "guihandler"	: UsersGUI,
+    "initialize"	: UsersRead,
+    "finish"		: UsersWrite,
+    "actions"		: $[
+	"list" :$[
+	    "handler"	: GroupsListHandler,
+	    // translators: command line help text for list action
+	    "help"	: _("List of available groups")
+	],
+	"show" :$[
+	    "handler"	: GroupsShowHandler,
+	    // translators: command line help text for show action
+	    "help"	: _("Show information of selected group")
+	],
+    ],
+    "options"		: $[
+	"local"	:$[
+	    // translators: command line help text for list local option
+	    "help"	: _("List of local groups"),
+	],
+	"system"	:$[
+	    // translators: command line help text for list system option
+	    "help"	: _("List of system groups"),
+	],
+	"ldap"		:$[
+	    // translators: command line help text for list ldap option
+	    "help"	: _("List of LDAP groups"),
+	],
+	"nis"		:$[
+	    // translators: command line help text for list nis option
+	    "help"	: _("List of NIS groups"),
+	],
+	"gid"		:$[
+	    // translators: command line help text for show uid option
+	    "help"	: _("GID of the group"),
+	    "type"	: "string"
+	],
+	"groupname"	:$[
+	    // translators: command line help text for groupname option
+	    "help"	: _("Name of the group"),
+	    "type"	: "string"
+	],
+    ],
+    "mappings"		: $[
+	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
+	"show"  : [ "gid", "groupname"],
+    ]
+];
+
+ret = CommandLine::Run (cmdline);
+
 
 y2milestone("Users module finished with %1", ret);
 y2milestone("----------------------------------------");

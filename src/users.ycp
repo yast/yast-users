@@ -12,7 +12,6 @@ y2milestone ("Users module started");
 
 import "Users";
 import "Mode";
-import "Ldap"; //FIXME workaround to initialize variables
 import "CommandLine";
 
 include "users/wizards.ycp";
@@ -96,6 +95,12 @@ define boolean UsersShowHandler (map options ) ``{
     {
 	user = Users::GetUserByName (username, "");
     }
+    if (user == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such user"));
+	return false;
+    }
 
     string out = "";
     map keys = $[
@@ -137,7 +142,8 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
 
     if (options["username"]:"" == "")
     {
-	y2error ("You must specify username");
+	// error message
+	CommandLine::Print (_("You must specify username"));
 	return false;
     }
 
@@ -149,15 +155,28 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
 	"fullname"	: "cn",
 	"gid"		: "gidNumber",
 	"uid"		: "uidNumber",
-	"no_home"	: "create_home"
+	"no_home"	: "create_home",
+	"groups"	: "grouplist"
     ];
     foreach (string key, any value, options, ``{
-	if (key == "no_home")
+	string new_key	= keys[key]:key;
+	if (new_key == "create_home")
 	    value = false;
-	user [ keys[key]:key ] = value;
+	if (new_key == "gidNumber")
+	{
+	    // check group existence!
+	    if (!UsersCache::GIDExists (tointeger ((string)value)))
+		return;
+	}
+	if (new_key == "grouplist")
+	{
+	    value = listmap (string g, splitstring ((string)value,","),
+		``($[g : 1]));
+	}
+	user [ new_key ] = value;
     });
 
-    Users::AddUser ($[]);
+    Users::ResetCurrentUser ();
     Users::AddUser (user);
 
     string error = Users::CheckUser ($[]);
@@ -176,14 +195,25 @@ define boolean UsersAddHandler (map <string, any> options ) ``{
  */
 define boolean UsersDeleteHandler (map  <string, any>options ) ``{
 
-    if (options["username"]:"" == "")
+    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
+    string username = options ["username"]:"";
+    boolean delete_home = haskey (options, "delete_home");
+
+    if (uid != -1)
     {
-	y2error ("You must specify username");
+	Users::SelectUser (uid);
+    }
+    else if (username != "")
+    {
+	Users::SelectUserByName (username);
+    }
+    if (Users::GetCurrentUser () == $[])
+    {
+	// error message
+	CommandLine::Print (_("There is no such user"));
 	return false;
     }
-    boolean delete_home = false;
 
-    Users::SelectUserByName (options["username"]:"");
     Users::DeleteUser (delete_home);
     Users::CommitUser ();
     return true;
@@ -191,12 +221,14 @@ define boolean UsersDeleteHandler (map  <string, any>options ) ``{
 
 define boolean UsersRead () ``{
 
+    Users::SetGUI (false);
     return Users::Read ();
 }
 
 define boolean UsersWrite () ``{
 
-    return Users::Write () == "";
+    Users::SetGUI (false);
+    return Users::Write ();
 }
 
 define boolean UsersGUI ()``{
@@ -252,8 +284,13 @@ map cmdline = $[
 	    "help"	: _("List of NIS users"),
 	],
 	"uid"		:$[
-	    // translators: command line help text for show uid option
+	    // translators: command line help text for uid option
 	    "help"	: _("UID of the user"),
+	    "type"	: "string"
+	],
+	"gid"		:$[
+	    // translators: command line help text for add/gid option
+	    "help"	: _("GID of user's default group"),
 	    "type"	: "string"
 	],
 	"username"	:$[
@@ -261,37 +298,50 @@ map cmdline = $[
 	    "help"	: _("Login Name of the user"),
 	    "type"	: "string"
 	],
-	"cn"		:$[ //TODO enable aliases?
+	"cn"		:$[
 	    // translators: command line help text for add option
 	    "help"	: _("Full Name of the user"),
 	    "type"	: "string"
 	],
+	"shell"	:$[
+	    // translators: command line help text for shell option
+	    "help"	: _("Login shell of the user"),
+	    "type"	: "string"
+	],
 	"home"	:$[
-	    // translators: command line help text for username option
+	    // translators: command line help text for home option
 	    "help"	: _("Home directory of the user"),
 	    "type"	: "string"
 	],
 	"no_home"	:$[
-	    // translators: command line help text for show create_home option
-	    "help"	: _("Do not create home directory for new user."),
+	    // translators: command line help text for add + create_home option
+	    "help"	: _("Do not create home directory for new user"),
+	],
+	"delete_home"	:$[
+	    // translators: command line help text for delete_home option
+	    "help"	: _("Delete also user's home directory"),
 	],
 	"password"		:$[
 	    // translators: command line help text for add option
 	    "help"	: _("Password of the user"),
 	    "type"	: "string"
 	],
+	"groups"	:$[
+	    // translators: command line help text for home option
+	    "help"	: _("List of groups the user is member of (separated by comma)"),
+	    "type"	: "string"
+	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"
 	"show"  : [ "uid", "username"],
-	"add"	: [ "username", "uid", "cn", "password", "home", "no_home" ],
-	"delete": [ "username" ],
+	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "groups"],
+	"delete": [ "username", "uid", "delete_home" ],
 //	"read"	: [ "nis", "ldap" ] TODO
 // TODO set the default values ("useradd")
     ]
 ];
 
-Users::SetGUI (false);
 ret = CommandLine::Run (cmdline);
 
 /* Finish */
