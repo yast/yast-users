@@ -374,6 +374,7 @@ sub GetAvailableGroupSets {
 }
 
 ##------------------------------------
+# current users = name of user sets currently shown in table ("local", "nis")
 BEGIN { $TYPEINFO{GetCurrentUsers} = ["function", ["list", "string"]]; }
 sub GetCurrentUsers {
     return \@current_users;
@@ -784,10 +785,10 @@ sub GetLoginDefaults {
     return \%useradd_defaults;   
 }
 
+##------------------------------------
 # Change the structure with default values (/etc/defaults/useradd)
 # @param new_defaults new values
 # @param groupname the name of dew default group
-##------------------------------------
 BEGIN { $TYPEINFO{SetLoginDefaults} = ["function",
     "void",
     ["map", "string", "string"], "string"];
@@ -812,9 +813,10 @@ sub SetLoginDefaults {
 }
 
 ##------------------------------------
+# get the map of user data; parameters: UID, user type (can be empty string)
 BEGIN { $TYPEINFO{GetUser} = [ "function",
     ["map", "string", "any" ],
-    "integer", "string"]; # uid, type (can be empty string)
+    "integer", "string"];
 }
 sub GetUser {
 
@@ -896,7 +898,7 @@ sub ResetCurrentGroup {
 }
 
 ##------------------------------------
-# Returns the map of users specified by its name
+# Returns the map of user specified by its name
 # @param name user's identification (username or DN)
 # @param type (can be empty string)
 # @return the desired user's map

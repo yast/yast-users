@@ -447,6 +447,7 @@ sub SetCurrentFocus {
 
 
 #------------------------------------
+# current summary can be "users" or "groups" (=which table is shown in dialog)
 BEGIN { $TYPEINFO{GetCurrentSummary} = ["function", "string"]; }
 sub GetCurrentSummary {
     return $current_summary;
@@ -492,6 +493,7 @@ sub GetGroupnames {
 
 
 ##------------------------------------
+# returns sorted list of usernames; parameter is type of users
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
@@ -501,6 +503,7 @@ sub GetUsernames {
 }
 
 ##------------------------------------
+# return list of table items of current user set
 BEGIN { $TYPEINFO{GetUserItems} = ["function", ["list", "term"]];}
 sub GetUserItems {
 
