@@ -21,7 +21,6 @@ ynclude_DATA =		\
 client_DATA = 		\
 	users.ycp		\
 	users_auto.ycp	\
-	users_write.ycp	\
 	inst_root.ycp	\
 	inst_user.ycp   \
     expert_login.ycp
