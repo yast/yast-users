@@ -40,7 +40,9 @@ global define symbol UsersSequence(string start) ``{
 	"ws_start" : "read",
 	"read" : $[
 	    `abort	: `abort,
-	    `next	: "main"
+	    `next	: "main",
+        `nextmodule: `next // this is for skiping users conf during install,
+                           // see Users::CheckHomeMounted() or bug #20365
 	],
 	"main" : $[
 	    `abort	: `abort,

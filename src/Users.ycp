@@ -298,6 +298,14 @@ global define symbol Read (block abort, boolean useUI) ``{
 	    Report::Warning (_("Cannot read the default login settings."));
 	}
 
+    if ( !CheckHomeMounted())
+    {
+        if (Mode::cont)
+            return `nextmodule; // what to return during install ??
+        else
+            return `back;
+    }
+
 	// read default system settings
 	if ( useUI )
 	{
@@ -596,7 +604,10 @@ global define symbol Write (block abort, boolean useUI)``{
         {
             if (user["create_home"]:true)
             {
-                // TODO create a path to new home directory
+                // create a path to new home directory, if not exists
+                string home_path = substring (home,0, findlastof(home,"/"));
+                if (SCR::Read(.target.stat, home_path) == $[])
+                    SCR::Execute(.target.mkdir, home_path);
                 y2milestone ("The directory %1 is created", home);
                 // copy homedir from skel
                 command = sformat("/bin/cp -r %1 %2",default_skel,home);
@@ -2185,5 +2196,59 @@ global define boolean SetRootPassword() ``{
 
 	return (SCR::Write(.target.passwd.root, rootPassword));
 }
+
+/**
+ * Checks if the home directory is properly mounted (bug #20365)
+ * @return if user wants to continue
+ */
+global define boolean CheckHomeMounted() ``{
+
+    string mountpoint_in = "";
+
+    // remove last "/"
+    string home = substring (default_home, 0, size(default_home) - 1);
+
+    list fstab = SCR::Read(.etc.fstab);
+    foreach (`line, fstab, ``{
+        if (line["file"]:"" == home)
+            mountpoint_in = "/etc/fstab";
+    });
+
+    if (SCR::Execute (.target.bash, "/usr/bin/test -e /etc/cryptotab") ==0)
+    {
+        list cryptotab = SCR::Read(.etc.cryptotab);
+        foreach (`line, cryptotab, ``{
+            if (line["mount"]:"" == home)
+                mountpoint_in = "/etc/cryptotab";
+        });
+    }
+
+    if (mountpoint_in != "")
+    {
+        boolean mounted = false;
+        list mtab = SCR::Read(.etc.mtab);
+        foreach (`line, mtab, ``{
+            if (line["file"]:"" == home)
+                mounted = true;
+        });
+
+        if (!mounted)
+            return UI::YesNoPopup(
+// Popup text: %1 is the directory (e.g. /home), %2 file name (e.g. /etc/fstab)
+// For more info, look at the bug #20365
+sformat(_("In %2 there is a mount point for directory
+%1 which is used as a default home directory for new
+users, but this directory is not mounted now.
+If you will add new users using the default values,
+their home directories will be created in current %1.
+This can imply that these directories won't be accessible
+after you mount correctly. Continue users configuration?
+"), home, mountpoint_in));
+
+    }
+    return true;
+
+}
+
 
 }// EOF
