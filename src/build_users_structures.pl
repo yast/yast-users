@@ -13,7 +13,15 @@
 #       Builds the YCP structures of users/groups to load from module
 #       (making it inside YaST is toooo slow)
 #
+#  Usage:
+#
+#
 
+# LDAP library
+use Net::LDAP;
+
+# for encoding the fullnames
+use Encode 'from_to';
 
 # the input parameters:
 
@@ -21,7 +29,8 @@ $input_dir      = $ARGV[0];
 $output_dir     = $ARGV[1];
 $max_system_uid = $ARGV[2];
 $max_system_gid = $ARGV[3];
-$user_type      = $ARGV[4];
+$encod          = $ARGV[4];
+$user_type      = $ARGV[5];
 
 $group_input    = $input_dir."/group";
 $passwd_input   = $input_dir."/passwd";
@@ -31,8 +40,9 @@ $gshadow_input  = $input_dir."/gshadow";
 $group_system_output            = $output_dir."/group_system.ycp";
 $group_local_output             = $output_dir."/group_local.ycp";
 $group_byname_output            = $output_dir."/group_byname.ycp";
-#$group_system_itemlist          = $output_dir."/group_system_itemlist.ycp";
-#$group_local_itemlist           = $output_dir."/group_local_itemlist.ycp";
+$group_system_itemlist          = $output_dir."/group_system_itemlist.ycp";
+$group_local_itemlist           = $output_dir."/group_local_itemlist.ycp";
+$groups_corrected               = $output_dir."/group_correct.ycp";
 
 $shadow_local                   = $output_dir."/shadow_local.ycp";
 $shadow_system                  = $output_dir."/shadow_system.ycp";
@@ -81,6 +91,10 @@ $plus_group_file = $output_dir."/plus_group.ycp";
 $plus_shadow_file = $output_dir."/plus_shadow.ycp";
 $plus_gshadow_file = $output_dir."/plus_gshadow.ycp";
 
+$last_ldap      =   $output_dir."/last_ldap_uid.ycp";
+$last_local      =   $output_dir."/last_local_uid.ycp";
+$last_system      =   $output_dir."/last_system_uid.ycp";
+
 # hash with the form: user => group1,group2
 %users_groups = ();
 
@@ -91,13 +105,19 @@ $plus_gshadow_file = $output_dir."/plus_gshadow.ycp";
 
 %groupnamelists = ();
 
+$last_local_uid = $max_system_uid + 1;
+$last_ldap_uid = $max_system_uid + 1;
+$last_system_uid = 0;
 
-#############################################
-#############################################
+
+$the_answer = 42; # ;-)
+
+#--------------------------------------------
+#--------------------------------------------
 sub read_local()
 {
 
-    #############################################
+    #---------------------------------------------
     # read shadow, write it as a YCP map and prepare shadowmap structure
 
     open SHADOW, "< $shadow_input";
@@ -123,7 +143,7 @@ sub read_local()
     }
     close SHADOW;
 
-    #############################################
+    #---------------------------------------------
     # reading gshadow and writing it as a YCP map
 
     open GSHADOW, "< $gshadow_input";
@@ -148,7 +168,7 @@ sub read_local()
     }
     close GSHADOW;
 
-    #############################################
+    #---------------------------------------------
     # reading /etc/group and preparing users_groups structure
 
     open GROUP, "< $group_input";
@@ -188,7 +208,7 @@ sub read_local()
 
     close GROUP;
 
-    #############################################
+    #---------------------------------------------
     # and finally read the passwd
 
     open PASSWD, "< $passwd_input";
@@ -241,18 +261,22 @@ sub read_local()
         if ( $first ne "+" && $first ne "-" )
         {
 
-            my $default_group = $groupmap{$gid};
-            my @default_group_as_list = split (/:/,$default_group);
-            my $groupname = $default_group_as_list[0];
+            my $groupname = "";
+            if (defined $groupmap{$gid})
+            {
+                my $default_group = $groupmap{$gid};
+                my @default_group_as_list = split (/:/,$default_group);
+                $groupname = $default_group_as_list[0];
 
-            # modify default group's more_users entry
-            if (substr ($default_group, - 1, 1) eq ":")
-            {
-                $groupmap{$gid} = $default_group.$username;
-            }
-            else
-            {
-                $groupmap{$gid} = $default_group.",$username";
+                # modify default group's more_users entry
+                if (substr ($default_group, - 1, 1) eq ":")
+                {
+                    $groupmap{$gid} = $default_group.$username;
+                }
+                else
+                {
+                    $groupmap{$gid} = $default_group.",$username";
+                }
             }
 
             # add the grouplist
@@ -283,9 +307,21 @@ sub read_local()
                 $YCP_PASSWD_USERNAMES = YCP_SYSTEM_USERNAMES;
                 $YCP_PASSWD_UIDLIST = YCP_SYSTEM_UIDLIST;
                 $YCP_SHADOW = YCP_SHADOW_SYSTEM;
+                if ($last_system_uid < $uid && $username ne "nobody")
+                {
+                    $last_system_uid = $uid;
+                }
             }
+            else
+            {
+                if ($last_local_uid < $uid)
+                {
+                    $last_local_uid = $uid;
+                }
+            }
+            # recode the fullname to utf
+            from_to($full, $encod, "utf-8");
 
-            # I could directly write to files, instead of generating structure...
             print $YCP_PASSWD_HOMES "\"$home\", ";
             print $YCP_PASSWD_USERNAMES "\"$username\", ";
             print $YCP_PASSWD_UIDLIST " $uid,";
@@ -296,7 +332,15 @@ sub read_local()
             print $YCP_PASSWD "\t\t\"password\": \"$password\",\n";
             print $YCP_PASSWD "\t\t\"uid\": $uid,\n";
             print $YCP_PASSWD "\t\t\"gid\": $gid,\n";
-            print $YCP_PASSWD "\t\t\"fullname\": \"$full\",\n";
+            if ($user_type eq "local")
+            {
+                print $YCP_PASSWD "\t\t\"fullname\": \"$full\",\n";
+            }
+            else
+            {
+                print $YCP_PASSWD
+                    "\t\t\"fullname\": SystemUsers[\"$username\"]:\"$full\",\n";
+            }
             print $YCP_PASSWD "\t\t\"home\": \"$home\",\n";
             print $YCP_PASSWD "\t\t\"org_home\": \"$home\",\n";
             print $YCP_PASSWD "\t\t\"shell\": \"$shell\",\n";
@@ -353,8 +397,17 @@ sub read_local()
                 $all_groups = $grouplist;
             }
 
-            print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
-                "\"$full\", \"$uid\", \"$all_groups\"),\n";
+            if ($user_type eq "local")
+            {
+                print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
+                    "\"$full\", \"$uid\", \"$all_groups\"),\n";
+            }
+            else
+            {
+                print $YCP_PASSWD_ITEMLIST "\t`item(`id($uid), \"$username\", ".
+                    "SystemUsers[\"$username\"]:\"$full\", \"$uid\", \"$all_groups\"),\n";
+            } 
+                    
 
         }
         else # the "+" entry
@@ -397,14 +450,22 @@ sub read_local()
 
     close PASSWD;
 
-    #############################################
+    open MAX_LOCAL_UID, "> $last_local";
+    print MAX_LOCAL_UID "$last_local_uid";
+    close MAX_LOCAL_UID;
+
+    open MAX_SYSTEM_UID, "> $last_system";
+    print MAX_SYSTEM_UID "$last_system_uid";
+    close MAX_SYSTEM_UID;
+
+    #---------------------------------------------
     # save the modified map of groups
     
     open YCP_GROUP_LOCAL, "> $group_local_output";
     open YCP_GROUP_SYSTEM, "> $group_system_output";
     open YCP_GROUP_BYNAME, "> $group_byname_output";
-    #open YCP_GROUP_ITEMLIST_SYSTEM, "> $group_system_itemlist";
-    #open YCP_GROUP_ITEMLIST_LOCAL, "> $group_local_itemlist";
+    open YCP_GROUP_ITEMLIST_SYSTEM, "> $group_system_itemlist";
+    open YCP_GROUP_ITEMLIST_LOCAL, "> $group_local_itemlist";
     
     open YCP_GIDLIST, "> $gidlist_file";
     print YCP_GIDLIST "[\n";
@@ -412,8 +473,8 @@ sub read_local()
     print YCP_GROUP_LOCAL "\$[\n";
     print YCP_GROUP_SYSTEM "\$[\n";
     print YCP_GROUP_BYNAME "\$[\n";
-    #print YCP_GROUP_ITEMLIST_LOCAL "[\n";
-    #print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
+    print YCP_GROUP_ITEMLIST_LOCAL "[\n";
+    print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
     
     open YCP_GSHADOW_LOCAL, "> $gshadow_local";
     print YCP_GSHADOW_LOCAL "\$[\n";
@@ -427,14 +488,14 @@ sub read_local()
     
         my $group_type = "local";
         $YCP_GROUP = YCP_GROUP_LOCAL;
-    #    $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_LOCAL;
+        $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_LOCAL;
         $YCP_GSHADOW = YCP_GSHADOW_LOCAL;
         if ($gid <= $max_system_gid || $groupname eq "nobody" ||
             $groupname eq "nogroup" )
         {
             $group_type = "system";
             $YCP_GROUP = YCP_GROUP_SYSTEM;
-    #        $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_SYSTEM;
+            $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_SYSTEM;
             $YCP_GSHADOW = YCP_GSHADOW_SYSTEM;
         }
     
@@ -485,21 +546,34 @@ sub read_local()
         
         print YCP_GIDLIST " $gid,";
     
-    #    $all_users = $userlist;
-    #    if ($userlist ne "" && $more_users ne "")
-    #    {
-    #       $all_users .= ",";
-    #    }
-    #    $all_users .= $more_users;  
-    #    print $YCP_GROUP_ITEMLIST "\t`item(`id($gid), \"$groupname\", ".
-    #            "\"$gid\", \"$all_users\"),\n";
+        $all_users = $userlist;
+        if ($userlist ne "" && $more_users ne "")
+        {
+           $all_users .= ",";
+        }
+        $all_users .= $more_users;
+
+        # shorten the list, if it is too long
+        @users_list = split (/,/,$all_users);
+        if (@users_list > $the_answer)
+        {
+            $all_users = "";
+            for ($i=0; $i < $the_answer; $i++)
+            {
+                $all_users .= "$users_list[$i],";
+            }
+            $all_users .= "...";
+        }
+
+        print $YCP_GROUP_ITEMLIST "\t`item(`id($gid), \"$groupname\", ".
+                "\"$gid\", \"$all_users\"),\n";
     }
     
     print YCP_GROUP_LOCAL "]\n";
     print YCP_GROUP_SYSTEM "]\n";
     print YCP_GROUP_BYNAME "]\n";
-    #print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
-    #print YCP_GROUP_ITEMLIST_LOCAL "[\n";
+    print YCP_GROUP_ITEMLIST_SYSTEM "[\n";
+    print YCP_GROUP_ITEMLIST_LOCAL "[\n";
     
     print YCP_GIDLIST "]\n";
     close YCP_GIDLIST;
@@ -507,8 +581,8 @@ sub read_local()
     close YCP_GROUP_LOCAL;
     close YCP_GROUP_SYSTEM;
     close YCP_GROUP_BYNAME;
-    #close YCP_GROUP_ITEMLIST_SYSTEM;
-    #close YCP_GROUP_ITEMLIST_LOCAL;
+    close YCP_GROUP_ITEMLIST_SYSTEM;
+    close YCP_GROUP_ITEMLIST_LOCAL;
     
     print YCP_GSHADOW_LOCAL "]\n";
     close YCP_GSHADOW_LOCAL;
@@ -526,13 +600,13 @@ sub read_local()
 }
 
 
-#############################################
-#############################################
+#---------------------------------------------
+#---------------------------------------------
 sub read_nis ()
 {
-# load and correct the default group ... ???
-
     @ypcat = `ypcat passwd`;  # add a check for existence !
+
+    %corrected_groups = ();
 
     open YCP_NIS, "> $nis_output";
     open YCP_NIS_BYNAME, "> $nis_byname_output";
@@ -560,32 +634,23 @@ sub read_nis ()
         print YCP_NIS_UIDLIST " $uid,";
 
         my $groupname = "";
-#        if (defined $groupmap{$gid})
-#        {
-#            my $default_group = $groupmap{$gid};
-#            my @default_group_as_list = split (/:/,$default_group);
-#            $groupname = $default_group_as_list[0];
-#    
-#            # modify group's userlist
-#            if (substr ($default_group, length($default_group) - 1, 1) eq ":")
-#            {
-#                $groupmap{$gid} = $default_group.$username;
-#            }
-#            else
-#            {
-#                $groupmap{$gid} = $default_group.",$username";
-#            }
-#        }
-#
-#        # add the grouplist
+        if (defined ($corrected_groups{$gid}))
+        {
+            $corrected_groups{$gid} .= ",$username";
+        }
+        else
+        {
+            $corrected_groups{$gid} = "$username";
+        }
+
+        # grouplist is hard to generate
         my $grouplist = "";
-#        if (defined $users_groups{$username})
-#        {
-#            $grouplist = $users_groups{$username};
-#        }
-#
+
         print YCP_NIS_HOMES " \"$home\",";
         print YCP_NIS_USERNAMES " \"$username\",";
+
+        # recode the fullname to utf
+        from_to($full, $encod, "utf-8");
 
         print YCP_NIS "\t$uid : \$[\n";
         print YCP_NIS "\t\t\"username\": \"$username\",\n";
@@ -596,35 +661,44 @@ sub read_nis ()
         print YCP_NIS "\t\t\"home\": \"$home\",\n";
         print YCP_NIS "\t\t\"org_home\": \"$home\",\n";
         print YCP_NIS "\t\t\"shell\": \"$shell\",\n";
-        print YCP_NIS "\t\t\"groupname\": \"$groupname\",\n";
-        print YCP_NIS "\t\t\"grouplist\": \"$grouplist\",\n";
+#        print YCP_NIS "\t\t\"groupname\": \"$groupname\",\n";
+#        print YCP_NIS "\t\t\"grouplist\": \"$grouplist\",\n";
         print YCP_NIS "\t\t\"type\": `nis\n";
         print YCP_NIS "\t],\n";
 
         print YCP_NIS_BYNAME "\t\"$username\" : $uid,\n";
 
         # this doesn't look good...
-        @l_grouplist = split (/,/, $grouplist);
-        $filtered = grep ($groupname, @l_grouplist);
-        if ( $filtered == 0 )
-        {
-            if ($grouplist eq "")
-            {
-                $all_groups = $groupname;
-            }
-            else
-            {
-                $all_groups = "$groupname, $grouplist";
-            }
-        }
-        else
-        {
-            $all_groups = $grouplist;
-        }
+#        @l_grouplist = split (/,/, $grouplist);
+#        $filtered = grep ($groupname, @l_grouplist);
+#        if ( $filtered == 0 )
+#        {
+#            if ($grouplist eq "")
+#            {
+#                $all_groups = $groupname;
+#            }
+#            else
+#            {
+#                $all_groups = "$groupname, $grouplist";
+#            }
+#        }
+#        else
+#        {
+#            $all_groups = $grouplist;
+#        }
+        $all_groups = "...";
 
         print YCP_NIS_ITEMLIST "\t`item(`id($uid), \"$username\", ".
             "\"$full\", \"$uid\", \"$all_groups\"),\n";
     }
+    open CORRECT, "> $groups_corrected";
+    print CORRECT "\$[\n";
+    foreach $gid (keys %corrected_groups)
+    {
+        print CORRECT "\t$gid : \"$corrected_groups{$gid}\",\n";
+    }
+    print CORRECT "]\n";
+    close CORRECT;
 
     print YCP_NIS "]\n";
     print YCP_NIS_BYNAME "]\n";
@@ -641,12 +715,12 @@ sub read_nis ()
     close YCP_NIS;
 }
 
-#############################################
-#############################################
+#---------------------------------------------
+#---------------------------------------------
 sub read_ldap()
 {
-    $host = $ARGV[5]; # is it possible here?
-    $base = $ARGV[6];
+    $host = $ARGV[6]; # is it possible here?
+    $base = $ARGV[7];
      
     open YCP_LDAP, "> $ldap_output";
     open YCP_LDAP_BYNAME, "> $ldap_byname_output";
@@ -665,7 +739,7 @@ sub read_ldap()
     print YCP_LDAP_BYNAME "\$[\n";
     print YCP_LDAP_UIDLIST "[\n";
 
-    use Net::LDAP; # could it be here ?
+    %corrected_groups = ();
     
     $ldap = Net::LDAP->new($host);
 
@@ -683,6 +757,7 @@ sub read_ldap()
         $groups{$entry->get_value("gidNumber")} = $entry->get_value("cn");
     }
     
+    # this should be configurable...
     $mesg = $ldap->search(
          base => $base,
          filter => "objectclass=posixAccount",
@@ -703,9 +778,11 @@ sub read_ldap()
         print YCP_LDAP "\t\"gid\": $gid,\n";
         
         print YCP_LDAP "\t\"groupname\": \"$groups{$gid}\",\n";
-        print YCP_LDAP "\t\"grouplist\": \"\",\n";
+#        print YCP_LDAP "\t\"grouplist\": \"\",\n";
  
         my $fullname = $entry->get_value("cn");
+        # recode the fullname to utf
+        from_to($fullname, $encod, "utf-8");
         print YCP_LDAP "\t\"fullname\": \"$fullname\",\n";
         
 #        my $surname = $entry->get_value("sn");
@@ -717,8 +794,6 @@ sub read_ldap()
         my $home = $entry->get_value("homeDirectory");
         print YCP_LDAP "\t\"home\": \"$home\",\n";
         
-    #    print YCP_LDAP "\t\"org_home\": \"$home\",\n";
-    
         my $shell = $entry->get_value("loginShell");
         print YCP_LDAP "\t\"shell\": \"$shell\",\n";
 
@@ -732,6 +807,20 @@ sub read_ldap()
         print YCP_LDAP_HOMES "\"$home\", ";
         print YCP_LDAP_ITEMLIST "\t`item(`id($uid), \"$username\", ".
             "\"$fullname\", \"$uid\", \"$groups{$gid}\"),\n";
+
+        if ($last_ldap_uid < $uid)
+        {
+            $last_ldap_uid = $uid;
+        }
+
+        if (defined ($corrected_groups{$gid}))
+        {
+            $corrected_groups{$gid} .= ",$username";
+        }
+        else
+        {
+            $corrected_groups{$gid} = "$username";
+        }
     }
     
     $ldap->unbind;          
@@ -749,9 +838,22 @@ sub read_ldap()
     close YCP_LDAP_USERNAMES;
     close YCP_LDAP_ITEMLIST;
     close YCP_LDAP;
+
+    open MAX_LDAP_UID, "> $last_ldap";
+    print MAX_LDAP_UID "$last_ldap_uid";
+    close MAX_LDAP_UID;
+
+    open CORRECT, "> $groups_corrected";
+    print CORRECT "\$[\n";
+    foreach $gid (keys %corrected_groups)
+    {
+        print CORRECT "\t$gid : \"$corrected_groups{$gid}\",\n";
+    }
+    print CORRECT "]\n";
+    close CORRECT;
 }
 
-############################################# main
+#--------------------------------------------- main
 
 if ($user_type eq "passwd")
 {

@@ -7,11 +7,10 @@
  *
  */
 {
-
+include "users/passwd.ycp";
 
 global define map ReadGshadow(string dir)``{
 
-//    return SCR::Read(.target.ycp, dir + "/gshadow.ycp");
     return $[
         `local: SCR::Read(.target.ycp, dir + "/gshadow_local.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/gshadow_system.ycp")
@@ -20,7 +19,6 @@ global define map ReadGshadow(string dir)``{
 
 global define map ReadShadow(string dir)``{
 
-//    return SCR::Read(.target.ycp, dir + "/shadow.ycp");
     return $[
         `local: SCR::Read(.target.ycp, dir + "/shadow_local.ycp"),
         `system: SCR::Read(.target.ycp, dir + "/shadow_system.ycp")
@@ -44,7 +42,8 @@ global define map ReadPasswd(string dir)``{
 
     return $[
         `local: SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
-        `system: SCR::Read(.target.ycp, dir + "/passwd_system.ycp")
+        // this is due to translations of fullnames in users/passwd.ycp
+        `system: eval (SCR::Read(.target.ycp, dir + "/passwd_system.ycp"))
     ];
 }
 
@@ -56,24 +55,33 @@ global define map ReadPasswdByName(string dir)``{
     ];
 }
 
+global define string PlusFile (string file) ``{
+
+    if (SCR::Execute (.target.bash, sformat("/usr/bin/test -e %1", file)) == 0)
+        return SCR::Read(.target.ycp, file);
+    else
+        return "";
+}
+
 global define string ReadPlusGshadow(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/plus_gshadow.ycp");
+    return PlusFile (dir + "/plus_gshadow.ycp");
+//    return SCR::Read(.target.ycp, dir + "/plus_gshadow.ycp");
 }
 
 global define string ReadPlusShadow(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/plus_shadow.ycp");
+    return PlusFile (dir + "/plus_shadow.ycp");
 }
 
 global define string ReadPlusGroup(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/plus_group.ycp");
+    return PlusFile (dir + "/plus_group.ycp");
 }
 
 global define string ReadPlusPasswd(string dir)``{
 
-    return SCR::Read(.target.ycp, dir + "/plus_passwd.ycp");
+    return PlusFile (dir + "/plus_passwd.ycp");
 }
 
 

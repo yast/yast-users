@@ -22,17 +22,18 @@ import "Report";
 import "UsersCache";
 import "MailAliases";
 import "Directory";
+import "Console";
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
 include "users/ldap_routines.ycp";
 
-    /** -- who uses this ??
-     * Remove old config options
-     * @return void;
-     */
-    global define void removeOldConf()
-	``{
+/**
+ * Remove old config options - is used from inst_root.ycp
+ * @return void;
+ */
+global define void removeOldConf() ``{
+
 	SCR::Write(.pam.all.password.pam_unix2, "-md5");
 	SCR::Write(.pam.all.password.pam_pwcheck, "-md5");
 
@@ -57,7 +58,7 @@ include "users/ldap_routines.ycp";
 	SCR::Write(.pam.rlogin.password.pam_pwcheck, "-blowfish");
 	SCR::Write(.pam.rlogin.password.pam_unix, "-blowfish");
 
-    }
+}
 
 
 // Encryption method: "des", "md5" - for future use: "blowfish"
@@ -182,9 +183,12 @@ global define boolean Import (list settings) ``{
 
     if (groups [`system]:nil == nil || groups [`system]:nil == $[])
     {
-        map all_groups = ReadGroups (tmpdir);
-        groups [`system] = all_groups[`system]:$[];
-        groups_by_name = ReadGroupsByName (tmpdir);
+        map system_groups = lookup( ReadGroups (tmpdir), `system, $[]);
+        // but we're not interested in local userlists...
+        system_groups = RemoveDiskUsersFromGroups(system_groups);
+        groups [`system] = system_groups;
+        groups_by_name = GroupsByName (system_groups);
+//        groups_by_name = ReadGroupsByName (tmpdir);
     }
     groups_by_name = union (groups_by_name, GroupsByName (groups [`local]:$[]));
     plus_group = ReadPlusGroup(tmpdir);
@@ -204,8 +208,8 @@ global define boolean Import (list settings) ``{
     plus_gshadow = ReadPlusGshadow(tmpdir);
 
     // maybe the `system users/groups shouldn't be available??
-    available_usersets = [`local];
-    available_groupsets = [`local];
+    available_usersets = [`local, `system];
+    available_groupsets = [`local, `system];
 
     ReadAllShells();
     ReadDefaultGroup(false);
@@ -214,6 +218,42 @@ global define boolean Import (list settings) ``{
 
     return true;
 }
+
+/*
+ * Helper function, which corects the userlist entry of each group.
+ * During autoinstallation, system groups are loaded from the disk,
+ * and the userlists of these groups can contain the local users,
+ * which we don not want to Import. So they are checked here.
+ */
+global define map RemoveDiskUsersFromGroups (map disk_groups) ``{
+
+	map ret = mapmap (`gid, `group, disk_groups, ``{
+
+        map new_group = group;
+
+        foreach (`list_of_users, ["userlist", "more_users"], ``{
+
+            list userlist = splitstring (group[list_of_users]:"", ",");
+            string userlist_s = "";
+            foreach (`username, userlist, ``{
+                if (haskey (users_by_name [`system]:$[], username) ||
+                    haskey (users_by_name [`local]:$[], username))
+                {
+                    if (userlist_s == "")
+                        userlist_s = username;
+                    else
+                        userlist_s = userlist_s + "," + username;
+                }
+            });
+            new_group[list_of_users] = userlist_s;
+        });
+
+	    return [ gid, new_group ];
+	});
+
+    return ret;
+}
+
 
 /**
  * Reseting the values (probably to empty set) - to use for autoinstallation
@@ -276,6 +316,8 @@ global string default_groupname = "users";
 global string default_inactive = "-1";
 global string default_expire = "";
 
+// console encoding - needed for preparation script
+string encoding = "";
 
 /*
  * The number of days after a password expires until the account is
@@ -623,7 +665,6 @@ SCR::Execute(.target.bash, "touch /tmp/touch/1c_before_passwd");
 SCR::Execute(.target.bash, "touch /tmp/touch/2before_passwd");
 
     users = ReadPasswd (tmpdir);
-
 SCR::Execute(.target.bash, "touch /tmp/touch/3after_passwd");
 
     plus_passwd = ReadPlusPasswd (tmpdir);
@@ -835,7 +876,8 @@ define boolean ReadDefaultGroup(boolean useUI)``{
 }
 
 /**
- * Read the security settings from the system.
+ * Read the security settings from the system, sets the encoding and various
+ * variables
  * @return boolean true on success
  */
 global define boolean ReadSystemDefaults()``{ //SecurityDef?
@@ -893,6 +935,8 @@ global define boolean ReadSystemDefaults()``{ //SecurityDef?
 	// set maximal password length
 	if (`des != encryption)
 	    max_length_pas = 128;
+
+    encoding = Console::encoding;
 
 	return true;
 }
@@ -1059,7 +1103,8 @@ global define symbol Write (block abort, boolean useUI)``{
             }
         }
     });
-    /* ldap
+    // ldap
+    /*
 	if ( useUI )
 	{
 	    Progress::NextStage ();
@@ -1127,14 +1172,6 @@ global define symbol Write (block abort, boolean useUI)``{
         else
             y2error("Cannot write group file.");
     }
-    /*
-    modified_groups = WriteGroup (write_dir, groups [`system]:$[],
-        groups[`local]:$[], plus_group);
-    foreach (`group, modified_groups, ``{
-        // only the passwor change/set should be done here??
-        // -no, in write Gshadow, don't need modified at all
-    });*/
-
 
     // call make on NIS server
     if (is_nis_master)
@@ -1191,14 +1228,10 @@ global define symbol Write (block abort, boolean useUI)``{
  */
 global define map GetDefaultShadow()``{
 
-	/*
-	  TODO fix lstchg
-	*/
 	return	$[
            "expire"	: default_expire,
 		   "inact"	: default_inactive,
-		   //"lstchg"	: "11747",
-           "lstchng": "", // LastChangeIsNow ??
+           "last_change": "", // LastChangeIsNow() is called from dialogs
 		   "max"	: sformat("%1", pass_max_days),
 		   "min"	: sformat("%1", pass_min_days),
 		   "warn"	: sformat("%1", pass_warn_age)
@@ -1212,7 +1245,7 @@ global define map GetDefaultShadow()``{
 global define string GetDefaultHome()``{
 
     string def_home = useradd_defaults["home"]:"/home";
-    /* TODO check if the directory exists */
+    /* TODO check if the directory exists - in the dialogs */
     if ( (findlastof( def_home, "/") +1) != size(def_home ) )
     {
         def_home = def_home + "/";
@@ -1359,7 +1392,6 @@ y2milestone("user : %1", user_in_work );
                 Commit ("group", cache);
             }
             // modify global shadow map:
-//            shadow [ type, username ] = user_in_work["shadow"]:$[];
             shadow [type] = add(shadow [type]:$[],
                  username, user_in_work["shadow"]:$[]);
 
@@ -1697,13 +1729,17 @@ global define boolean ReadUsersCache(boolean read_prebuilded) ``{
     UsersCache::max_length_uid  =    max_length_uid;
     UsersCache::max_length_gid  =    max_length_gid;
 
+    UsersCache::encoding        =   encoding;
+
     // build the users MenuButton items
+    available_usersets_items = [];
     foreach (`set, available_usersets, ``{
         available_usersets_items = add ( available_usersets_items,
             `item(`id(set), userset_to_string [ set ]:""));
     });
 
     // build the groups MenuButton items
+    available_groupsets_items = [];
     foreach (`set, available_groupsets, ``{
         available_groupsets_items = add ( available_groupsets_items,
             `item(`id(set), groupset_to_string [ set ]:""));
@@ -1713,36 +1749,6 @@ global define boolean ReadUsersCache(boolean read_prebuilded) ``{
     current_groups = eval (group_custom_sets);
 
     // use the pre-builded structures also for cache
-    /*
-    if (read_prebuilded)
-    {
-        UsersCache::homelists[`system] = SCR::Read(.target.ycp, tmpdir +
-            "/homelist_system.ycp");
-        UsersCache::homelists[`local] = SCR::Read(.target.ycp, tmpdir +
-            "/homelist_local.ycp");
-
-        UsersCache::usernamelists[`local] = SCR::Read(.target.ycp, tmpdir +
-            "/usernamelist_local.ycp");
-        UsersCache::usernamelists[`system] = SCR::Read(.target.ycp, tmpdir +
-            "/usernamelist_system.ycp");
-
-        UsersCache::uidlist = SCR::Read(.target.ycp, tmpdir +
-            "/uidlist_passwd.ycp");
-
-        UsersCache::groupnamelists = SCR::Read(.target.ycp, tmpdir +
-            "/groupnamelist.ycp");
-        UsersCache::gidlist = SCR::Read(.target.ycp, tmpdir + "/gidlist.ycp");
-
-    }
-    else // build the structures in UsersCache module
-    {
-        UsersCache::homelists = $[];
-        UsersCache::usernamelists = $[];
-        UsersCache::uidlist = [];
-        UsersCache::groupnamelists = $[];
-        UsersCache::gidlist = [];
-    }*/
-
     if (read_prebuilded)
         UsersCache::Read (users, groups, current_users, current_groups, tmpdir);
     else
@@ -1765,6 +1771,7 @@ global define map GetUserByName ( string name )``{
 }
 
 /**
+ * Finds the user specified by uid and set is as current
  * @param uid the user id
  */
 global define void SelectUser( integer uid )``{
@@ -1784,6 +1791,7 @@ global define void SelectUser( integer uid )``{
 }
 
 /**
+ * Finds the group specified by gid and set is as current
  * @param gid the group id
  */
 global define void SelectGroup( integer gid )``{
@@ -1817,6 +1825,28 @@ global define map GetGroupFromAll( integer gid )``{
 	return group;
 }
 
+/**
+ * This define returns the groups of a user.
+ * @param username the name of the user
+ * @return string group comma separated list
+ */
+global define string FindGroupsBelongUser( string username ) ``{
+
+    string grouplist = "";
+    foreach (`type, `groupset, groups, ``{
+        foreach (`gid, `group, groupset, ``{
+            list userlist = splitstring (group["userlist"]:"", ",");
+            if (contains (userlist, username))
+            {
+                if (grouplist == "")
+                    grouplist = group["groupname"]:"";
+                else
+                    grouplist = grouplist + "," + group["groupname"]:"";
+            }
+        });
+    });
+    return grouplist;
+}
 
 /*
  */
@@ -1840,7 +1870,7 @@ global define boolean UsernameExists(string username) ``{
 }
 
 /*
- * change the current users set, reading could be necessary
+ * change the current users set, additional reading could be necessary
  */
 global define void ChangeCurrentUsers(symbol new) ``{
 
@@ -1859,7 +1889,8 @@ global define void ChangeCurrentUsers(symbol new) ``{
         users_by_name [`ldap ] = ReadLDAPUsersByName (tmpdir);
         ldap_not_read = false;
         UsersCache::BuildUsers (users [`ldap]:$[], `ldap, tmpdir);
-// also groups have to be reloaded !!! (default group)
+        // also groups have to be reloaded
+        CorrectGroups();
     }
     if (contains (current_users, `nis) && nis_not_read)
     {
@@ -1870,10 +1901,32 @@ global define void ChangeCurrentUsers(symbol new) ``{
         users_by_name [`nis] = ReadNISUsersByName (tmpdir);
         nis_not_read = false;
         UsersCache::BuildUsers (users [`nis]:$[], `nis, tmpdir);
-// also groups have to be reloaded !!! (default group)
+        // also groups have to be reloaded
+        CorrectGroups();
     }
 
     UsersCache::current_users = current_users;// via some function?
+}
+
+// update of more_users entries
+global define void CorrectGroups() ``{
+
+    map correction = SCR::Read(.target.ycp, tmpdir + "/group_correct.ycp");
+    foreach (`gid, `userslist, correction, ``{
+
+
+        map corrected_group = GetGroupFromAll(gid);
+        if (corrected_group ["more_users"]:"" == "")
+            corrected_group ["more_users"] = userslist;
+        else
+            corrected_group ["more_users"] = corrected_group ["more_users"]:""
+                +  "," + userslist;
+
+        groups [ corrected_group["type"]:`local, gid ] = corrected_group;
+
+        // also the group's itemlist must be changed
+        UsersCache::ChangeGroup (`itemlist, corrected_group);
+    });
 }
 
 global define void ChangeCurrentGroups(symbol new) ``{
@@ -1919,6 +1972,9 @@ global define boolean SetDefaults (map new_defaults, string groupname)``{
     return true;
 }
 
+/*
+ * Sets the time of last password change
+ */
 global define string LastChangeIsNow () ``{
     map out = SCR::Execute(.target.bash_output, "date +%s");
     string days_s = out["stdout"]:"0\n";
@@ -1927,15 +1983,21 @@ global define string LastChangeIsNow () ``{
     return sformat("%1", days);
 }
 
+/*
+ * Runs a script, preparing the data structures
+ * @param type type of user/group set to load, can be "passwd", "nis", "ldap"
+ */
 global define boolean RunPrepare(string type) ``{
 
     integer ret = SCR::Execute(.target.bash, sformat(
-        "%1/build_users_structures.pl %2 %3 %4 %5 %6", Directory::bindir,
-        base_dir, tmpdir, max_system_uid, max_system_gid, type));
+        "%1/build_users_structures.pl %2 %3 %4 %5 %6 %7", Directory::bindir,
+        base_dir, tmpdir, max_system_uid, max_system_gid, encoding, type));
     return (ret == 0);
 }
 
-// get the password to LDAP database
+/*
+ * Gets the bind password to LDAP database
+ */
 // move to dialogs?
 define string GetLDAPPassword() ``{
 
@@ -1953,7 +2015,10 @@ define string GetLDAPPassword() ``{
     return pw;
 }
 
-// the default grouplist for new user
+/*
+ * The default grouplist for new user
+ * @param type type of new user (`local, `system, `nis, `ldap)
+ */
 global define string GetDefaultGrouplist (symbol type) ``{
 
     // check for existence of groups !!
@@ -1963,7 +2028,9 @@ global define string GetDefaultGrouplist (symbol type) ``{
         return "";
 }
 
-// get the source of user lists from /etc/nsswitch.conf
+/*
+ * Gets the source of user lists from /etc/nsswitch.conf
+ */
 global define list GetUsersSources() ``{
 
     string passwd_source = SCR::Read(.etc.nsswitch_conf.passwd);

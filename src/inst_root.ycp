@@ -30,7 +30,6 @@ import "Wizard";
 import "Users";
 import "Mode";
 include "ui/common_messages.ycp";
-//include "users/routines.ycp";
 
   if (Mode::cont && ! Mode::usessh)
   {
@@ -99,27 +98,6 @@ As a general rule of thumb, use DES if you are unsure.
           ),
           `HSpacing( 2 )
         ),
-        // frame label
-        `Frame( _("Users lists"),
-            `VBox(
-                `VSpacing( 0.5 ),
-                `Label(`id(`sources), `opt(`outputField, `hstretch), ""),
-                `VSpacing( 0.5 )
-                )
-        ),
-        // frame label
-        `Frame( _("Authentication"),
-            `VBox(
-                `VSpacing( 0.5 ),
-                `TextEntry (`id(`auth), "", "")
-                )
-        ),
-        `VSpacing( 0.5 ),
-        `MenuButton(_("&Configure authentication"), [
-            `item(`id(`nis), "NIS"),
-            `item(`id(`ldap), "LDAP"),
-            `item(`id(`krb), "Kerberos")]),
-        `VSpacing( 0.5 ),
         `HBox(
           `HStretch(),
           `HWeight( 1,
@@ -132,11 +110,6 @@ As a general rule of thumb, use DES if you are unsure.
           )
         )
     );
-
-    string users_sources = mergestring (Users::GetUsersSources (), ",");
-
-    UI::ChangeWidget(`id(`sources), `Value, users_sources);
-//    UI::ChangeWidget(`id(`sources), `Enabled, false);
 
     symbol button = nil;
 
@@ -158,20 +131,6 @@ As a general rule of thumb, use DES if you are unsure.
                 Users::encryptionMethod = "blowfish";
 
             y2milestone( "Password expert options: Changing encryption method to %1", Users::encryptionMethod );
-        }
-
-        if ( button == `nis)
-        {
-            WFM::CallModule("nis", []);
-            users_sources = mergestring (Users::GetUsersSources (), ",");
-            UI::ChangeWidget(`id(`sources), `Value, users_sources);
-        }
-
-        if ( button == `ldap)
-        {
-            WFM::CallModule("ldap", []);
-            users_sources = mergestring (Users::GetUsersSources (), ",");
-            UI::ChangeWidget(`id(`sources), `Value, users_sources);
         }
 
     } while ( button != `ok && button != `cancel );
@@ -253,10 +212,10 @@ Valid password characters are letters, digits, blanks, and
 Do not forget this \"root\" password!
 </p>"));
 
- Wizard::CreateDialog(); // just a hack, only for testing
+// Wizard::CreateDialog(); // just a hack, only for testing
 
-// Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
- Wizard::SetContents(title, contents, helptext, true, true);
+ Wizard::SetContents(title, contents, helptext, Args(0), Args(1));
+// Wizard::SetContents(title, contents, helptext, true, true);
 
   if ("" == UI::QueryWidget(`id(`pw1), `Value))
     UI::SetFocus (`id (`pw1));
@@ -285,7 +244,6 @@ Do not forget this \"root\" password!
 
       if (ret == `expert)
       {
-            WFM::CallModule("nis", []);
           expert_dialog();
 
           string pw1 = UI::QueryWidget(`id(`pw1), `Value);
@@ -355,13 +313,12 @@ Try again.
 
          Users::removeOldConf();
          Users::cryptRootPassword(pw1);
-         /*
          if ( this_is_for_real && ! Users::SetRootPassword())
          {
              // Error msg
              Report::Error(_("The root password could not be set.
 You will not be able to log in.\n"));
-         }*/
+         }
       }
       }
   } until ( ret == `next || ret == `back || ret == `cancel );
