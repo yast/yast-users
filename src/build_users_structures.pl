@@ -21,6 +21,8 @@ $gshadow_output                 = $output_dir."/gshadow.ycp";
 $nis_output                     = $output_dir."/nis.ycp";
 #$nis_itemlist                   = $output_dir."/nis_itemlist.ycp";
 $nis_byname_output              = $output_dir."/nis_byname.ycp";
+$getent_output                     = $output_dir."/getent.ycp";
+$getent_byname_output              = $output_dir."/getent_byname.ycp";
 $passwd_system_output           = $output_dir."/passwd_system.ycp";
 $passwd_local_output            = $output_dir."/passwd_local.ycp";
 $passwd_system_byname_output    = $output_dir."/passwd_system_byname.ycp";
@@ -43,6 +45,7 @@ $last_gshadow_file = $output_dir."/last_gshadow.ycp";
 %groupmap = ();
 %passwdmap = ();
 %shadowmap = ();
+%gpasswords = ();
 
 %usernamelists = ();
 %homelists = ();
@@ -107,6 +110,8 @@ foreach (<GSHADOW>)
     $first = substr ($groupname, 0, 1);
     if ( $first ne "+" && $first ne "-" )
     {
+        $gpasswords{$groupname} = $password;
+
         print YCP_GSHADOW "\t\"$groupname\": \$[\n";
         print YCP_GSHADOW "\t\t\"password\": \"$password\",\n";
         print YCP_GSHADOW "\t\t\"disposer\": \"$disposer\",\n";
@@ -209,7 +214,7 @@ foreach $user (<PASSWD>)
             $grouplist = $users_groups{$username};
         }
 
-        $passwdmap{$uid} = $username; # only nis users check this map
+        $passwdmap{$uid} = $username; # only passwd users check this map
 
         my $user_type = "local";
         my $YCP_PASSWD = YCP_PASSWD_LOCAL;
@@ -318,7 +323,7 @@ close PASSWD;
 
 #############################################
 
-@getent = `getent passwd`;
+@ypcat = `ypcat passwd`;  # add a check for existence !
 
 open YCP_NIS, "> $nis_output";
 open YCP_NIS_BYNAME, "> $nis_byname_output";
@@ -328,17 +333,17 @@ open YCP_UIDLIST, "> $uidlist_file";
 print YCP_NIS "\$[\n";
 print YCP_NIS_BYNAME "\$[\n";
 #print YCP_NIS_ITEMLIST "\$[\n";
-print YCP_UIDLIST "[\n";
 
-foreach $user (@getent)
+foreach $user (@ypcat)
 {
     ($username, $password, $uid, $gid, $full, $home, $shell) = split(/:/,$user);
     chomp $shell;
 
-    print YCP_UIDLIST " $uid,";
 
-    if (!defined $passwdmap{$uid})
-    {
+    $passwdmap{$uid} = $username; # only getent users check this map
+
+#    if (!defined $passwdmap{$uid}) -- not needed wit ypcat
+#    {
         my $groupname = "";
         if (defined $groupmap{$gid})
         {
@@ -416,25 +421,132 @@ foreach $user (@getent)
 
 #        print YCP_NIS_ITEMLIST "\t`item(`id($uid), \"$username\", ".
 #            "\"$full\", \"$uid\", \"$all_groups\"),\n";
-    }
+#    }
 }
 
 print YCP_NIS "]\n";
 print YCP_NIS_BYNAME "]\n";
 #print YCP_NIS_ITEMLIST "]\n";
-print YCP_UIDLIST "\n]";
 
 close YCP_NIS;
 close YCP_NIS_BYNAME;
 #close YCP_NIS_ITEMLIST;
+
+#############################################
+
+@getent = `getent passwd`; # this is currently only for LDAP users
+
+open YCP_GETENT, "> $getent_output";
+open YCP_GETENT_BYNAME, "> $getent_byname_output";
+open YCP_UIDLIST, "> $uidlist_file";   # not all users are here !! (LDAP+NIS)
+
+print YCP_GETENT "\$[\n";
+print YCP_GETENT_BYNAME "\$[\n";
+print YCP_UIDLIST "[\n";
+
+foreach $user (@getent)
+{
+    ($username, $password, $uid, $gid, $full, $home, $shell) = split(/:/,$user);
+    chomp $shell;
+
+    print YCP_UIDLIST " $uid,";
+
+    if (!defined $passwdmap{$uid})
+    {
+        my $groupname = "";
+        if (defined $groupmap{$gid})
+        {
+            my $default_group = $groupmap{$gid};
+            my @default_group_as_list = split (/:/,$default_group);
+            $groupname = $default_group_as_list[0];
+    
+            # can I do it with LDAP users ??
+            # modify group's userlist
+            if (substr ($default_group, length($default_group) - 1, 1) eq ":")
+            {
+                $groupmap{$gid} = $default_group.$username;
+            }
+            else
+            {
+                $groupmap{$gid} = $default_group.",$username";
+            }
+        }
+
+        # add the grouplist
+        my $grouplist = "";
+        if (defined $users_groups{$username})
+        {
+            $grouplist = $users_groups{$username};
+        }
+
+        if (defined  $usernamelists{"getent"})
+        {
+            $usernamelists{"getent"} .= ", \"$username\"";
+            if ($home ne "") # and can be??
+            {
+                 $homelists{"getent"} .= ", \"$home\"";
+            }
+        }
+        else
+        {
+            $usernamelists{"getent"} = "\"$username\"";
+            $homelists{"getent"} = "\"$home\"";
+        }
+
+        # YCP map is generated...
+        print YCP_GETENT "\t$uid : \$[\n";
+        print YCP_GETENT "\t\t\"username\": \"$username\",\n";
+        print YCP_GETENT "\t\t\"password\": \"$password\",\n";
+        print YCP_GETENT "\t\t\"uid\": $uid,\n";
+        print YCP_GETENT "\t\t\"gid\": $gid,\n";
+        print YCP_GETENT "\t\t\"fullname\": \"$full\",\n";
+        print YCP_GETENT "\t\t\"home\": \"$home\",\n";
+        print YCP_GETENT "\t\t\"org_home\": \"$home\",\n";
+        print YCP_GETENT "\t\t\"shell\": \"$shell\",\n";
+        print YCP_GETENT "\t\t\"groupname\": \"$groupname\",\n";
+        print YCP_GETENT "\t\t\"grouplist\": \"$grouplist\",\n";
+        print YCP_GETENT "\t\t\"type\": `getent\n";
+        print YCP_GETENT "\t],\n";
+
+        print YCP_GETENT_BYNAME "\t\"$username\" : $uid,\n";
+
+        # this doesn't look good...
+        @l_grouplist = split (/,/, $grouplist);
+        $filtered = grep ($groupname, @l_grouplist);
+        if ( $filtered == 0 )
+        {
+            if ($grouplist eq "")
+            {
+                $all_groups = $groupname;
+            }
+            else
+            {
+                $all_groups = "$groupname, $grouplist";
+            }
+        }
+        else
+        {
+            $all_groups = $grouplist;
+        }
+    }
+}
+
+print YCP_GETENT "]\n";
+print YCP_GETENT_BYNAME "]\n";
+print YCP_UIDLIST "\n]";
+
+close YCP_GETENT;
+close YCP_GETENT_BYNAME;
 close YCP_UIDLIST;
+
 
 #############################################
 open YCP_USERNAMES, "> $usernamelist_file";
 print YCP_USERNAMES "\$[\n";
 print YCP_USERNAMES "\t`system: [ ".$usernamelists{"system"}." ],\n";
 print YCP_USERNAMES "\t`local: [ ".$usernamelists{"local"}." ],\n";
-print YCP_USERNAMES "\t`nis: [ ".$usernamelists{"nis"}." ]\n";
+print YCP_USERNAMES "\t`nis: [ ".$usernamelists{"nis"}." ],\n";
+print YCP_USERNAMES "\t`getent: [ ".$usernamelists{"getent"}." ]\n";
 print YCP_USERNAMES "]\n";
 close YCP_USERNAMES;
     
@@ -442,7 +554,8 @@ open YCP_HOMES, "> $homelist_file";
 print YCP_HOMES "\$[\n";
 print YCP_HOMES "\t`system: [ ".$homelists{"system"}." ],\n";
 print YCP_HOMES "\t`local: [ ".$homelists{"local"}." ],\n";
-print YCP_HOMES "\t`nis: [ ".$homelists{"nis"}." ]\n";
+print YCP_HOMES "\t`nis: [ ".$homelists{"nis"}." ],\n";
+print YCP_HOMES "\t`getent: [ ".$homelists{"getent"}." ]\n";
 print YCP_HOMES "]\n";
 close YCP_HOMES;
 
@@ -475,6 +588,17 @@ foreach (values %groupmap)
         $YCP_GROUP = YCP_GROUP_SYSTEM;
 #        $YCP_GROUP_ITEMLIST = YCP_GROUP_ITEMLIST_SYSTEM;
     }
+
+    if (defined $gpasswords{$groupname})
+    {
+        $shadow_pass = $gpasswords{$groupname};
+        if ( $shadow_pass ne "" && $shadow_pass ne "+" &&
+             $shadow_pass ne "*" && $shadow_pass ne "!")
+        {
+            $pass = $shadow_pass;
+        }
+    }
+    
     print $YCP_GROUP "\t$gid: \$[\n";
     print $YCP_GROUP "\t\t\"groupname\": \"$groupname\",\n";
     print $YCP_GROUP "\t\t\"pass\": \"$pass\",\n";

@@ -6,446 +6,102 @@
  *          Jiri Suchomel <jsuchome@suse.cz>
  *
  */
-// There are some variables (last_*) from Users used here !!
 {
 
-/**
- * Read the file /etc/gshadow and save it to the list current_gshadow.
- */
-global define boolean ReadGshadowFromDisk(string basedir)``{
 
-    path gshadow_path = .userscfg.gshadow;
-//    list current_gshadow  = [];
-    map current_gshadow  = $[];
-    string conf_path = basedir + "/gshadow";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/gshadow";
-    string data = sformat ("%1
+global define map ReadGshadow(string dir)``{
 
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")), // real filename
-      \"#\",                      // Comment
-      false,
-      ``(List (
-        Or (
-          Tuple (
-          `groupname (String(\"\")),
-          \":\",
-          `password (String(\"\")),
-          \":\",
-          `disposer (String(\"\")),
-          \":\",
-          `userlist (String(\"\"))
-        ),
+    return SCR::Read(.target.ycp, dir + "/gshadow.ycp");
+}
 
-        Tuple (
-          `groupname (Or (String(\"^:\"), \"\")),
-          \":\",
-          `password ( Or (String (\"^:\"), \"\") ),
-          \":\",
-          `disposer (Or (String (\"^:\"), \"\")),
-          \":\",
-          `userlist (Or (String (\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", gshadow_path, conf_path);
-    SCR::Write (.target.string, tmpfile, data);
-    SCR::RegisterAgent(gshadow_path, tmpfile);
+global define map ReadShadow(string dir)``{
 
-    list current_gshadow_l  = SCR::Read( gshadow_path );
+    return SCR::Read(.target.ycp, dir + "/shadow.ycp");
+}
 
-    if ( current_gshadow == nil || current_gshadow == [] )
-    {
-        y2error("Can't read file gshadow");
-        return nil;
-    }
+global define map ReadGroups(string dir)``{
 
-    //remove empty entries
-//    current_gshadow  = filter(`k, current_gshadow , ``( size(k) > 1 ) );
-    foreach (`entry, current_gshadow_l, ``{
-        string groupname = entry["groupname"]:"";
-        map new_entry = $[
-            "password": entry["password"]:"*",
-            "disposer": entry["disposer"]:"",
-            "userlist": entry["userlist"]:""];
-        current_gshadow[groupname] = new_entry;
-    });
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/group_local.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/group_system.ycp")
+    ];
+}
 
-    return current_gshadow;
+global define map ReadGroupsByName(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/group_byname.ycp");
+}
+
+global define map ReadPasswd(string dir)``{
+
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/passwd_local.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/passwd_system.ycp")
+    ];
+}
+
+global define map ReadPasswdByName(string dir)``{
+
+    return $[
+        `local: SCR::Read(.target.ycp, dir + "/passwd_local_byname.ycp"),
+        `system: SCR::Read(.target.ycp, dir + "/passwd_system_byname.ycp")
+    ];
+}
+
+global define map ReadNISUsers(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/nis.ycp");
+}
+
+global define map ReadNISUsersByName(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/nis_byname.ycp");
+}
+
+global define string ReadLastGshadow(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/last_gshadow.ycp");
+}
+
+global define string ReadLastShadow(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/last_shadow.ycp");
+}
+
+global define string ReadLastGroup(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/last_group.ycp");
+}
+
+global define string ReadLastPasswd(string dir)``{
+
+    return SCR::Read(.target.ycp, dir + "/last_passwd.ycp");
 }
 
 /**
- * Read the file /etc/passwd and save it to the map current_users.
  */
-global define map ReadPasswdFromDisk(string basedir, map groupmap) ``{
+global define map ReadLDAPUsers(string dir) ``{
 
-    path passwd_path  = .userscfg.passwd;
-    map passwd_users = $[];
-    string conf_path = basedir + "/passwd";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/passwd";
-SCR::Execute(.target.bash, "touch /tmp/touch/2cpasswd_before_read-agent");
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),  // real filename
-      \"#\",                      // Comment
-      true,
-      ``(List (
-        Or (
-          Tuple (
-          `username (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `uid (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `fullname (String (\"\")),
-          \":\",
-          `home (String (\"\")),
-          \":\",
-          `shell (String (\"\"))
-        ),
-
-        Tuple (
-          `username (String (\"^:\")),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `uid (Number ()),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `fullname (Or (String (\"^:\"), \"\")),
-          \":\",
-          `home (String (\"^:\")),
-          \":\",
-          `shell (String (\"^\n\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", passwd_path, conf_path);
-      SCR::Write (.target.string, tmpfile, data);
-      SCR::RegisterAgent(passwd_path, tmpfile);
-      list p_users  = SCR::Read( passwd_path );
-//y2milestone("p_users: %1", p_users);
-//y2milestone("/etc/passwd: %1", SCR::Read(.target.string, conf_path));
-//y2milestone("groupmap: %1", groupmap);
-      if( p_users == $[] || users == nil )
-      {
-      y2error("Can't read file passwd");
-      return nil;
-      }
-
-SCR::Execute(.target.bash, "touch /tmp/touch/2dpasswd_before_foreach-agent");
-      foreach ( `user, p_users,  ``{
-      // it can be "+"
-      any i_uid = user["uid"]:0;
-
-//      user["exist"] = true; do I neen this??
-      if( is( i_uid , integer ) )
-      {
-        // -- only in items ??
-          user["fullname"] = consoleUncoding( user["fullname"]:"");
-          user["org_home"] = user["home"]:"";
-//          user["type"] = `passwd; -- not needed here
-          user["grouplist"] = "";
-          integer gid = user["gid"]:100; //default_gid
-          string username = user["username"]:"";
-          // do not need to add here??
-          user["groupname"] = groupmap [ gid, "groupname" ]:"";
-
-          string more_users = groupmap [gid, "more_users"]:"";
-          list l_userlist = splitstring (more_users, ",");
-          if (! contains (l_userlist, username)) // only for "nobody" ??
-          {
-            if (more_users != "") more_users = more_users + ",";
-            // update userlist of user's default group:
-            groupmap [gid, "more_users"] = more_users + username;
-          }
-          // add the shadow entry to the passwd_users map too: ???
-
-          user["shadow"] = shadow[username]:$[];
-          passwd_users[ i_uid ] = user;
-      }
-      });
-SCR::Execute(.target.bash, "touch /tmp/touch/2epasswd_after_foreach-agent");
-    return passwd_users;
-    }
-
-
-/**
- */
-global define map ReadGetentPasswd(string basedir, map groupmap) ``{
-
-    map remote_users = $[];
-    list r_users = SCR::Read (.run.getent.passwd);
-    if (r_users == nil)
-        return nil; // what return ??
-    foreach ( `user, r_users,  ``{
-        // it can be "+"
-        any i_uid = user["uid"]:0;
-//        user["exist"] = true;
-        if( is( i_uid , integer ) )
-        {
-            if (lookup (passwd_users, i_uid, $[]) == $[])
-            {
-            user["fullname"] = consoleUncoding( user["fullname"]:"");
-            user["org_home"] = user["home"]:"";
-            user["type"] = `nis;// `getent
-            user["grouplist"] = "";
-            integer gid = user["gid"]:500;
-            map default_group = groupmap [ gid ]:$[];
-            user["groupname"] = default_group [ "groupname" ]:"";
-            // update userlist of user's default group:
-            if (default_group != $[]) // e.g. nis group !!
-            {
-                string more_users = default_group ["more_users"]:"";
-                if (more_users != "") more_users = more_users + ",";
-                default_group ["more_users"] = more_users + user["username"]:"";
-                groupmap [gid] = default_group;
-            }
-            // update users map:
-            remote_users[ i_uid ] = user;
-            }
-        }
-    });
-    y2debug("Read file getent: %1", remote_users);
-    return remote_users;
+    return (SCR::Read(.target.ycp, dir + "/getent.ycp"));
 }
 
 /**
- * Read the file /etc/group.
  */
-global define boolean ReadGroupFromDisk(string basedir, map gshadowmap) ``{
-
-    map loaded_groups = $[];
-    path group_path   = .userscfg.group;
-    string conf_path = basedir + "/group";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/group";
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),   // real filename
-      \"#\",                      // Comment
-      true,
-      ``(List (
-        Or (
-          Tuple (
-          `groupname (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `userlist (String (\"\"))
-        ),
-
-        Tuple (
-          `groupname (Username()),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `userlist (Or (String (\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", group_path, conf_path);
-    SCR::Write (.target.string, tmpfile, data);
-    SCR::RegisterAgent(group_path, tmpfile);
-
-    list allgroups = SCR::Read( group_path );
-
-    if( allgroups == [] || groups == nil )
-    {
-        y2error("Can't read file group");
-        return nil;
-    }
-
-    foreach ( `group, allgroups,  ``{
-        // it can be "+"
-        any i_gid = group["gid"]:0;
-//        group["exist"]=  true;
-        if( is( i_gid , integer ) )
-        {
-            //add group password form /etc/shadow
-            string password = gshadowmap[group["groupname"]:"", "password"]:"*";
-            if ( (password != "*" ) && ( password  != "!" ) )
-                group["password"] = password;
-            /*
-            string password =  getGroupPassword( group["groupname"]:"" );
-            if ( password != nil ) group["password"]=  password;*/
-            loaded_groups[ i_gid ] = group;
-        }
-    });
-    return loaded_groups;
+global define boolean ReadLDAPGroups() ``{
 }
-
 
 /**
- * Read the file /etc/shadow and save it to the list current_shadow.
- */
-global define map ReadShadowFromDisk(string basedir) ``{
+  */
+global define boolean IsLDAPServer () ``{
 
-    path shadow_path  = .userscfg.shadow;
-    map current_shadow = $[];
-    string conf_path = basedir + "/shadow";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/shadow";
-    string data = sformat ("%1
+    y2milestone("dir ldap: %1", SCR::Dir(.etc.openldap.ldap_conf));
+    string host = SCR::Read(.etc.openldap.ldap_conf.host);
+    y2milestone("read ldap.host: %1", host);
 
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),  // real filename
-      \"#\",                      // Comment
-      false,
-      ``(List (
-        Or (
-          Tuple (
-          `username (String(\"\")),
-          \":\",
-          `password (String(\"\")),
-          \":\",
-          `last_change (String(\"\")),
-          \":\",
-          `min (String(\"\")),
-          \":\",
-          `max (String(\"\")),
-          \":\",
-          `warn (String(\"\")),
-          \":\",
-          `inact (String(\"\")),
-          \":\",
-          `expire (String(\"\")),
-          \":\",
-          `flag (String(\"\"))
-        ),
-
-        Tuple (
-          `username (Or (String(\"^:\"), \"\")),
-          \":\",
-          `password ( Or (String (\"^:\"), \"\") ),
-          \":\",
-          `last_change ( Or (String (\"^:\"), \"\") ),
-          \":\",
-          `min (Or (String (\"^:\"), \"\")),
-          \":\",
-          `max (Or (String (\"^:\"), \"\")),
-          \":\",
-          `warn (Or (String (\"^:\"), \"\")),
-          \":\",
-          `inact (Or (String (\"^:\"), \"\")),
-          \":\",
-          `expire (Or (String (\"^:\"), \"\")),
-          \":\",
-          `flag (Or (String (\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", shadow_path, conf_path);
-    SCR::Write (.target.string, tmpfile, data);
-    SCR::RegisterAgent(shadow_path, tmpfile);
-
-    list shadow  = SCR::Read( shadow_path );
-
-    if( shadow == [] || shadow == nil )
-    {
-      y2error("Can't read file shadow");
-      return nil;
-    }
-
-    // add shadow entries to current_users
-    foreach(`entry, shadow , ``{
-        string username =  entry["username"]:"";
-        if (username != "+") // save it somewhere??
-        {
-            map new_entry   = remove(entry, "username");
-
-        /* TODO fix expire and lstchg *
-
-        string work = entry["inact"]:sformat("%1",Users::pass_inact_days );
-        if( work == "" ) work = sformat("%1", Users::pass_inact_days);
-        new_entry["inact"] = tointeger( work );
-
-        work = entry["max"]:sformat("%1", Users::pass_max_days );
-        if ( work == "" ) work = "0";
-        new_entry["max"]   = tointeger( work );
-
-        work = entry["min"]:sformat("%1", Users::pass_min_days );
-        if( work == "") work = "0";
-        new_entry["min"]   = tointeger( work );
-
-        work = entry["warn"]:sformat("%1", Users::pass_warn_age );
-        if( work == "") work = "0";
-        new_entry["warn"]  = tointeger( work );
-
-        work = entry["expire"]:sformat("%1", Users::pass_warn_age );
-            if( work == "") work = "0";
-            new_entry["expire"]  = tointeger( work );
-
-        work = entry["last_change"]:sformat("%1", Users::pass_warn_age );
-            if( work == "") work = "0";
-            new_entry["last_change"]  = tointeger( work );*/
-
-            current_shadow[ username ] = new_entry;
-        }
-    });
-
-    return current_shadow;
+    if (host == "localhost" || host == "127.0.0.1")
+        return true;
+    return false;
 }
-
-//y2milestone ("new entry: %1", new_entry);
-
-/**
- * Return the group password if the group have a password ( use gshadow ).
- * @param groupname name of the group
- * @return string/nil group password
- */
-global define string getGroupPassword( string groupname ) ``{
-
-/*
-    list password_group_list  = filter(`k, gshadow , ``( lookup(k, "groupname","") == groupname ) );
-    if( size (password_group_list ) == 0 ) return ( nil ) ;
-
-    string password = lookup( select(password_group_list, 0,$[]) , "password", "" );
-    if( (password != "*" ) &&
-        ( password  != "!" ) ) return password;
-    return ( nil ) ;*/
-    string password = gshadow[groupname, "password"]:"";
-    if( (password != "*" ) && ( password  != "!" ) )
-        return password;
-    return nil;
-}
-
-    /**
-     * Uncode the fullname.
-     * @param fullname fullname of the user
-     * @return string recoded fullname
-     */
-    define string consoleUncoding( string fullname ) ``{
-    return UI::Recode( Users::encoding,"UTF-8",  fullname );// do not use Users
-    }
-
-    /**
-     */
-    global define boolean ReadLDAPUsers() ``{
-        y2milestone("dir ldap: %1", SCR::Dir(.etc.openldap.ldap_conf));
-        y2milestone("read ldap.host: %1", SCR::Read(.etc.openldap.ldap_conf.host));
-    }
-
-    /**
-     */
-    global define boolean ReadLDAPGroups() ``{
-    }
 
 /**
   */
@@ -455,49 +111,12 @@ global define boolean IsLDAPPresent () ``{
     string passwd_source = SCR::Read(.etc.nsswitch_conf.passwd);
     y2milestone("read nsswitch.passwd: %1", passwd_source);
 
-    if (issubstring(passwd_source, "ldap")) // ??
+    if (issubstring(passwd_source, "ldap")) // is it ok??
         return true;
+
     return false;
 }
 
-/**
- * Read the file /etc/group.
- */
-global define boolean ReadGroupFromDiskAsString(map gshadowmap) ``{
-
-    map loaded_groups = $[];
-    string conf_path = basedir + "/group";
-    string string_groups = SCR::Read(.target.string, conf_path);
-    if( string_groups == nil )
-    {
-        y2error("Can't read file group");
-        return nil;
-    }
-    // list of strings
-    list list_groups = splitstring (string_groups, "\n");
-    integer i_gid = 0;
-
-    foreach (`string_group, list_groups,  ``{
-
-        if (string_group != "" && substring (string_group, 0, 1) != "+")
-        {
-            list list_group = splitstring (string_group, ":");
-            map group = $[];
-            i_gid = tointeger(list_group[2]:"");
-            group["groupname"] = list_group[0]:"";
-            group["password"] = list_group[1]:"x";
-            group["gid"] = i_gid;
-            group["userlist"] = list_group[3]:"";
-            /* use it here??
-            string password = gshadowmap[groupname, "password"]:"*";
-            if ( (password != "*" ) && ( password  != "!" ) )
-                group["password"] = password;
-            */
-            loaded_groups[ i_gid ] = group;
-        }
-    });
-    return loaded_groups;
-}
 
 /**  -- using target.string
  */
@@ -573,246 +192,6 @@ global define list WritePasswd(string basedir, map system_users, map local_users
         SCR::Write(.target.string, conf_path, string_to_save));
     return modified;
 }
-
-/**
- * Read the file /etc/passwd and return
- */
-global define map ReadPasswdFromDiskAsString(map groupmap) ``{
-
-//    path passwd_path  = .userscfg.passwd;
-    map passwd_users = $[];
-    string conf_path = basedir + "/passwd";
-SCR::Execute(.target.bash, "touch /tmp/touch/2cpasswd_before_read-string");
-    string string_passwd = SCR::Read(.target.string, conf_path);
-map useritems = $[
-        0: "username",
-        1: "password",
-        2: "uid",
-        3: "gid",
-        4: "fullname",
-        5: "home",
-        6: "shell"];
-
-      // list of strings
-      list list_passwd = splitstring (string_passwd, "\n");
-      integer i_uid = 0;
-//y2milestone("string_passwd: %1", string_passwd);
-//y2milestone("list_passwd: %1", list_passwd);
-
-SCR::Execute(.target.bash, "touch /tmp/touch/2dpasswd_before_foreach-string");
-      foreach ( `string_user, list_passwd,  ``{
-
-//SCR::Execute(.target.bash, "touch /tmp/touch/11passwd_before_if-string");
-        if (string_user != "" && substring (string_user, 0, 1) != "+")
-        {
-//SCR::Execute(.target.bash, "touch /tmp/touch/12passwd_after_if-string");
-            list list_user = splitstring (string_user, ":");
-//SCR::Execute(.target.bash, "touch /tmp/touch/13passwd_after_splitstring-string");
-            integer i = 0;
-            map user = $[];
-//SCR::Execute(.target.bash, "touch /tmp/touch/14passwd_before_while-string");
-            while (i < 7) // parse the list
-            {
-                if ((i < 2) || (i > 4 ))
-                    user[ useritems [i]:"" ] = list_user[i]:"";
-                else if (i == 2 )
-                    i_uid = tointeger(list_user[i]:"");
-                else if (i == 3 )
-                    user["gid"] = tointeger(list_user[i]:"");
-                else
-                    user["fullname"] = consoleUncoding(list_user[i]:"");
-                i = i + 1;
-            }
-//SCR::Execute(.target.bash, "touch /tmp/touch/15passwd_after_while-string");
-            user["uid"] = i_uid;
-            user["org_home"] = user["home"]:"";
-            user["type"] = `passwd;
-            user["grouplist"] = "";
-            integer gid = user["gid"]:100; //default_gid
-            string username = user["username"]:"";
-            // the name of default group
-//SCR::Execute(.target.bash, "touch /tmp/touch/16passwd_before_groupname-string");
-            user["groupname"] = groupmap [ gid, "groupname" ]:"";
-//SCR::Execute(.target.bash, "touch /tmp/touch/17passwd_before_moreusers-string");
-            string more_users = groupmap [ gid, "more_users"]:"";
-//SCR::Execute(.target.bash, "touch /tmp/touch/18passwd_before_splitstring-string");
-            list l_more_users = splitstring (more_users, ",");
-            // commenting this test gives a minor speedup
-//            if (! contains (l_more_users, username)) // only for "nobody" ??
-//            {
-                if (more_users != "") more_users = more_users + ",";
-                // update userlist of user's default group:
-//SCR::Execute(.target.bash, "touch /tmp/touch/19passwd_before_groupmap-string");
-                groupmap [gid, "more_users"] = more_users + username;
-//            }
-            // add the shadow entry to the passwd_users map
-//SCR::Execute(.target.bash, "touch /tmp/touch/20passwd_before_shadow-string");
-            user["shadow"] = shadow[username]:$[]; // shadow as a parameter??
-//SCR::Execute(.target.bash, "touch /tmp/touch/21passwd_after_shadow-string");
-            passwd_users[ i_uid ] = user;
-        }
-
-      });
-SCR::Execute(.target.bash, "touch /tmp/touch/2epasswd_after_foreach-string");
-    return passwd_users;
-}
-
-/**
- */
-global define map ReadGetentPasswdAsString(map groupmap) ``{
-
-    map remote_users = $[];
-    map out = SCR::Execute(.target.bash_output, "/usr/bin/getent passwd", $[]);
-
-    if (out["stdout"]:"" == "")
-        return nil; // or $[]??
-
-    // list of strings
-    list list_getent = splitstring (out["stdout"]:"", "\n");
-
-    integer i_uid = 0;
-    foreach ( `string_user, list_getent,  ``{
-
-        if (string_user != "" && substring (string_user, 0, 1) != "+")
-        {
-            list list_user = splitstring (string_user, ":");
-            map user = $[];
-            i_uid = tointeger(list_user[2]:"");
-            if (passwd_users[i_uid]:$[] == $[]) // parameter for passwd_users??
-            {
-                user["username"] = list_user[0]:"";
-                user["password"] = list_user[1]:"";
-                user["uid"] = i_uid;
-                user["gid"] = tointeger(list_user[3]:"");
-                user["fullname"] = consoleUncoding(list_user[4]:"");
-                user["home"] = list_user[5]:"";
-                user["shell"] = list_user[6]:"";
-                user["org_home"] = user["home"]:"";
-                user["type"] = `nis;
-                user["grouplist"] = "";
-                integer gid = user["gid"]:500;
-                map default_group = groupmap [ gid ]:$[];
-                user["groupname"] = default_group [ "groupname" ]:"";
-                // update userlist of user's default group:
-                if (default_group != $[]) // e.g. nis group !!
-                {
-                    string more_users = default_group ["more_users"]:"";
-                    if (more_users != "") more_users = more_users + ",";
-                    default_group["more_users"]=more_users+user["username"]:"";
-                    groupmap [gid] = default_group;
-                }
-                // update users map:
-                remote_users[ i_uid ] = user;
-            }
-        }
-    });
-    y2debug("Read file getent: %1", remote_users);
-    return remote_users;
-}
-
-/**
- * Read the file /etc/shadow
- */
-global define map ReadShadowFromDiskAsString(string basedir) ``{
-
-    map current_shadow = $[];
-    string conf_path = basedir + "/shadow";
-
-    string string_shadow = SCR::Read(.target.string, conf_path);
-    if( shadow == "" || shadow == nil )
-    {
-      y2error("Can't read file shadow");
-      return nil;
-    }
-
-    list list_shadow = splitstring (string_shadow, "\n");
-    foreach (`string_entry, list_shadow,  ``{
-
-        // include also + line ??
-        if (string_entry != "" && substring (string_entry, 0, 1) != "+")
-        {
-            list entry = splitstring (string_entry, ":");
-
-            map new_entry   = $[];
-            string username = entry[0]:"";
-            new_entry["password"] = entry[1]:"";
-            new_entry["last_change"] = entry[2]:"";
-            new_entry["min"] = entry[3]:"";
-            new_entry["max"] = entry[4]:"";
-            new_entry["warn"] = entry[5]:"";
-            new_entry["inact"] = entry[6]:"";
-            new_entry["expire"] = entry[7]:"";
-            new_entry["flag"] = entry[8]:"";
-
-            current_shadow[ username ] = new_entry;
-        }
-    });
-    return current_shadow;
-}
-//y2milestone ("shadow: %1", current_shadow);
-
-/**  -- using target.string
- */
-global define boolean WriteShadow(string basedir, map shadow, string last) ``{
-
-    string conf_path = basedir + "/shadow";
-
-    list list_to_save = maplist (`username, `entry, shadow, ``{
-        string to_save = sformat("%1:%2:%3:%4:%5:%6:%7:%8:%9",
-            username,
-            entry["password"]:"",
-            entry["last_change"]:"",
-            entry["min"]:"",
-            entry["max"]:"",
-            entry["warn"]:"",
-            entry["inact"]:"",
-            entry["expire"]:"",
-            entry["flag"]:"");
-        return to_save;
-    });
-    string string_to_save = mergestring (list_to_save, "\n");
-    if (last != "" && last != nil)
-        string_to_save = string_to_save + "\n" + last;
-    boolean ret = SCR::Write(.target.string, conf_path, string_to_save);
-    y2milestone("Succesfuly written %1: %2", conf_path, ret);
-    return ret;
-}
-
-/**
- * Read the file /etc/gshadow
- */
-global define map ReadGshadowFromDiskAsString(string basedir)``{
-
-    map current_gshadow  = $[];
-    string conf_path = basedir + "/gshadow";
-
-    string string_gshadow = SCR::Read(.target.string, conf_path);
-    if( gshadow == "" || gshadow == nil )
-    {
-        y2error("Can't read file shadow");
-        return nil;
-    }
-
-    list list_gshadow = splitstring (string_gshadow, "\n");
-
-    foreach (`string_entry, list_gshadow,  ``{
-
-        if (string_entry != "" && substring (string_entry, 0, 1) != "+")
-        {
-            list entry = splitstring (string_entry, ":");
-
-            map new_entry   = $[];
-            string groupname = entry[0]:"";
-            new_entry["password"] = entry[1]:"";
-            new_entry["disposer"] = entry[2]:"";
-            new_entry["userlist"] = entry[3]:"";
-
-            current_gshadow[ groupname ] = new_entry;
-        }
-    });
-    return current_gshadow;
-}
-//    y2milestone("Read file gshadow: %1", current_gshadow );
 
 /**  -- using target.string
  */
@@ -904,254 +283,6 @@ global define boolean WritePasswd(map passwd_users) ``{
     return SCR::Write( passwd_path, list_to_save);
 }*/
 
-/**
- * Read the file /etc/passwd and save it to the map current_users.
- */
-global define map ReadPasswdFromDiskNew(string basedir) ``{
 
-    path passwd_path  = .userscfg.passwd;
-    map passwd_users = $[];
-//    string conf_path = basedir + "/passwd";
-    string conf_path = "/tmp/newpasswd";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/passwd";
-SCR::Execute(.target.bash, "touch /tmp/touch/2cpasswd_before_read-agent");
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),  // real filename
-      \"#\",                      // Comment
-      true,
-      ``(List (
-        Or (
-          Tuple (
-          `username (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `uid (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `fullname (String (\"\")),
-          \":\",
-          `home (String (\"\")),
-          \":\",
-          `shell (String (\"\")),
-          \":\",
-          `groupname (String (\"\")),
-          \":\",
-          `grouplist (String (\"\"))
-        ),
-
-        Tuple (
-          `username (String (\"^:\")),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `uid (Number ()),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `fullname (Or (String (\"^:\"), \"\")),
-          \":\",
-          `home (String (\"^:\")),
-          \":\",
-          `shell (String (\"^:\")),
-          \":\",
-          `groupname (String (\"^:\")),
-          \":\",
-          `grouplist (Or (String(\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", passwd_path, conf_path);
-      SCR::Write (.target.string, tmpfile, data);
-      SCR::RegisterAgent(passwd_path, tmpfile);
-      list p_users  = SCR::Read( passwd_path );
-//y2milestone("p_users: %1", p_users);
-
-      if( p_users == [] || p_users == nil )
-      {
-          y2error("Can't read file passwd");
-          return nil;
-      }
-
-SCR::Execute(.target.bash, "touch /tmp/touch/2dpasswd_before_foreach-new");
-
-      foreach ( `user, p_users,  ``{
-      // it can be "+"
-      any i_uid = user["uid"]:0;
-
-      if( is( i_uid , integer ) )
-      {
-        // -- only in items ??
-          user["fullname"] = consoleUncoding( user["fullname"]:"");
-          user["org_home"] = user["home"]:"";
-          string username = user["username"]:"";
-
-          // add the shadow entry to the passwd_users map too: ???
-          user["shadow"] = shadow[username]:$[];
-          passwd_users[ i_uid ] = user;
-      }
-      });
-SCR::Execute(.target.bash, "touch /tmp/touch/2epasswd_after_foreach-new");
-    return passwd_users;
-    }
-
-/**
- * Read the file /etc/group.
- */
-global define boolean ReadGroupFromDiskNew (string basedir, map gshadowmap) ``{
-
-    map loaded_groups = $[];
-    path group_path   = .userscfg.group;
-//    string conf_path = basedir + "/group";
-    string conf_path = "/tmp/newgroup";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/group";
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),   // real filename
-      \"#\",                      // Comment
-      true,
-      ``(List (
-        Or (
-          Tuple (
-          `groupname (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `userlist (String (\"\")),
-          \":\",
-          `more_users (String (\"\"))
-        ),
-
-        Tuple (
-          `groupname (Username()),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `userlist (Or (String (\"^:\"), \"\")),
-          \":\",
-          `more_users (Or (String (\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", group_path, conf_path);
-    SCR::Write (.target.string, tmpfile, data);
-    SCR::RegisterAgent(group_path, tmpfile);
-
-    list allgroups = SCR::Read( group_path );
-
-    if( allgroups == [] || groups == nil )
-    {
-        y2error("Can't read file group");
-        return nil;
-    }
-
-    foreach ( `group, allgroups,  ``{
-        // it can be "+"
-        any i_gid = group["gid"]:0;
-        if( is( i_gid , integer ) )
-        {
-            //add group password form /etc/shadow
-            string password = gshadowmap[group["groupname"]:"", "password"]:"*";
-            if ( (password != "*" ) && ( password  != "!" ) )
-                group["password"] = password;
-            loaded_groups[ i_gid ] = group;
-        }
-    });
-    return loaded_groups;
-}
-
-/**
- */
-global define map ReadGetentPasswdNew(string basedir) ``{
-
-    map remote_users = $[];
-    path getent_path  = .userscfg.getent;
-//    string conf_path = basedir + "/nis";
-    string conf_path = "/tmp/newnis";
-    string tmpfile = SCR::Read (.target.tmpdir) + "/nis";
-    string data = sformat ("%1
-
-`ag_anyagent(
-  Description (
-      ``(File(\"%2\")),  // real filename
-      \"#\",                      // Comment
-      true,
-      ``(List (
-        Or (
-          Tuple (
-          `username (String(\"+\")),
-          \":\",
-          `password (String (\"\")),
-          \":\",
-          `uid (String (\"\")),
-          \":\",
-          `gid (String (\"\")),
-          \":\",
-          `fullname (String (\"\")),
-          \":\",
-          `home (String (\"\")),
-          \":\",
-          `shell (String (\"\")),
-          \":\",
-          `groupname (String (\"\")),
-          \":\",
-          `grouplist (String (\"\"))
-        ),
-
-        Tuple (
-          `username (String (\"^:\")),
-          \":\",
-          `password (Or (String (\"^:\"), \"\")),
-          \":\",
-          `uid (Number ()),
-          \":\",
-          `gid (Number ()),
-          \":\",
-          `fullname (Or (String (\"^:\"), \"\")),
-          \":\",
-          `home (String (\"^:\")),
-          \":\",
-          `shell (String (\"^:\")),
-          \":\",
-          `groupname (Or (String (\"^:\"), \"\")),
-          \":\",
-          `grouplist (Or (String(\"^\n\"), \"\"))
-        )),
-        \"\n\"
-      ))
-    )
-)", getent_path, conf_path);
-      SCR::Write (.target.string, tmpfile, data);
-      SCR::RegisterAgent(getent_path, tmpfile);
-      list r_users  = SCR::Read( getent_path );
-
-      if( r_users == [] || r_users == nil )
-      {
-          y2error("Can't read file nis");
-          return nil;
-      }
-
-    foreach ( `user, r_users,  ``{
-        integer i_uid = user["uid"]:0;
-        user["fullname"] = consoleUncoding( user["fullname"]:"");
-        user["org_home"] = user["home"]:"";
-        user["type"] = `nis;// `getent
-        // update users map:
-        remote_users[ i_uid ] = user;
-    });
-    return remote_users;
-}
 
 } // EOF
