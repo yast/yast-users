@@ -115,7 +115,7 @@ global define boolean InitializeLDAP () ``{
             `HSpacing(50),
 	    `VSpacing (0.5),
 	    // label
-            `Label (_("There are more templates defined as default, please choose which one should be read.")),
+            `Label (_("There are multiple templates defined as default. Select the one to read.")),
 	    `VSpacing (0.5),
 	    user_templates == [] ? `Empty(): rb_users,
 	    `VSpacing (0.5),

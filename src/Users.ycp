@@ -2651,13 +2651,14 @@ global define integer GetDefaultGid(boolean useUI, string type)``{
         if (useUI)
 	{
 	    // error popup, part 2/2
-	    string rest = _("Please change the default group in /etc/default/useradd.");
+	    string rest = _("Change the default group in /etc/default/useradd.");
 	    if (type == "ldap")
 		// error popup, part 2/2
-		rest = _("Please change the default group in LDAP settings");
+		rest = _("Change the default group in LDAP settings.");
 	    // error popup, part 1/2, %1 is number, %2 is part 2/2
-	    Report::Error(sformat(_("The default group with the id %1 does not exist.
-%2"), def_int, rest));
+	    Report::Error(sformat(_("The default group with the ID %1 does not exist.
+%2
+"), def_int, rest));
 	}
         return default_gid;
     }
@@ -3040,7 +3041,7 @@ global define boolean ReadNewSet (string type) ``{
 // Popup text (%1 are required packages):
 _("For managing LDAP users, package
 <br>%1<br>
-is necessary, but is not present.
+is required.
 Install it now?"),
 "<b>yast2-ldap-client</b>")))
                 return false;
