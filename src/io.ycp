@@ -10,6 +10,7 @@
  *
  * Authors:
  *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *  Johannes Buchhold <jbuch@suse.de>
  *
  * $Id$
  *
@@ -17,14 +18,623 @@
  */
 
 {
-    global define usersRead() ``{
-	/* TODO Some code */
-	return $[];
+  global define findGroupsBelongUser( string username ) ``{
+
+      if( username == "" ) return "";
+      string grouplist = "";
+      foreach( `key, `group, current_groups , ``{
+	    
+	    string userlist = lookup( group, "userlist");
+	    if ( issubstring(userlist , username ))
+	    {
+		string groupname = lookup( group, "groupname");
+		if( grouplist == "" ) grouplist = groupname;
+		else grouplist = grouplist + "," + groupname;
+	    }
+	});
+	
+	if( ! isnil( grouplist) ) return grouplist;
+	else return "";
     }
 
-    global define usersWrite(map u_settings) ``{
-	/* TODO Some code */
+
+  global define findUsersBelongGroup( integer gid ) ``{
+
+      string userlist = lookup( lookup( current_groups, gid),  "userlist", "");
+      foreach( `key, `user, current_users , ``{
+	  
+	  if ( gid == lookup(user, "gid") &&(! issubstring(userlist,  lookup( user, "username", "") )))
+	  {
+	      if( userlist == "") userlist = lookup( user, "username", "");
+	      else userlist = userlist + "," + lookup( user, "username", "");
+	  }
+      });
+      if ( ! isnil(  userlist ))  return userlist;
+      else return "";
+  }
+  
+  
+  global define usersUsersReadFromDisk() ``{
+
+	list users  = SCR(`Read(.etc.passwd));
+	foreach ( `user, users,  ``{
+	    any i_uid = lookup(  user, "uid", 0);
+	    user = add( user ,"exist", true);
+	    if( is( i_uid , integer ) )
+	    {
+		current_users = add(current_users, i_uid , user );
+	    }	
+	});
+    }
+
+  
+  global define usersGroupsReadFromDisk() ``{
+
+	list groups = SCR(`Read(.etc.group ));    
+	foreach ( `group, groups,  ``{
+	    any i_gid = lookup( group, "gid", 0);
+	    group = add(group, "exist", true);
+	    if( is( i_gid , integer ) )
+	    {
+		current_groups = add(current_groups, i_gid , group );
+	    }	
+	});
+    }
+
+
+
+
+  global define usersWrite() ``{
+
+       /* TODO Some code */
+	SCR( `Write(.dumpto.tmp.current_users_final,     current_users ));
+	SCR( `Write(.dumpto.tmp.current_groups_final,    current_groups ));
+	SCR( `Write(.dumpto.tmp.user_set,   user_settings  ));
+
+	if ( size( user_settings ) != 0)
+	{
+	    if(UI(`YesNoPopup("make ist realy?")))
+	    {
+		foreach( `key, `doto, user_settings,``{
+		    y2debug("make on system %1",SCR(`Execute(.target.bash, doto )));
+		});
+	    }
+	 
+	}
 	return true;
     }
 
+
+    
+    global define groupNameToId( string groupname) ``{
+
+	integer ret = max_gid;
+	foreach( `key, `group, current_groups, ``{
+	    if( (lookup(group, "groupname", "") == groupname) &&
+		(lookup(group, "todo", "" ) != `delete) )
+		{
+		    ret = key;
+		}
+	});
+	return ret;
+    }
+
+    global define groupIdToName( integer Id, map current_groups ) ``{
+	return lookup(lookup( current_groups, Id), "groupname", "");
+    }
+
+    global define userIdToName( integer Id, map current_users) ``{
+	return lookup( lookup( current_users, Id), "username", "");
+    }
+
+    
+    global define findNextTodoPos() ``{
+	return  ( size( user_settings) + 1);
+    }
+
+    
+    global define usersAddTodo( string todo ) ``{
+	user_settings = add( user_settings ,  findNextTodoPos(),  todo );
+	return true;
+    }
+
+    
+    global define usersAddMakeHomeDir( string home ) ``{
+
+	list   split_home = splitstring( home, "/");
+	string tmp_dir    = "";
+	//UI(`MessagePopup(sformat("%1", split_home )));
+	foreach( `sub_dir, split_home , ``{
+	    if( sub_dir != "" )
+	    {
+		tmp_dir = tmp_dir + "/"+sub_dir;
+		if( nil == Dir(tmp_dir) )  usersAddTodo("/bin/mkdir " + tmp_dir);
+	    }
+	});
+    }
+
+    global define usersAddMoveDir(string old_home, string  home )``{
+	usersAddMakeHomeDir(home);
+	usersAddTodo(("/bin/mv " + old_home + "/* " +  home ));
+	usersAddTodo(("/bin/rm -r " + old_home));
+    }
+
+    
+    global define usersAddChownHome( string home, string user, string group)``{
+	usersAddTodo(("/bin/chown -R " + user + ":" + group + " " + home ));
+	usersAddTodo(("/bin/chmod g-rx " + home ));
+	usersAddTodo(("/bin/chmod o-rx " + home ));
+    }
+
+    
+    global define usersUserSaveToMap() ``{
+
+	symbol  what     = lookup( user_in_work , "what"      , `nix );
+	string  fullname = lookup( user_in_work , "fullname"  , ""   );
+	integer gid      = lookup( user_in_work , "gid"       , max_gid );
+	string  home     = lookup( user_in_work , "home"      , ""   );
+	string  password = lookup( user_in_work , "password"  , ""   );
+	string  shell    = lookup( user_in_work , "shell"     , ""   );
+	integer uid      = lookup( user_in_work , "uid"       , max_uid );
+	string  username = lookup( user_in_work , "username"  , ""   );
+	string  grouplist= lookup( user_in_work , "grouplist" , ""   );
+	string  todo     = "/usr/sbin/usermod";
+	boolean do_exist = true;
+	map     org_user = lookup( current_users, uid , $[]);
+		      
+	// ToDo write a User;
+	/*
+	UI(`MessagePopup("fullname:" + fullname + "\n" + "gid:" + sformat("%1", gid) +"\n" + "username:" + username +  "\n"+ "uid:" + sformat("%1",uid) + "\n" + "home:" + home + "\n" + "password" + password + "\n" + "shell: " + shell  + "\n" + "old_username" + sformat("%1", userIdToName(uid, current_users)) + "\n" + "grouplist" +  grouplist ));
+	*/
+	
+	if ( what == `add_user )
+	{
+	    do_exist = false;
+
+	    //add shell, home, initial_group, password, uid to string
+	    todo = sformat("/usr/sbin/useradd -s %1 -d %2 -g %3 -m -p '%4' -u %5 -o",shell, home, groupIdToName(gid, current_groups), password, uid);
+
+	    //add fullname to string
+	    if ( fullname  != "") todo = todo + " -c '" + fullname + "'";
+
+	    //add groups to string
+	    if ( grouplist != "") todo = todo + " -G " + grouplist;
+
+	    //add username to string
+	    todo = todo + " " + username;
+
+	    usersAddMakeHomeDir( home );
+	    usersAddTodo( todo );
+	    usersAddChownHome( home, username , groupIdToName(gid, current_groups));
+	}
+	else
+	{
+	    //add initial_group to string 
+	    if ( lookup( org_user, "gid" ,     "" ) != gid      )  todo = todo + " -g "  + groupIdToName(gid, current_groups);
+
+	    //add comment to string 
+	    if ( lookup( org_user, "fullname", "" ) != fullname )  todo = todo + " -c '" + fullname +"'";
+
+	    //add home_dir to string
+	    if ( lookup( org_user, "home" ,    "" ) != home     )
+	    {
+		todo = todo + " -d "  + home;
+		usersAddMoveDir(lookup( org_user, "home" ,    "" ),  home );
+	    }
+
+	    //add password to string 
+	    if (                                "x" != password )  todo = todo + " -p '"  + password + "'";
+
+	    //no change id at the moment 
+            // if ( lookup( org_user, "uid",      "")  != uid     )  todo = todo + " -u " + sformat("%1", uid ) + " -o";
+
+	    //add loginname to string
+	    if ( lookup( org_user, "username" ,"")  != username )  todo = todo + " -l "  + username;
+
+	    //add groups to  string
+	    if ( findGroupsBelongUser(username )    != grouplist)
+	    {
+		if ( grouplist == "" ) grouplist = "''";
+		todo = todo + " -G "  + grouplist;
+	    }
+
+	    // add username to string
+	    todo = todo + " " + userIdToName( uid, current_users);
+
+	    usersAddTodo( todo );
+
+	    if ( lookup( org_user, "username" ,"")  != username  ||
+		 lookup( org_user, "gid" ,     "" ) != gid       ||
+		 lookup( org_user, "home" ,    "" ) != home      	 )
+	    {  
+		usersAddChownHome( home, username , groupIdToName(gid, current_groups));
+	    }
+	}
+
+
+	
+	map current_user = $[
+			     "exist"    : do_exist,
+			     "fullname" : fullname,
+			     "gid"      : gid,
+			     "home"     : home,
+			     "password" : password,
+			     "shell"    : shell,
+			     "uid"      : uid,
+			     "username" : username
+	];	
+
+	
+	list search_groups = splitstring(grouplist, "," );
+
+	
+	// username changed
+	map    tmp_current_groups = current_groups;
+	string old_username       = lookup( org_user , "username" , "" );
+	if ( old_username != username )
+	{
+	    map groups_with_old_username = filter(`k, `v, current_groups, ``( issubstring(lookup(v,"userlist"),old_username) == true ));
+	    foreach( `key, `group, current_groups, ``{
+		
+		string userlist       =  lookup( group , "userlist" ,"");
+		list   split_userlist =  splitstring( userlist, ",");
+		if ( contains( split_userlist , old_username ) )
+		{
+		    list   new_userlist     =  filter(`v, split_userlist , ``(v != old_username ));
+		    list   new_userlist     =  add( new_userlist, username );
+		    string new_userlist_str =  mergestring( new_userlist, ",");
+		    group  = add(group, "userlist", new_userlist_str );
+		    tmp_current_groups = add( tmp_current_groups, key, group );
+		}
+	    });
+	    current_groups = tmp_current_groups;
+	}
+	
+	
+	//Error with new username - old username
+	//for all groups
+	foreach( `key, `group, tmp_current_groups, ``{
+	    string userlist  = lookup(group, "userlist" , "");
+	    map    new_group = group;
+	    
+	    if( issubstring( userlist, username ) &&( ! contains(search_groups, lookup( group, "groupname")) ))
+	    {
+		//UI(`MessagePopup("delete " + username + " from " +  lookup( group, "groupname") ));
+		// delete username from userlist
+		
+		list split_userlist = splitstring( userlist, ",");
+		string new_userlist = "";
+		
+		foreach( `entry, split_userlist, ``{
+
+		    if( entry != username )
+		    {
+			if( new_userlist == "") new_userlist = entry;
+			else new_userlist = new_userlist + "," + entry;
+		    }
+		});
+		new_group = add( new_group, "userlist", new_userlist );
+		current_groups = add( current_groups, key , new_group );
+	    }
+	    if(	 contains(search_groups, lookup( group, "groupname")) &&( ! issubstring( userlist, username )))
+	    {
+		//UI(`MessagePopup("add " + username + " to " + lookup( group, "groupname") ));
+		// add username to userlist
+		if ( userlist == "" ) userlist = username;
+		else userlist = userlist + "," + username;
+
+		new_group = add( new_group, "userlist", userlist );
+		current_groups = add( current_groups, key , new_group );
+	    }
+	});
+
+	
+	current_users = add( current_users , uid, current_user );
+	SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+	return `next;
+    }
+
+
+
+       global define  usersGroupSaveToMap( ) ``{
+
+	   //load the manipulated group from group_in_work
+	   symbol what             = lookup( group_in_work , "what" ,     "");
+	   string new_groupname    = lookup( group_in_work, "groupname",  "");
+	   string password         = lookup( group_in_work, "password",   "");
+	   string userlist         = lookup( group_in_work, "userlist",   "");
+	   integer gid             = lookup( group_in_work, "gid",        "");
+	   integer old_gid         = lookup( group_in_work, "old_gid",    "");
+	
+	   
+	   //remove default user from the userlist
+	   list   split_userlist = splitstring( userlist, ",");
+	   string new_userlist   = "";
+	   map    default_users  =  filter(`k, `v, current_users, ``(lookup(v,"gid") == old_gid) );
+	 
+	   foreach(`entry, split_userlist, ``{
+	      
+	       if(  (size(filter(`k, `v, default_users, ``(lookup(v,"username") == entry ))) == 0 ) ||
+		    ( issubstring(lookup(lookup(current_groups, old_gid , $[] ), "userlist"), entry ) ))
+		   {
+		       if( new_userlist == "") new_userlist = entry;
+		       else new_userlist = new_userlist + "," + entry;       
+		   }
+	   });
+
+	   
+	   // build strings with the operation and save they to user_settings
+	   string  todo     = "/usr/sbin/groupmod";	
+	   boolean do_exist = true;
+	   if ( what == `add_group )
+	   {
+	       do_exist = false;
+	       usersAddTodo( sformat("/usr/sbin/groupadd -g %1 -o %2", gid, new_groupname )  );
+	       if ( userlist != "" )
+	       {
+		   list split_userlist = splitstring( userlist , "," );
+		   foreach ( `user, split_userlist, ``{  
+		       string new_G = findGroupsBelongUser(user);
+		       if ( new_G != "" )  new_G = new_G + "," + new_groupname;
+		       else new_G  = new_groupname;
+		       usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G, user ));
+		   });
+	       }
+	   }
+	   else
+	   {
+	       string old_groupname = lookup( lookup( current_groups , old_gid, $[] ), "groupname" , "" );
+	       
+	       if ( lookup( lookup( current_groups , old_gid, $[] ), "userlist" ,  "" ) != userlist )
+	       {
+		   // UI(`MessagePopup("old and new userlist differ" ));
+		   
+		   string old_userlist       = lookup( lookup( current_groups , old_gid, $[] ), "userlist" ,  "" );
+		   list   old_split_userlist = splitstring( old_userlist, ",");
+		   list       split_userlist = splitstring(     userlist, ",");
+		   symbol add_or_delete      = `add;
+		   list  work_userlist       = [];
+		   
+		   
+		   if ( size ( old_userlist ) < size( userlist ) )
+		   {
+		       //add user-s to group
+		       foreach(`user, split_userlist ,``{
+			   if( !contains( old_split_userlist, user) ) work_userlist = add( work_userlist, user );
+		       });
+		       
+		       foreach( `user, work_userlist, ``{
+			   string new_G = findGroupsBelongUser(user);
+			   if ( new_G != "" )  new_G = new_G + "," + old_groupname;
+			   else new_G  = old_groupname;
+			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_G , user ));
+		       });
+		   }
+		   else
+		   {
+		       //delete user-s  from group
+		       add_or_delete = `delete;
+		       foreach(`user, old_split_userlist ,``{
+			   if( !contains( split_userlist, user) ) work_userlist = add( work_userlist, user );
+		       });
+		       foreach( `user, work_userlist, ``{
+			   string new_G      = findGroupsBelongUser(user);			   
+			   list   new_G_list = splitstring( new_G , "," );
+			   string new_new_G =  mergestring(filter(`v, new_G_list,``(v != old_groupname) ),",");
+			   usersAddTodo( sformat("/usr/sbin/usermod -G '%1' %2", new_new_G, user ));
+		       });
+		       
+		   }
+	       }
+		
+	       if ( old_groupname != new_groupname )
+		   todo = todo + " -n " + new_groupname;
+	       if ( lookup( lookup( current_groups , old_gid, $[] ), "gid"       , "" ) != gid )
+		   todo = todo + " -g " + sformat("%1", gid) + " -o";
+
+	       if ( todo != "/usr/sbin/groupmod" )
+		   usersAddTodo(todo + " " +  old_groupname );
+	       
+	      
+	   }
+	
+	   map current_group = $[
+				 "exist"         : do_exist,
+				 "gid"           : gid,
+				 "groupname"     : new_groupname,
+				 "password"      : password, 
+				 "userlist"      : new_userlist
+	   ];
+
+	   
+	   // upadate current_users and current_groups if the gid was modified
+	   if( old_gid != gid ) 
+	   {
+	       map new_current_groups = $[];
+	       foreach( `key, `group, current_groups, ``{
+		   if( key != old_gid) new_current_groups = add( new_current_groups, key, group );
+	       });
+	       current_groups = new_current_groups;
+
+	       foreach( `key, `user, default_users, ``{
+
+		   map new_user = user;
+		   new_user = add( new_user, "gid", gid);
+		   current_users = add(current_users, key, new_user);		   
+	       });
+	   }
+
+	   // save current_group to current_groups
+	   current_groups = add( current_groups, gid, current_group );
+
+	   //UI(`MessagePopup(sformat("%1", current_group )));
+	   SCR( `Write(.dumpto.tmp.user_set_next,   user_settings  ));
+	   return `next;
+       }
+
+    
+
+
+    
+
+    
+     /**
+     * Read the /etc/group file and return a item list or a groupmap
+     * This is used in <TT>build_passwd( symbol )</TT> and <TT>usersGroupsDialog()</TT>.
+     * @param symbol what can be <TT>`items</TT> 
+     */
+    global define usersGroupsRead(symbol todo ) ``{
+	
+	//build a list for the Group Table
+	list    items         = [];
+	list    groupnamelist = [];
+	foreach ( `key, `group,  current_groups, ``{
+
+	    if ( lookup(group ,"todo", "") != `delete )
+	    {
+		if( todo == `items )
+		{
+		    string  s_gid = sformat("%1", key   );
+		    term    a     = `item(`id(key));
+		
+		    a = add(a, lookup( group , "groupname" , "" ));
+		    a = add(a, s_gid);
+		    a = add(a, findUsersBelongGroup(key) );
+		
+		    items = add( items, a );
+		}
+		if ( todo == `groupnamelist)
+		{
+		    groupnamelist = add(groupnamelist, lookup( group , "groupname" , "" ));
+		}
+		
+	    }
+	});
+	
+	if( todo == `items              ) return items;
+	else if (todo == `groupnamelist ) return groupnamelist;
+    }
+
+
+
+
+    
+    /**
+     * Read the /etc/passwd file and return a item list 
+     * This is used in <TT>usersUsersDialog()</TT>.
+     * @param symbol what can be <TT>`items</TT> or <TT>`usernamelist</TT>
+     */
+    global define usersUsersRead(symbol todo) ``{
+	
+	
+	list     usernamelist    = [];
+	list     items           = [];
+	
+	foreach ( `key, `user,  current_users, ``{
+	    
+	    if( lookup( user ,"todo", "") != `delete )
+	    {
+		string username = lookup( user , "username" , "");
+		if( todo == `items )
+		{	
+		    string  s_uid = sformat("%1", key );
+		    term    a     = `item(`id(key));
+		    
+		    
+		    a =	add(a , username );
+		    a = add(a, lookup( user , "fullname" , "" ));
+		    a = add(a, s_uid );
+
+		    string grouplist   = lookup(lookup( current_groups , lookup( user, "gid", 0)), "groupname");
+		    string more_groups = findGroupsBelongUser( username );
+		    
+		    if ( issubstring ( more_groups, grouplist )) grouplist = more_groups;
+		    else
+		    {
+			if( more_groups != "" ) grouplist = grouplist + "," + more_groups;
+		    }
+		   
+		    a = add(a, grouplist );
+		    
+		    items = add( items, a );
+		}
+		else if ( todo == `usernamelist )
+		{
+		    usernamelist = add( usernamelist, lookup(user, "username" ));
+		}
+	    }
+	});
+		  
+	if( todo == `items             ) return items;
+	else if( todo == `usernamelist ) return usernamelist;
+	
+    }	
+
+
+
+    global define usersFreeUid(map current_users) ``{
+	//SCR( `Write(.dumpto.tmp.findfree , current_users ));
+	integer uid     = max_system_uid + 1 ;
+	repeat {
+	    if (  haskey( current_users , uid) )
+	    {
+		map user =  lookup ( current_users , uid );
+		if( lookup(user, "todo","") == `delete) return uid;
+		else
+		{
+		    uid = uid + 1;
+		}
+	    }
+	    else return uid;
+		  
+	} until ( uid == max_uid );	      
+    }
+
+
+    global define usersFreeGid(map current_groups) ``{
+
+	integer gid  = max_system_gid + 1;
+	repeat {
+	    if ( haskey( current_groups, gid ) )
+	    {
+		map group = lookup( current_groups, gid );
+		if( lookup( group, "todo", "")  == `delete) return gid;
+		else
+		{
+		    gid = gid + 1;
+		}
+	    }
+	    else return gid;
+	} until ( gid == max_gid );
+    }
+
+    /**
+     * Read the /etc/shells file and return a item list or a string shell list
+     * This is used in <TT>usersEditUserDetails</TT>.
+     * @param symbol what can be <TT>`items</TT> or <TT>`stringlist</TT> 
+     */
+    global define  usersReadShells(symbol todo ) ``{
+
+	list available_shells =  [];
+	list shells_read = SCR(`Read(.etc.shells));
+	
+	foreach( `shell_entry, shells_read, ``{
+	    
+	    if( is( shell_entry, string ))
+	    { 
+		if( (! issubstring( shell_entry, "true")) &&
+		    (! issubstring( shell_entry, "false")) &&
+		    (! issubstring( shell_entry, "passwd")) &&
+		    (! issubstring( shell_entry, "bash1")) )
+		{
+		    if ( todo == `items      )  available_shells = add( available_shells, `item(shell_entry ));
+		    if ( todo == `stringlist )  available_shells = add( available_shells, shell_entry);
+		}
+		    
+	    }
+	});
+
+
+	return available_shells;
+    }    
 }

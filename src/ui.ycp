@@ -10,6 +10,7 @@
  *
  * Authors:
  *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *  Johannes Buchhold <jbuch@suse.de>
  *
  * $Id$
  *
@@ -22,6 +23,8 @@
     include "ui/wizard_dialog.ycp";
     include "ui/common_messages.ycp";
     include "ui/common_popups.ycp";
+    include "users/io.ycp";
+    include "users/help.ycp";
 
     /**
      * Define the switch between Users and Groups administration.
@@ -39,55 +42,18 @@
 	    )));
     }
 
-    /**
-     * Create list of table items with all the users.
-     */
-    global define usersUsersTableItems() ``{
-	list users      = lookup(user_settings, "users", []);
-	integer uid_min = lookup(user_settings, "uid_min", 500);
-	integer uid_max = lookup(user_settings, "uid_max", 60000);
-
-	// Show just the root, the users in the <uid_min, uid_max) range and the
-	// newly added users (who do not have a uid)
-	users = filter(`user, users, ``{
-		    integer uid = lookup(user, "uid", -1);
-		    return (uid <= 0 || (uid_min <= uid && uid < uid_max));
-		});
-	
-	// Create a list
-	return maplist(`user, users, ``{
-		   string current = lookup(user, "username", "");
-		   return `item(`id(current),
-		                current,
-				lookup(user, "fullname", ""),
-				mergestring(usersAllGroupsContaining(current,
-				                                     lookup(user, "gid", -1)), ","));
-	       });
-    };
+  
     
-    /**
-     * Create list of combo box items with all the shells.
-     * @param list shells All the shells available
-     * @param string shell The one which is preselected
-     * @return list items A list of the combo box items
-     */
-    global define usersShellsCBoxItems(list shells, string shell) ``{
-	return maplist(`sh, shells, ``{
-		   return `item(`id(sh), sh, (sh == shell));
-	       });
-    };
-
     /**
      * The dialog that appears when the [Abort] button is pressed
      * @return boolean true if user really wants to abort
      */
     global define usersReallyAbort() ``{
-        /*if (!changed_settings)
-            {
-                do_abort_now = true;
-                return true;
-            }*/
-        return UI(`AnyQuestionPopup
+        if (size( user_settings ) == 0 )
+	{
+	    return `next;
+	}
+        boolean ret = UI(`AnyQuestionPopup
 	       (
 	           // message box label
 		   _("Exit without saving"),
@@ -99,32 +65,33 @@
 		   _("&Cancel abort"),
 		   `focus_yes
                ));
+
+	if( ret ) return `next;
+	else return `back;
     }
 
-    /**
-     * Check the username (loginname) for validity. Show a message if not OK.
-     * @return boolean true if user really wants to abort
-     */
-    global define usersCheckUsername(string username) ``{
-	/* TODO */
-    };
 
+    
     /**
      * The first of the two main dialogs -- list of the users.
      */
     global define usersUsersDialog() ``{
-	string help_text = "TODO HELP user";
 
+	user_in_work = $[];
+	
+	string help_text = usersUsersDialogHelp(); 
+	list item_user   = usersUsersRead(`items);
+	
 	term contents = 
 	    `VBox(rbUsersGroup(`users),
-		  `Table(`id(`users_table),
-		         `opt(`notify,`immediate),
-		         `header(_("Login"), _("Name"), _("Groups")),
-		         usersUsersTableItems()),
+
+		  `Table(`id(`user_table), `header( _("Login"), _("Name"), _("UID"), _("Groups")),
+		         item_user ),
+
 	          `HBox
 		  (
 		      `PushButton(`id(`new),       _("&Add")),
-		      `PushButton(`id(`clone),     _("&Clone")),
+		      //  `PushButton(`id(`clone),     _("&Clone")),
 		      `PushButton(`id(`edit),      _("&Edit")),
 		      `HStretch(),
 		      `PushButton(`id(`delete),    _("&Delete"))
@@ -137,132 +104,379 @@
 			             CancelButtonLabel(),
 				     FinishButtonLabel()));
 
-	string current = lookup(current_user, "username", "");
 
-        // Set the current_user as the selected one
-	if (current != "")
-	    UI(`ChangeWidget(`id(`users_table), `CurrentItem, current));
-	
-	symbol ret = `empty;
-	do
-	{
-            // Disable [Edit] and [Clone] if noone selected...
-	    UI(`ChangeWidget(`id(`clone), `Enabled, (current != "" && current != "root")));
-	    UI(`ChangeWidget(`id(`edit), `Enabled, (current != "")));
-	
-	    ret = UI(`UserInput());
-
-	    current = UI(`QueryWidget(`id(`users_table), `CurrentItem));
-
-	} while (ret == `empty ||
-	         ret == `users_table ||
-		 (ret == `abort && !usersReallyAbort()));
-	
-	current_user = usersGetUser(current);
-
+	symbol ret = `next;
+	repeat
+	    {
+		ret = UI(`UserInput());
+		if ( ret == `edit  || ret == `clone  || ret == `delete )
+		{
+		    any user_table_input = UI( `QueryWidget(`id(`user_table), `CurrentItem) );
+		    if( !isnil( user_table_input )) user_in_work = lookup( current_users , user_table_input );
+		    else
+		    {
+			UI(`MessagePopup(_("Please select an entry in the user table")));
+			ret = `not_next;
+		    }
+		   
+		}
+	    } until ( ret != `not_next  );
 	return ret;
     }
+
     
     /**
-     * The second of the two main dialogs.
+     * Details of adding/cloning/editing dialog
+     * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
      */
-    global define usersGroupsDialog() ``{
-	string help_text = "TODO HELP Group";
+    global define usersEditUserDetails( ) ``{
 
+	string help_text      = usersEditUserDetailsHelp();
+
+	//load the current usersettings from user_in_work
+	symbol what           = lookup( user_in_work , "what"     , `nix );
+	string username       = lookup( user_in_work , "username" , ""   );
+        string fullname       = lookup( user_in_work , "fullname" , ""   ); 
+	string home           = lookup( user_in_work , "home"     , ""   );
+	string shell          = lookup( user_in_work , "shell"    , ""   );
+	string grouplist      = lookup( user_in_work , "grouplist", ""   );
+	integer uid           = lookup( user_in_work , "uid"      , max_uid );
+	integer old_uid       = 0;
+	integer gid           = lookup( user_in_work, "gid"       , max_uid );
+	fullname              = username + ", " + fullname;
+	list available_shells = usersReadShells(`items);
+	list available_groups = [];
+	
+
+	// fill the list available_groups and set the user default group true
+	foreach ( `key, `group,  current_groups, ``{
+
+	    if ( lookup(group ,"todo", "" ) != `delete )
+	    {
+		if ( key == gid )
+		{
+		    available_groups = add( available_groups ,`item(lookup( group , "groupname" , "" ), true));
+		}
+		else
+		{
+		    available_groups = add( available_groups , `item(lookup( group , "groupname" , "" )));
+		}	   
+	    }
+	});
+
+	
+	term edit_defaultgroup = `Bottom(`ComboBox(`id(`defaultgroup), `opt(`hstretch), "Default group", available_groups ));
+	term edit_shell        = `Bottom(`ComboBox(`id(`shell       ), `opt(`hstretch), "Login shell", available_shells ));
+	
 	term contents = 
-	    `VBox(rbUsersGroup(`groups),
-		  `Table(`header(_("Name"), _("GID")),
-		         []),
-	          `HBox
-		  (
-		      `PushButton(`id(`new),   _("&Add")),
-		      `PushButton(`id(`clone), _("&Clone")),
-		      `PushButton(`id(`edit),  _("&Edit")),
-		      `HStretch(),
-		      `PushButton(`id(`delete),      _("&Delete"))
-		  )
-	    );
+	    `HVSquash(
+		     `HBox(
+			   `HSpacing(4),
+			   `VBox(
+			   `VSpacing(1),
+			   // User account information, forename or first name
+			   `TextEntry(`id(`fullname), _("&Detaild profile for user:"), fullname),
+			   `VSpacing(1),
+			   `HBox(
+				 `HWeight(40, edit_defaultgroup),	
+				 // input field for login name,
+				 `HSpacing(3),
+				 `HWeight(40, `Bottom(`TextEntry( `id(`uid), _("User ID (uid)"), sformat("%1",uid ))))
+				)	,
+			   `VSpacing(0.5),	   
+			   `HBox(
+				 `HWeight(40, `Bottom(`TextEntry( `id(`home), _("Home directory"), home ))),
+				 `HSpacing(3),
+				 `HWeight(40,  edit_shell )
+				 ),
+			   `VSpacing(2),	
+			   `TextEntry(`id(`grouplist), _("Additional group menbership (group1, group2, .. )")
+				      ,grouplist ),
+			   `VSpacing(2)
+			   ),
+			   `HSpacing(4))
+			   );
 
-	UI(`SetWizardContentsButtons(_("User and group administration"),
+	UI(`SetWizardContentsButtons(_("Add/Edit User Properties - Details"),
 		                     contents,
 			             help_text,
-			             CancelButtonLabel(),
-				     FinishButtonLabel()));
+			             BackButtonLabel(),
+				     OKButtonLabel()));
 
-	symbol ret = UI(`UserInput());
+	//Modify the dialog 
+	UI(`ChangeWidget(`id(`fullname), `Enabled, false ));
+	UI(`ChangeWidget(`id(`shell),    `Value,   shell ));
+	if ( what == `edit_user ) UI(`ChangeWidget(`id(`uid), `Enabled, false ));
+
+
+	// user input
+	symbol ret = `next;
+	repeat
+	    {
+		ret = UI(`UserInput());
+		if ( ret == `next )
+		{
+		    string  new_home          = UI(`QueryWidget(`id(`home),        `Value));
+		    string  new_shell         = UI(`QueryWidget(`id(`shell),       `Value));
+		    string  new_uid           = UI(`QueryWidget(`id(`uid),         `Value));
+		    string  new_defaultgroup  = UI(`QueryWidget(`id(`defaultgroup),`Value));
+		    string  new_grouplist     = UI(`QueryWidget(`id(`grouplist),   `Value));
+		    boolean input_ok          = true;
+		    integer new_i_uid         = tointeger( new_uid );
+		    
+		    
+		    // check the uid
+		    if ( (what == `add_user) && (new_i_uid != uid) )
+		    {
+			
+			if( !( new_i_uid >= 0  && new_i_uid <= max_uid ))
+			{
+			    string error = sformat(UI(_("The selected User Id is not allowed.
+Please select a valid integer between 0 and %1")), max_uid );
+			    UI(`ErrorPopup( error ));
+			    continue;
+			}
+		   
+			if( new_i_uid <= max_system_uid )
+			{
+			    
+			    // tell the max_system_uid
+			    string error = sformat(UI(_("The selected User Id is a system Id,
+because the Id is bigger than %1. \nDo you really want to create a new system user")), max_system_uid );
+			    if( ! UI(`YesNoPopup( error )))
+			    {
+				continue;
+			    }
+			    
+			}
+
+			if(  haskey( current_users ,  new_i_uid ) && ( uid != new_i_uid ) )
+			{
+			    UI(`ErrorPopup(_("The inputted User Id is reserved.
+Please select a another User Id")));
+			    continue;
+			}
+		    }
+		    
+
+		    
+		    // check the defaultgroup ( filter!! )
+		    foreach ( `key, `group,  current_groups, ``{
+			if( lookup( group, "groupname", "") == new_defaultgroup )
+			{
+			    gid = lookup(group, "gid", max_gid);
+			}
+		    });
+		
+		    // check the homedirectory
+		    if ( home != new_home  )
+		    {
+			if( (nil != findfirstnotof( new_home, valid_home_chars )) ||
+			    (  0 != findfirstof( new_home, "/")   ))
+			{
+			    UI(`ErrorPopup(_("The home directory  may only contain the following characters:
+a..zA..Z0..9/
+Please try again.")));
+			    continue;
+			}
+			
+
+			
+		    }
+
+		    // chech the grouplist
+		    if( new_grouplist != grouplist  )
+		    {
+			if( nil == findfirstnotof( new_grouplist ,  valid_grouplist_chars ) )
+			{
+			    list new_groups  = splitstring(new_grouplist, "," );
+			    boolean input_ok = true;
+			    foreach( `new_group, new_groups , ``{
+				if( input_ok )
+				{
+				    boolean found = false;
+				    foreach(`key, `exist_group, current_groups, ``{
+					if( lookup( exist_group, "groupname", "") == new_group )
+					{
+					    found = true;
+					}
+				    });
+				    if ( found == false )
+				    {
+					UI(`ErrorPopup(_("You can only assign the user
+groups that really exists.
+Please try again.")));
+					input_ok = false;
+				    }
+				}
+			    });
+			    if( ! input_ok ) continue;
+			}
+			else
+			{
+			    UI(`ErrorPopup(_("The groupfield may contain only
+letters and digits.
+Please try again.")));
+			    continue;
+			}
+		    }
+
+		
+		    // update user_in_work
+		    user_in_work = add( user_in_work, "home"      , new_home );
+		    user_in_work = add( user_in_work, "shell"     , new_shell);
+		    user_in_work = add( user_in_work, "gid"       , gid      );
+		    user_in_work = add( user_in_work, "uid"       , new_i_uid);
+		    user_in_work = add( user_in_work, "grouplist" , new_grouplist);
+		}    
+	    } until ( ret == `next || ret == `abort  || ret == `back );
 	
-	/* TODO change the current_group here */
-
+	if ( ret == `next ) ret = what;
 	return ret;
     }
-    
-    /**
-     * Function that cleans the current_user. Necessary for the [New] user
-     */
-    global define usersClearCurrentUser() ``{
-        current_user = $[];
-	return `next;
-    }
 
+
+     /**
+     * Propose a username 
+     * @param 
+     */
+    global define usersProposeUsername( string forename, string surname ) ``{
+
+	string  username           = "";
+	string  default_login_name = "lxuser";
+	integer part_len           = 3;
+	integer login_len          = part_len * 2;
+	  
+			
+	string f_name = filterchars(tolower(forename), valid_logname_chars);
+	integer f_len = size( f_name );
+
+	string s_name = filterchars(tolower(surname), valid_logname_chars);
+	integer s_len = size( s_name );
+		    
+	if ( f_len == 0 && s_len == 0 )	// both are missing
+	{	
+	    username = default_login_name;	// default login
+	}
+	else					// at least one is given
+	{
+	    if ( f_len >= part_len )
+	    {
+		if ( s_len >= part_len )	        // forename and surname long enough
+		{
+		    f_len = part_len;		// take part_len chars from each
+		    s_len = part_len;
+		}
+		else				// surname shorter than 3 chars
+		{
+		    f_len = login_len - s_len;	// fill up with forename
+		}
+	    }
+	    else				// forename shorter than 3 chars
+	    {
+		s_len = login_len - f_len;	// fill up with surname
+	    }
+			    
+	    // build login name
+	    username = substring( f_name, 0, f_len ) + substring( s_name, 0, s_len );
+	    if (size (username) < 2) username = default_login_name;
+	    else {
+		string firstchar = substring(username, 0, 1);
+		if (firstchar < "a" || firstchar > "z")
+		    username = default_login_name;
+	    }
+	}
+	return username;
+    }
+    
+
+    /**
+     * Split fullname in forename and surname
+     * @param 
+     */
+    global define usersSplitFullName( symbol what, string fullname, integer uid) ``{
+
+	list    strs    = splitstring(fullname , " ");
+	integer i       = 1;
+	string surname  = "";
+	string forename = "";
+	
+	if( uid <= max_system_uid )
+	{
+	    if ( what == `surname  ) return fullname;
+	    if ( what == `forename ) return "";
+	}
+	
+	foreach( `str, strs, ``{
+	    
+	    if ( i < size( strs) )
+	    {
+		if( forename == "" ) forename = str;
+		else forename = forename + " " + str;
+	    }
+	    else  surname = str;
+	    i = i + 1;
+	});
+	if ( what == `surname  ) return surname;
+	if ( what == `forename ) return forename;
+
+  }
+
+    
     /**
      * Function that adds or edits a user
      * @param term what <TT>`add_user</TT> or <TT>`edit_user</TT>
      */
-    global define usersEditUserDialog(symbol what) ``{
-	string help_text = "TODO HELP Add/Clone/Edit user";
-
-	// What we use here
-	string username = lookup(current_user, "username", "");
-	string fullname = lookup(current_user, "fullname", "");
-	string passwd   = lookup(current_user, "passwd",   "");
-	integer gid     = lookup(current_user, "gid", 100);
-
-	// Default setting if not set: gid
-	if (lookup(current_user, "gid", -1) < 0)
-	    current_user = add(current_user, "gid", 100);
-	
-	// Default setting if not set: home
-	if (lookup(current_user, "home", "") == "" && username != "")
-	    current_user = add(current_user, "home", "/home/"+username);
-	
-	// Default setting if not set: shell
-	if (lookup(current_user, "shell", "") == "")
-	    current_user = add(current_user, "shell", "/bin/bash");
-	
-	// Default setting if not set: groups
-	list in_groups  = (username != "")? usersAllGroupsContaining(username, gid): [];
-	if (size(lookup(current_user, "groups", [])) == 0)
-	    current_user = add(current_user, "groups", in_groups);
-	
+    global define usersEditUser(symbol what) ``{
 	map dialog_labels = $[
 	    `add_user:   UI(_("Add a new user")),
-	    `edit_user:  sformat(UI(_("Edit user \"%1\"")), username)
+	    `clone_user: UI(_("Add a new user by cloning user ")),
+	    `edit_user:  UI(_("Edit an existing user"))
 	];
 
+	string  help_text      = "TODO HELP Add/Clone/Edit user";
+	string  username       = lookup( user_in_work, "username", "");
+	string  fullname       = lookup( user_in_work, "fullname", "");
+	integer gid            = lookup( user_in_work, "gid"     , 100 );
+	string  home           = lookup( user_in_work, "home"    , "/home/");
+	string  shell          = lookup( user_in_work, "shell"   , "/bin/bash");
+	integer uid            = lookup( user_in_work, "uid"     , max_uid );
+	string  surname        = usersSplitFullName(`surname,  fullname, uid); 
+	string  forename       = usersSplitFullName(`forename, fullname, uid);
+	string  password       = lookup( user_in_work, "password", "");
+	string  grouplist      = lookup( user_in_work, "grouplist", "empty");
+	if ( grouplist == "empty" && what == `edit_user)  grouplist = findGroupsBelongUser(username);
+	if ( grouplist == "empty" && what == `add_user )  grouplist = "dialout,uucp,video,audio";
+	if ( uid == max_uid )  uid = usersFreeUid(current_users);
+
+	
 	term contents = 
 	    `HSquash(`VBox
 	    (
-	        `VStretch(),
-		
+	     
+	       `VStretch(),
 		// User account information, forename or first name
-		`TextEntry(`id(`fullname), _("&Name:"), fullname),
+	       //   name_edit,
 
-                // Change of the username is allowed only for [New] or [Clone]
-		(what == `edit_user)?
-		    `VSpacing(0.0):
-		    `VSquash(`HBox
-		    (
-		        // input field for login name
-		        `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
-		        // push button to generate a login name from first and last name
-		        `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-		    )),
+	       `VBox(
+		     `TextEntry(`id(`forename), _("&First name:"), forename),
+		     `TextEntry(`id(`surname),  _("&Last name:"),  surname )
+		     ),
+	       
+		`VSquash(`HBox
+		(
+		    // input field for login name
+		    `Bottom(`TextEntry( `id(`username), _("&User login:"), username )),
+		    // push button to generate a login name from first and last name
+		    `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
+		)),
+
 		
 		// User account information, first version of user password, both versions must match
-		`Password(`id(`passwd1), _("&Enter a password:"), ""),
+		`Password(`id(`pw1), _("&Enter a password:"), ""),
 		// User account information, second version of user password, retyped to avoid typos
 		// This is a label, please use newline if it is longer than 48 characters
-		`Password(`id(`passwd2), _("Re-enter the password for &verification:"), ""),
+		`Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
 		
 	        `VStretch(),
 		`PushButton(`id(`details), _("&Details..."))
@@ -274,152 +488,765 @@
 			             BackButtonLabel(),
 				     NextButtonLabel()));
 
-	symbol ret = `empty;
-	do
-	{
-	    ret = UI(`UserInput());
-
-	    /* TODO Suggest the username! */
-
-	    // Get the settings from the dialog
-	    if (what != `edit_user)
-	    {
-		if (username != UI(`QueryWidget(`id(`username), `Value)))
-		{
-		    username = UI(`QueryWidget(`id(`username), `Value));
-
-		    current_user = add(current_user, "username", username);
-		    current_user = add(current_user, "home",     "/home/"+username);
-		}
-	    }
-
-	    current_user = add(current_user, "fullname",
-		               UI(`QueryWidget(`id(`fullname), `Value)));
-	    
-	    string pw1 = UI(`QueryWidget(`id(`passwd1), `Value));
-	    string pw2 = UI(`QueryWidget(`id(`passwd1), `Value));
-
-	    // Check if everything is OK
-	    if (ret == `next)
-	    {
-		// passwd
-		if (pw1 != pw2)
-		{
-		    /* TODO : the passwords do not match! */
-		    ret = `empty;
-		    continue;
-		}
-		else
-		{
-		    if (pw1 != "")
-		    {
-			string passwd = crypt(pw1);
-			current_user = add(current_user, "password", passwd);
-		    }
-		}
-
-		// Various checks
-		if (!usersCheckUsername(username) /* TODO || something else */)
-		{
-		    ret = `empty;
-		}
-	    }
-	} while (ret == `empty ||
-	         ret == `propose ||
-		 (ret == `abort && !usersReallyAbort()));
 	
-	if (ret == `next)
+	
+
+	// Modify the dialog 
+	if( what == `clone_user ) UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
+	else  if( what == `add_user )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
+	else  if( what == `edit_user)  UI(`ChangeWidget(`id(`next) , `Label, _("&Modify")));
+	
+	if( uid <= max_system_uid)
 	{
-	    if (what == `add_user)
-	    {
-		current_user = add(current_user, "state", `added);
-
-		if (lookup(current_user, "home", "") == "")
-		    current_user = add(current_user, "home", "/home/"+username);
-
-		usersAddUser(current_user);
-	    }
-	    if (what == `edit_user)
-	    {
-		/* TODO usersEditUser(current_user); */
-	    }
+	    UI(`ChangeWidget(`id(`propose), `Enabled, false ));
+	    UI(`ChangeWidget(`id(`forename),`Enabled, false ));
 	}
+	if( password != "")
+	{
+	    UI(`ChangeWidget(`id(`pw1), `Value ,default_pw));
+	    UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+	}
+
+	
+	
+	/* TODO change the current_user here */
+	symbol ret = `next;
+	repeat
+	    {
+		ret = UI(`UserInput());
+		
+		
+		if (ret == `propose  && ( !(what == `edit_user && uid <= max_system_uid) ) )
+		{
+		    string forename = UI(`QueryWidget(`id(`forename), `Value));
+		    string surname  = UI(`QueryWidget(`id(`surname), `Value));
+		    string username = usersProposeUsername( forename, surname );
+		    UI(`ChangeWidget(`id(`username), `Value, username));
+		}
+		    	
+		if ( ret == `next || ret == `details )
+		{
+		    string pw1   = UI(`QueryWidget(`id(`pw1),      `Value));
+		    string pw2   = UI(`QueryWidget(`id(`pw2),      `Value));
+		    username     = UI(`QueryWidget(`id(`username), `Value));
+		    forename     = UI(`QueryWidget(`id(`forename), `Value));
+		    surname      = UI(`QueryWidget(`id(`surname ), `Value));
+
+		    if( forename != "" ) fullname = forename + " " + surname;
+		    else                 fullname = surname;
+		    
+		  
+		    
+		    if ( (what == `add_user  && fullname == "") ||
+			 (what == `edit_user && fullname == "" && ( lookup( user_in_work , "fullname", "") != "") ) )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The name information is not
+			// complete, the user is asked to complete the information
+			UI(`ErrorPopup(_("Please enter your name.")));
+			UI(`SetFocus(`id(`surname)));
+			continue;
+		    }
+		    
+		    if ( username == "" )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The username is empty (no user
+			//  input).
+			UI(`ErrorPopup(_("You didn't enter a username.
+Please try again.
+")));	
+			UI(`SetFocus(`id(`username)));
+                        continue;
+		    }	
+		    
+		    if  (  ( size( username ) < 2 || size( username ) > 8 ) )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The username must have a size
+			// between 2 and 8 characters.
+			UI(`ErrorPopup(_("The username must be between 2 and 8 characters in length.
+Please try again.
+")));
+			UI(`SetFocus(`id(`username)));
+			continue;
+		    }
+		    
+		    string firstchar = substring(username, 0, 1);
+		    
+		    if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
+			   nil != findfirstnotof( username, valid_logname_chars ) ) )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The login name may contain only
+			// certain characters and must begin with a letter.
+			UI(`ErrorPopup(_("The username may contain only
+lower case letters and digits
+and must begin with a letter.
+Please try again.
+")));
+			UI(`SetFocus(`id(`username)));
+			continue;
+		    }
+		    
+		    // check login against passwd contents
+		    if ( (username != lookup( user_in_work , "username", "")) &&
+			 contains( usersUsersRead(`usernamelist), username )    )
+		    {
+			// Tell the user that the login he entered conflicts with
+			// predefined logins in the passwd file.
+			UI(`ErrorPopup(_("There is a conflict between the entered
+login name and a predefined username.
+
+Please try another one.
+")));
+			UI(`SetFocus(`id(`username)));
+			continue;
+		    }
+		    
+		    if (  pw1 != pw2 )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The two user password information
+			// do not match
+			UI(`ErrorPopup(_("The first and the second version
+of the password are different.
+Please try again.")));
+			password = "";
+			// Invalidate any old password
+			
+			// clear password inputfields in this case
+			UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			UI(`ChangeWidget(`id(`pw2), `Value, ""));
+
+			UI(`SetFocus(`id(`pw1)));
+			continue;
+		    }
+		    
+		    // Use the old password (if any) if no passwords were entered.
+		    // only check pw1 here, its identical with pw2 as checked before
+		    if (  (password != "x")  && (pw1 != default_pw) && (pw2 != default_pw ))
+		    {
+			if ( pw1 == "" )
+			{
+			    // There is a check whether the information from the
+			    // UI is correct and complete.  The first user password
+			    // information is empty (no user input)
+			    UI(`ErrorPopup(_("You didn't enter a password.\nPlease try again.")));
+			    password = "";
+			  		    
+			    // clear password inputfields in this case
+			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    
+			    UI(`SetFocus(`id(`pw1)));
+			    continue;
+			}
+			if ( size (pw1) < 5 )
+			{
+			    // There is a check whether the information from the
+			    // UI is correct and complete.  The user password
+			    // information must have a minimal size - 5 characters.
+			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
+			    password = "";
+			    
+			    // clear password inputfields in this case
+			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    
+			    UI(`SetFocus(`id(`pw1)));
+			    continue;
+			}
+			
+			if ( size(pw1) >= 5 )
+			{
+			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
+			    {
+				// There is a check whether the information from the
+				// UI is correct and complete.  The user password may
+				// contain only certain characters
+				UI(`ErrorPopup(_("The password may only contain the following characters:
+0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
+Please try again.")));
+				password = "";
+				
+				
+				// clear password inputfields in this case
+				UI(`ChangeWidget(`id(`pw1), `Value, ""));
+				UI(`ChangeWidget(`id(`pw2), `Value, ""));
+				
+				UI(`SetFocus(`id(`pw1)));
+				continue;
+			    }	
+			}
+			password = crypt (pw1);
+		    }
+
+		    
+		    if ( what == `add_user && home == "/home/" ) home = home + username;
+
+		    user_in_work = $[
+				     "what"        :  what ,
+				     "fullname"    :  fullname,
+			 	     "gid"         :  gid,
+				     "home"        :  home,
+				     "password"    :  password, 
+				     "shell"       :  shell,
+				     "uid"         :  uid,
+				     "username"    :  username,
+				     "grouplist"   :  grouplist
+		    ];
+
+		}
+		
+	    } until ( ret == `next || ret == `details || ret == `abort  || ret == `back );
 
 	return ret;
     }
+
+
+
+
+
     
+    
+    
+    /**
+     * Delete the user saved in user_in_work from current_users and
+     * add a entry with a shell delete command to the map user_settings
+     * @param 
+     */
+    global define usersDeleteUser() ``{
+
+	// if the user want to delete a system user
+	if ( lookup(user_in_work , "uid") <= max_system_uid )
+	{	
+	    if(! UI(`YesNoHeadlinePopup(_("The marked user is a system user."), _("Do you really want to delete this user"))))
+	    {
+		user_in_work = $[];
+		return `next;
+	    }
+	}
+
+
+	// delete the user from the map current_users
+	string username       = lookup( user_in_work, "username", "");
+	map new_current_users = $[];
+	foreach(`key, `user, current_users, ``{
+	    if( lookup( user_in_work, "uid") != key) new_current_users = add( new_current_users , key, user);
+	});
+	current_users = new_current_users;
+
+	
+	//build a shell delete comman and save it to user_settings
+	if( lookup( user_in_work, "exist", false ) )
+	{
+	    usersAddTodo("/usr/sbin/userdel " + username );
+	    usersAddChownHome( lookup(current_user, "home", "" ), root, root );
+	}
+		    
+		    
+	//delete the user from the map current_groups (userlist)
+	map tmp_current_groups = current_groups;
+	foreach( `key, `group, tmp_current_groups, ``{
+
+	    string userlist  = lookup(group, "userlist" , "");
+	    map    new_group = group;
+	    
+	    if( issubstring( userlist, username ) )
+	    {
+		list split_userlist = splitstring( userlist, ",");
+		string new_userlist = "";
+		
+		foreach( `entry, split_userlist, ``{
+		    
+		    if( entry != username )
+		    {
+			if( new_userlist == "") new_userlist = entry;
+			else new_userlist = new_userlist + "," + entry;
+		    }
+		});
+		new_group = add( new_group, "userlist", new_userlist );
+		current_groups = add( current_groups, key , new_group );
+	    }
+	});
+
+	user_in_work = $[];
+	return `next;
+    }
+
+
+
+    /**
+     * The second of the two main dialogs.
+     */
+    global define usersGroupsDialog() ``{
+
+	group_in_work = $[];
+	
+	string help_text = "TODO HELP Group";
+	list item_group = usersGroupsRead(`items);
+
+	term contents = 
+	    `VBox(rbUsersGroup(`groups),
+		  `Table(`id(`group_table ), `header(_("Group name"), _("Group ID"), _("Group members")),
+		         item_group),
+	          `HBox
+		  (
+		      `PushButton(`id(`new),   _("&Add")),
+		      // `PushButton(`id(`clone), _("&Clone")),
+		      `PushButton(`id(`edit),  _("&Edit")),
+		      `HStretch(),
+		      `PushButton(`id(`delete), _("&Delete"))
+		  )
+	    );
+
+	UI(`SetWizardContentsButtons(_("User and group administration"),
+		                     contents,
+			             help_text,
+			             CancelButtonLabel(),
+				     FinishButtonLabel()));
+
+	// save marked tabelentry to group_in_work
+	symbol ret = `next;
+	repeat	    {
+		ret = UI(`UserInput());
+		if ( ret == `edit  || ret == `clone  || ret == `delete )
+		{
+		    any group_table_input = UI( `QueryWidget(`id(`group_table), `CurrentItem) );
+		    if( !isnil( group_table_input )) group_in_work = lookup( current_groups , group_table_input );
+		    else
+		    {
+			UI(`ErrorPopup(_("Please select an entry in the user table")));
+			ret = `not_next;
+		    }
+		   
+		}
+	    } until ( ret != `not_next  );
+	return ret;
+    }
+
+
+
+
+
+
+
+
+
     /**
      * Details of adding/cloning/editing dialog
      * @param term what <TT>`add_user</TT>, <TT>`clone_user</TT> or <TT>`edit_user</TT>
      */
-    global define usersEditUserDetailsDialog() ``{
-	string help_text = "TODO HELP User Details";
+    global define usersEditGroup(symbol what ) ``{
 
-	// What we use here
-	string username = lookup(current_user, "username", "");
-	string home     = lookup(current_user, "home",     "");
-	
-	// Shells
-	list shells     = lookup(user_settings, "shells", []);
-	string shell    = lookup(current_user,  "shell");
-	if (!contains(shells, shell))
-	{
-	    shells = prepend(shells, shell);
-	}
+	map dialog_labels = $[
+			      `add_group:   UI(_("Add a new group")),
+			      `clone_group: UI(_("Add a new group by cloning group ")),
+			      `edit_group:  UI(_("Edit an existing group"))
+	];
 
+    
+	// load group saved in group_in_work
+	string  help_text     = "TODO HELP Add/Clone/Edit group";
+	string  groupname     = lookup( group_in_work, "groupname", "");
+	string  password      = "x";
+	integer gid           = lookup( group_in_work, "gid", max_gid );
+	string  userlist      = findUsersBelongGroup(gid);
+	if( gid == max_gid )   gid = usersFreeGid(current_groups);
+
+	// make dialog
 	term contents = 
 	    `HSquash(`VBox
-	    (
-	        `VStretch(),
-		
-		// TextEntry for the home direcory of the user
-		`TextEntry(`id(`home), _("&Home directory:"), home),
+	    (	     
+	       `VStretch(),
+		// User account information, forename or first name
+	       `VSquash(`HBox
+		(
+		    // input field for login name
+		    `Bottom(`TextEntry( `id(`groupname), _("&Group name"), groupname )),
+		    // push button to generate a login name from first and last name
+		    `HSpacing(4),
+		    `Bottom(`TextEntry( `id(`gid), _("Group &id (gid)"), sformat("%1", gid) ))
+		    )),
+	       `VStretch(),
+	       `HBox(
+		     `HSpacing(10),
+		     `VBox(
+		     // User account information, first version of user password, both versions must match
+			   `Password(`id(`pw1), _("&Enter a password:"), ""),
+			   // User account information, second version of user password, retyped to avoid typos
+			   // This is a label, please use newline if it is longer than 48 characters
+			   `Password(`id(`pw2), _("Re-enter the password for &verification:"),  "")
+			   ),
+		     `HSpacing(10)
+		     ),
+	       `VStretch(),
+	       `TextEntry(`id(`userlist), _("&Members of this group (member1 , member2, ..)"), userlist ),
+	       `VStretch()
 
-		// List of the available shells
-		`ComboBox(`id(`shell), `opt(`hstretch, `editable),
-		          _("&Which shell should this user use:"),
-			  usersShellsCBoxItems(shells, shell)),
-		
-	        `VStretch()
+
 	    ));
-
-	UI(`SetWizardContentsButtons(sformat(UI(_("Detailed profile for user %1")), username),
+	
+	UI(`SetWizardContentsButtons(lookup(dialog_labels, what, ""),
 		                     contents,
 			             help_text,
 			             BackButtonLabel(),
-				     OKButtonLabel()));
+				     NextButtonLabel()));
 
-	symbol ret = `empty;
-	do
-	{
-	    ret = UI(`UserInput());
-
-	    // Get the info from the dialog
-	    home  = UI(`QueryWidget(`id(`home), `Value));
-	    shell = UI(`QueryWidget(`id(`shell), `Value));
-	    
-	    if (ret == `next)
-	    {
-		// Various checks
-		/* TODO if (!checkShell() || ...)
-		{
-		    ret = `empty;
-		    continue;
-		}
-		else */
-		{
-		    /* TODO change the current_user here */
-		    if (home != "")
-			current_user = add(current_user, "home", home);
-		    
-		    if (shell != "")
-			current_user = add(current_user, "shell", shell);
-		}
-	    }
-	} while (ret == `empty ||
-		 (ret == `abort && !usersReallyAbort()));
 	
+
+
+	if( what == `clone_group )       UI(`ChangeWidget(`id(`next) , `Label, _("&Clone")));
+	else   if( what == `add_group )  UI(`ChangeWidget(`id(`next) , `Label, _("&Create")));
+	else   if( what == `edit_group)  UI(`ChangeWidget(`id(`next) , `Label, _("&Modify")));
+
+	if( what == `edit_group  )
+	{
+	    UI(`ChangeWidget(`id(`pw1), `Value, default_pw));
+	    UI(`ChangeWidget(`id(`pw2), `Value, default_pw));
+	}
+
+
+	symbol ret = `next;
+	repeat
+	    {
+		ret = UI(`UserInput());
+
+		
+		if ( ret == `next  )
+		{
+		    string pw1            = UI(`QueryWidget(`id(`pw1),       `Value));
+		    string pw2            = UI(`QueryWidget(`id(`pw2),       `Value));
+		    string new_groupname  = UI(`QueryWidget(`id(`groupname), `Value));
+		    string new_gid        = UI(`QueryWidget(`id(`gid),       `Value));
+		    string new_userlist   = UI(`QueryWidget(`id(`userlist),  `Value));  
+
+		    
+		   
+		    
+		    if ( new_groupname == "" )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The new_groupname is empty (no group
+			//  input).
+			UI(`ErrorPopup(_("You didn't enter a groupname.
+Please try again.
+")));	
+			UI(`SetFocus(`id(`groupname)));
+                        continue;
+		    }	
+
+		    
+		    if  (  ( size( new_groupname ) < 2 || size( new_groupname ) > 8 ) )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The groupname must have a size
+			// between 2 and 8 characters.
+			UI(`ErrorPopup(_("The groupname must be between 2 and 8 characters in length.
+Please try again.
+")));
+			UI(`SetFocus(`id(`groupname)));
+			continue;
+		    }
+		    
+		    string firstchar = substring( new_groupname, 0, 1);
+		    
+		    if ( ( ! (firstchar >= "a" && firstchar <= "z") ||
+			   nil != findfirstnotof(  new_groupname, valid_group_chars ) ) )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The groupname may contain only
+			// certain characters and must begin with a letter.
+			UI(`ErrorPopup(_("The groupname may contain only
+lower case letters and digits
+and must begin with a letter.
+Please try again.
+")));
+			UI(`SetFocus(`id(`groupname)));
+			continue;
+		    }
+		    
+		
+		    if ( (((what == `edit_group ) && ( new_groupname != groupname )) || ( what != `edit_group )) &&
+			 contains( usersGroupsRead(`groupnamelist ),  new_groupname ) )
+		    {
+			// Tell the user that the groupname he entered conflicts with
+			// predefined groupnames in the groups file.
+			UI(`ErrorPopup(_("There is a conflict between the entered
+groupname and a predefined groupname.
+Please try another one.
+")));
+			UI(`SetFocus(`id(`groupname)));
+			continue;
+		    }
+		    
+		    if (  pw1 != pw2 )
+		    {
+			// There is a check whether the information from the UI is
+			// correct and complete.  The two user password information
+			// do not match
+			UI(`ErrorPopup(_("The first and the second version
+of the password are different.
+Please try again.")));
+			password = "x";
+			// Invalidate any old password
+			
+			// clear password inputfields in this case
+			UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			UI(`ChangeWidget(`id(`pw2), `Value, ""));
+
+			UI(`SetFocus(`id(`pw1)));
+			continue;
+		    }
+		    
+		    // Use the old password (if any) if no passwords were entered.
+		    // only check pw1 here, its identical with pw2 as checked before
+		    if (  ( (pw1 != "") || (password == "x") ) &&
+			  ( (pw1 != default_pw) && (pw2 != default_pw))  )
+		    {
+			if ( pw1 == "" )
+			{
+			    // There is a check whether the information from the
+			    // UI is correct and complete.  The first user password
+			    // information is empty (no user input)
+			    UI(`ErrorPopup(_("You didn't enter a password.\nPlease try again.")));
+			    password = "x";
+			    // Invalidate any old password
+						    
+			    // clear password inputfields in this case
+			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    
+			    UI(`SetFocus(`id(`pw1)));
+			    continue;
+			}
+			if ( size (pw1) < 5 )
+			{
+			    // There is a check whether the information from the
+			    // UI is correct and complete.  The user password
+			    // information must have a minimal size - 5 characters.
+			    UI(`ErrorPopup(_("The password must have at least 5 characters.\nPlease try again.")));
+			    password = "x";
+			    
+			    // clear password inputfields in this case
+			    UI(`ChangeWidget(`id(`pw1), `Value, ""));
+			    UI(`ChangeWidget(`id(`pw2), `Value, ""));
+			    
+			    UI(`SetFocus(`id(`pw1)));
+			    continue;
+			}
+			
+			if ( size(pw1) >= 5 )
+			{
+			    if ( nil != findfirstnotof( pw1, valid_password_chars ) )
+			    {
+				// There is a check whether the information from the
+				// UI is correct and complete.  The user password may
+				// contain only certain characters
+				UI(`ErrorPopup(_("The password may only contain the following characters:
+0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
+Please try again.")));
+				password = "x";
+				
+				
+				// clear password inputfields in this case
+				UI(`ChangeWidget(`id(`pw1), `Value, ""));
+				UI(`ChangeWidget(`id(`pw2), `Value, ""));
+				
+				UI(`SetFocus(`id(`pw1)));
+				continue;
+			    }	
+			}
+			password = crypt (pw1);
+		    }
+		    
+		    
+		    if ( userlist != new_userlist )
+		    {
+			if( nil == findfirstnotof( new_userlist ,  valid_grouplist_chars ) ) // the same as vail_userlist_chars
+			{
+			    list new_users = splitstring(new_userlist , "," );
+			    boolean all_found = true;
+			    
+			    foreach( `new_user, new_users , ``{
+
+				boolean found = false;
+				foreach(`key, `exist_user, current_users, ``{
+
+				    if( lookup( exist_user, "username", "") == new_user )
+				    {
+					found = true;
+				    }
+				});
+				if ( found == false )
+				{
+				    if ( new_user != "")
+				    {		
+					UI(`ErrorPopup(_("You can only assign the group
+users that really exists.
+Please try again.")));
+					UI(`SetFocus(`id(`userlist)));
+					all_found = false;
+				    }
+				}
+
+			
+			    
+			    });
+			    if (!all_found) continue;
+
+			    // delete something
+			    if( size( userlist ) > size( new_userlist) )
+			    {
+				list old_users = splitstring( userlist, "," );
+				foreach(`old_user, old_users, ``{
+				    
+				    if( ! issubstring( new_userlist, old_user ) )
+				    {
+					// some user was deleted by the user
+					if(   issubstring( findUsersBelongGroup( gid), old_user ) &&
+					      ( !issubstring( lookup( lookup( current_groups, gid),  "userlist", ""), old_user )))
+					{
+					    string error_text = sformat(UI_("You can't delete the user -%1- from this group,
+because the user's defaultgroup is this group"), old_user );
+					    UI(`ErrorPopup(error_text ));
+					    UI(`ChangeWidget(`id(`userlist), `Value, userlist));
+					    UI(`SetFocus(`id(`userlist)));
+					    all_found = false;
+					}	
+				    }
+				});
+			    }
+			    if (!all_found) continue;
+			}
+			else
+			{
+			    UI(`ErrorPopup(_("Syntax in Members of this group is not ok.
+Please try again.")));
+			    UI(`SetFocus(`id(`userlist)));
+			    continue;
+			}
+		    }
+	
+		    // check the uid
+		    if ( tointeger(new_gid) != gid )
+		    {
+			integer new_i_gid = tointeger(new_gid);
+			
+			if( !( new_i_gid >= 0  && ( new_i_gid <= max_gid )) && !isnil(new_i_gid) )
+			{
+			    UI(`ErrorPopup(sformat(UI(_("The selected Group Id is not allowed.
+Please select a valid integer between 0 and %1")), max_gid)));
+			    UI(`SetFocus(`id(`gid)));
+			    continue;
+			}
+			
+			
+			if ( haskey( current_groups , new_i_gid) && ( gid != new_i_gid ))
+			{
+			    if ( lookup(lookup( current_groups, new_i_gid ), "todo", "") != `delete )
+			    {
+				UI(`ErrorPopup(_("The inputted Group Id is reserved.
+Please select a another Group Id")));
+				UI(`SetFocus(`id(`gid)));
+				continue;
+			    }
+			}
+
+			if ( (what != `add_user ) &&  (new_i_gid  <=max_system_gid ) && ( gid > max_system_gid ) )
+			{
+			    UI(`ErrorPopup(_("The inputted Group Id is a system Id.
+Please try again.")));
+			    UI(`SetFocus(`id(`gid)));
+			    continue;
+			}
+
+			if ( (what != `add_user ) && (new_i_gid  > max_system_gid ) && ( gid <= max_system_gid ) )
+			{
+			    UI(`ErrorPopup(_("The inputted Group Id is not a system Id.
+Please try again.")));
+			    UI(`SetFocus(`id(`gid)));
+			    continue;
+			    
+			}
+		    }
+		    
+		    // if savething has changed
+		    if ( ((what == `edit_group) && (  (gid          != tointeger(new_gid))  ||
+						      (groupname    != new_groupname )      ||
+						      (password     != "x"           )      ||
+						      (userlist     != new_userlist  )          )) ||
+			 (what != `edit_group ) )
+		    {
+
+			//save the current group in group_in_work for usersGroupSaveToMap( )
+			group_in_work = $[
+					  "what"      : what,
+					  "groupname" : new_groupname,
+					  "password"  : password,
+					  "userlist"  : new_userlist,
+					  "gid"       : tointeger(new_gid),
+					  "old_gid"   : gid
+			];
+		    }
+		    else {
+			// nothing has changed - no save
+			ret = `back;
+		    }
+		}
+	    } until ( ret == `next ||  ret == `abort  || ret == `back );
 	return ret;
+    }
+
+
+
+    
+    /**
+     * Delete the Group saved in group_in_work from current_groups and
+     * add a entry with a shell delete command to the map user_settings
+     * @param 
+     */
+    global define usersDeleteGroup() ``{
+
+	
+	//if no  user in this group
+	if ( (size ( filter(`k, `v, current_users , ``(lookup(v,"gid") == lookup(group_in_work , "gid")))) == 0) &&
+	     (lookup( group_in_work , "userlist", "") == "" ) )
+	{
+	    
+	    //if the group a system group ask the user ..
+	    if ( lookup(group_in_work , "gid") <= max_system_gid )
+	    {	
+		if(! UI(`YesNoHeadlinePopup(_("The marked group is a system group."), _("Do you really want to delete this group"))))
+		    return `next;
+	    }
+
+	    
+	    //copy all other groups in new_current_groups
+	    map new_current_groups = $[];
+	    foreach(`key, `group, current_groups, ``{
+		if( lookup(group_in_work , "gid") != key) new_current_groups = add( new_current_groups , key, group);
+	    });
+	    current_groups = new_current_groups;
+
+
+	    
+	    //add a shell delete command to user_settings
+	    if( lookup( group_in_work , "exist", false ) )
+	    {
+		usersAddTodo(("/usr/sbin/groupdel " + lookup( group_in_work, "groupname", "") ));
+	    }
+	}
+	else
+	{	
+	    UI(`WarningPopup(_("You can't delete this group because
+there are users in the group.
+Delete this users first.")));
+	}
+	
+	group_in_work = $[];
+	return `next;
     }
     
 } // End

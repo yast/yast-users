@@ -10,6 +10,7 @@
  *
  * Authors:
  *  Jan Holesovsky <kendy@suse.cz>, 2001
+ *  Johannes Buchhold <jbuch@suse.de> 	
  *
  * $Id$
  *
@@ -26,103 +27,143 @@
     // ===== arguments ================================================
 
     boolean test_mode = false;
+
+    string  start_dialog = "users";
     if (size (Args ()) > 0 && Args (0) == .test)
     {
-        test_mode = true;
+	test_mode = true;
     }
-  
+    else
+    {
+	start_dialog =  Args(0);
+    }
+    
+    // ===== Definitions ==============================================
+    
+    // The most important variable
+    map user_settings = $[];
+
+    // For cloning and so
+    map current_users  = $[];
+    map current_groups = $[];
+
+    map group_in_work = $[];
+    map user_in_work  = $[];
+
+    // ===== global values=============================================
+    string valid_logname_chars  = "0123456789abcdefghijklmnopqrstuvwxyz";
+    string valid_password_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#* ,.;:._-+!$%&/|\?{[()]}";
+    string valid_home_chars     = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/";
+    string valid_group_chars    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    string valid_grouplist_chars= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,";
+
+    //include "users/security_io.ycp";
+
+    include "security/io.ycp";              
+    map security  = SecurityRead();
+    integer max_uid             = tointeger(lookup( security, "UID_MAX" ));
+    integer max_gid             = tointeger(lookup( security, "GID_MAX" ));
+    integer max_system_uid      = tointeger(lookup( security, "UID_MIN" )); 
+    integer max_system_gid      = tointeger(lookup( security, "GID_MIN" ));
+   
+    max_system_gid = max_system_gid - 1;
+    max_system_uid = max_system_uid - 1;
+    string default_pw           = "******";
+
+    
     // ===== includes =================================================
     include "ui/wizard_dialog.ycp";
     include "wizard/sequencer.ycp";
     
     include "users/ui.ycp";
     include "users/io.ycp";
-    include "users/functions.ycp";
 
+
+    usersUsersReadFromDisk();
+    usersGroupsReadFromDisk();
+    
     // ===== Open UI ==================================================
     UI(`CreateWizardDialog());
     
     // ===== Data for the WizardSequencer =============================
     map aliases = $[
 	"users":         ``(usersUsersDialog()),
-        "user_new":      [ ``(usersClearCurrentUser()), true ],
-        "user_add":      ``(usersEditUserDialog(`add_user)),
-	"user_add_det":  ``(usersEditUserDetailsDialog()),
-        "user_edit":     ``(usersEditUserDialog(`edit_user)),
-	"user_edit_det": ``(usersEditUserDetailsDialog()),
+        "user_add":      ``(usersEditUser(`add_user)),
+        "user_clone":    ``(usersEditUser(`clone_user)),
+        "user_edit":     ``(usersEditUser(`edit_user)),
+	"user_details":  ``(usersEditUserDetails()),
         "user_delete":   ``(usersDeleteUser()),
+	"user_save":     ``(usersUserSaveToMap()),
 	
 	"groups":        ``(usersGroupsDialog()),
-        "group_new":     [ ``(usersClearCurrentGroup()), true ],
-        "group_add":     ``(usersEditGroupDialog(`add_group)),
-	"group_add_det": ``(usersEditGroupDetailsDialog()),
-        "group_edit":    ``(usersEditGroupDialog(`edit_group)),
-	"group_details": ``(usersEditGroupDetailsDialog()),
-        "group_delete":  ``(usersDeleteGroup())
+        "group_add":     ``(usersEditGroup(`add_group)),
+        "group_clone":   ``(usersEditGroup(`clone_group)),
+        "group_edit":    ``(usersEditGroup(`edit_group)),
+	"group_details": ``(usersEditGroupDetails()),
+        "group_delete":  ``(usersDeleteGroup()),
+	"group_save"  :  ``(usersGroupSaveToMap()),
+
+	"without_save" :  ``(usersReallyAbort()),
+	"save_to_system": ``(usersWrite())
+
     ];
 
     map main_sequence = $[
-        "ws_start":      "users",
+        "ws_start":      start_dialog,
         "users":         $[ `switch_groups:  "groups",
-	                    `new:            "user_new",
-		            `clone:          "user_add",
+	                    `new:            "user_add",
+		            `clone:          "user_clone",
 		            `edit:           "user_edit",
 		            `delete:         "user_delete",
-		            `next:           `finish,
-		            `abort:          `abort ],
-	"user_new":      $[ `next:           "user_add" ],
-	"user_add":      $[ `next:           "users",
-	                    `details:        "user_add_det",
-	                    `abort:          `abort ],
-	"user_add_det":  $[ `next:           "user_add",
-	                    `abort:          `abort ],
-	"user_edit":     $[ `next:           "users",
-	                    `details:        "user_edit_det",
-	                    `abort:          `abort ],
-	"user_edit_det": $[ `next:           "user_edit",
-	                    `abort:          `abort ],
+		            `next:           "save_to_system",
+		            `abort:          "without_save",
+			    `back:           `abort ],
+	"user_add":      $[ `next:           "user_save",
+			    `details:        "user_details",
+	                    `abort:          "without_save",
+			    `back:           "users" ],
+	"user_clone":    $[ `next:           "user_save",
+			    `details:        "user_details",
+	                    `abort:          "without_save" ],
+	"user_details":  $[ `abort:          "without_save",
+			    `add_user:       "user_add",
+			    `clone_user:     "user_clone",
+  			    `edit_user:      "user_edit"],
+	"user_edit":     $[ `next:           "user_save",
+			    `details:        "user_details",
+	                    `abort:          "without_save" ],
 	"user_delete":   $[ `next:           "users",
 	                    `abort:          `abort ],
+	"user_save":     $[ `next:	     "users"],
         "groups":        $[ `switch_users:   "users",
-	                    `new:            "group_new",
-		            `clone:          "group_add",
-		            `edit:           "group_edit",
+	                    `new:            "group_add",
+		            `clone:          "group_clone",
+			    `edit:           "group_edit",
 		            `delete:         "group_delete",
-		            `next:           `finish,
-		            `abort:          `abort ],
-	"group_new":     $[ `next:           "group_add" ],
-	"group_add":     $[ `next:           "groups",
-	                    `details:        "group_add_det",
-	                    `abort:          `abort ],
-	"group_add_det":$[  `next:           "group_add",
-	                    `abort:          `abort ],
-	"group_edit":    $[ `next:           "groups",
-	                    `details:        "group_edit_det",
-	                    `abort:          `abort ],
-	"group_edit_det":$[ `next:           "group_edit",
-	                    `abort:          `abort ],
+		            `next:           "save_to_system",
+		            `abort:          "without_save",
+			    `back:           `finish ],
+	"group_add":     $[ `next:           "group_save",
+	                    `details:        "group_details",
+	                    `abort:          "without_save",
+			    `back:           "groups" ],
+	"group_clone":   $[ `next:           "group_save",
+	                    `details:        "group_details",
+	                    `abort:          "group_save" ],
+	"group_edit":    $[ `next:           "group_save",
+	                    `details:        "group_details",
+	                    `abort:          "group_details" ],
+	"group_details": $[ `abort:          "without_save" ],
 	"group_delete":  $[ `next:           "groups",
-	                    `abort:          `abort ]
+			    `abort:          "without_save" ],
+	"group_save"  :  $[ `next:           "groups"],
+	"without_save":  $[ `next :          `abort,
+	                    `back :          `back   ]
+	
     ];
 
-    // ===== Definitions ==============================================
+   
     
-    // The most important variable
-    /**
-     * The user_settings map has these keys:
-     * "users"   : list of all the users (/etc/passwd)
-     * "groups"  : list of all the groups (/etc/group)
-     * "uid_min" : integer (/etc/login.defs)
-     * "uid_max" : integer (/etc/login.defs)
-     * "gid_min" : integer (/etc/login.defs)
-     * "gid_max" : integer (/etc/login.defs)
-     */
-    map user_settings = (test_mode)? usersGetTestUserSettings():
-                                     usersRead();
-
-    // For cloning and so
-    map current_user  = $[];
-    map current_group = $[];
 
     // ===== Read the current /etc/passwd and /etc/group ==============
 	
@@ -131,9 +172,11 @@
     WizardSequencer(aliases, main_sequence);
 
     // ===== Write ====================================================
+    /*
     if (!test_mode)
     {
-	usersWrite(user_settings);
+	usersWrite(current_groups, current_users);
     }
+    */
 
 } // End
