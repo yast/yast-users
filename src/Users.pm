@@ -2534,7 +2534,7 @@ Please try again.";
 
     if (length ($pw) < $min_length) {
         return sprintf ("The password must have between %i and %i characters.
-Please try again.", $max_length, $min_length);
+Please try again.", $min_length, $max_length);
     }
 
     my $filtered = $pw;
