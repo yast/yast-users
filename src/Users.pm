@@ -3436,7 +3436,8 @@ sub CommitGroup {
     }
     y2milestone ("commiting group '$groupname', action is '$what_group'");
 
-    if ($type eq "system" || $type eq "local") {
+    if ($what_group ne "user_change_default" &&
+	($type eq "system" || $type eq "local")) {
 	$groups_modified = 1;
     }
     if ($type eq "ldap" && $what_group ne "") {
@@ -3903,7 +3904,7 @@ sub Write {
 	}
 	# -------------------------------------- write /etc/group
         if ($plugin_error eq "" && ! WriteGroup ()) {
-            $ret = Message::ErrorWritingFile ("$base_directory/group");
+            $ret = Message->ErrorWritingFile ("$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
         }
@@ -3975,7 +3976,7 @@ sub Write {
 	}
 	# -------------------------------------- write /etc/group
         if ($plugin_error eq "" && !WritePasswd ()) {
-            $ret = Message::ErrorWritingFile ("$base_directory/passwd");
+            $ret = Message->ErrorWritingFile ("$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
