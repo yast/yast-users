@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Mar 24 17:35:15 CET 2003 - jsuchome@suse.de
+
+- corrected texts (#25130)
+- confirmation dialog when no user added in during installation (#25072)
+- password length description (#24152)
+- 2.8.0
+
+-------------------------------------------------------------------
 Wed Mar 12 16:10:46 CET 2003 - jsuchome@suse.de
 
 - missing texts for translations (#25189)

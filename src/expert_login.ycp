@@ -218,7 +218,7 @@ You can configure these settings by running appropriate modules. Select the modu
     // dialog title
     string title = _("Expert Login Options");
 
-    string next = UI::FinishButtonLabel();
+    string next = UI::OKButtonLabel(); // OK/Finish/Next???
     if (Mode::cont)
         next = UI::NextButtonLabel();
 
@@ -273,12 +273,13 @@ Install it now?
     {
         if ( UI::QueryWidget( `id(`des), `Value ) )
             encryptionMethod = "des";
-        else if ( UI::QueryWidget( `id(`md5), `Value ) )
-            encryptionMethod = "md5";
-        else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
-            encryptionMethod = "blowfish";
-
-        Users::encryptionMethod = encryptionMethod;
+        else
+        {
+            if ( UI::QueryWidget( `id(`md5), `Value ) )
+                encryptionMethod = "md5";
+            else if ( UI::QueryWidget( `id(`blowfish), `Value ) )
+                encryptionMethod = "blowfish";
+        }
 
         if (encryptionMethod != Security::Settings["PASSWD_ENCRYPTION"]:"des")
         {
@@ -289,6 +290,14 @@ Install it now?
             Security::Write();
             Progress::on();
         }
+
+        // adapt settings in Users module
+        Users::encryptionMethod = encryptionMethod;
+        if (encryptionMethod != "des")
+            Users::max_length_pas = 128;
+        else
+            Users::max_length_pas = tointeger (SCR::Read (.etc.login_defs.PASS_MAX_LEN));
+
     }
 
     UI::CloseDialog();

@@ -181,26 +181,26 @@ can be changed for non-local users.
 ")) : `VSpacing (0),
                 do_not_edit ? `VSpacing (1) : `VSpacing (0),
                 // text entry
-                `TextEntry(`id(`forename), _("F&irst Name:"), forename),
+                `TextEntry(`id(`forename), _("F&irst Name"), forename),
                 // text entry
-                `TextEntry(`id(`surname),  _("&Last name:"),  surname )
+                `TextEntry(`id(`surname),  _("&Last name"),  surname )
             ),
             `VSquash(
             `HBox(
                 // input field for login name
-                `Bottom(`TextEntry(`id(`username), _("&User login:"),username)),
+                `Bottom(`TextEntry(`id(`username), _("&User login"),username)),
                 do_not_edit ? `HSpacing (0)
                     // push button to generate login from first and last name
                     : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
             )),
             // User account information,
             // first version of user password, both versions must match
-            `Password(`id(`pw1), _("&Enter a password:"), ""),
+            `Password(`id(`pw1), _("&Enter a password"), ""),
             // User account information,
             // second version of user password, retyped to avoid typos
             // This is a label,
             // please use newline if it is longer than 48 characters
-            `Password(`id(`pw2), _("Re-enter the password for &verification:"), ""),
+            `Password(`id(`pw2), _("Re-enter the password for &verification"), ""),
             `VStretch(),
             detailsmorebox ));
 
@@ -344,17 +344,12 @@ Try again.
             {
                 // yes-no popup headline
                 if (  UI::YesNoHeadlinePopup(_("Empty user login"),
-                // FIXME: not only NIS
                 // yes-no popup contents
                  _("Leaving the user name empty only makes sense
-in a network environment with a NIS server.
+in a network environment with an authentication server.
 
 Are you sure?
 ")))
-/*
-Is this system a network client?
-")))
-*/
                 {
                     ret = `nextmodule;
                     break;
@@ -1321,12 +1316,12 @@ global define symbol EditGroupDialog(symbol what ) ``{
             `VSpacing(1),
             // User account information, first version of group password,
             // both versions must match
-            `Bottom(`Password(`id(`pw1), _("&Enter a password:"), "")),
+            `Bottom(`Password(`id(`pw1), _("&Enter a password"), "")),
             // User account information, second version of group password,
             // retyped to avoid typos
             // This is a label, please use newline if it is
             // longer than 48 characters
-            `Bottom(`Password(`id(`pw2), _("Re-enter the &password:"),  "")),
+            `Bottom(`Password(`id(`pw2), _("Re-enter the &password"),  "")),
             `VSpacing(1)
         )),
         `HSpacing(2),
@@ -1680,9 +1675,7 @@ global define symbol DefaultsDialog() ``{
         `VBox(
             `VSpacing(0.5),
 			// Frame label
-            // FIXME: gettext _ was missing here!!!
-//	        `Frame(_("Set the default values for adding new user"),`HBox(
-	        `Frame("",`HBox(
+	        `Frame(_("Set the default values for adding new user"),`HBox(
               `HSpacing(2), `VBox(
                 `VSpacing(0.5),
                 `ComboBox(`id(`defaultgroup), `opt(`hstretch),
@@ -1719,9 +1712,6 @@ global define symbol DefaultsDialog() ``{
             DefaultsDialogHelp(),
             BackButtonLabel(),
             NextButtonLabel());
-//            CancelButtonLabel(),
-//            OKButtonLabel());
-//    Wizard::ReplaceAbortButton (`Empty());
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
 

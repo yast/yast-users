@@ -29,7 +29,7 @@ include "users/helps.ycp";
  * @return true if data was modified
  */
 global define boolean Modified() ``{
-    return (Users::modified ||
+    return (Users::users_modified || Users::groups_modified ||
         Users::customs_modified ||
         Users::defaults_modified);
 }
@@ -297,7 +297,6 @@ global define symbol UsersDialog() ``{
             `PushButton(`id(`customize), `opt(`key_F6), _("Customi&ze Filter")),
             // PushButon
             `PushButton(`id(`defaults), `opt(`key_F7), _("S&et Defaults")),
-//            (Mode::config || Mode::cont) ? `HSpacing(0):
             Mode::config ? `HSpacing(0):
             // PushButon
             `PushButton(`id(`expert), _("E&xpert options...")),
@@ -395,6 +394,17 @@ global define symbol UsersDialog() ``{
                 ret = `not_next;
             }
         }
+
+        if ( ret == `next && Mode::cont && !Users::users_modified)
+        {
+            // yes-no popup contents
+            if ( !UI::YesNoPopup( _("You have not added any user. This only makes sense
+in a network environment with an authentication server.
+
+Are you sure?")))
+                ret = `not_next;
+        }
+
     } until ( ret != `not_next );
 
     if (ret == `back)
