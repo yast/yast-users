@@ -15,7 +15,8 @@
  *
  */
 {
-
+  textdomain "users";
+  
   global define help_main_start()``{
       
         return ( UI(_("<p>

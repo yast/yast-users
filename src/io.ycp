@@ -19,7 +19,7 @@
 
 {
 
-   
+  textdomain "users";
   /**
    * This define returns the groups of a user
    * This is used in <TT>usersUserSaveToMap </TT> and <TT>usersGroupSaveToMap</TT> and

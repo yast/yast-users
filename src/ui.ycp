@@ -163,8 +163,8 @@
 	});
 
 	
-	term edit_defaultgroup = `Bottom(`ComboBox(`id(`defaultgroup), `opt(`hstretch), "Default group", available_groups ));
-	term edit_shell        = `Bottom(`ComboBox(`id(`shell       ), `opt(`hstretch), "Login shell", available_shells ));
+	term edit_defaultgroup = `Bottom(`ComboBox(`id(`defaultgroup), `opt(`hstretch), _("Default &group"), available_groups ));
+	term edit_shell        = `Bottom(`ComboBox(`id(`shell       ), `opt(`hstretch), _("Login &shell"), available_shells ));
 	
 	term contents = 
 	    `HVSquash(
@@ -179,16 +179,16 @@
 				 `HWeight(40, edit_defaultgroup),	
 				 // input field for login name,
 				 `HSpacing(3),
-				 `HWeight(40, `Bottom(`TextEntry( `id(`uid), _("User ID (uid)"), sformat("%1",uid ))))
+				 `HWeight(40, `Bottom(`TextEntry( `id(`uid), _("User &ID (uid)"), sformat("%1",uid ))))
 				)	,
 			   `VSpacing(0.5),	   
 			   `HBox(
-				 `HWeight(40, `Bottom(`TextEntry( `id(`home), _("Home directory"), home ))),
+				 `HWeight(40, `Bottom(`TextEntry( `id(`home), _("&Home directory"), home ))),
 				 `HSpacing(3),
 				 `HWeight(40,  edit_shell )
 				 ),
 			   `VSpacing(2),	
-			   `TextEntry(`id(`grouplist), _("Additional group membership (group1, group2, .. )")
+			   `TextEntry(`id(`grouplist), _("&Additional group membership (group1, group2, .. )")
 				      ,grouplist ),
 			   `VSpacing(2)
 			   ),
