@@ -25,6 +25,7 @@ import "Directory";
 import "Console";
 import "Security";
 import "Require";
+import "Popup";
 
 include "users/routines.ycp";
 include "users/nis_routines.ycp";
@@ -2345,6 +2346,7 @@ global define void ReadSourcesSettings () ``{
 
     if ( is_ldap_available )
     {
+	import "Ldap";
         available_usersets = add ( available_usersets, "ldap");
         available_groupsets = add ( available_groupsets, "ldap");
     }

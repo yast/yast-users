@@ -33,6 +33,7 @@ import "Mode";
 import "Progress";
 import "Report";
 import "Label";
+import "Popup";
 
 include "users/routines.ycp";   // for EncryptionDialog()
 

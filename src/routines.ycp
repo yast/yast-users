@@ -11,9 +11,12 @@
  * some variables are used from here... FIXME: check which ones...
  */
 {
+textdomain "users";
+
 include "users/passwd.ycp";
 import "Wizard";
 import "Label";
+import "Popup";
 import "Users";
 
 /**
