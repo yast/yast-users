@@ -13,6 +13,11 @@
                 ]
             ]
     ];
+    // Execute is called from Users::RunPrepare("nis")
+    map EX = $[
+        "target": $[ "bash_output": $[] ]
+    ];
+    map WRITE = $[];
 
 
     UsersCache::users_itemlists [`local] =
@@ -39,7 +44,7 @@
 
     DUMP ("= testing ================================================");
 
-    TEST(``(Users::ChangeCustoms ("user", new)), [ READ ], 0);
+    TEST(``(Users::ChangeCustoms ("user", new)), [ READ, WRITE, EX ], 0);
 
     DUMP ( sformat ("new user itemlist:\n %1", UsersCache::user_itemlist) );
 

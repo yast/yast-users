@@ -6,7 +6,7 @@ Dump	==========================================================
 Dump	actual user customs: [`local]
 Dump	new user customs: [`local, `nis]
 Dump	= testing ================================================
-Execute	.target.bash "/usr/lib/YaST2/bin/build_nis_structures.pl /tmp " 0
+Execute	.target.bash_output "/usr/lib/YaST2/bin/build_nis_structures.pl /tmp " $[]
 Read	.target.ycp "/tmp/nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
 Read	.target.ycp "/tmp/nis_byname.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
 Read	.target.ycp "/tmp/group_nis.ycp" [`item (`id (5000), "jsuchome", "", "5000", "users,audio,video"), `item (`id (5001), "nis_user", "", "5001", "users,audio")]
