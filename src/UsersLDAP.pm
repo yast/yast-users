@@ -101,7 +101,7 @@ my $max_pass_length		= 8;
 # purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
-     "org_uid",
+     "org_uid", "plugins",
      "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
@@ -109,7 +109,7 @@ my @user_internal_keys		=
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
      "dn", "org_dn", "org_groupname", "org_gidNumber", "removed_userlist",
-     "what", "org_cn");
+     "what", "org_cn", "plugins");
 
 # conversion table from parameter names used in yast (passwd-style) to
 # correct LDAP schema atrributes	TODO DO NOT USE
@@ -760,7 +760,8 @@ sub SubstituteValues {
 	    $svalue = $value;
 	}
 	# substitute only when current value is empty or contains "%"
-	if (contains (\@internal, $attr) ||
+	if (!defined $svalue ||
+	    contains (\@internal, $attr) ||
 	    ($svalue ne "" && !($svalue =~ m/%/))) {
 	    next;
 	}
@@ -891,13 +892,15 @@ sub WriteUsers {
         my $gid		= $user->{"gidNumber"} || GetDefaultGID ();
 	my $create_home	= $user->{"create_home"} || YaST::YCP::Boolean (0);
 	my $delete_home	= $user->{"delete_home"} || YaST::YCP::Boolean (0);
+	my $plugins	= $user->{"plugins"};
 
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
 	my $org_dn	= $user->{"org_user"}{"dn"} || $dn;
-	my @obj_classes	= @{$user->{"objectClass"}};
-	if (@obj_classes == 0) {
-	    @obj_classes= @user_class;
+	my @obj_classes	= @user_class;
+	if (defined $user->{"objectClass"} &&
+	    ref ($user->{"objectClass"}) eq "ARRAY") {
+	    @obj_classes= @{$user->{"objectClass"}};
 	}
 	# check allowed object classes
 	my @ocs		= ();
@@ -916,7 +919,6 @@ sub WriteUsers {
 
 	# ----------- now call the "before-write" plugin function for this user
 
-	my $plugins		= $user->{"plugins"};
 	if (!defined $plugins) {
 	    $plugins	= \@default_user_plugins;
 	}
