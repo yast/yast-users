@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Dec 18 10:17:42 CET 2002 - jsuchome@suse.de
+
+- fixes: missing newlines on write, reading /etc/group, writing shadow
+- auth.ycp + expert dialog from inst_root.ycp -> expert_login.ycp
+- running expert dialog from main users dialog
+- reading speedup
+- adding blanks to uid entry in table widget
+- 2.7.3
+
+-------------------------------------------------------------------
 Mon Dec 16 17:29:08 CET 2002 - jsuchome@suse.de
 
 - fixed broken installation sequence
