@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr  2 10:10:00 CEST 2004 - jsuchome@suse.cz
+
+- fix: enable deleting groups with long name (#38006)
+- 2.9.24
+
+-------------------------------------------------------------------
 Wed Mar 31 15:16:27 CEST 2004 - jsuchome@suse.cz
 
 - fix: build table items during installation (#37670)

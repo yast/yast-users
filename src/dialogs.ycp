@@ -2104,11 +2104,16 @@ define symbol UserSave() ``{
  */
 define symbol GroupSave() ``{
 
-    string error = Users::CheckGroup (Users::GetCurrentGroup ());
-    if (error != "")
+    map <string,any> group = Users::GetCurrentGroup ();
+    // do not check group which should be deleted
+    if (group["what"]:"" != "delete_group")
     {
-	Report::Error (error);
-	return `back;
+	string error = Users::CheckGroup (group);
+	if (error != "")
+	{
+	    Report::Error (error);
+	    return `back;
+	}
     }
     Users::CommitGroup ();
     return `next;
