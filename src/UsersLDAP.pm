@@ -1347,10 +1347,12 @@ sub WriteGroups {
 	    $config->{"plugins"}	= [ $plugin ];
 	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
 	}
-	foreach my $plugin (sort @{$plugins_to_remove}) {
-	    $config->{"plugins"}	= [ $plugin ];
-	    my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
-	}
+	if (defined $plugins_to_remove) {
+            foreach my $plugin (sort @{$plugins_to_remove}) {
+                $config->{"plugins"}	= [ $plugin ];
+                my $res = UsersPlugins->Apply ("WriteBefore", $config, $group);
+            }
+        }
 	# -------------------------------------------------------------------
 
         if ($action eq "added") {
@@ -1390,10 +1392,12 @@ sub WriteGroups {
 	    }
 	}
 	if (!defined $ret{"msg"}) {
-	    foreach my $plugin (sort @{$plugins_to_remove}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("Write", $config, $group);
-	    }
+            if (defined $plugins_to_remove) {
+                foreach my $plugin (sort @{$plugins_to_remove}) {
+                    $config->{"plugins"}	= [ $plugin ];
+                    my $res = UsersPlugins->Apply ("Write", $config, $group);
+                }
+            }
 	}
 	# --------------------------------------------------------------------
 
@@ -1404,10 +1408,12 @@ sub WriteGroups {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
 	    }
-	    foreach my $plugin (sort @{$plugins_to_remove}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
-	    }
+	    if (defined $plugins_to_remove) {
+                foreach my $plugin (sort @{$plugins_to_remove}) {
+                    config->{"plugins"}	= [ $plugin ];
+                    y $res = UsersPlugins->Apply ("WriteBefore", $config, \%new_group);
+                }
+            }
 	    # now add new group with modified objectclass
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"dn"}	= $dn;
@@ -1425,10 +1431,12 @@ sub WriteGroups {
 		$config->{"plugins"}	= [ $plugin ];
 		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
 	    }
-	    foreach my $plugin (sort @{$plugins_to_remove}) {
-		$config->{"plugins"}	= [ $plugin ];
-		my $res = UsersPlugins->Apply ("Write", $config, \%new_group);
-	    }
+	    if (defined $plugins_to_remove) {
+                foreach my $plugin (sort @{$plugins_to_remove}) {
+                    config->{"plugins"}	= [ $plugin ];
+                    y $res = UsersPlugins->Apply ("Write", $config, \%new_group);
+                }
+            }
 	}
     }
     if ($last_id != $last_gid && $group_config_dn ne "")  {
