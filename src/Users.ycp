@@ -66,6 +66,15 @@ map useradd_defaults  = $[
     "groups": "",
 ];
 
+// this command is run when adding a user (see /etc/login.defs)
+string useradd_cmd = "/usr/sbin/useradd.local";
+
+// this command is run before removing a user (see /etc/login.defs)
+string userdel_precmd = "/usr/sbin/userdel-pre.local";
+
+// this command is run after removing a user (see /etc/login.defs)
+string userdel_postcmd = "/usr/sbin/userdel-post.local";
+
 /**
  *  If user should be warned when using uppercase letters
  */
@@ -112,12 +121,12 @@ global integer max_length_gid = 5;
  */
 global map max_uid = $[
     "local"	: 60000,
-    "system"	: 500-1,
+    "system"	: 499,
     "ldap"	: 60000
 ];
 global map min_uid = $[
-    "local"	: 500,
-    "system"	: 0,
+    "local"	: 500,// TODO change to 1000 with new shadow package...
+    "system"	: 100,
     "ldap"	: 500
 ];
 /**
@@ -125,12 +134,12 @@ global map min_uid = $[
  */
 global map max_gid = $[
     "local"	: 60000,
-    "system"	: 100-1, // TODO change to 500 with new version
+    "system"	: 499,
     "ldap"	: 60000
 ];
 global map min_gid = $[
-    "local"	: 100, // TODO change to 500 with new version
-    "system"	: 0,
+    "local"	: 1000,
+    "system"	: 100,
     "ldap"	: 500
 ];
 
@@ -818,6 +827,24 @@ global define symbol Write (block abort, boolean useUI)``{
     }
 
     DeleteHomeDirs();
+    // TODO FIXME: call userdell_*cmd for each deleted user???
+    // FIXME it doesn't make a sense to rebuild NIS database every time...
+    /*
+    foreach (symbol type, map deleted, modified_users, ``{
+
+	if (!contains (["system", "local"], type)) return;
+
+	foreach (integer uid, map user, deleted, ``{
+	    string cmd = sformat("%1 %2", userdel_precmd, user["username"]:"");
+	    y2internal("%1 return value: %2", userdel_precmd,
+		SCR::Execute(.target.bash, cmd));
+
+	    cmd = sformat("%1 %2", userdel_postcmd, user["username"]:"");
+	    y2internal("%1 return value: %2", userdel_precmd,
+		SCR::Execute(.target.bash, cmd));
+	});
+    });
+    */
 
     // write passwd
     if ( useUI )
@@ -861,9 +888,9 @@ global define symbol Write (block abort, boolean useUI)``{
 		CreateHome (default_skel, home);
             }
 	    ChownHome (uid, gid, home);
-            // call the useradd.local (-- check the existence ??)
-            command = sformat("/usr/sbin/useradd.local %1", username);
-            y2debug("useradd.local return value: %1",
+            // call the useradd.local (TODO check the existence ??)
+            command = sformat("%1 %2", useradd_cmd, username);
+            y2debug("%1 return value: %2", useradd_cmd,
                 SCR::Execute(.target.bash, command));
         }
         else // only "edited" can be here
@@ -2023,8 +2050,6 @@ global define boolean Commit (string object, boolean cache)``{
         if ((type == "local" || type == "system") &&
             !users_modified && UserReallyModified())
 	    users_modified = true;
-//FIXME if !UserReallyModified && Mode::config -> unset user["modified"] ???
-//--- or set user_modified to true?
         if (type == "ldap" && !ldap_modified && UserReallyModified())
             ldap_modified = true;
 
@@ -2197,13 +2222,21 @@ global define boolean Commit (string object, boolean cache)``{
         }
         else // also "group_change" !
         {
-            if (uid != org_uid && haskey (users[type]:$[], org_uid))
+	    string org_type = user_in_work["org_type"]:type;
+
+	    if (org_type != type)
+	    {
+                shadow [org_type] = remove (shadow [org_type]:$[],org_username);
+		// new type was already set...
+	    }
+
+            if (uid != org_uid && haskey (users[org_type]:$[], org_uid))
             {
-                users [type] = remove (users [type]:$[], org_uid);
+                users [org_type] = remove (users [org_type]:$[], org_uid);
             }
 	    if (username != org_username)
 	    {
-                users_by_name [type] = remove (users_by_name [type]:$[],
+                users_by_name [org_type] = remove (users_by_name [org_type]:$[],
 		    org_username);
 	    }
             users [ type, uid ] = eval (user_in_work);
@@ -2378,16 +2411,24 @@ global define boolean Commit (string object, boolean cache)``{
 
         if (what_group != "delete_group") // also for `change_user!
         {
+	    string org_type = group_in_work["org_type"]:type;
+
+	    if (org_type != type)
+	    {
+		if (haskey (gshadow [org_type]:$[], org_groupname))
+		    gshadow [org_type] = remove (gshadow [org_type]:$[], org_groupname);
+	    }
+
             // the main action: update groups
-            if (gid != org_gid && haskey (groups [type]:$[], org_gid))
-                groups [ type ] = remove (groups [type]:$[], org_gid);
+            if (gid != org_gid && haskey (groups [org_type]:$[], org_gid))
+                groups [ org_type ] = remove (groups [org_type]:$[], org_gid);
             groups [ type, gid ] = group_in_work;
 
             // name could have been changed !!
             if (groupname != org_groupname &&
-                haskey (groups_by_name [type]:$[], org_groupname))
-                groups_by_name [type] = remove (groups_by_name [type]:$[],
-                    org_groupname);
+                haskey (groups_by_name [org_type]:$[], org_groupname))
+                groups_by_name [org_type] = remove (
+		    groups_by_name [org_type]:$[], org_groupname);
             groups_by_name [type, groupname] = group_in_work;
 
             // update userlist in gshadow
@@ -2579,34 +2620,53 @@ global define boolean ReadSystemDefaults()``{
     Progress::off();
     Security::Read();
     Progress::on();
+    map settings = Security::Settings;
 
-    max_uid ["local"] = tointeger (Security::Settings["UID_MAX"]:"60000");
-    max_gid ["local"] = tointeger (Security::Settings["GID_MAX"]:"60000");
-    max_uid ["system"] = tointeger (Security::Settings ["UID_MIN"]:"500") - 1;
-    max_gid ["system"] = tointeger (Security::Settings ["GID_MIN"]:"500") - 1;
+    max_uid ["local"] = tointeger (settings ["UID_MAX"]:"60000");
+    max_gid ["local"] = tointeger (settings ["GID_MAX"]:"60000");
+
+    max_uid ["system"] = tointeger (settings ["SYSTEM_UID_MAX"]:"499");
+    max_gid ["system"] = tointeger (settings ["SYSTEM_GID_MAX"]:"499");
+
+    min_uid ["local"] = tointeger (settings ["UID_MIN"]:"500");
+    min_gid ["local"] = tointeger (settings ["GID_MIN"]:"500");
+
+    min_uid ["system"] = tointeger (settings ["SYSTEM_UID_MIN"]:"100");
+    min_gid ["system"] = tointeger (settings ["SYSTEM_GID_MIN"]:"100");
+
+    // TODO FIXME: should we use SYSTEM_UID_MIN? -> only for new system users...
+    // ... test UID checking in dialogs/Users::Add...
+
     max_length_uid = size(sformat("%1", max_uid ["local"]:60000));
     max_length_gid = size(sformat("%1", max_gid ["local"]:60000));
 
-    pass_max_days = tointeger (Security::Settings ["PASS_MAX_DAYS"]:"99999");
-    pass_min_days = tointeger (Security::Settings ["PASS_MIN_DAYS"]:"0");
-    pass_warn_age = tointeger (Security::Settings ["PASS_WARN_AGE"]:"7");
+    pass_max_days = tointeger (settings ["PASS_MAX_DAYS"]:"99999");
+    pass_min_days = tointeger (settings ["PASS_MIN_DAYS"]:"0");
+    pass_warn_age = tointeger (settings ["PASS_WARN_AGE"]:"7");
 
-    encryptionMethod = Security::Settings["PASSWD_ENCRYPTION"]:"des";
+    // command running before/after adding/deleting user
+    useradd_cmd = settings ["USERADD_CMD"]:"/usr/sbin/useradd.local";
+    userdel_precmd = settings ["USERDEL_PRECMD"]:"/usr/sbin/userdel-pre.local";
+    userdel_postcmd =settings["USERDEL_POSTCMD"]:"/usr/sbin/userdel-post.local";
+    // FIXME call userdel commands!
 
-    use_cracklib = (Security::Settings["PASSWD_USE_CRACKLIB"]:"no" == "yes");
-    cracklib_dictpath=Security::Settings["CRACKLIB_DICTPATH"]:cracklib_dictpath;
+    encryptionMethod = settings["PASSWD_ENCRYPTION"]:"des";
 
-    obscure_checks = (Security::Settings["OBSCURE_CHECKS_ENAB"]:"no" == "yes");
+    use_cracklib = (settings["PASSWD_USE_CRACKLIB"]:"no" == "yes");
+    cracklib_dictpath=settings["CRACKLIB_DICTPATH"]:cracklib_dictpath;
+
+    obscure_checks = (settings["OBSCURE_CHECKS_ENAB"]:"no" == "yes");
 
     pass_length ["local", "min"] =
-	tointeger (Security::Settings ["PASS_MIN_LEN"]:"5");
+	tointeger (settings ["PASS_MIN_LEN"]:"5");
 
     pass_length ["local", "max"] = (encryptionMethod != "des") ?
 	    Security::PasswordMaxLengths [encryptionMethod]:8 :
-	    tointeger (Security::Settings ["PASS_MAX_LEN"]:"8");
+	    tointeger (settings ["PASS_MAX_LEN"]:"8");
 
     y2debug ("encryption: %1", encryptionMethod);
 
+    // FIXME: encoding... look at bug #3385!
     encoding = Console::encoding;
 
     return true;

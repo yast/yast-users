@@ -481,11 +481,10 @@ Please try again."));
                 if ( nil != findfirstnotof( pw1, Users::valid_password_chars ))
                 {
 
-		// FIXME: add "^" as allowed...
                 // The user password contains restricted characters
                 // error popup
                 Report::Error(_("The password may only contain the following characters:
-0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".
+0..9, a..z, A..Z, and any of \"#* ,.;:._-+!$%^&/|\?{[()]}\".
 Please try again."));
 		clear_password_fields ();
                 continue;
@@ -755,6 +754,8 @@ global define symbol EditUserDetailsDialog( ) ``{
     list list_grouplist = splitstring (grouplist, ",");
     list removed = [];
 
+    string new_type = user_type;
+
     /* fill the list available_groups and set the user default group true */
     foreach ( `grouptype, `groupset, UsersCache::groupnamelists, ``{
         if (grouptype == "local" || grouptype == "system" ||
@@ -987,43 +988,60 @@ Remove the surplus.
             // check the uid -- only for adding??
             if (new_i_uid != uid)
             {
-            if ( new_i_uid < Users::min_uid[user_type]:0 ||
-		 new_i_uid > Users::max_uid[user_type]:60000 ||
-		 nil != findfirstnotof( new_uid , Users::valid_id_chars ))
-            {
-                // error popup, %1, %2 are integers
-                string error = sformat(_("The selected user ID is not allowed.
-Select a valid integer between %1 and %2.
-"),  Users::min_uid [user_type]:0, Users::max_uid[user_type]:60000 );
-                Report::Error( error );
-                UI::SetFocus(`id(`uid));
-                continue;
-            }
-            if( UsersCache::UIDExists( new_i_uid ) )
-            {
-                // error popup
-                Report::Error(_("The user ID entered is reserved.
+		if( UsersCache::UIDExists( new_i_uid ) )
+		{
+		    // error popup
+		    Report::Error(_("The user ID entered is reserved.
 Select another user ID.
 "));
-                UI::SetFocus(`id(`uid));
-                continue;
-            }
-	    // TODO this will be never reached because of m*_uid check above
-            if( new_i_uid <= Users::max_uid["system"]:500 && user_type=="local")
-            {
-                // error popup, %1 is number
-                string error = sformat(_("The selected user ID is a system ID,
+		    UI::SetFocus(`id(`uid));
+		    continue;
+		}
+		if (!UsersCache::CheckUIDInterval (new_i_uid, user_type))
+		{
+		    integer minimum = Users::min_uid[user_type]:0;
+		    if (user_type == "system")
+			minimum = 0;
+
+		    // change the type to system?
+		    if (user_type == "local" &&
+			UsersCache::CheckUIDInterval (new_i_uid, "system"))
+		    {
+			if (! Popup::YesNo( sformat(
+_("The selected user ID is a system ID,
 because the ID is smaller than %1.
-Really create a new system user?
-"),  Users::max_uid["system"]:500 );
-                if( ! Popup::YesNo( error ))
-                {
-                UI::SetFocus(`id(`uid));
-                continue;
-                }
-                // change user_type
-                user_type = "system";
-            }
+Really change type of user to 'system'?"), Users::max_uid["system"]:499 + 1 )))
+			{
+			    UI::SetFocus(`id(`uid));
+			    continue;
+			}
+			new_type = "system";
+		    }
+		    // change the type to local?
+		    else if (user_type == "system" &&
+			     UsersCache::CheckUIDInterval (new_i_uid, "local"))
+		    {
+			if (! Popup::YesNo( sformat(
+_("The selected user ID is a local ID,
+because the ID is greater than %1.
+Really change type of user to 'local'?"), Users::max_uid["system"]:499 )))
+			{
+			    UI::SetFocus(`id(`uid));
+			    continue;
+			}
+			new_type = "local";
+		    }
+		    // uid not in valid interval
+		    else
+		    {
+			Report::Error(sformat(
+_("The selected user ID is not allowed.
+Select a valid integer between %1 and %2.
+"),  minimum, Users::max_uid[user_type]:60000 ));
+			UI::SetFocus(`id(`uid));
+			continue;
+		    }
+		}
             } // end of uid checks
 
             if ( defaultgroup != new_defaultgroup )
@@ -1168,6 +1186,12 @@ Please try again."));
             Users::user_in_work ["groupname"] = new_defaultgroup;
             Users::user_in_work ["org_groupname"] = defaultgroup;
             Users::user_in_work ["removed_grouplist"] = removed;
+
+	    if (user_type != new_type)
+	    {
+		Users::user_in_work ["org_type"]   = user_type;
+		Users::user_in_work ["type"]	   = new_type;
+	    }
 
             if ( create_home != Users::user_in_work ["create_home"]:true )
                 Users::user_in_work ["create_home"] = create_home;
@@ -1551,6 +1575,7 @@ global define symbol EditGroupDialog(string what ) ``{
     // these are users from /etc/group:
     string  userlist		= group["userlist"]:"";
     string  group_type		= group["type"]:nil;
+    string  new_type		= group_type;
     list list_userlist		= splitstring (userlist, ",");
     list list_more_users	= splitstring (more_users, ",");
     list uniqueMember		= group["uniqueMember"]:[];
@@ -1749,19 +1774,6 @@ Please try again."));
             integer new_i_gid = tointeger(new_gid);
             if( new_i_gid != gid)
             {
-                if ( new_i_gid < Users::min_gid [group_type]:0 ||
-		     new_i_gid > Users::max_gid [group_type]:6000 ||
-                     nil !=  findfirstnotof( new_gid, Users::valid_id_chars ))
-                {
-                // error popup %i are numbers
-                Report::Error(sformat(_("The selected group ID is not allowed.
-Select a valid integer between %1 and %2.
-"), Users::min_gid[group_type]:0,
-		    Users::max_gid[group_type]:60000));
-                UI::SetFocus(`id(`gid));
-                continue;
-                }
-
                 if ( UsersCache::GIDExists(new_i_gid) && ( gid != new_i_gid ) )
                 {
                     // error popup
@@ -1771,38 +1783,51 @@ Select a another group ID.
                     UI::SetFocus(`id(`gid));
                     continue;
                 }
+		if (!UsersCache::CheckGIDInterval (new_i_gid, group_type))
+		{
+		    // change the type to system?
+		    if (group_type == "local" &&
+			UsersCache::CheckGIDInterval (new_i_gid, "system"))
+		    {
+			if (! Popup::YesNo( sformat(
+_("The selected group ID is a system ID,
+because the ID is smaller than %1.
+Really change group type to 'system'?"), Users::max_gid["system"]:499 + 1 )))
+			{
+			    UI::SetFocus(`id(`gid));
+			    continue;
+			}
+			new_type = "system";
+		    }
+		    // change the type to local?
+		    else if (group_type == "system" &&
+			     UsersCache::CheckGIDInterval (new_i_gid, "local"))
+		    {
+			if (! Popup::YesNo( sformat(
+_("The selected group ID is a local ID,
+because the ID is greater than %1.
+Really change group type to 'local'?"), Users::max_gid["system"]:499 )))
+			{
+			    UI::SetFocus(`id(`gid));
+			    continue;
+			}
+			new_type = "local";
+		    }
+		    // gid not in valid interval
+		    else
+		    {
+			integer minimum = Users::min_gid [group_type]:0;
+			if (group_type == "system")
+			    minimum = 0;
 
-		// TODO this will be never reached because of m*_gid check above
-		/*
-                if ( ( what == "edit_group" ) &&
-                     ( new_i_gid <= Users::max_gid ["system"]:99) &&
-                     ( group_type == "local" ) )
-                {
-                    // error popup
-                    Report::Error(_("The inputted Group ID is a system ID.
-Please try again."));
-                    UI::SetFocus(`id(`gid));
-                    continue;
-                }
-
-                if ( (what == "edit_group" ) &&
-                     (new_i_gid > Users::max_gid ["system"]:99 ) &&
-                     ( group_type == "system" ))
-                {
-                    // error popup
-                    Report::Error(_("The inputted Group ID is not a system ID.
-Please try again."));
-                    UI::SetFocus(`id(`gid));
-                    continue;
-
-                }
-                if (new_i_gid > Users::max_gid["system"]:99 &&
-		    group_type == "system")
-                    group_type = "local";
-                if (new_i_gid <= Users::max_gid["system"]:99 &&
-		    group_type == "local")
-                    group_type = "system";
-		*/
+			Report::Error(sformat(
+_("The selected group ID is not allowed.
+Select a valid integer between %1 and %2.
+"),  minimum, Users::max_gid[group_type]:60000 ));
+			UI::SetFocus(`id(`gid));
+			continue;
+		    }
+		}
             }
 
 	    // --------------------------------- update userlist
@@ -1841,6 +1866,11 @@ Please try again."));
 		else
 		    group["userlist"]	= new_userlist;
 
+		if (group_type != new_type)
+		{
+		    group ["org_type"]   = group_type;
+		    group ["type"]	 = new_type;
+		}
                 if (what == "edit_group")
                 {
                     if (gid != new_i_gid)

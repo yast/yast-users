@@ -291,15 +291,15 @@ global define boolean ReadLDAPSettings () ``{
     if (user_config ["minUniqueId"]:[] != [])
     {
 	Users::min_uid ["ldap"] = tointeger (
-	    user_config ["minUniqueId",0]:"60000");
+	    user_config ["minUniqueId",0]:"1000");
+	UsersCache::min_uid ["ldap"] = Users::min_uid ["ldap"]:1000;
     }
     if (group_config ["minUniqueId"]:[] != [])
     {
 	Users::min_gid ["ldap"] = tointeger (
-	    group_config ["minUniqueId",0]:"60000");
+	    group_config ["minUniqueId",0]:"1000");
+	UsersCache::min_gid ["ldap"] = Users::min_gid ["ldap"]:1000;
     }
-    UsersCache::min_uid = Users::min_uid;
-    UsersCache::min_gid = Users::min_gid;
 
     //FIXME only crypt works?
     ldap_encryption	= user_config ["passwordHash",0]:Ldap::pam_password;
