@@ -8,12 +8,12 @@ package UsersCache;
 use strict;
 
 use ycp;
-use YaST::YCP qw(Term);
+use YaST::YCP qw(Term Integer);
 
 use Locale::gettext;
-use POSIX;     # Needed for setlocale()
+use POSIX ();     # Needed for setlocale()
 
-setlocale(LC_MESSAGES, "");
+POSIX::setlocale(LC_MESSAGES, "");
 textdomain("users");
 
 use Data::Dumper; # -- for debugging the variables
@@ -106,6 +106,7 @@ my $the_answer			= 42;
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Security");
@@ -354,7 +355,7 @@ sub GroupnameExists {
     my $groupname	= $_[0];
     
     if ($group_type eq "ldap") {
-	$ret = defined $groupnames{$group_type};
+	$ret = defined $groupnames{$group_type}{$groupname};
     }
     else {
 	$ret = (defined $groupnames{"local"}{$groupname} &&
@@ -375,19 +376,18 @@ sub HomeExists {
     my $ret		= 0;
     my @sets_to_check	= ("local", "system");
 
-#    if (ldap_file_server) { FIXME
-#	sets_to_check = add (sets_to_check, "ldap");
-#    }
-#    else if (user_type == "ldap") //ldap, client only
-#    {
-#	sets_to_check = ["ldap"];
-#    }
+    if (Ldap::file_server ()) {
+	push @sets_to_check, "ldap";
+    }
+    elsif ($user_type eq "ldap") { #ldap client only
+	@sets_to_check = ("ldap");
+    }
 
     foreach my $type (@sets_to_check) {
         if (defined $homes{$type}{$home}) {
 	    $ret = 1;
 	}
-    };
+    }
     return $ret;
 }
 
@@ -399,11 +399,16 @@ BEGIN { $TYPEINFO{GetCurrentFocus} = ["function", "integer"]; }
 sub GetCurrentFocus {
 
     if ($current_summary eq "users") {
-	return $focusline_user;
+	if (defined $focusline_user) {
+	    return YaST::YCP::Integer ($focusline_user);
+	}
     }
     else {
-	return $focusline_group;
+	if (defined $focusline_group) {
+	    return YaST::YCP::Integer ($focusline_group);
+	}
     }
+    return undef;
 }
 
 #------------------------------------
@@ -457,7 +462,7 @@ sub GetAllGroupnames {
 BEGIN { $TYPEINFO{GetGroupnames} = ["function", ["list", "string"], "string"];}
 sub GetGroupnames {
 
-    return keys %{$groupnames{$_[0]}};
+    return sort keys %{$groupnames{$_[0]}};
 }
 
 
@@ -465,7 +470,7 @@ sub GetGroupnames {
 BEGIN { $TYPEINFO{GetUsernames} = ["function", ["list", "string"], "string"];}
 sub GetUsernames {
 
-    return keys %{$usernames{$_[0]}};
+    return sort keys %{$usernames{$_[0]}};
 }
 
 ##------------------------------------
@@ -686,13 +691,13 @@ sub BuildUserItem {
     }
     my $all_groups	= join (",", keys %grouplist);
 
-    my $id = YaST::YCP::Term ("id", $uid);
+    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($uid));
     my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
-#if (defined $user{"what"}) { print Dumper ($t); }
 
     return $t;
 }
 
+##------------------------------------
 BEGIN { $TYPEINFO{BuildUserItemList} = ["function",
     "void",
     "string",
@@ -770,7 +775,7 @@ sub BuildGroupItem {
 
     my $all_users	= join (",", @all_users);
 
-    my $id = YaST::YCP::Term ("id", $gid);
+    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($gid));
     my $t = YaST::YCP::Term ("item", $id, $groupname, $gid, $all_users);
 
     return $t;
@@ -1073,7 +1078,7 @@ sub BuildAdditional {
 	    }
 	}
     }
-    return @additional;
+    return sort @additional;
 }
 
 
