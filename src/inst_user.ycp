@@ -18,10 +18,6 @@
     import "Require";
     import "Label";
 
-    // no user for imap server cd, y2c_imap will create it
-    if (Product::imap_server || Product::openteam_server || Product::fwadmin_host)
-        return `auto;
-
     // what to call after inst_auth dialog
     if (Users::AfterAuth() != "users")
     {
