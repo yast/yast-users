@@ -106,6 +106,7 @@ sub Apply {
 
 	    y2debug ("plugin '$module' not defined for entry type '$type'");
 	    next;
+	# FIXME look also to LDAP Template for allowed plugins
 	}
 		
 	my $func	= $module."::$action";

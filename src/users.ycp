@@ -62,9 +62,9 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
  * List users
  * @return boolean false
  */
-define boolean UsersListHandler (map options ) ``{
+define boolean UsersListHandler (map<string,any> options ) ``{
 
-    list sets = maplist (string type, any val, options, ``(type));
+    list<string> sets = maplist (string type, any val, options, ``(type));
     if (sets == [])
 	sets = ["local"];
 
@@ -87,7 +87,7 @@ define boolean UsersListHandler (map options ) ``{
  */
 define boolean UsersShowHandler (map options ) ``{
 
-    map user = $[];
+    map<string,any> user = $[];
     integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
@@ -130,7 +130,7 @@ define boolean UsersShowHandler (map options ) ``{
 	if (is (value, map))
 	{
 	    svalue = mergestring ((list<string>)
-		maplist (string k, any v, (map) value, ``(k)), ",");
+		maplist (string k, any v, (map<string,any>) value, ``(k)), ",");
 	}
 	CommandLine::Print (sformat ("%1\n\t%2", key, svalue));
     });

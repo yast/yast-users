@@ -67,7 +67,8 @@ sub read_shadow {
 	{
 	    if ($uname eq "") {
 		y2error ("strange line in shadow file: '$shadow_entry'");
-		next;
+		$errno 		= 9;
+		return 9;
 	    }
 
 	    if (defined $shadow_tmp{$uname})
@@ -78,14 +79,14 @@ sub read_shadow {
 		return 3;
 	    }
 	    $shadow_tmp{$uname} = {
-		"shadowLastChange"	=> $last_change,
+		"shadowLastChange"	=> $last_change || 0,
 		"shadowWarning"		=> $warn,
 		"shadowInactive"	=> $inact,
 		"shadowExpire"		=> $expire,
-		"shadowMin"		=> $min,
-		"shadowMax"		=> $max,
+		"shadowMin"		=> $min		|| 0,
+		"shadowMax"		=> $max		|| 0,
 		"shadowFlag"		=> $flag,
-		"userPassword"		=> $pass
+		"userPassword"		=> $pass	|| ""
 	    };
 	}
 	else # plus line in /etc/shadow

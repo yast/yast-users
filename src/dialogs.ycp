@@ -147,7 +147,7 @@ define symbol EditUserDialog (string what) ``{
     string user_type	= user["type"]:"local";
     string username	= user["username"]:"";
     string cn		= "";
-    // in LDAP, cn is list of strings... TODO should the list remain?
+    // in LDAP, cn is list of strings
     if (is (user["cn"]:nil, list))
 	cn	= user["cn",0]:"";
     else
@@ -163,8 +163,16 @@ define symbol EditUserDialog (string what) ``{
     string dn		= user["dn"]:"";
 
     // only for LDAP users:
-    string sn		= user["sn"]:SplitFullName(`sn, cn);
-    string givenName	= user["givenName"]:SplitFullName(`givenName, cn);
+    string sn		= "";
+    if (is (user["sn"]:nil, list))
+	sn	= user["sn",0]:SplitFullName(`sn, cn);
+    else
+	sn	= user["sn"]:SplitFullName(`sn, cn);
+    string givenName		= "";
+    if (is (user["givenName"]:nil, list))
+	givenName	= user["givenName",0]:SplitFullName(`givenName, cn);
+    else
+	givenName	= user["givenName"]:SplitFullName(`givenName, cn);
 
     boolean do_not_edit = (user_type == "nis");
 
@@ -262,15 +270,27 @@ can be changed for non-local users.
     else
     {
 	optionbox = `HVCenter ( `HSquash( buttonbox  ) );
-	if (what == "edit_user" && !do_not_edit && false)
+	if (what == "edit_user" && !do_not_edit)
 	{
-	    // FIXME not ready
 	    enable_term = `VBox (
 		`VSpacing (1),
 		// check box label
 		`CheckBox (`id(`ena), _("Disable User Login")),
 		`VSpacing (0.5)
 	    );
+	    /*
+	    term checkboxes = `VBox(
+		// checkbox label
+		`Left( `CheckBox (`id (`ena),_("Disable User Login")))
+	    );
+	    optionbox = `HBox(
+			  `HStretch(),
+			  `HVCenter( `HVSquash( checkboxes ) ),
+			  `HSpacing( 1 ),
+			  `HVCenter( `HVSquash( buttonbox  ) ),
+			  `HSpacing( 1 )
+			  );
+	    */
 	}
     }
 
@@ -289,8 +309,7 @@ can be changed for non-local users.
 		       `HSpacing( 2 )),
 		`VSpacing( 0.5 )
 	    )
-	)),
-	enable_term
+	))
     );
 
 
@@ -355,7 +374,7 @@ can be changed for non-local users.
     }
 
     boolean details	= false;
-    any ret		= `next;
+    symbol ret		= `next;
 
     /**
      * Helper function for user dialog:
@@ -371,7 +390,7 @@ can be changed for non-local users.
 
     repeat
     {
-        ret = UI::UserInput();
+        ret = (symbol) UI::UserInput();
 
 	if (ret == nil) continue;
 
@@ -432,6 +451,7 @@ can be changed for non-local users.
 		    continue;
 		}
 	    }
+	    // TODO the lists should remain
 	    user ["cn"]	= cn;
 	    user ["givenName"] = givenName;
 	    user ["sn"] = sn;
@@ -479,7 +499,7 @@ so the password settings cannot be edited.
 	    // map returned from Check*UI functions
 	    map error_map			= $[];
 	    // map with id's of confirmed questions
-	    map<string,string> ui_map	= $[];
+	    map<string,integer> ui_map	= $[];
 
 
 	    // --------------------------------- username checks, part 1/2
@@ -628,11 +648,9 @@ Please try again."));
 		    continue;
 		}
             }
+	    // ------------------------- last check of all (because of plugins)
 	    if (!details)
 	    {
-		// we must call plugin Check function even if plugin dialog
-		// is not opened (= default values)
-		// FIXME FIXME - now in plugin API
 		error = Users::CheckUser (user);
 		if (error != "")
 		{
@@ -683,7 +701,7 @@ Please try again."));
 	Users::SaveCurrentUser ();
 	Users::SetStartDialog ("users");
     }
-    return (symbol) ret;
+    return ret;
 }
 
 /**
@@ -703,7 +721,7 @@ define symbol EditUserDetailsDialog( ) ``{
     string org_home     = user["org_homeDirectory"]:"";
     boolean create_home = user["create_home"]:true;
     string shell        = user["loginShell"]:"";
-    map groups		= user["grouplist"]:$[];
+    map<string,integer> groups		= user["grouplist"]:$[];
     integer uid	= GetInt (user, "uidNumber", UsersCache::GetMaxUID (user_type));
     integer gid	= GetInt (user, "gidNumber", UsersCache::GetMaxGID (user_type));
     string defaultgroup = user["groupname"]:"";
@@ -720,10 +738,11 @@ define symbol EditUserDetailsDialog( ) ``{
 
     string new_type = user_type;
 
-    map all_groupnames		= UsersCache::GetAllGroupnames ();
+    map<string,map<string,integer> > all_groupnames	=
+	UsersCache::GetAllGroupnames ();
 
     // fill the list available_groups and set the user default group true
-    foreach (string grouptype, map groupmap, all_groupnames, ``{
+    foreach (string grouptype, map<string,integer> groupmap, all_groupnames, ``{
         if (grouptype == "local" || grouptype == "system" ||
             (grouptype == "ldap" && user_type == "ldap"))
 	{
@@ -779,7 +798,7 @@ define symbol EditUserDetailsDialog( ) ``{
 	}
     });
     // backup NIS groups of user (they are not shown in dialog)
-    map nis_groups	= $[];
+    map<string,integer> nis_groups	= $[];
     foreach (string group, integer val, groups, ``{
 	if (all_groupnames ["nis", group]:0 == 1)
 	    nis_groups [group] = 1;
@@ -908,7 +927,7 @@ can be changed for non-local users.")) : `VSpacing (0),
 	    // map returned from Check*UI functions
 	    map<string,string> error_map	= $[];
 	    // map with id's of confirmed questions
-	    map<string,string> ui_map	= $[];
+	    map<string,integer> ui_map		= $[];
 
             string  new_shell = (string)UI::QueryWidget(`id(`shell), `Value);
             string  new_uid   = (string)UI::QueryWidget(`id(`uid),   `Value);
@@ -1082,7 +1101,7 @@ define symbol EditUserPasswordDialog() ``{
 
     string username	= user["username"]:"";
     string user_type	= user["type"]:"local";
-    list shadow_symbols =
+    list<string> shadow_symbols =
 	["shadowWarning", "shadowMax", "shadowMin", "shadowInactive"];
 
     string last_change	= GetString (user, "shadowLastChange", "0");
@@ -1231,12 +1250,12 @@ define symbol PluginDialog (string what) ``{
 	Users::GetCurrentUser (): Users::GetCurrentGroup ();
 
     // UsersPlugins will filter out plugins we cannot use for given type
-    map plugin_clients		= UsersPlugins::Apply ("GUIClient",
+    map plugin_clients	= UsersPlugins::Apply ("GUIClient",
 	$[ "what"	: what ],
 	$[ "type"	: object["type"]:""]
     );
 
-    any ret			= `not_next;
+    symbol ret			= `not_next;
 
     if (size (plugin_clients) == 0)
     {
@@ -1244,24 +1263,37 @@ define symbol PluginDialog (string what) ``{
     }
     else
     {
-	list plugins		=
-	    maplist (string plugin, string client, plugin_clients, ``(client));
+	list<string> plugins	= maplist (string plugin, string client,
+	    (map<string,string>) plugin_clients, ``(client));
 
 	string plugin	= plugins[0]:"";
 
-	// dialog caption (temporary - FIXME)
-	string caption	= _("Plug-ins");
+	// dialog caption
+	string caption	= _("Additional User Settings");
 
-	string help	= _("general helptext for plugins FIXME");
+	if (what == "group")
+	    // dialog caption
+	    caption	= _("Additional Group Settings");
+
+	// helptxt for plugin dialog 1/2
+	string help	= _("<p>Here you can see the list of 'Plug-ins' - the 
+extensions of User and Group configuration.</p>") +
+
+	// helptxt for plugin dialog 2/2
+	_("<p>You can start particular plug-in by pushing the <b>Launch</b> button.</p>");
 
 	list items = [];
 	foreach (string plugin, plugins, ``{
+	    /*
 	    any name = WFM::CallFunction (plugin, ["Name"]);
 	    if (!is (name, string))
 		name = plugin;
-	    any summary = WFM::CallFunction (plugin, ["Summary"]);
+	    */
+	    any summary = WFM::CallFunction (plugin,
+		["Summary", $[ "what" : what ] ]);
 	    if (is (summary, string))
-		items = add (items, `item(`id(plugin), name, summary));
+//		items = add (items, `item(`id(plugin), name, summary));
+		items = add (items, `item(`id(plugin), summary));
 	});
 	/*
 	term contents = `VBox (`ReplacePoint (`id(`rp_plugin), `Empty ()));
@@ -1274,6 +1306,7 @@ define symbol PluginDialog (string what) ``{
 	Wizard::ReplaceHelp (plugin_list);
 	*/
 	term contents = `VBox(
+	    /*
 	    `Table(`id(`table), `opt(`notify), `header(
 		// table header
 		_("Name"),
@@ -1281,6 +1314,9 @@ define symbol PluginDialog (string what) ``{
 		_("Description")
 		), items
 	    ),
+	    */
+	    `SelectionBox (`id(`table), `opt(`notify),
+	        _("A&vailable Plug-ins:"), items),
 	    `HBox (
 		// pushbutton label
 		`Right (`PushButton(`id(`run), `opt(`key_F4), _("&Launch")))
@@ -1342,9 +1378,10 @@ define symbol PluginDialog (string what) ``{
 
 	} until (contains ([`next, `abort, `back], really_ret));
 	*/
+	UI::ChangeWidget (`id(`table),`CurrentItem, plugin);
 	repeat
 	{
-	    ret = UI::UserInput();
+	    ret = (symbol) UI::UserInput();
 	    if (ret == `run || ret == `table)
 	    {
 		plugin	= (string) UI::QueryWidget (`id(`table),`CurrentItem);
@@ -1372,7 +1409,7 @@ define symbol PluginDialog (string what) ``{
 	    ret = string_to_symbol (what_user);
 	}
     }
-    return (symbol)ret;
+    return ret;
 }
 
 /**
@@ -1388,9 +1425,9 @@ define symbol EditGroupDialog (string what ) ``{
     string  password		= group["userPassword"]:"x";
     integer gid			= GetInt (group, "gidNumber", -1);
     // these are the users with this group as a default:
-    map more_users		= group["more_users"]:$[];
+    map<string,integer> more_users	= group["more_users"]:$[];
     // these are users from /etc/group:
-    map userlist		= group["userlist"]:$[];
+    map<string,integer> userlist	= group["userlist"]:$[];
     string group_type		= group["type"]:"";
     string new_type		= group_type;
     string dn			= group["dn"]:"";
@@ -1500,7 +1537,7 @@ define symbol EditGroupDialog (string what ) ``{
 		additional_users));
     }
 
-    any ret = `next;
+    symbol ret = `next;
 
     // Helper function for group dialog:
     // invalidate any old password and clear password inputfields
@@ -1515,7 +1552,7 @@ define symbol EditGroupDialog (string what ) ``{
 
     repeat
     {
-        ret = UI::UserInput();
+        ret = (symbol) UI::UserInput();
 
 	if ((ret == `abort || ret == `cancel) && ReallyAbort () != `abort)
 	{
@@ -1526,7 +1563,7 @@ define symbol EditGroupDialog (string what ) ``{
 	    // map returned from Check*UI functions
 	    map error_map			= $[];
 	    // map with id's of confirmed questions
-	    map<string,string> ui_map	= $[];
+	    map<string,integer> ui_map		= $[];
 
             string pw1          = (string) UI::QueryWidget(`id(`pw1), `Value);
             string pw2          = (string)UI::QueryWidget(`id(`pw2),`Value);
@@ -1623,7 +1660,7 @@ Please try again.")) ;
 		Users::AddGroup (group);
         }
     } until ( contains ([`next, `abort, `back, `ldap, `cancel], ret));
-    return (symbol)ret;
+    return ret;
 }
 
 /**
@@ -1652,8 +1689,10 @@ define symbol DefaultsDialog() ``{
     list available_groups	= [];
     list available_shells	= Users::AllShells ();
 
-    map all_groupnames		= UsersCache::GetAllGroupnames ();
-    foreach (string grouptype, map groupmap, all_groupnames, ``{
+    map<string,map<string,integer> > all_groupnames	=
+	UsersCache::GetAllGroupnames ();
+
+    foreach (string grouptype, map<string,integer> groupmap, all_groupnames, ``{
 	// only local sets
 	if (!contains (["local", "system"], grouptype))
 	    return;
@@ -1934,10 +1973,10 @@ Try again.
  */
 define symbol AuthentizationDialog() ``{
 
-    list configurable = [ "nis", "ldap", "kerberos", "samba" ];
+    list<string> configurable = [ "nis", "ldap", "kerberos", "samba" ];
 
-    list available = [];
-    list installed = [];
+    list<string> available = [];
+    list<string> installed = [];
     list mb = [];
 
     map to_string = $[
@@ -2056,9 +2095,9 @@ define symbol AuthentizationDialog() ``{
     do
     {
         button = UI::UserInput();
-        if (contains (configurable, button))
+        if (is (button,string) && contains (configurable, (string) button))
         {
-	    if (!contains (installed, button))
+	    if (!contains (installed, (string) button))
 	    {
 		string package = sformat ("yast2-%1-client", button);
 		if ( Require::RequireAndConflictTargetButtons ( [package], [],
@@ -2067,7 +2106,7 @@ define symbol AuthentizationDialog() ``{
 Install it now?
 "), package), Label::OKButton(), Label::CancelButton()))
 		{
-		    installed = add (installed, button);
+		    installed = add (installed, (string) button);
 		}
 		else
 		{
@@ -2083,7 +2122,8 @@ Install it now?
 		UI::ChangeWidget (`id(`back), `Enabled, false);
 	    }
         }
-    } while ( !contains ([`next, `abort, `back, `cancel], button) );
+    } while (! (is (button,symbol) &&
+	contains ([`next, `abort, `back, `cancel], (symbol) button) ));
 
     if (changed)
     {
@@ -2119,11 +2159,17 @@ define symbol UserSave() ``{
 }
 
 /**
- * Just giving paramaters for commiting group
+ * Check the group parameters and commit it if all is OK
  * @return symbol for wizard sequencer
  */
 define symbol GroupSave() ``{
 
+    string error = Users::CheckGroup (Users::GetCurrentGroup ());
+    if (error != "")
+    {
+	Report::Error (error);
+	return `back;
+    }
     Users::CommitGroup ();
     return `next;
 }

@@ -54,13 +54,11 @@ Here you can choose the authentication method of users on your system.
 _("<p>Select <b>Stand-Alone Machine</b> if you want to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>") +
 
 // helptext 3/3
-_("<p>If you are using NIS, NIS+, or LDAP server to store user data, select <b>Network  Client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
+_("<p>If you are using NIS or LDAP server to store user data, select <b>Network  Client</b> and choose the appropriate value. Then continue with configuration of your client after pressing <b>Next</b></p>");
 
 map button_labels = $[
     // radiobutton to select nis user auth.
     "nis":       _("N&IS"),
-    // radiobutton to select nis+ user auth.
-    "nisplus":	_("NI&S+"),
     // radiobutton to select ldap user auth.
     "ldap":      _("&LDAP")
 ];
@@ -70,8 +68,6 @@ list available_clients = ["nis"];
 
 if (Require::IsPackageAvailable("yast2-ldap-client"))
     available_clients = add (available_clients, "ldap");
-if (Require::IsPackageAvailable("yast2-nisplus-client"))
-    available_clients = add (available_clients, "nisplus");
 
 term net_buttons = `VBox (`VSpacing(0.5));
 
@@ -162,8 +158,6 @@ if ( (boolean) UI::QueryWidget( `id(`network), `Value ) )
 {
     if ( (boolean) UI::QueryWidget( `id("nis"), `Value ) )
 	Users::SetAfterAuth ("nis");
-    if ( (boolean) UI::QueryWidget( `id("nisplus"), `Value ) )
-	Users::SetAfterAuth ("nisplus");
     if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
 	Users::SetAfterAuth ("ldap");
 }

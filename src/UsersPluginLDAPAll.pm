@@ -62,7 +62,7 @@ sub Summary {
     my $what	= "user";
     # summary
     my $ret 	= _("Edit remaining attributes of LDAP user");
-    
+
     if (defined $_[0]->{"what"} && $_[0]->{"what"} eq "group") {
 	$ret 	= _("Edit remaining attributes of LDAP group");
     }
@@ -115,13 +115,14 @@ sub Check {
 	$ldap2yast_attrs	= UsersLDAP::GetGroupAttrsLDAP2YaST ();
 	@required_attrs		= UsersLDAP::GetGroupRequiredAttributes ();
     }
-y2internal ("req: ", @required_attrs);
 
+# TODO required attributes should be checked against current objectClass
     foreach my $req (@required_attrs) {
 	my $a	= $ldap2yast_attrs->{$req} || $req;
 	my $val	= $data->{$a};
-	if (! defined $val || $val eq "" || 
-	    (ref ($val) eq "ARRAY" && @{$val} == 0)) {
+	if (!defined $val || $val eq "" || 
+	    (ref ($val) eq "ARRAY" && 
+		((@{$val} == 0) || (@{$val} == 1 && $val->[0] eq "")))) {
 	    # error popup (user forgot to fill in some attributes)
 	    return sprintf (_("The attribute '%s' is required for this object according
 to its LDAP configuration, but it is currently empty."), $req);

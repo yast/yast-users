@@ -26,7 +26,7 @@ define string SplitFullName(symbol what,string cn) ``{
     if (issubstring (cn, "%"))
 	return "";
 
-    list    strs    = splitstring(cn , " ");
+    list<string> strs    = splitstring(cn , " ");
     integer i       = 1;
     string sn  = "";
     string givenName = "";
