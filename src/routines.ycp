@@ -616,12 +616,14 @@ As a general rule of thumb, use DES if you are unsure.
 	  `VSpacing( 0.5 ),
 	  `HBox(
 		`HStretch(),
-		`HWeight(1,
-		  `PushButton(`id(`ok), `opt(`default), UI::OKButtonLabel() )),
+		`HWeight(1, `PushButton(`id(`ok), `opt(`default, `key_F10),
+		    UI::OKButtonLabel() )),
 		`HStretch(),
-		`HWeight(1, `PushButton(`id(`cancel), UI::CancelButtonLabel())),
+		`HWeight(1, `PushButton(`id(`cancel), `opt (`key_F9),
+		    UI::CancelButtonLabel())),
 		`HStretch(),
-		`HWeight(1, `PushButton(`id(`help), UI::HelpButtonLabel() ) ),
+		`HWeight(1, `PushButton(`id(`help), `opt (`key_F2),
+		    UI::HelpButtonLabel() ) ),
 		`HStretch()
 	  )
 	));
