@@ -472,7 +472,6 @@ sub Read {
 	"group_scope"		=> YaST::YCP::Integer ($group_scope),
 	"user_attrs"		=> $user_attrs,
 	"group_attrs"		=> $group_attrs,
-#	"itemlists"		=> YaST::YCP::Boolean (1),
 	"member_attribute"	=> $member_attribute
     );
     if (!SCR->Execute (".ldap.users.search", \%args)) {

@@ -200,6 +200,9 @@ sub DebugMap {
     	if (ref ($map{$key}) eq "ARRAY") {
 	    y2warning ("$key ---> (list)\n", join ("\n", sort @{$map{$key}}));
 	}
+	elsif (ref ($map{$key}) eq "YaST::YCP::Term") {
+	    y2warning ("$key --->", @{$map{$key}->args}, "--------");
+	}
 	else {
 	    y2warning ("$key --->", $map{$key}, "--------");
 	}
@@ -1159,8 +1162,6 @@ sub ReadUsers {
     if ($type eq "ldap") {
 	$path 		= ".ldap";
         %userdns	= %{SCR->Read (".ldap.users.userdns")};
-#	$user_items{$type}	= \%{SCR->Read ("$path.users.items")};
-# FIXME looks like Perl cannot recognize YCPTerm... (?)
     }
     elsif ($type eq "nis") {
 	$path		= ".nis";
@@ -1172,7 +1173,6 @@ sub ReadUsers {
     $homes{$type} 	= \%{SCR->Read ("$path.users.homes")};
     $usernames{$type}	= \%{SCR->Read ("$path.users.usernames")};
     $uids{$type}	= \%{SCR->Read ("$path.users.uids")};
-#FIXME \%{} is not necessary...
     return 1;
 }
 
@@ -1184,7 +1184,6 @@ sub ReadGroups {
     my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
 	$path 	= ".$type";
-#	$group_items{$type}	= \%{SCR->Read ("$path.groups.items")};
     }
     elsif ($type eq "nis") {
 	$path 	= ".$type";
