@@ -210,6 +210,7 @@ YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Ldap");
+YaST::YCP::Import ("Linuxrc");
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Message");
 YaST::YCP::Import ("Mode");
@@ -1533,7 +1534,7 @@ sub Read {
     Autologin->Read ();
 
     if (Stage->cont () && Autologin->available () &&
-	ProductFeatures->enable_autologin ()) {
+	ProductFeatures->GetBooleanFeature ("globals", "enable_autologin")) {
 	Autologin->Use (YaST::YCP::Boolean (1));
     }
 
@@ -5824,7 +5825,7 @@ sub Import {
 	}
 
 	foreach my $group (@without_gid) {
-	    y2milestone ("no GID for this group:", $group->{"gid"} || "");
+	    y2milestone ("no GID for this group:", $group->{"cn"} || "");
 	    $self->ResetCurrentGroup ();
 	    $self->AddGroup ($group);
 	    my $error = $self->CheckGroup ($self->GetCurrentGroup());
@@ -5903,6 +5904,25 @@ sub Import {
             }
         }
     }
+    # check if root password is set (bug #76404)
+    if (Mode->autoinst ()) {
+	my %root_user	= %{$self->GetUserByName ("root", "system")};
+	if (%root_user && ($root_user{"userpassword"} || "") eq "") {
+
+	    my $pw = Linuxrc->InstallInf ("RootPassword");
+	    if (defined $pw && $pw ne "") {
+
+		$root_user{"userpassword"}	=
+		    $self->CryptPassword ($pw, "system");
+
+		my $ruid	= $users{"uidnumber"} || 0;
+
+		$users{"system"}{$ruid}		= \%root_user;
+		$shadow{"system"}{"root"} = $self->CreateShadowMap(\%root_user);
+		$modified_users{"system"}{$ruid}	= \%root_user;
+	    }
+	}
+    }
 
     # initialize UsersCache: 1. system users and groups:
     UsersCache->ReadUsers ("system");
@@ -5956,7 +5976,7 @@ sub ExportUser {
     );
     my %shadow_map	= %{$self->CreateShadowMap ($user)};
     my %org_user	= ();
-#FIXME this could cause problems...
+
     if (defined $user->{"org_user"} && $user->{"modified"} ne "added") {
 	%org_user	= %{$user->{"org_user"}};
     }
