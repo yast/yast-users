@@ -467,7 +467,7 @@ define boolean AutologinPopup() ``{
 
      // helptext 1/3 - general info
     _("<p>
-The features described below are only available if you are using KDM as a login manager.
+The features described below are only available if you are using KDM or GDM as a login manager.
 </p>
 ") +
 
@@ -498,7 +498,7 @@ the password. Otherwise, you are asked for the password even if you set a user t
             `HSpacing(40),
             `VSpacing(0.5),
 		// frame label
-	        `Frame(_("KDM Login Settings"), `HBox(
+	        `Frame(_("Display Manager Login Settings"), `HBox(
 		  `HSpacing (0.5),
 		  `VBox(
 		    `VSpacing(0.5),

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Apr 26 10:59:37 CEST 2005 - jsuchome@suse.cz
+
+- better fix for #76404
+- GDM also supports Autologin (#74198) - adapted help texts and tests
+- 2.12.1
+
+-------------------------------------------------------------------
 Tue Apr 19 10:01:59 CEST 2005 - jsuchome@suse.cz
 
 - added support for "rootpassword=ask" option for autoinstallation

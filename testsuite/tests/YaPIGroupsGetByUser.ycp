@@ -135,6 +135,11 @@
 		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
 		]
 	],
+	"sysconfig"	: $[
+	    "displaymanager"	: $[
+		"DISPLAYMANAGER"	: ""
+	    ],
+	],
     ];
     map W = $[];
     map E = $[
