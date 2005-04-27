@@ -5907,7 +5907,9 @@ sub Import {
     # check if root password is set (bug #76404)
     if (Mode->autoinst ()) {
 	my %root_user	= %{$self->GetUserByName ("root", "system")};
-	if (%root_user && ($root_user{"userpassword"} || "") eq "") {
+	if (%root_user && (
+	    ($root_user{"userpassword"} || "") eq "" ||
+	    ($root_user{"userpassword"} || "") eq "x")) {
 
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
 	    if (defined $pw && $pw ne "") {
