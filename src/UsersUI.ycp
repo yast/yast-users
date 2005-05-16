@@ -115,6 +115,25 @@ map SystemUsers = $[
     /* User name for user: "icecream" */
     "Icecream Daemon" : _("Icecream Daemon"),
 
+    /* User name for user: "bitlbee" */
+    "Bitlbee Daemon User"	: _("Bitlbee Daemon User"),
+
+    /* User name for user: "dhcpd" */
+    "DHCP server daemon"	: _("DHCP Server Daemon"),
+
+    /* User name for user: "distcc" */
+    "Distcc Daemon"		: _("Distcc Daemon"),
+
+    /* User name for user: "dovecot" */
+    "Dovecot imap daemon"	: _("Dovecot IMAP Daemon"),
+
+    /* User name for user: "fax" */
+    "Facsimile agent"		: _("Facsimile agent"),
+
+    /* User name for user: "partimag" */
+    "Partimage Daemon User"	: _("Partimage Daemon User"),
+
+
     ];
     return SystemUsers[name]:name;
 }
