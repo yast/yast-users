@@ -42,7 +42,9 @@
 
 	// help text 1/4
     string help_text =  _("<p>
-When entering a password, distinguish between uppercase and lowercase. It should not contain any special characters (e.g., accented characters).
+When entering a password, distinguish between uppercase and
+lowercase. Passwords should not contain any special characters, such as
+accented characters. 
 </p>
 ");
 
@@ -75,20 +77,20 @@ repeat it exactly in a second field. Do not forget your password.
     define string DefaultsDialogHelp () ``{
 // Help text 0/6
       return _("<p>
-Here, set default values to use when creating new <b>local</b> or <b>system</b> users.
+Here, set default values to use when creating new local or system users.
 </p>
 ") +
 // Help text 1/6
       _("<p>
 <b>Default Group</b><br>
-The group name for a new user's initial group.
+The group name of a new user's primary group.
 </p>
 ")
 +
 // Help text 1.5/6
       _("<p>
 <b>Secondary Groups</b><br>
-Names of initial additional groups of the new user.
+Names of additional groups to which to assign new users.
 </p>
 ")
 +
@@ -99,22 +101,25 @@ The name of the new user's login shell. Select one from the list or enter your o
 +
 //Help text 3/6
 _("<p><b>Default Home</b><br>
-The initial path prefix for a new user's home directory. The user's name will be affixed to the end of this value to create the default name of the user's home directory.</P>
+The initial path prefix for a new user's home directory. The username is added
+to the end of this value to create the default name of the home directory.
+</P>
 ")
 +
 // Help text 4/6
 _("<p><b>Skeleton Directory</b><br>
-The contents of this directory will be copied to a user's home directory when a new user is added. </p>
+The contents of this directory are copied to a user's home directory when a new user is added. </p>
 ")
 +
 // Help text 5/6:
 // Don't reorder letters YYYY-MM-DD, date must be set in this format
 _("<p><b>Expiration Date</b><br>
-The date on which the user account is disabled. Date must be in the format YYYY-MM-DD. Leave empty if this account never expires.</P>
+The date on which the user account is disabled. The date must be in the format
+YYYY-MM-DD. Leave it empty if this account never expires.</P>
 ")
 +
 // Help text 6/6
-_("<P><B>Logging in after expiration</B><BR>
+_("<P><B>Days after Password Expiration Login Is Usable</B><BR>
 Users can log in after expiration of passwords. Set how many days 
 after expiration login is allowed. Use -1 for unlimited access.
 </P>
@@ -130,14 +135,14 @@ after expiration login is allowed. Use -1 for unlimited access.
     define string ReadDialogHelp () ``{
 	return
 	    // For translators: read dialog help, part 1 of 2
-_("<P><B><BIG>Initializing users configuration</BIG></B><BR>
+_("<P><B><BIG>Initializing User Management</BIG></B><BR>
 Please wait...
 <BR></P>
 ") +
 	    // For translators: read dialog help, part 2 of 2
-_("<P><B><BIG>Aborting the initialization:</BIG></B><BR>
-You can safely abort the configuration utility by pressing the <B>Abort</B>
-button now.
+_("<P><B><BIG>Aborting the Initialization</BIG></B><BR>
+You can safely abort the configuration utility by pressing <B>Abort</B>
+now.
 </P>");
     }
 
@@ -174,9 +179,9 @@ An additional dialog will inform you whether it is safe to do so.
     {
 	// help text 1/7
 	help = _("<p>
-If you fill out the fields <b>First Name</b>, <b>Last Name</b>, and
-<b>User Login</b>, a new user account is created with the
-<b>Password</b> given in the corresponding field.
+Enter the <b>First Name</b>, <b>Last Name</b>, 
+<b>Username</b>, and
+<b>Password</b> to assign to this user.
 </p>
 ");
     }
@@ -184,9 +189,8 @@ If you fill out the fields <b>First Name</b>, <b>Last Name</b>, and
     {
 	// alternative help text 1/7
 	help = _("<p>
-If you fill out the fields <b>Full User Name</b> and <b>User Login</b>, a new
-user account is created with the <b>Password</b> given in
-the corresponding field.
+Enter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to
+assign to this user account.
 </p>
 ");
     }
@@ -200,9 +204,9 @@ the corresponding field.
 	_("<p>
 Create the <b>User Login</b> from components of the full name by
 clicking <b>Suggestion</b>. It may be modified, but use only
-letters (no accented characters), digits, and <tt>._-</tt>
-Do not use uppercase letters in this entry unless you really know what you are doing.
-User names have stricter restrictions than passwords. You can redefine the
+letters (no accented characters), digits, and <tt>._-</tt>.
+Do not use uppercase letters in this entry unless you know what you are doing.
+Usernames have stricter restrictions than passwords. You can redefine the
 restrictions in the /etc/login.defs file. Read its man page for information.
 </p>
 ");
@@ -212,10 +216,10 @@ restrictions in the /etc/login.defs file. Read its man page for information.
 	help = help +
 	// alternative help text 2/7
 	_("<p>
-When you modify the <b>User Login</b>, use only
-letters (no accented characters), digits, and <tt>._-</tt>
-Do not use uppercase letters in this entry unless you really know what you are doing.
-User names have stricter restrictions than passwords. You can redefine the
+For the <b>Username</b>, use only
+letters (no accented characters), digits, and <tt>._-</tt>.
+Do not use uppercase letters in this entry unless you know what you are doing.
+Usernames have stricter restrictions than passwords. You can redefine the
 restrictions in the /etc/login.defs file.  Read its man page for information.
 </p>
 ");
@@ -225,9 +229,6 @@ restrictions in the /etc/login.defs file.  Read its man page for information.
 
 	// help text 3/7
 	_("<p>
-To work with Linux, first enter the <b>User Login</b> and
-the password. This starting procedure is traditionally known as the
-<b>login</b>.
 </p>
 ");
 
@@ -235,13 +236,12 @@ the password. This starting procedure is traditionally known as the
     {
 	// help text 4/7 (only during installation)
 	help = help + _("<p>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, this user is logged in automatically. This feature is only
-available when using KDM or GDM as a login manager.</p>
+With <b>Auto Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
 ") +
 
         // help text 5/7 (only during installation)
         _("<p>
-The mail for root will be forwarded to this user if you check the option \"Receive System Mail\".</p>
+Have mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>
 ") +
 
 	// help text 6/7 (only during installation)
@@ -258,15 +258,15 @@ To see more details, such as the home directory or the user ID, click
 
 	// alternative help text 5/7
 	_("<p>
-To edit various password settings of this user (e.g., expiration date), click <b>Password Settings</b>.</p>
+To edit various password settings of this user, such as expiration date, click <b>Password Settings</b>.</p>
 ");
     }
 
     if (!mail && type != "nis")
     {
 	// help text 7/7
-	help = help + _("<p>To disallow this user to
-log in, check <b>Disable User Login</b> option.</p>");
+	help = help + _("<p>To forbid this user to
+log in, check <b>Disable User Login</b>.</p>");
     }
     return help;
   }
@@ -282,16 +282,15 @@ log in, check <b>Disable User Login</b> option.</p>");
   define string EditGroupDialogHelp(boolean more) ``{
 	// help text 1/6
       string helptext = _("<p>
-YaST provides an easy means of maintaining user groups on your
-system. Here is what the different entries mean:
+Enter the group data here.   
 </p>
 ") +
 
 	// help text 2/6
 		_("<p>
 <b>Group Name:</b>
-Enter the name of the group. Avoid 
-long names. Normal lengths are between two and eight characters.
+Avoid long names for groups. Normal lengths are between 
+two and eight characters.  
 You can redefine the list of characters allowed for group names in
 the /etc/login.defs file. Read its man page for information.
 </p>
@@ -301,28 +300,28 @@ the /etc/login.defs file. Read its man page for information.
 <b>Group ID (gid):</b>
 In addition to its name, a group must be assigned a numerical ID for its
 internal representation. These values are between 0 and
-%1. Some of the IDs are already assigned during installation. YaST2
-warns you if you try to use an already set one.
+%1. Some of the IDs are already assigned during installation. You will be
+warned if you try to use an already set one.
 </p>
 "), UsersCache::GetMaxGID ("local")) +
 	// help text 4/6
 		_("<p>
-<b>Enter a Password:</b>
-To require the users who are not members of the group to identify themselves while
-switching to this new group (see man page of <tt>newgrp</tt>), assign a
+<b>Password:</b>
+To require users who are not members of the group to identify themselves when
+switching to this group (see the man page of <tt>newgrp</tt>), assign a
 password to this group. For security reasons, this password is not shown
 here. This entry is not required.
 </p>
 ") +
 	// help text 5/6
 		_("<p>
-<b>Repeat Password:</b>
+<b>Confirm Password:</b>
 Enter the password a second time to avoid typing errors.
 </p>
 ") +
 	// help text 6/6
 		_("<p>
-<b>Members of This Group:</b>
+<b>Group Members:</b>
 Here, select which users should be members of this group.
 </p>
 ");
@@ -330,7 +329,8 @@ Here, select which users should be members of this group.
     if (more)
         // additional helptext for EditFroup dialog
         helptext = helptext +
-        _("The second list shows users for which this group is the default group. This list cannot be edited here.");
+        _("The second list shows users for which this group is the default
+        group. The default group can only be changed by editing the user.");
 
     return helptext;
   }
@@ -346,14 +346,14 @@ Here, select which users should be members of this group.
 
 	// help text 1/8
     string helptext = _("<p>
-The meaning of the fields are described below:
+Additional user data includes:
 </p>") +
 	// help text 2/8, %1 is number
 		sformat(_("<p>
 <b>User ID (uid):</b>
 Each user is known to the system by a unique number,
-the \"User ID\". For normal users, you should use
-a UID bigger than %1 because the smaller UIDs are used
+the user ID. For normal users, you should use
+a UID larger than %1 because the smaller UIDs are used
 by the system for special purposes and pseudo logins.
 </p>
 "), UsersCache::GetMaxUID ("system") ) +
@@ -371,7 +371,6 @@ located elsewhere.</p>
 <b>Home Directory:</b>
 The home directory of the user. Normally this is
 /home/username. 
-<br>
 To select an existing directory, click <b>Browse</b>.
 </p>
 ");
@@ -381,7 +380,7 @@ To select an existing directory, click <b>Browse</b>.
         helptext = helptext +
 	// alternate helptext 4.5/8; %1 is directory (e.g. '/etc/skel')
 	sformat (_("<p>To create only an empty home directory,
-check <b>Empty Home</b>. Otherwise, the new user home directory
+check <b>Empty Home</b>. Otherwise, the new home directory
 is created from the default skeleton (%1).</p>
 "), defaults["skel"]:"");
     }
@@ -396,31 +395,31 @@ file server.</p>");
     else if (user_type == "system" || user_type == "local")
         helptext = helptext +
     // alternate helptext 5/8
-    _("<p><b>Additional Information</b>
-Some additional user data could be set here. These field may contain up to
-three parts separated by commas. The standard usage is to write
-<i>office</i>,<i>work phone</i>,<i>home phone</i>. This information will
-be shown when you use the <i>finger</i> command on this user.</p>
+    _("<p><b>Additional Information:</b>
+Some additional user data could be set here. This field may contain up to
+three parts, separated by commas. The standard usage is to write
+<i>office</i>,<i>work phone</i>,<i>home phone</i>. This information is 
+shown when you use the <i>finger</i> command on this user.</p>
 ");
 
 	// help text 6/8
 	helptext = helptext + _("<p>
-<b>Login shell:</b>
-The login shell (\"command interpreter\") for the user.
-Select one shell from the list of all shells installed
+<b>Login Shell:</b>
+The login shell (command interpreter) for the user.
+Select a shell from the list of all shells installed
 on your system.
 </p>") +
 
 	// help text 7/8
 		_("<p>
 <b>Default Group:</b>
-The group to which the user belongs. Select one group
+The primary group to which the user belongs. Select one group
 from the list of all groups existing on your system.
 </p>") +
 	// help text 8/8
 		_("<p>
-<b>Group Membership:</b>
-All additional memberships in groups for the user.
+<b>Groups:</b>
+Select the additional groups in which the user should be a member.
 </p>
 ");
     return helptext;
@@ -432,16 +431,16 @@ All additional memberships in groups for the user.
   define string PluginDialogHelp () {
 
     // helptxt for plugin dialog 1/2
-    return _("<p>Here, see the list of plug-ins--the
+    return _("<p>Here, see the list of plug-ins, the
 extensions of user and group configuration.</p>
 ") +
 
     // helptext for plugin dialog 2/3
-    _("The check mark in the left part of the table indicates that plug-in
+    _("The check mark in the left part of the table indicates that the plug-in
 is currently in use.") +
 
     // helptext for plugin dialog 3/3
-    _("<p>Start the detailed configuration of particular plug-in by selecting <b>Launch</b>.</p>");
+    _("<p>Start the detailed configuration of a particular plug-in by selecting <b>Launch</b>.</p>");
   }
 
 
@@ -452,7 +451,7 @@ is currently in use.") +
   define string usersSaveDialogHelp() ``{
 	// help texts 1/1
       return _("<p>
-Save the current user and group settings to system
+Save the current user and group settings to the system.
 </p>");
 
   }
@@ -464,33 +463,34 @@ Save the current user and group settings to system
   define string  EditUserPasswordDialogHelp() ``{
 // Help text 1/5
       return _("<p>
-<b>Warning before expiration</B><BR>
-Users can be warned before expiration of their passwords. Set 
-how many days before expiration the warning is issued. Set -1 to disable warning.
+<b>Days before Password Expiration to Issue Warning</B><BR>
+Users can be warned before their passwords expire. Set 
+how long before expiration the warning should be issued. Set -1 to disable
+the warning. 
 </p>
 ")
 +
 // Help text 2/5
-_("<P><B>Logging in after expiration</B><BR>
-Users can log in after expiration of passwords. Set how many days 
-after expiration login is allowed. Use -1 for unlimited access.
+_("<P><B>Days after Password Expires with Usable Login</B><BR>
+Users can log in after their passwords have expired. Set how many days to
+allow login. Use -1 for unlimited access.
 </P>
 ")
 +
 //Help text 3/5
-_("<P><B>Lifetime of password</B><BR> Set how many days a user 
+_("<P><B>Maximum Number of Days for the Same Password</B><BR>Set how many days a user 
 can use the same password before it expires.</P>
 ")
 +
 // Help text 4/5
-_("<P><B>Minimum age of password</B><BR>Set the minimum age of 
+_("<P><B>Minimum Number of Days for the Same Password</B><BR>Set the minimum age of 
 a password before a user is allowed to change it.</P>
 ")
 +
 // Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
 _("<P><B>Expiration Date</B><BR>Set the date when this account expires. 
 The date must be in the format YYYY-MM-DD. 
-Leave empty if this account never expires.</P>
+Leave it empty if this account never expires.</P>
 ");
   }
 
@@ -507,7 +507,7 @@ of user accounts or authentication type.
     // help text 2/2
     _("<p>
 <b>Changing the Values</b><br>
-You can configure these settings by running appropriate modules. Select the module with the <b>Configure</b> button.
+You can configure these settings by running appropriate modules. Select the module with <b>Configure</b>.
 </p>
 ");
 

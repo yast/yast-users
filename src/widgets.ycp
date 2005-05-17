@@ -173,7 +173,7 @@ You have changed the default encryption for user passwords.</p>") +
 
     // help text 2/3
     _("<p>It seems that you are running a NIS server. In some network enviroments,
-you could be unable to login to a NIS client when a user password is
+you could be unable to log in to a NIS client when a user password is
 encrypted with a method other than DES.
 </p>
 ") +
@@ -266,13 +266,13 @@ _("<p>Here, extend the search filters for users and groups beyond the default se
 
 // helptext 3/4
 _("<p>With <b>Default</b>, load the default filter from the user and group
-configuration modules, saved on the LDAP server (values of 'susesearchfilter' attributes).
+configuration modules saved on the LDAP server (values of 'susesearchfilter' attributes).
 If you are not connected yet, you are prompted for the password.</p>
 ") +
 
 // helptext 4/4 (do not translate the value (written as <tt> font))
 _("<p><b>Example:</b>
-<br>With user filter
+<br>With the user filter
 <br>
 <tt>(&(objectclass=posixaccount)(uid=u*))</tt>
 <br>
@@ -467,19 +467,19 @@ define boolean AutologinPopup() ``{
 
      // helptext 1/3 - general info
     _("<p>
-The features described below are only available if you are using KDM or GDM as a login manager.
+The features described below are only available if you are using KDM or GDM as the login manager.
 </p>
 ") +
 
 // helptext 2/3
 _("<p><b>Auto Login</b><br>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user chosen from the list is logged in automatically.</p>
+By setting <b>Auto Login</b>, skip the login procedure. The user chosen from the list is logged in automatically.</p>
 ") +
 
 // helptext 3/3
 _("<p><b>Passwordless Logins</b><br>
 If this option is checked, all users are allowed to log in without entering
-the password. Otherwise, you are asked for the password even if you set a user to log in automatically.</p>
+passwords. Otherwise, you are asked for the password even if you set a user to log in automatically.</p>
 ");
 
 
@@ -602,8 +602,9 @@ define symbol DeleteUserPopup() ``{
     if (size (proc) != 0 && !Mode::config ())
     {
         // error popup
-        Report::Error(_("You cannot delete this user, because the user is present.
-Log off the user first."));
+        Report::Error(_("You cannot delete this user, because the user is
+currently logged in.
+Log the user out first."));
         delete = false;
         return nil;
     }
@@ -992,7 +993,7 @@ define string help_main_end()``{
     // help text 1/3
     return _("<p>
 Users and groups are arranged in various sets. Change the set currently shown in the table with <b>Set Filter</b>.
-Customize your view filter with <b>Customize Filter</b>.</p>
+Customize your view with <b>Customize Filter</b>.</p>
 ") +
 
     // help text 2/3
@@ -1005,7 +1006,7 @@ all changes made so far without exiting the configuration module.</p>
 
     // help text 3/3, %1 is translated button label
     sformat(_("<p>
-To save the modified user and group setting to your system, press
+To save the modified user and group settings to your system, press
 <b>%1</b>.
 </p>
 "), button);
@@ -1019,7 +1020,8 @@ define string UsersDialogHelp() ``{
     // help text 1/4
     return help_main_start() + _("
 <p>
-In this dialog, get information about existing users.
+Use this dialog to get information about existing users and add or modify
+users.  
 </p>
 ") +
 
@@ -1055,7 +1057,7 @@ define string GroupsDialogHelp()``{
     // help text 1/4
 _("
 <p>
-In this dialog, get information about existing groups.
+Use this dialog to get information about existing groups and add or modify groups.
 </p>
 ") +
     // help text 2/4

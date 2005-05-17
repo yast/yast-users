@@ -38,7 +38,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
-Return	There is no such group.
+Return	Group does not exist.
 Dump	============ edit done ========================================
 Dump	============ edit group 'audio' (change cn): ==================
 Read	.target.tmpdir "/tmp/YaST"

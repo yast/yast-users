@@ -457,7 +457,7 @@ define symbol EditUserDialog (string what) {
 	    _("De&fault Group"), available_groups );
 	term edit_shell = `ComboBox(`id(`shell), `opt(`hstretch, `editable),
 	    // combobox label
-	    _("Login &shell"), available_shells );
+	    _("Login &Shell"), available_shells );
 
 	term additional_data = `Empty();
 	if (user_type == "system" || user_type == "local")
