@@ -75,7 +75,7 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
 map cmdline = $[
     "id"		: "groups",
     // translators: command line help text for Users module
-    "help"		: _("Group configuration module."),
+    "help"		: _("Group configuration module"),
     "guihandler"	: UsersGUI,
     "initialize"	: UsersRead,
     "finish"		: UsersWrite,
@@ -149,7 +149,7 @@ map cmdline = $[
 	],
 	"userlist"	:$[
 	    // translators: command line help text for 'user' option
-	    "help"	: _("List of group members, usually user names, separated by commas. The list of LDAP user DNs must be separated by colons."),
+	    "help"	: _("List of group members, usually usernames, separated by commas. The list of LDAP user DNs must be separated by colons."),
 	    "type"	: "string"
 	],
 	"new_groupname"	:$[

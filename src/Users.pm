@@ -11,7 +11,7 @@ package Users;
 
 use strict;
 
-use YaST::YCP qw(:LOGGING);
+use YaST::YCP qw(:LOGGING sformat);
 use YaPI;
 
 textdomain("users");
@@ -616,17 +616,17 @@ sub CheckHomeMounted {
         }
 
         if (!$mounted) {
-            return sprintf (
-# Popup text: first and third %s is the directory (e.g. /home),
-# second %s the file name (e.g. /etc/fstab)
-__("In %s, there is a mount point for the directory
-%s, which is used as a default home directory for new
+            return sformat (
+# Popup text: %1 is the file name (e.g. /etc/fstab),
+# %2 is the directory (e.g. /home),
+__("In %1, there is a mount point for the directory
+%2, which is used as a default home directory for new
 users, but this directory is not currently mounted.
 If you add new users using the default values,
-their home directories will be created in the current %s.
+their home directories will be created in the current %2.
 This can result in these directories not being accessible
 after you mount correctly. Continue user configuration?"),
-	    $mountpoint_in, $home, $home);
+	    $mountpoint_in, $home);
 	}
     }
     return $ret;
@@ -861,7 +861,7 @@ sub GetUsers {
     }
     return $ret;
     # error message
-    my $msg = __("There are multiple users satisfying the input conditions.");
+    my $msg = __("Multiple users satisfy the input conditions.");
 }
 
 ##------------------------------------
@@ -1424,7 +1424,7 @@ sub Read {
     my $error_msg 	= "";
 
     # progress caption
-    my $caption 	= __("Initializing user and group configuration");
+    my $caption 	= __("Initializing User and Group Configuration");
     my $no_of_steps 	= 5;
 
     if ($use_gui) {
@@ -1447,7 +1447,7 @@ sub Read {
 		# progress step label
 		__("Reading the default login settings..."),
 		# progress step label
-		 __("Reading the default system setttings..."),
+		 __("Reading the default system settings..."),
 		# progress step label
 		 __("Reading the configuration type..."),
 		# progress step label
@@ -1943,7 +1943,7 @@ BEGIN { $TYPEINFO{EditUser} = ["function",
 }
 sub EditUser {
 
-    if (!%user_in_work) { return __("There is no such user."); }
+    if (!%user_in_work) { return __("User does not exist."); }
     my $self		= shift;
     my %data		= %{$_[0]};
     my $type		= $user_in_work{"type"} || "";
@@ -2174,7 +2174,7 @@ BEGIN { $TYPEINFO{EditGroup} = ["function",
 sub EditGroup {
 
     # error message
-    if (!%group_in_work) { return __("There is no such group."); }
+    if (!%group_in_work) { return __("Group does not exist."); }
 
     my $self	= shift;
     my %data	= %{$_[0]};
@@ -3840,7 +3840,7 @@ sub Write {
     my @groupadd_postcommands	= ();
 
     # progress caption
-    my $caption 	= __("Writing user and group configuration...");
+    my $caption 	= __("Writing User and Group Configuration");
     my $no_of_steps 	= 8;
 
     if ($use_gui) {
@@ -3948,7 +3948,7 @@ sub Write {
     if ($groups_modified) {
 	if ($group_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/group");
+            $ret = sprintf (__("File %s was not read correctly, so it will not be written."), "$base_directory/group");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4019,7 +4019,7 @@ sub Write {
     if ($users_modified) {
         if (!PreDeleteUsers ()) {
        	    # error popup
-	    $ret = __("There was an error while removing users.");
+	    $ret = __("An error occurred while removing users.");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4031,7 +4031,7 @@ sub Write {
     if ($users_modified) {
 	if ($passwd_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/passwd");
+            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), "$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4143,7 +4143,7 @@ sub Write {
     if ($users_modified) {
 	if ($shadow_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("%s file was not correctly read so it will not be written."), "$base_directory/shadow");
+            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), "$base_directory/shadow");
 	    Report->Error ($ret);
 	    return $ret;
  	}
@@ -4193,7 +4193,7 @@ sub Write {
     if ($users_modified) {
         if (!PostDeleteUsers ()) {
 	    # error popup
-	    $ret = __("There was an error while removing users.");
+	    $ret = __("An error occurred while removing users.");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4228,7 +4228,7 @@ sub Write {
 	!MailAliases->SetRootAlias ($root_mail)) {
         
 	# error popup
-        $ret=__("There was an error while setting forwarding for root's mail.");
+        $ret=__("An error occurred while setting forwarding for root's mail.");
 	Report->Error ($ret);
 	return $ret;
     }
@@ -4281,7 +4281,7 @@ sub CheckUID {
 
     if (!defined $uid) {
 	# error popup
-	return __("There is no free UID for this type of user.");
+	return __("No UID is available for this type of user.");
     }
 
     if (("add_user" eq ($user_in_work{"what"} || "")) 	||
@@ -4367,7 +4367,7 @@ Really use it?"),
 	    # popup question
 	    $ret{"question"}	= sprintf(__("The selected user ID is a local ID,
 because the ID is greater than %i.
-Really change type of user to 'local'?"), UsersCache->GetMinUID ("local"));
+Really change the user type to 'local'?"), UsersCache->GetMinUID ("local"));
 	    return \%ret;
 	}
     }
@@ -4381,7 +4381,7 @@ Really change type of user to 'local'?"), UsersCache->GetMinUID ("local"));
 	    # popup question
 	    $ret{"question"}	= sprintf (__("The selected user ID is a system ID,
 because the ID is smaller than %i.
-Really change type of user to 'system'?"), UsersCache->GetMaxUID ("system") + 1);
+Really change the user type to 'system'?"), UsersCache->GetMaxUID ("system") + 1);
 	    return \%ret;
 	}
     }
@@ -4399,7 +4399,7 @@ sub CheckUsername {
 
     if (!defined $username || $username eq "") {
 	# error popup
-        return __("You did not enter a user name.
+        return __("No username entered.
 Try again.");
     }
 
@@ -4409,7 +4409,7 @@ Try again.");
     if (length ($username) < $min || length ($username) > $max) {
 
 	# error popup
-	return sprintf (__("The user name must be between %i and %i characters in length.
+	return sprintf (__("The username must be between %i and %i characters in length.
 Try again."), $min, $max);
     }
 
@@ -4425,7 +4425,7 @@ Try again."), $min, $max);
     if ($stdout ne $filtered) {
 	y2warning ("username $username doesn't match to $character_class");
 	# error popup
-	return __("The user login may contain only
+	return __("The username may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
 Try again.");
@@ -4439,7 +4439,7 @@ Try again.");
 	if (UsersCache->UsernameExists ($username)) {
 	    # error popup
 	    return __("There is a conflict between the entered
-user name and an existing user name.
+username and an existing username.
 Try another one.");
 	}
     }
@@ -4456,7 +4456,7 @@ sub CheckFullname {
 
     if (defined $fullname && $fullname =~ m/[:,]/) {
 	# error popup
-        return __("The full user name cannot contain
+        return __("The user's full name cannot contain
 \":\" or \",\" characters.
 Try again.");
     }
@@ -4506,7 +4506,7 @@ sub CheckPassword {
 
     if (($pw || "") eq "") {
 	# error popup
-	return __("You did not enter a password.
+	return __("No password entered.
 Try again.");
     }
 
@@ -4516,7 +4516,7 @@ Try again.");
     if ($filtered ne "") {
 	# error popup
 	return __("The password may only contain the following characters:
-0..9, a..z, A..Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
+0-9, a-z, A-Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
 Try again.");
     }
     return "";
@@ -4562,11 +4562,11 @@ sub CheckObscurity {
 	if ($current_summary eq "groups") {
 	    # popup question
 	    return __("You have used the group name as a part of the password.
-This is not a good security practice. Really use it?");
+This is not a good security practice. Really use this password?");
 	}
 	# popup question
-        return __("You have used the user name as a part of the password.
-This is not good security practice. Really use it?");
+        return __("You have used the username as a part of the password.
+This is not a good security practice. Really use this password?");
     }
 
     # check for lowercase
@@ -4575,7 +4575,7 @@ This is not good security practice. Really use it?");
     if ($filtered eq "") {
 	# popup question
         return __("You have used only lowercase letters for the password.
-This is not good security practice. Are you sure?");
+This is not a good security practice. Really use this password?");
     }
 
     # check for numbers
@@ -4584,7 +4584,7 @@ This is not good security practice. Are you sure?");
     if ($filtered eq "") {
 	# popup question
         return __("You have used only digits for the password.
-This is not good security practice. Are you sure?");
+This is not a good security practice. Really use this password?");
     }
     return "";
 }
@@ -4633,9 +4633,9 @@ sub CheckPasswordUI {
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
 	    # popup question
-	    $ret{"question"}	= sprintf (__("Password is too simple:
+	    $ret{"question"}	= sprintf (__("The password is too simple:
 %s
-Really use it?"), $error);
+Really use this password?"), $error);
 	    return \%ret;
 	}
     }
@@ -4654,7 +4654,7 @@ Really use it?"), $error);
 	    $ret{"question_id"}	= "short";
 	    # popup questionm, %i is number
 	    $ret{"question"}	= sprintf (__("The password should have at least %i characters.
-Really use it?"), $min_length);
+Really use this shorter password?"), $min_length);
 	}
     }
     
@@ -4723,7 +4723,7 @@ sub CheckHome {
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {
 	# error popup
         return __("The home directory may only contain the following characters:
-a..zA..Z0..9_-/
+a-z, A-Z, 0-9, and _-/
 Try again.");
     }
 
@@ -4756,8 +4756,8 @@ Choose another path for the home directory."), $home_path);
     
     if (UsersCache->HomeExists ($home)) {
 	# error message
-	return __("The home directory is used from another user.
-Please try again.");
+	return __("The home directory is used by another user.
+Try again.");
     }
     return "";
 }
@@ -4800,7 +4800,7 @@ sub CheckHomeUI {
 	# yes/no popup: user seleceted something strange as a home directory
 	$ret{"question"}	= __("The path for the selected home directory already exists,
 but it is not a directory.
-Are you sure?");
+Really use this path?");
 	return \%ret;
     }
 
@@ -4852,7 +4852,7 @@ sub CheckShellUI {
 	    $ret{"question_id"}	= "shell";
 	    # popup question
 	    $ret{"question"}	= __("If you select a nonexistent shell, the user may be unable to log in.
-Are you sure?");
+Use this shell?");
 	}
     }
     return \%ret;
@@ -4871,7 +4871,7 @@ sub CheckGID {
 
     if (!defined $gid) {
 	# error popup
-	return __("There is no free GID for this type of group.");
+	return __("No GID is available for this type of group.");
     }
 
     if (("add_group" eq ($group_in_work{"what"} || "")) ||
@@ -4959,7 +4959,7 @@ Really use it?"),
 	    # popup question
 	    $ret{"question"}	= sprintf (__("The selected group ID is a local ID,
 because the ID is greater than %i.
-Really change type of group to 'local'?"), UsersCache->GetMinGID ("local"));
+Really change the group type to 'local'?"), UsersCache->GetMinGID ("local"));
 	    return \%ret;
 	}
     }
@@ -4973,7 +4973,7 @@ Really change type of group to 'local'?"), UsersCache->GetMinGID ("local"));
 	    # popup question
 	    $ret{"question"}	= sprintf(__("The selected group ID is a system ID,
 because the ID is smaller than %i.
-Really change type of group to 'system'?"), UsersCache->GetMaxGID ("system"));
+Really change the group type to 'system'?"), UsersCache->GetMaxGID ("system"));
 	    return \%ret;
 	}
     }
@@ -4990,7 +4990,7 @@ sub CheckGroupname {
 
     if (!defined $groupname || $groupname eq "") {
 	# error popup
-        return __("You did not enter a group name.
+        return __("No group name entered.
 Try again.");
     }
     
