@@ -62,9 +62,9 @@ Return
 Dump	---- current user (minimal add, used default values):
 Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/hhh", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hhh", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
 Execute	.target.bash_output "echo 'hhh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hhh"]
-Return	You did not enter a password.
+Return	No password entered.
 Dump	---- check user after add:
-Dump	 You did not enter a password.
+Dump	 No password entered.
 Dump	Try again.
 Dump	==================== uid conflict ========================
 Return	
@@ -75,7 +75,7 @@ Execute	.target.bash_output "echo 'root' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-
 Return	There is a conflict between the entered
 Dump	---- check user after add:
 Dump	 There is a conflict between the entered
-Dump	user name and an existing user name.
+Dump	username and an existing username.
 Dump	Try another one.
 Dump	==================== uidnumber problems ===================
 Return	
@@ -93,9 +93,9 @@ Return
 Dump	---- current user (just added):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/iii$", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"iii$", "uidnumber":"1000", "userpassword":"crypted_qqqqq", "what":"add_user"]
 Execute	.target.bash_output "echo 'iii$' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":""]
-Return	The user login may contain only
+Return	The username may contain only
 Dump	---- check user after add:
-Dump	 The user login may contain only
+Dump	 The username may contain only
 Dump	letters, digits, "-", ".", and "_"
 Dump	and must begin with a letter or "_".
 Dump	Try again.

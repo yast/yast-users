@@ -96,7 +96,7 @@ Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0
 Return	There is a conflict between the entered
 Dump	------------ UserAdd return value:
 Dump	There is a conflict between the entered
-Dump	user name and an existing user name.
+Dump	username and an existing username.
 Dump	Try another one.
 Dump	============ add new user 'hh' - done ====================
 Dump	==========================================================
