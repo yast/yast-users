@@ -69,7 +69,7 @@ y2milestone( "Starting with arguments: %1", WFM::Args() );
 map cmdline = $[
     "id"		: "users",
     // translators: command line help text for Users module
-    "help"		: _("User configuration module."),
+    "help"		: _("User configuration module"),
     "guihandler"	: UsersGUI,
     "initialize"	: UsersRead,
     "finish"		: UsersWrite,
@@ -106,7 +106,7 @@ map cmdline = $[
 	"delete" :$[
 	    "handler"	: UserDeleteHandler,
 	    // translators: command line help text for delete action
-	    "help"	: _("Delete an existing user. (Home directory is not removed.)")
+	    "help"	: _("Delete an existing user (home directory is not removed)")
 	],
     ],
     "options"		: $[
@@ -162,7 +162,7 @@ map cmdline = $[
 	],
 	"delete_home"	:$[
 	    // translators: command line help text for delete_home option
-	    "help"	: _("Delete also user's home directory"),
+	    "help"	: _("Also delete user's home directory"),
 	],
 	"password"		:$[
 	    // translators: command line help text for add option

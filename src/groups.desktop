@@ -19,8 +19,8 @@ X-SuSE-YaST-AutoInstResource=
 Icon=yast-groups
 Exec=/sbin/yast2 groups
 
-Name=Edit and create groups
-GenericName=Edit and create groups
+Name=Group Management
+GenericName=Group Management
 Name[cs]=Správce skupin
 GenericName[cs]=Správce skupin
 Name[de]=Gruppen bearbeiten und anlegen

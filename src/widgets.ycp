@@ -79,8 +79,8 @@ restricts passwords to eight characters or less.
 
       // Help text for password expert dialog 3/5
       help_text = help_text + _("<p>
-<b>MD5</b> allows longer passwords, thus provides more security, but some
-network protocols don't support this, and you may have problems with NIS.
+<b>MD5</b> allows longer passwords, so provides more security, but some
+network protocols do not support this and you may have problems with NIS.
 </p>");
 
       // Help text for password expert dialog 4/5
@@ -96,7 +96,7 @@ As a general rule of thumb, use DES if you are unsure.
       UI::OpenDialog(
 	`VBox(
 	  // Label
-	  `Heading( _("Set Password Encryption") ),
+	  `Heading( _("Password Encryption") ),
 	  `VSpacing( 0.7 ),
 	  `HBox(
 		`HSpacing( 2 ),
@@ -174,7 +174,7 @@ You have changed the default encryption for user passwords.</p>") +
     // help text 2/3
     _("<p>It seems that you are running a NIS server. In some network enviroments,
 you could be unable to login to a NIS client when a user password is
-crypted with a different method than DES.
+encrypted with a method other than DES.
 </p>
 ") +
 
@@ -276,7 +276,7 @@ _("<p><b>Example:</b>
 <br>
 <tt>(&(objectclass=posixaccount)(uid=u*))</tt>
 <br>
-only obtain users with a user name beginning with 'u'.</p>
+only obtain users with a username beginning with 'u'.</p>
 ");
 
 
@@ -294,7 +294,7 @@ only obtain users with a user name beginning with 'u'.</p>
 	`TextEntry (`id(`currf), "", curr_shown == `users ? user_f : group_f),
 	`VSpacing(0.5),
 	// frame label
-	`Frame (_("Add New Condition to Current Filter"), `HBox (
+	`Frame (_("New Condition for Current Filter"), `HBox (
 	    `HSpacing (0.5), `VBox (
 		`Left (`ComboBox (`id(`andor), "", connectives)),
 		`HBox (
@@ -355,7 +355,7 @@ only obtain users with a user name beginning with 'u'.</p>
 	    if ((string) UI::QueryWidget(`id (`val),`Value) == "")
 	    {
 		// error popup
-		Popup::Error (_("Enter the value for attribute."));
+		Popup::Error (_("Enter the value for the attribute."));
 		UI::SetFocus (`id(`val));
 		continue;
 	    }
@@ -377,7 +377,7 @@ only obtain users with a user name beginning with 'u'.</p>
 		if (curr_user_f == "")
 		{
 		    // error popup
-		    Popup::Error (_("Enter the value of user filter."));
+		    Popup::Error (_("Enter the value of the user filter."));
 		    UI::SetFocus (`id(`currf));
 		    button = `notnext;
 		    continue;
@@ -401,7 +401,7 @@ Really use it?
 		if (curr_group_f == "")
 		{
 		    // error popup
-		    Popup::Error (_("Enter the value of group filter."));
+		    Popup::Error (_("Enter the value of the group filter."));
 		    UI::SetFocus (`id(`currf));
 		    button = `notnext;
 		    continue;
@@ -473,12 +473,12 @@ The features described below are only available if you are using KDM or GDM as a
 
 // helptext 2/3
 _("<p><b>Auto Login</b><br>
-The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user choosen from the list is logged in automatically.</p>
+The <b>login</b> procedure could be skipped if <b>Auto Login</b> is set. In such a case, the user chosen from the list is logged in automatically.</p>
 ") +
 
 // helptext 3/3
 _("<p><b>Passwordless Logins</b><br>
-If this option is checked, all users are allowed to login without entering
+If this option is checked, all users are allowed to log in without entering
 the password. Otherwise, you are asked for the password even if you set a user to log in automatically.</p>
 ");
 
@@ -510,7 +510,7 @@ the password. Otherwise, you are asked for the password even if you set a user t
 			`HSpacing (4), // move text under the checkbox
 			`Left(`ComboBox (`id(`autouser),
 			    // textentry label
-			    _("&User to Log in"), usernames))
+			    _("&User to Log In"), usernames))
 		    ),
 		    `VSpacing(0.5),
 		    `Left(`CheckBox (`id(`pw_less),
@@ -602,8 +602,8 @@ define symbol DeleteUserPopup() ``{
     if (size (proc) != 0 && !Mode::config ())
     {
         // error popup
-        Report::Error(_("You can not delete this user, because the user is present.
-Please log off the user first."));
+        Report::Error(_("You cannot delete this user, because the user is present.
+Log off the user first."));
         delete = false;
         return nil;
     }
@@ -620,9 +620,9 @@ Please log off the user first."));
     if (type == "system")
     {
         // yes-no popup headline
-        if(! Popup::YesNoHeadline(_("The Selected User Is a System User"),
+        if(! Popup::YesNoHeadline(_("Selected User Is System User"),
 	    // yes-no popup contents
-	    _("Do you really want to delete this user?")))
+	    _("Really delete this system user?")))
         {
 	    delete = false;
         }
@@ -667,7 +667,7 @@ Please log off the user first."));
         {
             // yes-no popup. %1 is username
             if( ! Popup::YesNo(sformat(_("
-Do you really want to delete the user %1?
+Really delete the user %1?
 "), username )))
 	    {
 		delete = false;
@@ -702,9 +702,9 @@ define symbol DeleteGroupPopup() ``{
         if (type == "system")
         {
             // yes-no popup headline
-            if(!Popup::YesNoHeadline(_("The marked group is a system group."),
+            if(!Popup::YesNoHeadline(_("System Group"),
 		/// yes-no popup contents
-		_("Really delete this group?")))
+		_("Really delete this system group?")))
 	    {
                 return nil;
 	    }
@@ -713,7 +713,7 @@ define symbol DeleteGroupPopup() ``{
         {
             // yes-no popup, %1 si group name
             if (! Popup::YesNo(sformat(_("
-Do you really want to delete the group %1?
+Really delete the group %1?
 "), group["cn"]:"")))
 	    {
                 return nil;
@@ -754,7 +754,7 @@ define boolean CustomizePopup (string what) ``{
         custom_sets = Users::GetUserCustomSets ();
         set_to_string = userset_to_string;
 	// Frame label
-        label = _("Customize the View of the User List");
+        label = _("User List View");
     }
     else
     {
@@ -763,7 +763,7 @@ define boolean CustomizePopup (string what) ``{
         custom_sets = Users::GetGroupCustomSets ();
         set_to_string = groupset_to_string;
 	// Frame label
-        label = _("Customize the View of the Group List");
+        label = _("Group List View");
     }
 
     foreach (string set, sets, ``{
@@ -845,9 +845,9 @@ define string ChooseTypePopup (list<string> sets, string what) ``{
     string ret		= sets[0]:"local";
     string label	= (what == "user") ?
 	// label
-	_("Choose the type of user to add") :
+	_("User Type") :
 	// label
-	_("Choose the type of group to add");
+	_("Group Type");
 
     if (size (sets) < 2) return ret;
 
@@ -957,7 +957,7 @@ define list GetLDAPExpertList () ``{
 	    `item(`id(`ldapfilter), _("LDAP &Search Filter")));
 	expert_list = add (expert_list,
 	    // menubutton label
-	    `item(`id(`ldapconf),_("L&DAP Users and Groups Configuraton")));
+	    `item(`id(`ldapconf),_("L&DAP User and Group Configuration")));
     }
     return expert_list;
 }
@@ -972,10 +972,9 @@ define list GetLDAPExpertList () ``{
 define string help_main_start()``{
     // help text 1/1
     return _("<p>
-Linux is a <b>multiuser system</b>. Several different users can be logged in the
+Linux is a multiuser system. Several different users can be logged in to the
 system at the same time.  To avoid confusion, each user must have
-a unique identity if they want to use Linux. Furthermore, every user at
-least belongs to one group.
+a unique identity. Additionally, every user belongs to at least one group.
 </p>
 ");
 }
@@ -998,7 +997,7 @@ Customize your view filter with <b>Customize Filter</b>.</p>
 
     // help text 2/3
 _("<p>
-Click <b>Expert Options</b> to edit various expert settings:
+Click <b>Expert Options</b> to edit various expert settings, such as
 password encryption type, user authentication method, default values for new
 users, or login settings. With <b>Write Changes Now</b>, save
 all changes made so far without exiting the configuration module.</p>
@@ -1020,7 +1019,7 @@ define string UsersDialogHelp() ``{
     // help text 1/4
     return help_main_start() + _("
 <p>
-In this dialog, get information about existing <b>Users</b>.
+In this dialog, get information about existing users.
 </p>
 ") +
 
@@ -1033,7 +1032,7 @@ To shift to the group dialog, select <b>Groups</b>.
     // help text 3/4
 _("
 <p>
-To create a new user, push the button <b>Add</b>.
+To create a new user, click <b>Add</b>.
 </p>
 ") +
 
@@ -1056,7 +1055,7 @@ define string GroupsDialogHelp()``{
     // help text 1/4
 _("
 <p>
-In this dialog, get information about existing <b>Groups</b>.
+In this dialog, get information about existing groups.
 </p>
 ") +
     // help text 2/4
@@ -1068,13 +1067,13 @@ To shift to the user dialog, select <b>Users</b>.
     // help text 3/4
 _("
 <p>
-To create a new group, push the button <b>Add</b>.
+To create a new group, click <b>Add</b>.
 </p>
 ") +
     // help text 4/4
 _("<p>
 To edit or delete an existing group, select one group from the list and
-push the button <b>Edit</b> or <b>Delete</b>.
+click <b>Edit</b> or <b>Delete</b>.
 </p>
 ")     + help_main_end();
 }
@@ -1110,11 +1109,11 @@ define void SummaryTableInit (string widget_id) ``{
 	UI::ReplaceWidget (`id(`rptable),
 	    `Table (`id("table"), `opt(`notify), `header(
 		// table header
-		_("Group name"),
+		_("Group Name"),
 		// table header
 		_("Group ID"),
 		// table header
-		_("Group members")), [] )
+		_("Group Members")), [] )
 	);
     }
     UI::ChangeWidget (`id(widget_id), `Items, items);
@@ -1193,8 +1192,8 @@ define symbol SummaryTableHandler (string widget_id, map event) {
                 if (UsersCache::GetGroupType () == "nis")
                 {
                     // error popup
-                    Report::Message (_("To edit or delete a NIS group,
-you must do it on server.
+                    Report::Message (_("NIS groups can only be
+modified and deleted on the server.
 "));
                     ev_id = nil;
                 }
@@ -1473,7 +1472,7 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
 	if (!Users::Modified ())
 	{
 	    //popup message (user wants to save but there is no modification)
-	    Popup::Message (_("Nothing was modified yet."));
+	    Popup::Message (_("There are no changes to save."));
 	    return nil;
 	}
 	Wizard::CreateDialog ();

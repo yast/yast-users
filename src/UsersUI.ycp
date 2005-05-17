@@ -28,42 +28,42 @@ map SystemUsers = $[
     /* User name for user: "daemon" */
     "Daemon" : _("Daemon"),
     /* User name for user: "lp" */
-    "Printing daemon" : _("Printing daemon"),
+    "Printing daemon" : _("Printing Daemon"),
     /* User name for user: "mail" */
-    "Mailer daemon" : _("Mailer daemon"),
+    "Mailer daemon" : _("Mailer Daemon"),
     /* User name for user: "news" */
-    "News system" : _("News system"),
+    "News system" : _("News System"),
     /* User name for user: "uucp" */
-    "Unix-to-Unix CoPy system" : _("Unix-to-Unix CoPy system"),
+    "Unix-to-Unix CoPy system" : _("Unix-to-Unix Copy System"),
     /* User name for user: "games" */
-    "Games account" : _("Games account"),
+    "Games account" : _("Games Account"),
     /* User name for user: "man" */
-    "Manual pages viewer" : _("Manual pages viewer"),
+    "Manual pages viewer" : _("Manual Page Viewer"),
     /* User name for user: "at" */
-    "Batch jobs daemon" : _("Batch jobs daemon"),
+    "Batch jobs daemon" : _("Batch Jobs Daemon"),
     /* User name for user: "wwwrun" */
-    "WWW daemon apache" : _("WWW daemon apache"),
+    "WWW daemon apache" : _("WWW Daemon Apache"),
     /* User name for user: "ftp" */
-    "FTP account" : _("FTP account"),
+    "FTP account" : _("FTP Account"),
     /* User name for user: "named" */
-    "Nameserver daemon" : _("Name server daemon"),
+    "Nameserver daemon" : _("Name Server Daemon"),
     /* User name for user: "gdm" */
-    "Gnome Display Manager daemon" : _("Gnome Display Manager daemon"),
+    "Gnome Display Manager daemon" : _("GNOME Display Manager Daemon"),
     /* User name for user: "postfix" */
     "Postfix Daemon" : _("Postfix Daemon"),
     /* User name for user: "sshd" */
-    "SSH daemon" : _("SSH daemon"),
+    "SSH daemon" : _("SSH Daemon"),
     /* User name for user: "ntp" */
-    "NTP daemon" : _("NTP daemon"),
+    "NTP daemon" : _("NTP Daemon"),
     /* User name for user: "ldap" */
     "User for OpenLDAP" : _("User for OpenLDAP"),
     /* User name for user: "nobody" */
-    "nobody" : _("nobody"),
+    "nobody" : _("Nobody"),
 
     /* User name for user: "amanda" */
-    "Amanda admin" : _("Amanda admin"),
+    "Amanda admin" : _("Amanda Admin"),
     /* User name for user: "vscan" */
-    "Vscan account" : _("Vscan account"),
+    "Vscan account" : _("Vscan Account"),
     /* User name for user: "bigsister" */
     "Big Sister" : _("Big Sister"),
     /* User name for user: "wnn" */
@@ -71,35 +71,35 @@ map SystemUsers = $[
     /* User name for user: "cyrus" */
     "User for cyrus-imapd" : _("User for cyrus-imapd"),
     /* User name for user: "dpbox" */
-    "DpBox account" : _("DpBox account"),
+    "DpBox account" : _("DpBox Account"),
     /* User name for user: "gnats" */
     "Gnats Gnu Backtracking System" : _("Gnats Gnu Backtracking System"),
     /* User name for user: "gnump3d" */
-    "GNUMP3 daemon" : _("GNUMP3 daemon"),
+    "GNUMP3 daemon" : _("GNUMP3 Daemon"),
     /* User name for user: "hacluster" */
-    "heartbeat processes" : _("heartbeat processes"),
+    "heartbeat processes" : _("Heartbeat Processes"),
     /* User name for user: "irc" */
-    "IRC daemon" : _("IRC daemon"),
+    "IRC daemon" : _("IRC Daemon"),
     /* User name for user: "mailman" */
-    "GNU mailing list manager" : _("GNU mailing list manager"),
+    "GNU mailing list manager" : _("GNU Mailing List Manager"),
     /* User name for user: "mdom" */
-    "Mailing list agent" : _("Mailing list agent"),
+    "Mailing list agent" : _("Mailing List Agent"),
     /* User name for user: "mysql" */
-    "MySQL database admin" : _("MySQL database admin"),
+    "MySQL database admin" : _("MySQL Database Admin"),
     /* User name for user: "oracle" */
-    "Oracle user" : _("Oracle user"),
+    "Oracle user" : _("Oracle User"),
     /* User name for user: "postgres" */
     "PostgreSQL Server": _("PostgreSQL Server"),
     /* User name for user: "pop" */
-    "POP admin" : _("POP admin"),
+    "POP admin" : _("POP Admin"),
     /* User name for user: "sapdb" */
-    "SAPDB account" : _("SAPDB account"),
+    "SAPDB account" : _("SAPDB Account"),
     /* User name for user: "snort" */
-    "Snort network monitor" : _("Snort network monitor"),
+    "Snort network monitor" : _("Snort Network Monitor"),
     /* User name for user: "squid" */
-    "WWW-proxy squid" : _("WWW-proxy squid"),
+    "WWW-proxy squid" : _("WWW Proxy Squid"),
     /* User name for user: "stunnel" */
-    "Daemon user for stunnel (universal SSL tunnel)" : _("Daemon user for stunnel (universal SSL tunnel)"),
+    "Daemon user for stunnel (universal SSL tunnel)" : _("Daemon User for stunnel (Universal SSL Tunnel)"),
     /* User name for user: "zope" */
     "Zope" : _("Zope"),
 
@@ -128,7 +128,7 @@ map SystemUsers = $[
     "Dovecot imap daemon"	: _("Dovecot IMAP Daemon"),
 
     /* User name for user: "fax" */
-    "Facsimile agent"		: _("Facsimile agent"),
+    "Facsimile agent"		: _("Facsimile Agent"),
 
     /* User name for user: "partimag" */
     "Partimage Daemon User"	: _("Partimage Daemon User"),
@@ -146,7 +146,7 @@ map SystemUsers = $[
 define symbol getConfigurationType (string dir) ``{
     term contents = `VBox (
         // label
-        `Label (_("You have installed an NIS master server.
+        `Label (_("You have installed a NIS master server.
 It is configured to use a different database
 of users and groups than the local system 
 database in the /etc directory.
@@ -238,7 +238,7 @@ global define map ChooseTemplates (list<string> user_templates, list<string> gro
             `HSpacing(50),
 	    `VSpacing (0.5),
 	    // label
-            `Label (_("There are multiple templates defined as default. Select the one to read.")),
+            `Label (_("Multiple templates are defined as default. Select the one to read.")),
 	    `VSpacing (0.5),
 	    user_templates == [] ? `Empty(): rb_users,
 	    `VSpacing (0.5),

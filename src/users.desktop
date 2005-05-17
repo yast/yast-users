@@ -22,8 +22,8 @@ X-SuSE-YaST-AutoInstRequires=security
 Icon=yast-users
 Exec=/sbin/yast2 users
 
-Name=Edit and create users
-GenericName=Edit and create users
+Name=User Management
+GenericName=User Management
 Name[cs]=Správce uživatelů
 GenericName[cs]=Správce uživatelů
 Name[de]=Benutzer bearbeiten und anlegen

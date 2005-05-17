@@ -274,7 +274,7 @@ define symbol UsersSequence(string start) ``{
     ];
 
     string caption = _("User and Group Configuration");
-    term contents = `Label(_("Initializing ..."));
+    term contents = `Label(_("Initializing..."));
 
     if( ! Stage::cont () )
     {
@@ -301,7 +301,7 @@ define symbol UsersSequence(string start) ``{
  */
 define symbol AutoSequence(string start) {
     string caption = _("User and Group Configuration");
-    term contents = `Label(_("Initializing ..."));
+    term contents = `Label(_("Initializing..."));
 
     Wizard::CreateDialog();
     Wizard::SetDesktopIcon("users");
