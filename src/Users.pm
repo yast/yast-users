@@ -36,6 +36,7 @@ my $after_auth			= "users";
 my $write_only			= 0; 
 
 # Export all users and groups (for autoinstallation purposes)
+# (used also for indication of cloning: #94340
 my $export_all			= 0; 
 
 # Where the user/group/password data are stored (can be different on NIS server)
@@ -195,13 +196,9 @@ my %max_pass_length	= (
 my @user_custom_sets		= ("local");
 my @group_custom_sets		= ("local");
 
-# helper structures, filled from UsersLDAP
-#my %ldap2yast_user_attrs	= ();
-#my %ldap2yast_group_attrs	= ();
-
 # list of available plugin modules for local and system users (groups)
 my @local_plugins		= ();
- 
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -1511,15 +1508,15 @@ sub Read {
     if ($error_msg ne "") {
 	Report->Error ($error_msg);
 	return $error_msg;# problem with reading config files( /etc/passwd etc.)
-	# TODO enable to continue at "users risk"?
     }
 
-    # read shadow settings during cloning users (#41026)
-    if (Mode->config ()) {
+    # read shadow settings during cloning users (#suse41026, #94340)
+    if ($export_all) {
 	foreach my $type ("system", "local") {
 	    foreach my $id (keys %{$users{$type}}) {
 		$self->SelectUser ($id); # SelectUser does LoadShadow
 		my %user		= %user_in_work;
+		$user{"encrypted"}	= YaST::YCP::Boolean (1);
 		undef %user_in_work;
 		$users{$type}{$id}	= \%user;
 	    }
