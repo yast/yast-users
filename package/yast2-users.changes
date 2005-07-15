@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jul 12 17:18:29 CEST 2005 - jsuchome@suse.cz
+
+- fixed cloning users (#94340)
+- 2.12.2 
+
+-------------------------------------------------------------------
 Tue May 17 18:00:30 CEST 2005 - jsuchome@suse.cz
 
 - fixed texts from proofreading (rwalter)
