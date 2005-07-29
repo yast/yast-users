@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Jul 28 18:23:42 CEST 2005 - jsuchome@suse.cz
+
+- do not re-generate home directory when username wasn't changed
+- do not set autologin automatically after Back (#99003)
+- 2.12.3
+
+-------------------------------------------------------------------
 Tue Jul 12 17:18:29 CEST 2005 - jsuchome@suse.cz
 
 - fixed cloning users (#94340)
