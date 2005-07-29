@@ -226,7 +226,7 @@ define symbol EditUserDialog (string what) {
 	home		= user["homedirectory"]:home;
 	org_home	= user["org_homedirectory"]:org_home;
 	password	= user["userpassword"]:password;
-	org_username = user["org_uid"]:org_username;
+	org_username	= user["org_uid"]:org_username;
 	uid		= GetInt (user["uidnumber"]:nil, uid);
 	gid		= GetInt (user["gidnumber"]:nil, gid);
 	dn		= user["dn"]:dn;
@@ -701,7 +701,7 @@ group memberships can be changed.")) : `VSpacing (0),
 	);
     }
     if (complex_layout)
-	dialog_contents	= get_edit_term ();
+	dialog_contents	= `ReplacePoint(`id(`tabContents), get_edit_term ());
 
     Wizard::SetContentsButtons (
         dialog_labels [ what, user_type ]:"",
@@ -1050,6 +1050,10 @@ _("Change home directory to %1?"), generated_home))))
 		    }
 		}
 	    }
+	    // save the username for possible check if it was changed
+	    // and home directory should be re-generated
+	    if (org_username == "")
+		org_username	= username;
 	}
 
 	if (current == `details && ret == `browse)
