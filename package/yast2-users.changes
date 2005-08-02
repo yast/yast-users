@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Aug  2 13:45:07 CEST 2005 - jsuchome@suse.cz
+
+- start main sequence directly from inst_user
+  (which enables checking for parameters, e.g. "enable_back")
+- 2.12.4
+
+-------------------------------------------------------------------
 Thu Jul 28 18:23:42 CEST 2005 - jsuchome@suse.cz
 
 - do not re-generate home directory when username wasn't changed
