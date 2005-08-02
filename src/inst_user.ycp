@@ -12,10 +12,14 @@
 
     textdomain "users";
 
+    import "GetInstArgs";
     import "Package";
     import "Label";
     import "Ldap";
     import "Users";
+    import "UsersCache";
+
+    include "users/wizards.ycp";
 
     any ret	= `back;
 
@@ -55,15 +59,18 @@ Install it now?
     }
 
     // else run the users module
-    list start_params = [ "user_inst_start" ];
+    y2milestone ("Starting user management module with parameters %1",
+	GetInstArgs::argmap());
 
-    y2debug("Starting user management module with parameters %1", start_params);
-    ret = WFM::CallFunction ("users", start_params );
-    y2debug("User management module returned %1", ret );
+    UsersCache::SetCurrentSummary ("users");
+    Users::SetStartDialog ("user_inst_start");
+    ret = UsersSequence ("user_inst_start");
+
+    y2milestone ("User management module returned %1", ret );
 
     if ( ret == nil )
     {
-        y2warning( "Couldn't call 'users' module - is it installed?" );
+        y2warning( "UsersSequence returns null!" );
         ret = `auto;
     }
     return (symbol) ret;

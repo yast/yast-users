@@ -13,6 +13,7 @@
 textdomain "users";
 
 import "Autologin";
+import "GetInstArgs";
 import "Label";
 import "Ldap";
 import "LdapPopup";
@@ -701,17 +702,26 @@ group memberships can be changed.")) : `VSpacing (0),
 	);
     }
     if (complex_layout)
+    {
 	dialog_contents	= `ReplacePoint(`id(`tabContents), get_edit_term ());
-
-    Wizard::SetContentsButtons (
-        dialog_labels [ what, user_type ]:"",
-        dialog_contents,
-        EditUserDialogHelp (complex_layout, user_type, what),
-        complex_layout ? Label::BackButton () : Label::CancelButton(),
-	complex_layout ? Label::NextButton () : Label::AcceptButton()
-    );
-    if (!complex_layout)
+	Wizard::SetContents (
+	    dialog_labels [ what, user_type ]:"",
+	    dialog_contents,
+	    EditUserDialogHelp (complex_layout, user_type, what),
+	    GetInstArgs::enable_back(),
+	    GetInstArgs::enable_next()
+	);
+    }
+    else{
+	Wizard::SetContentsButtons (
+	    dialog_labels [ what, user_type ]:"",
+	    dialog_contents,
+	    EditUserDialogHelp (complex_layout, user_type, what),
+	    Label::CancelButton(),
+	    Label::AcceptButton()
+	);
 	Wizard::HideAbortButton ();
+    }
 
     symbol ret		= `edit;
     symbol current	= nil;
