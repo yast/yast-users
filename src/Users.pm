@@ -1528,7 +1528,9 @@ sub Read {
 
     $self->ReadUsersCache ();
 
-    Autologin->Read ();
+    if (!$use_next_time) {
+	Autologin->Read ();
+    }
 
     if (Stage->cont () && Autologin->available () && !$use_next_time &&
 	ProductFeatures->GetBooleanFeature ("globals", "enable_autologin")) {

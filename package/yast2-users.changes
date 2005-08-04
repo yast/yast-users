@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug  4 14:48:58 CEST 2005 - jsuchome@suse.cz
+
+- installation: do not reset autologin status after Back (#99003)
+- 2.12.5
+
+-------------------------------------------------------------------
 Tue Aug  2 13:45:07 CEST 2005 - jsuchome@suse.cz
 
 - start main sequence directly from inst_user
