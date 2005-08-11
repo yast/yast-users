@@ -2316,7 +2316,7 @@ Try again.
             "home": new_home,
             "shell": new_shell,
             "skel": new_skel,
-            "group": sformat ("%1", g["gidnumber"]:gid),
+            "group": sformat ("%1", GetInt (g["gidnumber"]:nil, gid)),
             "inactive": sformat("%1", new_inact),
             "expire": new_expire,
 	    "groups": new_grouplist
