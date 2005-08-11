@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug 11 16:00:28 CEST 2005 - jsuchome@suse.cz
+
+- fixed setting of default group for new users (#104113)
+- 2.12.6 
+
+-------------------------------------------------------------------
 Thu Aug  4 14:48:58 CEST 2005 - jsuchome@suse.cz
 
 - installation: do not reset autologin status after Back (#99003)
