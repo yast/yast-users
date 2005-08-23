@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages yast2-installation yast2-security yast2-pam cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client yast2-perl-bindings perl-Digest-SHA1 perl-gettext
+# neededforbuild yast2-devel-packages yast2-security yast2-pam cracklib-devel gpp libgpp yast2-mail-aliases yast2-ldap-client yast2-perl-bindings perl-Digest-SHA1 perl-gettext
 
 @HEADER@
 Requires:	yast2 yast2-perl-bindings yast2-country yast2-pam yast2-security yast2-mail-aliases cracklib perl-Digest-SHA1 perl-gettext yast2-ldap-client
