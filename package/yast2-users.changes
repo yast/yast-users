@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Aug 23 12:20:32 CEST 2005 - jsuchome@suse.cz
+
+- fixed allignment of dialog header
+- removed yast2-installation from NFB (#106608)
+- 2.12.7
+
+-------------------------------------------------------------------
 Thu Aug 11 16:00:28 CEST 2005 - jsuchome@suse.cz
 
 - fixed setting of default group for new users (#104113)

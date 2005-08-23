@@ -65,7 +65,7 @@ define symbol InitializeTableItems () ``{
 define symbol SummaryDialog() {
 
     term contents = `VBox (
-	`HBox (`Left ("rb_users_groups")),
+	`HBox ("rb_users_groups"),
         "table",
 	"advanced_buttons"
     );
