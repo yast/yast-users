@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 24 16:32:45 CEST 2005 - jsuchome@suse.cz
+
+- allow some more characters to be included in password (#106714)
+- 2.12.8
+
+-------------------------------------------------------------------
 Tue Aug 23 12:20:32 CEST 2005 - jsuchome@suse.cz
 
 - fixed allignment of dialog header
