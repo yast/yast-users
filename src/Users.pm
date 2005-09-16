@@ -1942,6 +1942,7 @@ BEGIN { $TYPEINFO{EditUser} = ["function",
 }
 sub EditUser {
 
+    # error message
     if (!%user_in_work) { return __("User does not exist."); }
     my $self		= shift;
     my %data		= %{$_[0]};
@@ -4515,7 +4516,7 @@ Try again.");
     if ($filtered ne "") {
 	# error popup
 	return __("The password may only contain the following characters:
-0-9, a-z, A-Z, and any of \"#* ,.;:._-+!\$%^&/|\?{[()]}\".
+0-9, a-z, A-Z, and any of \"#* ,.;:._-+!\$%^&/|\?=`'{[(<>)]}\".
 Try again.");
     }
     return "";

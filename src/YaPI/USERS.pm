@@ -513,6 +513,7 @@ sub UserAdd {
 	    "attrs"	=> [ "uid" ]
 	});
 	if (defined $res && ref ($res) eq "ARRAY" && @{$res} > 0) {
+	    # error message
 	    return __("There is a conflict between the entered
 user name and an existing user name.
 Try another one.");
@@ -524,6 +525,7 @@ Try another one.");
 	    "attrs"	=> [ "homedirectory" ]
 	});
 	if (defined $res && ref ($res) eq "ARRAY" && @{$res} > 0) {
+	    # error message
 	    return __("The home directory is used from another user.
 Please try again.");
 	}

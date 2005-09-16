@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep 16 11:26:40 CEST 2005 - jsuchome@suse.cz
+
+- added missing comments for translators
+- inform user about more characters allowed in password (#106714)
+- 2.13.0 
+
+-------------------------------------------------------------------
 Wed Aug 24 16:32:45 CEST 2005 - jsuchome@suse.cz
 
 - allow some more characters to be included in password (#106714)

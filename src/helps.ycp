@@ -327,8 +327,8 @@ Here, select which users should be members of this group.
 ");
 
     if (more)
-        // additional helptext for EditFroup dialog
         helptext = helptext +
+        // additional helptext for EditFroup dialog
         _("The second list shows users for which this group is the default
         group. The default group can only be changed by editing the user.");
 

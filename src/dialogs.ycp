@@ -494,6 +494,7 @@ group memberships can be changed.")) : `VSpacing (0),
 			`HBox ( home_w, browse),
 			what != "add_user" ? `VSpacing (0) :
 			`Left (
+			    // check box label
 			    `CheckBox (`id(`skel), _("E&mpty Home"), no_skel)
 			)
 		    )),
@@ -2093,6 +2094,7 @@ define symbol DefaultsDialog() {
 			home),
 		    `VBox(
 			`Label (""),
+			// button label (browse for file)
 			`PushButton(`id(`brow_h),`opt(`key_F6), _("Bro&wse..."))
 		    )
 		),
@@ -2102,6 +2104,7 @@ define symbol DefaultsDialog() {
 			skel),
 		    `VBox(
 			`Label (""),
+			// button label (browse for file)
 			`PushButton(`id(`brow_s),`opt(`key_F7), _("Bro&wse..."))
 		    )
 		),
@@ -2267,6 +2270,7 @@ may be unable to log in. Continue?
             {
                 if (SCR::Read(.target.dir, new_skel ) == nil)
                 {
+		    // popup error label
                     Report::Error(_("The entered home directory skeleton is not a directory.
 Try again.
 "));
@@ -2282,7 +2286,7 @@ Try again.
                 if (new_exp_date != "" && !regexpmatch (new_exp_date,
                     "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
                 {
-                    // Trannslators: Don't reorder the letters YYYY-MM-DD!!!
+                    // popup label - don't reorder the letters YYYY-MM-DD
                     // The date must stay in this format
                     Popup::Message(_("The expiration date must be in the format YYYY-MM-DD."));
                     UI::SetFocus(`id(`exp));

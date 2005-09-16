@@ -273,7 +273,9 @@ define symbol UsersSequence(string start) ``{
 	]
     ];
 
+    // init dialog caption
     string caption = _("User and Group Configuration");
+    // label (during init dialog)
     term contents = `Label(_("Initializing..."));
 
     if( ! Stage::cont () )
@@ -300,7 +302,11 @@ define symbol UsersSequence(string start) ``{
  * @return sequence result
  */
 define symbol AutoSequence(string start) {
+
+    // dialog caption
     string caption = _("User and Group Configuration");
+
+    // label (during init dialog)
     term contents = `Label(_("Initializing..."));
 
     Wizard::CreateDialog();

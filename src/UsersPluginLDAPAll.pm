@@ -113,10 +113,11 @@ sub Summary {
 
     my $self	= shift;
     my $what	= "user";
-    # summary
+    # plugin summary (table item)
     my $ret 	= __("Edit Remaining Attributes of LDAP User");
 
     if (defined $_[0]->{"what"} && $_[0]->{"what"} eq "group") {
+	# plugin summary (table item)
 	$ret 	= __("Edit Remaining Attributes of LDAP Group");
     }
     return $ret;
