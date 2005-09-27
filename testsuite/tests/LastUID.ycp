@@ -1,0 +1,39 @@
+/**
+ * Author	: Jiri Suchomel <jsuchome@suse.cz>
+ * $Id$
+ *
+ * The "last UID" is used to form UID for new created users (via NextFreeUID); however
+ * it's value should be at least UID_MIN from /etc/login.defs, regardless the UID last
+ * used for creating user (see bug #119006)
+ */
+{
+    // testedfiles: Users.pm UsersCache.pm
+    import "Testsuite";
+    import "Users";
+    import "UsersCache";
+
+    map R = $[];
+    map W = $[];
+    map E = $[];
+
+    Testsuite::Test (``(UsersCache::GetLastUID ("local")), [R,W,E], 0);
+
+    map<string,string> consts = $[
+	"UID_MIN"	: "5000",
+	"GID_MIN"	: "6000",
+    ];
+    // highest uid of current local users
+    integer last_uid	= 2000;
+
+    // this should not happen
+    Testsuite::Test (``(UsersCache::SetLastUID (last_uid, "local")), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::GetLastUID ("local")), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::GetLastGID ("local")), [R,W,E], 0);
+
+    // InitConstants reads correct UID_MIN and is called before SetLastUID
+    Testsuite::Test (``(UsersCache::InitConstants (consts)), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::SetLastUID (last_uid, "local")), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::SetLastGID (last_uid, "local")), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::GetLastUID ("local")), [R,W,E], 0);
+    Testsuite::Test (``(UsersCache::GetLastGID ("local")), [R,W,E], 0);
+}

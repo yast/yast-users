@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Sep 27 14:45:20 CEST 2005 - jsuchome@suse.cz
+
+- set correctly minimal UID and GID from /etc/login.defs (#119006)
+- 2.13.1 
+
+-------------------------------------------------------------------
 Fri Sep 16 11:26:40 CEST 2005 - jsuchome@suse.cz
 
 - added missing comments for translators
