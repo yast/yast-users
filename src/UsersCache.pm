@@ -737,6 +737,9 @@ sub SetLastUID {
     if ($_[0] >= $min_uid{$_[1]} && $_[0] <= $max_uid{$_[1]}) {
 	$last_uid{$_[1]}	= $_[0];
     }
+    else {
+	$last_uid{$_[1]}	= $min_uid{$_[1]};
+    }
 }
 
 ##------------------------------------
@@ -745,6 +748,9 @@ sub SetLastGID {
     my $self	= shift;
     if ($_[0] >= $min_gid{$_[1]} && $_[0] <= $max_gid{$_[1]}) {
 	$last_gid{$_[1]}	= $_[0];
+    }
+    else {
+	$last_gid{$_[1]}	= $min_gid{$_[1]};
     }
 }
 
@@ -1187,6 +1193,9 @@ sub ReadGroups {
     }
     elsif ($type eq "nis") {
 	$path 	= ".$type";
+    }
+    else { # only adapt to minimal value
+	$self->SetLastGID ($min_gid{$type}, $type);
     }
     $gids{$type}	= \%{SCR->Read ("$path.groups.gids")};
     $groupnames{$type}	= \%{SCR->Read ("$path.groups.groupnames")};
