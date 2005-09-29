@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Sep 29 13:11:35 CEST 2005 - jsuchome@suse.cz
+
+- generate the home directory for LDAP users correctly (#119012)
+- 2.13.2 
+
+-------------------------------------------------------------------
 Tue Sep 27 14:45:20 CEST 2005 - jsuchome@suse.cz
 
 - set correctly minimal UID and GID from /etc/login.defs (#119006)

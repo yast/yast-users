@@ -133,6 +133,7 @@ my $group_scope			= YaST::YCP::Integer (2);
 ##------------------- global imports
 
 YaST::YCP::Import ("Ldap");
+YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
@@ -978,6 +979,13 @@ sub SubstituteValues {
 
     my %defaults	= ($what eq "user") ? %user_defaults : %group_defaults;
 
+    if (Mode->test ()) {
+	%defaults	= (
+	    "homedirectory" 	=> "/home/\%uid",
+	    "cn"		=> "\%uid",
+	)
+    }
+
     # 'value' of 'attr' should be changed
     foreach my $attr (keys %{$data}) {
 
@@ -1000,7 +1008,6 @@ sub SubstituteValues {
 	    ($svalue ne "" && !($svalue =~ m/%/))) {
 	    next;
 	}
-
 	# translate attribute names from LDAP to yast-type
 	my $val = $defaults{$lattr};
 
