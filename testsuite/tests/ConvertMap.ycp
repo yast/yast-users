@@ -1,7 +1,12 @@
+/**
+ * Test for UsersLDAP::ConvertMap
+ * Author:	Jiri Suchomel <jsuchome@suse.cz>
+ * $Id$
+ */
 {
     // testedfiles: Users.pm UsersLDAP.pm
 
-    include "testsuite.ycp";
+    import "Testsuite";
     import "Users";
     import "Mode";
     import "Directory";
@@ -32,7 +37,7 @@
     map WRITE = $[];
     map EXEC = $[];
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     Mode::SetTest ("test");
 
@@ -70,42 +75,42 @@
 	]
     ];
 
-    DUMP (sformat ("--------- user (loginshell is changed):\n %1", user));
+    Testsuite::Dump (sformat ("--------- user (loginshell is changed):\n %1", user));
 
-    map<string,any> converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+    map<string,any> converted = (map<string,any>) Testsuite::Test(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("--------- converted :\n %1", converted));
+    Testsuite::Dump (sformat ("--------- converted :\n %1", converted));
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     user["userpassword"]	= "qqqqq";
 
-    DUMP (sformat ("--------- user (new password):\n %1", user));
+    Testsuite::Dump (sformat ("--------- user (new password):\n %1", user));
 
-    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+    converted = (map<string,any>) Testsuite::Test(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("--------- converted :\n %1", converted));
+    Testsuite::Dump (sformat ("--------- converted :\n %1", converted));
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     user["objectclass"]	= [ "inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambasamaccount" ];
     user["userpassword"]		= converted["userpassword"]:"";
     user["org_user", "userpassword"]	= converted["userpassword"]:"";
 
-    DUMP (sformat ("--------- user (new object class):\n %1", user));
+    Testsuite::Dump (sformat ("--------- user (new object class):\n %1", user));
 
-    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+    converted = (map<string,any>) Testsuite::Test(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("--------- converted :\n %1", converted));
+    Testsuite::Dump (sformat ("--------- converted :\n %1", converted));
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     user	= remove (user, "org_user");
 
-    DUMP (sformat ("--------- user (removed 'org_user' submap):\n %1", user));
+    Testsuite::Dump (sformat ("--------- user (removed 'org_user' submap):\n %1", user));
 
-    converted = (map<string,any>) TEST(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
+    converted = (map<string,any>) Testsuite::Test(``(UsersLDAP::ConvertMap (user)), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("--------- converted :\n %1", converted));
+    Testsuite::Dump (sformat ("--------- converted :\n %1", converted));
 
 }
