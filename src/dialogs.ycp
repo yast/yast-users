@@ -972,7 +972,7 @@ Try again."));
 	    if (ret != `details && username != org_username)
 	    {
 		string generated_home	= default_home + username;
-		if (user_type == "ldap" && issubstring (home, "%"))
+		if (user_type == "ldap" && issubstring (default_home, "%"))
 		{
 		    map tmp_user = UsersLDAP::SubstituteValues ("user", user);
 		    generated_home = tmp_user["homedirectory"]:home;
