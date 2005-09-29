@@ -16,7 +16,7 @@
 {
     // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm
 
-    include "testsuite.ycp";
+    import "Testsuite";
     import "Users";
     import "UsersCache";
     import "UsersLDAP";
@@ -28,77 +28,77 @@
 	"passwd": $[
 	    "local": $[
 		"users": $[
-		    500: $[
+		    "500": $[
 			"uid":	"hh"
 		    ],
 		    "by_name": $[
-			"hh":	500,
+			"hh":	"500",
 		    ],
 		    "last_uid": 500,
 		    "homes":	$[
-			"/home/hh":	1,
+			"/home/hh":	"1",
 		    ],
 		    "usernames": $[
-			"hh":		1,
+			"hh":		"1",
 		    ],
 		    "uids": $[
-			500:		1,
+			"500":		"1",
 		    ]
 		],
 		"shadow": $[
 		],
 		"groups": $[
-		    100: $[
+		    "100": $[
 			"cn"	:	"users",
-			"gidnumber":	100,
+			"gidnumber":	"100",
 			"type"	:	"local"
 		    ],
 		    "by_name": $[
-			"users":	100,
+			"users":	"100",
 		    ],
 		    "gids": $[
-			100:		1,
+			"100":		"1",
 		    ],
 		    "groupnames": $[
-			"users":	1,
+			"users":	"1",
 		    ]
 		],
 	    ],
 	    "system": $[
 		"users": $[
-		    0:	$[
+		    "0":	$[
 			"uid"		: "root",
-			"uidnumber"	: 0
+			"uidnumber"	: "0"
 		    ],
 		    "by_name": $[
-			"root"		: 0
+			"root"		: "0"
 		    ],
 		    "last_uid": 0,
 		    "homes":	$[
 		    ],
 		    "usernames": $[
-			"root"		: 1,
+			"root"		: "1",
 		    ],
 		    "uids": $[
-			0		: 1
+			"0"		: "1"
 		    ],
 		],
 		"shadow": $[
 		],
 		"groups": $[
-		    0: $[
+		    "0": $[
 			"cn":	"root",
-			"gidnumber":	0,
+			"gidnumber":	"0",
 			"type"	:	"system"
 		    ],
 		    "by_name": $[
-			"root"	: 0
+			"root"	: "0"
 		    ],
 		    "gids": $[
-			0	: 1
+			"0"	: "1"
 		    ],
 		    "groupnames": $[
-			"root"	: 1
+			"root"	: "1"
 		    ]
 		],
 	    ],
@@ -141,17 +141,17 @@
 	],
     ];
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     Mode::SetTest ("test");
 
-    TEST (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::Read ()), [READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user:\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user:\n %1", Users::GetCurrentUser ()));
 
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
     map<string,any> user = $[
 	"uidnumber"	: 501,
 	"uid"		:"aaa",
@@ -163,58 +163,58 @@
 	"type"		:"local",
     ];
 
-    TEST (``(Users::AddUser (user)), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser (user)), [READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (after rich add):\n %1", Users::GetCurrentUser ()));
 
     EXEC ["target", "bash_output", "stdout"] = "aaa";
 
-    string error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    string error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
     Users::SelectGroup (100);
-    DUMP (sformat ("---- current group (before user commit):\n %1",
+    Testsuite::Dump (sformat ("---- current group (before user commit):\n %1",
 	Users::GetCurrentGroup ()));
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("---- commit user:");
+    Testsuite::Dump ("---- commit user:");
 
-    TEST (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
 
     Users::SelectGroup (100);
-    DUMP (sformat ("---- current group (afer user commit):\n %1",
+    Testsuite::Dump (sformat ("---- current group (afer user commit):\n %1",
 	Users::GetCurrentGroup ()));
 
-    DUMP ("=================== no password ==========================");
+    Testsuite::Dump ("=================== no password ==========================");
 
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[ "uid": "hhh"])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[ "uid": "hhh"])), [READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (minimal add, used default values):\n %1", Users::GetCurrentUser ()));
 
     EXEC ["target", "bash_output", "stdout"] = "hhh";
 
-    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("==================== uid conflict ========================");
+    Testsuite::Dump ("==================== uid conflict ========================");
 
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[ "uid": "root", "userpassword": "qqqqq"])),
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[ "uid": "root", "userpassword": "qqqqq"])),
 	[READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
     EXEC ["target", "bash_output", "stdout"] = "root";
 
-    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("==================== uidnumber problems ===================");
+    Testsuite::Dump ("==================== uidnumber problems ===================");
 
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "rrr",
 	"uidnumber"	: 5,
 	"type"		: "local",
@@ -222,35 +222,35 @@
 	])),
 	[READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
     EXEC ["target", "bash_output", "stdout"] = "rrr";
 
-    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("==================== uid content problems ===================");
+    Testsuite::Dump ("==================== uid content problems ===================");
 
-    TEST (``(UsersLDAP::SetUserBase ("dc=suse,dc=cz")), [], 0);
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[
+    Testsuite::Test (``(UsersLDAP::SetUserBase ("dc=suse,dc=cz")), [], 0);
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "iii$",
 	"type"		: "local",
 	"userpassword"	: "qqqqq"
 	])),
 	[READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
     EXEC ["target", "bash_output", "stdout"] = "";
 
-    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("==================== uid for LDAP may contain '$' ==============");
+    Testsuite::Dump ("==================== uid for LDAP may contain '$' ==============");
 
-    TEST (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddUser ($[
+    Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "iii$",
 	"type"		: "ldap",
 	"homedirectory"	: "/home/ldap/iii",
@@ -258,12 +258,12 @@
 	])),
 	[READ, WRITE, EXEC], 0);
 
-    DUMP (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
+    Testsuite::Dump (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
     EXEC ["target", "bash_output", "stdout"] = "iii";
 
-    error = (string) TEST(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+    error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
 
-    DUMP (sformat ("---- check user after add:\n %1", error));
+    Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 }
