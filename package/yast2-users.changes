@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Sep 29 18:22:00 CEST 2005 - jsuchome@suse.cz
+
+- generate the home directory for LDAP users correctly (#119012) 
+- correcly call selected plugins from Plugin tab (#119593)
+- 2.12.9
+
+-------------------------------------------------------------------
 Wed Aug 24 16:32:45 CEST 2005 - jsuchome@suse.cz
 
 - allow some more characters to be included in password (#106714)
