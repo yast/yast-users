@@ -212,6 +212,7 @@ define symbol EditUserDialog (string what) {
 
     string plugin_client	= "";
     string plugin		= "";
+    map client2plugin           = $[];
 
     /**
      * initialize local variables with current state of user
@@ -605,7 +606,7 @@ group memberships can be changed.")) : `VSpacing (0),
 	plugin_clients = filter (string plugin, string client,
 	    (map<string,string>) plugin_clients, ``(client != ""));
 
-	map client2plugin	= $[];
+	client2plugin		= $[];
 	list<string> clients	= maplist (string plugin, string client,
 	    (map<string,string>) plugin_clients, {
 
@@ -971,7 +972,7 @@ Try again."));
 	    if (ret != `details && username != org_username)
 	    {
 		string generated_home	= default_home + username;
-		if (user_type == "ldap" && issubstring (home, "%"))
+		if (user_type == "ldap" && issubstring (default_home, "%"))
 		{
 		    map tmp_user = UsersLDAP::SubstituteValues ("user", user);
 		    generated_home = tmp_user["homedirectory"]:home;
@@ -1286,6 +1287,12 @@ _("Change home directory to %1?"), generated_home))))
 	// inside plugins dialog
 	if (current == `plugins)
 	{
+	    plugin_client       = (string) UI::QueryWidget (`id(`table),`CurrentItem);
+	    if (plugin_client != nil)
+	    {
+		plugin          = client2plugin[plugin_client]:plugin_client;
+	    }
+
 	    if (ret == `table || ret == `change)
 	    {
 		ret = contains (user["plugins"]:[], plugin) ? `del : `add;
@@ -1559,6 +1566,7 @@ define symbol EditGroupDialog (string what) {
 
     string plugin_client	= "";
     string plugin		= "";
+    map client2plugin           = $[];
 
     /**
      * initialize local variables with current state of group
@@ -1634,7 +1642,7 @@ define symbol EditGroupDialog (string what) {
 	plugin_clients = filter (string plugin, string client,
 	    (map<string,string>) plugin_clients, ``(client != ""));
 
-	map client2plugin	= $[];
+	client2plugin		= $[];
 	list<string> clients	= maplist (string plugin, string client,
 	    (map<string,string>) plugin_clients, {
 
@@ -1864,6 +1872,12 @@ Try again.")) ;
 	// inside plugins dialog
 	if (current == `plugins)
 	{
+	    plugin_client       = (string) UI::QueryWidget (`id(`table),`CurrentItem);
+	    if (plugin_client != nil)
+	    {
+		plugin          = client2plugin[plugin_client]:plugin_client;
+	    }
+
 	    if (ret == `table || ret == `change)
 	    {
 		ret = contains (group["plugins"]:[], plugin) ? `del : `add;
