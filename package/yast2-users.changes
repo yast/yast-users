@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Sep 30 12:18:16 CEST 2005 - jsuchome@suse.cz
+
+- correcly call selected plugins from Plugin tab (#119593)
+- 2.13.3 
+
+-------------------------------------------------------------------
 Thu Sep 29 13:11:35 CEST 2005 - jsuchome@suse.cz
 
 - generate the home directory for LDAP users correctly (#119012)
