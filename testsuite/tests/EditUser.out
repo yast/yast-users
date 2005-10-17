@@ -42,7 +42,7 @@ Dump	---- user 'hh':
 Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"]
 Return	
 Dump	---- user 'hh':
-Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_uidnumber":"500", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Dump	 $["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_uidnumber":"500", "org_user":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
 Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- check user after edit:
@@ -50,7 +50,9 @@ Dump
 Dump	---- commit user:
 Return	true
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
-Write	.passwd.users $["local":$["501":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "modified":"edited", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Write	.passwd.users $["local":$["501":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "modified":"edited", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Read	.target.stat "/home" $["isdir":true]
+Read	.target.stat "/home/hh" $["isdir":true]
 Read	.target.stat "/home/hh" $["isdir":true]
 Execute	.target.bash_output "/bin/chown -R 501: /home/hh" $["stdout":"hh"]
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
@@ -61,10 +63,10 @@ Return
 Dump	---- user 500:
 Dump	 $[]
 Dump	---- user 501:
-Dump	 $["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Dump	 $["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
 Return	
 Dump	---- user 'hh':
-Dump	 $["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
+Dump	 $["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"]
 Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- check user after edit:
@@ -72,7 +74,7 @@ Dump
 Dump	---- commit user:
 Return	true
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
-Write	.passwd.users $["":$[], "local":$["501":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "modified":"edited", "org_homedirectory":"/new/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Write	.passwd.users $["":$[], "local":$["501":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/new/home/hh", "modified":"edited", "org_homedirectory":"/new/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["create_home":true, "grouplist":$["users":"1"], "homedirectory":"/home/hh", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "plugins":[], "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"x", "what":"edit_user"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
 Read	.target.stat "/new/home" $[]
 Execute	.target.mkdir "/new/home" 0
 Read	.target.stat "/new/home/hh" $[]

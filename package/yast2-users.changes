@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct 13 17:26:05 CEST 2005 - jsuchome@suse.cz
+
+- after renaming user: move home correctly, update autologin (#127561)
+- 2.13.4
+
+-------------------------------------------------------------------
 Fri Sep 30 12:18:16 CEST 2005 - jsuchome@suse.cz
 
 - correcly call selected plugins from Plugin tab (#119593)
