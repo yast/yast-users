@@ -189,7 +189,6 @@
 
     changes = $[
 	"homedirectory"	: "/new/home/hh",
-	"create_home"	: true,
     ];
 
     TEST (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);

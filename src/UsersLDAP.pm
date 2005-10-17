@@ -1384,13 +1384,11 @@ sub WriteUsers {
 		if ($uid > $last_id) {
 		    $last_id = $uid;
 		}
-		if ($server && $home ne $org_home) {
+		if ($server && $home ne $org_home && $home ne "/var/lib/nobody") {
 		    if ($create_home) {
 			UsersRoutines->MoveHome ($org_home, $home);
 		    }
-		    if ($home ne "/var/lib/nobody") {
-			UsersRoutines->ChownHome ($uid, $gid, $home);
-		    }
+		    UsersRoutines->ChownHome ($uid, $gid, $home);
 		}
             }
         }

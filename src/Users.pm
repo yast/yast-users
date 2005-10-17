@@ -1973,6 +1973,11 @@ sub EditUser {
 	    $user_in_work{"enabled"}	= YaST::YCP::Boolean (0);
 	}
 
+	# set the default value ("move directories, when changed")
+	if (!defined $user_in_work{"create_home"}) {
+	    $user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
+	}
+
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
@@ -3335,6 +3340,11 @@ sub CommitUser {
 	    }
             $shadow{$type}{$username} = $self->CreateShadowMap (\%user);
         }
+	# modify Autologin status if necessary
+        if ($username ne $org_username && Autologin->user () eq $org_username) {
+	    Autologin->user ($username);
+	    Autologin->modified (YaST::YCP::Boolean (1));
+	}
     }
     elsif ( $what_user eq "group_change_default") {
 	# gid of default group was changed
@@ -4093,7 +4103,6 @@ sub Write {
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
-       
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    my $skel	= $useradd_defaults{"skel"};
 		    if (bool ($user{"no_skeleton"})) {
@@ -4113,7 +4122,7 @@ sub Write {
 			push @useradd_postcommands, $command;
 		    }
 		}
-		elsif ($user_mod eq "edited") {
+		elsif ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
 		    my $org_uid = $user{"org_user"}{"uidnumber"} || $uid;
 		    if ($home ne $org_home || $uid ne $org_uid) {
@@ -4122,9 +4131,7 @@ sub Write {
 			    UsersRoutines->MoveHome ($org_home, $home);
 			}
 			# chown only when directory was changed (#39417)
-			if ($home ne "/var/lib/nobody") {
-			    UsersRoutines->ChownHome ($uid, $gid, $home);
-			}
+			UsersRoutines->ChownHome ($uid, $gid, $home);
 		    }
 		}
 	    }
