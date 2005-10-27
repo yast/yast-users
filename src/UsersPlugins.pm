@@ -111,6 +111,7 @@ sub Apply {
 
 	# check if plugin has this function defined
 	if (!defined $plugins{$module}{$action}) {
+	    y2debug ("function $action not defined for plugin $module");
 	    next;
 	}
 
@@ -123,7 +124,7 @@ sub Apply {
 
 	if (defined $plugins{$module}{"Restriction"} 		&&
 	    ref ($plugins{$module}{"Restriction"}) eq "HASH" 	&&
-	    !defined $plugins{$module}{"Restriction"}{$what}) {
+	    ($plugins{$module}{"Restriction"}{$what} || 0) eq 0) {
 
 	    y2debug ("plugin '$module' not defined for $what");
 	    next;
@@ -133,7 +134,7 @@ sub Apply {
 	if (defined $plugins{$module}{"Restriction"} 		&&
 	    ref ($plugins{$module}{"Restriction"}) eq "HASH" 	&&
 	    %{$plugins{$module}{"Restriction"}} 		&&
-	    !defined $plugins{$module}{"Restriction"}{$type}) {
+	    (defined $plugins{$module}{"Restriction"}{$type} || 0) eq 0) {
 
 	    y2debug ("plugin '$module' not defined for entry type '$type'");
 	    next;

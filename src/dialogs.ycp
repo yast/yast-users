@@ -620,7 +620,7 @@ group memberships can be changed.")) : `VSpacing (0),
 
 	list items = [];
 	foreach (string cl, clients, {
-	    any summary = WFM::CallFunction (cl, ["Summary", $["what" : what]]);
+	    any summary = WFM::CallFunction (cl, ["Summary", $["what" : "user"]]);
 	    string pl	= client2plugin[cl]:cl;
 	    if (is (summary, string))
 		items = add (items, `item(`id(cl),
@@ -1544,6 +1544,7 @@ define symbol EditGroupDialog (string what) {
     {
 	userlist		= group[member_attribute]:$[];
     }
+y2internal ("userlist: %1", userlist);
 
     boolean more = size (more_users) > 0;
 
@@ -1657,7 +1658,7 @@ define symbol EditGroupDialog (string what) {
 
 	list items = [];
 	foreach (string cl, clients, {
-	    any summary = WFM::CallFunction (cl, ["Summary", $["what" : what]]);
+	    any summary = WFM::CallFunction (cl, ["Summary", $["what" : "group"]]);
 	    string pl	= client2plugin[cl]:cl;
 	    if (is (summary, string))
 		items = add (items, `item(`id(cl),
