@@ -1124,7 +1124,7 @@ define void SummaryTableInit (string widget_id) ``{
     if (size (items) > 0)
     {
 	UI::SetFocus (`id(widget_id));
-	integer focusline = UsersCache::GetCurrentFocus ();
+	string focusline = UsersCache::GetCurrentFocus ();
 	if (focusline != nil)
 	    UI::ChangeWidget (`id(widget_id), `CurrentItem, focusline);
     }
@@ -1175,14 +1175,14 @@ define symbol SummaryTableHandler (string widget_id, map event) {
     }
     if (ev_id == `edit || ev_id == `delete)
     {
-        integer selected = (integer)UI::QueryWidget (`id("table"),`CurrentItem);
+        string selected = (string)UI::QueryWidget (`id("table"),`CurrentItem);
         if (selected != nil)
         {
 	    string error	= "";
 	    UsersCache::SetCurrentFocus (selected);
 	    if (UsersCache::GetCurrentSummary () == "users")
 	    {
-		Users::SelectUser (selected);
+		Users::SelectUserByName (selected);
 		if (ev_id == `delete)
 		    ev_id = DeleteUserPopup ();
 		else
@@ -1192,7 +1192,7 @@ define symbol SummaryTableHandler (string widget_id, map event) {
 	    }
 	    else
             {
-                Users::SelectGroup (selected);
+                Users::SelectGroupByName (selected);
                 if (UsersCache::GetGroupType () == "nis")
                 {
                     // error popup

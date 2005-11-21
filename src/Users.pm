@@ -63,11 +63,11 @@ my %groups			= (
     "local"		=> {},
 );
 
-my %users_by_name		= (
+my %users_by_uidnumber		= (
     "system"		=> {},
     "local"		=> {},
 );
-my %groups_by_name		= (
+my %groups_by_gidnumber		= (
     "system"		=> {},
     "local"		=> {},
 );
@@ -814,7 +814,10 @@ sub SetLoginDefaults {
 }
 
 ##------------------------------------
-# get the map of user data; parameters: UID, user type (can be empty string)
+# Returns the map of user specified by its UID
+# @param uid	user's identification number (UID) or uidnumber attribute for LDAP users
+# @param type	"local"/"system"/"nis"/"ldap"; if empty, all types are searched
+# @return the map of _first_ user matching the parameters
 BEGIN { $TYPEINFO{GetUser} = [ "function",
     ["map", "string", "any" ],
     "integer", "string"];
@@ -825,13 +828,16 @@ sub GetUser {
     my $uid		= $_[0];
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
-	@types_to_look = keys %users;
+	@types_to_look = keys %users_by_uidnumber;
 	unshift @types_to_look, UsersCache->GetUserType ();
     }
-
     foreach my $type (@types_to_look) {
-	if (defined $users{$type}{$uid}) {
-	    return $users{$type}{$uid};
+	if (defined $users_by_uidnumber{$type}{$uid} &&
+	    ref ($users_by_uidnumber{$type}{$uid}) eq "HASH" &&
+	    %{$users_by_uidnumber{$type}{$uid}})
+	{
+	    my $first_username	= (keys %{$users_by_uidnumber{$type}{$uid}})[0];
+	    return $self->GetUserByName ($first_username, $type);
 	}
     }
     return {};
@@ -850,8 +856,8 @@ sub GetUsers {
     my $type	= shift;
     my $ret	= {};
     
-    foreach my $uid (keys %{$users{$type}}) {
-	my $user	= $users{$type}{$uid};
+    foreach my $id (keys %{$users{$type}}) {
+	my $user	= $users{$type}{$id};
 	if (ref ($user) eq "HASH" && defined $user->{$key}) {
 	    $ret->{$user->{$key}}	= $user;
 	}
@@ -913,18 +919,17 @@ sub GetUserByName {
     my $username	= $_[0];
     if ($username =~ m/=/) {
 	$username = UsersCache->get_first ($username);
-# TODO maybe we should have users_by_dn set!
     }
 
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
-	@types_to_look = keys %users_by_name;
+	@types_to_look = keys %users;
 	unshift @types_to_look, UsersCache->GetUserType ();
     }
     
     foreach my $type (@types_to_look) {
-	if (defined $users_by_name{$type}{$username}) {
-	    return $self->GetUser ($users_by_name{$type}{$username}, $type);
+	if (defined $users{$type}{$username}) {
+	    return $users{$type}{$username};
 	}
     }
     return {};
@@ -955,6 +960,10 @@ sub GetGroups {
 
 
 ##------------------------------------
+# Returns the map of first group with given GID
+# @param name 	group's GID (or gidnumber attribute for LDAP groups)
+# @param type 	if empty, all types are searched
+# @return the map of first group matching parameters
 BEGIN { $TYPEINFO{GetGroup} = [ "function",
     ["map", "string", "any" ],
     "integer", "string"];
@@ -965,20 +974,27 @@ sub GetGroup {
     my $gid		= $_[0];
     my @types_to_look	= ($_[1]);
     if ($_[1] eq "") {
-	@types_to_look = sort keys %groups;
+	@types_to_look = sort keys %groups_by_gidnumber;
 	unshift @types_to_look, UsersCache->GetGroupType ();
     }
 
     foreach my $type (@types_to_look) {
-	if (defined ($groups{$type}{$gid})) {
-	    return $groups{$type}{$gid};
+	if (defined $groups_by_gidnumber{$type}{$gid} &&
+	    ref ($groups_by_gidnumber{$type}{$gid}) eq "HASH" &&
+	    %{$groups_by_gidnumber{$type}{$gid}})
+	{
+	    my $first_groupname	= (keys %{$groups_by_gidnumber{$type}{$gid}})[0];
+	    return $self->GetGroupByName ($first_groupname, $type);
 	}
     }
     return {};
 }
 
 ##------------------------------------
-# Gets the first group with given name
+# Returns the map of first group with given name
+# @param name 	group's name (or cn attribute for LDAP groups)
+# @param type 	if empty, all types are searched
+# @return the map of first group matching parameters
 BEGIN { $TYPEINFO{GetGroupByName} = [ "function",
     ["map", "string", "any" ],
     "string", "string"];
@@ -993,13 +1009,13 @@ sub GetGroupByName {
     # Given user type is checked for first, but the other follow.
     # The only reason for "type" argument is to get the (probably) right
     # group as first (e.g. there are 2 'users' groups - local and ldap).
-    my @types_to_look	= keys %groups_by_name;
+    my @types_to_look	= keys %groups;
     if ($type ne "") {
 	unshift @types_to_look, $type;
     }
     foreach my $type (@types_to_look) {
-	if (defined $groups_by_name{$type}{$groupname}) {
-	    return $self->GetGroup ($groups_by_name{$type}{$groupname}, $type);
+	if (defined $groups{$type}{$groupname}) {
+	    return $groups{$type}{$groupname};
 	}
     }
     return {};
@@ -1252,9 +1268,9 @@ sub ReadLDAPSet {
     }
     # read the LDAP data (users, groups, items)
     $users{$type}		= \%{SCR->Read (".ldap.users")};
-    $users_by_name{$type}	= \%{SCR->Read (".ldap.users.by_name")};
+#    $users_by_uidnumber{$type}	= \%{SCR->Read (".ldap.users.by_uidnumber")}; FIXME LDAP
     $groups{$type}		= \%{SCR->Read (".ldap.groups")};
-    $groups_by_name{$type}	= \%{SCR->Read (".ldap.groups.by_name")};
+#    $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
     # read the necessary part of LDAP user configuration
     $min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
     $max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
@@ -1286,9 +1302,9 @@ sub ReadNewSet {
         $nis_not_read = 0;
 	
 	$users{$type}		= \%{SCR->Read (".nis.users")};
-	$users_by_name{$type}	= \%{SCR->Read (".nis.users.by_name")};
+	$users_by_uidnumber{$type}	= \%{SCR->Read (".nis.users.by_uidnumber")};
 	$groups{$type}		= \%{SCR->Read (".nis.groups")};
-	$groups_by_name{$type}	= \%{SCR->Read (".nis.groups.by_name")};
+	$groups_by_gidnumber{$type}	= \%{SCR->Read (".nis.groups.by_gidnumber")};
 
 	if ($use_gui) {
 	    UsersCache->BuildUserItemList ($type, $users{$type});
@@ -1336,10 +1352,10 @@ sub ReadLocal {
 
     foreach my $type ("local", "system") {
 	$users{$type}		= \%{SCR->Read (".passwd.$type.users")};
-	$users_by_name{$type}	= \%{SCR->Read (".passwd.$type.users.by_name")};
+	$users_by_uidnumber{$type} = \%{SCR->Read (".passwd.$type.users.by_uidnumber")};
 	$shadow{$type}		= \%{SCR->Read (".passwd.$type.shadow")};
 	$groups{$type}		= \%{SCR->Read (".passwd.$type.groups")};
-	$groups_by_name{$type}	= \%{SCR->Read(".passwd.$type.groups.by_name")};
+	$groups_by_gidnumber{$type}= \%{SCR->Read(".passwd.$type.groups.by_gidnumber")};
     }
 
     my $pluses		= SCR->Read (".passwd.passwd.pluslines");
@@ -1514,7 +1530,7 @@ sub Read {
     if ($export_all) {
 	foreach my $type ("system", "local") {
 	    foreach my $id (keys %{$users{$type}}) {
-		$self->SelectUser ($id); # SelectUser does LoadShadow
+		$self->SelectUserByName ($id); # SelectUser does LoadShadow
 		my %user		= %user_in_work;
 		$user{"encrypted"}	= YaST::YCP::Boolean (1);
 		undef %user_in_work;
@@ -3355,7 +3371,8 @@ sub CommitUser {
         # prevent the add & delete of the same user
         if (!defined $user{"modified"} || $user{"modified"} ne "added") {
             $user{"modified"} = "deleted";
-	    $removed_users{$type}{$uid}	= \%user;
+#	    $removed_users{$type}{$uid}	= \%user;
+	    $removed_users{$type}{$username}	= \%user;
         }
 
         # check the change of group membership
@@ -3388,13 +3405,17 @@ sub CommitUser {
 
     UsersCache->CommitUser (\%user);
     if ($what_user eq "delete_user") {
-        delete $users{$type}{$uid};
-        delete $users_by_name{$type}{$username};
+        delete $users{$type}{$username};
+
+	if (defined $users_by_uidnumber{$type}{$uid}{$username}) {
+	    delete $users_by_uidnumber{$type}{$uid}{$username};
+	}
+
         if ($type ne "ldap") {
             delete $shadow{$type}{$username};
 	}
-	if (defined $modified_users{$type}{$uid}) {
-	    delete $modified_users{$type}{$uid};
+	if (defined $modified_users{$type}{$username}) {
+	    delete $modified_users{$type}{$username};
 	}
     }
     else {
@@ -3402,16 +3423,18 @@ sub CommitUser {
         if ($org_type ne $type) {
             delete $shadow{$org_type}{$org_username};
         }
-        if ($uid != $org_uid) {
-	    if (defined ($users{$org_type}{$org_uid})) {
-		delete $users{$org_type}{$org_uid};
+        if ($uid != $org_uid || $org_type ne $type) {
+	    if (defined $users_by_uidnumber{$org_type}{$org_uid}{$org_username}) {
+		delete $users_by_uidnumber{$org_type}{$org_uid}{$org_username};
 	    }
-	    if (defined $modified_users{$org_type}{$org_uid}) {
-		delete $modified_users{$org_type}{$org_uid};
-	    }
-        }
+	}
         if ($username ne $org_username || $org_type ne $type) {
-            delete $users_by_name{$org_type}{$org_username};
+	    if (defined ($users{$org_type}{$org_username})) {
+		delete $users{$org_type}{$org_username};
+	    }
+	    if (defined ($modified_users{$org_type}{$org_username})) {
+		delete $modified_users{$org_type}{$org_username};
+	    }
         }
 
         $user{"org_uidnumber"}			= $uid;
@@ -3419,11 +3442,14 @@ sub CommitUser {
 	if ($home ne "") {
 	    $user{"org_homedirectory"}		= $home;
 	}
-        $users{$type}{$uid}			= \%user;
-        $users_by_name{$type}{$username}	= $uid;
+        $users{$type}{$username}		= \%user;
+	if (!defined $users_by_uidnumber{$type}{$uid}) {
+	    $users_by_uidnumber{$type}{$uid}	= {};
+	}
+	$users_by_uidnumber{$type}{$uid}{$username}	= 1;
 
 	if ((($user{"modified"} || "") ne "") && $what_user ne "group_change") {
-	    $modified_users{$type}{$uid}	= \%user;
+	    $modified_users{$type}{$username}	= \%user;
 	}
     }
     undef %user_in_work;
@@ -3551,7 +3577,7 @@ sub CommitGroup {
                 if (%user_in_work) {
 		    $user_in_work{"groupname"}	= $groupname;
                     $user_in_work{"gidnumber"}	= $gid;
-		    $user_in_work{"what"}		= "group_change";
+		    $user_in_work{"what"}	= "group_change";
 		    if ($gid != $org_gid) {
 			$user_in_work{"what"} 	= "group_change_default";
 		    }
@@ -3563,13 +3589,16 @@ sub CommitGroup {
     elsif ($what_group eq "delete_group") {
 	if (!defined $group{"modified"} || $group{"modified"} ne "added") {
 	    $group {"modified"}			= "deleted";
-            $removed_groups{$type}{$org_gid}	= \%group;
+            $removed_groups{$type}{$org_groupname}	= \%group;
         }
-	delete $groups{$type}{$org_gid};
-        delete $groups_by_name{$type}{$org_groupname};
+	delete $groups{$type}{$org_groupname};
 
-	if (defined $modified_groups{$type}{$gid}) {
-	    delete $modified_groups{$type}{$gid};
+	if (defined $groups_by_gidnumber{$type}{$gid}{$org_groupname}) {
+	    delete $groups_by_gidnumber{$type}{$gid}{$org_groupname};
+	}
+
+	if (defined $modified_groups{$type}{$groupname}) {
+	    delete $modified_groups{$type}{$groupname};
 	}
     }
     elsif ( $what_group eq "user_change" ) # do not call Commit again
@@ -3583,33 +3612,33 @@ sub CommitGroup {
     UsersCache->CommitGroup (\%group);
     if ($what_group ne "delete_group") { # also for "user_change"
         
-	if ($gid != $org_gid) {
-	    if (defined ($groups{$org_type}{$org_gid})) {
-	        delete $groups{$org_type}{$org_gid};
-	    }
-	    if (defined $modified_groups{$org_type}{$org_gid}) {
-		delete $modified_groups{$org_type}{$org_gid};
-	    }
-	    # type was changed, but groupname didn't
-	    if ($type ne $org_type && $groupname eq $org_groupname) {
-		delete $groups_by_name{$org_type}{$groupname};
+	if ($gid != $org_gid || $org_type ne $type) {
+
+	    if (defined $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname}) {
+		delete $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname};
 	    }
 	}
 
-        if ($groupname ne $org_groupname &&
-	    defined ($groups_by_name{$org_type}{$org_groupname})) {
-            delete $groups_by_name{$org_type}{$org_groupname};
+        if ($groupname ne $org_groupname || $org_type ne $type) {
+	    
+	    if (defined ($groups{$org_type}{$org_groupname})) {
+		delete $groups{$org_type}{$org_groupname};
+	    }
 	}
 
         # this has to be done due to multiple changes of groupname
         $group{"org_cn"}			= $groupname;
         $group{"org_gidnumber"}			= $gid;
 
-        $groups{$type}{$gid}			= \%group;
-        $groups_by_name{$type}{$groupname}	= $gid;
+        $groups{$type}{$groupname}			= \%group;
+
+	if (!defined $groups_by_gidnumber{$type}{$gid}) {
+	    $groups_by_gidnumber{$type}{$gid} = {};
+	}
+	$groups_by_gidnumber{$type}{$gid}{$groupname}	= 1;
 
 	if (($group{"modified"} || "") ne "") {
-	    $modified_groups{$type}{$gid}	= \%group;
+	    $modified_groups{$type}{$groupname}	= \%group;
 	}
     }
     undef %group_in_work;
@@ -3727,10 +3756,10 @@ sub PreDeleteUsers {
 	if (!defined $removed_users{$type}) {
 	    next;
 	}
-	foreach my $uid (keys %{$removed_users{$type}}) {
-	    my %user = %{$removed_users{$type}{$uid}};
-	    my $cmd = sprintf ("$userdel_precmd %s $uid %i %s",
-		$user{"uid"}, $user{"gidnumber"}, $user{"homedirectory"});
+	foreach my $username (keys %{$removed_users{$type}}) {
+	    my %user = %{$removed_users{$type}{$username}};
+	    my $cmd = sprintf ("$userdel_precmd $username %i %i %s",
+		$user{"uidnumber"}, $user{"gidnumber"}, $user{"homedirectory"});
 	    SCR->Execute (".target.bash", $cmd);
 	};
     };
@@ -3756,10 +3785,10 @@ sub PostDeleteUsers {
 	if (!defined $removed_users{$type}) {
 	    next;
 	}
-	foreach my $uid (keys %{$removed_users{$type}}) {
-	    my %user = %{$removed_users{$type}{$uid}};
-	    my $cmd = sprintf ("$userdel_postcmd %s $uid %i %s",
-		$user{"uid"}, $user{"gidnumber"}, $user{"homedirectory"});
+	foreach my $username (keys %{$removed_users{$type}}) {
+	    my %user = %{$removed_users{$type}{$username}};
+	    my $cmd = sprintf ("$userdel_postcmd $username %i %i %s",
+		$user{"uidnumber"}, $user{"gidnumber"}, $user{"homedirectory"});
 	    SCR->Execute (".target.bash", $cmd);
 	};
     };
@@ -3777,22 +3806,23 @@ sub UpdateUsersAfterWrite {
     my $type	= shift;
 	
     if (ref ($modified_users{$type}) eq "HASH") {
-        foreach my $uid (keys %{$modified_users{$type}}) {
-	    my $a = $modified_users{$type}{$uid}{"modified"};
+        foreach my $username (keys %{$modified_users{$type}}) {
+	    my $a = $modified_users{$type}{$username}{"modified"};
 	    if (!defined $a) { next;}
-	    if (defined $users{$type}{$uid}) {
-		if (($users{$type}{$uid}{"modified"} || "") eq $a) {
-		    delete $users{$type}{$uid}{"modified"};
+	    if (defined $users{$type}{$username}) {
+		if (($users{$type}{$username}{"modified"} || "") eq $a) {
+		    delete $users{$type}{$username}{"modified"};
 		}
 		# org_user map must be also removed (e.g. for multiple renames)
-		if (defined $users{$type}{$uid}{"org_user"}) {
-		    delete $users{$type}{$uid}{"org_user"};
+		if (defined $users{$type}{$username}{"org_user"}) {
+		    delete $users{$type}{$username}{"org_user"};
 		}
 	    }
 	}
     }
 }
 
+# see UpdateUsersAfterWrite
 BEGIN { $TYPEINFO{UpdateGroupsAfterWrite} = ["function", "void", "string"]; }
 sub UpdateGroupsAfterWrite {
 
@@ -3800,16 +3830,16 @@ sub UpdateGroupsAfterWrite {
     my $type	= shift;
 
     if (ref ($modified_groups{$type}) eq "HASH") {
-        foreach my $gid (keys %{$modified_groups{$type}}) {
-	    my $a = $modified_groups{$type}{$gid}{"modified"};
+        foreach my $groupname (keys %{$modified_groups{$type}}) {
+	    my $a = $modified_groups{$type}{$groupname}{"modified"};
 	    if (!defined $a) { next;}
-	    if (defined $groups{$type}{$gid}) {
-		if (($groups{$type}{$gid}{"modified"} || "") eq $a) {
-		    delete $groups{$type}{$gid}{"modified"};
+	    if (defined $groups{$type}{$groupname}) {
+		if (($groups{$type}{$groupname}{"modified"} || "") eq $a) {
+		    delete $groups{$type}{$groupname}{"modified"};
 		}
 		# org_group map must be also removed (e.g. for multiple renames)
-		if (defined $groups{$type}{$gid}{"org_group"}) {
-		    delete $groups{$type}{$gid}{"org_group"};
+		if (defined $groups{$type}{$groupname}{"org_group"}) {
+		    delete $groups{$type}{$groupname}{"org_group"};
 		}
 	    }
 	}
@@ -3965,15 +3995,15 @@ sub Write {
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
-	    foreach my $gid (keys %{$modified_groups{$type}}) {
+	    foreach my $groupname (keys %{$modified_groups{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "group",
 		    "type"	=> $type,
-		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
+		    "modified"	=> $modified_groups{$type}{$groupname}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("WriteBefore", $args,
-		    $modified_groups{$type}{$gid});
+		    $modified_groups{$type}{$groupname});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
@@ -3986,23 +4016,22 @@ sub Write {
 	# -------------------------------------- call Write on plugins
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
-	    foreach my $gid (keys %{$modified_groups{$type}}) {
+	    foreach my $groupname (keys %{$modified_groups{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "group",
 		    "type"	=> $type,
-		    "modified"	=> $modified_groups{$type}{$gid}{"modified"}
+		    "modified"	=> $modified_groups{$type}{$groupname}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("Write", $args,
-		    $modified_groups{$type}{$gid});
+		    $modified_groups{$type}{$groupname});
 		$plugin_error	= GetPluginError ($args, $result);
 
 		# store commands for calling groupadd_cmd script
 		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
-		    my $group	= $modified_groups{$type}{$gid};
+		    my $group	= $modified_groups{$type}{$groupname};
 		    my $mod 	= $group->{"modified"} || "no";
 		    if ($mod eq "imported" || $mod eq "added") {
-			my $groupname    	= $group->{"cn"};
 			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
 			push @groupadd_postcommands, $cmd;
 		    }
@@ -4048,15 +4077,18 @@ sub Write {
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
-	    foreach my $uid (keys %{$modified_users{$type}}) {
+#	    foreach my $uid (keys %{$modified_users{$type}}) {
+	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
-		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+#		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+		    "modified"	=> $modified_users{$type}{$username}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("WriteBefore", $args,
-		    $modified_users{$type}{$uid});
+#		    $modified_users{$type}{$uid});
+		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
@@ -4069,15 +4101,18 @@ sub Write {
 	# -------------------------------------- call Write on plugins
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
-	    foreach my $uid (keys %{$modified_users{$type}}) {
+#	    foreach my $uid (keys %{$modified_users{$type}}) {
+	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
-		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+#		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
+		    "modified"	=> $modified_users{$type}{$username}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("Write", $args,
-		    $modified_users{$type}{$uid});
+#		    $modified_users{$type}{$uid});
+		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
@@ -4094,11 +4129,11 @@ sub Write {
 	    if ($type eq "ldap") {
 		next; #homes for LDAP are ruled in WriteLDAP
 	    }
-	    foreach my $uid (keys %{$modified_users{$type}}) {
+	    foreach my $username (keys %{$modified_users{$type}}) {
 	    
-		my %user	= %{$modified_users{$type}{$uid}};
+		my %user	= %{$modified_users{$type}{$username}};
 		my $home 	= $user{"homedirectory"} || "";
-		my $username 	= $user{"uid"} || "";
+		my $uid		= $user{"uidnumber"} || 0;
 		my $command 	= "";
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidnumber"};
@@ -4291,17 +4326,17 @@ sub CheckUID {
 	return __("No UID is available for this type of user.");
     }
 
-    if (("add_user" eq ($user_in_work{"what"} || "")) 	||
-	($uid != ($user_in_work{"uidnumber"} || 0))	||
-	(defined $user_in_work{"org_uidnumber"} && 
-		 $user_in_work{"org_uidnumber"} != $uid)) {
-
-	if (UsersCache->UIDExists ($uid)) {
-	    # error popup
-	    return __("The user ID entered is already in use.
-Select another user ID.");
-	}
-    }
+#    if (("add_user" eq ($user_in_work{"what"} || "")) 	||
+#	($uid != ($user_in_work{"uidnumber"} || 0))	||
+#	(defined $user_in_work{"org_uidnumber"} && 
+#		 $user_in_work{"org_uidnumber"} != $uid)) {
+#
+#	if (UsersCache->UIDExists ($uid)) {
+#	    # error popup
+#	    return __("The user ID entered is already in use.
+#Select another user ID.");
+#	}
+#    }
     my $username	= $user_in_work{"uid"} || "";
 
     if ($type eq "system" && $username eq "nobody" && $uid == 65534) {
@@ -4349,6 +4384,23 @@ sub CheckUIDUI {
     my %ui_map	= %{$_[1]};
     my $type	= UsersCache->GetUserType ();
     my %ret	= ();
+
+    if (($ui_map{"duplicated_uid"} || 0) != 1) {
+	if (
+	   (("add_user" eq ($user_in_work{"what"} || "")) 	||
+	    ($uid != ($user_in_work{"uidnumber"} || 0))		||
+	    (defined $user_in_work{"org_uidnumber"} 	&& 
+		     $user_in_work{"org_uidnumber"} != $uid))	&&
+	    UsersCache->UIDExists ($uid))
+	{
+	    
+	    $ret{"question_id"} =	"duplicated_uid";
+	    # popup question
+	    $ret{"question"}    =	__("The user ID entered is already in use.
+Really use it?");
+	    return \%ret;
+	}
+    }
 
     if (($ui_map{"ldap_range"} || 0) != 1) {
 	if ($type eq "ldap" &&
@@ -4881,17 +4933,6 @@ sub CheckGID {
 	return __("No GID is available for this type of group.");
     }
 
-    if (("add_group" eq ($group_in_work{"what"} || "")) ||
-	($gid != ($group_in_work{"gidnumber"} || 0))	||
-	(defined $group_in_work{"org_gidnumber"} && 
-		 $group_in_work{"org_gidnumber"} != $gid)) {
-
-	if (UsersCache->GIDExists ($gid)) {
-	    # error popup
-	    return __("The group ID entered is already in use.
-Select another group ID.");
-	}
-    }
     my $groupname	= $group_in_work{"cn"} || "";
     
     if ($type eq "system" &&
@@ -4941,6 +4982,21 @@ sub CheckGIDUI {
     my %ui_map	= %{$_[1]};
     my $type	= UsersCache->GetGroupType ();
     my %ret	= ();
+
+    if (($ui_map{"duplicated_gid"} || 0) != 1) {
+	if ((
+	    ("add_group" eq ($group_in_work{"what"} || "")) 	||
+	    ($gid != ($group_in_work{"gidnumber"} || 0))	||
+	    (defined $group_in_work{"org_gidnumber"} && 
+		     $group_in_work{"org_gidnumber"} != $gid)) 	&&
+	    UsersCache->GIDExists ($gid))
+	{
+	    $ret{"question_id"} = "duplicated_gid";
+	    # popup question
+	    $ret{"question"}	= __("The group ID entered is already in use.
+Really use it?");
+	}
+    }
 
     if (($ui_map{"ldap_range"} || 0) != 1) {
 	if ($type eq "ldap" &&
@@ -5071,7 +5127,6 @@ sub CheckUser {
 	    ($user{"what"} || "") eq "add_user") {
 	    $error	= $self->CheckPassword ($user{"userpassword"});
 	}
-#FIXME user can set 'x' as pasword!
     }
     
     if ($error eq "") {
@@ -5399,15 +5454,15 @@ sub RemoveDiskUsersFromGroups {
 	my $group	= $disk_groups->{$gid};
 	
 	foreach my $user (keys %{$group->{"userlist"}}) {
-	    if (!defined ($users_by_name{"local"}{$user}) &&
-		!defined ($users_by_name{"system"}{$user}))
+	    if (!defined ($users{"local"}{$user}) &&
+		!defined ($users{"system"}{$user}))
 	    {
 		delete $disk_groups->{$gid}{"userlist"}{$user};
 	    }
 	}
 	foreach my $user (keys %{$group->{"more_users"}}) {
-	    if (!defined ($users_by_name{"local"}{$user}) &&
-		!defined ($users_by_name{"system"}{$user}))
+	    if (!defined ($users{"local"}{$user}) &&
+		!defined ($users{"system"}{$user}))
 	    {
 		delete $disk_groups->{$gid}{"more_users"}{$user};
 	    }
@@ -5660,13 +5715,13 @@ sub Initialize {
 	return 0;
     }
 
-    $shadow{"local"}		= {};
-    $users{"local"}		= {};
-    $users_by_name{"local"}	= {};
+    $shadow{"local"}			= {};
+    $users{"local"}			= {};
+    $users_by_uidnumber{"local"}	= {};
 
     RemoveDiskUsersFromGroups ($groups{"system"});
-    $groups{"local"}		= {};
-    $groups_by_name{"local"}	= {};
+    $groups{"local"}			= {};
+    $groups_by_gidnumber{"local"}	= {};
 
     @available_usersets		= ( "local", "system", "custom" );
     @available_groupsets	= ( "local", "system", "custom" );
@@ -5731,7 +5786,7 @@ sub Import {
 	
 	$shadow{"local"}		= {};
 	$users{"local"}			= {};
-	$users_by_name{"local"}		= {};
+	$users_by_uidnumber{"local"}	= {};
     }
 
     if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
@@ -5757,10 +5812,13 @@ sub Import {
 		push @without_uid, \%user;
 	    }
 	    else {
-		$users{$type}{$uid}		= \%user;
-		$users_by_name{$type}{$username}= $uid;
+		$users{$type}{$username}		= \%user;
+		if (!defined $users_by_uidnumber{$type}{$uid}) {
+		    $users_by_uidnumber{$type}{$uid} 	= {};
+		}
+		$users_by_uidnumber{$type}{$uid}{$username}	= 1;
 		$shadow{$type}{$username} = $self->CreateShadowMap (\%user);
-		$modified_users{$type}{$uid}	= \%user;
+		$modified_users{$type}{$username}	= \%user;
 	    }
 	}
 
@@ -5786,13 +5844,8 @@ sub Import {
     }
 
     # group users should be "local"
-    if (defined ($groups{"system"}{100}) &&
-	$groups{"system"}{100}{"cn"} eq "users") {
-	delete $groups{"system"}{100};
-    }
-    if (defined ($groups{"system"}{500}) &&
-	$groups{"system"}{500}{"cn"} eq "users") {
-	delete $groups{"system"}{500};
+    if (defined $groups{"system"}{"users"}) {
+	delete $groups{"system"}{"users"};
     }
 
     # we're not interested in local userlists...
@@ -5802,7 +5855,7 @@ sub Import {
 
     if (Mode->config ()) {
 	$groups{"local"}		= {};
-	$groups_by_name{"local"}	= {};
+	$groups_by_gidnumber{"local"}	= {};
     }
 
     my @without_gid		= ();
@@ -5819,9 +5872,12 @@ sub Import {
 	    else {
 		my $type			= $group{"type"} || "local";
 		my $groupname 			= $group{"cn"} || "";
-		$groups{$type}{$gid}		= \%group;
-		$groups_by_name{$type}{$groupname}	= $gid;
-		$modified_groups{$type}{$gid}	= \%group;
+		$groups{$type}{$groupname}	= \%group;
+		$modified_groups{$type}{$groupname}	= \%group;
+		if (!defined $groups_by_gidnumber{$type}{$gid}) {
+		    $groups_by_gidnumber{$type}{$gid} = {};
+		}
+		$groups_by_gidnumber{$type}{$gid}{$groupname}	= 1;
 	    }
 	}
 
@@ -5856,8 +5912,11 @@ sub Import {
 	     "userlist"			=> {},
 	     "type"			=> "local"
 	);
-        $groups{"local"}{$gid}		= \%group_u;
-        $groups_by_name{"local"}{"users"}	= $gid;
+        $groups{"local"}{"users"}		= \%group_u;
+	if (!defined $groups_by_gidnumber{"local"}{$gid}) {
+	    $groups_by_gidnumber{"local"}{$gid} = {};
+	}
+	$groups_by_gidnumber{"local"}{$gid}{"users"}	= 1;
     }
 
     @available_usersets		= ( "local", "system", "custom" );
@@ -5873,15 +5932,15 @@ sub Import {
 	    next;
 	}
 
-        foreach my $uid (keys %{$users{$type}}) {
+        foreach my $username (keys %{$users{$type}}) {
 
-	    my $user		= $users{$type}{$uid};
-            my $username 	= $user->{"uid"}	|| "";
+	    my $user		= $users{$type}{$username};
+            my $uid 		= $user->{"uidnumber"}	|| 0;
             my $gid 		= $user->{"gidnumber"};
 	    if (!defined $gid) {
 		$gid		= $self->GetDefaultGID($type);
 	    }
-            $users{$type}{$uid}{"grouplist"} = FindGroupsBelongUser ($user);
+            $users{$type}{$username}{"grouplist"} = FindGroupsBelongUser ($user);
 
             # hack: change of default group's gid
 	    # (e.g. user 'games' has gid 100, but there is only group 500 now!)
@@ -5897,17 +5956,19 @@ sub Import {
 		%group		= %{$self->GetGroup ($gid, "")};
 		# adapt user's gid to new one:
 		if (%group) {
-		    $users{$type}{$uid}{"gidnumber"}	= $gid;
+		    $users{$type}{$username}{"gidnumber"}	= $gid;
 		}
 	    }
 	    if (defined $group{"cn"}) {
-		$users{$type}{$uid}{"groupname"}	= $group{"cn"};
-	    }
+		my $groupname 				= $group{"cn"};
+		$users{$type}{$uid}{"groupname"}	= $groupname;
+		$users{$type}{$username}{"groupname"}	= $groupname;
 
-            # update the group's more_users
-            if (%group && !defined ($group{"more_users"}{$username})) {
-		my $gtype	= $group{"type"} || $type;
-                $groups{$gtype}{$gid}{"more_users"}{$username}	= 1;
+		# update the group's more_users
+		if (!defined ($group{"more_users"}{$username})) {
+		    my $gtype	= $group{"type"} || $type;
+		    $groups{$gtype}{$groupname}{"more_users"}{$username}	= 1;
+		}
             }
         }
     }
@@ -5924,11 +5985,9 @@ sub Import {
 		$root_user{"userpassword"}	=
 		    $self->CryptPassword ($pw, "system");
 
-		my $ruid	= $users{"uidnumber"} || 0;
-
-		$users{"system"}{$ruid}		= \%root_user;
+		$users{"system"}{"root"}		= \%root_user;
 		$shadow{"system"}{"root"} = $self->CreateShadowMap(\%root_user);
-		$modified_users{"system"}{$ruid}	= \%root_user;
+		$modified_users{"system"}{"root"}	= \%root_user;
 	    }
 	}
     }
@@ -6150,9 +6209,9 @@ sub Summary {
     $ret = __("<h3>Users</h3>");
     foreach my $type ("local", "system") {
 	if (!defined $users{$type}) { next; }
-	while (my ($uid, $user) = each %{$users{$type}}) {
+	while (my ($username, $user) = each %{$users{$type}}) {
             if (defined $user->{"modified"}) {
-                $ret .= sprintf (" $uid %s %s<br>", $user->{"uid"} || "", $user->{"cn"} || "");
+                $ret .= sprintf (" %i $username %s<br>", $user->{"uidnumber"} || 0, $user->{"cn"} || "");
 	    }
 	}
     }
@@ -6160,9 +6219,9 @@ sub Summary {
     $ret .= __("<h3>Groups</h3>");
     foreach my $type ("local", "system") {
 	if (!defined $groups{$type}) { next; }
-	while (my ($gid, $group) = each %{$groups{$type}}) {
+	while (my ($groupname, $group) = each %{$groups{$type}}) {
             if (defined $group->{"modified"}) {
-                $ret .= sprintf (" $gid %s<br>", $group->{"cn"} || "");
+                $ret .= sprintf (" %i $groupname<br>", $group->{"gidnumber"} || 0);
 	    }
 	}
     }

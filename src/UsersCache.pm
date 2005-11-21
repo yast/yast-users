@@ -20,7 +20,7 @@ my $use_gui                     = 1;
 my $user_type		= "local";
 my $group_type		= "local";
 
-my %usernames		= (); #TODO used by phone-services, mail, inetd...
+my %usernames		= ();
 my %homes		= ();
 my %uids		= ();
 my %user_items		= ();
@@ -288,7 +288,7 @@ sub UIDExists {
     my $ret	= 0;
 
     foreach my $type (keys %uids) {
-	if (defined $uids{$type}{$uid}) { $ret = 1; }
+	if (($uids{$type}{$uid} || 0) > 1) { $ret = 1; }
     };
     # for autoyast, check only loaded sets
     if ($ret || Mode->config () || Mode->test ()) {
@@ -306,7 +306,9 @@ sub UIDExists {
 	    push @sets_to_check, "ldap";
 	}
 	foreach my $type (@sets_to_check) {
-	    if (defined $removed_uids{$type}{$uid}) { $ret = 0; }
+	    if (defined $removed_uids{$type}{$uid} && $removed_uids{$type}{$uid} > 0) { 
+		$ret = 0;
+	    }
 	};
     }
     return $ret;
@@ -357,11 +359,10 @@ sub GIDExists {
     my $ret	= 0;
     
     if ($group_type eq "ldap") {
-	$ret = defined $gids{$group_type}{$gid};
+	$ret = ($gids{$group_type}{$gid} || 0) > 0;
     }
     else {
-	$ret = (defined $gids{"local"}{$gid} ||
-		defined $gids{"system"}{$gid});
+	$ret = (($gids{"local"}{$gid} || 0) > 0 || ($gids{"system"}{$gid} || 0) > 0);
     }
     return $ret;
 }
@@ -416,24 +417,26 @@ sub HomeExists {
 ##----------------- get routines ------------------------------------------
 
 #------------------------------------
-BEGIN { $TYPEINFO{GetCurrentFocus} = ["function", "integer"]; }
+# returns the id (= user name or group name) of the item selected in the summary table
+BEGIN { $TYPEINFO{GetCurrentFocus} = ["function", "string"]; }
 sub GetCurrentFocus {
 
     if ($current_summary eq "users") {
 	if (defined $focusline_user) {
-	    return YaST::YCP::Integer ($focusline_user)->value();
+	    return $focusline_user;
 	}
     }
     else {
 	if (defined $focusline_group) {
-	    return YaST::YCP::Integer ($focusline_group)->value();
+	    return $focusline_group;
 	}
     }
     return undef;
 }
 
 #------------------------------------
-BEGIN { $TYPEINFO{SetCurrentFocus} = ["function", "void", "integer"]; }
+# set the id (= user name or group name) of the item selected in the summary table
+BEGIN { $TYPEINFO{SetCurrentFocus} = ["function", "void", "string"]; }
 sub SetCurrentFocus {
 
     my $self		= shift;
@@ -511,8 +514,8 @@ sub GetUserItems {
 
     my @items;
     foreach my $itemref (@current_user_items) {
-	foreach my $id (sort {$a <=> $b} keys %{$itemref}) {
-	    push @items, $itemref->{$id};
+	foreach my $username (sort keys %{$itemref}) {
+	    push @items, $itemref->{$username};
 	}
     }
     return \@items;
@@ -524,8 +527,8 @@ sub GetGroupItems {
 
     my @items;
     foreach my $itemref (@current_group_items) {
-	foreach my $id (sort {$a <=> $b} keys %{$itemref}) {
-	    push @items, $itemref->{$id};
+	foreach my $groupname (sort keys %{$itemref}) {
+	    push @items, $itemref->{$groupname};
 	}
     }
     return \@items;
@@ -798,7 +801,8 @@ sub BuildUserItem {
     }
     my $all_groups	= join (",", keys %grouplist);
 
-    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($uid));
+#    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($uid));
+    my $id = YaST::YCP::Term ("id", $username);
     my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
     return $t;
 }
@@ -818,8 +822,11 @@ sub BuildUserItemList {
     my %map_of_users	= %{$_[1]};
     $user_items{$type}	= {};
 
-    foreach my $uid (keys %map_of_users) {
-        $user_items{$type}{$uid} = $self->BuildUserItem ($map_of_users{$uid});
+#    foreach my $uid (keys %map_of_users) {
+#        $user_items{$type}{$uid} = $self->BuildUserItem ($map_of_users{$uid});
+#    };
+    foreach my $username (keys %map_of_users) {
+        $user_items{$type}{$username} = $self->BuildUserItem ($map_of_users{$username});
     };
 }
 
@@ -888,7 +895,7 @@ sub BuildGroupItem {
 
     my $all_users	= join (",", @all_users);
 
-    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($gid));
+    my $id = YaST::YCP::Term ("id", $groupname);
     my $t = YaST::YCP::Term ("item", $id, $groupname, $gid, $all_users);
 
     return $t;
@@ -909,8 +916,8 @@ sub BuildGroupItemList {
     my %map_of_groups	= %{$_[1]};
     $group_items{$type}	= {};
 
-    foreach my $id (keys %map_of_groups) {
-        $group_items{$type}{$id} = $self->BuildGroupItem ($map_of_groups{$id});
+    foreach my $gname (keys %map_of_groups) {
+        $group_items{$type}{$gname} = $self->BuildGroupItem ($map_of_groups{$gname});
     };
 }
 
@@ -944,28 +951,32 @@ sub CommitUser {
 	if ($type eq "ldap") {
 	    $userdns{$dn}	= 1;
 	}
-	if (defined $removed_uids{$type}{$uid}) {
-	    delete $removed_uids{$type}{$uid};
+	if (defined $removed_uids{$type}{$uid} && $removed_uids{$type}{$uid} > 0) {
+	    $removed_uids{$type}{$uid} = $removed_uids{$type}{$uid} -1;
+	    y2debug ("uid $uid previously defined in removed_uids{$type}");
 	}
-        $uids{$type}{$uid}		= 1;
+        $uids{$type}{$uid}		= ($uids{$type}{$uid} || 0) + 1;
         $homes{$type}{$home}		= 1;
         $usernames{$type}{$username}	= 1;
 	if (defined $removed_usernames{$type}{$username}) {
 	    delete $removed_usernames{$type}{$username};
 	}
 	if ($use_gui) {
-	    $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
-	    $focusline_user = $uid;
+	    $user_items{$type}{$username}	= $self->BuildUserItem (\%user);
+	    $focusline_user = $username;
 	}
     }
     elsif ($what eq "edit_user" || $what eq "group_change") {
         if ($uid != $org_uid) {
-            delete $uids{$org_type}{$org_uid};
-            $uids{$type}{$uid}				= 1;
-	    if (defined $removed_uids{$type}{$uid}) {
-		delete $removed_uids{$type}{$uid};
+            if ($uids{$org_type}{$org_uid} > 0) {
+		$uids{$org_type}{$org_uid}	= $uids{$org_type}{$org_uid} - 1;
 	    }
-	    $removed_uids{$org_type}{$org_uid}		= 1;
+            $uids{$type}{$uid}		= ($uids{$type}{$uid} || 0) + 1;
+	    if (($removed_uids{$type}{$uid} || 0) > 0) {
+		$removed_uids{$type}{$uid} 	= $removed_uids{$type}{$uid} - 1;
+	    }
+	    $removed_uids{$org_type}{$org_uid}	= ($removed_uids{$type}{$uid} || 0) + 1;
+	    y2debug ("uid of user $username changed from $org_uid to $uid");
 	}
         if ($home ne $org_home || $type ne $org_type) {
             delete $homes{$org_type}{$org_home};
@@ -984,11 +995,11 @@ sub CommitUser {
 	    }
         }
 	if ($use_gui) {
-	    delete $user_items{$org_type}{$org_uid};
-	    $user_items{$type}{$uid}	= $self->BuildUserItem (\%user);
+	    delete $user_items{$org_type}{$org_username};
+	    $user_items{$type}{$username}	= $self->BuildUserItem (\%user);
 
 	    if ($what ne "group_change") {
-		$focusline_user 	= $uid;
+		$focusline_user 	= $username;
 	    }
 	    if ($org_type ne $type) {
 		undef $focusline_user;
@@ -999,15 +1010,17 @@ sub CommitUser {
 	if ($type eq "ldap") {
 		delete $userdns{$org_dn};
 	}
-        delete $uids{$type}{$uid};
+        if (($uids{$type}{$uid} || 0) > 0) {
+	    $uids{$type}{$uid}	= $uids{$type}{$uid} - 1;
+	}
         delete $homes{$type}{$home};
         delete $usernames{$type}{$username};
 
-	$removed_uids{$type}{$uid}		= 1;
+	$removed_uids{$type}{$uid}		= ($removed_uids{$type}{$uid} || 0) + 1;
 	$removed_usernames{$type}{$username}	= 1;
 
 	if ($use_gui) {
-	    delete $user_items{$type}{$uid};
+	    delete $user_items{$type}{$username};
 	    undef $focusline_user;
 	}
     }
@@ -1034,40 +1047,44 @@ sub CommitGroup {
     my $org_gid		= $group{"org_gidnumber"} || $gid;
 
     if ($what eq "add_group") {
-        $gids{$type}{$gid}		= 1;
+        $gids{$type}{$gid}		= ($gids{$type}{$gid} || 0) + 1;
         $groupnames{$type}{$groupname}	= 1;
 	if ($use_gui) {
-	    $group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
-	    $focusline_group 		= $gid;
+	    $group_items{$type}{$groupname}	= $self->BuildGroupItem (\%group);
+	    $focusline_group 		= $groupname;
 	}
     }
     if ($what eq "edit_group") {
         if ($gid != $org_gid) {
-            delete $gids{$org_type}{$org_gid};
-            $gids{$type}{$gid}				= 1;
+	    if (($gids{$org_type}{$org_gid} || 0) > 0) {
+                $gids{$org_type}{$org_gid}	= $gids{$org_type}{$org_gid} - 1;
+	    }
+            $gids{$type}{$gid}			= ($gids{$type}{$gid} || 0) + 1;
         }
         if ($groupname ne $org_groupname || $type ne $org_type) {
             delete $groupnames{$org_type}{$org_groupname};
             $groupnames{$type}{$groupname}			= 1;
         }
-	$focusline_group = $gid;
+	$focusline_group = $groupname;
     }
     if ($what eq "edit_group" || $what eq "user_change" ||
         $what eq "user_change_default") {
 
 	if ($use_gui) {
-	    delete $group_items{$org_type}{$org_gid};
-	    $group_items{$type}{$gid}	= $self->BuildGroupItem (\%group);
+	    delete $group_items{$org_type}{$org_groupname};
+	    $group_items{$type}{$groupname}	= $self->BuildGroupItem (\%group);
 	}
 	if ($org_type ne $type) {
 	    undef $focusline_group;
 	}
     }
     if ($what eq "delete_group") {
-        delete $gids{$org_type}{$org_gid};
+	if (($gids{$org_type}{$org_gid} || 0) > 0) {
+            $gids{$org_type}{$org_gid}	= $gids{$org_type}{$org_gid} - 1;
+	}
         delete $groupnames{$org_type}{$org_groupname};
 	if ($use_gui) {
-	    delete $group_items{$org_type}{$org_gid};
+	    delete $group_items{$org_type}{$org_groupname};
 	    undef $focusline_group;
 	}
     }
@@ -1121,7 +1138,7 @@ sub BuildUserLists {
     $usernames{$type}	= {};
 
     foreach my $uid (keys %map_of_users) {
-        $uids{$type}{$uid}	= 1;
+        $uids{$type}{$uid}	= ($uids{$type}{$uid} || 0) + 1;
 	my $username		= $map_of_users{$uid}{"uid"};
 	if (defined ($username)) {
 	    $usernames{$type}{$username}	= 1;
@@ -1149,7 +1166,7 @@ sub BuildGroupLists {
     $groupnames{$type}	= {};
 
     foreach my $gid (keys %map_of_groups) {
-        $gids{$type}{$gid}	= 1;
+        $gids{$type}{$gid}	= ($gids{$type}{$gid} || 0) + 1;
 	my $groupname		= $map_of_groups{$gid}{"cn"};
 	if (defined ($groupname)) {
 	    $groupnames{$type}{$groupname}	= 1;

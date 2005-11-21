@@ -507,15 +507,15 @@ group memberships can be changed.")) : `VSpacing (0),
                 `HSpacing(2),
 		`VBox(
 		    `VSpacing (0.5),
-		    `Top(`MultiSelectionBox( `id(`grouplist),
+		    `MultiSelectionBox( `id(`grouplist),
 			// selection box label
-			_("Gr&oups"), additional_groups)),
+			_("Gr&oups"), additional_groups),
 		    (user_type == "ldap")
 		    ? `MultiSelectionBox( `id(`ldapgrouplist),
 			// selection box label
 			_("&LDAP Groups"), additional_ldap_groups)
 		    : `Empty()
-		    ),
+		),
 		`HSpacing (1)
 	    ),
             `VSpacing(0.5)
@@ -1544,7 +1544,6 @@ define symbol EditGroupDialog (string what) {
     {
 	userlist		= group[member_attribute]:$[];
     }
-y2internal ("userlist: %1", userlist);
 
     boolean more = size (more_users) > 0;
 
