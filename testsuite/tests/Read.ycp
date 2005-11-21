@@ -28,12 +28,16 @@
 	"passwd": $[
 	    "local": $[
 		"users": $[
-		    500: $[
+		    "hh": $[
 			"uid"		: "hh",
 			"uidnumber"	: 500
 		    ],
-		    "by_name": $[
-			"hh":	500,
+		    "hh2": $[
+			"uid"		: "hh2",
+			"uidnumber"	: 500
+		    ],
+		    "by_uidnumber": $[
+			500		: $["hh":1, "hh2" : 1],
 		    ],
 		    "last_uid": 500,
 		    "homes":	$[
@@ -41,19 +45,20 @@
 		    ],
 		    "usernames": $[
 			"hh":		1,
+			"hh2":		1,
 		    ],
 		    "uids": $[
-			500:		1,
+			500:		2,
 		    ]
 		],
 		"shadow": $[
 		],
 		"groups": $[
-		    100: $[
+		    "users": $[
 			"cn":	"users",
 		    ],
-		    "by_name": $[
-			"users":	100,
+		    "by_gidnumber": $[
+			100		: $["users":1],
 		    ],
 		    "gids": $[
 			100:		1,
@@ -65,7 +70,7 @@
 	    ],
 	    "system": $[
 		"users": $[
-		    "by_name": $[
+		    "by_uidnumber": $[
 		    ],
 		    "last_uid": 0,
 		    "homes":	$[],
@@ -75,7 +80,7 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    "by_name": $[
+		    "by_gidnumber": $[
 		    ],
 		    "gids": $[ ],
 		    "groupnames": $[ ]
