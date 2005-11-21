@@ -28,7 +28,7 @@
 	"passwd": $[
 	    "local": $[
 		"users": $[
-		    500: $[
+		    "hh": $[
 			"uid"	: "hh",
 			"gecos"	: "HaHa",
 			"gidnumber"	: 100,
@@ -36,8 +36,8 @@
 			"grouplist"	: $[ "grp"	: 1],
 			"type"		: "local"
 		    ],
-		    "by_name": $[
-			"hh":	500,
+		    "by_uidnumber": $[
+			500		: $[ "hh" : 1 ],
 		    ],
 		    "last_uid": 500,
 		    "homes":	$[
@@ -55,20 +55,20 @@
 		    ]
 		],
 		"groups": $[
-		    100: $[
+		    "users": $[
 			"cn"	:	"users",
 			"gidNumber":	100,
 			"type"	:	"local"
 		    ],
-		    500: $[
+		    "grp": $[
 			"cn"	:	"grp",
 			"gidNumber":	500,
 			"type"	:	"local",
 			"userlist"	: $[ "hh" : 1 ],
 		    ],
-		    "by_name": $[
-			"users"	:	100,
-			"grp"	:	500,
+		    "by_gidnumber": $[
+			100		: $["users":1],
+			500		: $[ "grp" :1],
 		    ],
 		    "gids": $[
 			100:		1,
@@ -82,7 +82,7 @@
 	    ],
 	    "system": $[
 		"users": $[
-		    "by_name": $[
+		    "by_uidnumber": $[
 		    ],
 		    "last_uid": 0,
 		    "homes":	$[],
@@ -92,13 +92,13 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    0: $[
+		    "root": $[
 			"cn":	"root",
 			"gidNumber":	0,
 			"type"	:	"system"
 		    ],
-		    "by_name": $[
-			"root"	: 0
+		    "by_gidnumber": $[
+			0		: $[ "root" : 1 ],
 		    ],
 		    "gids": $[
 			0	: 1

@@ -13,21 +13,21 @@
 	"passwd": $[
 	    "local": $[
 		"users": $[
-		    500: $[
+		    "hh": $[
 			"uid"		: "hh",
 			"gecos"		: "HaHa",
 			"gidnumber"	: 100,
 			"uidnumber"	: 500
 		    ],
-		    600: $[
+		    "ii": $[
 			"uid"		: "ii",
 			"gecos"		: "Ia",
 			"gidnumber"	: 100,
 			"uidnumber"	: 600
 		    ],
-		    "by_name": $[
-			"hh":	500,
-			"ii":	600
+		    "by_uidnumber": $[
+			500		: $[ "hh" : 1 ],
+			600		: $[ "ii" : 1 ],
 		    ],
 		    "last_uid": 600,
 		    "homes":	$[
@@ -45,14 +45,16 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    100: $[
+		    "users": $[
 			"cn"	:	"users",
 			"gidNumber":	100,
 			"type"	:	"local",
 			"userlist"	: $[ "ii" : 1 ],
 		    ],
+		    "by_gidnumber": $[
+			100		: $[ "users" : 1 ],
+		    ],
 		    "by_name": $[
-			"users":	100,
 		    ],
 		    "gids": $[
 			100:		1,
@@ -64,7 +66,7 @@
 	    ],
 	    "system": $[
 		"users": $[
-		    "by_name": $[
+		    "by_uidnumber": $[
 		    ],
 		    "last_uid": 0,
 		    "homes":	$[],
@@ -74,13 +76,13 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    0: $[
+		    "root": $[
 			"cn":	"root",
 			"gidNumber":	0,
 			"type"	:	"system"
 		    ],
-		    "by_name": $[
-			"root"	: 0
+		    "by_gidnumber": $[
+			0		: $[ "root" : 1]
 		    ],
 		    "gids": $[
 			0	: 1

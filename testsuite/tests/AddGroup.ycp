@@ -39,15 +39,15 @@
 	"passwd": $[
 	    "local": $[
 		"users": $[
-		    500: $[
+		    "hh" : $[
 			"uid"		: "hh",
 			"gecos"		: "HaHa",
 			"gidnumber"	: 100,
 			"uidnumber"	: 500,
 			"type"		: "local"
 		    ],
-		    "by_name": $[
-			"hh":	500,
+		    "by_uidnumber": $[
+			500		: $["hh" : 1],
 		    ],
 		    "last_uid": 500,
 		    "homes":	$[
@@ -63,25 +63,25 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    100: $[
-			"cn"	:	"users",
-			"gidNumber":	100,
-			"type"	:	"local"
+		    "users" : $[
+			"cn"		: "users",
+			"gidNumber"	: 100,
+			"type"		: "local"
 		    ],
-		    "by_name": $[
-			"users":	100,
+		    "by_gidnumber": $[
+			100		: $[ "users": 1 ],
 		    ],
 		    "gids": $[
-			100:		1,
+			100		: 1,
 		    ],
 		    "groupnames": $[
-			"users":	1,
+			"users"		: 1,
 		    ]
 		],
 	    ],
 	    "system": $[
 		"users": $[
-		    "by_name": $[
+		    "by_uidnumber": $[
 		    ],
 		    "last_uid": 0,
 		    "homes":	$[],
@@ -91,13 +91,13 @@
 		"shadow": $[
 		],
 		"groups": $[
-		    0: $[
-			"cn":	"root",
-			"gidNumber":	0,
-			"type"	:	"system"
+		    "root"	: $[
+			"cn"		: "root",
+			"gidNumber"	: 0,
+			"type"		: "system"
 		    ],
-		    "by_name": $[
-			"root"	: 0
+		    "by_gidnumber"	: $[
+			0		: $["root" : 1]
 		    ],
 		    "gids": $[
 			0	: 1
@@ -195,10 +195,13 @@
 
     DUMP ( sformat ("local group names:\n %1", UsersCache::GetGroupnames ("local")));
 
-    DUMP ("================= gid conflict ===========================");
+    DUMP ("================= gid conflict (not fatal any more) ======");
+
+    EXEC ["target", "bash_output", "stdout"] = "new";
 
     TEST (``(Users::AddGroup ($[])), [READ, WRITE, EXEC], 0);
-    TEST (``(Users::AddGroup ($[ "cn" : "new", "gidnumber": 0])), [], 0);
+    TEST (``(Users::AddGroup ($[ "cn" : "new", "gidnumber": 0, "type": "system"])),
+	[READ, WRITE, EXEC], 0);
 
     DUMP (sformat ("---- current group after add:\n %1", Users::GetCurrentGroup ()));
 
@@ -207,6 +210,8 @@
     DUMP (sformat ("---- check group after add:\n %1", error));
 
     DUMP ("================= name conflict ==========================");
+
+    EXEC ["target", "bash_output", "stdout"] = "testgrp";
 
     TEST (``(Users::AddGroup ($[])), [READ, WRITE, EXEC], 0);
     TEST (``(Users::AddGroup ($[ "cn" : "testgrp"])), [], 0);
