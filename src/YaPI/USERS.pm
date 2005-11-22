@@ -808,7 +808,7 @@ sub UserFeatureDelete {
 	return __("No plug-in was defined");
     }
 
-    # Most is just copied from UserModify FIXME use common function...
+    # Most is just copied from UserModify
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -2101,7 +2101,7 @@ sub GroupsGet {
 C<$groups_hash GroupsGetByUser ($config_hash, $user_hash);>
 
 Returns a hash describing the set of groups. By default, the hash is indexed
-by GID number, unless statet otherwise in $config_hash.
+by GID number, unless stated differently in $config_hash.
 
 EXAMPLE:
 
@@ -2139,7 +2139,7 @@ sub GroupsGetByUser {
 	return {};
     }
     
-    my $type	= $config->{"type"} || "local";
+    my $type	= $config->{"type"} || "";# no type = search local&system groups
 
     Users->SetReadLocal ($type ne "ldap");
     if (Users->Read ()) { return $ret; }
