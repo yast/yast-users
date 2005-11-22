@@ -1008,16 +1008,14 @@ sub GetGroupByName {
 
     my $self		= shift;
     my $groupname	= $_[0];
-    my $type		= $_[1];
+    my $group_type	= $_[1];
 
-    # NOTE: different behaviour than GetUserByName:
-    # Given user type is checked for first, but the other follow.
-    # The only reason for "type" argument is to get the (probably) right
-    # group as first (e.g. there are 2 'users' groups - local and ldap).
-    my @types_to_look	= keys %groups;
-    if ($type ne "") {
-	unshift @types_to_look, $type;
+    my @types_to_look	= ($group_type);
+    if ($group_type eq "") {
+	@types_to_look = keys %groups;
+	unshift @types_to_look, UsersCache->GetGroupType ();
     }
+
     foreach my $type (@types_to_look) {
 	if (defined $groups{$type}{$groupname}) {
 	    return $groups{$type}{$groupname};
@@ -1273,9 +1271,9 @@ sub ReadLDAPSet {
     }
     # read the LDAP data (users, groups, items)
     $users{$type}		= \%{SCR->Read (".ldap.users")};
-#    $users_by_uidnumber{$type}	= \%{SCR->Read (".ldap.users.by_uidnumber")}; FIXME LDAP
+    $users_by_uidnumber{$type}	= \%{SCR->Read (".ldap.users.by_uidnumber")};
     $groups{$type}		= \%{SCR->Read (".ldap.groups")};
-#    $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
+    $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
     # read the necessary part of LDAP user configuration
     $min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
     $max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
@@ -1710,7 +1708,7 @@ BEGIN { $TYPEINFO{SelectGroupByName} = [ "function",
 sub SelectGroupByName {
 
     my $self		= shift;
-    %group_in_work	= %{$self->GetGroupByName($_[0], "local")};
+    %group_in_work	= %{$self->GetGroupByName($_[0], "")};
 }
 
 ##------------------------------------

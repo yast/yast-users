@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 16 17:35:11 CET 2005 - jsuchome@suse.cz
+
+- allow non-unique UID's for users and GID's for groups (feature #300162)
+- 2.13.6 
+
+-------------------------------------------------------------------
 Thu Oct 27 14:49:49 CEST 2005 - jsuchome@suse.cz
 
 - user plugins: fixed call of Summary function (#130707),

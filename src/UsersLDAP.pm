@@ -356,7 +356,6 @@ exists on the LDAP server. Create it now?"), $dn)))
 	my $base_map	= Ldap->GetLDAPEntry ($group_base);
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
 	    my $dn	= $group_base;
-#TODO what in the cases there is something different from organizationalunit?
 	    $group_base 	= Ldap->GetDomain();
 	    if (!$use_gui || Stage->cont() ||
 		# popup question, %s is string argument
@@ -1227,17 +1226,20 @@ sub WriteUsers {
     # if ldap home directiories are on this machine
     my $server		= Ldap->file_server ();
 
-    foreach my $uid (keys %{$users}) {
+    foreach my $username (keys %{$users}) {
 
-	my $user		= $users->{$uid};
+	my $user		= $users->{$username};
 
         my $action      = $user->{"modified"};
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
+	my $uid		= $user->{"gidnumber"};
+	if (! defined $uid) { $uid	= GetDefaultUID (); }
         my $home	= $user->{"homedirectory"} || "";
         my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
-        my $gid		= $user->{"gidnumber"} || GetDefaultGID ();
+        my $gid		= $user->{"gidnumber"};
+	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my $create_home	= bool ($user->{"create_home"});
 	my $delete_home	= bool ($user->{"delete_home"});
 	my $enabled	= bool ($user->{"enabled"});
@@ -1458,14 +1460,16 @@ sub WriteGroups {
     my $last_id 	= $last_gid;
     my $groups		= $_[0];
 
-    foreach my $gid (keys %{$groups}) {
+    foreach my $groupname (keys %{$groups}) {
 
-	my $group		= $groups->{$gid};
+	my $group		= $groups->{$groupname};
 
         my $action      = $group->{"modified"};
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
+	my $gid		= $group->{"gidnumber"};
+	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my %new_group	= ();
 	my $dn		= $group->{"dn"}	|| "";
 	my $org_dn	= $group->{"org_dn"} 	|| $dn;
