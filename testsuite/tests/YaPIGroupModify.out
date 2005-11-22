@@ -13,16 +13,16 @@ Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
-Read	.passwd.local.users $[500:$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
-Read	.passwd.local.users.by_name $["hh":500]
+Read	.passwd.local.users $["by_uidnumber":$[500:$["hh":1]], "hh":$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
+Read	.passwd.local.users.by_uidnumber $[500:$["hh":1]]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
-Read	.passwd.local.groups.by_name $["users":100]
-Read	.passwd.system.users $[0:$["type":"system", "uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
-Read	.passwd.system.users.by_name $["root":0]
+Read	.passwd.local.groups $["by_gidnumber":$[100:$["users":1]], "gids":$[100:1], "groupnames":$["users":1], "users":$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"]]
+Read	.passwd.local.groups.by_gidnumber $[100:$["users":1]]
+Read	.passwd.system.users $["by_uidnumber":$[0:$["root":1]], "homes":$[], "last_uid":0, "root":$["type":"system", "uid":"root", "uidnumber":0], "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_uidnumber $[0:$["root":1]]
 Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], 17:$["cn":"audio", "gidnumber":17, "type":"system"], "by_name":$["audio":17, "root":0], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1]]
-Read	.passwd.system.groups.by_name $["audio":17, "root":0]
+Read	.passwd.system.groups $["audio":$["cn":"audio", "gidnumber":17, "type":"system"], "by_gidnumber":$[0:$["root":1], 17:$["audio":1]], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1], "root":$["cn":"root", "gidnumber":0, "type":"system"]]
+Read	.passwd.system.groups.by_gidnumber $[0:$["root":1], 17:$["audio":1]]
 Read	.passwd.passwd.pluslines 0
 Read	.passwd.shadow.pluslines 0
 Read	.passwd.group.pluslines 0
@@ -54,16 +54,16 @@ Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
-Read	.passwd.local.users $[500:$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
-Read	.passwd.local.users.by_name $["hh":500]
+Read	.passwd.local.users $["by_uidnumber":$[500:$["hh":1]], "hh":$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
+Read	.passwd.local.users.by_uidnumber $[500:$["hh":1]]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
-Read	.passwd.local.groups.by_name $["users":100]
-Read	.passwd.system.users $[0:$["type":"system", "uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
-Read	.passwd.system.users.by_name $["root":0]
+Read	.passwd.local.groups $["by_gidnumber":$[100:$["users":1]], "gids":$[100:1], "groupnames":$["users":1], "users":$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"]]
+Read	.passwd.local.groups.by_gidnumber $[100:$["users":1]]
+Read	.passwd.system.users $["by_uidnumber":$[0:$["root":1]], "homes":$[], "last_uid":0, "root":$["type":"system", "uid":"root", "uidnumber":0], "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_uidnumber $[0:$["root":1]]
 Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], 17:$["cn":"audio", "gidnumber":17, "type":"system"], "by_name":$["audio":17, "root":0], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1]]
-Read	.passwd.system.groups.by_name $["audio":17, "root":0]
+Read	.passwd.system.groups $["audio":$["cn":"audio", "gidnumber":17, "type":"system"], "by_gidnumber":$[0:$["root":1], 17:$["audio":1]], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1], "root":$["cn":"root", "gidnumber":0, "type":"system"]]
+Read	.passwd.system.groups.by_gidnumber $[0:$["root":1], 17:$["audio":1]]
 Read	.passwd.passwd.pluslines 0
 Read	.passwd.shadow.pluslines 0
 Read	.passwd.group.pluslines 0
@@ -81,7 +81,7 @@ Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
 Execute	.target.bash_output "echo 'ggg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
-Write	.passwd.groups $["local":$["100":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"], "by_name":$["users":"100"], "gids":$["100":"1"], "groupnames":$["users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "17":$["cn":"ggg", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"ggg", "org_gidnumber":"17", "org_group":$["cn":"audio", "gidnumber":"17", "type":"system"], "plugins":[], "removed_userlist":$[], "type":"system", "what":"edit_group"], "by_name":$["audio":"17", "root":"0"], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"]]] true
+Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"]], "system":$["by_gidnumber":$["0":$["root":"1"], "17":$["audio":"1"]], "ggg":$["cn":"ggg", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"ggg", "org_gidnumber":"17", "org_group":$["cn":"audio", "gidnumber":"17", "type":"system"], "plugins":[], "removed_userlist":$[], "type":"system", "what":"edit_group"], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
@@ -100,16 +100,16 @@ Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
-Read	.passwd.local.users $[500:$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
-Read	.passwd.local.users.by_name $["hh":500]
+Read	.passwd.local.users $["by_uidnumber":$[500:$["hh":1]], "hh":$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
+Read	.passwd.local.users.by_uidnumber $[500:$["hh":1]]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
-Read	.passwd.local.groups.by_name $["users":100]
-Read	.passwd.system.users $[0:$["type":"system", "uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
-Read	.passwd.system.users.by_name $["root":0]
+Read	.passwd.local.groups $["by_gidnumber":$[100:$["users":1]], "gids":$[100:1], "groupnames":$["users":1], "users":$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"]]
+Read	.passwd.local.groups.by_gidnumber $[100:$["users":1]]
+Read	.passwd.system.users $["by_uidnumber":$[0:$["root":1]], "homes":$[], "last_uid":0, "root":$["type":"system", "uid":"root", "uidnumber":0], "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_uidnumber $[0:$["root":1]]
 Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], 17:$["cn":"audio", "gidnumber":17, "type":"system"], "by_name":$["audio":17, "root":0], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1]]
-Read	.passwd.system.groups.by_name $["audio":17, "root":0]
+Read	.passwd.system.groups $["audio":$["cn":"audio", "gidnumber":17, "type":"system"], "by_gidnumber":$[0:$["root":1], 17:$["audio":1]], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1], "root":$["cn":"root", "gidnumber":0, "type":"system"]]
+Read	.passwd.system.groups.by_gidnumber $[0:$["root":1], 17:$["audio":1]]
 Read	.passwd.passwd.pluslines 0
 Read	.passwd.shadow.pluslines 0
 Read	.passwd.group.pluslines 0
@@ -127,9 +127,9 @@ Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
 Execute	.target.bash_output "echo 'users' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"users"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
-Write	.passwd.groups $["local":$["777":$["cn":"users", "gidnumber":"777", "modified":"edited", "more_users":$["hh":"1"], "org_cn":"users", "org_gidnumber":"777", "org_group":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"], "plugins":[], "removed_userlist":$[], "type":"local", "what":"edit_group"], "by_name":$["users":"100"], "gids":$["100":"1"], "groupnames":$["users":"1"]], "system":$["0":$["cn":"root", "gidnumber":"0", "type":"system"], "17":$["cn":"audio", "gidnumber":"17", "type":"system"], "by_name":$["audio":"17", "root":"0"], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"]]] true
+Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"777", "modified":"edited", "more_users":$["hh":"1"], "org_cn":"users", "org_gidnumber":"777", "org_group":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"], "plugins":[], "removed_userlist":$[], "type":"local", "what":"edit_group"]], "system":$["audio":$["cn":"audio", "gidnumber":"17", "type":"system"], "by_gidnumber":$["0":$["root":"1"], "17":$["audio":"1"]], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
-Write	.passwd.users $["local":$["500":$["gidnumber":"777", "groupname":"users", "modified":"edited", "org_uid":"hh", "org_uidnumber":"500", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x", "what":"group_change_default"], "by_name":$["hh":"500"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["0":$["type":"system", "uid":"root", "uidnumber":"0"], "by_name":$["root":"0"], "homes":$[], "last_uid":"0", "uids":$["0":"1"], "usernames":$["root":"1"]]] true
+Write	.passwd.users $["local":$["by_uidnumber":$["500":$["hh":"1"]], "hh":$["gidnumber":"777", "groupname":"users", "modified":"edited", "org_uid":"hh", "org_uidnumber":"500", "sn":"HH", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"x", "what":"group_change_default"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["by_uidnumber":$["0":$["root":"1"]], "homes":$[], "last_uid":"0", "root":$["type":"system", "uid":"root", "uidnumber":"0"], "uids":$["0":"1"], "usernames":$["root":"1"]]] true
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
 Write	.passwd.shadow $["local":$[], "system":$[]] true
 Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
@@ -151,16 +151,16 @@ Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
-Read	.passwd.local.users $[500:$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "by_name":$["hh":500], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
-Read	.passwd.local.users.by_name $["hh":500]
+Read	.passwd.local.users $["by_uidnumber":$[500:$["hh":1]], "hh":$["gidnumber":100, "sn":"HH", "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"x"], "homes":$["/home/hh":1], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
+Read	.passwd.local.users.by_uidnumber $[500:$["hh":1]]
 Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $[100:$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"], "by_name":$["users":100], "gids":$[100:1], "groupnames":$["users":1]]
-Read	.passwd.local.groups.by_name $["users":100]
-Read	.passwd.system.users $[0:$["type":"system", "uid":"root", "uidnumber":0], "by_name":$["root":0], "homes":$[], "last_uid":0, "uids":$[0:1], "usernames":$["root":1]]
-Read	.passwd.system.users.by_name $["root":0]
+Read	.passwd.local.groups $["by_gidnumber":$[100:$["users":1]], "gids":$[100:1], "groupnames":$["users":1], "users":$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"]]
+Read	.passwd.local.groups.by_gidnumber $[100:$["users":1]]
+Read	.passwd.system.users $["by_uidnumber":$[0:$["root":1]], "homes":$[], "last_uid":0, "root":$["type":"system", "uid":"root", "uidnumber":0], "uids":$[0:1], "usernames":$["root":1]]
+Read	.passwd.system.users.by_uidnumber $[0:$["root":1]]
 Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $[0:$["cn":"root", "gidnumber":0, "type":"system"], 17:$["cn":"audio", "gidnumber":17, "type":"system"], "by_name":$["audio":17, "root":0], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1]]
-Read	.passwd.system.groups.by_name $["audio":17, "root":0]
+Read	.passwd.system.groups $["audio":$["cn":"audio", "gidnumber":17, "type":"system"], "by_gidnumber":$[0:$["root":1], 17:$["audio":1]], "gids":$[0:1, 17:1], "groupnames":$["audio":1, "root":1], "root":$["cn":"root", "gidnumber":0, "type":"system"]]
+Read	.passwd.system.groups.by_gidnumber $[0:$["root":1], 17:$["audio":1]]
 Read	.passwd.passwd.pluslines 0
 Read	.passwd.shadow.pluslines 0
 Read	.passwd.group.pluslines 0
@@ -176,5 +176,5 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
-Return	The group ID entered is already in use.
+Return	The selected group ID is not allowed.
 Dump	============ edit done ========================================
