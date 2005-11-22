@@ -16,8 +16,8 @@ my %groupnames		= ();
 
 my %users_groups	= ();
 
-my %users_by_name	= ();
-my %groups_by_name	= ();
+my %users_by_uidnumber	= ();
+my %groups_by_gidnumber	= ();
 
 my $user_type 		= "nis";
 my $group_type 		= "nis";
@@ -39,8 +39,8 @@ sub read_group () {
 	    
             # check for duplicates...
 	    if (defined $gids{$group_type}{$gid}) {
-		y2error ("duplicated gid in group list! Exiting...");
-		return 5;
+		y2warning ("duplicated gid ($gid) in group list");
+		$gids{$group_type}{$gid} = $gids{$group_type}{$gid} + 1;
 	    }
 	    else {
 	        $gids{$group_type}{$gid} = 1;
@@ -60,14 +60,17 @@ sub read_group () {
 		$userlist{$u}			= 1;
 		$users_groups{$u}{$groupname}	= 1;
 	    }
-	    $groups{$group_type}{$gid} = {
+	    $groups{$group_type}{$groupname} = {
 		"cn"		=> $groupname,
 		"gidnumber" 	=> $gid,
 		"userlist"	=> \%userlist,
 		"type"		=> $group_type,
 		"more_users"	=> {}
 	    };
-	    $groups_by_name{$group_type}{$groupname} = $gid;
+	    if (!defined $groups_by_gidnumber{$group_type}{$gid}) {
+		$groups_by_gidnumber{$group_type}{$gid} = {};
+	    }
+	    $groups_by_gidnumber{$group_type}{$gid}{$groupname}	= 1;
 	}
     }
     return 0;
@@ -124,8 +127,8 @@ sub read_passwd () {
 
             # check for duplicates in /etc/passwd:
 	    if (defined $uids{$user_type}{$uid}) {
-		y2error ("duplicated UID in passwd set! Exiting...");
-		return 1;
+		y2warning ("duplicated UID ($uid) in passwd set");
+		$uids{$user_type}{$uid} = $uids{$user_type}{$uid} + 1;
 	    }
             else {
 	        $uids{$user_type}{$uid} = 1;
@@ -145,7 +148,7 @@ sub read_passwd () {
 	    my @grouplist	= keys (%grouplist);
 
 	    # such map we would like to export from the read script...
-	    $users{$user_type}{$uid} = {
+	    $users{$user_type}{$username} = {
 		"cn"		=> $full,
 		"homedirectory"	=> $home,
 		"uid"		=> $username,
@@ -157,7 +160,10 @@ sub read_passwd () {
 		"userpassword"	=> "x",
 		"type"		=> $user_type
 	    };
-	    $users_by_name{$user_type}{$username} = $uid;
+	    if (!defined $users_by_uidnumber{$user_type}{$uid}) {
+		$users_by_uidnumber{$user_type}{$uid} = {};
+	    }
+	    $users_by_uidnumber{$user_type}{$uid}{$username}	= 1;
 	}
     }
     return 0;
@@ -218,7 +224,11 @@ while ( <STDIN> )
 	    ycp::Return (\%{$groups{"nis"}});
 	}
 	elsif ( $path eq '.users.by_name' ) {
-	    ycp::Return (\%{$users_by_name{"nis"}});
+	    y2warning ("$command $path is deprecated");
+	    ycp::Return ({});
+	}
+	elsif ( $path eq '.users.by_uidnumber' ) {
+	    ycp::Return (\%{$users_by_uidnumber{"nis"}});
 	}
 	elsif ( $path eq '.users.uids' ) {
 	    ycp::Return (\%{$uids{"nis"}});
@@ -230,7 +240,11 @@ while ( <STDIN> )
 	    ycp::Return (\%{$homes{"nis"}});
 	}
 	elsif ( $path eq '.groups.by_name' ) {
-	    ycp::Return (\%{$groups_by_name{"nis"}});
+	    y2warning ("$command $path is deprecated");
+	    ycp::Return ({});
+	}
+	elsif ( $path eq '.groups.by_gidnumber' ) {
+	    ycp::Return (\%{$groups_by_gidnumber{"nis"}});
 	}
 	elsif ( $path eq '.groups.gids' ) {
 	    ycp::Return (\%{$gids{"nis"}});
