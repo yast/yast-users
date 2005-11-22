@@ -10,83 +10,83 @@ This package is the public YaST2 API for Users/Groups management
 
 use YaPI::USERS
 
-$error = UserAdd ($config_hash, $data_hash);
+$error = UserAdd ($config_hash, $data_hash)
 
     Creates new user, described in $data_hash.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserModify ($config_hash, $data_hash);
+$error = UserModify ($config_hash, $data_hash)
 
     Modifies the data of given user.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserFeatureAdd ($config_hash);
+$error = UserFeatureAdd ($config_hash)
 
     Adds a new feature (plugin) to the given user.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserFeatureDelete ($config_hash);
+$error = UserFeatureDelete ($config_hash)
 
     Removes a feature (plugin) from the given user.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserDelete ($config_hash);
+$error = UserDelete ($config_hash)
 
     Deletes an existing user.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserDisable ($config_hash);
+$error = UserDisable ($config_hash)
 
     Disable user to log in.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = UserEnable ($config_hash);
+$error = UserEnable ($config_hash)
 
     Enable disabled user to log in again.
     Returns an error message if operation failed or empty string otherwise.
 
-$data_hash = UserGet ($config_hash);
+$data_hash = UserGet ($config_hash)
 
     Returns data hash decribing user.
 
-$users_hash = UsersGet ($config_hash);
+$users_hash = UsersGet ($config_hash)
 
     Returns hash of users. The resulting set is defined in $config hash.
 
-$error = GroupAdd ($config_hash, $data_hash);
+$error = GroupAdd ($config_hash, $data_hash)
 
     Creates new group, described in $data_hash.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = GroupModify ($config_hash, $data_hash);
+$error = GroupModify ($config_hash, $data_hash)
 
     Modifies the data of given group.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = GroupMemberAdd ($config_hash, $user_hash);
+$error = GroupMemberAdd ($config_hash, $user_hash)
 
     Adds a new member (user) to the given group.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = GroupMemberDelete ($config_hash, $user_hash);
+$error = GroupMemberDelete ($config_hash, $user_hash)
 
     Removes a member from the given group.
     Returns an error message if operation failed or empty string otherwise.
 
-$error = GroupDelete ($config_hash);
+$error = GroupDelete ($config_hash)
 
     Deletes an existing group.
     Returns an error message if operation failed or empty string otherwise.
 
-$data_hash = GroupGet ($config_hash);
+$data_hash = GroupGet ($config_hash)
 
     Returns data hash decribing group.
 
-$groups_hash = GroupsGet ($config_hash);
+$groups_hash = GroupsGet ($config_hash)
 
     Returns hash of groups. The resulting set is defined in $config hash.
 
-$groups_hash = GroupsGetByUser ($config_hash, $user_hash);
+$groups_hash = GroupsGetByUser ($config_hash, $user_hash)
 
     Returns hash of groups given user is member of.
     The resulting set is defined in $config hash.
@@ -117,116 +117,6 @@ our $VERSION		= '1.0.0';
 our @CAPABILITIES 	= ('SLES9');
 our %TYPEINFO;
 
-# -------------------------------------
-
-# internal function
-sub InitializeConfiguration {
-
-    my $config = $_[0];
-
-    if (defined $config->{"bind_dn"}) {
-	Ldap->bind_dn ($config->{"bind_dn"});
-    }
-    else {
-	Ldap->bind_dn ("");
-    }
-
-    if (defined $config->{"bind_pw"}) {
-	Ldap->SetBindPassword ($config->{"bind_pw"});
-    }
-    else {
-	Ldap->SetBindPassword (undef);
-    }
-
-    if (defined $config->{"anonymous_bind"}) {
-	Ldap->SetAnonymous ($config->{"anonymous_bind"});
-    }
-    else {
-	Ldap->SetAnonymous (0);
-    }
-
-    # this could replace the settings read from Ldap::member_attribute
-    if (defined $config->{"member_attribute"}) {
-	Ldap->member_attribute ($config->{"member_attribute"});
-    }
-
-    if (defined $config->{"user_attributes"} &&
-	ref ($config->{"user_attributes"}) eq "ARRAY") {
-	UsersLDAP->SetUserAttributes ($config->{"user_attributes"});
-    }
-    else {
-	UsersLDAP->SetUserAttributes ([]);
-    }
-
-    if (defined $config->{"user_filter"}) {
-	UsersLDAP->SetCurrentUserFilter ($config->{"user_filter"});
-    }
-    else {
-	UsersLDAP->SetCurrentUserFilter (UsersLDAP->GetDefaultUserFilter ());
-    }
-
-    # this could replace the settings saved in LDAP config ("susedefaultbase")
-    if (defined $config->{"user_base"}) {
-	UsersLDAP->SetUserBase ($config->{"user_base"});
-    }
-
-    if (defined $config->{"user_scope"}) {
-	UsersLDAP->SetUserScope ($config->{"user_scope"});
-    }
-    else {
-	UsersLDAP->SetUserScope (2);
-    }
-    
-    if (defined $config->{"group_attributes"} &&
-	ref ($config->{"group_attributes"}) eq "ARRAY") {
-	UsersLDAP->SetGroupAttributes ($config->{"group_attributes"});
-    }
-    else {
-	UsersLDAP->SetGroupAttributes ([]);
-    }
-
-    if (defined $config->{"group_base"}) {
-	UsersLDAP->SetGroupBase ($config->{"group_base"});
-    }
-
-    if (defined $config->{"group_filter"}) {
-	UsersLDAP->SetCurrentGroupFilter ($config->{"group_filter"});
-    }
-    else {
-	UsersLDAP->SetCurrentGroupFilter (UsersLDAP->GetDefaultGroupFilter ());
-    }
-
-	
-    if (defined $config->{"group_scope"}) {
-	UsersLDAP->SetGroupScope ($config->{"group_scope"});
-    }
-    else {
-	UsersLDAP->SetGroupScope (2);
-    }
-
-    if (defined $config->{"plugins"} && ref ($config->{"plugins"}) eq "ARRAY") {
-	UsersLDAP->SetUserPlugins ($config->{"plugins"});
-    }
-    else {
-	UsersLDAP->SetUserPlugins (["UsersPluginLDAPAll"]);
-    }
-
-    if (defined $config->{"user_plugins"} &&
-	ref ($config->{"user_plugins"}) eq "ARRAY") {
-	UsersLDAP->SetUserPlugins ($config->{"user_plugins"});
-    }
-    elsif (!defined $config->{"plugins"}) {
-	UsersLDAP->SetUserPlugins (["UsersPluginLDAPAll"]);
-    }
-
-    if (defined $config->{"group_plugins"} &&
-	ref ($config->{"group_plugins"}) eq "ARRAY") {
-	UsersLDAP->SetGroupPlugins ($config->{"group_plugins"});
-    }
-    else {
-	UsersLDAP->SetGroupPlugins (["UsersPluginLDAPAll"]);
-    }
-}
 
 # -------------------------------------
 sub InitializeLdapConfiguration {
@@ -255,8 +145,6 @@ sub InitializeLdapConfiguration {
     if (defined $config->{"member_attribute"}) {
 	Ldap->member_attribute ($config->{"member_attribute"});
     }
-
-# FIXME config_dn etc.
 }
 
 # -------------------------------------
@@ -387,12 +275,104 @@ sub SetNecessaryGroupAttributes {
 }
 
 =item *
-C<$error UserAdd ($config_hash, $data_hash);>
+C<$error = UserAdd ($config_hash, $data_hash)>
 
 Creates new user. User attributes are described in $data_hash,
 $config_hash describes special configuration data.
 
 Returns an error message if operation failed or empty string otherwise.
+
+
+PARAMETERS:
+
+    Possible parameters for $config hash:
+
+    "type"	Type of user (string). Possible values:
+		"local","system","ldap","nis". ("nis" is not available
+		for adding)
+
+
+    Specific parameters of $config hash, related to LDAP users (all keys
+    are optional, there should exist reasonable default values based on
+    current LDAP configuration):
+
+    "bind_dn"	
+		DN of LDAP administrator, used to bind to LDAP server
+		(string)
+		
+    "bind_pw"	
+		Password for LDAP administrator (string)
+		
+    "anonymous_bind"
+    
+		If this key is present, there will be done created an
+		anonymous connection to LDAP server (if it is allowed).
+		
+    "member_attribute"
+		Name of LDAP attribute, defining the membership in LDAP
+		groups (possible values: "member", "uniquemember"). The
+		default value is in /etc/ldap.conf (nss_map_attribute).
+
+    "user_attributes"
+		List of attributes to be returned by an LDAP search for
+		user (list of strings). If empty, all non-empty
+		attributes will be returned as a result of search.
+
+    "user_filter"
+		Filter for restricting LDAP searches (string).
+		The default value is stored as "susesearchfilter" in 
+		LDAP configuration.
+
+    "user_base"
+		DN of LDAP base where the users are stored (string). By
+		default, the value of "susedefaultbase" stored in LDAP
+		configuration is used.
+
+    "user_scope"
+		The scope used for LDAP searches for users. Possible
+		values are 0 (base), 1(one), 2(sub). Default is 2.
+    
+    "plugins"
+		List of plugins which should be applied for user
+		(list of strings). General plugin for LDAP users,
+		("UsersPluginLDAPAll") is always available, others are
+		part of modules which has to be installed before their
+		usage (yast2-samba-server, yast2-mail-server).
+
+    "user_plugins"
+		Same as "plugins".
+
+    Values mentioned above are common for all $config hashes in the
+    functions for handling user. Additionally, there is a special value
+    which is defined only for UserAdd:
+
+    "create_home"
+		If this is set to 0, the home directory for new user
+		won't be created.
+		
+
+
+    Possible parameters for $data hash:
+
+    "uid"		Login name
+    "cn"		Full name
+    "userpassword"	User's password
+    "homedirectory"	Users's home directory
+    "loginshell"	User's login shell
+    "gidnumber"		GID of user's default group
+    "grouplist" 	Hash (of type { <group_name> => 1 }) with groups
+			this user should be member of.
+    "shadowinactive"	Days after password expires that account is disabled
+    "shadowexpire"	Days since Jan 1, 1970 that account is disabled
+    "shadowwarning"     Days before password is to expire that user is warned
+    "shadowmin"         Days before password may be changed
+    "shadowmax"         Days after which password must be changed
+    "shadowflag"        (last value at line in /etc/shadow)
+    "shadowlastchange"  Days since Jan 1, 1970 that password was last changed
+
+    <ldap_attribute>	For LDAP users, any attribute supported by
+			users's object class can be here.
+
 
 EXAMPLE:
 
@@ -445,13 +425,18 @@ sub UserAdd {
 	"gid"		=> "gidnumber",
 	"groups"	=> "grouplist"
     };
+    if (defined $config->{"create_home"} && !defined $data->{"create_home"}) {
+	$data->{"create_home"}	= $config->{"create_home"};
+    }
     foreach my $key (keys %{$data}) {
 	my $new_key	= $key;
 	if (defined $new_keys->{$key}) {
  	    $key	= $new_keys->{$key};
 	}
 	my $value	= $data->{$key};
-	# TODO check correctly boolean values... ("create_home", "encrypted")
+	if ($key eq "create_home" && ref $data->{$key} ne "YaST::YCP::Boolean"){
+	    $value	= YaST::YCP::Boolean ($data->{$key});
+	}
 	$user->{$new_key}	= $value;
     }
 
@@ -537,7 +522,7 @@ Please try again.");
 }
 
 =item *
-C<$error UserModify ($config_hash, $data_hash);>
+C<$error = UserModify ($config_hash, $data_hash)>
 
 Modifies existing user. User attributes which should be changed
 are described in $data_hash,
@@ -545,6 +530,19 @@ $config_hash describes special configuration data, especially user
 identification.
 
 Returns an error message if operation failed or empty string otherwise.
+
+PARAMETERS:
+
+    Special values for $config hash: additinally to the values always
+    available (see L<UserAdd>), $config must contains one of the key
+    used to identify the user which should be modified:
+
+    "dn"	Distinguished name (DN) - only for LDAP user
+    "uid"	User name (which is value of "uid" for LDAP user)
+    "uidnumber"	UID number ("uidnumber" value for LDAP user)
+
+    For values in $data hash, see L<UserAdd>.
+
 
 EXAMPLE:
 
@@ -669,6 +667,15 @@ Adds a new feature (plugin) to the given user.
 
 Returns an error message if operation failed or empty string otherwise.
 
+PARAMETERS:
+
+    $config hash can contain data always available (see L<UserAdd>)
+    and the data used for user identification (see L<UserModify>).
+    Additionally, it has to contain the value for
+
+    "plugins"		List of plugins which should be added to the user.
+
+
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -777,6 +784,12 @@ C<$error UserFeatureDelete ($config_hash);>
 Deletes a new feature (plugin) to the given user.
 
 Returns an error message if operation failed or empty string otherwise.
+
+
+PARAMETERS:
+
+    See L<UserFeatureAdd>.
+    "plugins" 	contains the list of plugins to be removed.
 
 EXAMPLE:
 
@@ -895,6 +908,17 @@ stored in $config_hash.
 
 Returns an error message if operation failed or empty string otherwise.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<UserAdd>.
+    For parameters necessary to identify the user, see L<UserModify>.
+    Additinally, there is special parameter for
+
+    "delete_home"	Integer: For 1, home directory of selected user
+			will be deleted. Default value is 0 (false).
+
+
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -993,6 +1017,13 @@ stored in $config_hash.
 
 Returns an error message if operation failed or empty string otherwise.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<UserAdd>.
+    For parameters necessary to identify the user, see L<UserModify>.
+
+
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -1033,6 +1064,13 @@ stored in $config_hash.
 
 Returns an error message if operation failed or empty string otherwise.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<UserAdd>.
+    For parameters necessary to identify the user, see L<UserModify>.
+
+
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -1069,6 +1107,13 @@ sub UserEnable {
 C<$data_hash UserGet ($config_hash);>
 
 Returns a map describing selected user.
+
+
+PARAMETERS:
+
+    For general values of $config hash, see L<UserAdd>.
+    For parameters necessary to identify the user, see L<UserModify>.
+
 
 EXAMPLE:
 
@@ -1171,10 +1216,20 @@ sub UserGet {
 }
 
 =item *
-C<$users_hash UsersGet ($config_hash);>
+C<$users_hash = UsersGet ($config_hash);>
 
 Returns a hash describing the set of users. By default, the hash is indexed
 by UID number, unless statet otherwise in $config_hash.
+
+
+PARAMETERS:
+
+    For general values of $config hash, see L<UserAdd>.
+    Additionally, there is a special key
+
+    "index"	The name of the key, which should be used as a index
+		in the return hash.
+
 
 EXAMPLE:
 
@@ -1238,6 +1293,87 @@ Creates new group. Group attributes are described in $data_hash,
 $config_hash describes special configuration data.
 
 Returns an error message if operation failed or empty string otherwise.
+
+
+PARAMETERS:
+
+
+    Possible parameters for $config hash:
+
+    "type"	Type of group (string). Possible values:
+		"local","system","ldap","nis". ("nis" is not available
+		for adding)
+
+
+    Specific parameters of $config hash, related to LDAP groups (all keys
+    are optional, there should exist reasonable default values based on
+    current LDAP configuration):
+
+    "bind_dn"	
+		DN of LDAP administrator, used to bind to LDAP server
+		(string)
+		
+    "bind_pw"	
+		Password for LDAP administrator (string)
+		
+    "anonymous_bind"
+    
+		If this key is present, there will be done created an
+		anonymous connection to LDAP server (if it is allowed).
+		
+    "member_attribute"
+		Name of LDAP attribute, defining the membership in LDAP
+		groups (possible values: "member", "uniquemember"). The
+		default value is in /etc/ldap.conf (nss_map_attribute).
+
+    
+    "group_attributes"
+		List of attributes to be returned by an LDAP search for
+		group (list of strings). If empty, all non-empty
+		attributes will be returned as a result of search.
+
+    "group_base"
+		DN of LDAP base where the groups are stored (string). By
+		default, the value of "susedefaultbase" stored in LDAP
+		configuration is used.
+
+    "group_filter"
+		Filter for restricting LDAP searches (string).
+		The default value is stored as "susesearchfilter" in 
+		LDAP configuration.
+
+    "group_scope"
+		The scope used for LDAP searches for groups. Possible
+		values are 0 (base), 1(one), 2(sub). Default is 2.
+
+
+    "group_plugins"
+		List of plugins which should be applied for group
+		(list of strings). General plugin for LDAP groups,
+		("UsersPluginLDAPAll") is always available, others are
+		part of modules which has to be installed before their
+		usage (yast2-samba-server, yast2-mail-server).
+
+
+
+    Possible parameters for $data hash:
+
+    "gidnumber"		GID number of the group
+    "cn"		Group name
+    "userpassword"	Password for the group.
+    "userlist"		Hash (of type { <username> => 1 }) with
+			the users that should be members of this group.
+			Optionally, this could be also the list of
+			user names.
+
+    <member_attribute>	For LDAP groups, correct member attribute (
+			"member"/"uniquemember") has to be used instead
+			of "userlist". It could be list of user names or
+			hash with DN's of the members.
+
+    <ldap_attribute>	Any LDAP attribute supported by groups's object class
+
+
 
 EXAMPLE:
 
@@ -1352,6 +1488,18 @@ $config_hash describes special configuration data, especially group
 identification.
 
 Returns an error message if operation failed or empty string otherwise.
+
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    Additinally, $config must contain one of the key used to identify
+    the group which should be modified:
+
+    "dn"	Distingueshed name (only for of LDAP group)
+    "cn"	Group name (or value of "cn" attribute for LDAP group).
+    "gidnumber"	GID number (value of "gidnumber" for LDAP group).
+
 
 EXAMPLE
 
@@ -1505,6 +1653,19 @@ Adds a new member to the given group. User is described in $user_hash,
 group identification is passwd in $config_hash. User must exist.
 
 Returns an error message if operation failed or empty string otherwise.
+
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    For parameters necessary to identify the group, see L<GroupModify>.
+    $user_hash must include the information necessary to identify the
+    user. This has to be one of these keys:
+
+    "dn"	Distinguished name (DN) [only for LDAP users]
+    "uid"	User name (which is "uid" attribute for LDAP user)
+    "uidnumber"	UID (which is "uidnumber" attribute for LDAP user)
+
 
 EXAMPLE:
 
@@ -1661,6 +1822,14 @@ Deletes a member from the group.
 
 Returns an error message if operation failed or empty string otherwise.
 
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    For parameters necessary to identify the group, see L<GroupModify>.
+    $user_hash must include the information necessary to identify the
+    user - see L<GroupMemberAdd>
+
+
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -1691,7 +1860,6 @@ sub GroupMemberDelete {
     if (!defined $user || ref ($user) ne "HASH" || ! %$user) {
 	# error message
 	return __("No user was specified.");
-#TODO maybe user is specfied by filter...
     }
     
     my $type	= $config->{"type"} || "local";
@@ -1822,6 +1990,13 @@ Deletes existing group. Identification of group is stored in $config_hash.
 
 Returns an error message if operation failed or empty string otherwise.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    For parameters necessary to identify the group, see L<GroupModify>.
+
+ 
 EXAMPLE:
 
   my $config	= { "type"		=> "local",
@@ -1928,6 +2103,13 @@ C<$data_hash GroupGet ($config_hash);>
 
 Returns a map describing selected group.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    For parameters necessary to identify the group, see L<GroupModify>.
+
+ 
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
@@ -2038,6 +2220,16 @@ C<$groups_hash GroupsGet ($config_hash);>
 Returns a hash describing the set of groups. By default, the hash is indexed
 by GID number, unless statet otherwise in $config_hash.
 
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    Additionally, there is a special key
+
+    "index"	The name of the key, which should be used as a index
+		in the return hash (default value is "gidnumber").
+
+
 EXAMPLE:
 
   # searches for LDAP groups in default base and returns the hash
@@ -2102,6 +2294,18 @@ C<$groups_hash GroupsGetByUser ($config_hash, $user_hash);>
 
 Returns a hash describing the set of groups. By default, the hash is indexed
 by GID number, unless stated differently in $config_hash.
+
+
+PARAMETERS:
+
+    For general values of $config hash, see L<GroupAdd>.
+    $user_hash must include the information necessary to identify the
+    user - see L<GroupMemberAdd>.
+    Additionally, there is a special key
+
+    "index"	The name of the key, which should be used as a index
+		in the return hash.
+
 
 EXAMPLE:
 
