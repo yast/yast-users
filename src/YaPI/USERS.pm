@@ -697,7 +697,7 @@ sub UserFeatureAdd {
 	return __("No plug-in was defined");
     }
 
-    # Most is just copied from UserModify FIXME use common function...
+    # Most is just copied from UserModify
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -1153,7 +1153,6 @@ sub UserGet {
     }
     elsif ($key ne "") {
 	$ret	= Users->GetUserByName ($config->{$key}, $type);
-#FIXME when users is "system" type, it cannot be found with "local" type...
     }
     elsif ($type eq "ldap") {
 	# only for LDAP, when filter was given, but no key...
@@ -1503,7 +1502,7 @@ sub GroupModify {
 C<$error GroupMemberAdd ($config_hash, $user_hash);>
 
 Adds a new member to the given group. User is described in $user_hash,
-group identification is passwd in $config_hash.
+group identification is passwd in $config_hash. User must exist.
 
 Returns an error message if operation failed or empty string otherwise.
 
@@ -1526,8 +1525,6 @@ BEGIN{$TYPEINFO{GroupMemberAdd} = ["function",
     [ "map", "string", "any" ]];
 }
 sub GroupMemberAdd {
-
-#FIXME could possibly create new user???
 
     my $self	= shift;
     my $config	= shift;

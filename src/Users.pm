@@ -859,7 +859,12 @@ sub GetUsers {
     foreach my $id (keys %{$users{$type}}) {
 	my $user	= $users{$type}{$id};
 	if (ref ($user) eq "HASH" && defined $user->{$key}) {
-	    $ret->{$user->{$key}}	= $user;
+	    if (defined $ret->{$user->{$key}}) {
+		y2warning("Multiple users satisfy the input conditions: user $id, key ".  $user->{$key});
+	    }
+	    else {
+		$ret->{$user->{$key}}	= $user;
+	    }
 	}
     }
     return $ret;
@@ -3423,11 +3428,6 @@ sub CommitUser {
         if ($org_type ne $type) {
             delete $shadow{$org_type}{$org_username};
         }
-        if ($uid != $org_uid || $org_type ne $type) {
-	    if (defined $users_by_uidnumber{$org_type}{$org_uid}{$org_username}) {
-		delete $users_by_uidnumber{$org_type}{$org_uid}{$org_username};
-	    }
-	}
         if ($username ne $org_username || $org_type ne $type) {
 	    if (defined ($users{$org_type}{$org_username})) {
 		delete $users{$org_type}{$org_username};
@@ -3435,7 +3435,15 @@ sub CommitUser {
 	    if (defined ($modified_users{$org_type}{$org_username})) {
 		delete $modified_users{$org_type}{$org_username};
 	    }
+	    if (defined $users_by_uidnumber{$org_type}{$org_uid}{$org_username}) {
+		delete $users_by_uidnumber{$org_type}{$org_uid}{$org_username};
+	    }
         }
+	elsif ($uid != $org_uid) {
+	    if (defined $users_by_uidnumber{$org_type}{$org_uid}{$org_username}) {
+		delete $users_by_uidnumber{$org_type}{$org_uid}{$org_username};
+	    }
+	}
 
         $user{"org_uidnumber"}			= $uid;
         $user{"org_uid"}			= $username;
@@ -3612,17 +3620,20 @@ sub CommitGroup {
     UsersCache->CommitGroup (\%group);
     if ($what_group ne "delete_group") { # also for "user_change"
         
-	if ($gid != $org_gid || $org_type ne $type) {
-
+        if ($groupname ne $org_groupname || $org_type ne $type) {
+	    if (defined ($groups{$org_type}{$org_groupname})) {
+		delete $groups{$org_type}{$org_groupname};
+	    }
+	    if (defined ($modified_groups{$org_type}{$org_groupname})) {
+		delete $modified_groups{$org_type}{$org_groupname};
+	    }
 	    if (defined $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname}) {
 		delete $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname};
 	    }
-	}
-
-        if ($groupname ne $org_groupname || $org_type ne $type) {
-	    
-	    if (defined ($groups{$org_type}{$org_groupname})) {
-		delete $groups{$org_type}{$org_groupname};
+        }
+	elsif ($gid != $org_gid) {
+	    if (defined $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname}) {
+		delete $groups_by_gidnumber{$org_type}{$org_gid}{$org_groupname};
 	    }
 	}
 
