@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Nov 28 10:46:29 CET 2005 - jsuchome@suse.cz
+
+- autoinstallation: show system users and groups by default (#135486),
+  do not filter out group "users"
+- 2.13.7
+
+-------------------------------------------------------------------
 Wed Nov 16 17:35:11 CET 2005 - jsuchome@suse.cz
 
 - allow non-unique UID's for users and GID's for groups (feature #300162)
