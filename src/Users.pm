@@ -2778,7 +2778,9 @@ sub AddUser {
 	$plugins	= $data{"plugins"};
     }
     my $plugin_error	= "";
-    foreach my $plugin (sort @{$plugins}) {#FIXME sort: default LDAP plugin shoul be first!!! (or Samba plugin must add object classes every time)
+    foreach my $plugin (sort @{$plugins}) {
+	# sort: default LDAP plugin is now first, so other plugins don't have
+	# to check classes every time. New plugins have to do such check.
 	if ($plugin_error) { last; }
 	my $result = UsersPlugins->Apply ("AddBefore", {
 	    "what"	=> "user",
@@ -5452,7 +5454,7 @@ sub ReadNISAvailable {
 
 ##------------------------------------
 # Helper function, which corects the userlist entry of each group.
-# During autoinstallation, system groups are loaded from the disk,
+# During autoinstallation/config mode, system groups are loaded from the disk
 # and the userlists of these groups can contain the local users,
 # which we don not want to Import. So they are removed here.
 # @param disk_groups the groups loaded from local disk
@@ -5729,8 +5731,16 @@ sub Initialize {
     $users_by_uidnumber{"local"}	= {};
 
     RemoveDiskUsersFromGroups ($groups{"system"});
+
+    my %group_users	= %{$groups{"local"}{"users"}};
     $groups{"local"}			= {};
     $groups_by_gidnumber{"local"}	= {};
+    if (%group_users) {
+	$groups{"local"}{"users"}	= \%group_users;
+	my $gid	= $group_users{"gidnumber"};
+	$groups_by_gidnumber{"local"}{$gid}	= { "users" => 1 };
+	RemoveDiskUsersFromGroups ($groups{"local"});
+    }
 
     @available_usersets		= ( "local", "system", "custom" );
     @available_groupsets	= ( "local", "system", "custom" );
@@ -5747,6 +5757,9 @@ sub Initialize {
     UsersCache->BuildUserItemList ("local", $users{"local"});
     UsersCache->BuildGroupItemList ("local", $groups{"local"});
 
+    @user_custom_sets	= ("local", "system");
+    @group_custom_sets	= ("local", "system");
+        
     UsersCache->SetCurrentUsers (\@user_custom_sets);
     UsersCache->SetCurrentGroups (\@group_custom_sets);
 
