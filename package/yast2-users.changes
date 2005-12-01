@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Dec  1 13:25:00 CET 2005 - jsuchome@suse.cz
+
+- fix all GetGroupByName calls (#136267) + added test
+- 2.13.8
+
+-------------------------------------------------------------------
 Mon Nov 28 10:46:29 CET 2005 - jsuchome@suse.cz
 
 - autoinstallation: show system users and groups by default (#135486),

@@ -1,0 +1,172 @@
+/**
+ * File:	EditUsersGroups.ycp
+ * Module:	Users configurator
+ * Summary:	Testing adding and removing user from groups (see bug #136267)
+ * Author:	Jiri Suchomel <jsuchome@suse.cz>
+ * $Id$
+ */
+
+{
+    // testedfiles: Users.pm
+
+    import "Users";
+    import "Mode";
+    import "Testsuite";
+
+    map READ = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    "hh": $[
+			"uid"		: "hh",
+			"uidnumber"	: 500,
+			"type"		: "local",
+			"userpassword"	: "password",
+			"gidnumber":	100,
+			"grouplist"	: $[
+			    "ggl"	: 1
+			],
+		    ],
+		    "by_uidnumber": $[
+			500		: $[ "hh": 1],
+		    ],
+		    "last_uid": 500,
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+			"hh":		1,
+		    ],
+		    "uids": $[
+			500:		1,
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    "users": $[
+			"cn"	:	"users",
+			"gidnumber":	100,
+			"type"	:	"local",
+			"more_users"	: $[
+			    "hh":	1
+			],
+		    ],
+		    "ggl": $[
+			"cn"	:	"ggl",
+			"gidnumber":	1000,
+			"type"	:	"local",
+			"userlist":	$[
+			    "hh":	1
+			]
+		    ],
+		    "by_gidnumber": $[
+			100		: $["users":1],
+			1000		: $["ggl":1],
+		    ],
+		    "gids": $[
+			100		: 1,
+			1000		: 1,
+		    ],
+		    "groupnames": $[
+			"users"		: 1,
+			"ggl"		: 1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    "by_uidnumber"	: $[],
+		    "last_uid"		: 0,
+		    "homes"		: $[],
+		    "usernames"		: $[],
+		    "uids"		: $[],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    "ggs": $[
+			"cn"		: "ggs",
+			"gidnumber"	: 10,
+			"type"		: "system"
+		    ],
+		    "by_gidnumber": $[
+			10		: $["ggs":1],
+		    ],
+		    "gids": $[
+			10		: 1
+		    ],
+		    "groupnames": $[
+			"ggs"		: 1
+		    ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"target": $[
+	    "stat"	: $[],
+	    "size"	: -1,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "UI_MODE"			: "simple",
+		    "EVMS_CONFIG"		: "no",
+		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
+		]
+	],
+    ];
+    map WRITE = $[];
+    map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target" : $[
+	    "bash"		: 0,
+	    "bash_output"	: $[],
+	],
+    ];
+
+    Mode::SetTest ("test");
+
+    Testsuite::Test (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+
+    // for home directory checks
+    READ["target","stat","isdir"]	= true;
+
+    Users::SelectUserByName ("hh");
+
+    map<string,any> changes = $[
+	"grouplist"	: $[
+	    "ggs"	: 1,
+	]
+    ];
+
+    Testsuite::Test (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);
+
+    EXEC ["target", "bash_output", "stdout"] = "hh";
+
+    string error = (string) Testsuite::Test(``(Users::CheckUser ($[])), [READ,WRITE,EXEC], 0);
+
+    Testsuite::Dump (sformat ("---- unchanged group 'ggl':\n %1", Users::GetGroupByName ("ggl", "")));
+
+    Testsuite::Dump (sformat ("---- unchanged group 'ggs':\n %1", Users::GetGroupByName ("ggs", "")));
+
+    Testsuite::Test (``(Users::CommitUser ()), [READ, WRITE, EXEC], 0);
+
+    Testsuite::Dump (sformat ("---- changed group 'ggl':\n %1", Users::GetGroupByName ("ggl", "")));
+
+    Testsuite::Dump (sformat ("---- changed group 'ggs':\n %1", Users::GetGroupByName ("ggs", "")));
+}
