@@ -3260,13 +3260,13 @@ sub CommitUser {
 
         # update the affected groups
         foreach my $group (keys %grouplist) {
-            %group_in_work = %{$self->GetGroupByName ($group, $type)};
+            %group_in_work = %{$self->GetGroupByName ($group, "")};
             if (%group_in_work && $self->AddUserToGroup ($username)) {
                 $self->CommitGroup ();
 	    }
         };
         # add user to his default group (updating only cache variables)
-        %group_in_work = %{$self->GetGroupByName ($groupname, $type)};
+        %group_in_work = %{$self->GetGroupByName ($groupname, "")};
         if (%group_in_work) {
             $group_in_work{"what"}	= "user_change_default";
             $group_in_work{"more_users"}{$username}	= 1;
@@ -3286,13 +3286,9 @@ sub CommitUser {
         if (!defined $user{"modified"}) {
             $user{"modified"}	= "edited";
 	}
-	my $group_type	= $type;
-	if ($type eq "nis") {
-	    $group_type	= "system";
-	}
         # check the change of additional group membership
         foreach my $group (keys %grouplist) {
-            %group_in_work = %{$self->GetGroupByName ($group, $group_type)};
+            %group_in_work = %{$self->GetGroupByName ($group, "")};
             if (%group_in_work) {
 	        # username changed - remove org_username
 	        if ($org_username ne $username) {
@@ -3307,7 +3303,7 @@ sub CommitUser {
         # check if user was removed from some additional groups
 	if (defined $user{"removed_grouplist"}) {
             foreach my $group (keys %{$user{"removed_grouplist"}}) {
-	        %group_in_work = %{$self->GetGroupByName ($group, $type)};
+	        %group_in_work = %{$self->GetGroupByName ($group, "")};
 	        if (%group_in_work &&
 		    $self->RemoveUserFromGroup ($org_username)) {
 		    $self->CommitGroup ();
@@ -3322,7 +3318,7 @@ sub CommitUser {
 	}
         if ($username ne $org_username && $groupname eq $org_groupname) {
             # change the user's name in his default group
-            %group_in_work	= %{$self->GetGroupByName ($groupname, $type)};
+            %group_in_work	= %{$self->GetGroupByName ($groupname, "")};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 delete $group_in_work{"more_users"}{$org_username};
@@ -3333,14 +3329,14 @@ sub CommitUser {
         elsif ($groupname ne $org_groupname) {
             # note: username could be also changed!
             # 1. remove the name from original group ...
-            %group_in_work = %{$self->GetGroupByName ($org_groupname, $type)};
+            %group_in_work = %{$self->GetGroupByName ($org_groupname, "")};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 delete $group_in_work{"more_users"}{$org_username};
                 $self->CommitGroup ();
             }
             # 2. and add it to the new one:
-            %group_in_work	= %{$self->GetGroupByName ($groupname, $type)};
+            %group_in_work	= %{$self->GetGroupByName ($groupname, "")};
             if (%group_in_work) {
                 $group_in_work{"what"}	= "user_change_default";
                 $group_in_work{"more_users"}{$username}	= 1;
@@ -3376,20 +3372,19 @@ sub CommitUser {
         # prevent the add & delete of the same user
         if (!defined $user{"modified"} || $user{"modified"} ne "added") {
             $user{"modified"} = "deleted";
-#	    $removed_users{$type}{$uid}	= \%user;
 	    $removed_users{$type}{$username}	= \%user;
         }
 
         # check the change of group membership
         foreach my $group (keys %grouplist) {
-            %group_in_work = %{$self->GetGroupByName ($group, $type)};
+            %group_in_work = %{$self->GetGroupByName ($group, "")};
             if (%group_in_work &&
 	        $self->RemoveUserFromGroup ($org_username)) {
                 $self->CommitGroup();
 	    }
         };
         # remove user from his default group -- only cache structures
-        %group_in_work		= %{$self->GetGroupByName ($groupname, $type)};
+        %group_in_work		= %{$self->GetGroupByName ($groupname, "")};
 	if (%group_in_work) {
 	    $group_in_work{"what"}	= "user_change_default";
             delete $group_in_work{"more_users"}{$username};
