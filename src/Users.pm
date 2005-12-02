@@ -5978,7 +5978,6 @@ sub Import {
 	    }
 	    if (defined $group{"cn"}) {
 		my $groupname 				= $group{"cn"};
-		$users{$type}{$uid}{"groupname"}	= $groupname;
 		$users{$type}{$username}{"groupname"}	= $groupname;
 
 		# update the group's more_users

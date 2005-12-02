@@ -16,15 +16,15 @@
 {
     // testedfiles: Users.pm UsersCache.pm
 
-    include "testsuite.ycp";
     import "Users";
     import "UsersCache";
     import "Mode";
     import "Directory";
     import "Progress";
     import "Report";
+    import "Testsuite";
 
-    DUMP ("==========================================================");
+    Testsuite::Dump ("==========================================================");
 
     Mode::SetTest ("test");
 
@@ -47,14 +47,15 @@
 	"username":"aaa"
     ];
 
-    DUMP ( sformat ("importing:\n %1", importing) );
+    Testsuite::Dump ( sformat ("importing:\n %1", importing) );
 
-    DUMP ("==== processing ImportUser... ============================");
+    Testsuite::Dump ("==== processing ImportUser... ============================");
 
     map<string,any> user = (map<string,any>)
-	TEST(``(Users::ImportUser (importing)), [], 0);
+	Testsuite::Test(``(Users::ImportUser (importing)), [], 0);
 
-    DUMP ("==== processing ExportUser... ============================");
+    Testsuite::Dump ("==== processing ExportUser... ============================");
 
-    TEST(``(Users::ExportUser (user)), [], 0);
+    Testsuite::Test(``(Users::ExportUser (user)), [], 0);
+
 }

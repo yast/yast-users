@@ -801,7 +801,6 @@ sub BuildUserItem {
     }
     my $all_groups	= join (",", keys %grouplist);
 
-#    my $id = YaST::YCP::Term ("id", YaST::YCP::Integer ($uid));
     my $id = YaST::YCP::Term ("id", $username);
     my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
     return $t;
@@ -822,9 +821,6 @@ sub BuildUserItemList {
     my %map_of_users	= %{$_[1]};
     $user_items{$type}	= {};
 
-#    foreach my $uid (keys %map_of_users) {
-#        $user_items{$type}{$uid} = $self->BuildUserItem ($map_of_users{$uid});
-#    };
     foreach my $username (keys %map_of_users) {
         $user_items{$type}{$username} = $self->BuildUserItem ($map_of_users{$username});
     };

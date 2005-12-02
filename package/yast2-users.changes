@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Dec  2 15:48:20 CET 2005 - jsuchome@suse.cz
+
+- fixed Import (#136671) by removing forgotten line from old version
+- 2.13.9
+ 
+-------------------------------------------------------------------
 Thu Dec  1 13:25:00 CET 2005 - jsuchome@suse.cz
 
 - fix all GetGroupByName calls (#136267) + added test
