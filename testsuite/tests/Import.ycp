@@ -1,0 +1,124 @@
+/**
+ * File		: Import.ycp
+ * Module	: Users configurator
+ * Summary	: testing Import function
+ * Author	: Jiri Suchomel <jsuchome@suse.cz>
+ * $Id$
+ */
+{
+    // testedfiles: Users.pm UsersCache.pm
+
+    import "Users";
+    import "UsersCache";
+    import "Mode";
+    import "Directory";
+    import "Progress";
+    import "Testsuite";
+
+    map READ = $[
+	"passwd": $[
+	    "local": $[
+		"users": $[
+		    "hh": $[
+		    ],
+		    "by_uidnumber": $[
+		    ],
+		    "homes":	$[
+		    ],
+		    "usernames": $[
+		    ],
+		    "uids": $[
+		    ]
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    "users": $[
+			"cn":	"users",
+		    ],
+		    "by_gidnumber": $[
+			100		: $["users":1],
+		    ],
+		    "gids": $[
+			100:		1,
+		    ],
+		    "groupnames": $[
+			"users":	1,
+		    ]
+		],
+	    ],
+	    "system": $[
+		"users": $[
+		    "by_uidnumber": $[
+		    ],
+		    "homes":	$[],
+		    "usernames": $[],
+		    "uids": $[],
+		],
+		"shadow": $[
+		],
+		"groups": $[
+		    "by_gidnumber": $[
+		    ],
+		    "gids": $[ ],
+		    "groupnames": $[ ]
+		],
+	    ],
+	],
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	    "default": $[
+		"useradd": $[
+		    "home":	"/home",
+		    "groups":	"audio,video",
+		    "group":	100
+		]
+	    ],
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "UI_MODE"			: "simple",
+		    "EVMS_CONFIG"		: "no",
+		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
+		]
+	],
+	"target"	: $[
+	    "stat"	: $[],
+	    "size"	: -1,
+	    "string"	: ""
+	],
+	"sysconfig"	: $[
+	    "displaymanager"	: $[
+		"DISPLAYMANAGER"	: ""
+	    ],
+	],
+    ];
+    map WRITE = $[];
+    map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target" : $[
+	    "bash" :	-1,
+	    "bash_output" : $[
+		"stdout"	: "ggg",
+	    ],
+	],
+    ];
+
+    Mode::SetTest ("test");
+
+    map<string,any> importing = $[
+	"users"		: [
+	    $[
+		"username"	: "ggg",
+	    ],
+	],
+    ];
+
+    Testsuite::Test (``(Users::Import (importing)), [READ,WRITE,EXEC], 0);
+}
