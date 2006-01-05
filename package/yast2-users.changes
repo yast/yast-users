@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jan  5 15:12:25 CET 2006 - jsuchome@suse.cz
+
+- inst_auth: check if NetworkManager is managing network
+
+-------------------------------------------------------------------
 Fri Dec  2 15:48:20 CET 2005 - jsuchome@suse.cz
 
 - fixed Import (#136671) by removing forgotten line from old version
