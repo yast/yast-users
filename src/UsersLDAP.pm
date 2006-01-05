@@ -116,12 +116,14 @@ my @user_internal_keys		=
      "org_uid", "plugins", "text_userpassword", "plugins_to_remove",
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
-     "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data");
+     "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
+     "warning_message", "warning_message_ID", "confirmed_warnings");
 
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
      "dn", "org_dn", "org_groupname", "org_gidnumber", "removed_userlist",
-     "what", "org_cn", "plugins", "plugins_to_remove", "org_group");
+     "what", "org_cn", "plugins", "plugins_to_remove", "org_group",
+     "warning_message", "warning_message_ID", "confirmed_warnings");
 
 
 # defualt scope for searching, set it by SetUserScope

@@ -11,6 +11,7 @@ use strict;
 
 use YaST::YCP qw(:LOGGING);
 use YaPI;
+use Data::Dumper;
 
 textdomain("users");
 
@@ -56,6 +57,26 @@ my $error	= "";
 # 'data' map contains the atrtributes of the user. It could also contain
 # some keys, which Users module uses internaly (like 'groupname' for name of
 # user's default group). Just ignore these values
+
+# -- Warning messages --
+# There is a special way, when you want to give user additional information
+# (warning) about some issues appeared during the function.
+#
+# These keys can be saved by plugin to the result structure of AddBefore,
+# Add, EditBefore, Edit, Enable, Disable calls:
+#    "warning_message"		=> STRING
+#        Translated message that should be shown to user (probably as a popup)
+#    "warning_message_ID"	=> STRING
+#	The ID of the message (optional).
+#
+# This key can be present in user/group $data hash:
+#    "confirmed_warnings"	=> HASH (in the form { message_ID_1 => 1 })
+#	(This has sense only if plugin uses optional "warning_message_ID" key)
+#	Indicates which messages were already shown to this user/group.
+#	Plugin function may check for existence of the message_ID_1 in this
+#	hash before generating "warning_message", to realize if this message
+#	was alredy shown before (in the same situation).
+# See example in AddBefore function.
     
 ##------------------------------------
 
@@ -357,6 +378,18 @@ sub AddBefore {
     $data	= update_object_classes ($config, $data);
 
     y2debug ("AddBefore LDAPAll called");
+
+    my $warning_id	= "something_wrong";
+    my $warning		= __("Something went wrong.");
+
+    if (ref ($data->{"confirmed_warnings"}) eq "HASH" &&
+	defined $data->{"confirmed_warnings"}{$warning_id}) {
+	y2debug ("warning already shown");
+    }
+    elsif (0) {
+	$data->{"warning_message"}	= $warning;
+	$data->{"warning_message_ID"}	= $warning_id;
+    }
     return $data;
 }
 
