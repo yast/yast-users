@@ -1,7 +1,6 @@
 Dump	==========================================================
 Return	nil
 Dump	============ disable LDAP user 'jj': =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -29,7 +28,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	ldap schema error
 Dump	============ disable user 'jj' - done ====================
 Dump	============ disable local user 'hh': =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

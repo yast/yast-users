@@ -3,7 +3,6 @@ Dump	================ (no user) =======================
 Return	No user was specified.
 Dump	================ done ============================
 Dump	================ (bad user) ======================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -44,7 +43,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	User was not correctly specified.
 Dump	================ done ============================
 Dump	================ (ok) ============================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ get local groups =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -41,7 +40,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	$["some_group":$["cn":"some_group", "gidnumber":"200", "type":"local"], "users":$["cn":"users", "gidnumber":"100", "type":"local"]]
 Dump	============ get done ============================
 Dump	============ get local groups by uid ===============
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ get local user 'hh': =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -41,7 +40,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	$["gidnumber":"100", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"password"]
 Dump	============ get user 'hh' - done ====================
 Dump	============ get non existent user 'hhh': =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -82,7 +80,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	$[]
 Dump	============ get user 'hhh' - done ====================
 Dump	============ get by uid number 0: =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
