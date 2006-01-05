@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ delete non-existent group: ==================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -41,7 +40,6 @@ Read	.passwd.system.groups.groupnames $["root":1]
 Return	There is no such group.
 Dump	==========================================================
 Dump	============ delete groups with members: =================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -85,7 +83,6 @@ Dump	there are users in the group.
 Dump	Remove these users from the group first.
 Dump	==========================================================
 Dump	============ delete groups with more_users: ==============
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -128,7 +125,6 @@ Dump	========== returned: You cannot delete this group because
 Dump	there are users that use this group
 Dump	as their default group.
 Dump	============ delete group by name: =======================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -172,7 +168,6 @@ Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ delete group by gid: =======================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

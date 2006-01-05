@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ edit non-existing group 'gg': =====================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -41,7 +40,6 @@ Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
 Return	Group does not exist.
 Dump	============ edit done ========================================
 Dump	============ edit group 'audio' (change cn): ==================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -87,7 +85,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ edit done ========================================
 Dump	============ edit group 'users' (change gid): ==================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -138,7 +135,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ edit done ========================================
 Dump	============ edit group 'users' (gid conflict): ===============
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

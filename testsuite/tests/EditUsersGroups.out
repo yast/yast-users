@@ -1,4 +1,3 @@
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ add new group 'gg': ==========================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -46,7 +45,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg' - done ====================
 Dump	============ add new group 'gg' with first userlist as list ==
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -92,7 +90,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg' - done ====================
 Dump	============ add new group 'gg' with first userlist as map ==
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -138,7 +135,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg' - done ====================
 Dump	============ add new group 'root' (groupname conflict): ======
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

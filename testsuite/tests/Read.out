@@ -1,5 +1,4 @@
 Dump	==========================================================
-Read	.target.tmpdir 0
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 0
 Read	.etc.default.useradd."groups" 0

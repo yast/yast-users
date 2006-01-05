@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ add new user 'jj': ==========================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -54,7 +53,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new user 'jj' - done ====================
 Dump	============ add new user 'hh': ==========================
-Read	.target.tmpdir "/tmp/YaST"
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
