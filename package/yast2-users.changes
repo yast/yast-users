@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan  5 15:49:08 CET 2006 - jsuchome@suse.cz
+
+- user plugins: enable showing warning message (#58660)
+- 2.13.10
+
+-------------------------------------------------------------------
 Thu Jan  5 15:12:25 CET 2006 - jsuchome@suse.cz
 
 - inst_auth: check if NetworkManager is managing network

@@ -100,7 +100,6 @@ my %useradd_defaults		= (
     "groups"		=> "video",
 );
 
-my $tmpdir			= "/tmp";
 # which sets of users are available:
 my @available_usersets		= ();
 my @available_groupsets		= ();
@@ -1477,8 +1476,6 @@ sub Read {
 	    ], "" );
     }
 
-    $tmpdir = SCR->Read (".target.tmpdir");
-
     # default login settings
     if ($use_gui) { Progress->NextStage (); }
 
@@ -1812,6 +1809,7 @@ sub DisableUser {
 	}, \%user);
 	# check if plugin has done the 'Disable' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %user	= %{$result->{$plugin}};
 	    $no_plugin	= 0;
 	}
@@ -1890,6 +1888,7 @@ sub EnableUser {
 	}, \%user);
 	# check if plugin has done the 'Enable' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %user	= %{$result->{$plugin}};
 	    $no_plugin	= 0;
 	}
@@ -2063,6 +2062,7 @@ sub EditUser {
 	}, \%data);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %data	= %{$result->{$plugin}};
 	}
 	else {
@@ -2166,6 +2166,7 @@ sub EditUser {
 	}, \%user_in_work);
 	# check if plugin has done the 'Edit' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %user_in_work= %{$result->{$plugin}};
 	}
 	else {
@@ -2270,6 +2271,7 @@ sub EditGroup {
 	}, \%data);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %data	= %{$result->{$plugin}};
 	}
 	else {
@@ -2363,6 +2365,7 @@ sub EditGroup {
 	}, \%group_in_work);
 	# check if plugin has done the 'Edit' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %group_in_work= %{$result->{$plugin}};
 	}
 	else {
@@ -2414,7 +2417,8 @@ sub AddGroupPlugin {
 	my $result = UsersPlugins->Apply ("AddBefore", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2424,9 +2428,10 @@ sub AddGroupPlugin {
 	if ($plugin_error) { return $plugin_error; }
 
 	$result = UsersPlugins->Apply ("Add", $args, \%group);
-	# check if plugin has done the 'AddBefore' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2437,7 +2442,8 @@ sub AddGroupPlugin {
 	my $result = UsersPlugins->Apply ("EditBefore", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2448,7 +2454,8 @@ sub AddGroupPlugin {
 	$result = UsersPlugins->Apply ("Edit", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2497,7 +2504,8 @@ sub AddUserPlugin {
 	my $result = UsersPlugins->Apply ("AddBefore", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2506,9 +2514,10 @@ sub AddUserPlugin {
 	if ($plugin_error) { return $plugin_error; }
 
 	$result = UsersPlugins->Apply ("Add", $args, \%user);
-	# check if plugin has done the 'AddBefore' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2519,7 +2528,8 @@ sub AddUserPlugin {
 	my $result = UsersPlugins->Apply ("EditBefore", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2530,7 +2540,8 @@ sub AddUserPlugin {
 	$result = UsersPlugins->Apply ("Edit", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2591,7 +2602,8 @@ sub RemoveGroupPlugin {
 	my $result = UsersPlugins->Apply ("AddBefore", $args, \%group);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2600,9 +2612,10 @@ sub RemoveGroupPlugin {
 	if ($plugin_error) { return $plugin_error; }
 
 	$result = UsersPlugins->Apply ("Add", $args, \%group);
-	# check if plugin has done the 'AddBefore' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2613,7 +2626,8 @@ sub RemoveGroupPlugin {
 	my $result = UsersPlugins->Apply ("EditBefore", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2624,7 +2638,8 @@ sub RemoveGroupPlugin {
 	$result = UsersPlugins->Apply ("Edit", $args, \%group);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %group= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %group	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2684,7 +2699,8 @@ sub RemoveUserPlugin {
 	my $result = UsersPlugins->Apply ("AddBefore", $args, \%user);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2693,9 +2709,10 @@ sub RemoveUserPlugin {
 	if ($plugin_error) { return $plugin_error; }
 
 	$result = UsersPlugins->Apply ("Add", $args, \%user);
-	# check if plugin has done the 'AddBefore' action
+	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2706,7 +2723,8 @@ sub RemoveUserPlugin {
 	my $result = UsersPlugins->Apply ("EditBefore", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2717,7 +2735,8 @@ sub RemoveUserPlugin {
 	$result = UsersPlugins->Apply ("Edit", $args, \%user);
 	# check if plugin has done the 'EditBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
-	    %user= %{$result->{$plugin}};
+	    $result	= ShowPluginWarning ($result);
+	    %user	= %{$result->{$plugin}};
 	}
 	else {
 	    $result = UsersPlugins->Apply ("Error", $args, {});
@@ -2789,6 +2808,7 @@ sub AddUser {
 	}, \%data);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %data	= %{$result->{$plugin}};
 	}
 	else {
@@ -2908,6 +2928,7 @@ sub AddUser {
 	}, \%user_in_work);
 	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %user_in_work= %{$result->{$plugin}};
 	}
 	else {
@@ -3016,6 +3037,7 @@ sub AddGroup {
 	}, \%data);
 	# check if plugin has done the 'AddBefore' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %data	= %{$result->{$plugin}};
 	}
 	else {
@@ -3080,6 +3102,7 @@ sub AddGroup {
 	}, \%group_in_work);
 	# check if plugin has done the 'Add' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
+	    $result	= ShowPluginWarning ($result);
 	    %group_in_work= %{$result->{$plugin}};
 	}
 	else {
@@ -3874,6 +3897,38 @@ sub GetPluginError {
     return $error;
 }
 
+# Internal function: get the warning message generated by plugin (if any)
+# and show it to the user
+# Takes the output of plugin call as a paramerer and returns this map,
+# possibly modified (removed/added information about the warnings)
+sub ShowPluginWarning {
+
+    my $result	= shift;
+
+    if (ref ($result) eq "HASH") {
+	foreach my $plugin (keys %{$result}) {
+	    my $data	= $result->{$plugin};
+	    next if ref ($data) ne "HASH";
+	    my $warning	= $data->{"warning_message"};
+	    if (defined $warning && $warning ne "") {
+		Report->Message ($warning) if $use_gui;
+		my $id = $data->{"warning_message_ID"};
+		if (defined $id && $id ne "") {
+		    if (! defined ($data->{"confirmed_warnings"}) ||
+			ref ($data->{"confirmed_warnings"}) ne "HASH") {
+			$data->{"confirmed_warnings"}	= {};
+		    }
+		    $data->{"confirmed_warnings"}{$id}	= 1;
+		    delete $data->{"warning_message_ID"};
+		}
+		delete $data->{"warning_message"};
+	    }
+	}
+    }
+    return $result;
+}
+
+
 ##------------------------------------
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
 sub Write {
@@ -4083,17 +4138,14 @@ sub Write {
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
-#	    foreach my $uid (keys %{$modified_users{$type}}) {
 	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
-#		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
 		    "modified"	=> $modified_users{$type}{$username}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("WriteBefore", $args,
-#		    $modified_users{$type}{$uid});
 		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
@@ -4107,17 +4159,14 @@ sub Write {
 	# -------------------------------------- call Write on plugins
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
-#	    foreach my $uid (keys %{$modified_users{$type}}) {
 	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
 	    	    "what"	=> "user",
 		    "type"	=> $type,
-#		    "modified"	=> $modified_users{$type}{$uid}{"modified"}
 		    "modified"	=> $modified_users{$type}{$username}{"modified"}
 		};
 		my $result = UsersPlugins->Apply ("Write", $args,
-#		    $modified_users{$type}{$uid});
 		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
@@ -5714,8 +5763,6 @@ sub Initialize {
     $self->ReadLoginDefaults ();
     $self->ReadSystemDefaults();
 
-    $tmpdir	= SCR->Read (".target.tmpdir");
-
     my $error_msg = $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
@@ -5788,8 +5835,6 @@ sub Import {
     }
 
     $self->ReadSystemDefaults();
-
-    $tmpdir	= SCR->Read (".target.tmpdir");
 
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
