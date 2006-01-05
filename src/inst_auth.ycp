@@ -15,6 +15,7 @@ textdomain "users";
 import "DSL";
 import "Ldap";
 import "NetworkDevices";
+import "NetworkService";
 import "Package";
 import "Popup";
 import "Users";
@@ -25,12 +26,14 @@ import "GetInstArgs";
 list<string> net_devices = NetworkDevices::List("");
 y2debug("net_devices: %1", net_devices);
 
-if (size(net_devices) == 0 && size (Ldap::initial_defaults) == 0) {
+if (size(net_devices) == 0 && !NetworkService::IsManaged () &&
+     size (Ldap::initial_defaults) == 0)
+{
     Users::SetAfterAuth ("users");
     y2milestone ("network not available: no network based authentization");
     return `auto;
 }
-boolean found = false;
+boolean found = false || NetworkService::IsManaged ();
 maplist(string dev, net_devices, ``{
     if(!DSL::UsesDevice(dev))
 	found = true;
