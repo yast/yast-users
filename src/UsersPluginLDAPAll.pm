@@ -380,7 +380,7 @@ sub AddBefore {
     y2debug ("AddBefore LDAPAll called");
 
     my $warning_id	= "something_wrong";
-    my $warning		= __("Something went wrong.");
+    my $warning		= __("An error occurred.");
 
     if (ref ($data->{"confirmed_warnings"}) eq "HASH" &&
 	defined $data->{"confirmed_warnings"}{$warning_id}) {
