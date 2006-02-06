@@ -288,7 +288,7 @@ sub UIDExists {
     my $ret	= 0;
 
     foreach my $type (keys %uids) {
-	if (($uids{$type}{$uid} || 0) > 1) { $ret = 1; }
+	if (($uids{$type}{$uid} || 0) > 0) { $ret = 1; }
     };
     # for autoyast, check only loaded sets
     if ($ret || Mode->config () || Mode->test ()) {
@@ -642,7 +642,7 @@ sub NextFreeUID {
             return $uid;
         }
     } until ( $uid == $max );
-    return YaST::YCP::Integer ($ret)->value;
+    return $max;
 }
 
 ##------------------------------------
