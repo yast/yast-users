@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb  6 15:16:21 CET 2006 - jsuchome@suse.cz
+
+- fix bad chacking for duplicate UID (#146477)
+- 2.13.12
+
+-------------------------------------------------------------------
 Fri Jan 27 08:32:22 CET 2006 - jsuchome@suse.cz
 
 - merged texts from proofreading 
