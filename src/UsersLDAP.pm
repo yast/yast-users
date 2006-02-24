@@ -1236,7 +1236,7 @@ sub WriteUsers {
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
-	my $uid		= $user->{"gidnumber"};
+	my $uid		= $user->{"uidnumber"};
 	if (! defined $uid) { $uid	= GetDefaultUID (); }
         my $home	= $user->{"homedirectory"} || "";
         my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
