@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Feb 23 16:07:51 CET 2006 - jsuchome@suse.cz
+
+- correctly assign owners of LDAP users's home directories (#153078)
+- Export group's GID for autoyast (#152265)
+- 2.13.14
+
+-------------------------------------------------------------------
 Mon Feb 20 08:51:01 CET 2006 - jsuchome@suse.cz
 
 - reduced BuildRequires 

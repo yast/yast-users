@@ -6185,12 +6185,14 @@ sub ExportGroup {
         "groupname"		=> $group->{"cn"}		|| "",
         "userlist"		=> $userlist
     );
-    if (defined $group->{"org_group"} &&
+    if (($group->{"modified"} || "edited") ne "edited" ||
+	(defined $group->{"org_group"} &&
 	(defined $group->{"org_group"}{"gidnumber"} &&
 	$group->{"gidnumber"} ne $group->{"org_group"}{"gidnumber"})
 	||
 	(defined $group->{"org_group"}{"cn"} &&
 	$group->{"cn"} ne $group->{"org_group"}{"cn"}))
+	)
 	{
 
 	$ret{"gid"}		= $group->{"gidnumber"};
