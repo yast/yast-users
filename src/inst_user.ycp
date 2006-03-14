@@ -31,7 +31,10 @@
 	// name of client to call
         map call_client = $[
 	    "samba": "samba-client",
+	    "edir_ldap" : "linux-user-mgmt",
 	];
+	if (client == "edir_ldap")
+	    package = "yast2-linux-user-mgmt";
 	if (Package::InstallAllMsg ([package],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
