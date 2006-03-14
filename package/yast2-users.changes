@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar 14 02:04:36 CET 2006 - jsrain@suse.de
+
+- aded support for eDirectory LDAP during instyallation
+
+-------------------------------------------------------------------
 Thu Feb 23 16:07:51 CET 2006 - jsuchome@suse.cz
 
 - correctly assign owners of LDAP users's home directories (#153078)

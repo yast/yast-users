@@ -66,7 +66,9 @@ map button_labels = $[
     // radiobutton to select samba user auth.
     "samba":       _("&Samba"),
     // radiobutton to select local user auth.
-    "users":     _("L&ocal (/etc/passwd)")
+    "users":     _("L&ocal (/etc/passwd)"),
+    // radiobutton to select local user auth.
+    "edir_ldap":	_("eDirectory LDAP"),
 ];
 
 list<string> available_clients = [ "users", "ldap" ];
@@ -76,6 +78,9 @@ if (Package::Available ("yast2-nis-client") && found)
 
 if (Package::Available ("yast2-samba-client") && found)
     available_clients = add (available_clients, "samba");
+
+if (Package::Available ("yast2-linux-user-mgmt") && found)
+    available_clients = add (available_clients, "edir_ldap");
 
 if (contains (available_clients, "nis"))
 {
@@ -180,6 +185,11 @@ if (contains (available_clients, "samba") &&
     (boolean) UI::QueryWidget( `id("samba"), `Value ) )
 {
     Users::SetAfterAuth ("samba");
+}
+if (contains (available_clients, "edir_ldap") &&
+    (boolean) UI::QueryWidget( `id("edir_ldap"), `Value ) )
+{
+    Users::SetAfterAuth ("edir_ldap");
 }
 
 return (symbol) ret;
