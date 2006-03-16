@@ -64,7 +64,9 @@ map button_labels = $[
     // radiobutton to select nis user auth.
     "nis":       _("N&IS"),
     // radiobutton to select samba user auth.
-    "samba":       _("&Samba"),
+    "samba-old":       _("&Samba"),
+    // radiobutton to select samba user auth.
+    "samba":       _("&Windows Domain"),
     // radiobutton to select local user auth.
     "users":     _("L&ocal (/etc/passwd)"),
     // radiobutton to select local user auth.

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 15 18:07:24 CET 2006 - jsuchome@suse.cz
+
+- inst_auth: samba is now Windows Domain Membership (text change)
+- 2.13.16
+
+-------------------------------------------------------------------
 Tue Mar 14 02:04:36 CET 2006 - jsrain@suse.de
 
 - aded support for eDirectory LDAP during instyallation
