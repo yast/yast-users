@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue May  9 12:25:06 CEST 2006 - gs@suse.de
+
+- show root password confirmation field of equal length (bug #164803)
+- 2.13.17
+
+-------------------------------------------------------------------
 Wed Mar 15 18:07:24 CET 2006 - jsuchome@suse.cz
 
 - inst_auth: samba is now Windows Domain Membership (text change)
