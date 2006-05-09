@@ -57,16 +57,20 @@ include "users/widgets.ycp";   // for EncryptionPopup()
                `Label(_("Do not forget what you enter here.")),
                `VSpacing(1),
 
-               `Left(`Password(`id(`pw1),
+               `HBox(`HWeight( 80, `Password(`id(`pw1),
                     // Label: get password for user root
                     // Please use newline if label is longer than 40 characters
-                    _("&Password for root User"), "")),
+				     _("&Password for root User"), "")),
+		     `HWeight( 20, `Empty() )
+		     ),
                `VSpacing(1),
 
-               `Left(`Password(`id(`pw2),
+               `HBox(`HWeight( 80, `Password(`id(`pw2),
                     // Label: get same password again for verification
                     // Please use newline if label is longer than 40 characters
-                    _("Con&firm Password"), ""))
+				     _("Con&firm Password"), "")),
+		     `HWeight( 20, `Empty() )
+		     )
                )
              ),
         `VSpacing(3),
