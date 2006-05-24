@@ -2329,7 +2329,7 @@ Try again.
     }
     if (modified)
     {
-	map g	= Users::GetGroupByName (new_defgroup, "local");
+	map g	= Users::GetGroupByName (new_defgroup, "");
         map<string,string> new_defaults = $[
             "home": new_home,
             "shell": new_shell,
