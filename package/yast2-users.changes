@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon May 22 17:06:10 CEST 2006 - jsuchome@suse.cz
+
+- fixed modifying of default group for new users (#176513)
+- 2.13.18
+
+-------------------------------------------------------------------
 Tue May  9 12:25:06 CEST 2006 - gs@suse.de
 
 - show root password confirmation field of equal length (bug #164803)
