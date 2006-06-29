@@ -33,13 +33,7 @@ import "GetInstArgs";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
-    string valid_password_chars = "-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*() ,;:._+/|?{}=[]";
-
-    if (Stage::cont () && ! Linuxrc::usessh ())
-    {
-        // what is this for??
-        SCR::Execute(.target.remove, "/var/lib/YaST2/runme_at_boot");
-    }
+    string valid_password_chars = Users::ValidPasswordChars ();
 
     boolean this_is_for_real = ! Mode::test ();
 
@@ -51,28 +45,16 @@ include "users/widgets.ycp";   // for EncryptionPopup()
 
     term contents = `VBox(
         `VStretch(),
-        `HSquash(
-            `VBox(
+        `HSquash(`VBox(
                // advise user to remember his new password
                `Label(_("Do not forget what you enter here.")),
                `VSpacing(1),
-
-               `HBox(`HWeight( 80, `Password(`id(`pw1),
-                    // Label: get password for user root
-                    // Please use newline if label is longer than 40 characters
-				     _("&Password for root User"), "")),
-		     `HWeight( 20, `Empty() )
-		     ),
+                // Label: get password for user root
+               `Password (`id(`pw1), _("&Password for root User"), ""),
                `VSpacing(1),
-
-               `HBox(`HWeight( 80, `Password(`id(`pw2),
-                    // Label: get same password again for verification
-                    // Please use newline if label is longer than 40 characters
-				     _("Con&firm Password"), "")),
-		     `HWeight( 20, `Empty() )
-		     )
-               )
-             ),
+                // Label: get same password again for verification
+               `Password (`id(`pw2), _("Con&firm Password"), "")
+        )),
         `VSpacing(3),
         // push button
         `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
@@ -107,11 +89,7 @@ such as accented letters or umlauts.
 </p>
 ");
 
-    // help text, continued 4/5
-    helptext = helptext + _("<p>
-Valid password characters are letters, digits, blanks, and
-<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
-</p>");
+    helptext = helptext + Users::ValidPasswordHelptext ();
 
     // help text, continued 5/5
     helptext = helptext + _("<p>
@@ -184,8 +162,7 @@ Try again."));
 
 		if (findfirstnotof (pw1, valid_password_chars) != nil)
 		{
-		    // popup text: invalid characters in root password
-		    Popup::Message(_("The password may only contain the following characters:\n 0-9, a-z, A-Z, and any of \"#* ,.;:._-+!$%&/|\?{[()]}\".\nTry again."));
+		    Popup::Message (Users::ValidPasswordMessage ());
 		    // Invalidate old password
 		    UI::ChangeWidget(`id(`pw1), `Value, "");
 		    UI::ChangeWidget(`id(`pw2), `Value, "");

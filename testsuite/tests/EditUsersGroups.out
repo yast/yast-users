@@ -37,7 +37,7 @@ Read	.passwd.system.groups.gids $[10:1]
 Read	.passwd.system.groups.groupnames $["ggs":1]
 Return	
 Return	
-Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
+Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- unchanged group 'ggl':
 Dump	 $["cn":"ggl", "gidnumber":"1000", "type":"local", "userlist":$["hh":"1"]]

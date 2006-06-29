@@ -152,7 +152,7 @@ my $cracklib_dictpath		= "";
 my $obscure_checks 		= 1;
 
 # User/group names must match the following regex expression. (/etc/login.defs)
-my $character_class 		= "[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.\$-]\\?";
+my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
 
 # Umask which is used for creating new home directories. (/etc/login.defs)
 my $umask			= "022";
@@ -4150,7 +4150,7 @@ sub Write {
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
-	# -------------------------------------- write /etc/group
+	# -------------------------------------- write /etc/passwd
         if ($plugin_error eq "" && !WritePasswd ()) {
             $ret = Message->ErrorWritingFile ("$base_directory/passwd");
 	    Report->Error ($ret);
@@ -4354,7 +4354,12 @@ sub Write {
 # now CHARACTER_CLASS from /etc/login.defs is used
 my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._-";
 
-my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`<>]|]";# the ']' is or-ed...
+my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`~<>]|]";# the ']' is or-ed...
+
+# error popup	
+my $valid_password_message = _("The password may only contain the following characters:
+0-9, a-z, A-Z, and any of \"`~!@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
+Try again.");
 
 my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_.-]";
 
@@ -4364,6 +4369,28 @@ sub ValidLognameChars {
     return $valid_logname_chars;
 }
 
+##------------------------------------
+BEGIN { $TYPEINFO{ValidPasswordChars} = ["function", "string"]; }
+sub ValidPasswordChars {
+    return $valid_password_chars;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{ValidPasswordMessage} = ["function", "string"]; }
+sub ValidPasswordMessage {
+    return $valid_password_message;
+}
+
+##------------------------------------
+# Return the part of help text about valid password characters
+BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
+sub ValidPasswordHelptext {
+    # help text (default part shown in more places)
+    return __("<p>
+Valid password characters are letters, digits, blanks, and
+<tt>,.;:._-+</tt><tt>`~!@#\$%^&*\\/|?{[()]}=</tt>.
+</p>");
+}
 
 ##------------------------------------
 # check the uid of current user
@@ -4626,12 +4653,10 @@ Try again.");
 
     my $filtered = $pw;
     $filtered =~ s/$valid_password_chars//g;
+    $filtered =~ s/\\//g; # bug 175706
 
     if ($filtered ne "") {
-	# error popup
-	return __("The password may only contain the following characters:
-0-9, a-z, A-Z, and any of \"#* ,.;:._-+!\$%^&/|\?=`'{[(<>)]}\".
-Try again.");
+	return $valid_password_message;
     }
     return "";
 }
@@ -4685,10 +4710,27 @@ This is not a good security practice. Really use this password?");
 
     # check for lowercase
     my $filtered 	= $pw;
-    $filtered 		=~ s/[a-z]//g;
+    $filtered 		=~ s/[[:lower:]]//g;
     if ($filtered eq "") {
 	# popup question
         return __("You have used only lowercase letters for the password.
+This is not a good security practice. Really use this password?");
+    }
+
+    # check for uppercase
+    $filtered 		= $pw;
+    $filtered 		=~ s/[[:upper:]]//g;
+    if ($filtered eq "") {
+	# popup question
+        return __("You have used only uppercase letters for the password.
+This is not a good security practice. Really use this password?");
+    }
+    
+    # check for palindroms
+    $filtered 		= reverse $pw;
+    if ($filtered eq $pw) {
+	# popup question
+        return __("You have used a palindrom for the password.
 This is not a good security practice. Really use this password?");
     }
 

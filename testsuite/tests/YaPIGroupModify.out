@@ -77,7 +77,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
-Execute	.target.bash_output "echo 'ggg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
+Execute	.target.bash_output "echo 'ggg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"]], "system":$["by_gidnumber":$["0":$["root":"1"], "17":$["audio":"1"]], "ggg":$["cn":"ggg", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"ggg", "org_gidnumber":"17", "org_group":$["cn":"audio", "gidnumber":"17", "type":"system"], "plugins":[], "removed_userlist":$[], "type":"system", "what":"edit_group"], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
@@ -122,7 +122,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1, 17:1]
 Read	.passwd.system.groups.groupnames $["audio":1, "root":1]
-Execute	.target.bash_output "echo 'users' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"users"]
+Execute	.target.bash_output "echo 'users' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"users"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"777", "modified":"edited", "more_users":$["hh":"1"], "org_cn":"users", "org_gidnumber":"777", "org_group":$["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "type":"local"], "plugins":[], "removed_userlist":$[], "type":"local", "what":"edit_group"]], "system":$["audio":$["cn":"audio", "gidnumber":"17", "type":"system"], "by_gidnumber":$["0":$["root":"1"], "17":$["audio":"1"]], "gids":$["0":"1", "17":"1"], "groupnames":$["audio":"1", "root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0

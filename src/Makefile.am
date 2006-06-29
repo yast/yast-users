@@ -14,6 +14,7 @@ module_DATA =		\
     UsersLDAP.pm	\
     UsersRoutines.pm	\
     UsersUI.ycp		\
+    UsersPasswd.pm	\
     UsersPlugins.pm	\
     UsersPluginLDAPAll.pm
 

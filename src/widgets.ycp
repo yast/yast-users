@@ -497,8 +497,9 @@ passwords. Otherwise, you are asked for the password even if you set a user to l
         `VBox(
             `HSpacing(40),
             `VSpacing(0.5),
-		// frame label
-	        `Frame(_("Display Manager Login Settings"), `HBox(
+	    // dialog label
+	    `Heading(_("Display Manager Login Settings")),
+	    `HBox(
 		  `HSpacing (0.5),
 		  `VBox(
 		    `VSpacing(0.5),
@@ -519,7 +520,7 @@ passwords. Otherwise, you are asked for the password even if you set a user to l
 		    `VSpacing(0.5)
 		  ),
 		  `HSpacing(0.5)
-		)),
+	    ),
             `VSpacing(0.5),
 	    `HBox(
 		`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
