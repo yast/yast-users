@@ -37,7 +37,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
+Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["by_uidnumber":$["500":$["hh":"1"]], "hh":$["create_home":true, "enabled":true, "encrypted":true, "modified":"edited", "org_uid":"hh", "org_uidnumber":"500", "org_user":$["create_home":true, "enabled":false, "encrypted":true, "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"!password"], "plugins":[], "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"password", "what":"edit_user"], "homes":$["/home/hh":"1"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["by_uidnumber":$["0":$["root":"1"]], "homes":$[], "last_uid":"0", "root":$["uid":"root", "uidnumber":"0"], "uids":$["0":"1"], "usernames":$["root":"1"]]] true
 Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0

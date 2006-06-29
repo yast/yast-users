@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Thu Jun 29 09:09:02 CEST 2006 - jsuchome@suse.cz
+
+- more characters allowed in password (#175706, #186833)
+- enhanced checking for palindroms in passwords (#144725)
+- returned missing part of help text about login
+- added UserPasswd.pm module which can enhance writing performance (#148482)
+- fixed layout of root password dialog (#164803)
+- removed Frame from Login Settings popup (#179788)
+- do not remove runme_at_boot (it's task for other parts of YaST)
+- user regular expressions for text matching
+- 2.13.19 
+
+-------------------------------------------------------------------
 Mon May 22 17:06:10 CEST 2006 - jsuchome@suse.cz
 
 - fixed modifying of default group for new users (#176513)
