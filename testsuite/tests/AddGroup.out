@@ -52,7 +52,7 @@ Dump	 $["gidnumber":"1000", "plugins":[], "type":"local", "what":"add_group"]
 Return	
 Dump	---- current group (after rich add):
 Dump	 $["cn":"testgrp", "gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]
-Execute	.target.bash_output "echo 'testgrp' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"testgrp"]
+Execute	.target.bash_output "echo 'testgrp' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"testgrp"]
 Return	
 Dump	---- check group after add:
 Dump	 
@@ -69,7 +69,7 @@ Return
 Return	
 Dump	---- current group after add:
 Dump	 $["cn":"new", "gidnumber":"0", "plugins":[], "type":"system", "what":"add_group"]
-Execute	.target.bash_output "echo 'new' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"new"]
+Execute	.target.bash_output "echo 'new' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"new"]
 Return	
 Dump	---- check group after add:
 Dump	 
@@ -78,7 +78,7 @@ Return
 Return	
 Dump	---- current group after add):
 Dump	 $["cn":"testgrp", "gidnumber":"1000", "plugins":[], "type":"local", "what":"add_group"]
-Execute	.target.bash_output "echo 'testgrp' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"testgrp"]
+Execute	.target.bash_output "echo 'testgrp' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"testgrp"]
 Return	There is a conflict between the entered
 Dump	---- check group after add:
 Dump	 There is a conflict between the entered

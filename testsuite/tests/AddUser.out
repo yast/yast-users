@@ -45,7 +45,7 @@ Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1
 Return	
 Dump	---- current user (after rich add):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/local/home/aaa", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"aaa", "uidnumber":"501", "userpassword":"crypted_qqqqq", "what":"add_user"]
-Execute	.target.bash_output "echo 'aaa' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"aaa"]
+Execute	.target.bash_output "echo 'aaa' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"aaa"]
 Return	
 Dump	---- current group (before user commit):
 Dump	 $["cn":"users", "gidnumber":"100", "type":"local"]
@@ -60,7 +60,7 @@ Return
 Return	
 Dump	---- current user (minimal add, used default values):
 Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/hhh", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hhh", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
-Execute	.target.bash_output "echo 'hhh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hhh"]
+Execute	.target.bash_output "echo 'hhh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hhh"]
 Return	No password entered.
 Dump	---- check user after add:
 Dump	 No password entered.
@@ -70,7 +70,7 @@ Return
 Return	
 Dump	---- current user (just added):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/root", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"root", "uidnumber":"1000", "userpassword":"crypted_qqqqq", "what":"add_user"]
-Execute	.target.bash_output "echo 'root' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"root"]
+Execute	.target.bash_output "echo 'root' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"root"]
 Return	There is a conflict between the entered
 Dump	---- check user after add:
 Dump	 There is a conflict between the entered
@@ -91,7 +91,7 @@ Return
 Return	
 Dump	---- current user (just added):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/iii$", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"iii$", "uidnumber":"1000", "userpassword":"crypted_qqqqq", "what":"add_user"]
-Execute	.target.bash_output "echo 'iii$' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":""]
+Execute	.target.bash_output "echo 'iii$' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":""]
 Return	The username may contain only
 Dump	---- check user after add:
 Dump	 The username may contain only
@@ -103,7 +103,7 @@ Return
 Return	
 Dump	---- current user (just added):
 Dump	 $["cn":"", "create_home":true, "dn":"uid=iii$,dc=suse,dc=cz", "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/ldap/iii", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"ldap", "uid":"iii$", "uidnumber":"1000", "userpassword":"crypted_qqqqq", "what":"add_user"]
-Execute	.target.bash_output "echo 'iii' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"iii"]
+Execute	.target.bash_output "echo 'iii' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"iii"]
 Return	
 Dump	---- check user after add:
 Dump	 
@@ -111,5 +111,5 @@ Dump	==========================================================
 Dump	============== duplicated UID number =====================
 Return	
 Return	
-Execute	.target.bash_output "echo 'admin' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"admin"]
+Execute	.target.bash_output "echo 'admin' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"admin"]
 Return	

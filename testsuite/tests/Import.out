@@ -27,7 +27,7 @@ Read	.passwd.local.users.last_uid 0
 Read	.passwd.local.users.homes $[]
 Read	.passwd.local.users.usernames $[]
 Read	.passwd.local.users.uids $[]
-Execute	.target.bash_output "echo 'ggg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
+Execute	.target.bash_output "echo 'ggg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
 Read	.target.string "/etc/shells" ""
 Read	.passwd.system.users.last_uid 0
 Read	.passwd.system.users.homes $[]

@@ -37,7 +37,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'gg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
+Execute	.target.bash_output "echo 'gg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gg":$["cn":"gg", "gidnumber":"1000", "modified":"added", "org_cn":"gg", "org_gidnumber":"1000", "plugins":[], "type":"local", "userlist":$[], "what":"add_group"], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"100", "type":"local"]], "system":$["by_gidnumber":$["0":$["root":"1"]], "gids":$["0":"1"], "groupnames":$["root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
@@ -82,7 +82,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'gg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
+Execute	.target.bash_output "echo 'gg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gg":$["cn":"gg", "gidnumber":"1000", "modified":"added", "org_cn":"gg", "org_gidnumber":"1000", "plugins":[], "type":"local", "userlist":$["hh1":"1", "hh2":"1"], "what":"add_group"], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"100", "type":"local"]], "system":$["by_gidnumber":$["0":$["root":"1"]], "gids":$["0":"1"], "groupnames":$["root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
@@ -127,7 +127,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'gg' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
+Execute	.target.bash_output "echo 'gg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.passwd.groups $["local":$["by_gidnumber":$["100":$["users":"1"]], "gg":$["cn":"gg", "gidnumber":"1000", "modified":"added", "org_cn":"gg", "org_gidnumber":"1000", "plugins":[], "type":"local", "userlist":$["hh1":"1", "hh2":"1"], "what":"add_group"], "gids":$["100":"1"], "groupnames":$["users":"1"], "users":$["cn":"users", "gidnumber":"100", "type":"local"]], "system":$["by_gidnumber":$["0":$["root":"1"]], "gids":$["0":"1"], "groupnames":$["root":"1"], "root":$["cn":"root", "gidnumber":"0", "type":"system"]]] true
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
@@ -172,7 +172,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'root' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"root"]
+Execute	.target.bash_output "echo 'root' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"root"]
 Return	There is a conflict between the entered
 Dump	------------ GroupAdd return value:
 Dump	There is a conflict between the entered
