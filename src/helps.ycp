@@ -55,11 +55,7 @@ With the current password encryption (%1), the password length should be between
 </p>"), enc_to_string[method]:method,
 	Users::GetMinPasswordLength (type), Users::GetMaxPasswordLength (type));
 
-    // help text 3/4
-    help_text = help_text + _("<p>
-Valid password characters are letters, digits, blanks, and
-<tt>#*,.;:._-+!</tt><tt>$%&/|?{[()]}=</tt>.
-</p>");
+    help_text = help_text + Users::ValidPasswordHelptext ();
 
     //help text 4/4
     help_text = help_text + _("<p>
@@ -225,18 +221,11 @@ restrictions in the /etc/login.defs file.  Read its man page for information.
 ");
     }
 
-    help = help +
-
-	// help text 3/7
-	_("<p>
-</p>
-");
-
     if (mail) // these are used only during installation time
     {
 	// help text 4/7 (only during installation)
 	help = help + _("<p>
-With <b>Auto Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
+The username and password created here are needed to log in and work with your Linux system. With <b>Auto Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
 ") +
 
         // help text 5/7 (only during installation)

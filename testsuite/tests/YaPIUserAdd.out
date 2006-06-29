@@ -37,7 +37,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'jj' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"jj"]
+Execute	.target.bash_output "echo 'jj' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"jj"]
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.passwd.users $["local":$["by_uidnumber":$["500":$["hh":"1"]], "hh":$["uid":"hh"], "homes":$["/home/hh":"1"], "jj":$["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/tmp/local/home/jj", "loginshell":"", "modified":"added", "org_homedirectory":"/tmp/local/home/jj", "org_uid":"jj", "org_uidnumber":"1000", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"q", "type":"local", "uid":"jj", "uidnumber":"1000", "userpassword":"crypted_q", "what":"add_user"], "last_uid":"500", "uids":$["500":"1"], "usernames":$["hh":"1"]], "system":$["by_uidnumber":$["0":$["root":"1"]], "homes":$[], "last_uid":"0", "root":$["uid":"root", "uidnumber":"0"], "uids":$["0":"1"], "usernames":$["root":"1"]]] true
 Read	.target.stat "/tmp/local/home/jj" $[]
@@ -90,7 +90,7 @@ Read	.passwd.local.groups.gids $[100:1]
 Read	.passwd.local.groups.groupnames $["users":1]
 Read	.passwd.system.groups.gids $[0:1]
 Read	.passwd.system.groups.groupnames $["root":1]
-Execute	.target.bash_output "echo 'hh' | grep '^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
+Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	There is a conflict between the entered
 Dump	------------ UserAdd return value:
 Dump	There is a conflict between the entered
