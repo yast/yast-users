@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jul 11 10:36:15 CEST 2006 - jsuchome@suse.cz
+
+- escape '@' to fix creating pot-file
+- 2.13.20
+
+-------------------------------------------------------------------
 Thu Jun 29 09:09:02 CEST 2006 - jsuchome@suse.cz
 
 - more characters allowed in password (#175706, #186833)

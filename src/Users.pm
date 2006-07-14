@@ -4357,8 +4357,8 @@ my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`~<>]|]";# the ']' is or-ed...
 
 # error popup	
-my $valid_password_message = _("The password may only contain the following characters:
-0-9, a-z, A-Z, and any of \"`~!@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
+my $valid_password_message = __("The password may only contain the following characters:
+0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
 Try again.");
 
 my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_.-]";
@@ -4388,7 +4388,7 @@ sub ValidPasswordHelptext {
     # help text (default part shown in more places)
     return __("<p>
 Valid password characters are letters, digits, blanks, and
-<tt>,.;:._-+</tt><tt>`~!@#\$%^&*\\/|?{[()]}=</tt>.
+<tt>,.;:._-+</tt><tt>`~!\@#\$%^&*\\/|?{[()]}=</tt>.
 </p>");
 }
 
