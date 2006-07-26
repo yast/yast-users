@@ -1121,7 +1121,7 @@ sub ConvertMap {
 	    next;
 	}
 	if ($key eq "userpassword") {
-	    if ($val eq "x" || $val eq "*") {
+	    if (!defined $val) {
 		next;
 	    }
 	    my $enc	= lc ($encryption);

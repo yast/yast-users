@@ -276,15 +276,13 @@ sub Enable {
     my $config	= $_[0];
     my $data	= $_[1];
 
-    my $pw	= $data->{"userpassword"} || "";
-    if ($pw eq "x") { $pw	= ""; } # do not allow "!x"
+    my $pw	= $data->{"userpassword"};
     
-    if ($pw =~ m/^\!/) {
+    if ((defined $pw) && $pw =~ m/^\!/) {
 	$pw	=~ s/^\!//;
 	$data->{"userpassword"}	= $pw;
     }
     $data->{"shadowexpire"}	= "";
-#FIXME how to set shadowexpire on Enable??? UsersLDAP->GetDefaultShadow???
     y2debug ("Enable LDAPAll called");
     return $data;
 }
@@ -302,10 +300,9 @@ sub Disable {
     my $config	= $_[0];
     my $data	= $_[1];
 
-    my $pw	= $data->{"userpassword"} || "";
-    if ($pw eq "x") { $pw	= ""; } # do not allow "!x"
+    my $pw	= $data->{"userpassword"};
     
-    if ($pw !~ m/^\!/) {
+    if ((defined $pw) && $pw !~ m/^\!/) {
 	$data->{"userpassword"}	= "!".$pw;
     }
     $data->{"shadowexpire"}	= 0;

@@ -41,7 +41,7 @@ Dump	---- current user:
 Dump	 $[]
 Return	
 Dump	---- current user (empty add):
-Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uidnumber":"1000", "userpassword":nil, "what":"add_user"]
 Return	
 Dump	---- current user (after rich add):
 Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/local/home/aaa", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "text_userpassword":"qqqqq", "type":"local", "uid":"aaa", "uidnumber":"501", "userpassword":"crypted_qqqqq", "what":"add_user"]
@@ -59,7 +59,7 @@ Dump	=================== no password ==========================
 Return	
 Return	
 Dump	---- current user (minimal add, used default values):
-Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/hhh", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hhh", "uidnumber":"1000", "userpassword":"", "what":"add_user"]
+Dump	 $["cn":"", "create_home":true, "gidnumber":"100", "grouplist":$["audio":"1", "video":"1"], "groupname":"users", "homedirectory":"/home/hhh", "loginshell":"", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hhh", "uidnumber":"1000", "userpassword":nil, "what":"add_user"]
 Execute	.target.bash_output "echo 'hhh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hhh"]
 Return	No password entered.
 Dump	---- check user after add:
