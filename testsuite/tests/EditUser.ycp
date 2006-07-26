@@ -28,7 +28,7 @@
 			"uid"		: "hh",
 			"uidnumber"	: 500,
 			"type"		: "local",
-			"userpassword"	: "x",
+			"userpassword"	: nil,
 			"sn"		: "HH",
 			"grouplist"	: $[
 			    "users"	: 1
@@ -50,6 +50,9 @@
 		    ]
 		],
 		"shadow": $[
+		    "hh"	: $[
+			"userpassword"	: "secret",
+		    ]
 		],
 		"groups": $[
 		    "users": $[

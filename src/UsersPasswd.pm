@@ -149,7 +149,7 @@ sub read_shadow {
 		"shadowmin"		=> $min,
 		"shadowmax"		=> $max,
 		"shadowflag"		=> $flag,
-		"userpassword"		=> $pass	|| ""
+		"userpassword"		=> $pass
 	    };
 	}
 	else # plus line in /etc/shadow
@@ -402,7 +402,7 @@ sub read_passwd {
 		"loginshell"	=> $shell,
 		"groupname"	=> $groupname,
 		"grouplist"	=> \%grouplist,
-		"userpassword"	=> "x",
+		"userpassword"	=> undef,
 		"type"		=> $user_type
 	    };
 

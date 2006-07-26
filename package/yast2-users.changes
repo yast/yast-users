@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Jul 25 16:34:30 CEST 2006 - jsuchome@suse.cz
+
+- allow usage of empty passwords (#144724)
+- allow "x" and "!" values for passwords (#148464)
+- show more descriptive help text about password contents (#146533)
+- 2.13.21
+
+-------------------------------------------------------------------
 Tue Jul 11 10:36:15 CEST 2006 - jsuchome@suse.cz
 
 - escape '@' to fix creating pot-file

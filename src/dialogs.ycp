@@ -152,7 +152,7 @@ define symbol EditUserDialog (string what) {
     string default_home = Users::GetDefaultHome (user_type);
     string home		= user["homedirectory"]:default_home;
     string org_home	= user["org_homedirectory"]:home;
-    string password	= user["userpassword"]:"x";
+    string password	= (string)user["userpassword"]:nil;
     string org_username = user["org_uid"]:username;
     integer uid		= GetInt (user["uidnumber"]:nil, nil);
     integer gid		=
@@ -1407,7 +1407,7 @@ _("Change home directory to %1?"), generated_home))))
 		else
 		    UI::SetFocus(`id(`cn));
 	    }
-	    if (password != "")
+	    if (password != nil)
 	    {
 		UI::ChangeWidget(`id(`pw1), `Value, default_pw);
 		UI::ChangeWidget(`id(`pw2), `Value, default_pw);
@@ -1527,7 +1527,7 @@ define symbol EditGroupDialog (string what) {
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
     string  groupname		= group["cn"]:"";
-    string  password		= group["userpassword"]:"x";
+    string  password		= (string) group["userpassword"]:nil;
     integer gid			= GetInt (group["gidnumber"]:nil, -1);
     // these are the users with this group as a default:
     map<string,any> more_users	= group["more_users"]:$[];
@@ -1979,7 +1979,7 @@ Try again.")) ;
 	    if (what == "add_group") UI::SetFocus(`id(`groupname));
 	    if (what == "edit_group")
 	    {
-		if (password != "" && !contains (["x","*","!"], password))
+		if (password != nil)
 		{
 		    UI::ChangeWidget(`id(`pw1), `Value, default_pw);
 		    UI::ChangeWidget(`id(`pw2), `Value, default_pw);

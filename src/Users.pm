@@ -739,7 +739,7 @@ sub GetDefaultShadow {
             "shadowmax"         => $pass_max_days,
             "shadowflag"        => "",
             "shadowlastchange"	=> "",
-	    "userpassword"	=> ""
+	    "userpassword"	=> undef
     );
     if ($type eq "ldap") {
 	%ret	= %{UsersLDAP->GetDefaultShadow()};
@@ -1823,12 +1823,11 @@ sub DisableUser {
     }
     if ($plugin_error) { return $plugin_error; }
 
-    if ($no_plugin && ($type eq "local" || $type eq "system")) {
+    if ($no_plugin && ($type eq "local" || $type eq "system") &&
+	bool ($user{"encrypted"})) {
 	# no plugins available: local user
-	# TODO not ready? shadowexpire
-	my $pw			= $user{"userpassword"} || "";
-	if ($pw eq "x") { $pw	= ""; } # no not allow "!x"
-	if ($pw !~ m/^\!/) {
+	my $pw			= $user{"userpassword"};
+	if ((defined $pw) && ($pw !~ m/^\!/)) {
 	    $user{"userpassword"}	= "!".$pw;
 	}
     }
@@ -1902,12 +1901,14 @@ sub EnableUser {
     }
     if ($plugin_error) { return $plugin_error; }
 
-    if ($no_plugin && ($type eq "local" || $type eq "system")) {
+    if ($no_plugin && ($type eq "local" || $type eq "system") &&
+	bool ($user{"encrypted"})) {
 	# no plugins available: local user
-	my $pw	= $user{"userpassword"} || "";
-	$pw	=~ s/^\!//;
-	if ($pw eq "") { $pw	= "x"; }
-	$user{"userpassword"}	= $pw;
+	my $pw	= $user{"userpassword"};
+	if (defined $pw) {
+	    $pw				=~ s/^\!//;
+	    $user{"userpassword"}	= $pw;
+	}
     }
 
     if (!defined $user{"enabled"} || ! bool ($user{"enabled"})) {
@@ -1942,10 +1943,6 @@ sub ReadLDAPUser {
 	    $user_in_work{$key}	= $u->{$key};
 	    next;
 	}
-	if ($key eq "userpassword" && ($user_in_work{$key} || "x") eq "x" &&
-	    $user_in_work{$key} ne $u->{$key}) {
-	    $user_in_work{$key} = $u->{$key};
-	}
     }
 }
 
@@ -1979,16 +1976,16 @@ sub EditUser {
 	}
 
 	# password we have read was real -> set "encrypted" flag
-	my $pw	= $user_in_work{"userpassword"} || "";
-	if ($pw ne "" && $pw ne "x" &&
-	    (!defined $user_in_work{"encrypted"} ||
-	     bool ($user_in_work{"encrypted"}))) {
-	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	}
-
-	# check thi initial enabled/disabled status
-	if ($pw =~ m/^\!/) {
-	    $user_in_work{"enabled"}	= YaST::YCP::Boolean (0);
+	my $pw	= $user_in_work{"userpassword"};
+	if (defined $pw) {
+	    if (!defined $user_in_work{"encrypted"} ||
+		bool ($user_in_work{"encrypted"})) {
+		$user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	    }
+	    # check thi initial enabled/disabled status
+	    if ($pw =~ m/^\!/) {
+		$user_in_work{"enabled"}	= YaST::YCP::Boolean (0);
+	    }
 	}
 
 	# set the default value ("move directories, when changed")
@@ -2014,7 +2011,7 @@ sub EditUser {
 	# empty password entry for autoinstall config (do not want to
 	# read password from disk: #30573)
 	if (Mode->config () && ($user_in_work{"modified"} || "") ne "imported"){
-	    $user_in_work{"userpassword"} = "";
+	    $user_in_work{"userpassword"} = undef;
 	}
     }
     # ------------------------- initialize list of current user plugins
@@ -2138,8 +2135,7 @@ sub EditUser {
 	if ($key eq "org_user") {
 	    next;
 	}
-	if ($key eq "userpassword" && $data{$key} ne "" &&
-	    $data{$key} ne "x" && $data{$key} ne "!" &&
+	if ($key eq "userpassword" && (defined $data{$key}) &&
 	    $data{$key} ne $user_in_work{$key}) {
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
@@ -2214,8 +2210,7 @@ sub EditGroup {
 	($group_in_work{"what"} || "") ne "add_group") {
 
 	# password we have read was real -> set "encrypted" flag
-	my $pw	= $group_in_work{"userpassword"} || "";
-	if ($pw ne "" && $pw ne "x" &&
+	if (defined ($group_in_work{"userpassword"}) &&
 	    (!defined $group_in_work{"encrypted"} ||
 	     bool ($group_in_work{"encrypted"}))) {
 	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
@@ -2339,16 +2334,15 @@ sub EditGroup {
 		$group_in_work{"removed_userlist"} = \%removed;
 	    }
 	}
-	if ($key eq "userpassword" && $data{$key} ne "" && $data{$key} ne "x"
-	    && $data{$key} ne "!") {
+	if ($key eq "userpassword" && (defined $data{$key}) &&
 	    # crypt password only once (when changed)
-	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
+	    !bool ($data{"encrypted"}))
+	{
 		$group_in_work{$key}		=
 		    $self->CryptPassword ($data{$key}, $type, "group");
 		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
 		$data{"encrypted"}		= YaST::YCP::Boolean (1);
 		next;
-	    }
 	}
 	$group_in_work{$key}	= $data{$key};
     }
@@ -2832,10 +2826,9 @@ sub AddUser {
 	    $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
-	# crypt password only once
-	elsif ($key eq "userpassword" &&
-	      (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) &&
-	      $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!")
+	elsif ($key eq "userpassword" && (defined $data{$key}) &&
+	    # crypt password only once
+	    !bool ($data{"encrypted"}))
 	{
 	    $user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
 	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
@@ -2895,9 +2888,9 @@ sub AddUser {
 	$user_in_work{"shadowlastchange"} eq "") {
         $user_in_work{"shadowlastchange"} = LastChangeIsNow ();
     }
-    if (!defined $user_in_work{"userpassword"}) {
-	$user_in_work{"userpassword"}	= "";
-    }
+#    if (!defined $user_in_work{"userpassword"}) {
+#	$user_in_work{"userpassword"}	= "";
+#    }
     if (!defined $user_in_work{"no_skeleton"} && $type eq "system") {
 	$user_in_work{"no_skeleton"}	= YaST::YCP::Boolean (1);
     }
@@ -3054,10 +3047,9 @@ sub AddGroup {
     # ----------------------------------------------------------------
 
     foreach my $key (keys %data) {
-	if ($key eq "userpassword" && !bool ($data{"encrypted"}) &&
-	    $data{$key} ne "" && $data{$key} ne "x" && $data{$key} ne "!") {
-	    
-	    # crypt password only once
+	if ($key eq "userpassword" && (defined $data{$key}) &&
+	    !bool ($data{"encrypted"}))
+	{
 	    $group_in_work{$key}	=
 		$self->CryptPassword ($data{$key}, $type, "group");
 	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
@@ -4387,8 +4379,9 @@ BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
 sub ValidPasswordHelptext {
     # help text (default part shown in more places)
     return __("<p>
-Valid password characters are letters, digits, blanks, and
-<tt>,.;:._-+</tt><tt>`~!\@#\$%^&*\\/|?{[()]}=</tt>.
+For the password, use only characters that can be found on an English keyboard
+layout.  In cases of system error, it may be necessary to log in without a
+localized keyboard layout.
 </p>");
 }
 
@@ -4408,17 +4401,6 @@ sub CheckUID {
 	return __("No UID is available for this type of user.");
     }
 
-#    if (("add_user" eq ($user_in_work{"what"} || "")) 	||
-#	($uid != ($user_in_work{"uidnumber"} || 0))	||
-#	(defined $user_in_work{"org_uidnumber"} && 
-#		 $user_in_work{"org_uidnumber"} != $uid)) {
-#
-#	if (UsersCache->UIDExists ($uid)) {
-#	    # error popup
-#	    return __("The user ID entered is already in use.
-#Select another user ID.");
-#	}
-#    }
     my $username	= $user_in_work{"uid"} || "";
 
     if ($type eq "system" && $username eq "nobody" && $uid == 65534) {
@@ -4634,18 +4616,16 @@ Remove the surplus.");
 
 ##------------------------------------
 # check the password of current user
+# return value is error message
 BEGIN { $TYPEINFO{CheckPassword} = ["function", "string", "string"]; }
 sub CheckPassword {
 
     my $self		= shift;
     my $pw 		= $_[0];
+    my $type		= UsersCache->GetUserType ();
+    my $min_length 	= $min_pass_length{$type};
 
-    # password for 'disabled' user
-    if ($pw eq "!") {
-	return "";
-    }
-
-    if (($pw || "") eq "") {
+    if ((!defined $pw) || ($pw eq "" && $min_length > 0)) {
 	# error popup
 	return __("No password entered.
 Try again.");
@@ -5220,7 +5200,7 @@ sub CheckUser {
 
     if ($error eq "") {
 	# do not check pw when it wasn't changed - must be tested directly
-	if ($user{"userpassword"} ne "x" ||
+	if (defined ($user{"userpassword"}) ||
 	    ($user{"what"} || "") eq "add_user") {
 	    $error	= $self->CheckPassword ($user{"userpassword"});
 	}
@@ -5285,9 +5265,7 @@ sub CheckGroup {
     my $error = $self->CheckGID ($group{"gidnumber"});
 
     if ($error eq "") {
-	if (defined $group{"userpassword"} && ! bool ($group{"encrypted"}) &&
-	    $group{"userpassword"} ne "" && $group{"userpassword"} ne "x" &&
-	    $group{"userpassword"} ne "!") {
+	if ((defined $group{"userpassword"}) && ! bool ($group{"encrypted"})) {
 	    $error	= $self->CheckPassword ($group{"userpassword"});
 	}
     }
@@ -5457,7 +5435,7 @@ sub CryptPassword {
 	$method = lc ($group_encryption_method);
     }
     
-    if (!defined $pw || $pw eq "") {
+    if (!defined $pw) {
 	return $pw;
     }
     if (Mode->test ()) {
@@ -5630,9 +5608,9 @@ sub ImportUser {
     if (defined $encrypted && ref ($encrypted) ne "YaST::YCP::Boolean") {
 	$encrypted	= YaST::YCP::Boolean ($encrypted);
     }
-    my $pass		= $user->{"user_password"}	|| "x";
+    my $pass		= $user->{"user_password"};
     if ((!defined $encrypted || !bool ($encrypted)) &&
-	$pass ne "x" && !Mode->config ())
+	(defined $pass) && !Mode->config ())
     {
 	$pass 		= $self->CryptPassword ($pass, $type);
 	$encrypted	= YaST::YCP::Boolean (1);
@@ -5665,11 +5643,11 @@ sub ImportUser {
 		%user_shadow	= %{$self->CreateShadowMap (\%user_in_work)};
 	    }
 	    my $finalpw 	= "";
-	    if ($pass ne "x") {
+	    if (defined $pass) {
 		$finalpw 	= $pass;
 	    }
 	    else {
-		$finalpw 	= $existing{"userpassword"} || "x";
+		$finalpw 	= $existing{"userpassword"};
 	    }
 
 	    if (!defined $user->{"forename"} && !defined $user->{"surname"} &&
@@ -5785,7 +5763,7 @@ sub ImportGroup {
 	}
     }
     my %ret		= (
-        "userpassword"	=> $group{"group_password"} || "x",
+        "userpassword"	=> $group{"group_password"},
         "cn"		=> $groupname,
         "gidnumber"	=> $gid,
         "userlist"	=> \%userlist,
@@ -6007,12 +5985,12 @@ sub Import {
 
     my %group_u = %{$self->GetGroupByName ("users", "local")};
     if (!%group_u) {
-        # group users must be created
+        # group 'users' must be created
 	my $gid		= $self->GetDefaultGID ("local");
         %group_u	= (
              "gidnumber"		=> $gid,
 	     "cn"			=> "users",
-	     "userpassword"		=> "x",
+	     "userpassword"		=> undef,
 	     "userlist"			=> {},
 	     "type"			=> "local"
 	);
@@ -6078,12 +6056,10 @@ sub Import {
     # check if root password is set (bug #76404)
     if (Mode->autoinst ()) {
 	my %root_user	= %{$self->GetUserByName ("root", "system")};
-	if (%root_user && (
-	    ($root_user{"userpassword"} || "") eq "" ||
-	    ($root_user{"userpassword"} || "") eq "x")) {
+	if (%root_user && (($root_user{"userpassword"} || "") eq "")) {
 
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
-	    if (defined $pw && $pw ne "") {
+	    if (defined $pw){
 
 		$root_user{"userpassword"}	=
 		    $self->CryptPassword ($pw, "system");
@@ -6235,11 +6211,10 @@ sub ExportGroup {
 	(defined $group->{"org_group"}{"cn"} &&
 	$group->{"cn"} ne $group->{"org_group"}{"cn"}))
 	)
-	{
-
+    {
 	$ret{"gid"}		= $group->{"gidnumber"};
     }
-    if (($group->{"userpassword"} || "x") ne "x") {
+    if (defined $group->{"userpassword"}) {
 	$ret{"group_password"}	= $group->{"userpassword"};
     }
 
