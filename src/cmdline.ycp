@@ -266,8 +266,15 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 	string pw = CommandLine::PasswordInput (_("Password for New User:"));
 	user["userpassword"]	= pw;
     }
+    string error = Users::CheckPassword (user["userpassword"]:"");
 
-    string error = Users::AddUser (user);
+    if (error != "")
+    {
+	CommandLine::Print (error);
+	return false;
+    }
+
+    error = Users::AddUser (user);
 
     if (error != "")
     {
