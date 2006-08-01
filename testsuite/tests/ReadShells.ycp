@@ -16,8 +16,7 @@
  */
 
 {
-
-    include "testsuite.ycp";
+    import "Testsuite";
 
     import "Users";
 
@@ -32,16 +31,11 @@
 /bin/ksh
 /bin/sh",
 	    "stat"	: $[ 1: 1], // means 'file exists'
+	    "tmpdir"	: "/tmp/YaST",
 	]
     ];
 
-    map EXECUTE = $[
-	"target" : $[
-	    "size" : 0
-	]
-    ];
-
-    TEST (``(Users::ReadAllShells ()), [READ, $[], EXECUTE], 0);
-    DUMP ("==========================================================");
-    DUMP (sformat ("shells: %1", Users::AllShells()));
+    Testsuite::Test (``(Users::ReadAllShells ()), [READ, $[], $[]], 0);
+    Testsuite::Dump ("==========================================================");
+    Testsuite::Dump (sformat ("shells: %1", Users::AllShells()));
 }

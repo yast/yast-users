@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug  1 10:02:02 CEST 2006 - jsuchome@suse.cz
+
+- fixed testsuite (recent change in FileUtils.ycp)
+- 2.13.22 
+
+-------------------------------------------------------------------
 Tue Jul 25 16:34:30 CEST 2006 - jsuchome@suse.cz
 
 - allow usage of empty passwords (#144724)
