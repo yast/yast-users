@@ -1,4 +1,5 @@
 Read	.target.string "/etc/shells" "/bin/ash\n/bin/bash\n/bin/bash1\n/bin/csh\n/bin/false\n/bin/ksh\n/bin/sh"
+Read	.target.tmpdir "/tmp/YaST"
 Read	.target.stat "/bin/ash" $[1:1]
 Read	.target.stat "/bin/bash" $[1:1]
 Read	.target.stat "/bin/csh" $[1:1]
