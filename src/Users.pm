@@ -1219,9 +1219,14 @@ sub ReadSystemDefaults {
     $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
     $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
 
-    $character_class 	= SCR->Read (".etc.login_defs.CHARACTER_CLASS") || "";
+    my $login_defs	= SCR->Dir (".etc.login_defs");
+    if (contains ($login_defs, "CHARACTER_CLASS")) {
+	$character_class= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
+    }
 
-    $umask		= SCR->Read (".etc.login_defs.UMASK");
+    if (contains ($login_defs, "UMASK")) {
+	$umask		= SCR->Read (".etc.login_defs.UMASK");
+    }
 
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {

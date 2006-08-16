@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 16 10:17:59 CEST 2006 - jsuchome@suse.cz
+
+- leave default when CHARACTER_CLASS is not in /etc/login.defs (#199476)
+- 2.13.23 
+
+-------------------------------------------------------------------
 Tue Aug  1 10:02:02 CEST 2006 - jsuchome@suse.cz
 
 - fixed testsuite (recent change in FileUtils.ycp)
