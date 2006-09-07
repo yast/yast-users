@@ -220,6 +220,7 @@ YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersLDAP");
+YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersUI");
@@ -1347,10 +1348,10 @@ sub ReadLocal {
 	"base_directory"	=> $base_directory
     );
     # id limits are necessary for differ local and system users
-    my $init = SCR->Execute (".passwd.init", \%configuration);
+    my $init = UsersPasswd->Read (\%configuration);
     if (!$init) {
-	my $error 	= SCR->Read (".passwd.error");
-	my $error_info	= SCR->Read (".passwd.error.info");
+	my $error 	= UsersPasswd->GetError ();
+	my $error_info	= UsersPasswd->GetErrorInfo ();
 	return UsersUI->GetPasswdErrorMessage ($error, $error_info);
     }
     $passwd_not_read 		= 0;
@@ -1358,22 +1359,22 @@ sub ReadLocal {
     $group_not_read 		= 0;
 
     foreach my $type ("local", "system") {
-	$users{$type}		= \%{SCR->Read (".passwd.$type.users")};
-	$users_by_uidnumber{$type} = \%{SCR->Read (".passwd.$type.users.by_uidnumber")};
-	$shadow{$type}		= \%{SCR->Read (".passwd.$type.shadow")};
-	$groups{$type}		= \%{SCR->Read (".passwd.$type.groups")};
-	$groups_by_gidnumber{$type}= \%{SCR->Read(".passwd.$type.groups.by_gidnumber")};
+	$users{$type}		= UsersPasswd->GetUsers ($type);
+	$users_by_uidnumber{$type} = UsersPasswd->GetUsersByUIDNumber ($type);
+	$shadow{$type}		= UsersPasswd->GetShadow ($type);
+	$groups{$type}		= UsersPasswd->GetGroups ($type);
+	$groups_by_gidnumber{$type}= UsersPasswd->GetGroupsByGIDNumber ($type);
     }
 
-    my $pluses		= SCR->Read (".passwd.passwd.pluslines");
+    my $pluses		= UsersPasswd->GetPluslines ("passwd");
     if (ref ($pluses) eq "ARRAY") {
 	@pluses_passwd	= @{$pluses};
     }
-    $pluses		= SCR->Read (".passwd.shadow.pluslines");
+    $pluses		= UsersPasswd->GetPluslines ("shadow");
     if (ref ($pluses) eq "ARRAY") {
 	@pluses_shadow	= @{$pluses};
     }
-    $pluses		= SCR->Read (".passwd.group.pluslines");
+    $pluses		= UsersPasswd->GetPluslines ("group");
     if (ref ($pluses) eq "ARRAY") {
 	@pluses_group	= @{$pluses};
     }
@@ -3510,7 +3511,6 @@ sub CommitGroup {
 
     # we need to create local copy of current group map
     my %group	= %group_in_work;
-
     my $type	= "local";
     if (defined $group{"type"}) {
         $type	= $group{"type"};
@@ -3744,7 +3744,7 @@ sub WriteGroup {
     {
 	return 0;
     }
-    return SCR->Write (".passwd.groups", \%groups);
+    return UsersPasswd->WriteGroups (\%groups);
 }
 
 ##------------------------------------
@@ -3754,7 +3754,7 @@ sub WritePasswd {
     {
 	return 0;
     }
-    return SCR->Write (".passwd.users", \%users);
+    return UsersPasswd->WriteUsers (\%users);
 }
 
 ##------------------------------------
@@ -3765,7 +3765,7 @@ sub WriteShadow {
     {
 	return 0;
     }
-    return SCR->Write (".passwd.shadow", \%shadow);
+    return UsersPasswd->WriteShadow (\%shadow);
 }
 
 ##------------------------------------
@@ -6367,7 +6367,7 @@ sub AddPlusPasswd {
 
     if (!contains (\@pluses_passwd, $plusline)) {
 	push @pluses_passwd, $plusline;
-	if (SCR->Write (".passwd.passwd.pluslines", \@pluses_passwd)) {
+	if (UsersPasswd->SetPluslines ("passwd", \@pluses_passwd)) {
 	    $users_modified 	= 1;
 	}
     }
@@ -6380,7 +6380,7 @@ sub AddPlusShadow {
 
     if (!contains (\@pluses_shadow, $plusline)) {
 	push @pluses_shadow, $plusline;
-	if (SCR->Write (".passwd.shadow.pluslines", \@pluses_shadow)) {
+	if (UsersPasswd->SetPluslines ("shadow", \@pluses_shadow)) {
 	    $users_modified 	= 1;
 	}
     }
@@ -6393,7 +6393,7 @@ sub AddPlusGroup {
 
     if (!contains (\@pluses_group, $plusline)) {
 	push @pluses_group, $plusline;
-	if (SCR->Write (".passwd.group.pluslines", \@pluses_group)) {
+	if (UsersPasswd->SetPluslines ("group", \@pluses_group)) {
 	    $groups_modified 	= 1;
 	}
     }
