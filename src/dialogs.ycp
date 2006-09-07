@@ -1407,7 +1407,7 @@ _("Change home directory to %1?"), generated_home))))
 		else
 		    UI::SetFocus(`id(`cn));
 	    }
-	    if (password != nil)
+	    if (password != nil || what == "edit_user")
 	    {
 		UI::ChangeWidget(`id(`pw1), `Value, default_pw);
 		UI::ChangeWidget(`id(`pw2), `Value, default_pw);
