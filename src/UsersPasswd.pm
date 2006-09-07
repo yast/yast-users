@@ -269,15 +269,6 @@ sub read_group {
 sub read_passwd {
 
     my $file	= "$base_directory/passwd";
-    if (! FileUtils->Exists ($file)) {
-	y2warning ("$file cannot be opened for reading!");
-	return 1;
-    }
-    my $in	= SCR->Read (".target.string", $file);
-    if (! defined $in) {
-	y2warning ("$file cannot be opened for reading!");
-	return 1;
-    }
 
     %users 	= ();
     %shadow	= ();
@@ -286,6 +277,16 @@ sub read_passwd {
     %homes	= ();
     @plus_lines_passwd	= ();
     @comments_passwd	= ();
+
+    if (! FileUtils->Exists ($file)) {
+	y2warning ("$file is not available!");
+	return 1;
+    }
+    my $in	= SCR->Read (".target.string", $file);
+    if (! defined $in) {
+	y2warning ("$file cannot be opened for reading!");
+	return 1;
+    }
 
     foreach my $user (split (/\n/,$in)) {
 
@@ -549,6 +550,7 @@ sub GetGroups {
     if (defined $groups{$type}) {
 	return $groups{$type};
     }
+    return {};
 }
 
 # Return the map with mappings of GID's to group names with such GID
