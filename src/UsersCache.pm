@@ -106,6 +106,7 @@ my $the_answer			= 42;
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersUI");
 
 ##-------------------------------------------------------------------------
@@ -1177,21 +1178,20 @@ sub ReadUsers {
     my $self	= shift;
     my $type	= $_[0];
 
-    my $path 	= ".passwd.$type";
     if ($type eq "ldap") {
-	$path 		= ".ldap";
         %userdns	= %{SCR->Read (".ldap.users.userdns")};
     }
-    elsif ($type eq "nis") {
-	$path		= ".nis";
-    }
-    else { # only local/system
-	$self->SetLastUID (SCR->Read ("$path.users.last_uid"), $type);
+    elsif ($type ne "nis") { # only local/system
+	$self->SetLastUID (UsersPasswd->GetLastUID ($type), $type);
+	$homes{$type} 		= UsersPasswd->GetHomes ($type);
+	$usernames{$type}	= UsersPasswd->GetUsernames ($type);
+	$uids{$type}		= UsersPasswd->GetUIDs ($type);
+	return 1;
     }
 
-    $homes{$type} 	= \%{SCR->Read ("$path.users.homes")};
-    $usernames{$type}	= \%{SCR->Read ("$path.users.usernames")};
-    $uids{$type}	= \%{SCR->Read ("$path.users.uids")};
+    $homes{$type} 	= \%{SCR->Read (".$type.users.homes")};
+    $usernames{$type}	= \%{SCR->Read (".$type.users.usernames")};
+    $uids{$type}	= \%{SCR->Read (".$type.users.uids")};
     return 1;
 }
 
@@ -1199,19 +1199,18 @@ sub ReadUsers {
 sub ReadGroups {
 
     my $self	= shift;
-    my $type	= $_[0];
-    my $path 	= ".passwd.$type";
-    if ($type eq "ldap") {
-	$path 	= ".$type";
-    }
-    elsif ($type eq "nis") {
-	$path 	= ".$type";
-    }
-    else { # only adapt to minimal value
+    my $type	= shift;
+
+    if ($type eq "local" || $type eq "system") {
+	# only adapt to minimal value
 	$self->SetLastGID ($min_gid{$type}, $type);
+	$gids{$type}		= UsersPasswd->GetGIDs ($type);
+	$groupnames{$type}	= UsersPasswd->GetGroupnames ($type);
+	return 1;
     }
-    $gids{$type}	= \%{SCR->Read ("$path.groups.gids")};
-    $groupnames{$type}	= \%{SCR->Read ("$path.groups.groupnames")};
+    $gids{$type}	= \%{SCR->Read (".$type.groups.gids")};
+    $groupnames{$type}	= \%{SCR->Read (".$type.groups.groupnames")};
+    return 1;
 }
 
 
