@@ -23,6 +23,7 @@ import "Popup";
 import "Progress";
 import "Report";
 import "Stage";
+import "String";
 import "Summary";
 import "Users";
 import "UsersCache";
@@ -152,6 +153,9 @@ define symbol EditUserDialog (string what) {
     string default_home = Users::GetDefaultHome (user_type);
     string home		= user["homedirectory"]:default_home;
     string org_home	= user["org_homedirectory"]:home;
+    string default_mode	=
+	sformat ("%1", 777 - tointeger (String::CutZeros (Users::GetUmask ())));
+    string mode		= user["home_mode"]:default_mode;
     string password	= (string)user["userpassword"]:nil;
     string org_username = user["org_uid"]:username;
     integer uid		= GetInt (user["uidnumber"]:nil, nil);
@@ -227,6 +231,7 @@ define symbol EditUserDialog (string what) {
 	    cn	= user["cn"]:cn;
 	home		= user["homedirectory"]:home;
 	org_home	= user["org_homedirectory"]:org_home;
+	mode		= user["home_mode"]:default_mode;
 	password	= user["userpassword"]:password;
 	org_username	= user["org_uid"]:org_username;
 	uid		= GetInt (user["uidnumber"]:nil, uid);
@@ -477,6 +482,12 @@ define symbol EditUserDialog (string what) {
 	    // textentry label
 	    `TextEntry( `id(`home), _("&Home Directory"), home )
 	);
+	term new_user_term	= what != "add_user" ? `VBox () : `VBox (
+	    // textentry label
+	    `TextEntry (`id(`mode), _("Home Directory &Permission Mode"), mode),
+	    // check box label
+	    `Left (`CheckBox (`id(`skel), _("E&mpty Home"), no_skel))
+	);
 	return `HBox (
           `HSpacing(1),
           `VBox(
@@ -493,11 +504,7 @@ group memberships can be changed.")) : `VSpacing (0),
                         sformat("%1",uid ))),
                     `Top(`VBox(
 			`HBox ( home_w, browse),
-			what != "add_user" ? `VSpacing (0) :
-			`Left (
-			    // check box label
-			    `CheckBox (`id(`skel), _("E&mpty Home"), no_skel)
-			)
+			new_user_term
 		    )),
                     additional_data,
                     `Top(edit_shell),
@@ -1097,6 +1104,7 @@ _("Change home directory to %1?"), generated_home))))
 	    if (what == "add_user")
 	    {
 		no_skel	= (boolean) UI::QueryWidget(`id(`skel),`Value);
+		mode	= (string) UI::QueryWidget(`id(`mode), `Value);
 	    }
 	    if ((findlastof (new_home, "/") + 1) == size (new_home))
 	    {
@@ -1155,6 +1163,8 @@ _("Change home directory to %1?"), generated_home))))
             if (defaultgroup != new_defaultgroup)
             {
 		map g	= Users::GetGroupByName (new_defaultgroup, new_type);
+		if (g == $[])
+		    g   = Users::GetGroupByName (new_defaultgroup, "");
                 gid	= GetInt (g["gidnumber"]:nil, gid);
             }
 
@@ -1237,6 +1247,7 @@ _("Change home directory to %1?"), generated_home))))
 	    user["create_home"]		= create_home;
 	    user["addit_data"]		= addit_data;
 	    user["no_skeleton"]		= no_skel;
+	    user["home_mode"]		= mode;
         }
 
 	if (current == `passwordsettings && (ret == `next || tab))
@@ -1436,6 +1447,11 @@ _("Change home directory to %1?"), generated_home))))
 	    if (user_type == "ldap" && !Ldap::file_server)
 	    {
 		UI::ChangeWidget (`id (`browse), `Enabled, false);
+	    }
+	    if (UI::WidgetExists (`id (`mode)))
+	    {
+		UI::ChangeWidget (`id (`mode), `ValidChars, "01234567");
+		UI::ChangeWidget (`id (`mode), `InputMaxLength, 3);
 	    }
 	    UI::ChangeWidget(`id(`shell), `Value, shell);
 
@@ -2061,6 +2077,7 @@ define symbol DefaultsDialog() {
 	(list<string>) maplist (string g,integer i, groups, ``(g)), ",");
 
     string exp_date		= "";
+    string umask		= Users::GetUmask ();
     list available_groups	= [];
     list available_shells	= Users::AllShells ();
 
@@ -2122,6 +2139,7 @@ define symbol DefaultsDialog() {
 			`PushButton(`id(`brow_s),`opt(`key_F7), _("Bro&wse..."))
 		    )
 		),
+		`TextEntry (`id(`umask), _("&Umask for Home Directory"), umask),
                 // text entry
                 `TextEntry( `id(`exp), _("Default E&xpiration Date"), exp_date),
                 // intfield
@@ -2142,8 +2160,11 @@ define symbol DefaultsDialog() {
     Wizard::HideAbortButton ();
 
     UI::ChangeWidget(`id(`shell), `Value, shell);
+    UI::ChangeWidget (`id (`umask), `ValidChars, "01234567");
+    UI::ChangeWidget (`id (`umask), `InputMaxLength, 3);
 
     boolean modified = false;
+    boolean login_defs_modified	= false;
 
     string new_home  = home;
     string new_shell = shell;
@@ -2153,6 +2174,7 @@ define symbol DefaultsDialog() {
     integer new_inact = inact;
     string new_expire = expire;
     string new_grouplist = grouplist;
+    string new_umask	= umask;
 
     symbol ret = `next;
     while (true)
@@ -2193,6 +2215,7 @@ define symbol DefaultsDialog() {
             new_defgroup = (string)UI::QueryWidget(`id(`defaultgroup),`Value);
             new_exp_date = (string)UI::QueryWidget(`id(`exp),`Value);
 	    new_grouplist = (string)UI::QueryWidget(`id(`grouplist),`Value);
+	    new_umask	= (string)UI::QueryWidget(`id(`umask), `Value);
 	    // check new grouplist...
 	    if (new_grouplist != grouplist)
 	    {
@@ -2324,6 +2347,8 @@ Try again.
             }
             if (defaultgroup != new_defgroup || inact != new_inact)
                 modified = true;
+	    if (new_umask != umask)
+		login_defs_modified	= true;
             break;
         }
     }
@@ -2340,6 +2365,10 @@ Try again.
 	    "groups": new_grouplist
         ];
         Users::SetLoginDefaults (new_defaults, new_defgroup);
+    }
+    if (login_defs_modified)
+    {
+	Users::SetUmask (new_umask);
     }
 
     return ret;
