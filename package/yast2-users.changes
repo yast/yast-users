@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Thu Sep  7 13:43:23 CEST 2006 - jsuchome@suse.cz
+
+- minor fixes in help text (#203819)
+- allowed changing of new user's home mode and default umask (F3621)
+- fixed wrong usage of Progress->set
+- fixed setting of user's default group (#203761)
+- 2.13.25
+
+-------------------------------------------------------------------
 Thu Sep  7 11:22:04 CEST 2006 - jsuchome@suse.cz
 
 - enhanced writing performance using UserPasswd.pm (#148482, F301176)
