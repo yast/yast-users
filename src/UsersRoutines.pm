@@ -35,7 +35,6 @@ sub CreateHome {
     my $self	= shift;
     my $skel	= $_[0];
     my $home	= $_[1];
-    my $umask	= $_[2];
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
@@ -61,9 +60,6 @@ sub CreateHome {
     # now copy homedir from skeleton
     else {
 	my $command	= "/bin/cp -r $skel $home";
-	if (defined $umask && $umask ne "") {
-	    $command	= "umask $umask; $command";
-	}
 	my %out		= %{SCR->Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
 	    y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -109,6 +105,36 @@ sub ChownHome {
 	return 0;
     }
     y2milestone ("Owner of files in $home changed to user with UID $uid");
+    return 1;
+}
+
+##------------------------------------
+# Change mode of directory
+# @param home name of new home directory
+# @param mode for the directory
+# @return success
+BEGIN { $TYPEINFO{ChmodHome} = ["function",
+    "boolean",
+    "integer", "integer", "string"];
+}
+sub ChmodHome {
+
+    my $self	= shift;
+    my $home	= shift;
+    my $mode	= shift;
+
+    if (!defined $home || !defined $mode) {
+	y2error ("missing arguments");
+	return 0;
+    }
+
+    my $command = "/bin/chmod $mode $home";
+    my %out	= %{SCR->Execute (".target.bash_output", $command)};
+    if (($out{"stderr"} || "") ne "") {
+	y2error ("error calling $command: ", $out{"stderr"} || "");
+	return 0;
+    }
+    y2milestone ("Mode of directory $home changed to $mode");
     return 1;
 }
 

@@ -107,6 +107,11 @@ _("<p><b>Skeleton Directory</b><br>
 The contents of this directory are copied to a user's home directory when a new user is added. </p>
 ")
 +
+
+// Help text 4.5/6
+_("<p><b>Umask for Home Directory</b><br>
+Umask which is used by for creating new home directories.</p>") +
+
 // Help text 5/6:
 // Don't reorder letters YYYY-MM-DD, date must be set in this format
 _("<p><b>Expiration Date</b><br>
@@ -198,7 +203,7 @@ assign to this user account.
 	help = help +
 	// help text 2/7
 	_("<p>
-Create the <b>User Login</b> from components of the full name by
+Create the <b>Username</b> from components of the full name by
 clicking <b>Suggestion</b>. It may be modified, but use only
 letters (no accented characters), digits, and <tt>._-</tt>.
 Do not use uppercase letters in this entry unless you know what you are doing.
@@ -225,7 +230,7 @@ restrictions in the /etc/login.defs file.  Read its man page for information.
     {
 	// help text 4/7 (only during installation)
 	help = help + _("<p>
-The username and password created here are needed to log in and work with your Linux system. With <b>Auto Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
+The username and password created here are needed to log in and work with your Linux system. With <b>Automatic Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
 ") +
 
         // help text 5/7 (only during installation)
@@ -365,6 +370,9 @@ To select an existing directory, click <b>Browse</b>.
 ");
     if (what == "add_user")
     {
+	// help text for user's home directory mode
+	helptext = helptext + _("<p>Optionally, set the <b>Home Directory Permission Mode</b> for this user's home directory differenty from the default.</p>");
+
 	map defaults        = Users::GetLoginDefaults ();
         helptext = helptext +
 	// alternate helptext 4.5/8; %1 is directory (e.g. '/etc/skel')

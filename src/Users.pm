@@ -117,6 +117,7 @@ my $ldap_modified		= 0;
 my $customs_modified 		= 0;
 my $defaults_modified 		= 0;
 my $security_modified 		= 0;
+my $login_defs_modified		= 0;
 
 # variables describing available users sets:
 my $nis_available 		= 1;
@@ -215,6 +216,7 @@ YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
 YaST::YCP::Import ("Stage");
+YaST::YCP::Import ("String");
 YaST::YCP::Import ("ProductFeatures");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
@@ -281,6 +283,7 @@ sub Modified {
 		$ldap_modified		||
 		$customs_modified	||
 		$defaults_modified	||
+		$login_defs_modified	||
 		$security_modified;
 
     return $ret;
@@ -372,6 +375,23 @@ sub GetAvailableUserSets {
 BEGIN { $TYPEINFO{GetAvailableGroupSets} = ["function", ["list", "string"]]; }
 sub GetAvailableGroupSets {
     return \@available_groupsets;
+}
+
+# return the global $umask value
+BEGIN { $TYPEINFO{GetUmask} = ["function", "string"]; }
+sub GetUmask {
+    return $umask;
+}
+
+# set the new value of umask
+BEGIN { $TYPEINFO{SetUmask} = ["function", "void", "string"]; }
+sub SetUmask {
+    my $self	= shift;
+    my $u       = shift;
+    if (defined ($u) && $u ne "" && $u ne $umask) {
+	$umask  = $u;
+	$login_defs_modified	= 1;
+    }
 }
 
 ##------------------------------------
@@ -1193,7 +1213,7 @@ sub ReadSystemDefaults {
     if (! Security->GetModified ()) {
 	my $progress_orig = Progress->set (0);
 	Security->Read ();
-	if ($use_gui) { Progress->set ($progress_orig); }
+	Progress->set ($progress_orig);
     }
 
     my %security	= %{Security->Export ()};
@@ -3713,6 +3733,20 @@ sub WriteLoginDefaults {
 }
 
 ##------------------------------------
+# Writes settings to /etc/login.defs
+sub WriteLoginDefs {
+
+    my $ret 	= 1;
+
+    $ret	= SCR->Write (".etc.login_defs.UMASK", $umask);
+    if ($ret) {
+	SCR->Write (".etc.login_defs", "force");
+    }
+    y2milestone ("Succesfully written /etc/login.defs: $ret");
+    return $ret;
+}
+
+##------------------------------------
 # Save Security settings (encryption method) if changed in Users module
 BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
@@ -3727,9 +3761,7 @@ sub WriteSecurity {
 	Security->Import (\%security);
 	my $progress_orig = Progress->set (0);
 	$ret = Security->Write();
-	if (!$write_only && $use_gui) {
-	    Progress->set ($progress_orig);
-	}
+	Progress->set ($progress_orig);
     }
     y2milestone ("Security module settings written: $ret");	
     return $ret;
@@ -4198,10 +4230,17 @@ sub Write {
 		    if ((bool ($create_home) || $user_mod eq "imported")
 			&& !%{SCR->Read (".target.stat", $home)})
 		    {
-			UsersRoutines->CreateHome ($skel, $home, $umask);
+			UsersRoutines->CreateHome ($skel, $home);
 		    }
 		    if ($home ne "/var/lib/nobody") {
-			UsersRoutines->ChownHome ($uid, $gid, $home);
+			if (UsersRoutines->ChownHome ($uid, $gid, $home))
+			{
+			    my $mode = 777 - String->CutZeros ($umask);
+			    if (defined ($user{"home_mode"})) {
+				$mode	= $user{"home_mode"};
+			    }
+			    UsersRoutines->ChmodHome($home, $mode);
+			}
 		    }
 		    if ($useradd_cmd ne "" && FileUtils->Exists ($useradd_cmd))
 		    {
@@ -4309,6 +4348,9 @@ sub Write {
         if ($self->WriteLoginDefaults()) {
 	    $defaults_modified	= 0;
 	}
+    }
+    if ($login_defs_modified && $self->WriteLoginDefs ()) {
+	$login_defs_modified	= 0;
     }
 
     if ($security_modified) {
@@ -6321,7 +6363,7 @@ BEGIN { $TYPEINFO{SetModified} = ["function", "void", "boolean"];}
 sub SetModified {
     my $self	= shift;
     $users_modified = $groups_modified = $customs_modified =
-    $defaults_modified = $security_modified = $_[0];
+    $defaults_modified = $security_modified = $login_defs_modified	= $_[0];
 }
 
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}
