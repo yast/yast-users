@@ -60,16 +60,45 @@ Install it now?
 	    return (symbol) ret;
 	}
     }
+    list import_u	= Users::GetUsersForImport ();
+    if (size (import_u) > 0)
+    {
+	if (GetInstArgs::going_back())
+	{
+	    Users::SetUsersForImport ([]);
+	    return `back;
+	}
+	ReadDialog (false); // clear the cache from imported data
+	y2milestone ("There are some users to import");
+	foreach (map<string,any> user, (list<map<string,any> >) import_u, {
+	    user["encrypted"]	= true;
+	    string error = Users::AddUser (user);
+	    if (error != "")
+	    {
+		y2error ("error while adding user: %1", error);
+	    }
+	    error = Users::CheckUser ($[]);
+	    if (error != "")
+	    {
+		y2error ("error while adding user: %1", error);
+	    }
+	    Users::CommitUser ();
+	});
+	Users::Write ();
+	ret = `auto;
+    }
+    else
+    {
+	// else run the users module
+	y2milestone ("Starting user management module with parameters %1",
+	    GetInstArgs::argmap());
 
-    // else run the users module
-    y2milestone ("Starting user management module with parameters %1",
-	GetInstArgs::argmap());
+	UsersCache::SetCurrentSummary ("users");
+	Users::SetStartDialog ("user_inst_start");
+	ret = UsersSequence ("user_inst_start");
 
-    UsersCache::SetCurrentSummary ("users");
-    Users::SetStartDialog ("user_inst_start");
-    ret = UsersSequence ("user_inst_start");
-
-    y2milestone ("User management module returned %1", ret );
+	y2milestone ("User management module returned %1", ret );
+    }
 
     if ( ret == nil )
     {
