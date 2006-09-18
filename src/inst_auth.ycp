@@ -12,15 +12,75 @@
 
 textdomain "users";
 
+import "Directory";
 import "DSL";
+import "FileUtils";
+import "Label";
 import "Ldap";
 import "NetworkDevices";
 import "NetworkService";
 import "Package";
 import "Popup";
 import "Users";
+import "UsersCache";
 import "Wizard";
 import "GetInstArgs";
+
+
+
+/**
+ * Helper function
+ * Ask user which users to import
+ */
+define list<string> choose_to_import (list<string> all, list<string> selected) {
+
+    list items	= maplist (string u, all, ``(
+	`item (`id (u), u, contains (selected, u))
+    ));
+    boolean all_checked = size (all) == size (selected);
+    integer vsize	= size (all) + 3;
+    if (vsize > 15) vsize = 15;
+
+    UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (vsize), `VBox (
+	`HSpacing(50),
+	// selection box label
+	`MultiSelectionBox (`id(`userlist), _("&Select Users to Read"), items),
+	// check box label
+	`Left (`CheckBox (
+	    `id(`all),`opt(`notify),_("Select or Deselect &All"), all_checked
+	)),
+	`HBox (
+	    `PushButton (`id(`ok), `opt(`default, `key_F10), Label::OKButton()),
+	    `PushButton (`id(`cancel), `opt(`key_F9), Label::CancelButton())
+	)
+    )));
+
+    any ret	= nil;
+    while (true)
+    {
+	ret	= UI::UserInput ();
+	if (ret == `all)
+	{
+	    boolean ch  = (boolean)UI::QueryWidget (`id(`all),`Value);
+	    if (ch != all_checked)
+	    {
+		UI::ChangeWidget (`id(`userlist), `Items,
+		    maplist (string u, all, ``(`item (`id (u), u, ch)))
+		);
+		all_checked	= ch;
+	    }
+	}
+	if (ret == `ok || ret == `cancel)
+	    break;
+    }
+    if (ret == `ok)
+    {
+	selected = (list<string>)UI::QueryWidget(`id(`userlist),`SelectedItems);
+    }
+    UI::CloseDialog ();
+    return ret == `ok ? selected : nil;
+}
+
 
 // Check if lan is configured
 list<string> net_devices = NetworkDevices::List("");
@@ -44,6 +104,22 @@ if (!found && size (Ldap::initial_defaults) == 0) {
     y2milestone ("network not available: no network based authentization");
     Users::SetAfterAuth ("users");
     return `auto;
+}
+
+boolean import_available	= false;
+boolean imported		= false;
+string import_dir	= Directory::vardir + "/imported/userdata";
+string base_dir		= Users::GetBaseDirectory ();
+list<string> user_names	= [];
+list<string> to_import	= [];
+
+if (FileUtils::Exists (import_dir))
+{
+    if (FileUtils::Exists (import_dir + "/passwd") &&
+	FileUtils::Exists (import_dir + "/shadow"))
+    {
+	import_available	= true;
+    }
 }
 
 // caption for dialog "User Authentication Method"
@@ -123,9 +199,26 @@ appropriate value. Then press <b>Next</b> to continue with configuration of your
 
 term buttons = `VBox (`VSpacing(0.5));
 
-foreach (string client, available_clients, ``{
-    buttons = add (buttons,
-	`Left(`RadioButton(`id(client), button_labels[client]:"")));
+foreach (string client, available_clients, {
+    if (client == "users" && import_available)
+	buttons	= add (buttons, `VBox (
+	    `Left (`RadioButton (
+		`id(client), `opt (`notify), button_labels[client]:""
+	    )),
+	    `HBox (
+		`HSpacing (3),
+		`Left (`CheckBox (`id (`import_ch),
+		    // check box label
+		    _("Read user data from previous installation")
+		)),
+		// button label
+		`PushButton (`id(`import), _("&Choose"))
+	    )
+	));
+    else
+	buttons = add (buttons, `Left(
+	    `RadioButton(`id(client), `opt (`notify), button_labels[client]:"")
+	));
 });
 
 buttons = add (buttons, `VSpacing(0.5));
@@ -140,7 +233,7 @@ term contents = `VBox (
 			      `HStretch(),
 			      // frame title for authentication methods
 			      `Frame (_("Authentication Method"),
-				      `RadioButtonGroup( buttons )
+				      `RadioButtonGroup (`id (`method), buttons)
 				      ),
 			      `HStretch()
 			      ),
@@ -171,27 +264,54 @@ repeat {
     {
 	Wizard::ShowHelp (help);
     }
-
+    if (ret == `next && to_import == [] &&
+	UI::QueryWidget (`id(`import_ch), `Value) == true)
+    {
+	// force selecting when only checkbox is checked
+	ret	= `import;
+    }
+    if (ret == `import)
+    {
+	if (!imported)
+	{
+	    Users::SetBaseDirectory (import_dir);
+	    string err = Users::ReadLocal ();
+	    UsersCache::Read ();
+	    user_names	= UsersCache::GetUsernames ("local");
+	    imported	= true;
+	    Users::SetBaseDirectory (base_dir);
+	}
+	list<string> selected = choose_to_import (user_names, to_import);
+	if (selected != nil)
+	    to_import	= selected;
+	UI::ChangeWidget (`id (`import_ch), `Value, size (to_import) > 0);
+    }
+    if (is (ret, string) && import_available)
+    {
+	UI::ChangeWidget (`id (`import_ch), `Enabled, ret == "users");
+	UI::ChangeWidget (`id (`import), `Enabled, ret == "users");
+    }
 } until ( ret == `next || ret == `back );
 
-if ( (boolean) UI::QueryWidget( `id("ldap"), `Value ) )
-    Users::SetAfterAuth ("ldap");
-if ( (boolean) UI::QueryWidget( `id("users"), `Value ) )
-    Users::SetAfterAuth ("users");
-if (contains (available_clients, "nis") &&
-    (boolean) UI::QueryWidget( `id("nis"), `Value ) )
+string method	= (string)UI::QueryWidget (`id(`method), `Value);
+Users::SetAfterAuth (method);
+
+if (ret == `next && method == "users" && to_import != [])
 {
-    Users::SetAfterAuth ("nis");
+    UsersCache::SetUserType ("local");
+    list users_to_import	= maplist (string name, to_import, {
+	Users::SelectUserByName (name);
+	map u	= Users::GetCurrentUser ();
+	return u;
+    });
+    Users::SetUsersForImport (users_to_import);
 }
-if (contains (available_clients, "samba") &&
-    (boolean) UI::QueryWidget( `id("samba"), `Value ) )
+
+if (import_available)
 {
-    Users::SetAfterAuth ("samba");
-}
-if (contains (available_clients, "edir_ldap") &&
-    (boolean) UI::QueryWidget( `id("edir_ldap"), `Value ) )
-{
-    Users::SetAfterAuth ("edir_ldap");
+    foreach (string file, [ "/passwd", "/shadow", "/group" ], {
+	SCR::Execute (.target.remove, import_dir + file);
+    });
 }
 
 return (symbol) ret;
