@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Sep 18 17:46:52 CEST 2006 - jsuchome@suse.cz
+
+- installation: import users from existing partition (F120103)
+- 2.13.26
+
+-------------------------------------------------------------------
+Thu Sep 14 00:49:51 CEST 2006 - ro@suse.de
+
+- added yast2-core-devel to BuildRequires
+
+-------------------------------------------------------------------
 Thu Sep  7 13:43:23 CEST 2006 - jsuchome@suse.cz
 
 - minor fixes in help text (#203819)

@@ -32,6 +32,12 @@ my $use_gui			= 1;
 # could be "users","nis" or "ldap", for more see inst_auth.ycp
 my $after_auth			= "users";
 
+# what should be imported during installation (F120103)
+my %installation_import		= (
+    "users"		=> (),
+    "groups"		=> (),
+);
+
 # Write only, keep progress turned off
 my $write_only			= 0; 
 
@@ -45,8 +51,6 @@ my $base_directory		= "/etc";
 my $root_password		= "";
 
 my %default_groupname		= ();
-
-my @user_sources		= ();
 
 my %users			= (
     "system"		=> {},
@@ -337,6 +341,20 @@ sub SetRootMail {
     $root_mail 		= $_[0];
 }
 
+# return the value of base directory
+BEGIN { $TYPEINFO{GetBaseDirectory} = ["function", "string"]; }
+sub GetBaseDirectory {
+    return $base_directory;
+}
+
+# set the new the value of base directory
+BEGIN { $TYPEINFO{SetBaseDirectory} = ["function", "void", "string"]; }
+sub SetBaseDirectory {
+    my $self		= shift;
+    my $dir		= shift;
+    $base_directory	= $dir if (defined $dir);
+}
+
 
 BEGIN { $TYPEINFO{GetStartDialog} = ["function", "string"]; }
 sub GetStartDialog {
@@ -549,6 +567,31 @@ BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
 sub SetAfterAuth {
     my $self	= shift;
     $after_auth = $_[0];
+}
+
+# set the list of users to be imported during installation
+BEGIN { $TYPEINFO{SetUsersForImport} = ["function", "void", ["list","any"]];}
+sub SetUsersForImport {
+    my $self		= shift;
+    my $to_import	= shift;
+    return if (! defined ($to_import) || ref ($to_import) ne "ARRAY");
+    my @u	= @$to_import;
+    $installation_import{"users"}	= \@u;
+}
+
+# return the data of users to be imported during installation
+BEGIN { $TYPEINFO{GetUsersForImport} = ["function", ["list","any"]];}
+sub GetUsersForImport {
+    my $self		= shift;
+    my @u	= @{$installation_import{"users"}};
+    return \@u;
+}
+
+# return the data of users and groups to be imported during installation
+BEGIN { $TYPEINFO{GetDataForImport} = ["function", ["map", "string", "any"]];}
+sub GetDataForImport {
+    my $self		= shift;
+    return \%installation_import;
 }
 
 BEGIN { $TYPEINFO{NotAskUppercase} = ["function", "boolean"];}
@@ -1385,7 +1428,6 @@ sub ReadLocal {
 	$groups{$type}		= UsersPasswd->GetGroups ($type);
 	$groups_by_gidnumber{$type}= UsersPasswd->GetGroupsByGIDNumber ($type);
     }
-
     my $pluses		= UsersPasswd->GetPluslines ("passwd");
     if (ref ($pluses) eq "ARRAY") {
 	@pluses_passwd	= @{$pluses};
