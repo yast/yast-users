@@ -4015,6 +4015,8 @@ sub Write {
     my $caption 	= __("Writing User and Group Configuration");
     my $no_of_steps 	= 8;
 
+    return $ret if (Stage->cont () && !$self->Modified ());
+
     if ($use_gui) {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
