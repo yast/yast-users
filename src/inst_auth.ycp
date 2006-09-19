@@ -37,7 +37,7 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
     list items	= maplist (string u, all, ``(
 	`item (`id (u), u, contains (selected, u))
     ));
-    boolean all_checked = size (all) == size (selected);
+    boolean all_checked = (size (all) == size (selected)) && size (all) > 0;
     integer vsize	= size (all) + 3;
     if (vsize > 15) vsize = 15;
 
@@ -134,6 +134,10 @@ Select the authentication method to use for users on your system.
 // helptext 2/3
 _("<p>Select <b>Local</b> to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>");
 
+if (import_available)
+    // optional helptext 2.5/3 (local users continued)
+    help	= help	+ _("If you have a previous installation or alternative system, it is possible to create users based on this source. To do so, select <b>Read User Data from a Previous Installation</b>. This option uses an existing or creates a new home directory for each user in the location specified for this installation.");
+
 map button_labels = $[
     // radiobutton to select ldap user auth.
     "ldap":      _("&LDAP"),
@@ -209,7 +213,7 @@ foreach (string client, available_clients, {
 		`HSpacing (3),
 		`Left (`CheckBox (`id (`import_ch),
 		    // check box label
-		    _("Read user data from previous installation")
+		    _("&Read User Data from a Previous Installation")
 		)),
 		// button label
 		`PushButton (`id(`import), _("&Choose"))
