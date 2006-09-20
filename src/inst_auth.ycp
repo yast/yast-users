@@ -108,7 +108,7 @@ if (!found && size (Ldap::initial_defaults) == 0) {
 
 boolean import_available	= false;
 boolean imported		= false;
-string import_dir	= Directory::vardir + "/imported/userdata";
+string import_dir	= Directory::vardir + "/imported/userdata/etc";
 string base_dir		= Users::GetBaseDirectory ();
 list<string> user_names	= [];
 list<string> to_import	= [];

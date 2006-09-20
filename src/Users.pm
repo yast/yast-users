@@ -582,9 +582,13 @@ sub SetUsersForImport {
 # return the data of users to be imported during installation
 BEGIN { $TYPEINFO{GetUsersForImport} = ["function", ["list","any"]];}
 sub GetUsersForImport {
-    my $self		= shift;
-    my @u	= @{$installation_import{"users"}};
-    return \@u;
+    my $self	= shift;
+    my @ret	= ();
+    if (defined ($installation_import{"users"}) &&
+	ref ($installation_import{"users"}) eq "ARRAY") {
+	@ret	= @{$installation_import{"users"}};
+    }
+    return \@ret;
 }
 
 # return the data of users and groups to be imported during installation
