@@ -201,6 +201,10 @@ appropriate value. Then press <b>Next</b> to continue with configuration of your
     }
 }
 
+// helptext: additional kerberos support
+help	= help + _("<p>Check <b>Set Up Kerberos Authentication</b> to configure Kerberos after configuring the user data source.</p>");
+
+
 term buttons = `VBox (`VSpacing(0.5));
 
 foreach (string client, available_clients, {
@@ -232,26 +236,35 @@ if (size (Ldap::initial_defaults) > 0)
     Users::SetAfterAuth ("ldap");
 
 term contents = `VBox (
-		       `VStretch(),
-		       `HBox (
-			      `HStretch(),
-			      // frame title for authentication methods
-			      `Frame (_("Authentication Method"),
-				      `RadioButtonGroup (`id (`method), buttons)
-				      ),
-			      `HStretch()
-			      ),
-		       `VStretch()
-		       );
+    `VStretch(),
+    `HBox (
+	`HStretch(),
+	`VBox (
+	    // frame title for authentication methods
+	    `Frame (_("Authentication Method"),
+		`RadioButtonGroup (`id (`method), buttons)
+	    ),
+	    `VSpacing (),
+	    // check box label
+	    `Left (`CheckBox (`id(`krb), _("Set Up &Kerberos Authentication"),
+		Users::KerberosConfiguration ()))
+	),
+	`HStretch()
+    ),
+    `VStretch()
+);
 
 Wizard::SetDesktopIcon("users");
 Wizard::SetContents (caption, contents, help,
     GetInstArgs::enable_back(), GetInstArgs::enable_next());
 
+string after_client	= Users::AfterAuth ();
 // select and enable to correct buttons
 foreach (string client, available_clients, ``{
-    UI::ChangeWidget (`id(client), `Value, Users::AfterAuth () == client);
+    UI::ChangeWidget (`id(client), `Value, after_client == client);
 });
+UI::ChangeWidget (`id (`krb), `Enabled,
+    after_client != "users" && after_client != "samba");
 
 any ret = nil;
 
@@ -268,7 +281,7 @@ repeat {
     {
 	Wizard::ShowHelp (help);
     }
-    if (ret == `next && to_import == [] &&
+    if (ret == `next && import_available && to_import == [] &&
 	UI::QueryWidget (`id(`import_ch), `Value) == true)
     {
 	// force selecting when only checkbox is checked
@@ -290,10 +303,14 @@ repeat {
 	    to_import	= selected;
 	UI::ChangeWidget (`id (`import_ch), `Value, size (to_import) > 0);
     }
-    if (is (ret, string) && import_available)
+    if (is (ret, string))
     {
-	UI::ChangeWidget (`id (`import_ch), `Enabled, ret == "users");
-	UI::ChangeWidget (`id (`import), `Enabled, ret == "users");
+	if (import_available)
+	{
+	    UI::ChangeWidget (`id (`import_ch), `Enabled, ret == "users");
+	    UI::ChangeWidget (`id (`import), `Enabled, ret == "users");
+	}
+	UI::ChangeWidget (`id(`krb),`Enabled, ret != "users" && ret != "samba");
     }
 } until ( ret == `next || ret == `back );
 
@@ -311,6 +328,16 @@ if (ret == `next && method == "users" && to_import != [])
     Users::SetUsersForImport (users_to_import);
 }
 
+if (ret == `next)
+{
+    if (method == "users" || method == "samba")
+	Users::SetKerberosConfiguration (false);
+    else
+	Users::SetKerberosConfiguration (
+	    (boolean)UI::QueryWidget (`id(`krb), `Value));
+}
+
+// remove the data with users information
 if (import_available)
 {
     foreach (string file, [ "/passwd", "/shadow", "/group" ], {
