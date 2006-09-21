@@ -18,15 +18,30 @@
     import "Ldap";
     import "Users";
     import "UsersCache";
+    import "Wizard";
 
     include "users/wizards.ycp";
 
     any ret	= `back;
 
+    // hide the inst_auth content
+    Wizard::SetContents ("", `Empty (), "",
+	GetInstArgs::enable_back(), GetInstArgs::enable_next()
+    );
+
     // what to call after inst_auth dialog
     string client	= Users::AfterAuth();
     if (client != "users")
     {
+	// going back from next step, while kerberos was already configured
+	if (Users::KerberosConfiguration () && GetInstArgs::going_back () &&
+	    Package::Installed ("yast2-kerberos-client"))
+	{
+	    ret = (symbol) WFM::CallFunction ("kerberos-client", WFM::Args ());
+	    if (ret == `next)
+		return ret;
+	}
+
         string package = sformat("yast2-%1-client", client);
 	// name of client to call
         map call_client = $[
@@ -35,17 +50,37 @@
 	];
 	if (client == "edir_ldap")
 	    package = "yast2-linux-user-mgmt";
-	if (Package::InstallAllMsg ([package],
+	if (!Package::InstallAllMsg ([package],
             // popup label (%1 is package to install)
             sformat (_("Package %1 is not installed.
 Install it now?
 "), package)))
         {
+	    return `back;
+	}
+
+	// when we go `back from kerberos, call previous client again
+	boolean again	= true;
+	while (again)
+	{
+	    again	= false;
             ret = (symbol) WFM::CallFunction (call_client [client]:client,
 		WFM::Args ());
-        }
-        else
-            return `back;
+
+	    // after nis/ldap/edit client was called, maybe call also kerberos
+	    if (ret == `next && Users::KerberosConfiguration () &&
+		Package::InstallAllMsg (["yast2-kerberos-client"],
+		// popup label (%1 is package to install)
+		sformat (_("Package %1 is not installed.
+Install it now?
+"), "yast2-kerberos-client")))
+	    {
+		ret = (symbol) WFM::CallFunction ("kerberos-client",
+		    WFM::Args ());
+		if (ret == `back)
+		    again	= true;
+	    }
+	}
 
 	if (ret == `next && client == "ldap" && Ldap::initial_defaults_used)
 	{

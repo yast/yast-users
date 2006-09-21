@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Sep 21 15:55:16 CEST 2006 - jsuchome@suse.cz
+
+- setup Kerberos During Installation (F120214) 
+- 2.13.29
+
+-------------------------------------------------------------------
 Wed Sep 20 08:14:49 CEST 2006 - jsuchome@suse.cz
 
 - fixed installation failure caused by previous changes (#206839)
