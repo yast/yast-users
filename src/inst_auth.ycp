@@ -107,7 +107,6 @@ if (!found && size (Ldap::initial_defaults) == 0) {
 }
 
 boolean import_available	= false;
-boolean imported		= false;
 string import_dir	= Directory::vardir + "/imported/userdata/etc";
 string base_dir		= Users::GetBaseDirectory ();
 list<string> user_names	= [];
@@ -120,6 +119,30 @@ if (FileUtils::Exists (import_dir))
     {
 	import_available	= true;
     }
+}
+
+if (import_available)
+{
+    Users::SetBaseDirectory (import_dir);
+    string err = Users::ReadLocal ();
+    if (err != "")
+    {
+	y2warning ("Error during reading: %1", err);
+    }
+    else
+    {
+	UsersCache::Read ();
+	user_names	= UsersCache::GetUsernames ("local");
+    }
+    if (size (user_names) < 1)
+    {
+	y2milestone ("No users to import");
+	import_available	= false;
+	foreach (string file, [ "/passwd", "/shadow", "/group" ], {
+	    SCR::Execute (.target.remove, import_dir + file);
+	});
+    }
+    Users::SetBaseDirectory (base_dir);
 }
 
 // caption for dialog "User Authentication Method"
@@ -289,15 +312,6 @@ repeat {
     }
     if (ret == `import)
     {
-	if (!imported)
-	{
-	    Users::SetBaseDirectory (import_dir);
-	    string err = Users::ReadLocal ();
-	    UsersCache::Read ();
-	    user_names	= UsersCache::GetUsernames ("local");
-	    imported	= true;
-	    Users::SetBaseDirectory (base_dir);
-	}
 	list<string> selected = choose_to_import (user_names, to_import);
 	if (selected != nil)
 	    to_import	= selected;
