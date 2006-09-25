@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Sep 25 15:45:43 CEST 2006 - jsuchome@suse.cz
+
+- do not offer importing users when there are not available (#207973)
+- 2.13.30
+
+-------------------------------------------------------------------
 Thu Sep 21 15:55:16 CEST 2006 - jsuchome@suse.cz
 
 - setup Kerberos During Installation (F120214) 
