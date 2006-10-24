@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 24 10:21:59 CEST 2006 - jsuchome@suse.cz
+
+- better check if LDAP user password was modified (#213574)
+- 2.13.31
+
+-------------------------------------------------------------------
 Mon Sep 25 15:45:43 CEST 2006 - jsuchome@suse.cz
 
 - do not offer importing users when there are not available (#207973)
