@@ -168,6 +168,7 @@ sub read_group {
     %groups	= ();
     %gids	= ();
     %groupnames	= ();
+    %groups_by_gidnumber= ();
     @plus_lines_group	= ();
     @comments_group	= ();
 
@@ -275,6 +276,7 @@ sub read_passwd {
     %uids	= ();
     %usernames	= ();
     %homes	= ();
+    %users_by_uidnumber	= ();
     @plus_lines_passwd	= ();
     @comments_passwd	= ();
 
