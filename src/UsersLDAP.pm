@@ -1125,6 +1125,10 @@ sub ConvertMap {
 		next;
 	    }
 	    my $enc	= lc ($encryption);
+	    # check for unchanged password before prepending the hash (#213574)
+	    if (defined $org_object && defined $org_object->{$key}) {
+		next if $val eq $org_object->{$key};
+	    }
 	    if ($enc ne "clear" && !($val =~ m/{$enc}/i)) {
 		$val = sprintf ("{%s}%s", $enc, $val);
 	    }
