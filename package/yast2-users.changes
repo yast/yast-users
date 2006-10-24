@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 24 15:34:31 CEST 2006 - jsuchome@suse.cz
+
+- fix initialization during read of /etc/group (#213025)
+- 2.13.32
+
+-------------------------------------------------------------------
 Tue Oct 24 10:21:59 CEST 2006 - jsuchome@suse.cz
 
 - better check if LDAP user password was modified (#213574)
