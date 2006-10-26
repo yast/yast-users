@@ -32,6 +32,7 @@ Summary:	Configuration of users
 @moduledir@/UsersUI.y*
 @moduledir@/YaPI/USERS.pm
 @yncludedir@/users/*
+@schemadir@/autoyast/rnc/users.rnc
 #agents:
 @scrconfdir@/*.scr
 @agentdir@/ag_nis
