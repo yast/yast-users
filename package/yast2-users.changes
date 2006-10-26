@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct 26 14:28:58 CEST 2006 - jsuchome@suse.cz
+
+- schema file moved from autoyast package (#215249)
+- 2.13.33 
+
+-------------------------------------------------------------------
 Tue Oct 24 15:34:31 CEST 2006 - jsuchome@suse.cz
 
 - fix initialization during read of /etc/group (#213025)
