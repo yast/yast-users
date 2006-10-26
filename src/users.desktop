@@ -18,6 +18,7 @@ X-SuSE-YaST-AutoInstClonable=true
 X-SuSE-YaST-AutoInstMerge=users,groups,user_defaults
 X-SuSE-YaST-AutoInstMergeTypes=list,list,map
 X-SuSE-YaST-AutoInstRequires=security
+X-SuSE-YaST-AutoInstSchema=users.rnc
 
 Icon=yast-users
 Exec=/sbin/yast2 users
