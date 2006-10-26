@@ -8,6 +8,8 @@ YCPCFLAGS = -I .
 
 yncludedir = @yncludedir@/users
 
+rncdir =  $(schemadir)/autoyast/rnc
+
 module_DATA =		\
     Users.pm		\
     UsersCache.pm	\
@@ -40,13 +42,16 @@ desktop_DATA =		\
     users.desktop	\
     groups.desktop
 
+rnc_DATA =		\
+    users.rnc
+
 YaPI_perldir = @moduledir@/YaPI
 
 YaPI_perl_DATA = \
     YaPI/USERS.pm
 
 
-EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(YaPI_perl_DATA)
+EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(YaPI_perl_DATA) $(rnc_DATA)
 
 users:
 	ln -sf . users
