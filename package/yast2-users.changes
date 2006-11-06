@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Nov  6 11:53:27 CET 2006 - jsuchome@suse.cz
+
+- new version for new product
+- 2.14.0
+
+-------------------------------------------------------------------
 Thu Oct 26 14:28:58 CEST 2006 - jsuchome@suse.cz
 
 - schema file moved from autoyast package (#215249)
