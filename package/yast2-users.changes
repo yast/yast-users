@@ -5,6 +5,11 @@ Mon Nov 27 10:30:57 CET 2006 - jsuchome@suse.cz
 - 2.14.1 
 
 -------------------------------------------------------------------
+Wed Nov 22 17:24:17 CET 2006 - stbinner@suse.de
+
+- don't repeate Name content as GenericName in .desktop files
+
+-------------------------------------------------------------------
 Mon Nov  6 11:53:27 CET 2006 - jsuchome@suse.cz
 
 - new version for new product
