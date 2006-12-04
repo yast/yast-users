@@ -262,8 +262,32 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 
     if (!haskey(user,"userpassword"))
     {
-	// question label
-	string pw = CommandLine::PasswordInput (_("Password for New User:"));
+	string pw	= "";
+	integer i	= 0;
+	while (true)
+	{
+	    // question on command line
+	    pw	= CommandLine::PasswordInput (_("Password for New User:"));
+	    string p2 = CommandLine::PasswordInput (
+		// question on command line
+		_("Confirm the password:"));
+	    if (pw != p2)
+	    {
+		if (i < 2)
+		{
+		    // error message
+		    CommandLine::Print(_("Passwords do not match. Try again."));
+		    i	= i + 1;
+		}
+		else
+		{
+		    // error message
+		    CommandLine::Print(_("Passwords do not match. Exiting."));
+		    return false;
+		}
+	    }
+	    else break;
+	}
 	user["userpassword"]	= pw;
     }
     string error = Users::CheckPassword (user["userpassword"]:"");
