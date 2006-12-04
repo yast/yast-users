@@ -19,19 +19,26 @@
 {
 textdomain "users";
 
+import "GetInstArgs";
 import "Label";
 import "Linuxrc";
 import "Mode";
 import "Popup";
+import "ProductFeatures";
 import "Report";
 import "Security"; // Perl module (Users.pm) donesn't call constructor...
 import "Stage";
 import "Users";
 import "UsersCache";
 import "Wizard";
-import "GetInstArgs";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
+
+    boolean check_CA_constraints	=
+	ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
+
+    // minimal pw length for CA-management (F#300438)
+    integer pw_min_CA			= 4;
 
     string valid_password_chars = Users::ValidPasswordChars ();
 
@@ -95,6 +102,14 @@ such as accented letters or umlauts.
     helptext = helptext + _("<p>
 Do not forget this \"root\" password.
 </p>");
+
+    if (check_CA_constraints)
+    {
+	helptext = helptext + sformat (
+// additional help text about password
+_("<p>If you intend to use this password for creating certificates,
+it has to be at least %1 characters long.</p>"), pw_min_CA);
+    }
 
     Wizard::SetDesktopIcon("users");
     Wizard::SetContents (title, contents, helptext,
@@ -175,6 +190,24 @@ Try again."));
 		// map with id's of confirmed questions
 		map<string,integer> ui_map	= $[];
 		boolean failed			= false;
+
+		if (check_CA_constraints && (size (pw1) < pw_min_CA))
+		{
+		    if (Popup::YesNo (sformat (
+// yes/no popup question, %1 is a number
+_("If you intend to create certificates,
+the password should have at least %1 characters.
+Really use this shorter password?"), pw_min_CA)))
+		    {
+			// skip other checks for short passwords
+			ui_map["short"]	= 1;
+		    }
+		    else
+		    {
+			ret = `notnext;
+			continue;
+		    }
+		}
 		do
 		{
 		    error_map = Users::CheckPasswordUI ("root", pw1, ui_map);
