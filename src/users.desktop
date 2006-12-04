@@ -24,7 +24,7 @@ Icon=yast-users
 Exec=/sbin/yast2 users
 
 Name=User Management
-GenericName=User Management
+GenericName=Add, Edit or Delete Users
 Name[cs]=Správce uživatelů
 GenericName[cs]=Správce uživatelů
 Name[de]=Benutzer bearbeiten und anlegen

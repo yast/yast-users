@@ -20,7 +20,7 @@ Icon=yast-groups
 Exec=/sbin/yast2 groups
 
 Name=Group Management
-GenericName=Group Management
+GenericName=Add, Edit or Delete User Groups
 Name[cs]=Správce skupin
 GenericName[cs]=Správce skupin
 Name[de]=Gruppen bearbeiten und anlegen
