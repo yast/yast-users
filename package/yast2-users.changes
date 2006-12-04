@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Dec  4 16:25:13 CET 2006 - jsuchome@suse.cz
+
+- differ GenericName from Name in desktop files (#223549)
+- check root password for CA constraints (F300438)
+- 2.15.0
+
+-------------------------------------------------------------------
 Mon Nov 27 10:30:57 CET 2006 - jsuchome@suse.cz
 
 - fixed schema file (#215249)
