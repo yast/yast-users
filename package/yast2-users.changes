@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Dec  7 13:24:44 CET 2006 - jsuchome@suse.cz
+
+- new LDAP plugins for Password Policy and Shadow Account (F301179)
+- when enabling plugins, remove plugin from "plugins_to_remove" list
+- help text and wizard caption for authentication settings
+- 2.15.1 
+
+-------------------------------------------------------------------
 Mon Dec  4 16:25:13 CET 2006 - jsuchome@suse.cz
 
 - differ GenericName from Name in desktop files (#223549)

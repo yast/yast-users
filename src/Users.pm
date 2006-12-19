@@ -2496,6 +2496,17 @@ sub AddGroupPlugin {
 	"plugins"	=> [ $plugin ]
     };
 
+    my $plugins_to_remove = $group{"plugins_to_remove"};
+    if (contains ($plugins_to_remove, $plugin, 1)) {
+	my @plugins_updated	= ();
+	foreach my $p (@$plugins_to_remove) {
+	    if ($p ne $plugin) {
+		push @plugins_updated, $p;
+	    }
+	}
+	$group{"plugins_to_remove"}	= \@plugins_updated;
+    }
+
     if (($group{"what"} || "") eq "add_group") {
 
 	my $result = UsersPlugins->Apply ("AddBefore", $args, \%group);
@@ -2582,6 +2593,17 @@ sub AddUserPlugin {
 	"type"		=> $user{"type"},
 	"plugins"	=> [ $plugin ]
     };
+
+    my $plugins_to_remove = $user{"plugins_to_remove"};
+    if (contains ($plugins_to_remove, $plugin, 1)) {
+	my @plugins_updated	= ();
+	foreach my $p (@$plugins_to_remove) {
+	    if ($p ne $plugin) {
+		push @plugins_updated, $p;
+	    }
+	}
+	$user{"plugins_to_remove"}	= \@plugins_updated;
+    }
 
     if (($user{"what"} || "") eq "add_user") {
 
