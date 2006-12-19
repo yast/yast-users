@@ -18,7 +18,9 @@ module_DATA =		\
     UsersUI.ycp		\
     UsersPasswd.pm	\
     UsersPlugins.pm	\
-    UsersPluginLDAPAll.pm
+    UsersPluginLDAPAll.pm	\
+    UsersPluginLDAPShadowAccount.pm	\
+    UsersPluginLDAPPasswordPolicy.pm
 
 ynclude_DATA =		\
     complex.ycp		\
@@ -36,7 +38,9 @@ client_DATA = 		\
     inst_user.ycp	\
     inst_auth.ycp	\
     users_auto.ycp	\
-    users_plugin_ldap_all.ycp
+    users_plugin_ldap_all.ycp			\
+    users_plugin_ldap_passwordpolicy.ycp	\
+    users_plugin_ldap_shadowaccount.ycp
 
 desktop_DATA =		\
     users.desktop	\

@@ -37,30 +37,6 @@ include "users/routines.ycp";
 string default_pw	= "******";
 
 /**
- * helper function: return the 'any' value as integer
- */
-define integer GetInt (any value, integer default_value) {
-
-    if (value == nil)
-	return default_value;
-    if (is (value, integer))
-	return (integer) value;
-    if (is (value, string) && value != "")
-	return tointeger ((string)value);
-    return default_value;
-}
-
-/**
- * helper function: return the 'any' value as string
- */
-define string GetString (any value, string default_value) {
-
-    if (value == nil)
-	return default_value;
-    return sformat ("%1", value);
-}
-
-/**
  * Upperase letters were used in username! (see bug #26409)
  * In these popup, ask user what to do.
  */
@@ -567,11 +543,12 @@ group memberships can be changed.")) : `VSpacing (0),
 	    `HSpacing (3),
             `VBox (
                 `VStretch(),
-                `Top(`Left (`Label (sformat (
-		    // label
-		    _("Last Password Change: %1"), last_change )))),
-                `VSpacing (1),
+		`Left (`Label ("")),
                 `HSquash(`VBox(
+		    `Left (`Label (sformat (
+			// label
+			_("Last Password Change: %1"), last_change ))),
+		    `VSpacing (1),
                     `IntField (`id ("shadowwarning"),
 			// intfield label
 			_("Days &before Password Expiration to Issue Warning"),
@@ -681,7 +658,7 @@ group memberships can be changed.")) : `VSpacing (0),
 	`item(`id(`details), _("&Details") ),
     ];
 
-    if (!do_not_edit)
+    if (!do_not_edit && user_type != "ldap")
     {
 	// tab label
 	tabs = add (tabs,`item(`id(`passwordsettings),_("Pass&word Settings")));
@@ -1461,20 +1438,6 @@ _("Change home directory to %1?"), generated_home))))
 	{
 	    UI::ReplaceWidget(`tabContents, get_password_term ());
 	    Wizard::SetHelpText (EditUserPasswordDialogHelp());
-	    if (user_type == "ldap")
-	    {
-	    list ocs = maplist (
-		string oc, user["objectclass"]:[], ``(tolower (oc)));
-	    if (!contains (ocs, "shadowaccount"))
-	    {
-		ocs = add (ocs, "shadowaccount");
-		user["objectclass"]	= ocs;
-		foreach (string k, any v, Users::GetDefaultShadow ("ldap"), {
-		    if (!haskey (user, k))
-			user[k]	= v;
-		});
-	    }
-	    }
 	    current	= ret;
 	}
 	if (ret == `plugins)
