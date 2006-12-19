@@ -24,8 +24,10 @@
 
     any ret	= `back;
 
-    // hide the inst_auth content
-    Wizard::SetContents ("", `Empty (), "",
+    // dialog caption
+    string caption = _("User Authentication Method");
+    // help text (shown in the 'busy' situation)
+    Wizard::SetContents (caption, `Empty (), _("Initialization of module for configuration of authentication..."),
 	GetInstArgs::enable_back(), GetInstArgs::enable_next()
     );
 
