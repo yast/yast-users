@@ -11,6 +11,31 @@
 textdomain "users";
 
 /**
+ * helper function: return the 'any' value as integer
+ */
+define integer GetInt (any value, integer default_value) {
+
+    if (value == nil)
+	return default_value;
+    if (is (value, integer))
+	return (integer) value;
+    if (is (value, string) && value != "")
+	return tointeger ((string)value);
+    return default_value;
+}
+
+/**
+ * helper function: return the 'any' value as string
+ */
+define string GetString (any value, string default_value) {
+
+    if (value == nil)
+	return default_value;
+    return sformat ("%1", value);
+}
+
+
+/**
  * Split cn (fullname) in forename and surname.
  * @param what `surname or `forename
  * @param cn fullname

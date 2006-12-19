@@ -1,0 +1,240 @@
+/**
+ * File:
+ *	include/users/users_plugin_ldap_shadowaccount.ycp
+ *
+ * Package:
+ *	Configuration of Users
+ *
+ * Summary:
+ *	This is GUI part of UsersPluginLDAPShadowAccount
+ *	- plugin for editing ShadowAccount LDAP user attributes.
+ *
+ * Authors:
+ *	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+
+
+{
+    textdomain "users";
+
+    import "Label";
+    import "Popup";
+    import "Report";
+    import "Users";
+    import "UsersPluginLDAPShadowAccount"; // plugin module
+    import "Wizard";
+
+    include "users/helps.ycp";
+    include "users/routines.ycp";
+
+    any ret = nil;
+    string func			= "";
+    map<string,any> config	= $[];
+    map<string,any> data	= $[];
+
+    /* Check arguments */
+    if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
+	func = (string) WFM::Args(0);
+	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
+	    config = (map<string,any>)WFM::Args(1);
+	if(size(WFM::Args()) > 2 && is(WFM::Args(2), map))
+	    data = (map<string,any>)WFM::Args(2);
+    }
+    y2milestone("----------------------------------------");
+    y2milestone("users plugin started: LDAPShadowAccount");
+
+    y2debug ("func=%1", func);
+    y2debug  ("config=%1", config);
+    y2debug ("data=%1", data);
+
+    if (func == "Summary") {
+	ret = UsersPluginLDAPShadowAccount::Summary (config, $[]);
+    }
+    else if (func == "Name") {
+	ret = UsersPluginLDAPShadowAccount::Name (config, $[]);
+    }
+    // define the dialog for this plugin and return it's contents
+    else if (func == "Dialog") {
+
+	string caption	= UsersPluginLDAPShadowAccount::Name (config, $[]);
+	map<string, any> tmp_data	= $[];
+
+	string help_text = EditUserPasswordDialogHelp ();
+
+	// date of password expiration
+        string exp_date = "";
+
+	string last_change	= GetString (data["shadowlastchange"]:nil, "0");
+	string expires		= GetString (data["shadowexpire"]:nil, "0");
+	if (expires == "")
+	    expires = "0";
+
+	integer inact	= GetInt (data["shadowinactive"]:nil, 0);
+	integer max	= GetInt (data["shadowmax"]:nil, 0);
+	integer min	= GetInt (data["shadowmin"]:nil, 0);
+	integer warn	= GetInt (data["shadowwarning"]:nil, 0);
+
+	if (last_change != "0")
+	{
+	    map out	= (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
+	    // label (date of last password change)
+	    last_change = out["stdout"]:_("Unknown");
+	}
+	else
+	{
+	    // label (date of last password change)
+	    last_change = _("Never");
+	}
+	if (expires != "0" && expires != "-1" && expires != "")
+	{
+	    map out	= (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' ", expires) + "+\"%Y-%m-%d\"");
+	    // remove \n from the end
+	    exp_date	= deletechars (out["stdout"]:"", "\n");
+	}
+	term contents = `HBox (
+	    `HSpacing (3),
+            `VBox (
+                `VStretch(),
+                `Left (`Label ("")),
+                `HSquash(`VBox(
+		    `Left (`Label (sformat (
+			// label
+			_("Last Password Change: %1"), last_change ))),
+		    `VSpacing (1),
+                    `IntField (`id ("shadowwarning"),
+			// intfield label
+			_("Days &before Password Expiration to Issue Warning"),
+			-1, 99999, warn),
+                    `VSpacing (0.5),
+                    `IntField (`id ("shadowinactive"),
+			// intfield label
+			_("Days after Password Expires with Usable &Login"),
+			-1, 99999, inact),
+                    `VSpacing (0.5),
+                    `IntField (`id ("shadowmax"),
+			// intfield label
+			_("Ma&ximum Number of Days for the Same Password"),
+			-1, 99999, max),
+                    `VSpacing (0.5),
+                    `IntField (`id ("shadowmin"),
+			// intfield label
+			_("&Minimum Number of Days for the Same Password"),
+			-1, 99999, min),
+                    `VSpacing (0.5),
+                    `TextEntry (`id ("shadowexpire"),
+			// textentry label
+			_("Ex&piration Date"), exp_date)
+                )),
+                `VStretch ()),
+            `HSpacing (3)
+	);
+
+	Wizard::CreateDialog ();
+        Wizard::SetDesktopIcon("users");
+
+	// dialog caption
+	Wizard::SetContentsButtons (_("Shadow Account Settings"),
+	    contents, EditUserPasswordDialogHelp (),
+	    Label::CancelButton(), Label::AcceptButton());
+
+	Wizard::HideAbortButton ();
+
+	ret = `next;
+	repeat
+	{
+	    ret = UI::UserInput();
+	    if (ret == `next)
+	    {
+		string exp = (string)
+		    UI::QueryWidget (`id ("shadowexpire"), `Value);
+		if (exp != "" &&
+                !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+		{
+		    // popup text: Don't reorder the letters YYYY-MM-DD!!!
+		    // The date must stay in this format
+		    Popup::Message(_("The expiration date must be in the format YYYY-MM-DD."));
+		    UI::SetFocus (`id ("shadowexpire"));
+		    continue;
+		}
+
+		foreach (string shadowsymbol,
+		    ["shadowwarning","shadowmax","shadowmin", "shadowinactive"],
+		{
+		    string sval	= sformat ("%1",
+			UI::QueryWidget (`id(shadowsymbol), `Value));
+		    if (sformat ("%1", data[shadowsymbol]:"") != sval)
+		    {
+			tmp_data[shadowsymbol] = sval;
+		    }
+		});
+
+		string new_exp_date = (string)
+		    UI::QueryWidget(`id("shadowexpire"),`Value);
+		if (new_exp_date != exp_date)
+		{
+		    exp_date	= new_exp_date;
+		    if (exp_date == "")
+		    {
+			tmp_data["shadowexpire"] = "";
+		    }
+		    else
+		    {
+			map out = (map)SCR::Execute(.target.bash_output,
+			    sformat("date --date='%1 UTC' ", exp_date) + "+%s");
+			string seconds_s = deletechars(out["stdout"]:"0","\n");
+			if (seconds_s != "")
+			{
+			    integer days = (tointeger (seconds_s)) / (60*60*24);
+			    tmp_data["shadowexpire"] = sformat("%1", days);
+			}
+		    }
+		}
+		string err = UsersPluginLDAPShadowAccount::Check (
+		    config,
+		    (map<string,any>) union (data, tmp_data));
+
+		if (err != "")
+		{
+		    Report::Error (err);
+		    ret = `notnext;
+		    continue;
+		}
+
+		if (tmp_data == $[])
+		{
+		    break;
+		}
+		// if this plugin wasn't in default set, we must save its name
+		if (!contains (data["plugins"]:[], "UsersPluginLDAPShadowAccount"))
+		{
+		    tmp_data["plugins"] = add (tmp_data["plugins"]:[],
+			"UsersPluginLDAPShadowAccount");
+		}
+		if (data["what"]:"" == "edit_user")
+		{
+		    Users::EditUser (tmp_data);
+		}
+		else if (data["what"]:"" == "add_user")
+		{
+		    Users::AddUser (tmp_data);
+		}
+	    }
+	} until (is(ret,symbol) &&
+	    contains ([`next, `abort, `back, `cancel], (symbol) ret));
+
+	Wizard::CloseDialog ();
+    }
+    /* unknown function */
+    else {
+	y2error("unknown function: %1", func);
+	ret = false;
+    }
+
+    y2debug ("ret=%1", ret);
+    y2milestone("users plugin finished");
+    y2milestone("----------------------------------------");
+
+    return ret;
+}

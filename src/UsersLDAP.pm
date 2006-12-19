@@ -10,6 +10,7 @@ use strict;
 
 use YaST::YCP qw(:LOGGING);
 use YaPI;
+use Data::Dumper;
 
 textdomain ("users");
 
@@ -130,6 +131,8 @@ my @group_internal_keys		=
 my $user_scope			= YaST::YCP::Integer (2);
 my $group_scope			= YaST::YCP::Integer (2);
 
+# store the 'usage' flag of LDAP attribute
+my $attribute_usage	= {};
  
 ##------------------------------------
 ##------------------- global imports
@@ -1141,8 +1144,17 @@ sub ConvertMap {
 		$val	= "";
 	    }
 	    else {
-		y2warning ("Attribute '$key' is not allowed by schema.");
-		next;
+		if (not defined ($attribute_usage->{'$key'})) {
+		    my $at = SCR->Read (".ldap.schema.at", {"name" => $key});
+		    $attribute_usage->{'$key'}	= $at->{'usage'};
+		    $attribute_usage->{'$key'}	= 0 if not defined $at->{'usage'};
+		}
+		# 1, 2 and 3 are operational attributes, they do not require object class
+		# 0=userApplications, 1=directoryOperation, 2=distributedOperation, 3=dSAOperation
+		if ($attribute_usage->{'$key'} < 1) {
+		    y2warning ("Attribute '$key' is not allowed by schema.");
+		    next;
+		}
 	    }
 	}
 	if ($key eq $member_attribute && ref ($val) eq "HASH") {
@@ -1169,6 +1181,7 @@ sub ConvertMap {
 	}
 	$ret{$key}	= $val;
     }
+y2internal ("final map: ", Dumper [\%ret]);
     return \%ret;
 }
 

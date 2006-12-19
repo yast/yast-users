@@ -28,7 +28,7 @@ YaST::YCP::Import ("Ldap");
 
 # default object classes of LDAP users
 my @user_object_class                  =
-    ("top","posixaccount","shadowaccount", "inetorgperson");
+    ("top","posixaccount", "inetorgperson");
 
 # default object classes of LDAP groups
 my @group_object_class                 =
@@ -135,11 +135,11 @@ sub Summary {
     my $self	= shift;
     my $what	= "user";
     # plugin summary (table item)
-    my $ret 	= __("Edit Remaining Attributes of LDAP User");
+    my $ret 	= __("Edit Remaining LDAP Attributes");
 
     if (defined $_[0]->{"what"} && $_[0]->{"what"} eq "group") {
 	# plugin summary (table item)
-	$ret 	= __("Edit Remaining Attributes of LDAP Group");
+	$ret 	= __("Edit Remaining LDAP Attributes");
     }
     return $ret;
 }
@@ -272,40 +272,19 @@ BEGIN { $TYPEINFO{Enable} = ["function",
 }
 sub Enable {
 
-    my $self	= shift;
-    my $config	= $_[0];
-    my $data	= $_[1];
-
-    my $pw	= $data->{"userpassword"};
-    
-    if ((defined $pw) && $pw =~ m/^\!/) {
-	$pw	=~ s/^\!//;
-	$data->{"userpassword"}	= $pw;
-    }
-    $data->{"shadowexpire"}	= "";
+    my ($self, $config, $data)  = @_;
     y2debug ("Enable LDAPAll called");
     return $data;
 }
 
 # this will be called from Users::DisableUser
-#    	set "shadowExpire" to "0",
-#	set a "!" before the hash-value in the "userpassword"
 BEGIN { $TYPEINFO{Disable} = ["function",
     ["map", "string", "any"],
     "any", "any"];
 }
 sub Disable {
 
-    my $self	= shift;
-    my $config	= $_[0];
-    my $data	= $_[1];
-
-    my $pw	= $data->{"userpassword"};
-    
-    if ((defined $pw) && $pw !~ m/^\!/) {
-	$data->{"userpassword"}	= "!".$pw;
-    }
-    $data->{"shadowexpire"}	= 0;
+    my ($self, $config, $data)  = @_;
     y2debug ("Disable LDAPAll called");
     return $data;
 }

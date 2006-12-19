@@ -305,7 +305,10 @@ only obtain users with a username beginning with 'u'.</p>
 			    user_attributes : group_attributes)
 		    ),
 		    `HSpacing (),
-		    `ComboBox (`id(`eq), "", equality),
+		    `VBox (
+			`Label (""),
+			`ComboBox (`id(`eq), "", equality)
+		    ),
 		    `HSpacing (),
 		    // textentry label
 		    `TextEntry (`id(`val), _("&Value"), "")
