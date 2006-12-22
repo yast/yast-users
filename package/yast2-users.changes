@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Dec 21 10:25:57 CET 2006 - jsuchome@suse.cz
+
+- added checkbox for "Move home directory"  (F300550)
+- 2.15.2
+
+-------------------------------------------------------------------
 Thu Dec  7 13:24:44 CET 2006 - jsuchome@suse.cz
 
 - new LDAP plugins for Password Policy and Shadow Account (F301179)

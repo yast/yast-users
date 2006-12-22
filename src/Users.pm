@@ -4310,8 +4310,8 @@ sub Write {
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
+		my $skel	= $useradd_defaults{"skel"};
 		if ($user_mod eq "imported" || $user_mod eq "added") {
-		    my $skel	= $useradd_defaults{"skel"};
 		    if (bool ($user{"no_skeleton"})) {
 			$skel 	= "";
 		    }
@@ -4343,6 +4343,10 @@ sub Write {
 			# move the home directory
 			if (bool ($create_home)) {
 			    UsersRoutines->MoveHome ($org_home, $home);
+			}
+			# create new home directory
+			elsif (not %{SCR->Read (".target.stat", $home)}) {
+			    UsersRoutines->CreateHome ($skel, $home);
 			}
 			# chown only when directory was changed (#39417)
 			UsersRoutines->ChownHome ($uid, $gid, $home);
