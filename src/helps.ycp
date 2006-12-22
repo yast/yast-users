@@ -381,6 +381,11 @@ check <b>Empty Home</b>. Otherwise, the new home directory
 is created from the default skeleton (%1).</p>
 "), defaults["skel"]:"");
     }
+    else
+    {
+	// help text for Move to new location checkbox
+	helptext = helptext + _("<p>While changing the value of home directory, let <b>Move to new location</b> remain checked if you want to create new directory by moving the old one.</p>");
+    }
 
     if (user_type == "ldap")
         helptext = helptext +
