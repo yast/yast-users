@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan  5 08:52:25 CET 2007 - jsuchome@suse.cz
+
+- fixed help text for "Move home directory" feature
+- 2.15.3
+
+-------------------------------------------------------------------
 Thu Dec 21 10:25:57 CET 2006 - jsuchome@suse.cz
 
 - added checkbox for "Move home directory"  (F300550)
