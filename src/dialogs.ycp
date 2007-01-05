@@ -462,7 +462,7 @@ define symbol EditUserDialog (string what) {
 	    `TextEntry( `id(`home), _("&Home Directory"), home ),
 	    what != "edit_user" ? `Empty () :
 	    // check box label
-	    `Left (`CheckBox (`id (`move_home), _("Move to new location"), create_home))
+	    `Left (`CheckBox (`id (`move_home), _("&Move to New Location"), create_home))
 	);
 	term new_user_term	= what != "add_user" ? `VBox () : `VBox (
 	    // textentry label

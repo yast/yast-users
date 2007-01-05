@@ -384,7 +384,7 @@ is created from the default skeleton (%1).</p>
     else
     {
 	// help text for Move to new location checkbox
-	helptext = helptext + _("<p>While changing the value of home directory, let <b>Move to new location</b> remain checked if you want to create new directory by moving the old one.</p>");
+	helptext = helptext + _("<p>If changing the location of a user's home directory, move the contents of the current directory with <b>Move to New Location</b>, activated by default. Otherwise a new home directory is created without any of the existing data.</p>");
     }
 
     if (user_type == "ldap")
