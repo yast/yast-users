@@ -118,6 +118,10 @@ define symbol EditUserDialog (string what) {
 	user = Users::GetCurrentUser ();
     }
 
+    string action = user["modified"]:"";
+    if (action == "")
+	action = (what == "add_user") ? "added" : "edited";
+
     string user_type	= user["type"]:"local";
     string username	= user["uid"]:"";
     string cn		= "";
@@ -133,6 +137,7 @@ define symbol EditUserDialog (string what) {
     string default_mode	=
 	sformat ("%1", 777 - tointeger (String::CutZeros (Users::GetUmask ())));
     string mode		= user["home_mode"]:default_mode;
+    integer crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
     string password	= (string)user["userpassword"]:nil;
     string org_username = user["org_uid"]:username;
     integer uid		= GetInt (user["uidnumber"]:nil, nil);
@@ -169,6 +174,11 @@ define symbol EditUserDialog (string what) {
     boolean create_home		= user["create_home"]:true;
     boolean no_skel		= user["no_skeleton"]:false;
     boolean do_not_edit		= (user_type == "nis");
+//    boolean crypted_home_enabled= (action == "added") &&
+    boolean crypted_home_enabled=
+	((user_type == "ldap" && Ldap::file_server) ||
+	(user_type == "local" || user_type == "system"));
+
     boolean complex_layout = Stage::cont () && Users::StartDialog ("user_add");
     map<string,integer> groups	= user["grouplist"]:$[];
 
@@ -208,6 +218,7 @@ define symbol EditUserDialog (string what) {
 	    cn	= user["cn"]:cn;
 	home		= user["homedirectory"]:home;
 	org_home	= user["org_homedirectory"]:org_home;
+	crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
 	mode		= user["home_mode"]:default_mode;
 	password	= user["userpassword"]:password;
 	org_username	= user["org_uid"]:org_username;
@@ -454,22 +465,34 @@ define symbol EditUserDialog (string what) {
 	    `Label (""),
 	    // button label
 	    `PushButton( `id(`browse), `opt(`key_F6), _("B&rowse...")),
-	    what != "edit_user" ? `Empty () : `Label ("")
+	    action != "edited" ? `Empty () : `Label ("")
 	);
 
 	term home_w = `VBox(
 	    // textentry label
 	    `TextEntry( `id(`home), _("&Home Directory"), home ),
-	    what != "edit_user" ? `Empty () :
+	    action != "edited" ? `Empty () :
 	    // check box label
 	    `Left (`CheckBox (`id (`move_home), _("&Move to New Location"), create_home))
 	);
-	term new_user_term	= what != "add_user" ? `VBox () : `VBox (
+	term new_user_term	= action != "added" ? `VBox () : `VBox (
 	    // textentry label
 	    `TextEntry (`id(`mode), _("Home Directory &Permission Mode"), mode),
 	    // check box label
 	    `Left (`CheckBox (`id(`skel), _("E&mpty Home"), no_skel))
 	);
+	term crypted_home_term	= crypted_home_enabled ? `HBox (
+		`VBox (
+		    `Label (""),
+		    `Left (`CheckBox (`id(`crypted_home), `opt (`notify),
+			// check box label
+			_("&Use Encrypted Home Directory"), crypted_home_size > 0)
+		    )
+		),
+		// IntField label
+		`IntField (`id (`dirsize), _("&Directory Size in MB"), 10, 9999, crypted_home_size)
+	) : `HBox ();
+
 	return `HBox (
           `HSpacing(1),
           `VBox(
@@ -486,7 +509,8 @@ group memberships can be changed.")) : `VSpacing (0),
                         sformat("%1",uid ))),
                     `Top(`VBox(
 			`HBox ( home_w, browse),
-			new_user_term
+			new_user_term,
+			crypted_home_term
 		    )),
                     additional_data,
                     `Top(edit_shell),
@@ -1059,6 +1083,7 @@ _("Change home directory to %1?"), generated_home))))
 		org_username	= username;
 	}
 
+	// indide Details dialog
 	if (current == `details && ret == `browse)
 	{
 	    string dir = home;
@@ -1073,6 +1098,11 @@ _("Change home directory to %1?"), generated_home))))
 		    dir = substring (dir, 0, size(dir)-1);
 		UI::ChangeWidget (`id(`home), `Value, dir);
 	    }
+	}
+	if (current == `details && ret == `crypted_home)
+	{
+	    UI::ChangeWidget (`id (`dirsize), `Enabled,
+		(boolean) UI::QueryWidget (`id (`crypted_home), `Value));
 	}
 
 	// going from Details dialog
@@ -1181,6 +1211,24 @@ _("Change home directory to %1?"), generated_home))))
 		}
 	    }
 
+	    if (crypted_home_enabled)
+	    {
+		integer home_size	= (integer)UI::QueryWidget (`id (`dirsize), `Value);
+		if ((boolean)UI::QueryWidget (`id (`crypted_home), `Value))
+		{
+		    if (home_size == 0)
+		    {
+			// error popup
+			Popup::Error (_("Enter the size for the home directory."));
+			focus_tab (current, `dirsize);
+			continue;
+		    }
+		    crypted_home_size	= home_size;
+		}
+		else crypted_home_size	= 0;
+	    }
+
+
 	    error_map = Users::CheckShellUI (new_shell, ui_map);
 	    if (error_map != $[])
 	    {
@@ -1234,6 +1282,7 @@ _("Change home directory to %1?"), generated_home))))
 	    user["addit_data"]		= addit_data;
 	    user["no_skeleton"]		= no_skel;
 	    user["home_mode"]		= mode;
+	    user["crypted_home_size"]	= crypted_home_size;
         }
 
 	if (current == `passwordsettings && (ret == `next || tab))
@@ -1436,7 +1485,7 @@ _("Change home directory to %1?"), generated_home))))
 		UI::ChangeWidget (`id (`browse), `Enabled, false);
 		UI::ChangeWidget (`id (`move_home), `Enabled, false);
 	    }
-	    if (!FileUtils::Exists (home))
+	    if (!FileUtils::Exists (home) && UI::WidgetExists (`id (`move_home)))
 	    {
 		UI::ChangeWidget (`id (`move_home), `Enabled, false);
 	    }
@@ -1446,6 +1495,10 @@ _("Change home directory to %1?"), generated_home))))
 		UI::ChangeWidget (`id (`mode), `InputMaxLength, 3);
 	    }
 	    UI::ChangeWidget(`id(`shell), `Value, shell);
+
+	    if (UI::WidgetExists (`id (`crypted_home)))
+		UI::ChangeWidget (`id (`dirsize), `Enabled,
+		    (boolean) UI::QueryWidget (`id (`crypted_home), `Value));
 
 	    current	= ret;
 	}
@@ -1472,6 +1525,17 @@ _("Change home directory to %1?"), generated_home))))
 	    if (error != "")
 	    {
 		Report::Error (error);
+		ret = `notnext;
+		continue;
+	    }
+	    if (crypted_home_enabled && what == "edit_user" &&
+		GetInt (user["crypted_home_size"]:nil, 0) != 0 &&
+		GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0) &&
+		user["encrypted"]:true
+	    )
+	    {
+		// popup message
+		Report::Error (_("To encrypt the user's home directory, you must change the password."));
 		ret = `notnext;
 		continue;
 	    }
