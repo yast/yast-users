@@ -209,5 +209,59 @@ sub DeleteHome {
     return 1;
 }
 
+##------------------------------------
+# Delete the crypted directory
+# @param home path to home directory
+# @param user name (to know the key and img name)
+# @return success
+BEGIN { $TYPEINFO{DeleteCryptedHome} = ["function", "boolean", "string", "string"];}
+sub DeleteCryptedHome {
+
+    my $self		= shift;
+    my $home		= shift;
+    my $username	= shift;
+    
+    my $home_path 	= substr ($home, 0, rindex ($home, "/"));
+    my $path		= "$home_path/$username";
+
+    my $ret		= 1;
+
+    return 0 if ((not defined $home) || (not defined $username));
+
+    if (%{SCR->Read (".target.stat", "$path.img")}) {
+	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.img");
+	if (($out->{"exit"} || 0) ne 0) {
+	    y2error ("error while removing $path.img file: ", $out->{"stderr"} || "");
+	    $ret	= 0;
+	}
+    }
+    if (%{SCR->Read (".target.stat", "$path.key")}) {
+	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.key");
+	if (($out->{"exit"} || 0) ne 0) {
+	    y2error ("error while removing $path.key file: ", $out->{"stderr"} || "");
+	    $ret	= 0;
+	}
+    }
+    return $ret;
+}
+
+
+##------------------------------------
+# Return size of given file in MB (rounded down)
+# @param path to file
+# @return size
+BEGIN { $TYPEINFO{FileSizeInMB} = ["function", "string", "string"];}
+sub FileSizeInMB {
+    my $self    = shift;
+    my $file	= shift;
+
+    return "0" if not defined $file;
+
+    my $stat	= SCR->Read (".target.stat", $file);
+
+    return "0" if not defined $stat->{"size"};
+    return sprintf ("%i", $stat->{"size"} / (1024 * 1024));
+}
+
 1
 # EOF
