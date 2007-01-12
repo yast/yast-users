@@ -118,7 +118,8 @@ my @user_internal_keys		=
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
-     "warning_message", "warning_message_ID", "confirmed_warnings");
+     "warning_message", "warning_message_ID", "confirmed_warnings", "home_mode",
+     "crypted_home_size");
 
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
@@ -1181,7 +1182,6 @@ sub ConvertMap {
 	}
 	$ret{$key}	= $val;
     }
-y2internal ("final map: ", Dumper [\%ret]);
     return \%ret;
 }
 
@@ -1267,6 +1267,7 @@ sub WriteUsers {
 	my $plugins_to_remove	= $user->{"plugins_to_remove"};
 	my $plugin_error	= "";
 
+	my $org_username= $user->{"org_user"}{"uid"} || $username;
 	# old DN stored from ldap-search (removed in Convert)
 	my $dn		= $user->{"dn"}	|| "";
 	my $org_dn	= $user->{"org_user"}{"dn"} || $dn;
@@ -1284,6 +1285,10 @@ sub WriteUsers {
 		}
 	    }
 	    $user->{"objectclass"}	= \@ocs;
+	}
+	my $mode = 777 - String->CutZeros ($umask);
+	if (defined ($user->{"home_mode"})) {
+	    $mode	= $user->{"home_mode"};
 	}
 	# ----------- now call the WriteBefore plugin function for this user
 
@@ -1367,10 +1372,12 @@ sub WriteUsers {
 		if ($server) {
 		    if ($create_home) {
 			UsersRoutines->CreateHome (
-			    $useradd_defaults{"skel"}, $home, $umask);
+			    $useradd_defaults{"skel"}, $home);
 		    }
 		    if ($home ne "/var/lib/nobody") {
-			UsersRoutines->ChownHome ($uid, $gid, $home);
+			if (UsersRoutines->ChownHome ($uid, $gid, $home)) {
+			    UsersRoutines->ChmodHome($home, $mode);
+			}
 		    }
 		}
 	    }
@@ -1381,6 +1388,7 @@ sub WriteUsers {
 	    }
             elsif ($server && $delete_home) {
                 UsersRoutines->DeleteHome ($home);
+		UsersRoutines->DeleteCryptedHome ($home, $org_username);
             }
         }
         elsif ($action eq "edited") {
