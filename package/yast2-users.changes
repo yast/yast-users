@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jan 12 17:34:36 CET 2007 - jsuchome@suse.cz
+
+- correctly set home directory mode for LDAP users (F3621)
+- allow per-user home directory crypting (F301787)
+- 2.13.37
+
+-------------------------------------------------------------------
 Tue Dec 19 16:27:42 CET 2006 - jsuchome@suse.cz
 
 - new LDAP plugins for Password Policy and Shadow Account (F301179)

@@ -2055,7 +2055,7 @@ sub EditUser {
     if (defined $data{"type"}) {
 	$type 	= $data{"type"};
     }
-    my $username	= $data{"uid"};
+    my $username	= $user_in_work{"uid"};
 
     # check if user is edited for first time
     if (!defined $user_in_work{"org_user"} &&
@@ -2081,6 +2081,16 @@ sub EditUser {
 	# set the default value ("move directories, when changed")
 	if (!defined $user_in_work{"create_home"}) {
 	    $user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
+	}
+
+	# check if user is using crypted directory
+	my $h	= $user_in_work{"homedirectory"} || "";
+	my $hp	= substr ($h, 0, rindex ($h, "/"));
+	if (FileUtils->Exists ("$hp/$username.img")) {
+	    $user_in_work{"crypted_home_size"}	= UsersRoutines->FileSizeInMB ("$hp/$username.img");
+	}
+	else {
+	    $user_in_work{"crypted_home_size"} = 0;
 	}
 
 	# save first map for later checks of modification (in Commit)
@@ -3524,7 +3534,7 @@ sub CommitUser {
 	    if (defined $user{"org_user"}{"homedirectory"}) {
 	        $h	= $user{"org_user"}{"homedirectory"};
 	    }
-	    $removed_homes{$h}	= 1;
+	    $removed_homes{$h}	= $org_username;
 	}
     }
 
@@ -3912,13 +3922,14 @@ sub PreDeleteUsers {
 
 ##------------------------------------
 # remove home directories and
-# execute USERDEL_POSTCMD scripts for users which should be deleted
+# execute USERDEL_POSTCMD scripts for local/system users which should be deleted
 sub PostDeleteUsers {
 
     my $ret	= 1;
 
     foreach my $home (keys %removed_homes) {
 	$ret = $ret && UsersRoutines->DeleteHome ($home);
+	UsersRoutines->DeleteCryptedHome ($home, $removed_homes{$home});
     };
 
     if ($userdel_postcmd eq "" || !FileUtils->Exists($userdel_postcmd)) {
@@ -4101,6 +4112,9 @@ sub Write {
     # Write LDAP users and groups
     if ($use_gui) { Progress->NextStage (); }
 
+    # this hash stores users, for which directory needs to be crypted (feature 301787)
+    my %users_with_crypted_dir          = ();
+
     if ($ldap_modified) {
 	my $error_msg	= "";
 
@@ -4116,6 +4130,18 @@ sub Write {
 	}
 		
 	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
+
+	    # only remember for which users we need to call cryptconfig
+	    foreach my $username (keys %{$modified_users{"ldap"}}) {
+		my %user	= %{$modified_users{"ldap"}{$username}};
+		my $home_size	= $user{"crypted_home_size"} || 0;
+		if ($home_size > 0)  {
+		    $users_with_crypted_dir{$username}      = {
+			"text_userpassword" => $user{"text_userpassword"},
+			"crypted_home_size" => $home_size
+		    };
+		}
+	    }
 	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
 	    if ($error_msg ne "") {
 		Ldap->LDAPErrorMessage ("users", $error_msg);
@@ -4299,7 +4325,7 @@ sub Write {
 	# check for homedir changes
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") {
-		next; #homes for LDAP are ruled in WriteLDAP
+		next; #rest of work with homes for LDAP are ruled in WriteLDAP
 	    }
 	    foreach my $username (keys %{$modified_users{$type}}) {
 	    
@@ -4310,8 +4336,15 @@ sub Write {
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
+		my $skel	= $useradd_defaults{"skel"};
+		my $home_size	= $user{"crypted_home_size"} || 0;
+		if ($home_size > 0)  {
+		    $users_with_crypted_dir{$username}      = {
+			"text_userpassword" => $user{"text_userpassword"},
+			"crypted_home_size" => $home_size
+		    };
+		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
-		    my $skel	= $useradd_defaults{"skel"};
 		    if (bool ($user{"no_skeleton"})) {
 			$skel 	= "";
 		    }
@@ -4343,6 +4376,10 @@ sub Write {
 			# move the home directory
 			if (bool ($create_home)) {
 			    UsersRoutines->MoveHome ($org_home, $home);
+			}
+			# create new home directory
+			elsif (not %{SCR->Read (".target.stat", $home)}) {
+			    UsersRoutines->CreateHome ($skel, $home);
 			}
 			# chown only when directory was changed (#39417)
 			UsersRoutines->ChownHome ($uid, $gid, $home);
@@ -4401,6 +4438,34 @@ sub Write {
 		SCR->Execute (".target.bash", $command));
 	}
     }
+
+    # now crypt the home directories
+    my $tmpdir		= Directory->tmpdir ();
+
+    if (%users_with_crypted_dir) {
+	Package->Install ("cryptconfig");
+    }
+    if (!FileUtils->Exists ("/usr/sbin/cryptconfig")) {
+	%users_with_crypted_dir     = ();
+    }
+    foreach my $username (keys %users_with_crypted_dir) {
+	my $user        = $users_with_crypted_dir{$username};
+	my $home_size   = $user->{"crypted_home_size"} || 0;
+	my $pw		= $user->{"text_userpassword"};
+
+	next if !defined $pw;
+
+	my $pw_path	= "$tmpdir/pw";
+	SCR->Write (".target.string", $pw_path, $pw);
+
+	my $cmd = "/usr/sbin/cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+	my $out = SCR->Execute (".target.bash_output", $cmd);
+	if ($out->{"exit"} ne 0) {
+	    y2warning ("error calling cryptconfig with user $username: ", $out->{"stderr"});
+	}
+	SCR->Execute (".target.remove", $pw_path);
+    }
+    %users_with_crypted_dir	= ();
 
     # complete adding users
     if ($users_modified && @useradd_postcommands > 0) {
