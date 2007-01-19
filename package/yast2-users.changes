@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan 19 11:05:28 CET 2007 - jsuchome@suse.cz
+
+- added missing help text for Password Policy Plugin (#236613) 
+- 2.15.5
+
+-------------------------------------------------------------------
 Fri Jan 12 16:59:54 CET 2007 - jsuchome@suse.cz
 
 - correctly set home directory mode for LDAP users (F3621)
