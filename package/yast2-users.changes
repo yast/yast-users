@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Thu Jan 25 15:18:39 CET 2007 - jsuchome@suse.cz
+
+- fixed value for pwdReset attribute (#238254)
+- read the values of operational attributes (#238254)
+- when adding user, add a new check if plugin should not be applied
+- set the correct value for pwdAccountLockedTime attribute (#238712)
+- 2.13.39
+
+-------------------------------------------------------------------
 Fri Jan 19 11:06:38 CET 2007 - jsuchome@suse.cz
 
 - added missing help text for Password Policy Plugin (#236613)
