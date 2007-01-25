@@ -246,7 +246,7 @@ sub Enable {
     my ($self, $config, $data)  = @_;
     y2debug ("Enable LDAPAll called");
 
-    $data->{'pwdAccountLockedTime'}	= "";
+    $data->{'pwdaccountlockedtime'}	= "";
     return $data;
 }
 
@@ -260,7 +260,7 @@ sub Disable {
     my ($self, $config, $data)  = @_;
     y2debug ("Disable LDAPAll called");
 
-    $data->{'pwdAccountLockedTime'}	= 0;
+    $data->{'pwdaccountlockedtime'}	= "000001010000Z"; # see slapo-ppolicy man-page
     return $data;
 }
 
