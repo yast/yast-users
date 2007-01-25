@@ -1848,9 +1848,43 @@ sub DeleteGroup {
 BEGIN { $TYPEINFO{GetUserPlugins} = ["function", ["list", "string"], "string"]};
 sub GetUserPlugins {
 
+    my $self	= shift;
+    my $type	= shift;
+    my $adding	= shift;
+    my @plugins	= ();
+
+    if ($type eq "ldap") {
+	@plugins	= @{UsersLDAP->GetUserPlugins ()};
+    }
+    else {
+	@plugins	= @local_plugins;
+    }
+    # check for default plug-ins for adding user
+    # (and only when adding user, otherwise the check for presence was already done...)
+    if (defined $adding) {
+	my $result = UsersPlugins->Apply ("PluginPresent", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	}, {});	# plugin present for empty user => should be added by default
+	if (defined ($result) && ref ($result) eq "HASH") {
+	    foreach my $plugin (keys %{$result}) {
+		# check if plugin has done the 'PluginPresent' action
+		if (bool ($result->{$plugin}) && !contains (\@plugins, $plugin)){
+		    push @plugins, $plugin;
+		}
+	    }
+	}
+    }
+    return \@plugins;
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{GetGroupPlugins} = ["function", ["list", "string"], "string"]};
+sub GetGroupPlugins {
+
     my $self		= shift;
     if ($_[0] eq "ldap") {
-	return UsersLDAP->GetUserPlugins ();
+	return UsersLDAP->GetGroupPlugins ();
     }
     else {
 	return \@local_plugins;
@@ -2021,7 +2055,8 @@ sub ReadLDAPUser {
     my $res 	= SCR->Read (".ldap.search", {
 	"base_dn"       => $dn,
 	"scope"         => YaST::YCP::Integer (0),
-        "single_values" => YaST::YCP::Boolean (1)
+        "single_values" => YaST::YCP::Boolean (1),
+	"attrs"         => [ "*", "+" ] # read also operational attributes (#238254)
     });
     my $u	= {};
     if (defined $res && ref ($res) eq "ARRAY" && ref ($res->[0]) eq "HASH") {
@@ -2323,7 +2358,7 @@ sub EditGroup {
 
     # ------------------------- initialize list of current user plugins
     if (!defined $group_in_work{"plugins"}) {
-	$group_in_work{"plugins"}	= $self->GetUserPlugins ($type);
+	$group_in_work{"plugins"}	= $self->GetGroupPlugins ($type);
     }
     my $plugins		= $group_in_work{"plugins"};
 
@@ -2906,7 +2941,7 @@ sub AddUser {
 
     # -------------------------- now call AddBefore function from plugins
     if (!defined $user_in_work{"plugins"}) {
-	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type);
+	$user_in_work{"plugins"}	= $self->GetUserPlugins ($type, 1);
     }
     my $plugins		= $user_in_work{"plugins"};
     if (defined $data{"plugins"} && ref ($data{"plugins"}) eq "ARRAY") {
