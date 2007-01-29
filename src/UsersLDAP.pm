@@ -1137,6 +1137,20 @@ sub ConvertMap {
 		$val = sprintf ("{%s}%s", $enc, $val);
 	    }
 	}
+	# now remove the keys with the unchanged values...
+	if (defined $org_object && defined $org_object->{$key}) {
+
+	    if (ref ($val) eq "ARRAY" && ref ($org_object->{$key}) eq "ARRAY"
+		 && same_arrays ($val, $org_object->{$key})) {
+		y2debug ("---- unchanged array key: $key, value: ", @$val);
+		next;
+	    }
+	    elsif ($org_object->{$key} eq $val) {
+		y2debug ("---------- unchanged key: $key, value: $val");
+		next;
+	    }
+	}
+
 	# check if the attributes are allowed by objectclass
 	if (!contains (\@attributes, $key, 1)) {
 	    if (contains ($old_attributes, $key, 1)) {
@@ -1167,19 +1181,6 @@ sub ConvertMap {
 	}
 	y2debug ("-------------------- key: $key, value: $val");
 
-	# now remove the keys with the unchanged values...
-	if (defined $org_object && defined $org_object->{$key}) {
-
-	    if (ref ($val) eq "ARRAY" && ref ($org_object->{$key}) eq "ARRAY"
-		 && same_arrays ($val, $org_object->{$key})) {
-		y2debug ("---- unchanged array key: $key, value: ", @$val);
-		next;
-	    }
-	    elsif ($org_object->{$key} eq $val) {
-		y2debug ("---------- unchanged key: $key, value: $val");
-		next;
-	    }
-	}
 	$ret{$key}	= $val;
     }
     return \%ret;
