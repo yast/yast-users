@@ -137,6 +137,7 @@ define symbol EditUserDialog (string what) {
     string default_mode	=
 	sformat ("%1", 777 - tointeger (String::CutZeros (Users::GetUmask ())));
     string mode		= user["home_mode"]:default_mode;
+    integer default_crypted_size	= 100;
     integer crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
     string password	= (string)user["userpassword"]:nil;
     string org_username = user["org_uid"]:username;
@@ -1101,8 +1102,10 @@ _("Change home directory to %1?"), generated_home))))
 	}
 	if (current == `details && ret == `crypted_home)
 	{
-	    UI::ChangeWidget (`id (`dirsize), `Enabled,
-		(boolean) UI::QueryWidget (`id (`crypted_home), `Value));
+	    boolean checked	= (boolean) UI::QueryWidget (`id (`crypted_home), `Value);
+	    if (checked && (integer) UI::QueryWidget (`id (`dirsize), `Value) == 10)
+		UI::ChangeWidget (`id (`dirsize), `Value, default_crypted_size);
+	    UI::ChangeWidget (`id (`dirsize), `Enabled, checked);
 	}
 
 	// going from Details dialog
@@ -1528,10 +1531,11 @@ _("Change home directory to %1?"), generated_home))))
 		ret = `notnext;
 		continue;
 	    }
-	    if (crypted_home_enabled && what == "edit_user" &&
-		GetInt (user["crypted_home_size"]:nil, 0) != 0 &&
-		GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0) &&
-		user["encrypted"]:true
+	    if ((crypted_home_enabled && what == "edit_user" && user["encrypted"]:true) &&
+		((GetInt (user["crypted_home_size"]:nil, 0) != 0 &&
+		 GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0))
+		||
+		(org_username != username))
 	    )
 	    {
 		// popup message

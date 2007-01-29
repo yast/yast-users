@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Fri Jan 26 13:35:12 CET 2007 - jsuchome@suse.cz
+
+- adapt inst_auth dialog layout for ncurses (#238726)
+- fixed crypted directories handling on user name change and
+  directory resize (#235097)
+- ConvertMap: check for modifications before analyzing the attributes
+- 2.15.7 
+
+-------------------------------------------------------------------
 Thu Jan 25 14:57:05 CET 2007 - jsuchome@suse.cz
 
 - fixed value for pwdReset attribute (#238254)

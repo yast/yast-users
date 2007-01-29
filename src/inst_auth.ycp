@@ -230,6 +230,17 @@ help	= help + _("<p>Check <b>Set Up Kerberos Authentication</b> to configure Ker
 
 term buttons = `VBox (`VSpacing(0.5));
 
+map display_info        = UI::GetDisplayInfo ();
+boolean text_mode	= display_info["TextMode"]:false;
+
+term import_checkbox = `Left (`CheckBox (`id (`import_ch),
+    // check box label
+    _("&Read User Data from a Previous Installation")
+));
+
+// button label
+term import_button = `PushButton (`id(`import), _("&Choose"));
+
 foreach (string client, available_clients, {
     if (client == "users" && import_available)
 	buttons	= add (buttons, `VBox (
@@ -238,12 +249,9 @@ foreach (string client, available_clients, {
 	    )),
 	    `HBox (
 		`HSpacing (3),
-		`Left (`CheckBox (`id (`import_ch),
-		    // check box label
-		    _("&Read User Data from a Previous Installation")
-		)),
-		// button label
-		`PushButton (`id(`import), _("&Choose"))
+		text_mode ?
+		    `VBox (import_checkbox, `Left (import_button)) :
+		    `HBox (import_checkbox, import_button)
 	    )
 	));
     else
