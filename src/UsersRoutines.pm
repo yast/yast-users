@@ -245,6 +245,96 @@ sub DeleteCryptedHome {
     return $ret;
 }
 
+##------------------------------------
+# Adapt (=create/move/enlarge) the crypting of home directory
+# @param user map
+# @return success
+BEGIN { $TYPEINFO{CryptHome} = ["function", "boolean", ["map", "string", "any"]];}
+sub CryptHome {
+    
+    my $self		= shift;
+    my $user		= shift;   
+
+    my $username	= $user->{"uid"} || "";
+    my $home		= $user->{"homedirectory"} || "";
+    my $home_size   	= $user->{"crypted_home_size"} || 0;
+    my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
+    my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
+    my $org_username	= $user->{"org_user"}{"uid"} || $username;
+
+    my $pw		= $user->{"text_userpassword"};
+
+    return 0 if !defined $pw; # no change without password provided :-(
+    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size);
+
+    # now crypt the home directories
+    my $tmpdir		= Directory->tmpdir ();
+
+    my $pw_path	= "$tmpdir/pw";
+    my $cmd		= "";
+
+    # check user renaming or directory move
+    my $key_file	= undef;
+    my $image_file	= undef;
+    my $org_hp		= substr ($org_home, 0, rindex ($org_home, "/"));
+    my $hp		= substr ($home, 0, rindex ($home, "/"));
+    if ($hp ne $org_hp || $org_username ne $username) {
+	if (FileUtils->Exists ("$org_hp/$org_username.img")) {
+	    my $command = "/bin/mv $org_hp/$org_username.img $hp/$username.img";
+	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
+	    if (($out{"stderr"} || "") ne "") {
+		y2error ("error calling $command: ", $out{"stderr"} || "");
+		return 0;
+	    }
+	    $image_file	= "$hp/$username.img";
+	}
+	if (FileUtils->Exists ("$org_hp/$org_username.key")) {
+	    my $command = "/bin/mv $org_hp/$org_username.key $hp/$username.key";
+	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
+	    if (($out{"stderr"} || "") ne "") {
+		y2error ("error calling $command: ", $out{"stderr"} || "");
+		return 0;
+	    }
+	    $key_file	= "$hp/$username.key";
+	}
+    }
+    SCR->Write (".target.string", $pw_path, $pw);
+
+    if (defined $key_file || defined $image_file) {
+	$cmd = "/usr/sbin/cryptconfig pm-enable --replace ";
+	$cmd = $cmd."--key-file=$key_file " if defined $key_file;
+	$cmd = $cmd."--image-file=$image_file " if defined $image_file;
+	$cmd = $cmd."$username";
+	my $out = SCR->Execute (".target.bash_output", $cmd);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    Report->Error ($out->{"stderr"});
+	    SCR->Execute (".target.remove", $pw_path);
+	    return 0; 
+	}
+    }
+
+    # now check if existing image doesn't need resizing
+    if (FileUtils->Exists ("$hp/$username.img") && FileUtils->Exists ("$hp/$username.key")) {
+	$key_file	= "$hp/$username.key";
+	$image_file	= "$hp/$username.img";
+    }
+
+    if ($org_size < $home_size && defined $key_file && defined $image_file) {
+	my $add	= $home_size - $org_size;
+	$cmd	=  "/usr/sbin/cryptconfig enlarge-image --key-file=$key_file $image_file $add <  $pw_path";
+    }
+    else {
+        # default command for creating the image
+        $cmd = "/usr/sbin/cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+    }
+
+    my $out = SCR->Execute (".target.bash_output", $cmd);
+    if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	Report->Error ($out->{"stderr"});
+    }
+    SCR->Execute (".target.remove", $pw_path);
+    return 1;
+}
 
 ##------------------------------------
 # Return size of given file in MB (rounded down)

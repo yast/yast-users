@@ -4171,10 +4171,7 @@ sub Write {
 		my %user	= %{$modified_users{"ldap"}{$username}};
 		my $home_size	= $user{"crypted_home_size"} || 0;
 		if ($home_size > 0)  {
-		    $users_with_crypted_dir{$username}      = {
-			"text_userpassword" => $user{"text_userpassword"},
-			"crypted_home_size" => $home_size
-		    };
+		    $users_with_crypted_dir{$username}	= \%user;
 		}
 	    }
 	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
@@ -4374,10 +4371,7 @@ sub Write {
 		my $skel	= $useradd_defaults{"skel"};
 		my $home_size	= $user{"crypted_home_size"} || 0;
 		if ($home_size > 0)  {
-		    $users_with_crypted_dir{$username}      = {
-			"text_userpassword" => $user{"text_userpassword"},
-			"crypted_home_size" => $home_size
-		    };
+		    $users_with_crypted_dir{$username}	= \%user;
 		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    if (bool ($user{"no_skeleton"})) {
@@ -4474,9 +4468,6 @@ sub Write {
 	}
     }
 
-    # now crypt the home directories
-    my $tmpdir		= Directory->tmpdir ();
-
     if (%users_with_crypted_dir) {
 	Package->Install ("cryptconfig");
     }
@@ -4484,21 +4475,7 @@ sub Write {
 	%users_with_crypted_dir     = ();
     }
     foreach my $username (keys %users_with_crypted_dir) {
-	my $user        = $users_with_crypted_dir{$username};
-	my $home_size   = $user->{"crypted_home_size"} || 0;
-	my $pw		= $user->{"text_userpassword"};
-
-	next if !defined $pw;
-
-	my $pw_path	= "$tmpdir/pw";
-	SCR->Write (".target.string", $pw_path, $pw);
-
-	my $cmd = "/usr/sbin/cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
-	my $out = SCR->Execute (".target.bash_output", $cmd);
-	if ($out->{"exit"} ne 0) {
-	    y2warning ("error calling cryptconfig with user $username: ", $out->{"stderr"});
-	}
-	SCR->Execute (".target.remove", $pw_path);
+	UsersRoutines->CryptHome ($users_with_crypted_dir{$username});
     }
     %users_with_crypted_dir	= ();
 
