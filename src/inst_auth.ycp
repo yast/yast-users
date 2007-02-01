@@ -316,7 +316,14 @@ repeat {
 	UI::QueryWidget (`id(`import_ch), `Value) == true)
     {
 	// force selecting when only checkbox is checked
-	ret	= `import;
+	list<string> selected = choose_to_import (user_names, to_import);
+	if (selected != nil)
+	    to_import	= selected;
+	else
+	{
+	    ret	= `notnext;
+	    continue;
+	}
     }
     if (ret == `import)
     {
