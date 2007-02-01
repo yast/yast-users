@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Feb  1 14:09:21 CET 2007 - jsuchome@suse.cz
+
+- fixed inst_auth workflow when "Read user data from previous installation"
+  is checked but on user selected (#240287)
+- 2.15.8
+
+-------------------------------------------------------------------
 Fri Jan 26 13:35:12 CET 2007 - jsuchome@suse.cz
 
 - adapt inst_auth dialog layout for ncurses (#238726)
