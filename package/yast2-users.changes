@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb  5 11:16:18 CET 2007 - jsuchome@suse.cz
+
+- check the default group of user from previous installation (#239688)
+- 2.13.42 
+
+-------------------------------------------------------------------
 Thu Feb  1 14:12:05 CET 2007 - jsuchome@suse.cz
 
 - fixed inst_auth workflow when "Read user data from previous installation"
