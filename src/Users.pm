@@ -3014,7 +3014,7 @@ sub AddUser {
     if (!defined $user_in_work{"gidnumber"}) {
 	$user_in_work{"gidnumber"}	= $self->GetDefaultGID ($type);
     }
-    if (!defined $user_in_work{"groupname"}) {
+    if (!defined $user_in_work{"groupname"} || $user_in_work{"groupname"} eq "") {
 	my %group	= %{$self->GetGroup ($user_in_work{"gidnumber"}, "")};
 	if (%group) {
 	    $user_in_work{"groupname"}	= $group{"cn"};
