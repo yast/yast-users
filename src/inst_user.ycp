@@ -106,9 +106,24 @@ Install it now?
 	    return `back;
 	}
 	ReadDialog (false); // clear the cache from imported data
+	Users::ResetCurrentUser ();
 	y2milestone ("There are some users to import");
 	foreach (map<string,any> user, (list<map<string,any> >) import_u, {
 	    user["encrypted"]	= true;
+	    // check if default group exists
+	    if (haskey (user, "gidnumber"))
+	    {
+		map g	= Users::GetGroup (GetInt (user["gidnumber"]:nil, -1), "");
+		if (g == $[])
+		{
+		    g	= Users::GetGroupByName (user["groupname"]:"", "");
+		    if (g != $[])
+			user["gidnumber"]	= g["gidnumber"]:-1;
+		    else
+			user	= remove (user, "gidnumber");
+		}
+	    }
+
 	    string error = Users::AddUser (user);
 	    if (error != "")
 	    {
