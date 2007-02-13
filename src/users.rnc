@@ -12,7 +12,8 @@ groups =
 gr_group = element group {
     element group_password { text }? &
     element groupname      { text }? &
-    element userlist       { text }?
+    element userlist       { text }? &
+    element gid            { text }?
 }
 
 user_defaults =
