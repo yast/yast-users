@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Feb 14 12:44:19 CET 2007 - jsuchome@suse.cz
+
+- enable bigger size of encrypted directory (#244631)
+- 2.13.44 
+
+-------------------------------------------------------------------
 Tue Feb 13 09:27:35 CET 2007 - jsuchome@suse.cz
 
 - fixed autoyast schema file
