@@ -491,7 +491,7 @@ define symbol EditUserDialog (string what) {
 		    )
 		),
 		// IntField label
-		`IntField (`id (`dirsize), _("&Directory Size in MB"), 10, 9999, crypted_home_size)
+		`IntField (`id (`dirsize), _("&Directory Size in MB"), 10, 2147483647, crypted_home_size) // for max value, see bug 244631 :-)
 	) : `HBox ();
 
 	return `HBox (
