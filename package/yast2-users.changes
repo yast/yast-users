@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Feb 21 15:51:14 CET 2007 - jsuchome@suse.cz
+
+- implemented disabling of crypted home directories (#242531)
+- when deleting crypted home, disable pam_mount
+- 2.15.12
+
+-------------------------------------------------------------------
 Wed Feb 14 12:43:00 CET 2007 - jsuchome@suse.cz
 
 - enable bigger size of encrypted directory (#244631)
