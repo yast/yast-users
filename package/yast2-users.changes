@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Feb 22 15:23:12 CET 2007 - jsuchome@suse.cz
+
+- do not ask if package is available when it is not possible
+  to access installation source (#225484)
+- check if package is installed before checking if it is available
+- 2.15.13
+
+-------------------------------------------------------------------
 Wed Feb 21 15:51:14 CET 2007 - jsuchome@suse.cz
 
 - implemented disabling of crypted home directories (#242531)

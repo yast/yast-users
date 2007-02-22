@@ -2434,16 +2434,27 @@ define symbol AuthentizationDialog() {
     list mb = [];
 
     map to_string = $[
-        // just the name (do not translate)
+        // menubutton label
         "nis"   : _("&NIS"),
-        // just the name (do not translate)
+        // menubutton label
         "nisplus"   : _("N&IS+"),
-        // just the name (do not translate)
+        // menubutton label
         "ldap"  : _("&LDAP"),
-        // just the name (do not translate)
+        // menubutton label
         "kerberos"  : _("&Kerberos"),
-        // just the name (do not translate)
+        // menubutton label
         "samba"  : _("&Samba"),
+    ];
+
+    map client_label	= $[
+        // richtext label
+        "nis"   : _("NIS"),
+        // richtext label
+        "ldap"  : _("LDAP"),
+        // richtext label
+        "kerberos"  : _("Kerberos"),
+        // richtext label
+        "samba"  : _("Samba"),
     ];
 
     // name of module to call
@@ -2497,31 +2508,57 @@ define symbol AuthentizationDialog() {
 
     /**
      * Reloads the configuration and updates the auth-widget contents
+     * returns the summary value for richtext
      */
-    define void reload_config() {
+    define string reload_config (list<string> clients) {
 
         string summary = "";
-	foreach (string client, available, {
+	if (clients == nil || clients == [])
+	    clients	= (list<string>) union (available, installed);
+	foreach (string client, clients, {
 	    summary = Summary::AddHeader (summary, sformat (
 		"<font color=\"#8BC460\"><a href=\"%1\">%2</a></font>",
-		client,
-		deletechars (to_string [client]:"", "&")));
+		client, client_label[client]:client));
 	    summary = Summary::AddLine (summary, get_module_data (client));
 	});
-        UI::ChangeWidget(`id(`summary), `Value, summary);
+	return summary;
     }
 
+    /**
+     * helper: check availability of authentication packages and
+     * update the RichText summary accordingly
+     */
+    define void check_packages () {
 
-    foreach (string client, configurable, {
-	string package = sformat ("yast2-%1-client", client);
-        if (Package::Available (package))
-	{
-	    available = add (available, client);
-	    mb = add (mb, `item(`id(client), to_string[client]:""));
-	}
-        if (Package::Installed (package))
-	    installed = add (installed, client);
-    });
+	boolean check_available	= true; // save if more Available calls should be done (bug #225484)
+
+	foreach (string client, configurable, {
+	    string package = sformat ("yast2-%1-client", client);
+	    term client_item	= `item (`id(client), to_string[client]:"");
+	    if (Package::Installed (package))
+	    {
+		installed	= add (installed, client);
+		mb		= add (mb, client_item);
+		UI::ChangeWidget (`id(`summary), `Value,
+		    (string) UI::QueryWidget (`id (`summary),`Value) + reload_config ([client]));
+	    }
+	    else if (check_available)
+	    {
+		boolean avai	= Package::Available (package);
+		if (avai == nil)
+		{
+		    check_available	= false;
+		}
+		else if (avai)
+		{
+		    available	= add (available, client);
+		    mb		= add (mb, client_item);
+		    UI::ChangeWidget (`id(`summary), `Value,
+			(string)UI::QueryWidget (`id (`summary),`Value) + reload_config ([client]));
+		}
+	    }
+	});
+    }
 
     term contents = `HBox(
         `HSpacing(4),
@@ -2529,8 +2566,10 @@ define symbol AuthentizationDialog() {
             `VSpacing(0.5),
             `RichText (`id(`summary), ""),
             `VSpacing( 0.5 ),
-            // button label
-	    `MenuButton(`opt(`key_F4), _("&Configure..."), mb),
+	    `ReplacePoint (`id (`rpbutton),
+		// button label
+		`MenuButton(`opt(`key_F4), _("&Configure..."), mb)
+	    ),
             `VSpacing (0.5)
         ),
         `HSpacing(4)
@@ -2543,7 +2582,11 @@ define symbol AuthentizationDialog() {
         Label::CancelButton(), Label::AcceptButton());
     Wizard::HideAbortButton ();
 
-    reload_config();
+    check_packages ();
+    if (size (mb) > 0)
+    {
+	UI::ReplaceWidget (`id (`rpbutton), `MenuButton(`opt(`key_F4), _("&Configure..."), mb));
+    }
 
     any button		= nil;
     boolean changed	= false;
@@ -2579,7 +2622,7 @@ Install it now?
 		(string)call_module[button]:button, param) == `next)
 	    {
 		changed = true;
-		reload_config ();
+		UI::ChangeWidget (`id(`summary), `Value, reload_config ([]));
 		Wizard::DisableBackButton();
 	    }
         }
