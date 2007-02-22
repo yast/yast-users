@@ -18,6 +18,29 @@ our %TYPEINFO;
 
 YaST::YCP::Import ("SCR");
 
+##------------------------------------
+##------------------- global variables
+
+# path to cryptconfig
+my $cryptconfig	= "/usr/sbin/cryptconfig";
+
+
+##-------------------------------------------------------------------------
+##----------------- helper routines ---------------------------------------
+
+# set new path to cryptconfig
+BEGIN { $TYPEINFO{SetCryptconfigPath} = ["function", "void", "string"]; }
+sub SetCryptconfigPath {
+    my $self		= shift;
+    $cryptconfig	= shift;
+}
+
+# return current path to cryptconfig
+BEGIN { $TYPEINFO{CryptconfigPath} = ["function", "string"]; }
+sub CryptconfigPath {
+    return $cryptconfig;
+}
+
 ##-------------------------------------------------------------------------
 ##----------------- directory manipulation routines -----------------------
 
@@ -41,7 +64,6 @@ sub CreateHome {
     if (!%{SCR->Read (".target.stat", $home_path)}) {
 	SCR->Execute (".target.mkdir", $home_path);
     }
-
     my %stat	= %{SCR->Read (".target.stat", $home)};
     if (%stat) {
         if ($home ne "/var/lib/nobody") {
@@ -228,17 +250,24 @@ sub DeleteCryptedHome {
 
     return 0 if ((not defined $home) || (not defined $username));
 
+    if (%{SCR->Read (".target.stat", "$path.key")}) {
+	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.key");
+	if (($out->{"exit"} || 0) ne 0) {
+	    y2error ("error while removing $path.key file: ", $out->{"stderr"} || "");
+	    $ret	= 0;
+	}
+    }
     if (%{SCR->Read (".target.stat", "$path.img")}) {
 	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.img");
 	if (($out->{"exit"} || 0) ne 0) {
 	    y2error ("error while removing $path.img file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
-    }
-    if (%{SCR->Read (".target.stat", "$path.key")}) {
-	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.key");
-	if (($out->{"exit"} || 0) ne 0) {
-	    y2error ("error while removing $path.key file: ", $out->{"stderr"} || "");
+	my $command = "$cryptconfig pm-disable $username";
+	$out	= SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"});
+	    Report->Error ($out->{"stderr"});
 	    $ret	= 0;
 	}
     }
@@ -261,11 +290,11 @@ sub CryptHome {
     my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
     my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
     my $org_username	= $user->{"org_user"}{"uid"} || $username;
-
     my $pw		= $user->{"text_userpassword"};
 
+    return 1 if ($home_size == 0 && $org_size == 0); # nothing to do
+    return 1 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size);
     return 0 if !defined $pw; # no change without password provided :-(
-    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size);
 
     # now crypt the home directories
     my $tmpdir		= Directory->tmpdir ();
@@ -273,14 +302,77 @@ sub CryptHome {
     my $pw_path	= "$tmpdir/pw";
     my $cmd		= "";
 
-    # check user renaming or directory move
+
     my $key_file	= undef;
     my $image_file	= undef;
     my $org_hp		= substr ($org_home, 0, rindex ($org_home, "/"));
+    my $org_img		= "$org_hp/$org_username.img";
+    my $org_key		= "$org_hp/$org_username.key";
+    
+    # solve disabling of crypted directory
+    if ($home_size == 0 && $org_size > 0 &&
+	FileUtils->Exists ($org_key) && FileUtils->Exists ($org_img))
+    {
+	SCR->Write (".target.string", $pw_path, $pw);
+	my $command = "$cryptconfig open --key-file=$org_key $org_img < $pw_path";
+	my $out	= SCR->Execute (".target.bash_output", $command);
+	SCR->Execute (".target.remove", $pw_path);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"});
+	    Report->Error ($out->{"stderr"});
+	    return 0;
+	}
+	my @stdout_l = split (/ /, $out->{"stdout"} || "");
+	my $image_path	= pop @stdout_l;
+	chop $image_path;
+	if (!$image_path) {
+	    y2error ("path to image could not be acquired from ", $out->{"stdout"} || "");
+	    return 0;
+	}
+	my $mnt_dir	= "$tmpdir/mnt";
+	SCR->Execute (".target.bash", "/bin/rm -rf $mnt_dir") if (FileUtils->Exists ($mnt_dir));
+	SCR->Execute (".target.mkdir", $mnt_dir);
+	$command = "mount -o loop $image_path $mnt_dir";
+	$out = SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"}); 
+	    # TODO translated message for mount error
+	    return 0;
+	}
+	SCR->Execute (".target.bash", "/bin/rm -rf $home");
+	# copy the directory content
+	$command = "/bin/cp -ar $mnt_dir $home";
+	$out	= SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"});
+	    return 0;
+	}
+	SCR->Execute (".target.bash", "umount $mnt_dir");
+	$command = "$cryptconfig pm-disable $username";
+	$out	= SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"});
+	    Report->Error ($out->{"stderr"});
+	    return 0;
+	}
+	$command = "$cryptconfig close $org_img";
+	$out	= SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"});
+	    Report->Error ($out->{"stderr"});
+	    return 0;
+	}
+	# remove image and key files
+	SCR->Execute (".target.bash", "/bin/rm -rf $org_img");
+	SCR->Execute (".target.bash", "/bin/rm -rf $org_key");
+	return 1;
+    }
+
+    # check user renaming or directory move
     my $hp		= substr ($home, 0, rindex ($home, "/"));
     if ($hp ne $org_hp || $org_username ne $username) {
-	if (FileUtils->Exists ("$org_hp/$org_username.img")) {
-	    my $command = "/bin/mv $org_hp/$org_username.img $hp/$username.img";
+	if (FileUtils->Exists ($org_img)) {
+	    my $command = "/bin/mv $org_img $hp/$username.img";
 	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
 	    if (($out{"stderr"} || "") ne "") {
 		y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -288,8 +380,8 @@ sub CryptHome {
 	    }
 	    $image_file	= "$hp/$username.img";
 	}
-	if (FileUtils->Exists ("$org_hp/$org_username.key")) {
-	    my $command = "/bin/mv $org_hp/$org_username.key $hp/$username.key";
+	if (FileUtils->Exists ($org_key)) {
+	    my $command = "/bin/mv $org_key $hp/$username.key";
 	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
 	    if (($out{"stderr"} || "") ne "") {
 		y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -301,7 +393,7 @@ sub CryptHome {
     SCR->Write (".target.string", $pw_path, $pw);
 
     if (defined $key_file || defined $image_file) {
-	$cmd = "/usr/sbin/cryptconfig pm-enable --replace ";
+	$cmd = "$cryptconfig pm-enable --replace ";
 	$cmd = $cmd."--key-file=$key_file " if defined $key_file;
 	$cmd = $cmd."--image-file=$image_file " if defined $image_file;
 	$cmd = $cmd."$username";
@@ -321,11 +413,11 @@ sub CryptHome {
 
     if ($org_size < $home_size && defined $key_file && defined $image_file) {
 	my $add	= $home_size - $org_size;
-	$cmd	=  "/usr/sbin/cryptconfig enlarge-image --key-file=$key_file $image_file $add <  $pw_path";
+	$cmd	=  "$cryptconfig enlarge-image --key-file=$key_file $image_file $add <  $pw_path";
     }
     else {
         # default command for creating the image
-        $cmd = "/usr/sbin/cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+        $cmd = "$cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
     }
 
     my $out = SCR->Execute (".target.bash_output", $cmd);
