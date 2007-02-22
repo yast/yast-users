@@ -3955,6 +3955,17 @@ sub PreDeleteUsers {
     return $ret;
 }
 
+# Remove crypted direcotries - because of 'cryptconfig pm-disable' call, this
+# must be done when user is still known to PAM...
+sub DeleteCryptedHomes {
+
+    my $ret = 1;
+    foreach my $home (keys %removed_homes) {
+	$ret = $ret && UsersRoutines->DeleteCryptedHome ($home, $removed_homes{$home});
+    };
+    return $ret;
+}
+
 ##------------------------------------
 # remove home directories and
 # execute USERDEL_POSTCMD scripts for local/system users which should be deleted
@@ -3964,7 +3975,6 @@ sub PostDeleteUsers {
 
     foreach my $home (keys %removed_homes) {
 	$ret = $ret && UsersRoutines->DeleteHome ($home);
-	UsersRoutines->DeleteCryptedHome ($home, $removed_homes{$home});
     };
 
     if ($userdel_postcmd eq "" || !FileUtils->Exists($userdel_postcmd)) {
@@ -4169,8 +4179,7 @@ sub Write {
 	    # only remember for which users we need to call cryptconfig
 	    foreach my $username (keys %{$modified_users{"ldap"}}) {
 		my %user	= %{$modified_users{"ldap"}{$username}};
-		my $home_size	= $user{"crypted_home_size"} || 0;
-		if ($home_size > 0)  {
+		if (defined $user{"crypted_home_size"}) {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 	    }
@@ -4369,8 +4378,7 @@ sub Write {
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
 		my $skel	= $useradd_defaults{"skel"};
-		my $home_size	= $user{"crypted_home_size"} || 0;
-		if ($home_size > 0)  {
+		if (defined $user{"crypted_home_size"}) {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
@@ -4423,6 +4431,19 @@ sub Write {
 	delete $modified_users{"local"};
 	delete $modified_users{"system"};
     }
+    if (%users_with_crypted_dir) {
+	Package->Install ("cryptconfig");
+    }
+
+    # remove the crypted directories now
+    if ($users_modified) {
+        if (!DeleteCryptedHomes ()) {
+       	    # error popup
+	    $ret = __("An error occurred while removing users.");
+	    Report->Error ($ret);
+	    return $ret;
+	}
+    }
 
     # Write passwords
     if ($use_gui) { Progress->NextStage (); }
@@ -4468,10 +4489,7 @@ sub Write {
 	}
     }
 
-    if (%users_with_crypted_dir) {
-	Package->Install ("cryptconfig");
-    }
-    if (!FileUtils->Exists ("/usr/sbin/cryptconfig")) {
+    if (!FileUtils->Exists (UsersRoutines->CryptconfigPath ())) {
 	%users_with_crypted_dir     = ();
     }
     foreach my $username (keys %users_with_crypted_dir) {

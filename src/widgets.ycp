@@ -616,6 +616,11 @@ Log the user out first."));
     boolean no_home	= false;
     // check if dir exists with this owner
     map stat		= (map)SCR::Read (.target.stat, home);
+    if (stat == $[]) // check crypted dir image
+    {
+	string home_pth	= substring (home, 0, findlastof (home, "/"));
+	stat		= (map)SCR::Read (.target.stat, sformat ("%1/%2.img", home_pth, username));
+    }
     if ((type == "ldap" && !Ldap::file_server) || (stat["uid"]:-1 != uid))
     {
         no_home = true;
