@@ -1531,9 +1531,9 @@ _("Change home directory to %1?"), generated_home))))
 		ret = `notnext;
 		continue;
 	    }
-	    if ((crypted_home_enabled && what == "edit_user" && user["encrypted"]:true) &&
-		((GetInt (user["crypted_home_size"]:nil, 0) != 0 &&
-		 GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0))
+	    if ((crypted_home_enabled && action == "edited" && user["encrypted"]:false
+		&& user["text_userpassword"]:nil == nil) &&
+		(GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0)
 		||
 		(org_username != username))
 	    )
