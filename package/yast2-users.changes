@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 23 13:49:39 CET 2007 - jsuchome@suse.cz
+
+- include documentaion for YaPI's USERS.pm (#248203)
+- 2.15.14
+
+-------------------------------------------------------------------
 Thu Feb 22 15:23:12 CET 2007 - jsuchome@suse.cz
 
 - do not ask if package is available when it is not possible
