@@ -178,14 +178,19 @@ map button_labels = $[
 
 list<string> available_clients = [ "users", "ldap" ];
 
-if (Package::Available ("yast2-nis-client") && found)
-    available_clients = add (available_clients, "nis");
+if (found)
+{
+    boolean available	= false;
+    foreach (string client, string package, $[ "nis" : "yast2-nis-client",
+	"samba"	: "yast2-samba-client", "edir_ldap" : "yast2-linux-user-mgmt" ], {
+	if (available == nil)
+	    return;
+	available   = Package::Available (package);
+	if (available == true)
+	    available_clients = add (available_clients, client);
+    });
+}
 
-if (Package::Available ("yast2-samba-client") && found)
-    available_clients = add (available_clients, "samba");
-
-if (Package::Available ("yast2-linux-user-mgmt") && found)
-    available_clients = add (available_clients, "edir_ldap");
 
 if (contains (available_clients, "nis"))
 {
