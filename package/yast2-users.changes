@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 26 13:51:56 CET 2007 - jsuchome@suse.cz
+
+- fixed usage of new Package::Available
+- 2.15.15 
+
+-------------------------------------------------------------------
 Fri Feb 23 13:49:39 CET 2007 - jsuchome@suse.cz
 
 - include documentaion for YaPI's USERS.pm (#248203)
