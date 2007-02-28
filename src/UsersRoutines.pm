@@ -290,10 +290,15 @@ sub CryptHome {
     my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
     my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
     my $org_username	= $user->{"org_user"}{"uid"} || $username;
-    my $pw		= $user->{"text_userpassword"};
+    my $pw		= $user->{"current_text_userpassword"};
+    my $new_pw		= $user->{"text_userpassword"};
+    my $modified	= $user->{"modified"} || "nothing";
 
+    if ($modified eq "added" && !defined $pw) {
+	$pw		= $new_pw;
+    }
     return 1 if ($home_size == 0 && $org_size == 0); # nothing to do
-    return 1 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size);
+    return 1 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size && $pw eq $new_pw);
     return 0 if !defined $pw; # no change without password provided :-(
 
     # now crypt the home directories
@@ -317,9 +322,9 @@ sub CryptHome {
 	my $command = "$cryptconfig open --key-file=$org_key $org_img < $pw_path";
 	my $out	= SCR->Execute (".target.bash_output", $command);
 	SCR->Execute (".target.remove", $pw_path);
-	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
-	    y2error ("error calling $command: ", $out->{"stderr"});
-	    Report->Error ($out->{"stderr"});
+	if ($out->{"exit"} ne 0) {
+	    y2error ("error calling $command");
+	    Report->Error ($out->{"stderr"}) if ($out->{"stderr"});
 	    return 0;
 	}
 	my @stdout_l = split (/ /, $out->{"stdout"} || "");
@@ -411,13 +416,34 @@ sub CryptHome {
 	$image_file	= "$hp/$username.img";
     }
 
+    # now solve user password change
+    if ($modified eq "edited" && defined $key_file && defined $new_pw && $new_pw ne $pw) {
+	SCR->Write (".target.string", $pw_path, "$pw\n$new_pw");
+	my $command = "$cryptconfig passwd --no-verify $key_file < $pw_path";
+	my $out	= SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0) {
+	    y2error ("error calling $command");
+	    SCR->Execute (".target.remove", $pw_path);
+	    Report->Error ($out->{"stderr"}) if ($out->{"stderr"});
+	    return 0;
+	}
+	# from now, new password is active
+	SCR->Write (".target.string", $pw_path, $new_pw);
+    }
+
+    # resize existing image
     if ($org_size < $home_size && defined $key_file && defined $image_file) {
 	my $add	= $home_size - $org_size;
 	$cmd	=  "$cryptconfig enlarge-image --key-file=$key_file $image_file $add <  $pw_path";
     }
-    else {
-        # default command for creating the image
+    # create new image
+    elsif ($home_size > $org_size) {
         $cmd = "$cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+    }
+    # ok, only password change was needed
+    else {
+	SCR->Execute (".target.remove", $pw_path);
+	return 1;
     }
 
     my $out = SCR->Execute (".target.bash_output", $cmd);

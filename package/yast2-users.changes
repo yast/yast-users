@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Feb 28 13:46:19 CET 2007 - jsuchome@suse.cz
+
+- ask for current user password for any change with crypted
+  directory (#242531)
+- correctly change the password for directory image (#242531) 
+- 2.15.16
+
+-------------------------------------------------------------------
 Mon Feb 26 13:51:56 CET 2007 - jsuchome@suse.cz
 
 - fixed usage of new Package::Available

@@ -88,6 +88,47 @@ _("<p>Really use the entered value?</p>");
     return ret;
 }
 
+/**
+ * Ask user for current password, see bugs 242531, 244718
+ * @return string or nil when dialog was canceled
+ */
+string AskForOldPassword () {
+
+    UI::OpenDialog (`opt(`decorated), `HBox (`HSpacing (0.5),
+	`VBox (
+	    `VSpacing (0.5),
+	    // password entry label
+	    `Password (`id (`pw1), _("To access the data required to modify
+the encryption settings for this user,
+enter the user's current password.")),
+	    `Password (`id(`pw2), Label::ConfirmPassword(), ""),
+	    `HBox(
+		`PushButton (`id(`ok),`opt(`key_F10), Label::OKButton()),
+		`PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
+	    ),
+	    `VSpacing (0.5)
+	), `HSpacing (0.5))
+    );
+    any ret	= `cancel;
+    repeat
+    {
+	ret	= UI::UserInput ();
+	if (ret == `ok)
+	{
+	    if (UI::QueryWidget (`id(`pw1), `Value) != UI::QueryWidget (`id(`pw2), `Value))
+	    {
+                Report::Error(_("The passwords do not match.
+Try again."));
+		ret	= `notnext;
+		continue;
+	    }
+	}
+    } until (ret == `ok || ret == `cancel);
+
+    string pw	= (string) UI::QueryWidget (`id(`pw1), `Value);
+    UI::CloseDialog();
+    return (ret == `ok) ? pw : nil;
+}
 
 /**
  * Dialog for adding or editing a user.
@@ -139,6 +180,7 @@ define symbol EditUserDialog (string what) {
     string mode		= user["home_mode"]:default_mode;
     integer default_crypted_size	= 100;
     integer crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
+    integer org_crypted_home_size	= GetInt (user["org_user","crypted_home_size"]:nil, 0);
     string password	= (string)user["userpassword"]:nil;
     string org_username = user["org_uid"]:username;
     integer uid		= GetInt (user["uidnumber"]:nil, nil);
@@ -1531,17 +1573,45 @@ _("Change home directory to %1?"), generated_home))))
 		ret = `notnext;
 		continue;
 	    }
-	    if ((crypted_home_enabled && action == "edited" && user["encrypted"]:false
-		&& user["text_userpassword"]:nil == nil) &&
-		(GetInt (user["crypted_home_size"]:nil, 0) != GetInt (user["org_user","crypted_home_size"]:nil, 0)
-		||
-		(org_username != username))
+	    if ((crypted_home_enabled && action == "edited" &&
+		 user["current_text_userpassword"]:nil == nil) &&
+		(
+		    crypted_home_size != org_crypted_home_size
+			||
+		    org_username != username
+			||
+		    // only password was changed
+		    (crypted_home_size > 0 && user["encrypted"]:false == false)
+		)
 	    )
+//FIXME also when changing the password!
 	    {
-		// popup message
-		Report::Error (_("To encrypt the user's home directory, you must change the password."));
-		ret = `notnext;
-		continue;
+		if (false)
+		{
+		    // popup message
+		    Report::Error (_("To encrypt the user's home directory, you must change the password."));
+		}
+
+		// do not ask when enabling for first time and password was already entered
+		if ((user["encrypted"]:false == false || user["text_userpassword"]:nil != nil) &&
+		    org_crypted_home_size == 0)
+		{
+		    user["current_text_userpassword"]	= (user["text_userpassword"]:nil != nil) ?
+			user["text_userpassword"]:nil : user["userpassword"]:"";
+		}
+		else
+		{
+		    string old_pw	= AskForOldPassword ();
+		    if (old_pw != nil)
+		    {
+			user["current_text_userpassword"]	= old_pw;
+		    }
+		    else
+		    {
+			ret = `notnext;
+			continue;
+		    }
+		}
 	    }
 
 	    // --------------------------------- save the settings
