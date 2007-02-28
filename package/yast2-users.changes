@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Feb 28 13:45:15 CET 2007 - jsuchome@suse.cz
+
+- ask for current user password for any change with crypted
+  directory (#242531)
+- correctly change the password for directory image (#242531)
+- 2.13.47
+
+-------------------------------------------------------------------
 Fri Feb 23 14:14:24 CET 2007 - jsuchome@suse.cz
 
 - include documentaion for YaPI's USERS.pm (#248203)
