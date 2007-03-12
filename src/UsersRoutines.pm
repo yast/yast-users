@@ -338,6 +338,7 @@ sub CryptHome {
 	SCR->Execute (".target.bash", "/bin/rm -rf $mnt_dir") if (FileUtils->Exists ($mnt_dir));
 	SCR->Execute (".target.mkdir", $mnt_dir);
 	$command = "mount -o loop $image_path $mnt_dir";
+	y2debug ("cmd: $command");
 	$out = SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"}); 
@@ -347,13 +348,21 @@ sub CryptHome {
 	SCR->Execute (".target.bash", "/bin/rm -rf $home");
 	# copy the directory content
 	$command = "/bin/cp -ar $mnt_dir $home";
+	y2debug ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
 	    return 0;
 	}
-	SCR->Execute (".target.bash", "umount $mnt_dir");
+	$command = "umount $mnt_dir";
+	y2debug ("cmd: $command");
+	$out = SCR->Execute (".target.bash_output", $command);
+	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
+	    y2error ("error calling $command: ", $out->{"stderr"}); 
+	    return 0;
+	}
 	$command = "$cryptconfig pm-disable $username";
+	y2debug ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
@@ -361,6 +370,7 @@ sub CryptHome {
 	    return 0;
 	}
 	$command = "$cryptconfig close $org_img";
+	y2debug ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
@@ -395,6 +405,11 @@ sub CryptHome {
 	    $key_file	= "$hp/$username.key";
 	}
     }
+    elsif ($home ne $org_home && $modified eq "edited") {
+	    $image_file	= "$hp/$username.img";
+	    $key_file	= "$hp/$username.key";
+
+    }
     SCR->Write (".target.string", $pw_path, $pw);
 
     if (defined $key_file || defined $image_file) {
@@ -402,6 +417,7 @@ sub CryptHome {
 	$cmd = $cmd."--key-file=$key_file " if defined $key_file;
 	$cmd = $cmd."--image-file=$image_file " if defined $image_file;
 	$cmd = $cmd."$username";
+	y2debug ("cmd: $cmd");
 	my $out = SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    Report->Error ($out->{"stderr"});
@@ -420,6 +436,7 @@ sub CryptHome {
     if ($modified eq "edited" && defined $key_file && defined $new_pw && $new_pw ne $pw) {
 	SCR->Write (".target.string", $pw_path, "$pw\n$new_pw");
 	my $command = "$cryptconfig passwd --no-verify $key_file < $pw_path";
+	y2debug ("cmd: $command");
 	my $out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0) {
 	    y2error ("error calling $command");
@@ -442,10 +459,12 @@ sub CryptHome {
     }
     # ok, only password change was needed
     else {
+	y2debug ("nothing to do");
 	SCR->Execute (".target.remove", $pw_path);
 	return 1;
     }
 
+    y2debug ("cmd: $cmd");
     my $out = SCR->Execute (".target.bash_output", $cmd);
     if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	Report->Error ($out->{"stderr"});

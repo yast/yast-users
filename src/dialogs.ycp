@@ -1580,6 +1580,8 @@ _("Change home directory to %1?"), generated_home))))
 			||
 		    org_username != username
 			||
+		    org_home	!= home
+			||
 		    // only password was changed
 		    (crypted_home_size > 0 && user["encrypted"]:false == false)
 		)
