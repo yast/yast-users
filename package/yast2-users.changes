@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 12 11:50:01 CET 2007 - jsuchome@suse.cz
+
+- call cryptconfig again when home directory was renamed (#252325)
+- 2.15.17 
+
+-------------------------------------------------------------------
 Wed Feb 28 13:46:19 CET 2007 - jsuchome@suse.cz
 
 - ask for current user password for any change with crypted
