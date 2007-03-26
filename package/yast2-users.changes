@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Mar 26 11:33:09 CEST 2007 - jsuchome@suse.cz
+
+- correctly read minimal password length, if set to 0 (#257075) 
+- do not throw away possible LDAP error message (UsersLDAP.pm)
+- during firstboot, show the same behaviour as in 2nd stage
+- 2.15.18
+
+-------------------------------------------------------------------
 Mon Mar 12 11:50:01 CET 2007 - jsuchome@suse.cz
 
 - call cryptconfig again when home directory was renamed (#252325)

@@ -1302,8 +1302,10 @@ sub ReadSystemDefaults {
     $use_cracklib 	= ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
     $obscure_checks 	= ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
 
-    $min_pass_length{"local"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"local"};
-    $min_pass_length{"system"}	= $security{"PASS_MIN_LEN"} || $min_pass_length{"system"};
+    if (defined $security{"PASS_MIN_LEN"}) {
+	$min_pass_length{"local"}	= $security{"PASS_MIN_LEN"};
+	$min_pass_length{"system"}	= $security{"PASS_MIN_LEN"};
+    }
 
     my $login_defs	= SCR->Dir (".etc.login_defs");
     if (contains ($login_defs, "CHARACTER_CLASS")) {

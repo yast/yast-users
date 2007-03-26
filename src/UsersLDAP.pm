@@ -1460,7 +1460,8 @@ sub WriteUsers {
 	);
 	$modules{$user_config_dn}{"susenextuniqueid"} =
 	    $user_config{"susenextuniqueid"};
-        %ret = %{Ldap->WriteToLDAP (\%modules)};
+        my %new_ret = %{Ldap->WriteToLDAP (\%modules)};
+	%ret    = %new_ret if not defined $ret{"msg"};
     }
     if (defined $ret{"msg"}) {
 	my $msg 	= $ret{"msg"};
@@ -1753,7 +1754,8 @@ sub WriteGroups {
 	);
 	$modules{$group_config_dn}{"susenextuniqueid"} =
 	    $group_config{"susenextuniqueid"};
-        %ret = %{Ldap->WriteToLDAP (\%modules)};
+        my %new_ret = %{Ldap->WriteToLDAP (\%modules)};
+	%ret    = %new_ret if not defined $ret{"msg"};
     }
 
     if (defined $ret{"msg"}) {
