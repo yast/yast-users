@@ -37,6 +37,14 @@ include "users/routines.ycp";
 
 string default_pw	= "******";
 
+// check if this is installation stage -
+// adding user during firstboot should be same as during 2nd stage
+define boolean installation () {
+    return Stage::cont () || Stage::firstboot ();
+}
+
+
+
 /**
  * Upperase letters were used in username! (see bug #26409)
  * In these popup, ask user what to do.
@@ -138,8 +146,7 @@ Try again."));
 define symbol EditUserDialog (string what) {
 
     // user has returned to the "add user dialog" during installation workflow:
-    if (Users::StartDialog ("user_add") &&
-	Stage::cont () && Users::UseNextTime ())
+    if (Users::StartDialog ("user_add") && installation () && Users::UseNextTime ())
     {
 	Users::RestoreCurrentUser ();
 	Users::SetUseNextTime (false);
@@ -222,7 +229,7 @@ define symbol EditUserDialog (string what) {
 	((user_type == "ldap" && Ldap::file_server) ||
 	(user_type == "local" || user_type == "system"));
 
-    boolean complex_layout = Stage::cont () && Users::StartDialog ("user_add");
+    boolean complex_layout = installation () && Users::StartDialog ("user_add");
     map<string,integer> groups	= user["grouplist"]:$[];
 
     list available_shells	= Users::AllShells ();
@@ -360,7 +367,7 @@ define symbol EditUserDialog (string what) {
 		`HStretch()
 	    );
 	}
-	else if (!do_not_edit && !Stage::cont ())
+	else if (!do_not_edit && !installation ())
 	{
 	    optionbox = `VBox (
 		`VSpacing (1),
@@ -1084,7 +1091,7 @@ _("Change home directory to %1?"), generated_home))))
 		}
 	    }
 	    // --------------------------------- autologin (during installation)
-	    if (Users::StartDialog ("user_add") && Stage::cont ())
+	    if (Users::StartDialog ("user_add") && installation ())
 	    {
 		Users::SetRootMail ((boolean)
 		    UI::QueryWidget(`id (`root_mail), `Value) ? username : "");
@@ -1478,7 +1485,7 @@ _("Change home directory to %1?"), generated_home))))
 	if (ret == `edit)
 	{
 	    Wizard::SetHelpText (
-		EditUserDialogHelp (Stage::cont (), user_type, what));
+		EditUserDialogHelp (installation (), user_type, what));
 	    UI::ReplaceWidget(`tabContents, get_edit_term ());
 
 	    // update the contets of User Data Dialog
@@ -2664,7 +2671,7 @@ define symbol AuthentizationDialog() {
     boolean changed	= false;
     list param		= [];
 
-    if (Stage::cont ())
+    if (installation ())
     {
 	param		= [ "from_users" ];
     }
@@ -2731,7 +2738,7 @@ define symbol UserSave() {
 
     Users::CommitUser ();
     // adding only one user during install
-    if (Stage::cont () && Users::StartDialog ("user_add") )
+    if (installation () && Users::StartDialog ("user_add") )
         return `save;
     else
 	return `next;
