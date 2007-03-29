@@ -5738,7 +5738,7 @@ sub ReadNISAvailable {
 	foreach my $source (split (/ /, $passwd_source)) {
 
 	    if ($source eq "nis" || $source eq "compat") {
-		return (Service->Status ("ypbind") == 0);
+		return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
 	    }
 	}
     }

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 29 10:36:58 CEST 2007 - jsuchome@suse.cz
+
+- check if ypbind is installed before reading service status (#256407) 
+- 2.15.19
+
+-------------------------------------------------------------------
 Mon Mar 26 11:33:09 CEST 2007 - jsuchome@suse.cz
 
 - correctly read minimal password length, if set to 0 (#257075) 
