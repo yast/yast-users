@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Apr  2 19:17:13 CEST 2007 - jsuchome@suse.cz
+
+- do not ask for password when user doesn't have encrypted home
+  directory (#259874)
+- 2.13.49
+
+-------------------------------------------------------------------
 Mon Mar 12 11:41:52 CET 2007 - jsuchome@suse.cz
 
 - call cryptconfig again when home directory was renamed (#252325)

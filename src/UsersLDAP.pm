@@ -114,7 +114,7 @@ my $umask			= "022";
 # purposes only
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
-     "org_uid", "plugins", "text_userpassword", "plugins_to_remove",
+     "org_uid", "plugins", "text_userpassword", "current_text_userpassword", "plugins_to_remove",
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
