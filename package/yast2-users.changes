@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr  3 11:00:16 CEST 2007 - jsuchome@suse.cz
+
+- correctly find image and key files of crypted home directory (#259880)
+- 2.13.50
+
+-------------------------------------------------------------------
 Mon Apr  2 19:17:13 CEST 2007 - jsuchome@suse.cz
 
 - do not ask for password when user doesn't have encrypted home
