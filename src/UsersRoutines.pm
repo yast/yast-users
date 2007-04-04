@@ -242,25 +242,24 @@ sub DeleteCryptedHome {
     my $self		= shift;
     my $home		= shift;
     my $username	= shift;
-    
-    my $home_path 	= substr ($home, 0, rindex ($home, "/"));
-    my $path		= "$home_path/$username";
-
     my $ret		= 1;
 
     return 0 if ((not defined $home) || (not defined $username));
 
-    if (%{SCR->Read (".target.stat", "$path.key")}) {
-	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.key");
+    my $img_path	= $self->CryptedImagePath ($username);
+    my $key_path	= $self->CryptedKeyPath ($username);
+
+    if (%{SCR->Read (".target.stat", $key_path)}) {
+	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $key_path");
 	if (($out->{"exit"} || 0) ne 0) {
-	    y2error ("error while removing $path.key file: ", $out->{"stderr"} || "");
+	    y2error ("error while removing $key_path file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
     }
-    if (%{SCR->Read (".target.stat", "$path.img")}) {
-	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $path.img");
+    if (%{SCR->Read (".target.stat", $img_path)}) {
+	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $img_path");
 	if (($out->{"exit"} || 0) ne 0) {
-	    y2error ("error while removing $path.img file: ", $out->{"stderr"} || "");
+	    y2error ("error while removing $img_path file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
 	my $command = "$cryptconfig pm-disable $username";
@@ -310,9 +309,18 @@ sub CryptHome {
 
     my $key_file	= undef;
     my $image_file	= undef;
-    my $org_hp		= substr ($org_home, 0, rindex ($org_home, "/"));
-    my $org_img		= "$org_hp/$org_username.img";
-    my $org_key		= "$org_hp/$org_username.key";
+    my $org_img		= "";
+    my $org_key		= "";
+
+    # find the original image and key locations
+    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $org_username ' /etc/security/pam_mount.conf | sed -e 's/- //'");
+    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
+	my $line	= $out->{"stdout"};
+	chomp $line;
+	my @l	= split (/ /, $line);
+	$org_img	= $l[3]	if defined $l[3];
+	$org_key	= pop @l;
+    }
     
     # solve disabling of crypted directory
     if ($home_size == 0 && $org_size > 0 &&
@@ -384,31 +392,29 @@ sub CryptHome {
     }
 
     # check user renaming or directory move
-    my $hp		= substr ($home, 0, rindex ($home, "/"));
-    if ($hp ne $org_hp || $org_username ne $username) {
+    if ($home ne $org_home || $org_username ne $username) {
 	if (FileUtils->Exists ($org_img)) {
-	    my $command = "/bin/mv $org_img $hp/$username.img";
-	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
-	    if (($out{"stderr"} || "") ne "") {
-		y2error ("error calling $command: ", $out{"stderr"} || "");
-		return 0;
+	    $image_file	= "$home.img";
+	    if ($org_img ne $image_file) {
+		my $command = "/bin/mv $org_img $image_file";
+		my %out	= %{SCR->Execute (".target.bash_output", $command)};
+		if (($out{"stderr"} || "") ne "") {
+		    y2error ("error calling $command: ", $out{"stderr"} || "");
+		    return 0;
+		}
 	    }
-	    $image_file	= "$hp/$username.img";
 	}
 	if (FileUtils->Exists ($org_key)) {
-	    my $command = "/bin/mv $org_key $hp/$username.key";
-	    my %out	= %{SCR->Execute (".target.bash_output", $command)};
-	    if (($out{"stderr"} || "") ne "") {
-		y2error ("error calling $command: ", $out{"stderr"} || "");
-		return 0;
+	    $key_file	= "$home.key";
+	    if ($org_key ne $key_file) {
+		my $command = "/bin/mv $org_key $key_file";
+		my %out	= %{SCR->Execute (".target.bash_output", $command)};
+		if (($out{"stderr"} || "") ne "") {
+		    y2error ("error calling $command: ", $out{"stderr"} || "");
+		    return 0;
+		}
 	    }
-	    $key_file	= "$hp/$username.key";
 	}
-    }
-    elsif ($home ne $org_home && $modified eq "edited") {
-	    $image_file	= "$hp/$username.img";
-	    $key_file	= "$hp/$username.key";
-
     }
     SCR->Write (".target.string", $pw_path, $pw);
 
@@ -427,11 +433,9 @@ sub CryptHome {
     }
 
     # now check if existing image doesn't need resizing
-    if (FileUtils->Exists ("$hp/$username.img") && FileUtils->Exists ("$hp/$username.key")) {
-	$key_file	= "$hp/$username.key";
-	$image_file	= "$hp/$username.img";
-    }
-
+    $key_file	= $org_key if (!defined $key_file && FileUtils->Exists ($org_key));
+    $image_file	= $org_img if (!defined $image_file && FileUtils->Exists ($org_img));
+ 
     # now solve user password change
     if ($modified eq "edited" && defined $key_file && defined $new_pw && $new_pw ne $pw) {
 	SCR->Write (".target.string", $pw_path, "$pw\n$new_pw");
@@ -465,7 +469,7 @@ sub CryptHome {
     }
 
     y2debug ("cmd: $cmd");
-    my $out = SCR->Execute (".target.bash_output", $cmd);
+    $out = SCR->Execute (".target.bash_output", $cmd);
     if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	Report->Error ($out->{"stderr"});
     }
@@ -490,5 +494,45 @@ sub FileSizeInMB {
     return sprintf ("%i", $stat->{"size"} / (1024 * 1024));
 }
 
+
+##------------------------------------
+# Return the path to user's crypted directory image; returns empty string if there is none defined
+# @param user name
+# @return string
+BEGIN { $TYPEINFO{CryptedImagePath} = ["function", "string", "string"];}
+sub CryptedImagePath {
+
+    my $self    = shift;
+    my $user	= shift;
+    my $ret	= "";
+
+    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '");
+    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
+	$ret	= $out->{"stdout"};
+	chomp $ret;
+    }
+    return $ret;
+}
+
+##------------------------------------
+# Return the path to user's crypted directory key; returns empty string if there is none defined
+# @param user name
+# @return string
+BEGIN { $TYPEINFO{CryptedKeyPath} = ["function", "string", "string"];}
+sub CryptedKeyPath {
+
+    my $self    = shift;
+    my $user	= shift;
+    my $ret	= "";
+
+    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //'");
+    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
+	my $line	= $out->{"stdout"};
+	chomp $line;
+	my @l	= split (/ /, $line);
+	$ret	= pop @l;
+    }
+    return $ret;
+}
 1
 # EOF
