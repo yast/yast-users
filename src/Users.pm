@@ -2119,13 +2119,10 @@ sub EditUser {
 	}
 
 	# check if user is using crypted directory
-	my $h	= $user_in_work{"homedirectory"} || "";
-	my $hp	= substr ($h, 0, rindex ($h, "/"));
-	if (FileUtils->Exists ("$hp/$username.img")) {
-	    $user_in_work{"crypted_home_size"}	= UsersRoutines->FileSizeInMB ("$hp/$username.img");
-	}
-	else {
-	    $user_in_work{"crypted_home_size"} = 0;
+	$user_in_work{"crypted_home_size"} = 0;
+	my $dir	= UsersRoutines->CryptedImagePath ($username);
+	if ($dir && FileUtils->Exists ($dir)) {
+	    $user_in_work{"crypted_home_size"}	= UsersRoutines->FileSizeInMB ($dir);
 	}
 
 	# save first map for later checks of modification (in Commit)
@@ -3362,6 +3359,9 @@ sub UserReallyModified {
 	    $ret = 1;
 	}
     }
+    if (!$ret && defined $org_user{"crypted_home_size"} && defined $user{"crypted_home_size"}) {
+	$ret	= ($org_user{"crypted_home_size"} ne $user{"crypted_home_size"});
+    }
     return $ret;
 }
 
@@ -4409,6 +4409,7 @@ sub Write {
 		elsif ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
 		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
 		    my $org_uid = $user{"org_user"}{"uidnumber"} || $uid;
+		    # chown only when directory was changed (#39417)
 		    if ($home ne $org_home || $uid ne $org_uid) {
 			# move the home directory
 			if (bool ($create_home)) {
@@ -4418,8 +4419,10 @@ sub Write {
 			elsif (not %{SCR->Read (".target.stat", $home)}) {
 			    UsersRoutines->CreateHome ($skel, $home);
 			}
-			# chown only when directory was changed (#39417)
-			UsersRoutines->ChownHome ($uid, $gid, $home);
+			# do not change root's ownership of home directories
+			if (!defined $user{"crypted_home_size"} || $user{"crypted_home_size"} eq 0){
+			    UsersRoutines->ChownHome ($uid, $gid, $home);
+			}
 		    }
 		}
 	    }

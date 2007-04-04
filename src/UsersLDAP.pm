@@ -1418,7 +1418,9 @@ sub WriteUsers {
 		    if ($create_home) {
 			UsersRoutines->MoveHome ($org_home, $home);
 		    }
-		    UsersRoutines->ChownHome ($uid, $gid, $home);
+		    if (!defined $user->{"crypted_home_size"} || $user->{"crypted_home_size"} eq 0){
+			UsersRoutines->ChownHome ($uid, $gid, $home);
+		    }
 		}
             }
         }
