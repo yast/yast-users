@@ -1585,22 +1585,14 @@ _("Change home directory to %1?"), generated_home))))
 		(
 		    crypted_home_size != org_crypted_home_size
 			||
-		    org_username != username
-			||
-		    org_home	!= home
-			||
-		    // only password was changed
-		    (crypted_home_size > 0 && user["encrypted"]:false == false)
+		    (crypted_home_size > 0 &&
+			(org_username != username || org_home != home ||
+			// only password was changed
+			user["encrypted"]:false == false)
+		    )
 		)
 	    )
-//FIXME also when changing the password!
 	    {
-		if (false)
-		{
-		    // popup message
-		    Report::Error (_("To encrypt the user's home directory, you must change the password."));
-		}
-
 		// do not ask when enabling for first time and password was already entered
 		if ((user["encrypted"]:false == false || user["text_userpassword"]:nil != nil) &&
 		    org_crypted_home_size == 0)

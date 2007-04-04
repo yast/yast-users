@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Apr  4 09:20:16 CEST 2007 - jsuchome@suse.cz
+
+- do not ask for password when user doesn't have encrypted home
+  directory (#259874)
+- correctly find image and key files of crypted home directory (#259880)
+- 2.15.20
+
+-------------------------------------------------------------------
 Thu Mar 29 10:36:58 CEST 2007 - jsuchome@suse.cz
 
 - check if ypbind is installed before reading service status (#256407) 

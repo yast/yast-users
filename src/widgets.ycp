@@ -19,6 +19,7 @@ import "Stage";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
+import "UsersRoutines";
 import "Wizard";
 
 include "users/complex.ycp";
@@ -616,10 +617,10 @@ Log the user out first."));
     boolean no_home	= false;
     // check if dir exists with this owner
     map stat		= (map)SCR::Read (.target.stat, home);
-    if (stat == $[]) // check crypted dir image
+    string crypted_img	= UsersRoutines::CryptedImagePath (username);
+    if (crypted_img != "") // check crypted dir image
     {
-	string home_pth	= substring (home, 0, findlastof (home, "/"));
-	stat		= (map)SCR::Read (.target.stat, sformat ("%1/%2.img", home_pth, username));
+	stat		= (map)SCR::Read (.target.stat, crypted_img);
     }
     if ((type == "ldap" && !Ldap::file_server) || (stat["uid"]:-1 != uid))
     {
