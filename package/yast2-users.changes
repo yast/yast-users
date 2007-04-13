@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Apr 13 14:11:59 CEST 2007 - jsuchome@suse.cz
+
+- do not write shadowInactive value of -1 to /etc/shadow (#259896)
+- check for /etc/security/pam_mount.conf presence before reading from it
+- 2.15.21 
+
+-------------------------------------------------------------------
 Wed Apr  4 09:20:16 CEST 2007 - jsuchome@suse.cz
 
 - do not ask for password when user doesn't have encrypted home

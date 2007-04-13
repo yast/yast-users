@@ -141,6 +141,8 @@ sub read_shadow {
 		$error_info 	= $uname;
 		return 0;
 	    }
+	    # -1 should disable feature, it should not be written (#259896)
+	    $shadow_entry{"shadowinactive"} = "" if ($shadow_entry{"shadowinactive"} == -1);
 	    $shadow_tmp{$uname} = {
 		"shadowlastchange"	=> $last_change,
 		"shadowwarning"		=> $warn,
