@@ -506,6 +506,8 @@ sub CryptedImagePath {
     my $user	= shift;
     my $ret	= "";
 
+    return $ret if (!FileUtils->Exists ("/etc/security/pam_mount.conf"));
+
     my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '");
     if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
 	$ret	= $out->{"stdout"};
@@ -524,6 +526,8 @@ sub CryptedKeyPath {
     my $self    = shift;
     my $user	= shift;
     my $ret	= "";
+
+    return $ret if (!FileUtils->Exists ("/etc/security/pam_mount.conf"));
 
     my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //'");
     if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
