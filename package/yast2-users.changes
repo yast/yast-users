@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr 19 07:48:35 CEST 2007 - jsuchome@suse.cz
+
+- correct fix of writing -1 to /etc/shadow (#265704)
+- 2.13.52
+
+-------------------------------------------------------------------
 Fri Apr 13 13:48:46 CEST 2007 - jsuchome@suse.cz
 
 - do not write shadowInactive value of -1 to /etc/shadow (#259896)
