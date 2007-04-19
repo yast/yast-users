@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr 19 15:55:03 CEST 2007 - jsuchome@suse.cz
+
+- import YaST::YCP in Perl modules (#265875)
+- 2.15.23 
+
+-------------------------------------------------------------------
 Thu Apr 19 08:29:53 CEST 2007 - jsuchome@suse.cz
 
 - correct fix of writing -1 to /etc/shadow (#265704)
