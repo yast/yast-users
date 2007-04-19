@@ -6,8 +6,8 @@
 
 package UsersPasswd;
 
-use ycp;
 use strict;
+use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
 
