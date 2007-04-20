@@ -590,10 +590,10 @@ group memberships can be changed.")) : `VSpacing (0),
 	if (expires == "")
 	    expires = "0";
 
-	integer inact	= GetInt (user["shadowinactive"]:nil, 0);
-	integer max	= GetInt (user["shadowmax"]:nil, 0);
-	integer min	= GetInt (user["shadowmin"]:nil, 0);
-	integer warn	= GetInt (user["shadowwarning"]:nil, 0);
+	integer inact	= GetInt (user["shadowinactive"]:nil, -1);
+	integer max	= GetInt (user["shadowmax"]:nil, -1);
+	integer min	= GetInt (user["shadowmin"]:nil, -1);
+	integer warn	= GetInt (user["shadowwarning"]:nil, -1);
 
 	if (last_change != "0")
 	{

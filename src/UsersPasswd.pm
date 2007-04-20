@@ -738,7 +738,7 @@ sub WriteShadow {
         foreach my $uname (sort keys %{$shadow_w{$type}}) {
 
 	    my %shadow_entry	= %{$shadow_w{$type}{$uname}};
-	    foreach my $key ("shadowwarning", "shadowinactive", "shadowexpire", "shadowflag", "userpassword") {
+	    foreach my $key ("shadowwarning", "shadowinactive", "shadowexpire", "shadowflag", "userpassword", "shadowmin", "shadowmax") {
 		# -1 should disable feature, it should not be written (#259896)
 		if (!defined $shadow_entry{$key} || $shadow_entry{$key} eq -1) {
 		    $shadow_entry{$key}	= "";
