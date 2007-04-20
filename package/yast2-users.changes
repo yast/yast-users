@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Apr 20 15:31:48 CEST 2007 - jsuchome@suse.cz
+
+- check more values in /etc/shadow for -1 (#259896)
+- display -1 correctly in the UI (#259896)
+- 2.15.24
+
+-------------------------------------------------------------------
 Thu Apr 19 15:55:03 CEST 2007 - jsuchome@suse.cz
 
 - import YaST::YCP in Perl modules (#265875)
