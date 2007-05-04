@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri May  4 08:35:09 CEST 2007 - varkoly@suse.de
+
+- Bug 269867 - build cycle between yast2-users and yast2-mail
+- 2.15.25 
+
+-------------------------------------------------------------------
 Fri Apr 20 15:31:48 CEST 2007 - jsuchome@suse.cz
 
 - check more values in /etc/shadow for -1 (#259896)
