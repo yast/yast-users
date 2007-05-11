@@ -4384,6 +4384,10 @@ sub Write {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
+		    if ($user_mod eq "imported" && FileUtils->Exists ($home)) {
+			y2milestone ("home directory $home of user $username already exists");
+			next;
+		    }
 		    if (bool ($user{"no_skeleton"})) {
 			$skel 	= "";
 		    }
