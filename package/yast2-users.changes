@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri May 11 12:08:13 CEST 2007 - jsuchome@suse.cz
+
+- during autoinstallation, do not touch already created directories
+  (#272744)
+- 2.13.55 
+
+-------------------------------------------------------------------
 Fri Apr 20 09:59:44 CEST 2007 - jsuchome@suse.cz
 
 - check more values in /etc/shadow for -1 (#259896)
