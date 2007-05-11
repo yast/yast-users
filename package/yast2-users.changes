@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri May 11 13:23:21 CEST 2007 - jsuchome@suse.cz
+
+- during autoinstallation, do not touch already created directories
+  (#272744)
+- 2.15.26 
+
+-------------------------------------------------------------------
 Fri May  4 08:35:09 CEST 2007 - varkoly@suse.de
 
 - Bug 269867 - build cycle between yast2-users and yast2-mail
