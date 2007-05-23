@@ -206,7 +206,7 @@ sub Initialize {
     }
     Ldap->SetGUI ($use_gui);
 
-    my $ldap_mesg = Ldap->LDAPInit ();
+    my $ldap_mesg = Ldap->LDAPInitWithTLSCheck ({});
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
 	return $ldap_mesg;
