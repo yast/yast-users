@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed May 23 09:55:46 CEST 2007 - jsuchome@suse.cz
+
+- use LDAPInitWithTLSCheck function for init - offer fallback to
+  unencrypted connection (#246397)
+- 2.15.27
+
+-------------------------------------------------------------------
 Fri May 11 13:23:21 CEST 2007 - jsuchome@suse.cz
 
 - during autoinstallation, do not touch already created directories
