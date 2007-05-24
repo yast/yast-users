@@ -296,10 +296,6 @@ sub CryptHome {
     if ($modified eq "added" && !defined $pw) {
 	$pw		= $new_pw;
     }
-    return 1 if ($home_size == 0 && $org_size == 0); # nothing to do
-    return 1 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size && $pw eq $new_pw);
-    return 0 if !defined $pw; # no change without password provided :-(
-
     # now crypt the home directories
     my $tmpdir		= Directory->tmpdir ();
 

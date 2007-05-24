@@ -3324,8 +3324,8 @@ sub UserReallyModified {
 	    if (!defined $user{$key} || $user{$key} ne $value)
 	    {
 		$ret = 1;
-		y2debug ("old value: $value, changed to: ",
-		    $user{$key} || "-" );
+		y2debug ("old value: ", $value || "(not defined)");
+		y2debug ("... changed to: ", $user{$key} || "(not defined)" );
 	    }
 	}
 	return $ret;
@@ -3366,6 +3366,29 @@ sub UserReallyModified {
     }
     return $ret;
 }
+
+# take the map of user and check if his crypted directory settings were modified
+# return boolean
+sub CryptedHomeModified {
+
+    my $self		= shift;
+    my $user		= shift;
+
+    my $username	= $user->{"uid"} || "";
+    my $org_username	= $user->{"org_user"}{"uid"} || $username;
+    my $home		= $user->{"homedirectory"} || "";
+    my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
+    my $home_size   	= $user->{"crypted_home_size"} || 0;
+    my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
+    my $pw		= $user->{"current_text_userpassword"};
+    my $new_pw		= $user->{"text_userpassword"};
+
+    return 0 if ($home_size == 0 && $org_size == 0); # nothing to do
+    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size && $pw eq $new_pw);
+    return 0 if !defined $pw; # no change without password provided :-(
+    return 1;
+}
+
 
 # Substitute the values of LDAP atributes, predefined in LDAP user configuration
 BEGIN { $TYPEINFO{SubstituteUserValues} = ["function", "void"] }
@@ -4181,7 +4204,7 @@ sub Write {
 	    # only remember for which users we need to call cryptconfig
 	    foreach my $username (keys %{$modified_users{"ldap"}}) {
 		my %user	= %{$modified_users{"ldap"}{$username}};
-		if (defined $user{"crypted_home_size"}) {
+		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 	    }
@@ -4380,7 +4403,7 @@ sub Write {
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
 		my $skel	= $useradd_defaults{"skel"};
-		if (defined $user{"crypted_home_size"}) {
+		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {

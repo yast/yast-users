@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu May 24 15:58:42 CEST 2007 - jsuchome@suse.cz
+
+- check for crypted directories modifications before offering
+  'cryptconfig' installation (#274861)
+- 2.15.28
+
+-------------------------------------------------------------------
 Wed May 23 09:55:46 CEST 2007 - jsuchome@suse.cz
 
 - use LDAPInitWithTLSCheck function for init - offer fallback to
