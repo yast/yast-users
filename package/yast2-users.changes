@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jun 11 13:35:12 CEST 2007 - jsuchome@suse.cz
+
+- ask for disabling autologin when adding new user (#166228)
+- 2.15.29 
+
+-------------------------------------------------------------------
 Fri May 25 13:30:04 CEST 2007 - jsrain@suse.cz
 
 - removed outdated translations from .desktop-files (#271209)

@@ -881,7 +881,7 @@ Leave it empty?")))
 		    }
 		}
 		if (cn == "" &&
-		    // no substitution when editing:
+		    // no substitution when editing: TODO bug 238282
 		    (what == "edit_user" ||
 		    // cn should not be substitued:
 		    !haskey (ldap_user_defaults, "cn")))
@@ -1633,6 +1633,13 @@ _("Change home directory to %1?"), generated_home))))
 		Report::Error (error_msg);
 		ret = `notnext;
 		continue;
+	    }
+	    // check if autologin is not set for some user
+	    if (what == "add_user")
+	    {
+		Autologin::AskForDisabling (
+		    // popup text
+		    _("Now you have added a new user."));
 	    }
 	}
 
