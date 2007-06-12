@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jun 12 10:53:07 CEST 2007 - jsuchome@suse.cz
+
+- additional warning in case of user name conflict (#228283)
+- 2.15.30 
+
+-------------------------------------------------------------------
 Mon Jun 11 13:35:12 CEST 2007 - jsuchome@suse.cz
 
 - ask for disabling autologin when adding new user (#166228)

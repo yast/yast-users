@@ -4798,10 +4798,10 @@ Try again.");
 Try again."), $min, $max);
     }
 
-    my $filtered = $username;
-
+    my $filtered	= $username;
+    my $type		= $user_in_work{"type"} || "";
     # Samba users may need to have '$' at the end of username (#40433)
-    if (($user_in_work{"type"} || "") eq "ldap") {
+    if ($type eq "ldap") {
 	$filtered =~ s/\$$//g;
     }
     my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
@@ -4822,10 +4822,13 @@ Try again.");
 		 $user_in_work{"org_uid"} ne $username)) {
 
 	if (UsersCache->UsernameExists ($username)) {
-	    # error popup
-	    return __("There is a conflict between the entered
-username and an existing username.
-Try another one.");
+	    # additional sentence for error popup
+	    my $more	= ($type eq "local" || $type eq "system") ? __("
+The existing username might belong to NIS or LDAP user.") : "";
+	    # error popup, %1 might be additional sentence ("The existing username...")
+	    return sformat (__("There is a conflict between the entered
+username and an existing username. %1
+Try another one."), $more);
 	}
     }
     return "";
