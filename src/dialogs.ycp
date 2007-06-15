@@ -254,6 +254,8 @@ define symbol EditUserDialog (string what) {
     string plugin_client	= "";
     string plugin		= "";
     map client2plugin		= $[];
+    // names of plugin GUI clients
+    list<string> clients	= [];
 
     /**
      * initialize local variables with current state of user
@@ -663,22 +665,6 @@ group memberships can be changed.")) : `VSpacing (0),
      */
     define term get_plugins_term () {
 
-	// UsersPlugins will filter out plugins we cannot use for given type
-	map plugin_clients	= UsersPlugins::Apply ("GUIClient",
-	    $[ "what" : "user", "type" : user_type ], $[]
-	);
-	// remove empty clients
-	plugin_clients = filter (string plugin, string client,
-	    (map<string,string>) plugin_clients, ``(client != ""));
-
-	client2plugin	= $[];
-	list<string> clients	= maplist (string plugin, string client,
-	    (map<string,string>) plugin_clients, {
-
-		client2plugin [client]	= plugin;
-		return client;
-	});
-
 	plugin_client	= clients[0]:"";
 	plugin		= client2plugin[plugin_client]:plugin_client;
 
@@ -744,7 +730,19 @@ group memberships can be changed.")) : `VSpacing (0),
 	tabs = add (tabs,`item(`id(`passwordsettings),_("Pass&word Settings")));
     }
 
-    if (user_type == "ldap")
+    // Now initialize the list of plugins: we must know now if there is some available.
+    // UsersPlugins will filter out plugins we cannot use for given type
+    map plugin_clients	= UsersPlugins::Apply ("GUIClient",
+	$[ "what" : "user", "type" : user_type ], $[]
+    );
+    // remove empty clients
+    plugin_clients = filter (string plugin, string client,
+	(map<string,string>) plugin_clients, ``(client != ""));
+    clients	= maplist (string plugin, string client, (map<string,string>) plugin_clients, {
+	client2plugin [client]	= plugin;
+	return client;
+    });
+    if (clients != [])
     {
 	// tab label
 	tabs = add (tabs, `item(`id(`plugins), _("Plu&g-Ins") ));
@@ -1455,6 +1453,7 @@ _("Change home directory to %1?"), generated_home))))
 	    }
 	    if (ret == `run)
 	    {
+		boolean plugin_added	= false;
 		// first, add the plugin if necessary
 		if (!contains (user["plugins"]:[], plugin))
 		{
@@ -1465,16 +1464,29 @@ _("Change home directory to %1?"), generated_home))))
 			ret = `notnext;
 			continue;
 		    }
+		    plugin_added	= true;
 		    user	= Users::GetCurrentUser ();
 		    reinit_userdata ();
-		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0),
-			UI::Glyph (`CheckMark));
 		}
 		any plugin_ret = WFM::CallFunction (
 		    plugin_client, ["Dialog", $[ "what"	: "user" ], user ]);
 		if (plugin_ret == `next)
 		{
 		    // update the map of changed user
+		    user	= Users::GetCurrentUser ();
+		    reinit_userdata ();
+		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0), UI::Glyph (`CheckMark));
+		}
+		// for `cancel we must remove the plugin if it was added because of `run
+		else if (plugin_added)
+		{
+		    error	= Users::RemoveUserPlugin (plugin);
+		    if (error != "")
+		    {
+			Popup::Error (error);
+			ret = `notnext;
+			continue;
+		    }
 		    user	= Users::GetCurrentUser ();
 		    reinit_userdata ();
 		}
@@ -1709,6 +1721,7 @@ define symbol EditGroupDialog (string what) {
     string plugin_client	= "";
     string plugin		= "";
     map client2plugin		= $[];
+    list<string> clients	= [];
 
     /**
      * initialize local variables with current state of group
@@ -1776,22 +1789,6 @@ define symbol EditGroupDialog (string what) {
      */
     define term get_plugins_term () {
 
-	// UsersPlugins will filter out plugins we cannot use for given type
-	map plugin_clients	= UsersPlugins::Apply ("GUIClient",
-	    $[ "what" : "group", "type" : group_type ], $[]
-	);
-	// remove empty clients
-	plugin_clients = filter (string plugin, string client,
-	    (map<string,string>) plugin_clients, ``(client != ""));
-
-	client2plugin	= $[];
-	list<string> clients	= maplist (string plugin, string client,
-	    (map<string,string>) plugin_clients, {
-
-		client2plugin [client]	= plugin;
-		return client;
-	});
-
 	plugin_client	= clients[0]:"";
 	plugin		= client2plugin[plugin_client]:plugin_client;
 
@@ -1824,7 +1821,20 @@ define symbol EditGroupDialog (string what) {
 
     list<term> tabs		= [];
     term dialog_contents	= `Empty ();
-    boolean use_tabs		= group_type == "ldap";
+
+    // Now initialize the list of plugins: we must know now if there is some available.
+    // UsersPlugins will filter out plugins we cannot use for given type
+    map plugin_clients	= UsersPlugins::Apply ("GUIClient",
+	    $[ "what" : "group", "type" : group_type ], $[]
+    );
+    // remove empty clients
+    plugin_clients = filter (string plugin, string client,
+	(map<string,string>) plugin_clients, ``(client != ""));
+    clients	= maplist (string plugin, string client, (map<string,string>) plugin_clients, {
+	client2plugin [client]	= plugin;
+	return client;
+    });
+    boolean use_tabs		= (size (clients) > 0);
 
     if (use_tabs)
     {
@@ -2081,6 +2091,7 @@ Try again.")) ;
 	    }
 	    if (ret == `run)
 	    {
+		boolean plugin_added	= false;
 		// first, add the plugin if necessary
 		if (!contains (group["plugins"]:[], plugin))
 		{
@@ -2091,16 +2102,28 @@ Try again.")) ;
 			ret = `notnext;
 			continue;
 		    }
+		    plugin_added	= true;
 		    group	= Users::GetCurrentGroup ();
 		    reinit_groupdata ();
-		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0),
-			UI::Glyph (`CheckMark));
 		}
 		any plugin_ret = WFM::CallFunction (
 		    plugin_client, ["Dialog", $[ "what"	: "group" ], group ]);
 		if (plugin_ret == `next)
 		{
 		    // update the map of changed group
+		    group	= Users::GetCurrentGroup ();
+		    reinit_groupdata ();
+		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0), UI::Glyph (`CheckMark));
+		}
+		else if (plugin_added)
+		{
+		    error	= Users::RemoveGroupPlugin (plugin);
+		    if (error != "")
+		    {
+			Popup::Error (error);
+			ret = `notnext;
+			continue;
+		    }
 		    group	= Users::GetCurrentGroup ();
 		    reinit_groupdata ();
 		}
