@@ -4823,7 +4823,8 @@ Try again.");
 
 	if (UsersCache->UsernameExists ($username)) {
 	    # additional sentence for error popup
-	    my $more	= ($type eq "local" || $type eq "system") ? __("
+	    my $more	= (($self->NISAvailable () || $self->LDAPAvailable ()) &&
+		($type eq "local" || $type eq "system")) ? __("
 The existing username might belong to NIS or LDAP user.") : "";
 	    # error popup, %1 might be additional sentence ("The existing username...")
 	    return sformat (__("There is a conflict between the entered
