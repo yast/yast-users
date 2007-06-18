@@ -2529,8 +2529,6 @@ Try again.
 define symbol AuthentizationDialog() {
 
     list<string> configurable = [ "nis", "ldap", "kerberos", "samba" ];
-
-    list<string> available = [];
     list<string> installed = [];
     list mb = [];
 
@@ -2608,14 +2606,14 @@ define symbol AuthentizationDialog() {
     }
 
     /**
-     * Reloads the configuration and updates the auth-widget contents
+     * Reloads the configuration for given client and creates updated summary widget contents
      * returns the summary value for richtext
      */
     define string reload_config (list<string> clients) {
 
         string summary = "";
 	if (clients == nil || clients == [])
-	    clients	= (list<string>) union (available, installed);
+	    clients	= configurable;
 	foreach (string client, clients, {
 	    summary = Summary::AddHeader (summary, sformat (
 		"<font color=\"#8BC460\"><a href=\"%1\">%2</a></font>",
@@ -2626,38 +2624,21 @@ define symbol AuthentizationDialog() {
     }
 
     /**
-     * helper: check availability of authentication packages and
-     * update the RichText summary accordingly
+     * helper: check availability of authentication packages,
+     * update the RichText summary and menubutton labels accordingly
      */
     define void check_packages () {
 
-	boolean check_available	= true; // save if more Available calls should be done (bug #225484)
-
 	foreach (string client, configurable, {
 	    string package = sformat ("yast2-%1-client", client);
-	    term client_item	= `item (`id(client), to_string[client]:"");
+	    term client_item	= `item (`id(client), to_string[client]:client);
 	    if (Package::Installed (package))
 	    {
 		installed	= add (installed, client);
-		mb		= add (mb, client_item);
-		UI::ChangeWidget (`id(`summary), `Value,
-		    (string) UI::QueryWidget (`id (`summary),`Value) + reload_config ([client]));
 	    }
-	    else if (check_available)
-	    {
-		boolean avai	= Package::Available (package);
-		if (avai == nil)
-		{
-		    check_available	= false;
-		}
-		else if (avai)
-		{
-		    available	= add (available, client);
-		    mb		= add (mb, client_item);
-		    UI::ChangeWidget (`id(`summary), `Value,
-			(string)UI::QueryWidget (`id (`summary),`Value) + reload_config ([client]));
-		}
-	    }
+	    mb		= add (mb, client_item);
+	    UI::ChangeWidget (`id(`summary), `Value,
+		(string) UI::QueryWidget (`id (`summary),`Value) + reload_config ([client]));
 	});
     }
 
@@ -2689,6 +2670,9 @@ define symbol AuthentizationDialog() {
 	UI::ReplaceWidget (`id (`rpbutton), `MenuButton(`opt(`key_F4), _("&Configure..."), mb));
     }
 
+    // save if no more Available calls should be done (bug #225484)
+    boolean check_available	= true;
+
     any button		= nil;
     boolean changed	= false;
     list param		= [];
@@ -2705,6 +2689,24 @@ define symbol AuthentizationDialog() {
 	    if (!contains (installed, (string) button))
 	    {
 		string package = sformat ("yast2-%1-client", button);
+		if (check_available)
+		{
+		    boolean avai	= Package::Available (package);
+		    if (avai == nil)
+		    {
+			// package manager is probably not accessible -> no more checks
+			check_available	= false;
+		    }
+		    if (avai != true)
+		    {
+			// error popup, %1 is package name
+			Popup::Error (sformat (_("Package %1 is not available for installation."),
+			    package));
+			configurable	= filter (string p, configurable, ``(p != button));
+			UI::ChangeWidget (`id(`summary), `Value, reload_config ([]));
+			continue;
+		    }
+		}
 		if (Package::InstallAllMsg ([package],
 		    // popup label (%1 is package to install)
 		    sformat (_("Package %1 is not installed.

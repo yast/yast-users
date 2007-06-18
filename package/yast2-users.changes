@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Jun 18 10:25:53 CEST 2007 - jsuchome@suse.cz
+
+- Authentication dialog: lazy checking if packages are available
+  saves some time (#273013)
+- 2.15.32
+
+-------------------------------------------------------------------
 Mon Jun 18 08:45:02 CEST 2007 - jsuchome@suse.cz
 
 - fix checking autologin status during second stage (#285017)
