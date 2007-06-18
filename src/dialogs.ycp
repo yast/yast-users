@@ -1647,7 +1647,7 @@ _("Change home directory to %1?"), generated_home))))
 		continue;
 	    }
 	    // check if autologin is not set for some user
-	    if (what == "add_user")
+	    if (what == "add_user" && !complex_layout)
 	    {
 		Autologin::AskForDisabling (
 		    // popup text

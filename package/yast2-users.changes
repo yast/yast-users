@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jun 18 08:45:02 CEST 2007 - jsuchome@suse.cz
+
+- fix checking autologin status during second stage (#285017)
+- 2.15.31 
+
+-------------------------------------------------------------------
 Tue Jun 12 10:53:07 CEST 2007 - jsuchome@suse.cz
 
 - additional warning in case of user name conflict (#228283)
