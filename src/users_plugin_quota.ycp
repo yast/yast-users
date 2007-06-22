@@ -1,0 +1,266 @@
+/**
+ * File:
+ *	include/users/users_plugin_quota.ycp
+ *
+ * Package:
+ *	Configuration of Users
+ *
+ * Summary:
+ *	This is GUI part of UsersPluginQuota
+ *	- plugin for configuration of user quota
+ *
+ * Authors:
+ *	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+{
+    textdomain "users";
+
+    import "Label";
+    import "Report";
+    import "Users";
+    import "UsersPluginQuota"; // plugin module
+    import "Wizard";
+
+    any ret = nil;
+    string func			= "";
+    map<string,any> config	= $[];
+    map<string,any> data	= $[];
+
+    /* Check arguments */
+    if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
+	func = (string) WFM::Args(0);
+	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
+	    config = (map<string,any>)WFM::Args(1);
+	if(size(WFM::Args()) > 2 && is(WFM::Args(2), map))
+	    data = (map<string,any>)WFM::Args(2);
+    }
+    y2milestone("----------------------------------------");
+    y2milestone("users plugin started: UsersPluginQuota");
+
+    y2debug ("func=%1", func);
+    y2debug ("config=%1", config);
+    y2debug ("data=%1", data);
+
+    // maximal value of IntFields
+    integer max	= 99999;
+
+    // helper for updateing values of time widget from number of seconds
+    void update_time_widget (integer seconds) {
+
+	integer days	= seconds / (24*60*60);
+	if (days > 0) seconds	= seconds - (days * 24*60*60);
+	integer	hours	= seconds / (60*60);
+	if (hours > 0) seconds	= seconds - (hours * 60*60);
+	integer minutes	= seconds / 60;
+	if (minutes > 0) seconds	= seconds - (minutes * 60);
+	UI::ChangeWidget (`id ("d"), `Value, days);
+	UI::ChangeWidget (`id ("h"), `Value, hours);
+	UI::ChangeWidget (`id ("m"), `Value, minutes);
+	UI::ChangeWidget (`id ("s"), `Value, seconds);
+    }
+
+    // return the number of seconds shown in the time widget
+    integer get_seconds_value () {
+
+	integer days	= (integer) UI::QueryWidget (`id ("d"), `Value);
+	integer hours	= (integer) UI::QueryWidget (`id ("h"), `Value);
+	integer minutes	= (integer) UI::QueryWidget (`id ("m"), `Value);
+	integer seconds	= (integer) UI::QueryWidget (`id ("s"), `Value);
+	return (days * 24*60*60) + (hours * 60*60) + (minutes *60) + seconds;
+    }
+
+    if (func == "Summary") {
+	ret = UsersPluginQuota::Summary (config, $[]);
+    }
+    else if (func == "Name") {
+	ret = UsersPluginQuota::Name (config, $[]);
+    }
+    else if (func == "Dialog") {
+	// define the dialog for this plugin and return it's contents
+
+	string caption	= UsersPluginQuota::Name (config, $[]);
+	map<string, any> tmp_data	= $[];
+	list<map> quota_list		= [];
+
+	// helptext for quota
+	string help_text = _("<p>Here, configure quota settings of the user on selected file systems.</p>") +
+
+	// helptext for quota, cont.
+	_("<p><b>Soft limit</b> shows the maximum number of 1k blocks (resp. i-nodes) user may have on partition before warning is issued and grace persiod countdown begins.</p>") +
+
+	// helptext for quota, cont.
+	_("<p>Set <b>hard limits</b> to adapt maximum number of blocks (resp. i-nodes) user may have on partition.</p>");
+
+	integer current = 0; // current fs
+
+	// map of quota settings for current fs
+	map<string,any> quotamap	= data["quota",current]:$[];
+
+	// helper to obtain integer when value might be string or integer...
+	integer get_int (string key) {
+	    any value	= quotamap[key]:nil;
+	    if (value == nil) return 0;
+	    if (is (value, integer)) return (integer) value;
+	    if (is (value, string) && value != "")
+		return tointeger ((string)value);
+	    return 0;
+	}
+
+	integer	quota_blocks_soft	= get_int ("quota_blocks_soft");
+	integer	quota_blocks_hard	= get_int ("quota_blocks_hard");
+	integer	quota_inodes_soft	= get_int ("quota_inodes_soft");
+	integer	quota_inodes_hard	= get_int ("quota_inodes_hard");
+	integer	quota_grace		= get_int ("quota_grace");
+
+	integer i	= -1;
+	list fs_items = maplist (map q, data["quota"]:[], {
+	    string fs	= q["quota_fs"]:"";
+	    i	= i + 1;
+	    quota_list	= add (quota_list, $[ "quota_fs": fs ]);
+	    return `item (`id (i), fs, i == current);
+	});
+
+	term contents = `HBox (
+	    `HSpacing (3),
+            `VBox (
+		`VSpacing (0.4),
+		`Left (`ComboBox (`id ("quota_fs"), `opt (`notify),
+		    // combo box label
+		    _("&File System"), fs_items)),
+		`VSpacing (0.4),
+		// frame label
+		`Frame (_("Size Limits"), `HBox (`HSpacing (0.5), `VBox (
+		    `IntField (`id ("quota_blocks_soft"), `opt (`hstretch),
+			// intfield label
+			_("&Soft limit"), 0, max, quota_blocks_soft),
+		    `IntField (`id ("quota_blocks_hard"),
+			// intfield label
+			_("&Hard limit"), 0, max, quota_blocks_hard),
+		    `VSpacing (0.2)
+		), `HSpacing (0.5))),
+		`VSpacing (0.4),
+		// frame label
+		`Frame (_("I-nodes Limits"), `HBox (`HSpacing (0.5), `VBox (
+		    `IntField (`id ("quota_inodes_soft"),
+			// intfield label
+			_("S&oft limit"), 0, max, quota_inodes_soft),
+		    `IntField (`id ("quota_inodes_hard"),
+			// intfield label
+			_("Har&d limit"), 0, max, quota_inodes_hard),
+		    `VSpacing (0.2)
+		), `HSpacing (0.5))),
+		`VSpacing (0.4),
+		// frame label
+		`Frame (_("Grace period"), `VBox (
+		    `HBox (
+			`HSpacing (0.5),
+			`IntField (`id ("d"), _("Days"), 0, max, 0),
+			`IntField (`id ("h"), _("Hours"), 0, 23, 0),
+			`IntField (`id ("m"), _("Minutes"), 0, 59, 0),
+			`IntField (`id ("s"), _("Seconds"), 0, 59, 0),
+			`HSpacing (0.5)
+		    ),
+		    `VSpacing (0.2)
+		))
+	    ),
+            `HSpacing (3)
+	);
+
+	Wizard::CreateDialog ();
+        Wizard::SetDesktopIcon("users");
+
+	// dialog caption
+	Wizard::SetContentsButtons(_("User Quota Configuration"),
+	    contents, help_text, Label::CancelButton(), Label::AcceptButton());
+
+	Wizard::HideAbortButton ();
+
+	update_time_widget (quota_grace);
+
+	ret = `next;
+	repeat
+	{
+	    ret = UI::UserInput();
+	    if (ret == "quota_fs" || ret == `next)
+	    {
+		integer sel = (integer)UI::QueryWidget(`id("quota_fs"), `Value);
+		if (sel != current || ret == `next)
+		{
+		    foreach (string key, ["quota_blocks_soft",
+			"quota_blocks_hard", "quota_inodes_soft",
+			"quota_inodes_hard", "quota_grace"],
+		    {
+			// read the new map for selected fs
+			if (quota_list[sel,key]:nil != nil)
+			    quotamap[key]	= quota_list[sel,key]:nil;
+			else
+			    quotamap[key]       = data["quota",sel,key]:nil;
+			if (key != "quota_grace")
+			{
+			    // save current status (still in UI)
+			    quota_list[current,key]	=
+				UI::QueryWidget(`id(key),`Value);
+			    // ... and update UI with the new one
+			    UI::ChangeWidget (`id (key),`Value, get_int (key));
+			}
+			else
+			{
+			    // save the old
+			    quota_list[current,key]	= get_seconds_value ();
+			    // show the new
+			    update_time_widget (get_int (key));
+			}
+		    });
+		    UI::ChangeWidget (`id ("quota_fs"),
+			`Value, quota_list[sel,"quota_fs"]:"");
+		    current		= sel;
+		}
+	    }
+	    if (ret == `next)
+	    {
+		boolean modified	= false;
+		// TODO check if quota was modified
+		tmp_data	= $[
+		    "quota"	: quota_list
+		];
+		string err = UsersPluginQuota::Check (config, tmp_data);
+		if (err != "")
+		{
+		    Report::Error (err);
+		    ret = `notnext;
+		    continue;
+		}
+
+		// if this plugin wasn't in default set, we must save its name
+		if (!contains (data["plugins"]:[], "UsersPluginQuota"))
+		{
+		    tmp_data["plugins"] = add (tmp_data["plugins"]:[],
+			"UsersPluginQuota");
+		}
+		if (data["what"]:"" == "edit_user")
+		{
+		    Users::EditUser (tmp_data);
+		}
+		else if (data["what"]:"" == "add_user")
+		{
+		    Users::AddUser (tmp_data);
+		}
+	    }
+	} until (is(ret,symbol) &&
+	    contains ([`next, `abort, `back, `cancel], (symbol) ret));
+
+	Wizard::CloseDialog ();
+    }
+    else {
+	y2error("unknown function: %1", func);
+	ret = false;
+    }
+
+    y2debug ("ret=%1", ret);
+    y2milestone("users plugin finished");
+    y2milestone("----------------------------------------");
+
+    return ret;
+}

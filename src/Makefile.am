@@ -20,7 +20,8 @@ module_DATA =		\
     UsersPlugins.pm	\
     UsersPluginLDAPAll.pm	\
     UsersPluginLDAPShadowAccount.pm	\
-    UsersPluginLDAPPasswordPolicy.pm
+    UsersPluginLDAPPasswordPolicy.pm	\
+    UsersPluginQuota.pm
 
 ynclude_DATA =		\
     complex.ycp		\
@@ -40,7 +41,8 @@ client_DATA = 		\
     users_auto.ycp	\
     users_plugin_ldap_all.ycp			\
     users_plugin_ldap_passwordpolicy.ycp	\
-    users_plugin_ldap_shadowaccount.ycp
+    users_plugin_ldap_shadowaccount.ycp		\
+    users_plugin_quota.ycp
 
 desktop_DATA =		\
     users.desktop	\
