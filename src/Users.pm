@@ -2688,7 +2688,7 @@ sub AddUserPlugin {
 	if ($plugin_error) { return $plugin_error; }
 
 	$result = UsersPlugins->Apply ("Edit", $args, \%user);
-	# check if plugin has done the 'EditBefore' action
+	# check if plugin has done the 'Edit' action
 	if (defined $result->{$plugin} && ref ($result->{$plugin}) eq "HASH") {
 	    $result	= ShowPluginWarning ($result);
 	    %user	= %{$result->{$plugin}};
@@ -3328,6 +3328,7 @@ sub UserReallyModified {
 		y2debug ("... changed to: ", $user{$key} || "(not defined)" );
 	    }
 	}
+#FIXME quota edit not detected!!!!!!
 	return $ret;
 #FIXME what if there is a new key? it's not in org_user map...
     }
