@@ -55,7 +55,6 @@
     else if (func == "Name") {
 	ret = UsersPluginLDAPShadowAccount::Name (config, $[]);
     }
-    // define the dialog for this plugin and return it's contents
     else if (func == "Dialog") {
 
 	string caption	= UsersPluginLDAPShadowAccount::Name (config, $[]);

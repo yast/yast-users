@@ -57,7 +57,6 @@
 	ret = UsersPluginLDAPAll::Name (config, $[]);
     }
     else if (func == "Dialog") {
-	// define the dialog for this plugin and return it's contents
 
 	string caption	= UsersPluginLDAPAll::Name (config, $[]);
 	string what	= config["what"]:"user";
