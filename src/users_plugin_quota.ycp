@@ -6,8 +6,8 @@
  *	Configuration of Users
  *
  * Summary:
- *	This is GUI part of UsersPluginQuota
- *	- plugin for configuration of user quota
+ *	This is GUI part of UsersPluginQuota,
+ *	plugin for configuration of user and group quotas
  *
  * Authors:
  *	Jiri Suchomel <jsuchome@suse.cz>
@@ -23,12 +23,12 @@
     import "UsersPluginQuota"; // plugin module
     import "Wizard";
 
-    any ret = nil;
+    any ret			= nil;
     string func			= "";
     map<string,any> config	= $[];
     map<string,any> data	= $[];
 
-    /* Check arguments */
+    // read arguments
     if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
 	func = (string) WFM::Args(0);
 	if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
@@ -44,10 +44,14 @@
     y2debug ("data=%1", data);
 
     // maximal value of IntFields
-    integer max	= 99999;
+    integer max	= 999999999;
 
-    // helper for updateing values of time widget from number of seconds
-    void update_time_widget (integer seconds) {
+    /**
+     * helper for updating values of time widget from number of seconds
+     * @param id string that preceedes the subwidgets id's
+     * @param seconds number of seconds to be shown in the widget
+     */
+    void update_time_widget (string id, integer seconds) {
 
 	integer days	= seconds / (24*60*60);
 	if (days > 0) seconds	= seconds - (days * 24*60*60);
@@ -55,21 +59,48 @@
 	if (hours > 0) seconds	= seconds - (hours * 60*60);
 	integer minutes	= seconds / 60;
 	if (minutes > 0) seconds	= seconds - (minutes * 60);
-	UI::ChangeWidget (`id ("d"), `Value, days);
-	UI::ChangeWidget (`id ("h"), `Value, hours);
-	UI::ChangeWidget (`id ("m"), `Value, minutes);
-	UI::ChangeWidget (`id ("s"), `Value, seconds);
+	UI::ChangeWidget (`id (id + "d"), `Value, days);
+	UI::ChangeWidget (`id (id + "h"), `Value, hours);
+	UI::ChangeWidget (`id (id + "m"), `Value, minutes);
+	UI::ChangeWidget (`id (id + "s"), `Value, seconds);
     }
 
-    // return the number of seconds shown in the time widget
-    integer get_seconds_value () {
+    /**
+     * helper for creating widget with time settings
+     * @param id string that preceedes the subwidgets id's
+     * @param seconds number of seconds to be shown in the widget
+     */
+    term time_dialog (string id, integer seconds) {
 
-	integer days	= (integer) UI::QueryWidget (`id ("d"), `Value);
-	integer hours	= (integer) UI::QueryWidget (`id ("h"), `Value);
-	integer minutes	= (integer) UI::QueryWidget (`id ("m"), `Value);
-	integer seconds	= (integer) UI::QueryWidget (`id ("s"), `Value);
+	integer days	= seconds / (24*60*60);
+	if (days > 0) seconds	= seconds - (days * 24*60*60);
+	integer	hours	= seconds / (60*60);
+	if (hours > 0) seconds	= seconds - (hours * 60*60);
+	integer minutes	= seconds / 60;
+	if (minutes > 0) seconds	= seconds - (minutes * 60);
+	return `HBox (
+	    `IntField (`id (id + "d"), _("Days"), 0, max, days),
+	    `IntField (`id (id + "h"), _("Hours"), 0, 23, hours),
+	    `IntField (`id (id + "m"), _("Minutes"), 0, 59, minutes),
+	    `IntField (`id (id + "s"), _("Seconds"), 0, 59, seconds)
+	);
+    }
+
+    /**
+     * helper for reading the content of time widget
+     * @param id string that preceedes the subwidgets id's
+     * @return the number of seconds shown in the time widget
+     */
+    integer get_seconds_value (string id) {
+
+	integer days	= (integer) UI::QueryWidget (`id (id + "d"), `Value);
+	integer hours	= (integer) UI::QueryWidget (`id (id + "h"), `Value);
+	integer minutes	= (integer) UI::QueryWidget (`id (id + "m"), `Value);
+	integer seconds	= (integer) UI::QueryWidget (`id (id + "s"), `Value);
 	return (days * 24*60*60) + (hours * 60*60) + (minutes *60) + seconds;
     }
+
+    // ----------------------------- now, the main body ----------------
 
     if (func == "Summary") {
 	ret = UsersPluginQuota::Summary (config, $[]);
@@ -78,25 +109,44 @@
 	ret = UsersPluginQuota::Name (config, $[]);
     }
     else if (func == "Dialog") {
-	// define the dialog for this plugin and return it's contents
-
-	string caption	= UsersPluginQuota::Name (config, $[]);
-	map<string, any> tmp_data	= $[];
+	string caption			= UsersPluginQuota::Name (config, $[]);
+	// list of edited settings (for each filesystem)
 	list<map> quota_list		= [];
+	string what			= config["what"]:"user";
 
 	// helptext for quota
 	string help_text = _("<p>Here, configure quota settings of the user on selected file systems.</p>") +
 
 	// helptext for quota, cont.
-	_("<p><b>Soft limit</b> shows the maximum number of 1k blocks (resp. i-nodes) user may have on partition before warning is issued and grace persiod countdown begins.</p>") +
+	_("<p><b>Soft limit</b> shows the maximum number of 1kB blocks (or number of i-nodes) user may have on partition before warning is issued and grace persiod countdown begins.</p>") +
 
 	// helptext for quota, cont.
-	_("<p>Set <b>hard limits</b> to adapt maximum number of blocks (resp. i-nodes) user may have on partition.</p>");
+	_("<p>Set <b>hard limits</b> to adapt maximum number of 1kB blocks (or number of i-nodes) user may have on partition.</p>") +
 
-	integer current = 0; // current fs
+	// helptext for quota, cont.
+	_("<p>If user exceedes the softlimit quota, widgets with the time setting are enabled. Adjust the grace time for user by setting the time in those widgets.</p>");
+
+	if (what == "group")
+	{
+	    // helptext for group quota
+	    help_text = _("<p>Here, configure quota settings of the group on selected file systems.</p>") +
+
+	    // helptext for group quota, cont.
+	    _("<p><b>Soft limit</b> shows the maximum number of 1kB blocks (or number of i-nodes) group of users may have on partition before warning is issued and grace persiod countdown begins.</p>") +
+
+	    // helptext for group quota, cont.
+	    _("<p>Set <b>hard limits</b> to adapt maximum number of 1kB blocks (or number of i-nodes) group may have on partition.</p>") +
+
+	    // helptext for group quota, cont.
+	    _("<p>If group exceedes the softlimit quota, widgets with the time setting are enabled. Adjust the grace time for group by setting the time in those widgets.</p>");
+	}
+
+	boolean modified	= false;
+	integer current		= 0; // current fs (index in the list)
+	list<map> current_quota	= data["quota"]:[];
 
 	// map of quota settings for current fs
-	map<string,any> quotamap	= data["quota",current]:$[];
+	map<string,any> quotamap = (map<string,any>) current_quota[current]:$[];
 
 	// helper to obtain integer when value might be string or integer...
 	integer get_int (string key) {
@@ -110,15 +160,29 @@
 
 	integer	quota_blocks_soft	= get_int ("quota_blocks_soft");
 	integer	quota_blocks_hard	= get_int ("quota_blocks_hard");
+	integer	quota_blocks_grace	= get_int ("quota_blocks_grace");
 	integer	quota_inodes_soft	= get_int ("quota_inodes_soft");
 	integer	quota_inodes_hard	= get_int ("quota_inodes_hard");
-	integer	quota_grace		= get_int ("quota_grace");
+	integer	quota_inodes_grace	= get_int ("quota_inodes_grace");
 
 	integer i	= -1;
-	list fs_items = maplist (map q, data["quota"]:[], {
+	// go through whole quota list, generate items for filesystem combo,
+	// and create tmp quota maps for each fs
+	list fs_items = maplist (map q, current_quota, {
 	    string fs	= q["quota_fs"]:"";
 	    i	= i + 1;
-	    quota_list	= add (quota_list, $[ "quota_fs": fs ]);
+	    // data that cannot be modified
+	    map fixed	= $[ "quota_fs": fs ];
+	    if (haskey (q, "quota_blocks_grace_exceeded"))
+		fixed["quota_blocks_grace_exceeded"]	= 1;
+	    if (haskey (q, "quota_inodes_grace_exceeded"))
+		fixed["quota_inodes_grace_exceeded"]	= 1;
+	    if (haskey (q, "quota_modified"))
+	    {
+		modified		= true;
+		fixed["quota_modified"]	= true;
+	    }
+	    quota_list	= add (quota_list, fixed);
 	    return `item (`id (i), fs, i == current);
 	});
 
@@ -138,8 +202,14 @@
 		    `IntField (`id ("quota_blocks_hard"),
 			// intfield label
 			_("&Hard limit"), 0, max, quota_blocks_hard),
+		    `VSpacing (0.2),
+		    `ReplacePoint (`id ("quota_blocks_grace"),
+			time_dialog ("quota_blocks_grace", quota_blocks_grace)
+		    ),
 		    `VSpacing (0.2)
 		), `HSpacing (0.5))),
+		// 2 small spaces instead of one big because of ncurses:
+		`VSpacing (0.4),
 		`VSpacing (0.4),
 		// frame label
 		`Frame (_("I-nodes Limits"), `HBox (`HSpacing (0.5), `VBox (
@@ -149,21 +219,13 @@
 		    `IntField (`id ("quota_inodes_hard"),
 			// intfield label
 			_("Har&d limit"), 0, max, quota_inodes_hard),
-		    `VSpacing (0.2)
-		), `HSpacing (0.5))),
-		`VSpacing (0.4),
-		// frame label
-		`Frame (_("Grace period"), `VBox (
-		    `HBox (
-			`HSpacing (0.5),
-			`IntField (`id ("d"), _("Days"), 0, max, 0),
-			`IntField (`id ("h"), _("Hours"), 0, 23, 0),
-			`IntField (`id ("m"), _("Minutes"), 0, 59, 0),
-			`IntField (`id ("s"), _("Seconds"), 0, 59, 0),
-			`HSpacing (0.5)
+		    `VSpacing (0.2),
+		    `ReplacePoint (`id ("quota_inodes_grace"),
+			time_dialog ("quota_inodes_grace", quota_inodes_grace)
 		    ),
 		    `VSpacing (0.2)
-		))
+		), `HSpacing (0.5))),
+		`VSpacing (0.4)
 	    ),
             `HSpacing (3)
 	);
@@ -171,13 +233,26 @@
 	Wizard::CreateDialog ();
         Wizard::SetDesktopIcon("users");
 
-	// dialog caption
-	Wizard::SetContentsButtons(_("User Quota Configuration"),
-	    contents, help_text, Label::CancelButton(), Label::AcceptButton());
+	Wizard::SetContentsButtons(
+	    UsersPluginQuota::Name (config, $[]), contents, help_text,
+	    Label::CancelButton(), Label::AcceptButton()
+	);
 
 	Wizard::HideAbortButton ();
 
-	update_time_widget (quota_grace);
+	// grace time widgets are only available when soft limit was passed
+	if (!haskey (quotamap, "quota_blocks_grace_exceeded"))
+	{
+	    foreach (string k, [ "d", "h", "m", "s" ], {
+		UI::ChangeWidget (`id ("quota_blocks_grace"+k),`Enabled, false);
+	    });
+	}
+	if (!haskey (quotamap, "quota_inodes_grace_exceeded"))
+	{
+	    foreach (string k, [ "d", "h", "m", "s" ], {
+		UI::ChangeWidget (`id ("quota_inodes_grace"+k),`Enabled, false);
+	    });
+	}
 
 	ret = `next;
 	repeat
@@ -188,79 +263,109 @@
 		integer sel = (integer)UI::QueryWidget(`id("quota_fs"), `Value);
 		if (sel != current || ret == `next)
 		{
+		    // error popup
+		    string msg	= _("Soft limit cannot be set higher than the hard limit.");
+		    if ((integer)
+			UI::QueryWidget(`id ("quota_blocks_soft"), `Value) >
+			(integer)
+			UI::QueryWidget(`id ("quota_blocks_hard"), `Value))
+		    {
+			Report::Error (msg);
+			UI::SetFocus (`id ("quota_blocks_soft"));
+			ret	= `notnext;
+			continue;
+		    }
+		    if ((integer)
+			UI::QueryWidget(`id ("quota_inodes_soft"), `Value) >
+			(integer)
+			UI::QueryWidget(`id ("quota_inodes_hard"), `Value))
+		    {
+			Report::Error (msg);
+			UI::SetFocus (`id ("quota_inodes_soft"));
+			ret	= `notnext;
+			continue;
+		    }
+
 		    foreach (string key, ["quota_blocks_soft",
 			"quota_blocks_hard", "quota_inodes_soft",
-			"quota_inodes_hard", "quota_grace"],
+			"quota_inodes_hard", "quota_blocks_grace",
+			"quota_inodes_grace" ],
 		    {
 			// read the new map for selected fs
 			if (quota_list[sel,key]:nil != nil)
 			    quotamap[key]	= quota_list[sel,key]:nil;
 			else
 			    quotamap[key]       = data["quota",sel,key]:nil;
-			if (key != "quota_grace")
+			if (! issubstring (key, "grace"))
 			{
 			    // save current status (still in UI)
 			    quota_list[current,key]	=
 				UI::QueryWidget(`id(key),`Value);
 			    // ... and update UI with the new one
-			    UI::ChangeWidget (`id (key),`Value, get_int (key));
+			    if (ret != `next)
+				UI::ChangeWidget(`id (key),`Value,get_int(key));
 			}
 			else
 			{
 			    // save the old
-			    quota_list[current,key]	= get_seconds_value ();
+			    quota_list[current,key] = get_seconds_value (key);
 			    // show the new
-			    update_time_widget (get_int (key));
+			    if (ret != `next)
+				update_time_widget (key, get_int (key));
 			}
 		    });
-		    UI::ChangeWidget (`id ("quota_fs"),
-			`Value, quota_list[sel,"quota_fs"]:"");
+		    if (ret != `next)
+			UI::ChangeWidget (`id ("quota_fs"), `Value,
+			    quota_list[sel,"quota_fs"]:"");
 		    current		= sel;
 		}
 	    }
 	    if (ret == `next)
 	    {
-		boolean modified	= false;
-		// TODO check if quota was modified
-		tmp_data	= $[
-		    "quota"	: quota_list
-		];
-		string err = UsersPluginQuota::Check (config, tmp_data);
-		if (err != "")
-		{
-		    Report::Error (err);
-		    ret = `notnext;
-		    continue;
-		}
+		integer i		= 0;
+		foreach (map qmap, quota_list, {
+		    foreach (string key, any val, (map<string,any>) qmap, {
+			if (key == "quota_fs" || key == "quota_modified")return;
+			if (sformat ("%1", val) !=
+			    tostring (current_quota[i,key]:"0"))
+			{
+			    quota_list[i,"quota_modified"]	= true;
+			    modified	= true;
+			}
+		    });
+		    i	= i + 1;
+		});
+		if (!modified)
+		    break;
+
+		// modified data to add to user/group
+		map<string, any> tmp_data	= $[ "quota" : quota_list ];
 
 		// if this plugin wasn't in default set, we must save its name
+		// (this is probably obsolete, users module should take care)
 		if (!contains (data["plugins"]:[], "UsersPluginQuota"))
 		{
 		    tmp_data["plugins"] = add (tmp_data["plugins"]:[],
 			"UsersPluginQuota");
 		}
 		if (data["what"]:"" == "edit_user")
-		{
 		    Users::EditUser (tmp_data);
-		}
 		else if (data["what"]:"" == "add_user")
-		{
 		    Users::AddUser (tmp_data);
-		}
+		else if (data["what"]:"" == "edit_group")
+		    Users::EditGroup (tmp_data);
+		else if (data["what"]:"" == "add_group")
+		    Users::AddGroup (tmp_data);
 	    }
 	} until (is(ret,symbol) &&
 	    contains ([`next, `abort, `back, `cancel], (symbol) ret));
-
 	Wizard::CloseDialog ();
     }
     else {
 	y2error("unknown function: %1", func);
 	ret = false;
     }
-
-    y2debug ("ret=%1", ret);
-    y2milestone("users plugin finished");
+    y2milestone("users plugin finished with %1", ret);
     y2milestone("----------------------------------------");
-
     return ret;
 }

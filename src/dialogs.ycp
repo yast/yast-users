@@ -1834,7 +1834,8 @@ define symbol EditGroupDialog (string what) {
 	client2plugin [client]	= plugin;
 	return client;
     });
-    boolean use_tabs		= (size (clients) > 0);
+    boolean use_tabs	= (size (clients) > 0);
+    boolean has_tabs	= true;
 
     if (use_tabs)
     {
@@ -1851,6 +1852,7 @@ define symbol EditGroupDialog (string what) {
 	);
 	if (!UI::HasSpecialWidget (`DumbTab))
 	{
+	    has_tabs	= false;
 	    term tabbar	= `HBox ();
 	    foreach (term it, tabs, {
 		string label = it[1]:"";
@@ -1876,6 +1878,14 @@ define symbol EditGroupDialog (string what) {
     symbol ret		= `edit;
     symbol current	= nil;
     list tabids		= [`edit, `plugins ];
+
+    // switch focus to specified tab (after error message) and widget inside
+    define void focus_tab (symbol tab, any widget) {
+	if (use_tabs && has_tabs)
+	    UI::ChangeWidget (`id (`tabs), `CurrentItem, tab);
+	UI::SetFocus (`id (widget));
+	ret = `notnext;
+    }
 
     repeat
     {
@@ -1920,8 +1930,7 @@ define symbol EditGroupDialog (string what) {
 	    if (error != "")
 	    {
 		Report::Error (error);
-                UI::SetFocus (`id(`groupname));
-		ret = `notnext;
+		focus_tab (current, `groupname);
 		continue;
 	    }
 	    // --------------------------------- password checks
@@ -1932,8 +1941,7 @@ define symbol EditGroupDialog (string what) {
                 Report::Error(_("The passwords do not match.
 Try again.")) ;
 
-		ret	= `notnext;
-		UI::SetFocus(`id(`pw1));
+		focus_tab (current, `pw1);
                 continue;
             }
             if ( pw1 != "" && pw1 != default_pw )
@@ -1942,8 +1950,7 @@ Try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
-		    ret	= `notnext;
-		    UI::SetFocus(`id(`pw1));
+		    focus_tab (current, `pw1);
 		    continue;
 		}
 		boolean failed			= false;
@@ -1962,8 +1969,7 @@ Try again.")) ;
 		} while (error_map != $[] && !failed);
 		if (failed)
 		{
-		    ret	= `notnext;
-		    UI::SetFocus(`id(`pw1));
+		    focus_tab (current, `pw1);
 		    continue;
 		}
 		password = pw1;
@@ -1978,8 +1984,7 @@ Try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
-		    UI::SetFocus (`id(`gid));
-		    ret = `notnext;
+		    focus_tab (current, `gid);
 		    continue;
 		}
 		error_map = Users::CheckGIDUI (new_i_gid, ui_map);
@@ -1987,8 +1992,7 @@ Try again.")) ;
 		{
 		    if (!Popup::YesNo (error_map ["question"]:""))
 		    {
-			ret = `notnext;
-			UI::SetFocus(`id(`gid));
+			focus_tab (current, `gid);
 			continue;
 		    }
 		    if(contains(["local","system"],error_map["question_id"]:""))

@@ -1,8 +1,7 @@
 #! /usr/bin/perl -w
 #
-# Example of plugin module
-# This is the API part of UsersPluginQuota plugin
-# - configuration of user quota (feature 120106)
+# This is the API part of UsersPluginQuota plugin:
+# configuration of user and group quota (feature 120106)
 #
 # For documentation and examples of function arguments and return values, see
 # UsersPluginLDAPAll.pm
@@ -11,7 +10,7 @@ package UsersPluginQuota;
 
 use strict;
 
-use YaST::YCP qw(:LOGGING);
+use YaST::YCP qw(:LOGGING sformat);
 use YaPI;
 use Data::Dumper;
 
@@ -36,9 +35,13 @@ my $name	= "UsersPluginQuota";
 # is quota available and set up
 my $quota_available	= undef;
 
-# list of keys use in user/group map
+# list of keys uses in quota map
 my @quota_keys	= ("quota_blocks_soft", "quota_blocks_hard",
-    "quota_inodes_soft", "quota_inodes_hard", "quota_grace");
+    "quota_inodes_soft", "quota_inodes_hard",
+    "quota_blocks_grace", "quota_inodes_grace");
+
+# list of filesystems with quota enabled
+my @quota_enabled_filesystems	= ();
 
 ##----------------------------------------
 ##--------------------- internal functions
@@ -71,59 +74,82 @@ sub remove_plugin_data {
 	my $i	= 0;
 	foreach my $qmap (@{$data->{"quota"}}) {
 	    $data->{"quota"}[$i]{$key} = 0 if defined $data->{"quota"}[$i]{$key};
+	    $data->{"quota"}[$i]{"quota_modified"}	= 1;
 	    $i	= $i + 1;
 	}
     }
     return $data;
 }
 
-# read the quota information for given object
+# check which filesystems have quota support enabled
+sub get_quota_enabled_filesystems {
+
+    if (! @quota_enabled_filesystems) {
+	my $cmd	= "LANG=C grep quota /etc/mtab | cut -f 1 -d ' '";
+	my $out	= SCR->Execute (".target.bash_output", $cmd);
+	if ($out->{"stdout"}) {
+	    # each line in stdout reports quota for one filesystem
+	    foreach my $line (split (/\n/, $out->{"stdout"})) {
+		chomp $line;
+		push @quota_enabled_filesystems, $line if $line;
+	    }
+	}
+    }
+    return @quota_enabled_filesystems;
+}
+
+# Read the quota information for given user/group and return the object
+# map updated with the quota data.
 sub read_quota_info {
 
     my ($config, $data) = @_;
-    # check for any entry (all must be filled during read)
+
     if (!defined $data->{"quota"}) {
-	my $username	= $data->{"uid"};
-	my $cmd	= "LANG=C quota -u $username -p 2>/dev/null | tail +3";
-y2internal ("cmd is '$cmd'");
+
+	my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
+	if ($config->{"what"} eq "group") {
+	    $opt	= "-g ".$data->{"cn"} if defined $data->{"cn"};
+	}
+	return $data if not defined $opt;
+
+	my %fsystems	= ();
+	my @quotalist	= ();
+
+	my $cmd	= "LANG=C quota $opt -pv 2>/dev/null | tail +3";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
-# FIXME check retval of quota, not tail, see PIPESTATUS (echo ${PIPESTATUS[0]})
 	if ($out->{"stdout"}) {
 	    # each line in stdout reports quota for one filesystem
-	    my @quotalist	= ();
 	    foreach my $line (split (/\n/, $out->{"stdout"})) {
 		chomp $line;
 		$line	=~ s/^\s+//; # remove the leading space
 		my @l	= split (/\s+/, $line);
 		if (@l == 9) {
 		    my %item    = ();
+		    $fsystems{$l[0]}		= 1;
 		    $item{"quota_fs"}		= $l[0];
 		    $item{"quota_blocks_soft"}	= $l[2];
 		    $item{"quota_blocks_hard"}	= $l[3];
 		    $item{"quota_inodes_soft"}	= $l[6];
 		    $item{"quota_inodes_hard"}	= $l[7];
-		    $item{"quota_grace"}	= $l[4];
+		    $item{"quota_blocks_grace_exceeded"} = 1 if $l[4] > 0;
+		    $item{"quota_inodes_grace_exceeded"} = 1 if $l[8] > 0;
 		    push @quotalist, \%item if %item;
 		}
 	    }
-
-    # fake, to simulate in the UI
-    my %item    = ();
-    $item{"quota_fs"}		= "/dev/hahahaha";
-    $item{"quota_blocks_soft"}	= 100;
-    $item{"quota_blocks_hard"}	= 200;
-    $item{"quota_inodes_soft"}	= 300;
-    $item{"quota_inodes_hard"}	= 400;
-    $item{"quota_grace"}	= 3601;
-    push @quotalist, \%item if %item;
-
-	    $data->{"quota"}	= \@quotalist if @quotalist;
 	}
+	# Add empty maps for the filesystems with quota support enabled but
+	# without quota set for this user/group
+	foreach my $fs (get_quota_enabled_filesystems ()) {
+	    if (!defined $fsystems{$fs}) {
+		push @quotalist, { "quota_fs"  => $fs };
+	    }
+	}
+	$data->{"quota"}	= \@quotalist if @quotalist;
     }
     return $data;
 }
 
-# check if quota is available and configured
+# check if quota is available and configured (globally)
 sub is_quota_available {
 
     return $quota_available if defined $quota_available;
@@ -133,35 +159,40 @@ sub is_quota_available {
     else {
 	$quota_available	= (Service->Status ("boot.quota") == 0);
     }
-
     return $quota_available;
 }
 
-# check if user has quota enabled
-sub user_has_quota {
+# check if user/group has quota enabled
+sub has_quota {
 
-    my $u	= shift;
-    # quota returns 1 for success
-    return SCR->Execute (".target.bash", "LANG=C quota -u $u 2>/dev/null");
+    my $opt = shift;
+    my $out = SCR->Execute (".target.bash_output", "LANG=C quota $opt -v 2>/dev/null | tail +3");
+    return ($out->{"stdout"});
 }
 
 ##------------------------------------------
 ##--------------------- global API functions
 
-# return names of provided functions
+# All functions have 2 "any" parameters: these mean:
+# 1st: configuration map (hash) - e.g. saying if we work with user or group
+# 2nd: data map (hash) of user/group to work with
+# for details, see UsersPluginLDAPAll.pm
+
+# Return the names of provided functions
 BEGIN { $TYPEINFO{Interface} = ["function", ["list", "string"], "any", "any"];}
 sub Interface {
 
     my $self		= shift;
     my @interface 	= (
 	    "GUIClient",
-	    "Check",
 	    "Name",
 	    "Summary",
 	    "Restriction",
 	    "Write",
 	    "Add",
+	    "AddBefore",
 	    "Edit",
+	    "EditBefore",
 	    "Interface",
 	    "PluginPresent",
 	    "PluginRemovable",
@@ -187,27 +218,34 @@ sub Name {
 }
 
 ##------------------------------------
-# return plugin summary (to be shown in table with all plugins)
+# Return plugin summary (to be shown in table with all plugins)
 BEGIN { $TYPEINFO{Summary} = ["function", "string", "any", "any"];}
 sub Summary {
+
+    my ($self, $config, $data)  = @_;
+
+    # user plugin summary (table item)
+    return __("Manage Group Quota") if ($config->{"what"} eq "group");
 
     # user plugin summary (table item)
     return __("Manage User Quota");
 }
 
 ##------------------------------------
-# checks the current data map of user (2nd parameter) and returns
-# true if given user has this plugin
+# Checks the current data map of user/group (2nd parameter) and returns
+# true if given user/group has this plugin enabled
 BEGIN { $TYPEINFO{PluginPresent} = ["function", "boolean", "any", "any"];}
 sub PluginPresent {
 
-    my ($self, $config, $data)  = @_;
+    return 0 if not is_quota_available ();
 
-    if (not is_quota_available ()) {
-	return 0;
+    my ($self, $config, $data)  = @_;
+    my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
+    if ($config->{"what"} eq "group") {
+	$opt	= "-g ".$data->{"cn"};
     }
-    my $username	= $data->{"uid"} || "";
-    if (contains ($data->{'plugins'}, $name, 1) || user_has_quota ($username)) {
+    return 0 if not $opt;
+    if (contains ($data->{'plugins'}, $name, 1) || has_quota ($opt)) {
 	y2milestone ("Quota plugin present");
 	return 1;
     } else {
@@ -217,17 +255,17 @@ sub PluginPresent {
 }
 
 ##------------------------------------
-# Is it possible to remove this plugin from user?
+# Is it possible to remove this plugin from user/group: setting all quota
+# values to 0.
 BEGIN { $TYPEINFO{PluginRemovable} = ["function", "boolean", "any", "any"];}
 sub PluginRemovable {
 
-# does it make sense? how to disable quota check for certain user?
     return YaST::YCP::Boolean (1);
 }
 
 
 ##------------------------------------
-# return name of YCP client defining YCP GUI
+# Return name of YCP client defining YCP GUI
 BEGIN { $TYPEINFO{GUIClient} = ["function", "string", "any", "any"];}
 sub GUIClient {
 
@@ -243,35 +281,41 @@ sub Restriction {
 
     return {
 	    "local"	=> 1,
-#	    "group"	=> 1,
+	    "group"	=> 1,
 	    "user"	=> 1
     };
 }
 
 
-##------------------------------------
-# check if required atributes of are present and have correct form
-# parameter is (whole) map of entry (user)
-# return error message
-BEGIN { $TYPEINFO{Check} = ["function",
-    "string",
-    "any",
-    "any"];
+# this will be called at the beggining of Users::AddUser/AddGroup
+# Check if it is possible to add this plugin here.
+# (Could be called multiple times for one user/group)
+BEGIN { $TYPEINFO{AddBefore} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
 }
-sub Check {
+sub AddBefore {
 
     my ($self, $config, $data)  = @_;
-    return "";
+
+    if (!contains ($data->{'plugins_to_remove'}, $name, 1) &&
+	!is_quota_available ())
+    {
+	# error popup
+	$error	= __("Quota is not enabled on your system.");
+	return undef;
+    }
+    return $data;
 }
 
-# This will be called just after Users::Add - the data map probably contains
-# the values which we could use to create new ones
-# Could be called multiple times for one user!
+# This will be called at the end of Users::Add* : modify the object map
+# with quota data
 BEGIN { $TYPEINFO{Add} = ["function", ["map", "string", "any"], "any", "any"];}
 sub Add {
 
     my ($self, $config, $data)  = @_;
     y2debug ("Add Quota called");
+    # "plugins_to_remove" is list of plugins which are set for removal
     if (contains ($data->{'plugins_to_remove'}, $name, 1)) {
 	y2milestone ("removing plugin $name...");
 	$data   = remove_plugin_data ($config, $data);
@@ -282,7 +326,29 @@ sub Add {
     return $data;
 }
 
-# this will be called just after Users::Edit
+# This will be called at the beggining of Users::EditUser/EditGroup
+# Check if it is possible to add this plugin here.
+# (Could be called multiple times for one user/group)
+BEGIN { $TYPEINFO{EditBefore} = ["function",
+    ["map", "string", "any"],
+    "any", "any"];
+}
+sub EditBefore {
+
+    my ($self, $config, $data)  = @_;
+
+    if (!contains ($data->{'plugins_to_remove'}, $name, 1) &&
+	!is_quota_available ())
+    {
+	# error popup
+	$error	= __("Quota is not enabled on your system.");
+	return undef;
+    }
+    return $data;
+}
+
+# This will be called at the end of Users::Edit* : modify the object map
+# with quota data
 BEGIN { $TYPEINFO{Edit} = ["function",
     ["map", "string", "any"],
     "any", "any"];
@@ -291,10 +357,9 @@ sub Edit {
 
     y2debug ("Edit Quota called");
     my ($self, $config, $data)  = @_;
-    # in $data hash, there could be "plugins_to_remove": list of plugins which
-    # has to be removed from the user
+    # "plugins_to_remove" is list of plugins which are set for removal
     if (contains ($data->{'plugins_to_remove'}, $name, 1)) {
-	y2internal ("removing plugin $name...");
+	y2milestone ("removing plugin $name...");
 	$data   = remove_plugin_data ($config, $data);
     }
     else {
@@ -303,30 +368,53 @@ sub Edit {
     return $data;
 }
 
-# what should be done after user is finally written
+# What should be done after user is finally written (this is called only once)
 BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
-y2internal ("Write Quota called");
     my ($self, $config, $data)  = @_;
 
     return YaST::YCP::Boolean (1) if not defined $data->{"quota"};
 
-    my $username	= $data->{"uid"};
-    return YaST::YCP::Boolean (1) if not $username;
+    my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
+    if ($config->{"what"} eq "group") {
+	$opt	= "-g ".$data->{"cn"};
+    }
+    return YaST::YCP::Boolean (1) if not $opt;
     
     foreach my $qmap (@{$data->{"quota"}}) {
 	my $quota_blocks_soft	= $qmap->{"quota_blocks_soft"} || 0;    
 	my $quota_blocks_hard	= $qmap->{"quota_blocks_hard"} || 0;    
 	my $quota_inodes_soft	= $qmap->{"quota_inodes_soft"} || 0;    
 	my $quota_inodes_hard	= $qmap->{"quota_inodes_hard"} || 0;    
-	my $quota_grace		= $qmap->{"quota_grace"} || 0;    
+	my $quota_blocks_grace	= $qmap->{"quota_blocks_grace"} || 0;
+	my $quota_inodes_grace	= $qmap->{"quota_inodes_grace"} || 0;
 	my $quota_fs		= $qmap->{"quota_fs"};
 	next if not $quota_fs;
-	my $cmd	= "setquota -u $username $quota_blocks_soft $quota_blocks_hard $quota_inodes_soft $quota_inodes_hard $quota_fs";
-y2warning ("cmd to call is '$cmd'");
+	my $cmd	= "setquota $opt $quota_blocks_soft $quota_blocks_hard $quota_inodes_soft $quota_inodes_hard $quota_fs";
+	my $out	= SCR->Execute (".target.bash_output", $cmd);
+	if ($out->{"exit"} && $out->{"stderr"}) {
+	    y2error ("error calling $cmd: ", $out->{"stderr"});
+	    # error popup, %1 is command, %2 command error output
+	    $error	= sformat (__("Error while calling
+\"%1\":
+%2"), $cmd, $out->{"stderr"});
+	    return YaST::YCP::Boolean (0);
+	}
+	if ($quota_blocks_grace > 0 || $quota_inodes_grace > 0) {
+	    $cmd	= "setquota -T $opt $quota_blocks_grace $quota_inodes_grace $quota_fs";
+	    $out	= SCR->Execute (".target.bash_output", $cmd);
+	    if ($out->{"exit"} && $out->{"stderr"}) {
+		y2error ("error calling $cmd: ", $out->{"stderr"});
+		# error popup, %1 is command, %2 command error output
+		$error	= sformat (__("Error while calling
+\"%1\":
+%2"), $cmd, $out->{"stderr"});
+		return YaST::YCP::Boolean (0);
+	    }
+	}
     }
     return YaST::YCP::Boolean (1);
 }
-1
+42
 # EOF

@@ -3300,48 +3300,20 @@ sub UserReallyModified {
     if (defined $user{"org_user"}) {
 	%org_user	= %{$user{"org_user"}};
     }
-    if ($user{"type"} ne "ldap") {
-	# grouplist can be ignored, it is a modification of groups
-	while ( my ($key, $value) = each %org_user) {
-
-	    if ($key eq "grouplist") {
-		next;
-	    }
-	    if (defined $user{$key} &&
-		(ref ($value) eq "YaST::YCP::Boolean" && 
-		 ref ($user{$key}) eq "YaST::YCP::Boolean") ||
-		(ref ($value) eq "YaST::YCP::Integer" && 
-		 ref ($user{$key}) eq "YaST::YCP::Integer"))
-	    {
-		if ($user{$key}->value() != $value->value())
-		{
-		    $ret = 1;
-		    y2milestone ("old value: ", $value->value());
-		    y2milestone ("changed to: ", $user{$key}->value());
-		}
-		next;
-	    }
-	    if (!defined $user{$key} || $user{$key} ne $value)
-	    {
-		$ret = 1;
-		y2debug ("old value: ", $value || "(not defined)");
-		y2debug ("... changed to: ", $user{$key} || "(not defined)" );
-	    }
-	}
-#FIXME quota edit not detected!!!!!!
-	return $ret;
-#FIXME what if there is a new key? it's not in org_user map...
-    }
-    # search result, because some attributes were not filled yet
     my @internal_keys	= @{UsersLDAP->GetUserInternal ()};
     foreach my $key (keys %user) {
-
+	last if $ret;
 	my $value = $user{$key};
 	if (!defined $user{$key} || contains (\@internal_keys, $key) ||
 	    ref ($value) eq "HASH" ) {
 	    next;
 	}
-	if (!defined ($org_user{$key})) {
+	if ($key eq "quota" && ref ($value) eq "ARRAY") {
+	    foreach my $qmap (@$value) {
+		$ret = 1 if exists $qmap->{"quota_modified"};
+	    }
+	}
+	elsif (!defined ($org_user{$key})) {
 	    if ($value ne "") {
 		$ret = 1;
 	    }
@@ -3359,11 +3331,16 @@ sub UserReallyModified {
 		 ref ($org_user{$key}) eq "YaST::YCP::Integer")) {
 		if ($user{$key}->value() == $value->value()) { next;}
 	    }
+	    y2debug (sformat ("$key modified: old %1 new %2", $org_user{$key}, $value));
 	    $ret = 1;
 	}
     }
-    if (!$ret && defined $org_user{"crypted_home_size"} && defined $user{"crypted_home_size"}) {
-	$ret	= ($org_user{"crypted_home_size"} ne $user{"crypted_home_size"});
+    # TODO should be caught in the previous tests?
+    if (!$ret &&
+	defined $org_user{"crypted_home_size"} &&
+	defined $user{"crypted_home_size"})
+    {
+	$ret = ($org_user{"crypted_home_size"} ne $user{"crypted_home_size"});
     }
     return $ret;
 }
@@ -4259,7 +4236,7 @@ sub Write {
     if ($groups_modified) {
 	if ($group_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not read correctly, so it will not be written."), "$base_directory/group");
+            $ret = sprintf (__("File %s was not read correctly, so it will not be written."), $base_directory."/group");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4284,40 +4261,6 @@ sub Write {
 	    Report->Error ($ret);
 	    return $ret;
         }
-	# -------------------------------------- call Write on plugins
-        foreach my $type (keys %modified_groups)  {
-	    if ($type eq "ldap") { next; }
-	    foreach my $groupname (keys %{$modified_groups{$type}}) {
-		if ($plugin_error) { last;}
-		my $args	= {
-	    	    "what"	=> "group",
-		    "type"	=> $type,
-		    "modified"	=> $modified_groups{$type}{$groupname}{"modified"}
-		};
-		my $result = UsersPlugins->Apply ("Write", $args,
-		    $modified_groups{$type}{$groupname});
-		$plugin_error	= GetPluginError ($args, $result);
-
-		# store commands for calling groupadd_cmd script
-		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
-		    my $group	= $modified_groups{$type}{$groupname};
-		    my $mod 	= $group->{"modified"} || "no";
-		    if ($mod eq "imported" || $mod eq "added") {
-			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
-			push @groupadd_postcommands, $cmd;
-		    }
-		}
-	    }
-	    # unset the 'modified' flags after write
-	    $self->UpdateGroupsAfterWrite ("local");
-	    $self->UpdateGroupsAfterWrite ("system");
-	    delete $modified_groups{"local"};
-	    delete $modified_groups{"system"};
-	}
-	if ($plugin_error) {
-	    Report->Error ($plugin_error);
-	    return $plugin_error;
-	}
 	if (!$write_only) {
 	    $nscd_group		= 1;
 	}
@@ -4341,7 +4284,7 @@ sub Write {
     if ($users_modified) {
 	if ($passwd_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), "$base_directory/passwd");
+            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), $base_directory."/passwd");
 	    Report->Error ($ret);
 	    return $ret;
 	}
@@ -4365,25 +4308,6 @@ sub Write {
             $ret = Message->ErrorWritingFile ("$base_directory/passwd");
 	    Report->Error ($ret);
 	    return $ret;
-	}
-	# -------------------------------------- call Write on plugins
-        foreach my $type (keys %modified_users)  {
-	    if ($type eq "ldap") { next; }
-	    foreach my $username (keys %{$modified_users{$type}}) {
-		if ($plugin_error) { last;}
-		my $args	= {
-	    	    "what"	=> "user",
-		    "type"	=> $type,
-		    "modified"	=> $modified_users{$type}{$username}{"modified"}
-		};
-		my $result = UsersPlugins->Apply ("Write", $args,
-		    $modified_users{$type}{$username});
-		$plugin_error	= GetPluginError ($args, $result);
-	    }
-	}
-	if ($plugin_error) {
-	    Report->Error ($plugin_error);
-	    return $plugin_error;
 	}
 	if (!$write_only) {
 	    $nscd_passwd	= 1;
@@ -4457,12 +4381,6 @@ sub Write {
 		}
 	    }
 	}
-	# unset the 'modified' flags after write
-	$self->UpdateUsersAfterWrite ("local");
-	$self->UpdateUsersAfterWrite ("system");
-	# not modified after successful write
-	delete $modified_users{"local"};
-	delete $modified_users{"system"};
     }
     if (%users_with_crypted_dir) {
 	Package->Install ("cryptconfig");
@@ -4484,7 +4402,7 @@ sub Write {
     if ($users_modified) {
 	if ($shadow_not_read) {
 	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), "$base_directory/shadow");
+            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), $base_directory."/shadow");
 	    Report->Error ($ret);
 	    return $ret;
  	}
@@ -4502,6 +4420,72 @@ sub Write {
 	}
 	if ($nscd_group) {
 	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
+	}
+    }
+
+    # last operation on plugins must be done after nscd restart
+    # (at least quota seems to need it)
+    if ($users_modified) {
+	# -------------------------------------- call Write on plugins
+        foreach my $type (keys %modified_users)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $username (keys %{$modified_users{$type}}) {
+		if ($plugin_error) { last;}
+		my $args	= {
+	    	    "what"	=> "user",
+		    "type"	=> $type,
+		    "modified"	=> $modified_users{$type}{$username}{"modified"}
+		};
+		my $result = UsersPlugins->Apply ("Write", $args,
+		    $modified_users{$type}{$username});
+		$plugin_error	= GetPluginError ($args, $result);
+	    }
+	}
+	if ($plugin_error) {
+	    Report->Error ($plugin_error);
+	    return $plugin_error;
+	}
+	# unset the 'modified' flags after write
+	$self->UpdateUsersAfterWrite ("local");
+	$self->UpdateUsersAfterWrite ("system");
+	# not modified after successful write
+	delete $modified_users{"local"};
+	delete $modified_users{"system"};
+    }
+    if ($groups_modified) {
+	# -------------------------------------- call Write on plugins
+        foreach my $type (keys %modified_groups)  {
+	    if ($type eq "ldap") { next; }
+	    foreach my $groupname (keys %{$modified_groups{$type}}) {
+		if ($plugin_error) { last;}
+		my $args	= {
+	    	    "what"	=> "group",
+		    "type"	=> $type,
+		    "modified"	=> $modified_groups{$type}{$groupname}{"modified"}
+		};
+		my $result = UsersPlugins->Apply ("Write", $args,
+		    $modified_groups{$type}{$groupname});
+		$plugin_error	= GetPluginError ($args, $result);
+
+		# store commands for calling groupadd_cmd script
+		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
+		    my $group	= $modified_groups{$type}{$groupname};
+		    my $mod 	= $group->{"modified"} || "no";
+		    if ($mod eq "imported" || $mod eq "added") {
+			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
+			push @groupadd_postcommands, $cmd;
+		    }
+		}
+	    }
+	    # unset the 'modified' flags after write
+	    $self->UpdateGroupsAfterWrite ("local");
+	    $self->UpdateGroupsAfterWrite ("system");
+	    delete $modified_groups{"local"};
+	    delete $modified_groups{"system"};
+	}
+	if ($plugin_error) {
+	    Report->Error ($plugin_error);
+	    return $plugin_error;
 	}
     }
 
