@@ -141,7 +141,7 @@
 	    _("<p>If group exceedes the softlimit quota, widgets with the time setting are enabled. Adjust the grace time for group by setting the time in those widgets.</p>");
 	}
 
-	boolean modified	= false;
+	boolean modified	= data["plugin_modified"]:0 == 1;
 	integer current		= 0; // current fs (index in the list)
 	list<map> current_quota	= data["quota"]:[];
 
@@ -177,11 +177,6 @@
 		fixed["quota_blocks_grace_exceeded"]	= 1;
 	    if (haskey (q, "quota_inodes_grace_exceeded"))
 		fixed["quota_inodes_grace_exceeded"]	= 1;
-	    if (haskey (q, "quota_modified"))
-	    {
-		modified		= true;
-		fixed["quota_modified"]	= true;
-	    }
 	    quota_list	= add (quota_list, fixed);
 	    return `item (`id (i), fs, i == current);
 	});
@@ -325,11 +320,10 @@
 		integer i		= 0;
 		foreach (map qmap, quota_list, {
 		    foreach (string key, any val, (map<string,any>) qmap, {
-			if (key == "quota_fs" || key == "quota_modified")return;
+			if (key == "quota_fs") return;
 			if (sformat ("%1", val) !=
 			    tostring (current_quota[i,key]:"0"))
 			{
-			    quota_list[i,"quota_modified"]	= true;
 			    modified	= true;
 			}
 		    });
@@ -339,7 +333,10 @@
 		    break;
 
 		// modified data to add to user/group
-		map<string, any> tmp_data	= $[ "quota" : quota_list ];
+		map<string, any> tmp_data	= $[
+		    "quota"		: quota_list,
+		    "plugin_modified"	: 1,
+		];
 
 		// if this plugin wasn't in default set, we must save its name
 		// (this is probably obsolete, users module should take care)

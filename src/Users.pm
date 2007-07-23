@@ -3300,6 +3300,40 @@ sub UserReallyModified {
     if (defined $user{"org_user"}) {
 	%org_user	= %{$user{"org_user"}};
     }
+    if ($user{"type"} ne "ldap") {
+	# grouplist can be ignored, it is a modification of groups
+	while ( my ($key, $value) = each %org_user) {
+	    last if $ret;
+	    if ($key eq "grouplist") {
+		next;
+	    }
+	    if ($key eq "plugin_modified") {
+		$ret	= 1; #TODO save special plugin_modified global value?
+		next;
+	    }
+	    if (defined $user{$key} &&
+		(ref ($value) eq "YaST::YCP::Boolean" && 
+		 ref ($user{$key}) eq "YaST::YCP::Boolean") ||
+		(ref ($value) eq "YaST::YCP::Integer" && 
+		 ref ($user{$key}) eq "YaST::YCP::Integer"))
+	    {
+		if ($user{$key}->value() != $value->value())
+		{
+		    $ret = 1;
+		    y2milestone ("old value: ", $value->value());
+		    y2milestone ("changed to: ", $user{$key}->value());
+		}
+		next;
+	    }
+	    if (!defined $user{$key} || $user{$key} ne $value)
+	    {
+		$ret = 1;
+		y2debug ("old value: ", $value || "(not defined)");
+		y2debug ("... changed to: ", $user{$key} || "(not defined)" );
+	    }
+	}
+	return $ret;
+    }
     my @internal_keys	= @{UsersLDAP->GetUserInternal ()};
     foreach my $key (keys %user) {
 	last if $ret;
@@ -3308,10 +3342,8 @@ sub UserReallyModified {
 	    ref ($value) eq "HASH" ) {
 	    next;
 	}
-	if ($key eq "quota" && ref ($value) eq "ARRAY") {
-	    foreach my $qmap (@$value) {
-		$ret = 1 if exists $qmap->{"quota_modified"};
-	    }
+	if ($key eq "plugin_modified") {
+	    $ret	= 1;
 	}
 	elsif (!defined ($org_user{$key})) {
 	    if ($value ne "") {
