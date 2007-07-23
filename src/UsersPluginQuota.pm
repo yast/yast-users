@@ -74,10 +74,10 @@ sub remove_plugin_data {
 	my $i	= 0;
 	foreach my $qmap (@{$data->{"quota"}}) {
 	    $data->{"quota"}[$i]{$key} = 0 if defined $data->{"quota"}[$i]{$key};
-	    $data->{"quota"}[$i]{"quota_modified"}	= 1;
 	    $i	= $i + 1;
 	}
     }
+    $data->{"plugin_modified"}	= 1;
     return $data;
 }
 

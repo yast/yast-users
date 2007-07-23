@@ -115,7 +115,7 @@ my $umask			= "022";
 my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
      "org_uid", "plugins", "text_userpassword", "current_text_userpassword",
-     "plugins_to_remove",
+     "plugins_to_remove", "plugin_modified",
      "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
@@ -126,7 +126,8 @@ my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
      "dn", "org_dn", "org_groupname", "org_gidnumber", "removed_userlist",
      "what", "org_cn", "plugins", "plugins_to_remove", "org_group",
-     "warning_message", "warning_message_ID", "confirmed_warnings");
+     "warning_message", "warning_message_ID", "confirmed_warnings",
+     "plugin_modified");
 
 
 # defualt scope for searching, set it by SetUserScope
