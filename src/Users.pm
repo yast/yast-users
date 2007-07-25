@@ -1827,6 +1827,26 @@ sub DeleteUser {
 	if (Autologin->user () eq ($user_in_work{"uid"} || "")) {
 	    Autologin->Disable ();
 	}
+
+	my $type		= $user_in_work{"type"};
+	my $plugins		= $user_in_work{"plugins"};
+
+	# --------- PluginPresent: check which plugins are in use for this user
+	# so they can be called in "Write"
+	my $result = UsersPlugins->Apply ("PluginPresent", {
+	    "what"	=> "user",
+	    "type"	=> $type,
+	}, \%user_in_work);
+	if (defined ($result) && ref ($result) eq "HASH") {
+	    $plugins = [];
+	    foreach my $plugin (keys %{$result}) {
+		if (bool ($result->{$plugin}) && !contains ($plugins, $plugin))
+		{
+		    push @{$plugins}, $plugin;
+		}
+	    }
+	    $user_in_work{"plugins"}	= $plugins;
+	}
 	return 1;
     }
     y2warning ("no such user");
@@ -3301,14 +3321,13 @@ sub UserReallyModified {
 	%org_user	= %{$user{"org_user"}};
     }
     if ($user{"type"} ne "ldap") {
+	if (($user{"plugin_modified"} || 0) == 1) {
+	    return 1; #TODO save special plugin_modified global value?
+	}
 	# grouplist can be ignored, it is a modification of groups
 	while ( my ($key, $value) = each %org_user) {
 	    last if $ret;
 	    if ($key eq "grouplist") {
-		next;
-	    }
-	    if ($key eq "plugin_modified") {
-		$ret	= 1; #TODO save special plugin_modified global value?
 		next;
 	    }
 	    if (defined $user{$key} &&
@@ -4002,8 +4021,9 @@ sub DeleteCryptedHomes {
 }
 
 ##------------------------------------
-# remove home directories and
-# execute USERDEL_POSTCMD scripts for local/system users which should be deleted
+# 1. remove home directories,
+# 2. execute USERDEL_POSTCMD scripts for deleted local/system users
+# 3. call Write function of plugins to do the delete action
 sub PostDeleteUsers {
 
     my $ret	= 1;
@@ -4020,11 +4040,20 @@ sub PostDeleteUsers {
 	if (!defined $removed_users{$type}) {
 	    next;
 	}
+	my $plugin_error;
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
 	    my $cmd = sprintf ("$userdel_postcmd $username %i %i %s",
 		$user{"uidnumber"}, $user{"gidnumber"}, $user{"homedirectory"});
 	    SCR->Execute (".target.bash", $cmd);
+	    # call the "Write" function from plugins...
+	    my $args	= {
+	    	"what"		=> "user",
+		"type"		=> $type,
+		"modified"	=> "deleted",
+	    };
+	    my $result		= UsersPlugins->Apply ("Write", $args, \%user);
+	    $plugin_error	= GetPluginError ($args, $result);
 	};
     };
     return $ret;

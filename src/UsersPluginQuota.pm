@@ -376,6 +376,9 @@ sub Write {
 
     return YaST::YCP::Boolean (1) if not defined $data->{"quota"};
 
+    # do nothing for user intended for deletion
+    return YaST::YCP::Boolean (1) if ($config->{"modified"} || "") eq "deleted";
+
     my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
     if ($config->{"what"} eq "group") {
 	$opt	= "-g ".$data->{"cn"};
