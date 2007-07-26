@@ -1,4 +1,23 @@
 -------------------------------------------------------------------
+Thu Jul 26 14:37:17 CEST 2007 - jsuchome@suse.cz
+
+- added text entry for testing keyboard in inst_root (F120215)
+- 2.15.33
+
+-------------------------------------------------------------------
+Wed Jul 25 15:09:15 CEST 2007 - jsuchome@suse.cz
+
+- Write function from plugin API is now called also on deleted
+  users (currently only local)
+- added universal "plugin_modified" key to check whether user
+  data were modified by plugin
+
+-------------------------------------------------------------------
+Wed Jul 11 14:42:41 CEST 2007 - jsuchome@suse.cz
+
+- added plugin for user and group quotas (F120106)
+
+-------------------------------------------------------------------
 Mon Jun 18 10:25:53 CEST 2007 - jsuchome@suse.cz
 
 - Authentication dialog: lazy checking if packages are available
