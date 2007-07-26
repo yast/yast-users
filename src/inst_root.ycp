@@ -55,12 +55,15 @@ include "users/widgets.ycp";   // for EncryptionPopup()
         `HSquash(`VBox(
                // advise user to remember his new password
                `Label(_("Do not forget what you enter here.")),
-               `VSpacing(1),
+               `VSpacing(0.8),
                 // Label: get password for user root
                `Password (`id(`pw1), _("&Password for root User"), ""),
-               `VSpacing(1),
+               `VSpacing(0.8),
                 // Label: get same password again for verification
-               `Password (`id(`pw2), _("Con&firm Password"), "")
+               `Password (`id(`pw2), _("Con&firm Password"), ""),
+		`VSpacing (2),
+		// text entry label
+		`TextEntry (_("Test keyboard layout"))
         )),
         `VSpacing(3),
         // push button
