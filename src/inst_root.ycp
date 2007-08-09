@@ -61,11 +61,11 @@ include "users/widgets.ycp";   // for EncryptionPopup()
                `VSpacing(0.8),
                 // Label: get same password again for verification
                `Password (`id(`pw2), _("Con&firm Password"), ""),
-		`VSpacing (2),
+		`VSpacing (2.4),
 		// text entry label
-		`TextEntry (_("Test keyboard layout"))
+		`TextEntry (_("&Test Keyboard Layout"))
         )),
-        `VSpacing(3),
+        `VSpacing(2),
         // push button
         `PushButton(`id(`expert), `opt(`key_F7), _("E&xpert Options...") ),
         `VStretch()
@@ -113,6 +113,9 @@ Do not forget this \"root\" password.
 _("<p>If you intend to use this password for creating certificates,
 it has to be at least %1 characters long.</p>"), pw_min_CA);
     }
+
+    // help text for 'test keyboard layout' entry'
+    helptext = helptext + _("<p>To check whether your current keyboard layout is correct, try entering text into the <b>Test Keyboard Layout</b> field.</p>");
 
     Wizard::SetDesktopIcon("users");
     Wizard::SetContents (title, contents, helptext,

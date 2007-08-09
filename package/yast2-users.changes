@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Aug  9 14:40:49 CEST 2007 - jsuchome@suse.cz
+
+- if quota is not configured, tell user how to do it
+- help text for Test Keyboard Layout entry (#297163)
+- 2.15.35 
+
+-------------------------------------------------------------------
 Mon Jul 30 12:43:33 CEST 2007 - jsuchome@suse.cz
 
 - fixed help text (taroth) 
