@@ -302,7 +302,8 @@ sub AddBefore {
 	!is_quota_available ())
     {
 	# error popup
-	$error	= __("Quota is not enabled on your system.");
+	$error	= __("Quota is not enabled on your system.
+Enable quota in the partition settings module.");
 	return undef;
     }
     return $data;
@@ -341,7 +342,8 @@ sub EditBefore {
 	!is_quota_available ())
     {
 	# error popup
-	$error	= __("Quota is not enabled on your system.");
+	$error	= __("Quota is not enabled on your system.
+Enable quota in the partition settings module.");
 	return undef;
     }
     return $data;
