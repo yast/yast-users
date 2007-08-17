@@ -30,20 +30,17 @@ YaST::YCP::Import ("SCR");
 BEGIN { $TYPEINFO{Read} = ["function", "boolean"]; }
 sub Read {
 
-    my $find = "/usr/bin/find ".Directory->moduledir();
-    $find .= " -name 'UsersPlugin*.*'"; #TODO use some variable for the name
-    my $out     = SCR->Execute (".target.bash_output", $find);
-    my $modules = $out->{"stdout"} || "";
-
-    foreach my $module (split (/\n/, $modules)) {
-	my @mod = split (/\//, $module);
-	my $m = $mod[-1] || "";
-	$m =~ s/\.ycp$//g;	# YCP modules cannot be called as variables...
-	$m =~ s/\.pm$//g;
-	if ($m ne "" && $m ne "UsersPlugins") {
-	    push @available_plugins, $m;
+    opendir (MODULEDIR, Directory->moduledir()) || do {
+	y2error ("Cannot open directory '".Directory->moduledir()."'");
+	return 0;
+    };
+    foreach my $module (readdir(MODULEDIR)) {
+	if ($module =~ s/^(UsersPlugin.+)\..+$/$1/ &&
+	    $module ne 'UsersPlugins') {
+	    push @available_plugins, $module;
 	}
-    }
+    };
+    close (MODULEDIR);
     
     foreach my $module (@available_plugins) {
 	y2milestone ("Available plugin: $module");
