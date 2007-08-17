@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Aug 17 10:45:29 CEST 2007 - jsuchome@suse.cz
+
+- use Perl built-ins instead of SCR (patch by locilka, #266179)
+- 2.15.36 
+
+-------------------------------------------------------------------
 Thu Aug  9 14:40:49 CEST 2007 - jsuchome@suse.cz
 
 - if quota is not configured, tell user how to do it
