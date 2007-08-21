@@ -928,6 +928,13 @@ sub GetGroupnames {
     return {};
 }
 
+# set the new the value of base directory
+BEGIN { $TYPEINFO{SetBaseDirectory} = ["function", "void", "string"]; }
+sub SetBaseDirectory {
+    my $self		= shift;
+    my $dir		= shift;
+    $base_directory	= $dir if (defined $dir);
+}
 
 42
 # EOF
