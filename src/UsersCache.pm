@@ -1230,6 +1230,7 @@ sub Read {
 
 ##-------------------------------------------------------------------------
 
+# create a term with list of users available as members of given group
 BEGIN { $TYPEINFO{BuildAdditional} = ["function",
     ["list", "term"],
     ["map", "string", "any"]];
