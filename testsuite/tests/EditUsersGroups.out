@@ -9,42 +9,21 @@ Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
-Execute	.passwd.init $["base_directory":"/etc", "max_system_gid":"499", "max_system_uid":"499"] true
-Read	.passwd.local.users $["by_uidnumber":$[500:$["hh":1]], "hh":$["gidnumber":100, "grouplist":$["ggl":1], "type":"local", "uid":"hh", "uidnumber":500, "userpassword":"password"], "homes":$[], "last_uid":500, "uids":$[500:1], "usernames":$["hh":1]]
-Read	.passwd.local.users.by_uidnumber $[500:$["hh":1]]
-Read	.passwd.local.shadow $[]
-Read	.passwd.local.groups $["by_gidnumber":$[100:$["users":1], 1000:$["ggl":1]], "ggl":$["cn":"ggl", "gidnumber":1000, "type":"local", "userlist":$["hh":1]], "gids":$[100:1, 1000:1], "groupnames":$["ggl":1, "users":1], "users":$["cn":"users", "gidnumber":100, "more_users":$["hh":1], "type":"local"]]
-Read	.passwd.local.groups.by_gidnumber $[100:$["users":1], 1000:$["ggl":1]]
-Read	.passwd.system.users $["by_uidnumber":$[], "homes":$[], "last_uid":0, "uids":$[], "usernames":$[]]
-Read	.passwd.system.users.by_uidnumber $[]
-Read	.passwd.system.shadow $[]
-Read	.passwd.system.groups $["by_gidnumber":$[10:$["ggs":1]], "ggs":$["cn":"ggs", "gidnumber":10, "type":"system"], "gids":$[10:1], "groupnames":$["ggs":1]]
-Read	.passwd.system.groups.by_gidnumber $[10:$["ggs":1]]
-Read	.passwd.passwd.pluslines 0
-Read	.passwd.shadow.pluslines 0
-Read	.passwd.group.pluslines 0
-Read	.passwd.local.users.last_uid 500
-Read	.passwd.local.users.homes $[]
-Read	.passwd.local.users.usernames $["hh":1]
-Read	.passwd.local.users.uids $[500:1]
-Read	.passwd.system.users.last_uid 0
-Read	.passwd.system.users.homes $[]
-Read	.passwd.system.users.usernames $[]
-Read	.passwd.system.users.uids $[]
-Read	.passwd.local.groups.gids $[100:1, 1000:1]
-Read	.passwd.local.groups.groupnames $["ggl":1, "users":1]
-Read	.passwd.system.groups.gids $[10:1]
-Read	.passwd.system.groups.groupnames $["ggs":1]
 Return	
+Return	
+Execute	.target.bash_output "echo 'ggl' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggl"]
+Return	
+Return	true
+Execute	.target.bash_output "grep '^volume hh ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '" $["stdout":"ggl"]
 Return	
 Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- unchanged group 'ggl':
-Dump	 $["cn":"ggl", "gidnumber":"1000", "type":"local", "userlist":$["hh":"1"]]
-Dump	---- unchanged group 'ggs':
-Dump	 $["cn":"ggs", "gidnumber":"10", "type":"system"]
+Dump	 $["cn":"ggl", "gidnumber":"555", "modified":"added", "org_cn":"ggl", "org_gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]
+Dump	---- unchanged group 'audio':
+Dump	 $["cn":"audio", "gidnumber":"17", "more_users":$[], "type":"system", "userlist":$["ii":"1"], "userpassword":"x"]
 Return	true
 Dump	---- changed group 'ggl':
-Dump	 $["cn":"ggl", "gidnumber":"1000", "modified":"edited", "org_cn":"ggl", "org_gidnumber":"1000", "type":"local", "userlist":$[], "what":"user_change"]
-Dump	---- changed group 'ggs':
-Dump	 $["cn":"ggs", "gidnumber":"10", "modified":"edited", "org_cn":"ggs", "org_gidnumber":"10", "type":"system", "userlist":$["hh":"1"], "what":"user_change"]
+Dump	 $["cn":"ggl", "gidnumber":"555", "modified":"added", "org_cn":"ggl", "org_gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$[], "what":"user_change"]
+Dump	---- changed group 'audio':
+Dump	 $["cn":"audio", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"audio", "org_gidnumber":"17", "type":"system", "userlist":$["hh":"1", "ii":"1"], "userpassword":"x", "what":"user_change"]

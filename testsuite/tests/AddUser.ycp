@@ -16,7 +16,7 @@
 {
     // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm
 
-    import "Testsuite";
+    import "Directory";
     import "Users";
     import "UsersCache";
     import "UsersLDAP";
@@ -24,86 +24,15 @@
     import "Progress";
     import "Report";
 
+    string tmpdir	= Directory::tmpdir;
+    foreach (string file, [ "passwd", "group", "shadow" ], {
+	string cmd	= sformat ("/bin/cp ./%1 %2/", file, tmpdir);
+	SCR::Execute (.target.bash_output, cmd);
+    });
+    Users::SetBaseDirectory (tmpdir);
+    Users::ReadLocal ();
+
     map READ = $[
-	"passwd": $[
-	    "local": $[
-		"users": $[
-		    "hh": $[
-			"uid"		: "hh",
-			"uidnumber"	: 500
-		    ],
-		    "by_uidnumber": $[
-			500		: $[ "hh" : 1 ],
-		    ],
-		    "last_uid": 500,
-		    "homes":	$[
-			"/home/hh":	"1",
-		    ],
-		    "usernames": $[
-			"hh":		"1",
-		    ],
-		    "uids": $[
-			"500":		"1",
-		    ]
-		],
-		"shadow": $[
-		],
-		"groups": $[
-		    "users": $[
-			"cn"	:	"users",
-			"gidnumber":	"100",
-			"type"	:	"local"
-		    ],
-		    "by_gidnumber": $[
-			100		: $[ "users" : 1 ],
-		    ],
-		    "gids": $[
-			"100":		"1",
-		    ],
-		    "groupnames": $[
-			"users":	"1",
-		    ]
-		],
-	    ],
-	    "system": $[
-		"users": $[
-		    "root":	$[
-			"uid"		: "root",
-			"uidnumber"	: "0"
-		    ],
-		    "by_uidnumber": $[
-			0		: $[ "root" : 1]
-		    ],
-		    "last_uid": 0,
-		    "homes":	$[
-		    ],
-		    "usernames": $[
-			"root"		: "1",
-		    ],
-		    "uids": $[
-			"0"		: "1"
-		    ],
-		],
-		"shadow": $[
-		],
-		"groups": $[
-		    "root"	: $[
-			"cn":	"root",
-			"gidnumber":	"0",
-			"type"	:	"system"
-		    ],
-		    "by_gidnumber": $[
-			0	: $[ "root" : 1 ]
-		    ],
-		    "gids": $[
-			"0"	: "1"
-		    ],
-		    "groupnames": $[
-			"root"	: "1"
-		    ]
-		],
-	    ],
-	],
 	"etc" : $[
 	    "fstab": [],
 	    "cryptotab": [],
@@ -142,14 +71,14 @@
 	],
     ];
 
-    Testsuite::Dump ("==========================================================");
+    import "Testsuite";
 
+    Testsuite::Dump ("==========================================================");
     Mode::SetTest ("test");
 
     Testsuite::Test (``(Users::Read ()), [READ, WRITE, EXEC], 0);
 
     Testsuite::Dump (sformat ("---- current user:\n %1", Users::GetCurrentUser ()));
-
     Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
 
     Testsuite::Dump (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
