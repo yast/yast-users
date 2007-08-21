@@ -1609,7 +1609,7 @@ sub Read {
     # users and group
     if ($use_gui) { Progress->NextStage (); }
 
-    if ($read_local) {
+    if ($read_local && !Mode->test ()) {
 	$error_msg = $self->ReadLocal ();
     }
 
