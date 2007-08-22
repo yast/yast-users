@@ -11,6 +11,7 @@ Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
+Return	nil
 Dump	---- user 'hh':
 Dump	 $["addit_data":"", "cn":"HaHa", "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"heslo"]
 Execute	.target.bash_output "grep '^volume hh ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '" $[]
@@ -36,8 +37,10 @@ Write	.target.string "/etc/shadow" "at:!:13636:0:99999:7:::\nbin:*:13636::::::\n
 Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
+Return	nil
 Dump	---- user 500:
 Dump	 $[]
+Return	nil
 Dump	---- user 501:
 Dump	 $["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"heslo", "what":"edit_user"]
 Execute	.target.bash_output "grep '^volume hh ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '" $["stdout":"hh"]

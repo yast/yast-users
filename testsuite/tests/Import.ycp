@@ -13,58 +13,17 @@
     import "Mode";
     import "Directory";
     import "Progress";
+
+    string tmpdir	= Directory::tmpdir;
+    foreach (string file, [ "passwd", "group", "shadow" ], {
+	SCR::Execute (.target.bash, sformat ("/bin/cp ./%1 %2/", file, tmpdir));
+    });
+    Users::SetBaseDirectory (tmpdir);
+    Users::ReadLocal ();
+
     import "Testsuite";
 
     map READ = $[
-	"passwd": $[
-	    "local": $[
-		"users": $[
-		    "hh": $[
-		    ],
-		    "by_uidnumber": $[
-		    ],
-		    "homes":	$[
-		    ],
-		    "usernames": $[
-		    ],
-		    "uids": $[
-		    ]
-		],
-		"shadow": $[
-		],
-		"groups": $[
-		    "users": $[
-			"cn":	"users",
-		    ],
-		    "by_gidnumber": $[
-			100		: $["users":1],
-		    ],
-		    "gids": $[
-			100:		1,
-		    ],
-		    "groupnames": $[
-			"users":	1,
-		    ]
-		],
-	    ],
-	    "system": $[
-		"users": $[
-		    "by_uidnumber": $[
-		    ],
-		    "homes":	$[],
-		    "usernames": $[],
-		    "uids": $[],
-		],
-		"shadow": $[
-		],
-		"groups": $[
-		    "by_gidnumber": $[
-		    ],
-		    "gids": $[ ],
-		    "groupnames": $[ ]
-		],
-	    ],
-	],
 	"etc" : $[
 	    "fstab": [],
 	    "cryptotab": [],
@@ -116,9 +75,18 @@
 	"users"		: [
 	    $[
 		"username"	: "ggg",
+		"user_password"	: "password"
 	    ],
 	],
     ];
 
+    Testsuite::Dump ( sformat ("local user names:\n %1", UsersCache::GetUsernames ("local")));
+
     Testsuite::Test (``(Users::Import (importing)), [READ,WRITE,EXEC], 0);
+
+    Testsuite::Dump ( sformat ("local user names:\n %1", UsersCache::GetUsernames ("local")));
+
+    Testsuite::Test (``(Users::SelectUserByName ("ggg")), [], 0);
+
+    Testsuite::Dump (sformat ("---- user 'ggg':\n %1", Users::GetCurrentUser ()));
 }
