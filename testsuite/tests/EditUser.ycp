@@ -1,16 +1,10 @@
 /**
- * File:
- *  AddGroup.ycp
+ * File		: EditUser.ycp
+ * Module	: Users configurator
+ * Summary	: Test of Users::EditUser function
+ * Author	: Jiri Suchomel <jsuchome@suse.cz>
  *
- * Module:
- *  Users configurator
- *
- * Summary:
- *  Saving group tests.
- *
- * Authors:
- *  Jiri Suchomel <jsuchome@suse.cz>
- *
+ * $Id$
  */
 
 {
@@ -86,7 +80,7 @@
     // for home directory checks
     READ["target","stat","isdir"]	= true;
 
-    Users::SelectUserByName ("hh");
+    Testsuite::Test (``(Users::SelectUserByName ("hh")), [], 0);
 
     Testsuite::Dump (sformat ("---- user 'hh':\n %1", Users::GetCurrentUser ()));
 
@@ -112,10 +106,10 @@
     // home changed its owner because of uid change
     Testsuite::Test (``(Users::Write ()), [RW, WRITE, EXEC], 0);
 
-    Users::SelectUser (500);
+    Testsuite::Test (``(Users::SelectUser (500)), [], 0);
     Testsuite::Dump (sformat ("---- user 500:\n %1", Users::GetCurrentUser ()));
 
-    Users::SelectUser (501);
+    Testsuite::Test (``(Users::SelectUser (501)), [], 0);
     Testsuite::Dump (sformat ("---- user 501:\n %1", Users::GetCurrentUser ()));
 
     changes = $[

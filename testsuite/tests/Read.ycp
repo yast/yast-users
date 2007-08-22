@@ -1,0 +1,77 @@
+/**
+ * File		: Read.ycp
+ * Module	: Users configurator
+ * Summary	: Test of Users::Read
+ * Authors	: Jiri Suchomel <jsuchome@suse.cz>
+ */
+
+{
+    // testedfiles: Users.pm
+
+    import "Users";
+    import "UsersCache";
+    import "Mode";
+    import "Directory";
+    import "Progress";
+    import "Report";
+
+    string tmpdir	= Directory::tmpdir;
+    foreach (string file, [ "passwd", "group", "shadow" ], {
+	SCR::Execute (.target.bash, sformat ("/bin/cp ./%1 %2/", file, tmpdir));
+	if (file == "passwd")
+	    SCR::Execute (.target.bash, sformat ("echo \"hh2:x:500:100:HaHa2:/home/hh2:/bin/bash\" >> %1/passwd", tmpdir));
+    });
+    Users::SetBaseDirectory (tmpdir);
+    Users::ReadLocal ();
+
+    import "Testsuite";
+
+    map READ = $[
+	"etc" : $[
+	    "fstab": [],
+	    "cryptotab": [],
+	],
+	"product": $[
+		"features": $[
+		    "USE_DESKTOP_SCHEDULER"	: "no",
+		    "IO_SCHEDULER"		: "",
+		    "ENABLE_AUTOLOGIN"		: "false",
+		    "UI_MODE"			: "simple",
+		    "EVMS_CONFIG"		: "no",
+		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
+		]
+	],
+	"target"	: $[
+	    "stat"	: $[]
+	],
+	"sysconfig"	: $[
+	    "displaymanager"	: $[
+		"DISPLAYMANAGER"	: ""
+	    ],
+	],
+    ];
+    map WRITE = $[];
+    map EXEC = $[
+	"passwd" : $[
+	    "init"	: true
+	],
+	"target" : $[
+	    "bash" :	-1,
+	    "bash_output" : $[],
+	],
+    ];
+
+    Testsuite::Dump ("==========================================================");
+
+    Mode::SetTest ("test");
+
+    Testsuite::Test (``(Users::Read ()), [READ, WRITE, EXEC], 0);
+
+    Testsuite::Test (``(Users::SelectUserByName ("hh")), [], 0);
+    Testsuite::Dump (sformat ("---- user hh:\n %1", Users::GetCurrentUser ()));
+
+    Testsuite::Test (``(Users::SelectUserByName ("hh2")), [], 0);
+    Testsuite::Dump (sformat ("---- user hh2:\n %1", Users::GetCurrentUser ()));
+
+    Testsuite::Dump ("==========================================================");
+}
