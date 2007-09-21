@@ -3413,8 +3413,8 @@ sub CryptedHomeModified {
     my $new_pw		= $user->{"text_userpassword"};
 
     return 0 if ($home_size == 0 && $org_size == 0); # nothing to do
+    return 0 if (!defined $pw && !defined $new_pw); # no change without password provided :-(
     return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size && $pw eq $new_pw);
-    return 0 if !defined $pw; # no change without password provided :-(
     return 1;
 }
 
@@ -6171,7 +6171,7 @@ sub Import {
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
 
-    my $error_msg = $self->ReadLocal ();
+    my $error_msg = Mode->test () ? "" : $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
     }

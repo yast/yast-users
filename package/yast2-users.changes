@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Fri Sep 21 15:08:40 CEST 2007 - jsuchome@suse.cz
+
+- enable cryted directories for new users (#326794)
+- 2.15.38 
+
+-------------------------------------------------------------------
+Tue Aug 21 16:45:00 CEST 2007 - jsuchome@suse.cz
+
+- testsuite is back (removed in 2.13.24)
+- added UsersPasswd::SetBaseDirectory (called from testsuite)
+- 2.15.37
+
+-------------------------------------------------------------------
 Fri Aug 17 10:45:29 CEST 2007 - jsuchome@suse.cz
 
 - use Perl built-ins instead of SCR (patch by locilka, #266179)
