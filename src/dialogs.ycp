@@ -37,6 +37,14 @@ include "users/routines.ycp";
 
 string default_pw	= "******";
 
+// check if this is installation stage -
+// adding user during firstboot should be same as during 2nd stage
+define boolean installation () {
+    return Stage::cont () || Stage::firstboot ();
+}
+
+
+
 /**
  * Upperase letters were used in username! (see bug #26409)
  * In these popup, ask user what to do.
@@ -138,8 +146,7 @@ Try again."));
 define symbol EditUserDialog (string what) {
 
     // user has returned to the "add user dialog" during installation workflow:
-    if (Users::StartDialog ("user_add") &&
-	Stage::cont () && Users::UseNextTime ())
+    if (Users::StartDialog ("user_add") && installation () && Users::UseNextTime ())
     {
 	Users::RestoreCurrentUser ();
 	Users::SetUseNextTime (false);
@@ -222,7 +229,7 @@ define symbol EditUserDialog (string what) {
 	((user_type == "ldap" && Ldap::file_server) ||
 	(user_type == "local" || user_type == "system"));
 
-    boolean complex_layout = Stage::cont () && Users::StartDialog ("user_add");
+    boolean complex_layout = installation () && Users::StartDialog ("user_add");
     map<string,integer> groups	= user["grouplist"]:$[];
 
     list available_shells	= Users::AllShells ();
@@ -247,6 +254,8 @@ define symbol EditUserDialog (string what) {
     string plugin_client	= "";
     string plugin		= "";
     map client2plugin		= $[];
+    // names of plugin GUI clients
+    list<string> clients	= [];
 
     /**
      * initialize local variables with current state of user
@@ -360,7 +369,7 @@ define symbol EditUserDialog (string what) {
 		`HStretch()
 	    );
 	}
-	else if (!do_not_edit && !Stage::cont ())
+	else if (!do_not_edit && !installation ())
 	{
 	    optionbox = `VBox (
 		`VSpacing (1),
@@ -533,7 +542,7 @@ define symbol EditUserDialog (string what) {
 		    )
 		),
 		// IntField label
-		`IntField (`id (`dirsize), _("&Directory Size in MB"), 10, 2147483647, crypted_home_size)
+		`IntField (`id (`dirsize), _("&Directory Size in MB"), 10, 2147483647, crypted_home_size) // for max value, see bug 244631 :-)
 	) : `HBox ();
 
 	return `HBox (
@@ -656,22 +665,6 @@ group memberships can be changed.")) : `VSpacing (0),
      */
     define term get_plugins_term () {
 
-	// UsersPlugins will filter out plugins we cannot use for given type
-	map plugin_clients	= UsersPlugins::Apply ("GUIClient",
-	    $[ "what" : "user", "type" : user_type ], $[]
-	);
-	// remove empty clients
-	plugin_clients = filter (string plugin, string client,
-	    (map<string,string>) plugin_clients, ``(client != ""));
-
-	client2plugin	= $[];
-	list<string> clients	= maplist (string plugin, string client,
-	    (map<string,string>) plugin_clients, {
-
-		client2plugin [client]	= plugin;
-		return client;
-	});
-
 	plugin_client	= clients[0]:"";
 	plugin		= client2plugin[plugin_client]:plugin_client;
 
@@ -737,7 +730,19 @@ group memberships can be changed.")) : `VSpacing (0),
 	tabs = add (tabs,`item(`id(`passwordsettings),_("Pass&word Settings")));
     }
 
-    if (user_type == "ldap")
+    // Now initialize the list of plugins: we must know now if there is some available.
+    // UsersPlugins will filter out plugins we cannot use for given type
+    map plugin_clients	= UsersPlugins::Apply ("GUIClient",
+	$[ "what" : "user", "type" : user_type ], $[]
+    );
+    // remove empty clients
+    plugin_clients = filter (string plugin, string client,
+	(map<string,string>) plugin_clients, ``(client != ""));
+    clients	= maplist (string plugin, string client, (map<string,string>) plugin_clients, {
+	client2plugin [client]	= plugin;
+	return client;
+    });
+    if (clients != [])
     {
 	// tab label
 	tabs = add (tabs, `item(`id(`plugins), _("Plu&g-Ins") ));
@@ -1084,7 +1089,7 @@ _("Change home directory to %1?"), generated_home))))
 		}
 	    }
 	    // --------------------------------- autologin (during installation)
-	    if (Users::StartDialog ("user_add") && Stage::cont ())
+	    if (Users::StartDialog ("user_add") && installation ())
 	    {
 		Users::SetRootMail ((boolean)
 		    UI::QueryWidget(`id (`root_mail), `Value) ? username : "");
@@ -1448,6 +1453,7 @@ _("Change home directory to %1?"), generated_home))))
 	    }
 	    if (ret == `run)
 	    {
+		boolean plugin_added	= false;
 		// first, add the plugin if necessary
 		if (!contains (user["plugins"]:[], plugin))
 		{
@@ -1458,16 +1464,29 @@ _("Change home directory to %1?"), generated_home))))
 			ret = `notnext;
 			continue;
 		    }
+		    plugin_added	= true;
 		    user	= Users::GetCurrentUser ();
 		    reinit_userdata ();
-		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0),
-			UI::Glyph (`CheckMark));
 		}
 		any plugin_ret = WFM::CallFunction (
 		    plugin_client, ["Dialog", $[ "what"	: "user" ], user ]);
 		if (plugin_ret == `next)
 		{
 		    // update the map of changed user
+		    user	= Users::GetCurrentUser ();
+		    reinit_userdata ();
+		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0), UI::Glyph (`CheckMark));
+		}
+		// for `cancel we must remove the plugin if it was added because of `run
+		else if (plugin_added)
+		{
+		    error	= Users::RemoveUserPlugin (plugin);
+		    if (error != "")
+		    {
+			Popup::Error (error);
+			ret = `notnext;
+			continue;
+		    }
 		    user	= Users::GetCurrentUser ();
 		    reinit_userdata ();
 		}
@@ -1478,7 +1497,7 @@ _("Change home directory to %1?"), generated_home))))
 	if (ret == `edit)
 	{
 	    Wizard::SetHelpText (
-		EditUserDialogHelp (Stage::cont (), user_type, what));
+		EditUserDialogHelp (installation (), user_type, what));
 	    UI::ReplaceWidget(`tabContents, get_edit_term ());
 
 	    // update the contets of User Data Dialog
@@ -1695,6 +1714,7 @@ define symbol EditGroupDialog (string what) {
     string plugin_client	= "";
     string plugin		= "";
     map client2plugin		= $[];
+    list<string> clients	= [];
 
     /**
      * initialize local variables with current state of group
@@ -1762,22 +1782,6 @@ define symbol EditGroupDialog (string what) {
      */
     define term get_plugins_term () {
 
-	// UsersPlugins will filter out plugins we cannot use for given type
-	map plugin_clients	= UsersPlugins::Apply ("GUIClient",
-	    $[ "what" : "group", "type" : group_type ], $[]
-	);
-	// remove empty clients
-	plugin_clients = filter (string plugin, string client,
-	    (map<string,string>) plugin_clients, ``(client != ""));
-
-	client2plugin	= $[];
-	list<string> clients	= maplist (string plugin, string client,
-	    (map<string,string>) plugin_clients, {
-
-		client2plugin [client]	= plugin;
-		return client;
-	});
-
 	plugin_client	= clients[0]:"";
 	plugin		= client2plugin[plugin_client]:plugin_client;
 
@@ -1810,7 +1814,21 @@ define symbol EditGroupDialog (string what) {
 
     list<term> tabs		= [];
     term dialog_contents	= `Empty ();
-    boolean use_tabs		= group_type == "ldap";
+
+    // Now initialize the list of plugins: we must know now if there is some available.
+    // UsersPlugins will filter out plugins we cannot use for given type
+    map plugin_clients	= UsersPlugins::Apply ("GUIClient",
+	    $[ "what" : "group", "type" : group_type ], $[]
+    );
+    // remove empty clients
+    plugin_clients = filter (string plugin, string client,
+	(map<string,string>) plugin_clients, ``(client != ""));
+    clients	= maplist (string plugin, string client, (map<string,string>) plugin_clients, {
+	client2plugin [client]	= plugin;
+	return client;
+    });
+    boolean use_tabs	= (size (clients) > 0);
+    boolean has_tabs	= true;
 
     if (use_tabs)
     {
@@ -1827,6 +1845,7 @@ define symbol EditGroupDialog (string what) {
 	);
 	if (!UI::HasSpecialWidget (`DumbTab))
 	{
+	    has_tabs	= false;
 	    term tabbar	= `HBox ();
 	    foreach (term it, tabs, {
 		string label = it[1]:"";
@@ -1852,6 +1871,14 @@ define symbol EditGroupDialog (string what) {
     symbol ret		= `edit;
     symbol current	= nil;
     list tabids		= [`edit, `plugins ];
+
+    // switch focus to specified tab (after error message) and widget inside
+    define void focus_tab (symbol tab, any widget) {
+	if (use_tabs && has_tabs)
+	    UI::ChangeWidget (`id (`tabs), `CurrentItem, tab);
+	UI::SetFocus (`id (widget));
+	ret = `notnext;
+    }
 
     repeat
     {
@@ -1896,8 +1923,7 @@ define symbol EditGroupDialog (string what) {
 	    if (error != "")
 	    {
 		Report::Error (error);
-                UI::SetFocus (`id(`groupname));
-		ret = `notnext;
+		focus_tab (current, `groupname);
 		continue;
 	    }
 	    // --------------------------------- password checks
@@ -1908,8 +1934,7 @@ define symbol EditGroupDialog (string what) {
                 Report::Error(_("The passwords do not match.
 Try again.")) ;
 
-		ret	= `notnext;
-		UI::SetFocus(`id(`pw1));
+		focus_tab (current, `pw1);
                 continue;
             }
             if ( pw1 != "" && pw1 != default_pw )
@@ -1918,8 +1943,7 @@ Try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
-		    ret	= `notnext;
-		    UI::SetFocus(`id(`pw1));
+		    focus_tab (current, `pw1);
 		    continue;
 		}
 		boolean failed			= false;
@@ -1938,8 +1962,7 @@ Try again.")) ;
 		} while (error_map != $[] && !failed);
 		if (failed)
 		{
-		    ret	= `notnext;
-		    UI::SetFocus(`id(`pw1));
+		    focus_tab (current, `pw1);
 		    continue;
 		}
 		password = pw1;
@@ -1954,8 +1977,7 @@ Try again.")) ;
 		if (error != "")
 		{
 		    Report::Error (error);
-		    UI::SetFocus (`id(`gid));
-		    ret = `notnext;
+		    focus_tab (current, `gid);
 		    continue;
 		}
 		error_map = Users::CheckGIDUI (new_i_gid, ui_map);
@@ -1963,8 +1985,7 @@ Try again.")) ;
 		{
 		    if (!Popup::YesNo (error_map ["question"]:""))
 		    {
-			ret = `notnext;
-			UI::SetFocus(`id(`gid));
+			focus_tab (current, `gid);
 			continue;
 		    }
 		    if(contains(["local","system"],error_map["question_id"]:""))
@@ -2067,6 +2088,7 @@ Try again.")) ;
 	    }
 	    if (ret == `run)
 	    {
+		boolean plugin_added	= false;
 		// first, add the plugin if necessary
 		if (!contains (group["plugins"]:[], plugin))
 		{
@@ -2077,16 +2099,28 @@ Try again.")) ;
 			ret = `notnext;
 			continue;
 		    }
+		    plugin_added	= true;
 		    group	= Users::GetCurrentGroup ();
 		    reinit_groupdata ();
-		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0),
-			UI::Glyph (`CheckMark));
 		}
 		any plugin_ret = WFM::CallFunction (
 		    plugin_client, ["Dialog", $[ "what"	: "group" ], group ]);
 		if (plugin_ret == `next)
 		{
 		    // update the map of changed group
+		    group	= Users::GetCurrentGroup ();
+		    reinit_groupdata ();
+		    UI::ChangeWidget (`id(`table), `Item (plugin_client,0), UI::Glyph (`CheckMark));
+		}
+		else if (plugin_added)
+		{
+		    error	= Users::RemoveGroupPlugin (plugin);
+		    if (error != "")
+		    {
+			Popup::Error (error);
+			ret = `notnext;
+			continue;
+		    }
 		    group	= Users::GetCurrentGroup ();
 		    reinit_groupdata ();
 		}
@@ -2613,7 +2647,7 @@ define symbol AuthentizationDialog() {
     boolean changed	= false;
     list param		= [];
 
-    if (Stage::cont ())
+    if (installation ())
     {
 	param		= [ "from_users" ];
     }
@@ -2680,7 +2714,7 @@ define symbol UserSave() {
 
     Users::CommitUser ();
     // adding only one user during install
-    if (Stage::cont () && Users::StartDialog ("user_add") )
+    if (installation () && Users::StartDialog ("user_add") )
         return `save;
     else
 	return `next;
