@@ -116,7 +116,10 @@ sub read_shadow {
 
     foreach my $shadow_entry (split (/\n/,$in)) {
 	chomp $shadow_entry;
-
+	if ($shadow_entry eq "") {
+	    y2warning ("empty line in shadow file...");
+	    next;
+	}
 	my ($uname,$pass,$last_change,$min, $max, $warn, $inact, $expire, $flag)
 	    = split(/:/,$shadow_entry);  
         my $first = substr ($uname, 0, 1);
@@ -128,7 +131,7 @@ sub read_shadow {
 	}
 	elsif ($first ne "+" && $first ne "-")
 	{
-	    if ($uname eq "") {
+	    if (!defined $uname || $uname eq "") {
 		y2error ("strange line in shadow file: '$shadow_entry'");
 		$errno 		= 9;
 		return 0;
@@ -187,6 +190,10 @@ sub read_group {
     foreach my $group (split (/\n/,$in)) {
 	
 	chomp $group;
+	if ($group eq "") {
+	    y2warning ("empty line in group file...");
+	    next;
+	}
         my ($groupname, $pass, $gid, $users) = split (/:/,$group);
 	my $first = substr ($groupname, 0, 1);
 
@@ -293,6 +300,11 @@ sub read_passwd {
     foreach my $user (split (/\n/,$in)) {
 
 	chomp $user;
+	if ($user eq "") {
+	    y2warning ("empty line in passwd file...");
+	    next;
+	}
+
 	my ($username, $password, $uid, $gid, $full, $home, $shell)
 	    = split(/:/,$user);
         my $first = substr ($username, 0, 1);
