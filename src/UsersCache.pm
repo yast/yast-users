@@ -150,7 +150,6 @@ sub ProposeUsername {
 	    }
 	    $i++;
 	}
-	$tested_usernames{$default_login}	= 1;
 
 	# 2nd: check existence
 	foreach my $name (sort keys %tested_usernames) {
@@ -165,6 +164,9 @@ sub ProposeUsername {
 	    }
 	    push @proposed_usernames, $name;
 	};
+	if (@proposed_usernames < 1 && !$self->UsernameExists ($default_login)){
+	    push @proposed_usernames, $default_login;
+	}
 
 	if (!$self->UsernameExists ("$the_answer") && @proposed_usernames > 11){
 	    push @proposed_usernames, "$the_answer";
