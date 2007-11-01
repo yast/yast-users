@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Nov  1 15:20:31 CET 2007 - jsuchome@suse.cz
+
+- do not include default 'lxuser' name in the list of suggestions
+- 2.16.1
+
+-------------------------------------------------------------------
 Fri Oct 19 10:53:46 CEST 2007 - jsuchome@suse.cz
 
 - check for empty lines in passwd/group/shadow (#333305)
