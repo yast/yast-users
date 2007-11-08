@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Nov  8 11:01:39 CET 2007 - jsuchome@suse.cz
+
+- allow '\' in root's password (#337606)
+- removed dependency on yast2-network via DSL module (#339027)
+- 2.16.2
+
+-------------------------------------------------------------------
 Thu Nov  1 15:20:31 CET 2007 - jsuchome@suse.cz
 
 - do not include default 'lxuser' name in the list of suggestions

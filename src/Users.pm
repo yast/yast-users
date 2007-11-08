@@ -2290,7 +2290,9 @@ sub EditUser {
 	    next;
 	}
 	if ($key eq "userpassword" && (defined $data{$key}) &&
-	    $data{$key} ne $user_in_work{$key}) {
+	    (!defined $user_in_work{$key} || $data{$key} ne $user_in_work{$key})
+	)
+	{
 	    # crypt password only once (when changed)
 	    if (!defined $data{"encrypted"} || !bool ($data{"encrypted"})) {
 		$user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
@@ -3344,7 +3346,9 @@ sub UserReallyModified {
 		}
 		next;
 	    }
-	    if (!defined $user{$key} || $user{$key} ne $value)
+	    if (!defined $user{$key} ||
+		((!defined $value) && (defined $user{$key})) ||
+		((defined $value) && ($user{$key} ne $value)))
 	    {
 		$ret = 1;
 		y2debug ("old value: ", $value || "(not defined)");

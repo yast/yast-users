@@ -13,7 +13,6 @@
 textdomain "users";
 
 import "Directory";
-import "DSL";
 import "FileUtils";
 import "Label";
 import "Ldap";
@@ -83,22 +82,10 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
 
 
 // Check if lan is configured
-list<string> net_devices = NetworkDevices::List("");
+list<string> net_devices = NetworkDevices::ListDevicesExcept("dialup");
 y2debug("net_devices: %1", net_devices);
 
-if (size(net_devices) == 0 && !NetworkService::IsManaged () &&
-     size (Ldap::initial_defaults) == 0)
-{
-    Users::SetAfterAuth ("users");
-    y2milestone ("network not available: no network based authentization");
-    return `auto;
-}
-boolean found = false || NetworkService::IsManaged ();
-maplist(string dev, net_devices, ``{
-    if(!DSL::UsesDevice(dev))
-	found = true;
-});
-y2debug("found=%1", found);
+boolean found = (size (net_devices) > 0) || NetworkService::IsManaged ();
 
 if (!found && size (Ldap::initial_defaults) == 0) {
     y2milestone ("network not available: no network based authentization");

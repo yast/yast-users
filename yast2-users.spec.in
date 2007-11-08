@@ -3,15 +3,17 @@
 @HEADER@
 BuildRequires:	cracklib-devel doxygen gcc-c++ perl-Digest-SHA1 perl-XML-Writer update-desktop-files yast2 yast2-devtools yast2-ldap-client yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
 
-Requires:	yast2 yast2-perl-bindings yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
+Requires:	yast2-perl-bindings yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 
 # LDAPInitWithTLSCheck
 Requires:	yast2-ldap-client >= 2.15.8
 
+# NetworkDevices::ListDevicesExcept
+Requires:       yast2 >= 2.16.9
 
-Summary:	Configuration of users
+Summary:	Configuration of users and groups
 
 %description
 -
