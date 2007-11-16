@@ -917,8 +917,9 @@ sub GetUser {
 	unshift @types_to_look, UsersCache->GetUserType ();
     }
     foreach my $type (@types_to_look) {
+	next if (!$type);
 	if (defined $users_by_uidnumber{$type}{$uid} &&
-	    ref ($users_by_uidnumber{$type}{$uid}) eq "HASH" &&
+	    (ref ($users_by_uidnumber{$type}{$uid}) eq "HASH") &&
 	    %{$users_by_uidnumber{$type}{$uid}})
 	{
 	    my $first_username	= (keys %{$users_by_uidnumber{$type}{$uid}})[0];
@@ -1758,6 +1759,7 @@ sub SelectUserByName {
 }
 
 ##------------------------------------
+# select user by uid
 BEGIN { $TYPEINFO{SelectUser} = [ "function",
     "void",
     "integer"];

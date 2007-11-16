@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Nov 13 14:24:14 CET 2007 - jsuchome@suse.cz
+
+- read /etc/security/pam_mount.conf.xml with ag_anyxml (#332187)
+- 2.16.3
+
+-------------------------------------------------------------------
 Thu Nov  8 11:01:39 CET 2007 - jsuchome@suse.cz
 
 - allow '\' in root's password (#337606)

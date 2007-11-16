@@ -1547,7 +1547,8 @@ _("Change home directory to %1?"), generated_home))))
 	    if (user_type == "ldap" && !Ldap::file_server)
 	    {
 		UI::ChangeWidget (`id (`browse), `Enabled, false);
-		UI::ChangeWidget (`id (`move_home), `Enabled, false);
+		if (UI::WidgetExists (`id (`move_home)))
+		    UI::ChangeWidget (`id (`move_home), `Enabled, false);
 	    }
 	    if (!FileUtils::Exists (home) && UI::WidgetExists (`id (`move_home)))
 	    {

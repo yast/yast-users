@@ -22,8 +22,13 @@ YaST::YCP::Import ("SCR");
 ##------------------- global variables
 
 # path to cryptconfig
-my $cryptconfig	= "/usr/sbin/cryptconfig";
+my $cryptconfig		= "/usr/sbin/cryptconfig";
 
+# path to pam_mount configuration file
+my $pam_mount_path	= "/etc/security/pam_mount.conf.xml";
+
+# 'volume' information from pam_mount (info about crypted homes)
+my $pam_mount		= undef;
 
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
@@ -305,19 +310,10 @@ sub CryptHome {
 
     my $key_file	= undef;
     my $image_file	= undef;
-    my $org_img		= "";
-    my $org_key		= "";
-
     # find the original image and key locations
-    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $org_username ' /etc/security/pam_mount.conf | sed -e 's/- //'");
-    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
-	my $line	= $out->{"stdout"};
-	chomp $line;
-	my @l	= split (/ /, $line);
-	$org_img	= $l[3]	if defined $l[3];
-	$org_key	= pop @l;
-    }
-    
+    my $org_img		= $self->CryptedImagePath ($org_username);
+    my $org_key		= $self->CryptedKeyPath ($org_username);
+
     # solve disabling of crypted directory
     if ($home_size == 0 && $org_size > 0 &&
 	FileUtils->Exists ($org_key) && FileUtils->Exists ($org_img))
@@ -465,7 +461,7 @@ sub CryptHome {
     }
 
     y2debug ("cmd: $cmd");
-    $out = SCR->Execute (".target.bash_output", $cmd);
+    my $out = SCR->Execute (".target.bash_output", $cmd);
     if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	Report->Error ($out->{"stderr"});
     }
@@ -490,6 +486,31 @@ sub FileSizeInMB {
     return sprintf ("%i", $stat->{"size"} / (1024 * 1024));
 }
 
+# Read the 'volume' data from pam_mount config file and fill in the global map
+BEGIN { $TYPEINFO{ReadCryptedHomesInfo} = ["function", "boolean"];}
+sub ReadCryptedHomesInfo {
+
+    return 1 if (defined $pam_mount);
+    y2milestone ("pam_mount not read yet, doing it now");
+    if (FileUtils->Exists ($pam_mount_path)) {
+	my $pam_mount_cont	= SCR->Read (".anyxml", $pam_mount_path);
+	if (defined $pam_mount_cont &&
+	    defined $pam_mount_cont->{"pam_mount"}{"volume"})
+	{
+	    foreach my $usermap (@{$pam_mount_cont->{"pam_mount"}{"volume"}}) {
+		my $username	= $usermap->{"user"}{"value"};
+		next if !defined $username;
+		$pam_mount->{$username}	= $usermap;
+	    }
+	}
+	return 1 if defined $pam_mount;
+    }
+    else {
+	y2milestone ("file $pam_mount_path not found");
+	$pam_mount	= {};
+    }
+    return 0;
+}
 
 ##------------------------------------
 # Return the path to user's crypted directory image; returns empty string if there is none defined
@@ -500,16 +521,11 @@ sub CryptedImagePath {
 
     my $self    = shift;
     my $user	= shift;
-    my $ret	= "";
 
-    return $ret if (!FileUtils->Exists ("/etc/security/pam_mount.conf"));
-
-    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '");
-    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
-	$ret	= $out->{"stdout"};
-	chomp $ret;
+    if ($self->ReadCryptedHomesInfo ()) {
+	return $pam_mount->{$user}{"path"}{"value"} || "";
     }
-    return $ret;
+    return "";
 }
 
 ##------------------------------------
@@ -521,18 +537,11 @@ sub CryptedKeyPath {
 
     my $self    = shift;
     my $user	= shift;
-    my $ret	= "";
 
-    return $ret if (!FileUtils->Exists ("/etc/security/pam_mount.conf"));
-
-    my $out	= SCR->Execute (".target.bash_output", "grep '^volume $user ' /etc/security/pam_mount.conf | sed -e 's/- //'");
-    if (($out->{"exit"} eq 0) && $out->{"stdout"}) {
-	my $line	= $out->{"stdout"};
-	chomp $line;
-	my @l	= split (/ /, $line);
-	$ret	= pop @l;
+    if ($self->ReadCryptedHomesInfo ()) {
+	return $pam_mount->{$user}{"fskeypath"}{"value"} || "";
     }
-    return $ret;
+    return "";
 }
 1
 # EOF
