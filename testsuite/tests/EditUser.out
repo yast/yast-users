@@ -14,7 +14,7 @@ Return
 Return	nil
 Dump	---- user 'hh':
 Dump	 $["addit_data":"", "cn":"HaHa", "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"heslo"]
-Execute	.target.bash_output "grep '^volume hh ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '" $[]
+Read	.anyxml "/etc/security/pam_mount.conf.xml" nil
 Return	
 Dump	---- user 'hh':
 Dump	 $["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "org_uidnumber":"500", "org_user":$["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"heslo"], "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"heslo", "what":"edit_user"]
@@ -43,7 +43,7 @@ Dump	 $[]
 Return	nil
 Dump	---- user 501:
 Dump	 $["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"heslo", "what":"edit_user"]
-Execute	.target.bash_output "grep '^volume hh ' /etc/security/pam_mount.conf | sed -e 's/- //' | cut -f 4 -d ' '" $["stdout":"hh"]
+Read	.anyxml "/etc/security/pam_mount.conf.xml" nil
 Return	
 Dump	---- user 'hh':
 Dump	 $["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/new/home/hh", "loginshell":"/bin/bash", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "org_user":$["addit_data":"", "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "org_homedirectory":"/home/hh", "org_uid":"hh", "org_uidnumber":"501", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"heslo", "what":"edit_user"], "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"501", "userpassword":"heslo", "what":"edit_user"]

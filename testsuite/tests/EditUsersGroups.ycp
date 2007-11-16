@@ -48,6 +48,7 @@
 		    "INCOMPLETE_TRANSLATION_TRESHOLD"	: "99",
 		]
 	],
+	"anyxml"	: nil,
     ];
     map WRITE = $[];
     map EXEC = $[
