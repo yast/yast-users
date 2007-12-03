@@ -118,11 +118,12 @@
 	string help_text = _("<p>Here, configure quota settings of the user on selected file systems.</p>") +
 
 	// helptext for quota, cont.
-	_("<p>Define a Size Limit by specifying the number of 1 kB blocks the
-user may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the user may have on the file system.</p>") +
+	_("<p>Define a size limit by specifying the number of 1 kB blocks the
+user may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the user may have on the file system.</p>
+") +
 
 	// helptext for quota, cont.
-	_("<p>You can specify both Soft and Hard Limits for size and number of inodes. The soft limits define a warning level at which users are informed they are nearing their limit, whereas the hard limits define the limit at which write requests are denied.</p>") +
+	_("<p>You can specify both soft and hard limits for size and number of inodes. The soft limits define a warning level at which users are informed they are nearing their limit, whereas the hard limits define the limit at which write requests are denied.</p>") +
 
 	// helptext for quota, cont.
 	_("<p>As soon as the user has reached the soft limit, the input fields for the grace interval are activated. Specify the time period for which the user is allowed to exceed the soft limits set above. The countdown of the grace interval starts immediately.</p>");
@@ -133,11 +134,12 @@ user may have on this file system. Additionally, you can define an inode limit s
 	    help_text = _("<p>Here, configure quota settings of the group on selected file systems.</p>") +
 
 	    // helptext for quota, cont.
-	    _("<p>Define a Size Limit by specifying the number of 1 kB blocks the
-group may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the group may have on the file system.</p>") +
+	    _("<p>Define a size simit by specifying the number of 1 kB blocks the
+group may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the group may have on the file system.</p>
+") +
 
 	    // helptext for quota, cont.
-	    _("<p>You can specify both Soft and Hard Limits for size and number of inodes. The soft limits define a warning level at which groups are informed they are nearing their limit, whereas the hard limits define the limit at which write requests are denied.</p>") +
+	    _("<p>You can specify both soft and hard limits for size and number of inodes. The soft limits define a warning level at which groups are informed they are nearing their limit, whereas the hard limits define the limit at which write requests are denied.</p>") +
 
 	    // helptext for quota, cont.
 	    _("<p>As soon as the group has reached the soft limit, the input fields for the grace interval are activated. Specify the time period for which the group is allowed to exceed the soft limits set above. The countdown of the grace interval starts immediately.</p>");

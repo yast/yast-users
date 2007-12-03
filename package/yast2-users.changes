@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Dec  3 15:35:41 CET 2007 - jsuchome@suse.cz
+
+- merged texts from proofread
+
+-------------------------------------------------------------------
 Mon Dec  3 11:48:24 CET 2007 - jsuchome@suse.cz
 
 - ask for CurrentButton property of RadioButtonGroup (#345490)

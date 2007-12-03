@@ -111,7 +111,8 @@ The contents of this directory are copied to a user's home directory when a new 
 
 // Help text 4.5/6
 _("<p><b>Umask for Home Directory</b><br>
-Umask which is used by for creating new home directories.</p>") +
+Umask which is used for creating new home directories.</p>
+") +
 
 // Help text 5/6:
 // Don't reorder letters YYYY-MM-DD, date must be set in this format
@@ -372,7 +373,7 @@ To select an existing directory, click <b>Browse</b>.
     if (what == "add_user")
     {
 	// help text for user's home directory mode
-	helptext = helptext + _("<p>Optionally, set the <b>Home Directory Permission Mode</b> for this user's home directory differenty from the default.</p>");
+	helptext = helptext + _("<p>Optionally, set the <b>Home Directory Permission Mode</b> for this user's home directory different from the default.</p>");
 
 	map defaults        = Users::GetLoginDefaults ();
         helptext = helptext +
