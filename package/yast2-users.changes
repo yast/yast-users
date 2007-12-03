@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Dec  3 11:48:24 CET 2007 - jsuchome@suse.cz
+
+- ask for CurrentButton property of RadioButtonGroup (#345490)
+- 2.16.4
+
+-------------------------------------------------------------------
 Tue Nov 13 14:24:14 CET 2007 - jsuchome@suse.cz
 
 - read /etc/security/pam_mount.conf.xml with ag_anyxml (#332187)

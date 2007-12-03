@@ -335,7 +335,7 @@ repeat {
     }
 } until ( ret == `next || ret == `back );
 
-string method	= (string)UI::QueryWidget (`id(`method), `Value);
+string method	= (string)UI::QueryWidget (`id(`method), `CurrentButton);
 Users::SetAfterAuth (method);
 
 if (ret == `next && method == "users" && to_import != [])
