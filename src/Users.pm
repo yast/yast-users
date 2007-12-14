@@ -185,8 +185,12 @@ my $not_ask_nisserver_notdes	= 0;
 my @current_users		= ();
 my @current_groups 		= ();
 
-# mail alias for root
+# mail alias for root (helper; see root_aliases for current values)
 my $root_mail			= "";
+
+# hash with user names that should get root's mail
+my %root_aliases		= ();
+my %root_aliases_orig		= ();
 
 my %min_pass_length	= (
     "local"		=> 5,
@@ -212,6 +216,7 @@ my @local_plugins		= ();
 
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Autologin");
+YaST::YCP::Import ("Call");
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Ldap");
@@ -334,15 +339,45 @@ sub SetLDAPNotRead {
     $ldap_not_read	= $_[0];
 }
 
+# OBSOLETE 
 BEGIN { $TYPEINFO{GetRootMail} = ["function", "string"]; }
 sub GetRootMail {
-    return $root_mail;
+    y2warning ("this function is obsolete, use GetRootAliases instead");
+    return join (",", keys %root_aliases);
 }
 
+# OBSOLETE 
 BEGIN { $TYPEINFO{SetRootMail} = ["function", "void", "string"]; }
 sub SetRootMail {
     my $self		= shift;
-    $root_mail 		= $_[0];
+    my $root_a 		= shift;
+    y2warning ("this function is obsolete, use RemoveRootMail/AddRootMail instead");
+    foreach my $alias (split (/,/, $root_a)) {
+	$alias	=~ s/[ \t]//g;
+	$root_aliases{$alias}	= 1;
+    }
+}
+
+# return the map with root aliases
+BEGIN { $TYPEINFO{GetRootAliases} = ["function", ["map", "string", "integer"]];}
+sub GetRootAliases {
+    return \%root_aliases;
+}
+
+# remove the given user from root's aliases set
+BEGIN { $TYPEINFO{RemoveRootMail} = ["function", "void", "string"]; }
+sub RemoveRootMail {
+    my $self		= shift;
+    my $u		= shift;
+    delete $root_aliases{$u} if (defined $root_aliases{$u});
+}
+
+# add the given user to root's aliases set
+BEGIN { $TYPEINFO{AddRootMail} = ["function", "void", "string"]; }
+sub AddRootMail {
+    my $self		= shift;
+    my $u		= shift;
+    $root_aliases{$u}	= 1;
 }
 
 # return the value of base directory
@@ -1648,6 +1683,14 @@ sub Read {
 
     $self->ReadAvailablePlugins ();
 
+    $root_mail	= MailAliases->GetRootAlias ();
+    if (defined $root_mail) {
+	foreach my $alias (split (/,/, $root_mail)) {
+	    $alias	=~ s/[ \t]//g;
+	    $root_aliases{$alias}	= 1;
+	}
+    }
+    %root_aliases_orig	= %root_aliases;
     return $error_msg;
 }
 
@@ -1825,10 +1868,12 @@ sub DeleteUser {
 	$user_in_work{"what"}		= "delete_user";
 	$user_in_work{"delete_home"}	= YaST::YCP::Boolean (bool ($_[0]));
     
+	my $username	= $user_in_work{"uid"} || "";
 	# disable autologin when user is deleted #45261
-	if (Autologin->user () eq ($user_in_work{"uid"} || "")) {
+	if (Autologin->user () eq $username) {
 	    Autologin->Disable ();
 	}
+	$self->RemoveRootMail ($username);
 
 	my $type		= $user_in_work{"type"};
 	my $plugins		= $user_in_work{"plugins"};
@@ -4626,14 +4671,25 @@ sub Write {
 	}
     }
 
+    my @new_aliases	= sort (keys %root_aliases);
+    my @old_aliases	= sort (keys %root_aliases_orig);
+
     # mail forward from root
-    if (Stage->cont () && $root_mail ne "" &&
-	!MailAliases->SetRootAlias ($root_mail)) {
+    if (!same_arrays (\@new_aliases, \@old_aliases)) {
+	$root_mail	= join (", ", keys %root_aliases);
+	if (!MailAliases->SetRootAlias ($root_mail)) {
         
-	# error popup
-        $ret=__("An error occurred while setting forwarding for root's mail.");
-	Report->Error ($ret);
-	return $ret;
+	    # error popup
+	    $ret = __("An error occurred while setting forwarding for root's mail.");
+	    Report->Error ($ret);
+	    return $ret;
+	}
+	else {
+	    Call->Function ("inst_suseconfig", [ {
+		"enable_back"	=> YaST::YCP::Boolean (0),
+		"enable_next"	=> YaST::YCP::Boolean (0)
+	    }]);
+	}
     }
 
     Autologin->Write (Stage->cont () || $write_only);

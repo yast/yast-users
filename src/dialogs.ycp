@@ -203,6 +203,10 @@ define symbol EditUserDialog (string what) {
     // additional parts of GECOS (shown by `finger <username>`) (passwd only)
     string addit_data	= user["addit_data"]:"";
 
+    // this user gets root's mail
+    boolean root_mail	= haskey (Users::GetRootAliases (), username);
+    boolean root_mail_checked	= root_mail;
+
     // only for LDAP users:
     string sn		= "";
     if (haskey (user, "sn"))
@@ -224,7 +228,6 @@ define symbol EditUserDialog (string what) {
     boolean create_home		= user["create_home"]:true;
     boolean no_skel		= user["no_skeleton"]:false;
     boolean do_not_edit		= (user_type == "nis");
-//    boolean crypted_home_enabled= (action == "added") &&
     boolean crypted_home_enabled=
 	((user_type == "ldap" && Ldap::file_server) ||
 	(user_type == "local" || user_type == "system"));
@@ -351,34 +354,26 @@ define symbol EditUserDialog (string what) {
 	`Password(`id(`pw2), Label::ConfirmPassword(), "")
 	);
 
-	term optionbox = `Empty ();
-
+	term optionbox = `VBox (
+	    // checkbox label
+	    `Left (`CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
+		root_mail_checked))
+	);
 	if (complex_layout)
 	{
-	    optionbox = `VBox(
-		// checkbox label
-		`Left( `CheckBox (`id (`root_mail),_("Receive S&ystem Mail"),
-		    Users::GetRootMail () != "") ),
+	    optionbox = add (optionbox,
 		// checkbox label
 		`Left( `CheckBox (`id (`autologin),_("A&utomatic Login"),
 		    Autologin::used) )
 	    );
-	    optionbox = `HBox(
-		`HStretch(),
-		`HVCenter( `HVSquash( optionbox ) ),
-		`HStretch()
-	    );
 	}
 	else if (!do_not_edit && !installation ())
 	{
-	    optionbox = `VBox (
-		`VSpacing (1),
+	    optionbox	= add (optionbox,
 		// check box label
-		`CheckBox (`id(`ena), _("D&isable User Login"), !enabled),
-		`VSpacing (0.5)
+		`Left(`CheckBox (`id(`ena), _("D&isable User Login"), !enabled))
 	    );
 	}
-
 	term contents = `VBox (
 	`VSpacing(),
 	`VBox (
@@ -388,7 +383,11 @@ define symbol EditUserDialog (string what) {
 		`VBox (
 		    `HSquash ( fields ),
 		    `VSpacing( 0.5 ),
-		    `VSquash ( `Top( optionbox ) )
+		    `HBox (
+			`HStretch (),
+			`HVCenter (`HVSquash (optionbox)),
+			`HStretch ()
+		    )
 		),
 		`HSpacing( 2 )
 	    ),
@@ -1091,8 +1090,6 @@ _("Change home directory to %1?"), generated_home))))
 	    // --------------------------------- autologin (during installation)
 	    if (Users::StartDialog ("user_add") && installation ())
 	    {
-		Users::SetRootMail ((boolean)
-		    UI::QueryWidget(`id (`root_mail), `Value) ? username : "");
 		if (Autologin::available)
 		{
 		    Autologin::user = (boolean)
@@ -1125,6 +1122,8 @@ _("Change home directory to %1?"), generated_home))))
 		    }
 		}
 	    }
+	    root_mail_checked	=
+		(boolean) UI::QueryWidget (`id (`root_mail), `Value);
 	    // save the username for possible check if it was changed
 	    // and home directory should be re-generated
 	    if (org_username == "")
@@ -1653,6 +1652,19 @@ _("Change home directory to %1?"), generated_home))))
 		Autologin::AskForDisabling (
 		    // popup text
 		    _("Now you have added a new user."));
+	    }
+	    if (root_mail_checked)
+	    {
+		if (username != org_username)
+		    Users::RemoveRootMail (org_username);
+		Users::AddRootMail (username);
+	    }
+	    else if (root_mail) // not checked now, but checked before
+	    {
+		if (username != org_username)
+		    Users::RemoveRootMail (org_username);
+		else
+		    Users::RemoveRootMail (username);
 	    }
 	}
 
