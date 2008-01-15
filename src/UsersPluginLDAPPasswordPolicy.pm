@@ -278,8 +278,9 @@ sub AddBefore {
     if (!contains ($data->{'plugins_to_remove'}, $name, 1) &&
 	contains ($data->{'plugins'}, $shadow_plugin, 1)) {
 	# error popup
-	$error	= __("It is not possible to add this plugin when
-the plugin for Shadow Account attributes is in use.");
+	$error	= __("It is not possible to add this plug-in when
+the plug-in for Shadow Account attributes is in use.
+");
 	return undef;
     }
     return $data;
@@ -318,8 +319,9 @@ sub EditBefore {
     if (!contains ($data->{'plugins_to_remove'}, $name, 1) &&
 	contains ($data->{'plugins'}, $shadow_plugin, 1)) {
 	# error popup
-	$error	= __("It is not possible to add this plugin when
-the plugin for Shadow Account attributes is in use.");
+	$error	= __("It is not possible to add this plug-in when
+the plug-in for Shadow Account attributes is in use.
+");
 	return undef;
     }
     return $data;

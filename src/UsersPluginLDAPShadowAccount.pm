@@ -323,8 +323,9 @@ sub AddBefore {
 	contains ($data->{'plugins'}, $pwdpolicy_plugin, 1))
     {
 	# error popup
-	$error  = __("It is not possible to add this plugin when
-the plugin for Password Policy is in use.");
+	$error  = __("It is not possible to add this plug-in when
+the plug-in for Password Policy is in use.
+");
 	return undef;
     }
     return $data;
@@ -368,8 +369,9 @@ sub EditBefore {
 	contains ($data->{'plugins'}, $pwdpolicy_plugin, 1))
     {
 	# error popup
-	$error  = __("It is not possible to add this plugin when
-the plugin for Password Policy is in use.");
+	$error  = __("It is not possible to add this plug-in when
+the plug-in for Password Policy is in use.
+");
 	return undef;
     }
     return $data;
