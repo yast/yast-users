@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jan 15 10:41:06 CET 2008 - jsrain@suse.cz
+
+- merged texts from proofread
+
+-------------------------------------------------------------------
 Fri May 11 12:08:13 CEST 2007 - jsuchome@suse.cz
 
 - during autoinstallation, do not touch already created directories
