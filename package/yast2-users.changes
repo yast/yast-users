@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jan 21 11:04:29 CET 2008 - jsuchome@suse.cz
+
+- allow '\' in root's password during installation (#350478)
+- 2.13.58
+
+-------------------------------------------------------------------
 Tue Jan 15 11:22:12 CET 2008 - jsrain@suse.cz
 
 - merged texts from proofread
