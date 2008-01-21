@@ -175,7 +175,7 @@ Try again."));
 		    continue;
 		}
 
-		if (findfirstnotof (pw1, valid_password_chars) != nil)
+		if (findfirstnotof (pw1, valid_password_chars + "\\") != nil)
 		{
 		    Popup::Message (Users::ValidPasswordMessage ());
 		    // Invalidate old password
