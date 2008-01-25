@@ -9,13 +9,17 @@
 {
 
 import "Autologin";
+import "CWMTab";
 import "Label";
 import "Ldap";
 import "Message";
 import "Mode";
+import "Package";
 import "Popup";
+import "Progress";
 import "Report";
 import "Stage";
+import "Summary";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
@@ -23,6 +27,7 @@ import "UsersRoutines";
 import "Wizard";
 
 include "users/complex.ycp";
+include "users/routines.ycp";
 
 textdomain "users";
 
@@ -42,6 +47,22 @@ map userset_to_string = $[
     "custom":    _("&Custom")
 ];
 
+// values to Label (no shortcut sign)
+map userset_to_label = $[
+    // the type of user set
+    "system":    _("System Users"),
+    // the type of user set
+    "local":     _("Local Users"),
+    // the type of user set
+    "nis":       _("NIS Users"),
+    // the type of user set
+    "ldap":      _("LDAP Users"),
+    // the type of user set
+    "samba":     _("Samba Users"),
+    // the type of user set
+    "custom":    _("Custom")
+];
+
 // values to MenuItem in Summary dialog
 map groupset_to_string = $[
     // the type of group set
@@ -57,6 +78,56 @@ map groupset_to_string = $[
     // the type of group set
     "custom":    _("&Custom")
 ];
+
+map groupset_to_label = $[
+    // the type of group set
+    "system":    _("System Groups"),
+    // the type of group set
+    "local":     _("Local Groups"),
+    // the type of group set
+    "nis":       _("NIS Groups"),
+    // the type of group set
+    "ldap":      _("LDAP Groups"),
+    // the type of group set
+    "samba":     _("Samba Groups"),
+    // the type of group set
+    "custom":    _("Custom")
+];
+
+// map with group names allowed for a default group
+map<string,map<string,integer> > all_groupnames	= $[];
+
+// global values for authentication tab: ---------
+
+// list of installed clients
+list<string> installed_clients = [];
+
+list<string> configurable_clients = [ "nis", "ldap", "kerberos", "samba" ];
+
+// save if no more Available calls should be done (bug #225484)
+boolean check_available	= true;
+
+map client_label	= $[
+        // richtext label
+        "nis"   : _("NIS"),
+        // richtext label
+        "ldap"  : _("LDAP"),
+        // richtext label
+        "kerberos"  : _("Kerberos"),
+        // richtext label
+        "samba"  : _("Samba"),
+];
+
+// name of module to call
+map call_module = $[
+    "samba": "samba-client",
+];
+
+// -------------
+
+// function prototype
+define symbol HandleFilterLine (string widget_id, map event);
+
 
 /**
  * Popup for choosing the password encryption method.
@@ -928,18 +999,12 @@ define list GetSetsItems (string set) ``{
  */
 define list GetExpertList () ``{
 
-    // TODO do not generate always -> expert_list_changed
-    list expert_list = [
-	// menubutton label
-	`item(`id(`defaults), _("De&faults for New Users")),
-    ];
+    list expert_list = [];
     if (!Mode::config ())
     {
 	expert_list = merge (expert_list, [
 	    // menubutton label
 	    `item(`id(`enc), _("Password &Encryption")),
-	    // menubutton label
-	    `item(`id(`auth), _("&Authentication and User Sources"))
 	]);
 	if (Autologin::available)
 	{
@@ -957,9 +1022,11 @@ define list GetExpertList () ``{
     return expert_list;
 }
 
+/**
+ * return the list of menu items for LDAP expert options
+ */
 define list GetLDAPExpertList () ``{
 
-    // TODO do not generate always -> expert_list_changed
     list expert_list = [ ];
     if (!Mode::config () && Users::LDAPAvailable () && !Users::LDAPModified ())
     {
@@ -1096,10 +1163,284 @@ click <b>Edit</b> or <b>Delete</b>.
 //================================================================
 
 /**
+ * Validation function for the default value of account expiration
+ */
+define boolean ValidateExpire (string key, map event) {
+    string new_exp_date = (string) UI::QueryWidget(`id (key),`Value);
+
+    if (new_exp_date != "" && !regexpmatch (new_exp_date,
+        "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
+    {
+        // popup label - don't reorder the letters YYYY-MM-DD
+        // The date must stay in this format
+        Report::Error (_("The expiration date must be in the format YYYY-MM-DD."));
+        UI::SetFocus(`id (key));
+	return false;
+    }
+    return true;
+}
+
+/**
+ * Validation function for home directory skeleton directory
+ */
+define boolean ValidateSkeleton (string key, map event) {
+
+    string new_skel = (string) UI::QueryWidget (`id (key), `Value);
+    if (SCR::Read(.target.dir, new_skel) == nil)
+    {
+	// popup error label
+        Report::Error(_("The entered home directory skeleton is not a directory.
+Try again.
+"));
+        UI::SetFocus(`id (key));
+	return false;
+    }
+    return true;
+}
+
+/**
+ * Validation function for the default home prefix
+ */
+define boolean ValidateHomePrefix (string key, map event) {
+
+    string new_home = (string) UI::QueryWidget (`id(key), `Value);
+    if (SCR::Read (.target.dir, new_home) == nil)
+    {
+	if (SCR::Read (.target.size, new_home) != -1)
+	{
+	    // error message
+	    Report::Error(_("The entered path prefix for home is not a directory.
+Try again.
+"));
+	    UI::SetFocus (`id (key));
+	    return false;
+	}
+	else
+	{
+	    // yes/no popup
+	    if (Popup::YesNo (_("The selected directory does not exist.
+Create it now?
+")))
+	    {
+		if (!(boolean) SCR::Execute(.target.mkdir, new_home))
+		{
+		    Report::Error (Message::UnableToCreateDirectory (new_home));
+		    UI::SetFocus (`id (key));
+		    return false;
+		}
+	    }
+	    else
+	    {
+		UI::SetFocus (`id (key));
+		return false;
+	    }
+	}
+    }
+    return true;
+}
+
+/**
+ * Validation function for the value of the default list of groups
+ */
+define boolean ValidateGroupList (string key, map event) {
+
+    map<string,integer> groups	= Users::GetDefaultGrouplist ("local");
+    string grouplist	= mergestring (
+	(list<string>) maplist (string g,integer i, groups, ``(g)), ",");
+    string new_grouplist = (string) UI::QueryWidget (`id(key), `Value);
+
+    if (new_grouplist != grouplist)
+    {
+	list<string> l_grouplist = [];
+	list<string> dont_exist = [];
+	foreach (string g, splitstring (new_grouplist, ","), {
+		    // check for group existence
+		    if (all_groupnames["local", g]:0 == 0 &&
+			all_groupnames["system", g]:0 == 0)
+			dont_exist = (list<string>) union (dont_exist, [g]);
+		    // filter out the duplicates
+		    else l_grouplist = (list<string>) union (l_grouplist, [g]);
+	});
+	if (dont_exist != [])
+	{
+	    // error message
+	    Report::Error(sformat (_("These groups do not exist in your system:
+%1
+Try again.
+"), mergestring (dont_exist, ",")));
+
+	    UI::SetFocus (`id ("groups"));
+	    return false;
+	}
+	new_grouplist = mergestring (l_grouplist, ",");
+	UI::ChangeWidget (`id ("groups"), `Value, new_grouplist);
+    }
+    return true;
+}
+
+/**
+ * Validation function for the default login shell
+ */
+define boolean ValidateShell (string key, map event) {
+
+    string new_shell = (string) UI::QueryWidget (`id (key), `Value);
+    if (! contains (Users::AllShells (), new_shell))
+    {
+	// Yes-No popup
+        return Popup::YesNo (_("If you select a nonexistent shell, the user
+may be unable to log in. Continue?
+"));
+    }
+    return true;
+}
+
+/**
+ * Initialize all the values in the dialog with new user defaults
+ */
+define void InitDefaults (string key) {
+
+    map defaults        = Users::GetLoginDefaults ();
+    list items  =  [];
+    all_groupnames	= UsersCache::GetAllGroupnames ();
+    string defaultgroup	= Users::GetDefaultGroupname ("local");
+
+    foreach (string grouptype, map<string,integer> groupmap, all_groupnames,
+    {
+	// only local sets
+	if (!contains (["local", "system"], grouptype))
+	    return;
+	foreach (string group, integer val, groupmap, {
+	    if (group == defaultgroup)
+		items = add (items, `item (`id(group), group, true));
+	    else
+		items = add (items, `item( `id(group), group));
+	});
+    });
+    UI::ChangeWidget (`id ("defaultgroup"), `Items, items);
+    UI::ChangeWidget (`id ("shell"), `Items, Users::AllShells ());
+    UI::ChangeWidget(`id ("shell"), `Value, Users::GetDefaultShell ("local"));
+
+    map<string,integer> groups	= Users::GetDefaultGrouplist ("local");
+    string grouplist	= mergestring (
+	(list<string>) maplist (string g,integer i, groups, ``(g)), ",");
+    UI::ChangeWidget (`id ("groups"), `Value, grouplist);
+    UI::ChangeWidget (`id ("home"), `Value, defaults["home"]:"/home");
+    UI::ChangeWidget (`id ("skel"), `Value, defaults["skel"]:"/etc/skel");
+
+    UI::ChangeWidget (`id ("inactive"), `Value,
+	tointeger (defaults["inactive"]:"0"));
+
+    string expire	= defaults["expire"]:"";
+    string exp_date	= "";
+    if (expire != "0" && expire != "")
+    {
+	// 'expire' is expected to be number of days since 1970-01-01
+	map out	= (map) SCR::Execute (.target.bash_output, sformat (
+		"date --date='1970-01-01 00:00:01 %1 days' ", expire) +
+		"+\"%Y-%m-%d\"");
+        exp_date = deletechars (out["stdout"]:"", "\n");
+    }
+    UI::ChangeWidget (`id ("expire"), `Value, exp_date);
+    UI::ChangeWidget (`id ("umask"), `Value, Users::GetUmask ());
+    UI::ChangeWidget (`id ("umask"), `InputMaxLength, 3);
+}
+
+/**
+ * Store all the values from the dialog with new user defaults
+ * (when leaving the dialog)
+ */
+define void StoreDefaults (string key, map event) {
+
+    map defaults	= Users::GetLoginDefaults ();
+    map<string,string> new_defaults = $[];
+    foreach (string key, [ "home", "shell", "skel", "inactive" ], {
+	any val	= UI::QueryWidget (`id (key), `Value);
+	if (is (val, integer))
+	    val	= sformat("%1", val);
+	if (defaults[key]:nil != val)
+	{
+	    new_defaults[key]	= (string)val;
+	}
+    });
+    string new_grouplist = (string) UI::QueryWidget (`id ("groups"), `Value);
+    if (sort (splitstring (defaults["groups"]:"", ",")) !=
+	sort (splitstring (new_grouplist, ",")))
+    {
+	new_defaults["groups"]	= new_grouplist;
+    }
+
+    string new_exp_date = (string) UI::QueryWidget(`id ("expire"),`Value);
+    string new_expire	= defaults["expire"]:"";
+    if (new_exp_date == "")
+        new_expire = "";
+    else
+    {
+        map out = (map) SCR::Execute(.target.bash_output,
+	    sformat("date --date='%1 UTC' ", new_exp_date) + "+%s");
+        string seconds_s = deletechars (out["stdout"]:"0", "\n");
+        if (seconds_s != "")
+        {
+	    integer days = (tointeger(seconds_s))/ (60*60*24);
+            new_expire = sformat("%1", days);
+        }
+    }
+    if (new_expire != defaults["expire"]:"")
+	new_defaults["expire"]	= new_expire;
+
+    string new_defgroup = (string)UI::QueryWidget (`id("defaultgroup"),`Value);
+    if (Users::GetDefaultGroupname ("local") != new_defgroup)
+    {
+	map g	= Users::GetGroupByName (new_defgroup, "");
+	new_defaults["group"] = sformat ("%1", GetInt (g["gidnumber"]:nil,
+	    Users::GetDefaultGID ("local")));
+    }
+    if (new_defaults != $[])
+    {
+	Users::SetLoginDefaults (new_defaults, new_defgroup);
+    }
+    string umask = (string)UI::QueryWidget (`id ("umask"), `Value);
+    if (umask != Users::GetUmask ())
+	Users::SetUmask (umask);
+}
+
+/**
+ * universal handler for directory browsing
+ */
+symbol HandleBrowseDirectory (string key, map event) {
+
+    if (event["ID"]:nil != key) return nil;
+    string val		= substring (key, 7);
+    string current	= (string) UI::QueryWidget (`id (val), `Value);
+    if (current == nil) current = "";
+    // directory location popup label
+    string dir	= UI::AskForExistingDirectory (current, _("Path to Directory"));
+    if (dir!= nil)
+    {
+	UI::ChangeWidget (`id (val), `Value, dir);
+    }
+    return nil;
+}
+
+
+/**
+ * Handle the switch between tabs (load set of items for users or groups)
+ */
+define void InitTabUsersGroups (string widget_id) {
+
+    string current_summary	= UsersCache::GetCurrentSummary ();
+    if (current_summary == CWMTab::CurrentTab ())
+    {
+	// tab shows already current set
+	return;
+    }
+    else
+	UsersCache::ChangeCurrentSummary ();
+}
+
+/**
  * Initialize the contents of Summary Table widget
  */
 define void SummaryTableInit (string widget_id) ``{
-
     list items			= [];
     string current_summary	= UsersCache::GetCurrentSummary ();
     if (current_summary == "users")
@@ -1138,11 +1479,21 @@ define void SummaryTableInit (string widget_id) ``{
 	if (focusline != nil)
 	    UI::ChangeWidget (`id(widget_id), `CurrentItem, focusline);
     }
+    UI::ReplaceWidget (`id (`rpexpert),
+	// Menu Buton label
+	`MenuButton (`id(`expertlist), _("E&xpert Options"), union (
+	    GetExpertList(), GetLDAPExpertList ()))
+    );
 }
 
-define symbol SummaryTableHandler (string widget_id, map event) {
+/**
+ * Handler for users/groups summary table
+ */
+define symbol HandleSummaryTable (string widget_id, map event) {
 
     any ev_id = event["ID"]:nil;
+
+    string current_summary	= UsersCache::GetCurrentSummary ();
 
     if (ev_id == "table")
     {
@@ -1151,7 +1502,7 @@ define symbol SummaryTableHandler (string widget_id, map event) {
     if (ev_id == `new)
     {
 	string error	= "";
-	if (UsersCache::GetCurrentSummary () == "users")
+	if (current_summary == "users")
 	{
 	    list<string> current_users	= Users::GetCurrentUsers();
 	    if (size (current_users) > 1)
@@ -1190,7 +1541,7 @@ define symbol SummaryTableHandler (string widget_id, map event) {
         {
 	    string error	= "";
 	    UsersCache::SetCurrentFocus (selected);
-	    if (UsersCache::GetCurrentSummary () == "users")
+	    if (current_summary == "users")
 	    {
 		Users::SelectUserByName (selected);
 		if (ev_id == `delete)
@@ -1232,172 +1583,6 @@ modified and deleted on the server.
             return nil;
         }
     }
-    if (! is (ev_id, symbol))
-    {
-	y2error ("strange ev_id value: %1", ev_id);
-	return nil;
-    }
-    return (symbol) ev_id;
-}
-
-define void RadioButtonsUsersGroupsInit (string widget_id) ``{
-
-    string current_summary	= UsersCache::GetCurrentSummary ();
-    string curr = "";
-    if (current_summary == "users")
-    {
-	list current_users = Users::GetCurrentUsers ();
-        if (UsersCache::CustomizedUsersView ())
-            curr = userset_to_string["custom"]:"";
-	else
-            curr = userset_to_string[current_users[0]:"custom"]:"";
-    }
-    else
-    {
-	list current_groups = Users::GetCurrentGroups ();
-        if (UsersCache::CustomizedGroupsView ())
-            curr = groupset_to_string["custom"]:"";
-	else
-            curr = groupset_to_string[current_groups[0]:"custom"]:"";
-    }
-    // label, e.g. 'Filter: Local Users', 'Filter: NIS Groups', 'Filter: Custom'
-    curr = sformat (_("Filter: %1"), deletechars (curr, "&"));
-
-    UI::ReplaceWidget (`id(`rprb), `HBox (
-	    `Left (`RadioButtonGroup (`HBox(
-		// radiobutton
-		`RadioButton (`id ("users"), `opt(`notify), _("&Users")),
-		// radiobutton
-		`RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
-	    ))),
-	    `Right (`Label (`id(`current_filter), curr))
-    ));
-
-    UI::ChangeWidget (`id (current_summary), `Value, true);
-    Wizard::RestoreHelp (
-	current_summary == "users" ? UsersDialogHelp () : GroupsDialogHelp ()
-    );
-}
-
-define symbol RadioButtonsUsersGroupsHandler (string widget_id, map event) {
-
-    if (!(boolean)
-	UI::QueryWidget (`id (UsersCache::GetCurrentSummary ()),`Value))
-    {
-	UsersCache::ChangeCurrentSummary ();
-	SummaryTableInit ("table");
-
-	UI::ReplaceWidget (`id(`rpfilter), `HBox(
-            // MenuButton label
-            `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
-                GetSetsItems (UsersCache::GetCurrentSummary ()))
-	));
-    }
-    RadioButtonsUsersGroupsInit (widget_id);
-}
-
-define void AdvancedButtonsInit (string widget_id) ``{
-
-    UI::ReplaceWidget (`id(`rpfilter), `HBox(
-	// MenuButton label
-        `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
-	    GetSetsItems (UsersCache::GetCurrentSummary ()))
-    ));
-    UI::ReplaceWidget (`id (`rpexpert),
-	// Menu Buton label
-	`MenuButton (`id(`expertlist), _("E&xpert Options..."), GetExpertList())
-    );
-    if (Users::LDAPAvailable ())
-    {
-	UI::ReplaceWidget (`id (`rpldap),
-	    // Menu Buton label
-	    `MenuButton (`id(`ldaplist), _("&LDAP Options..."), GetLDAPExpertList())
-	);
-	if (Users::LDAPModified ())
-	    UI::ChangeWidget (`id(`ldaplist), `Enabled, false);
-    }
-}
-
-/**
- * Handler for events generated by Expert Settings menubutton
- */
-define symbol AdvancedButtonsHandler (string widget_id, map event) {
-
-    any ev_id			= event["ID"]:nil;
-    string current_summary	= UsersCache::GetCurrentSummary ();
-
-    if (current_summary == "users" && is (ev_id,string) &&
-	contains (Users::GetAvailableUserSets (), (string) ev_id))
-    {
-	if (ev_id == "ldap" && Ldap::bind_pass == nil)
-	{
-	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-	    if (Ldap::bind_pass == nil)
-		return nil;
-	}
-	boolean popup = false;
-	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
-	    (ev_id == "nis" && Users::NISNotRead ()))
-	{
-	    UI::OpenDialog (`opt(`decorated ),
-	        // wait popup
-		`Label(_("Reading sets of users and groups. Please wait...")));
-	    popup = true;
-	}
-        if (Users::ChangeCurrentUsers ((string) ev_id))
-        {
-	    if (popup)
-	    {
-		UI::CloseDialog ();
-		popup = false;
-	    }
-            UsersCache::SetCustomizedUsersView (ev_id == "custom");
-	    SummaryTableInit ("table");
-	    RadioButtonsUsersGroupsInit ("rb_users_groups");
-        }
-	if (popup) UI::CloseDialog ();
-	return nil;
-    }
-    if (current_summary == "groups" && is (ev_id,string) &&
-	contains (Users::GetAvailableGroupSets (), (string) ev_id))
-    {
-	if (ev_id == "ldap" && Ldap::bind_pass == nil)
-	{
-	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
-	}
-	boolean popup = false;
-	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
-	    (ev_id == "nis" && Users::NISNotRead ()))
-	{
-	    UI::OpenDialog (`opt(`decorated ),
-	        // wait popup
-		`Label(_("Reading sets of users and groups. Please wait...")));
-	    popup = true;
-	}
-        if (Users::ChangeCurrentGroups ((string) ev_id))
-        {
-	    if (popup)
-	    {
-		UI::CloseDialog ();
-		popup = false;
-	    }
-            UsersCache::SetCustomizedGroupsView (ev_id == "custom");
-	    SummaryTableInit ("table");
-	    RadioButtonsUsersGroupsInit ("rb_users_groups");
-        }
-	if (popup) UI::CloseDialog ();
-	return nil;
-    }
-    if (ev_id == `customize)
-    {
-        if (CustomizePopup (current_summary) &&
-	    UsersCache::CustomizedUsersView ())
-	{
-	    SummaryTableInit ("table");
-	}
-	RadioButtonsUsersGroupsInit ("rb_users_groups");
-	return nil;
-    }
     if (ev_id == `enc)
     {
 	string enc = EncryptionPopup ();
@@ -1418,6 +1603,23 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
 	AutologinPopup();
 	return nil;
     }
+    if (ev_id == `save)
+    {
+	if (!Users::Modified ())
+	{
+	    //popup message (user wants to save but there is no modification)
+	    Popup::Message (_("There are no changes to save."));
+	    return nil;
+	}
+	Wizard::CreateDialog ();
+        Wizard::SetDesktopIcon("users");
+	any ret = WriteDialog (true);
+	Wizard::CloseDialog ();
+	y2milestone ("WriteDialog returned %1", ret);
+	// LDAP expert options could be available again
+	SummaryTableInit ("table");
+	return nil;
+    }
     if (ev_id == `ldapfilter)
     {
 	// change of search filter (only when LDAP was not modified yet)
@@ -1429,7 +1631,7 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
 	    if (contains (current, "ldap"))
 	    {
 		// simulate the action "show LDAP users"
-		AdvancedButtonsHandler (widget_id, $["ID":"ldap"]);
+		HandleFilterLine (widget_id, $["ID":"ldap"]);
 	    }
 	    // now update the other list (not current_summary)
 	    current = (current_summary == "users") ?
@@ -1463,7 +1665,7 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
 		if (contains (current, "ldap"))
 		{
 		    // simulate the action "show LDAP users"
-		    AdvancedButtonsHandler (widget_id, $["ID":"ldap"]);
+		    HandleFilterLine (widget_id, $["ID":"ldap"]);
 		}
 		// now update the other list (not current_summary)
 		current = (current_summary == "users") ?
@@ -1481,29 +1683,131 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
 	}
 	return nil;
     }
-    if (ev_id == `save)
+    if (! is (ev_id, symbol))
     {
-	if (!Users::Modified ())
-	{
-	    //popup message (user wants to save but there is no modification)
-	    Popup::Message (_("There are no changes to save."));
-	    return nil;
-	}
-	Wizard::CreateDialog ();
-        Wizard::SetDesktopIcon("users");
-	any ret = WriteDialog (true);
-	Wizard::CloseDialog ();
-	if (ret == `next)
-	{
-	    y2debug ("write ret: %1", ret);
-	}
+	y2error ("strange ev_id value: %1", ev_id);
+	return nil;
+    }
+    return (symbol) ev_id;
+}
+
+/**
+ * Initialize the value of the label with current filter and filter selection
+ */
+define void InitFilterLine (string widget_id) {
+
+    string current_summary	= UsersCache::GetCurrentSummary ();
+    string curr = "";
+    if (current_summary == "users")
+    {
+        if (UsersCache::CustomizedUsersView ())
+            curr = userset_to_label["custom"]:"";
 	else
 	{
-	    y2debug ("write ret: %1", ret);
-	    // TODO if write of LDAP fails, should it be read again?
+	    list current_users = Users::GetCurrentUsers ();
+            curr = userset_to_label[current_users[0]:"custom"]:"";
 	}
-	// LDAP expert options could be available again
-	AdvancedButtonsInit ("advanced_buttons");
+    }
+    else
+    {
+        if (UsersCache::CustomizedGroupsView ())
+            curr = groupset_to_label["custom"]:"";
+	else
+	{
+	    list current_groups = Users::GetCurrentGroups ();
+            curr = groupset_to_label[current_groups[0]:"custom"]:"";
+	}
+    }
+    UI::ReplaceWidget (`id(`rpfilter), `HBox(
+	// label, e.g. 'Filter: Local Users', 'Filter: Custom'
+	`Left (`Label (`id(`current_filter), sformat (_("Filter: %1"), curr))),
+	// MenuButton label
+        `MenuButton (`id(`sets), `opt(`key_F2), _("&Set Filter"),
+	    GetSetsItems (current_summary))
+    ));
+}
+
+/**
+ * Handler for events generated by Set Filter widget
+ */
+define symbol HandleFilterLine (string widget_id, map event) {
+
+    any ev_id			= event["ID"]:nil;
+    string current_summary	= UsersCache::GetCurrentSummary ();
+
+    if (current_summary == "users" && is (ev_id,string) &&
+	contains (Users::GetAvailableUserSets (), (string) ev_id))
+    {
+	if (ev_id == "ldap" && Ldap::bind_pass == nil)
+	{
+	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+	    if (Ldap::bind_pass == nil)
+		return nil;
+	}
+	boolean popup = false;
+	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
+	    (ev_id == "nis" && Users::NISNotRead ()))
+	{
+	    UI::OpenDialog (`opt(`decorated ),
+	        // wait popup
+		`Label(_("Reading sets of users and groups. Please wait...")));
+	    popup = true;
+	}
+        if (Users::ChangeCurrentUsers ((string) ev_id))
+        {
+	    if (popup)
+	    {
+		UI::CloseDialog ();
+		popup = false;
+	    }
+            UsersCache::SetCustomizedUsersView (ev_id == "custom");
+	    SummaryTableInit ("table");
+	    InitFilterLine (widget_id);
+	    InitTabUsersGroups ("");
+        }
+	if (popup) UI::CloseDialog ();
+	return nil;
+    }
+    if (current_summary == "groups" && is (ev_id,string) &&
+	contains (Users::GetAvailableGroupSets (), (string) ev_id))
+    {
+	if (ev_id == "ldap" && Ldap::bind_pass == nil)
+	{
+	    Ldap::SetBindPassword (Ldap::GetLDAPPassword (true));
+	}
+	boolean popup = false;
+	if ((ev_id == "ldap" && Users::LDAPNotRead ()) ||
+	    (ev_id == "nis" && Users::NISNotRead ()))
+	{
+	    UI::OpenDialog (`opt(`decorated ),
+	        // wait popup
+		`Label(_("Reading sets of users and groups. Please wait...")));
+	    popup = true;
+	}
+        if (Users::ChangeCurrentGroups ((string) ev_id))
+        {
+	    if (popup)
+	    {
+		UI::CloseDialog ();
+		popup = false;
+	    }
+            UsersCache::SetCustomizedGroupsView (ev_id == "custom");
+	    SummaryTableInit ("table");
+	    InitFilterLine (widget_id);
+	    InitTabUsersGroups ("");
+        }
+	if (popup) UI::CloseDialog ();
+	return nil;
+    }
+    if (ev_id == `customize)
+    {
+        if (CustomizePopup (current_summary) &&
+	    UsersCache::CustomizedUsersView ())
+	{
+	    SummaryTableInit ("table");
+	}
+	InitFilterLine (widget_id);
+	InitTabUsersGroups ("");
 	return nil;
     }
     if (! is (ev_id, symbol))
@@ -1514,22 +1818,296 @@ define symbol AdvancedButtonsHandler (string widget_id, map event) {
     return (symbol) ev_id;
 }
 
+
+
+    /**
+     * helper function to get information about authentication from
+     * appropriate module
+     * @param client
+     * @return
+     */
+    define string get_module_data (string client) {
+
+	string ret = "";
+	boolean progress_orig = Progress::set (false);
+	if (!contains (installed_clients, client))
+	{
+	    ret = Summary::NotConfigured();
+	}
+	else if (client == "ldap")
+	{
+	    Ldap::Read();
+	    ret = Ldap::ShortSummary();
+	}
+	else if (client == "nis")
+	{
+	    WFM::CallFunction ("nis_auto", ["Read"]);
+	    any a = WFM::CallFunction ("nis_auto", ["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
+	}
+	else if (client == "kerberos")
+	{
+	    WFM::CallFunction ("kerberos-client_auto", ["Read"]);
+	    any a = WFM::CallFunction ("kerberos-client_auto",["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
+	}
+	else if (client == "samba")
+	{
+	    WFM::CallFunction ("samba-client_auto", ["Read"]);
+	    any a = WFM::CallFunction ("samba-client_auto", ["ShortSummary"]);
+	    if (is (a,string))
+		ret = (string) a;
+	}
+	Progress::set (progress_orig);
+	return ret;
+    }
+
+    /**
+     * Reloads the configuration for given client and creates updated
+     * summary widget contents
+     * returns the summary value for richtext
+     */
+    define string reload_config (list<string> clients) {
+
+        string summary = "";
+	if (clients == nil || clients == [])
+	    clients	= configurable_clients;
+	foreach (string client, clients, {
+	    summary = Summary::AddHeader (summary, sformat (
+		"<font color=\"#8BC460\"><a href=\"%1\">%2</a></font>",
+		client, client_label[client]:client));
+	    summary = Summary::AddLine (summary, get_module_data (client));
+	});
+	return summary;
+    }
+
+
+/**
+ * Init the widgets in Authentication tab
+ */
+define void InitAuthData (string key) {
+
+    list mb = [];
+
+    map to_string = $[
+        // menubutton label
+        "nis"   : _("&NIS"),
+        // menubutton label
+        "nisplus"   : _("N&IS+"),
+        // menubutton label
+        "ldap"  : _("&LDAP"),
+        // menubutton label
+        "kerberos"  : _("&Kerberos"),
+        // menubutton label
+        "samba"  : _("&Samba"),
+    ];
+
+    // check availability of authentication packages,
+    // update the RichText summary and menubutton labels accordingly
+    foreach (string client, configurable_clients, {
+	string package = sformat ("yast2-%1-client", client);
+	term client_item	= `item (`id(client), to_string[client]:client);
+	if (Package::Installed (package))
+	{
+	    installed_clients	= add (installed_clients, client);
+	}
+	mb			= add (mb, client_item);
+	UI::ChangeWidget (`id ("auth_summary"), `Value,
+	    (string) UI::QueryWidget (`id ("auth_summary"),`Value) +
+	    reload_config ([client])
+	);
+    });
+    if (size (mb) > 0)
+    {
+	UI::ReplaceWidget (`id (`rpbutton),
+	    // menu button label
+	    `MenuButton(`opt(`key_F4), _("&Configure..."), mb)
+	);
+    }
+}
+
+
+/**
+ * Handler for actions in Authentication tab
+ */
+symbol HandleAuthData (string key, map event) {
+
+    if (event["EventType"]:"" != "MenuEvent") return nil;
+    string button	= event["ID"]:"";
+
+    if (!contains (configurable_clients, button)) return nil;
+
+    if (!contains (installed_clients, (string) button))
+    {
+	string package = sformat ("yast2-%1-client", button);
+	if (check_available)
+	{
+	    boolean avai	= Package::Available (package);
+	    if (avai == nil)
+	    {
+		// package manager is probably not accessible -> no more checks
+		check_available	= false;
+	    }
+	    if (avai != true)
+	    {
+		// error popup, %1 is package name
+		Popup::Error (sformat (_("Package %1 is not available for installation."),
+		    package));
+		configurable_clients	= filter (string p,configurable_clients,
+		    ``(p != button));
+		UI::ChangeWidget (`id ("auth_summary"), `Value, reload_config ([]));
+		return nil;
+	    }
+	}
+	if (Package::InstallAllMsg ([package],
+	    // popup label (%1 is package to install)
+	    sformat (_("Package %1 is not installed.
+Install it now?
+"), package)))
+	{
+	    installed_clients = add (installed_clients, (string) button);
+	}
+	else
+	{
+	    return nil;
+	}
+    }
+    list param		= installation () ? [ "from_users" ] : [];
+    if (WFM::CallFunction ((string)call_module[button]:button, param) == `next)
+    {
+	UI::ChangeWidget (`id ("auth_summary"), `Value, reload_config ([]));
+    }
+    return nil;
+}
+
+/**
+ * Actions done when Authentication tab is left
+ */
+define void StoreAuthData (string key, map event) {
+
+    boolean was_nis_available = Users::NISAvailable ();
+    boolean was_ldap_available = Users::LDAPAvailable ();
+    Users::ReadSourcesSettings();
+
+    // enabling NIS/LDAP could add + lines (they are not in current cache that
+    // would be saved after user modifications):
+    if ((!was_nis_available && Users::NISAvailable ()) ||
+	(!was_ldap_available && Users::LDAPAvailable()))
+    {
+	y2milestone ("ldap or nis enabled now");
+	Users::AddPlusPasswd ("+::::::");
+	Users::AddPlusGroup ("+:::");
+	Users::AddPlusShadow ("+");
+    }
+}
+
+
+map tabs_description	= $[
+
+    "users"	: $[
+	// tab header
+	"header"	: _("&Users"),
+	"contents"	: `HBox (`HSpacing (0.5), `VBox (
+	    "filter_line",
+	    "tab_switch_users",
+	    "table"
+	), `HSpacing (0.5)),
+	"widget_names"	: [
+	    "tab_switch_users",
+	    "filter_line",
+	    "table",
+	],
+    ],
+    "groups"	: $[
+	// tab header
+	"header"	: _("&Groups"),
+	"contents"	: `HBox (`HSpacing (0.5), `VBox (
+	    "filter_line",
+	    "tab_switch_groups",
+	    "table"
+	), `HSpacing (0.5)),
+	"widget_names"	: [
+	    "tab_switch_groups",
+	    "filter_line",
+	    "table",
+	],
+    ],
+    "defaults"	: $[
+	// tab header
+	"header"	: _("De&faults for New Users"),
+	"contents"	: `HBox (`HSpacing (), `VBox (
+	    `VStretch (),
+            `VSpacing(0.2),
+	    "defaults_global",
+	    "defaultgroup",
+	    "groups",
+	    "shell",
+	    `HBox (
+		"home",
+		`VBox (`Label (""), "browse_home")
+	    ),
+	    `HBox(
+		"skel",
+		`VBox (`Label (""), "browse_skel")
+	    ),
+	    "umask",
+	    "expire",
+	    "inactive",
+            `VSpacing (0.2),
+	    `VStretch ()
+	), `HSpacing ()),
+	"widget_names"	: [
+	    "defaults_global",
+	    "defaultgroup", "groups", "shell", "home", "browse_home",
+	    "skel", "browse_skel", "umask", "expire", "inactive",
+	],
+    ],
+    "authentication"	: $[
+	// tab header
+	"header"	: _("&Authentication Settings"),
+	"contents"	: `HBox (`HSpacing (), `VBox(
+            `VSpacing(0.5),
+	    "auth_global",
+            `VSpacing (0.5)
+        ), `HSpacing ()),
+	"widget_names"	: [
+	    "auth_global",
+	],
+    ]
+];
+
+
 map <string, map <string, any> > widgets = $[
-    "rb_users_groups" : $[
-        "widget"		: `custom,
-	"custom_widget"		: `ReplacePoint (`id(`rprb), `HBox (
-	    `Left (`RadioButtonGroup (`HBox(
-		// radiobutton
-		`RadioButton (`id ("users"), `opt(`notify), _("&Users")),
-		// radiobutton
-		`RadioButton (`id ("groups"), `opt(`notify), _("&Groups"))
-	    ))),
-	    `Right (`Label (`id(`current_filter), "")))
-	),
-        "init"			: RadioButtonsUsersGroupsInit,
-        "handle"		: RadioButtonsUsersGroupsHandler,
-	"handle_events"		: [ "users", "groups" ],
-	"no_help"		: true
+
+    // widgets for "users" and "groups" tabs ---------------------------------
+
+    "tab_switch_users"	: $[
+	"widget"        : `empty,
+	"init"          : InitTabUsersGroups,
+	"help"		: UsersDialogHelp (),
+    ],
+    "tab_switch_groups"	: $[
+	"widget"        : `empty,
+	"init"          : InitTabUsersGroups,
+	"help"		: GroupsDialogHelp (),
+    ],
+    "filter_line"	: $[
+        "widget"	: `custom,
+	"custom_widget"	: `ReplacePoint (`id(`rpfilter), `HBox (
+	    `Left (`Label (`id(`current_filter), "")),
+	    `Right (`MenuButton (`id(`sets), `opt(`key_F2, `disabled),
+		_("&Set Filter"), []))
+	)),
+        "init"		: InitFilterLine,
+	"handle"	: HandleFilterLine,
+	"handle_events"		: [
+	    // these are for user/group types
+	    "local", "system", "ldap", "nis", "custom",
+	    `customize,
+	],
+	"no_help"	: true
     ],
     "table" : $[
         "widget"		: `custom,
@@ -1540,35 +2118,129 @@ map <string, map <string, any> > widgets = $[
 		`PushButton(`id(`edit), `opt(`key_F4), Label::EditButton ()),
 		`PushButton(`id(`delete), `opt(`key_F5),Label::DeleteButton()),
 		`HStretch(),
-		`ReplacePoint (`id (`rpfilter),
-		    // menubutton label
-		    `MenuButton (`id(`sets), `opt(`key_F2, `disabled), _("&Set Filter"), [])
+		`ReplacePoint (`id (`rpexpert),
+		    // Menu Buton label
+		    `MenuButton (`id(`expertlist), _("E&xpert Options"), [])
 		)
-	    )
+	    ),
+	    `VSpacing (0.2)
 	),
 	"init"			: SummaryTableInit,
-	"handle"		: SummaryTableHandler,
-	"handle_events"		: ["table", `new, `edit, `delete, `next],
-	"no_help"		: true
-    ],
-    "advanced_buttons" : $[
-        "widget"		: `custom,
-	"custom_widget"		: `HBox (
-	    `ReplacePoint (`id (`rpexpert),
-		// Menu Buton label
-		`MenuButton (`id(`expertlist), _("E&xpert Options..."),[])
-	    ),
-	    `ReplacePoint (`id (`rpldap), `Empty ())
-	),
-	"init"			: AdvancedButtonsInit,
-	"handle"		: AdvancedButtonsHandler,
+	"handle"		: HandleSummaryTable,
 	"handle_events"		: [
-	    // these are for user/group types
-	    "local", "system", "ldap", "nis", "custom",
-	    `defaults, `customize, `enc, `auth, `autologinconf, `ldapfilter,
-	    `ldapconf, `save
+	    "table", `new, `edit, `delete, `next, `enc, `autologinconf, `save,
+	    `ldapfilter, `ldapconf,
 	],
 	"no_help"		: true
+    ],
+
+    // widgets for user defaults --------------------------------------------
+
+    "defaults_global"	: $[
+	"widget"	: `empty,
+	"init"		: InitDefaults,
+	"store"		: StoreDefaults,
+	"help"		: DefaultsDialogHelp (),
+    ],
+    "defaultgroup"	: $[
+	"widget"        : `combobox,
+	"opt"           : [ `hstretch ],
+        // combobox label
+	"label"		: _("D&efault Group"),
+	"no_help"	: true,
+    ],
+    "shell"		: $[
+	"widget"        : `combobox,
+	"opt"           : [ `hstretch, `editable ],
+        // combobox label
+	"label"		: _("Default &Login Shell"),
+	"no_help"	: true,
+	"validate_type"	: `function,
+	"validate_function"	: ValidateShell,
+    ],
+    "groups"		: $[
+	"widget"	: `textentry,
+        // text entry
+	"label"		: _("Se&condary Groups"),
+	"no_help"	: true,
+	"validate_type"	: `function,
+	"validate_function"	: ValidateGroupList,
+    ],
+    "home"		: $[
+	"widget"	: `textentry,
+        // text entry
+	"label"		: _("Path Prefix for &Home Directory"),
+	"no_help"	: true,
+	"validate_type"	: `function,
+	"validate_function"	: ValidateHomePrefix,
+    ],
+    "browse_home"		: $[
+	"widget"	: `push_button,
+	// push button label
+	"label"         : _("&Browse..."),
+	"opt"		: [ `key_F6 ],
+	"handle"        : HandleBrowseDirectory,
+	"no_help"	: true,
+    ],
+    "skel"		: $[
+	"widget"	: `textentry,
+        // text entry
+	"label"		: _("&Skeleton for Home Directory"),
+	"no_help"	: true,
+	"validate_type"	: `function,
+	"validate_function"	: ValidateSkeleton,
+    ],
+    "browse_skel"		: $[
+	"widget"	: `push_button,
+	// push button label
+	"label"         : _("Bro&wse..."),
+	"opt"		: [ `key_F7 ],
+	"handle"        : HandleBrowseDirectory,
+	"no_help"	: true,
+    ],
+    "expire"		: $[
+	"widget"	: `textentry,
+        // text entry
+	"label"		: _("Default E&xpiration Date"),
+	"no_help"	: true,
+	"validate_type"	: `function,
+	"validate_function"	: ValidateExpire,
+    ],
+    "umask"		: $[
+	"widget"	: `textentry,
+	"valid_chars"	: "01234567",
+        // text entry
+	"label"		: _("&Umask for Home Directory"),
+	"no_help"	: true,
+    ],
+    "inactive"		: $[
+	"widget"	: `intfield,
+	"opt"		: [ `hstretch ],
+        // intfield
+	"label"		: _("Days &after Password Expiration Login Is Usable"),
+	"minimum"	: -1,
+	"no_help"	: true,
+    ],
+
+    // widgets for authentication settings tab ------------------------------
+
+    "auth_global"	: $[
+	"widget"	: `custom,
+	"help"		: AuthentizationDialogHelp (),
+	"init"		: InitAuthData,
+	"store"		: StoreAuthData,
+	"handle"        : HandleAuthData,
+	"custom_widget"		: `VBox (
+            `RichText (`id ("auth_summary"), ""),
+            `VSpacing (0.5),
+	    `ReplacePoint (`id (`rpbutton),
+		// menu button label
+		`MenuButton(`opt(`key_F4), _("&Configure..."), [])
+	    )
+	),
+	"handle_events"		: [
+	    "ldap", "nis", "kerberos", "samba",
+	],
     ],
 ];
 

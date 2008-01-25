@@ -13,6 +13,7 @@
 textdomain "users";
 
 import "CWM";
+import "CWMTab";
 import "Label";
 import "Ldap";
 import "Mode";
@@ -64,14 +65,19 @@ define symbol InitializeTableItems () ``{
  */
 define symbol SummaryDialog() {
 
+    widgets["tab_users_groups"] = CWMTab::CreateWidget($[
+        "tab_order"	: ["users", "groups", "defaults", "authentication"],
+	"tabs"		: tabs_description,
+	"widget_descr"	: widgets,
+	"initial_tab"	: UsersCache::GetCurrentSummary (),
+    ]);
+
     term contents = `VBox (
-	`HBox ("rb_users_groups"),
-        "table",
-	"advanced_buttons"
+	"tab_users_groups"
     );
 
     any ret = CWM::ShowAndRun ($[
-	"widget_names"	: ["rb_users_groups", "table", "advanced_buttons" ],
+	"widget_names"	: ["tab_users_groups" ],
 	"widget_descr"	: widgets,
 	"contents"	: contents,
 	// dialog caption
@@ -155,8 +161,6 @@ define symbol MainSequence(string start) {
 	"group_edit"		: ``(EditGroupDialog("edit_group")),
 	"group_save"		: [``(GroupSave()), true],
 
-	"defaults"		: ``(DefaultsDialog()),
-	"auth"			: ``(AuthentizationDialog()),
 	"without_save"		: ``(ReallyAbort()),
     ];
 
@@ -172,8 +176,6 @@ define symbol MainSequence(string start) {
 	    `new_group		: "group_add",
 	    `edit_group		: "group_edit",
             `delete_group	: "group_save",
-            `defaults		: "defaults",
-	    `auth		: "auth",
 	    `abort		: "without_save",
 	    `cancel		: "without_save",
 	    `next		: `next,
@@ -221,14 +223,6 @@ define symbol MainSequence(string start) {
 	    `cancel		: `abort,
 	],
         "group_save"  : $[
-            `next		: "summary"
-	],
-        "defaults": $[
-	    `abort		: "without_save",
-            `next		: "summary"
-	],
-        "auth": $[
-	    `abort		: "without_save",
             `next		: "summary"
 	],
         "without_save": $[

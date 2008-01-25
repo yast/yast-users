@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jan 25 11:27:21 CET 2008 - jsuchome@suse.cz
+
+- inst_auth: replaced deprecated NetworkDevices by NetworkInterfaces
+- main UI updated for the usage of tabs (#279959)
+- 2.16.6
+
+-------------------------------------------------------------------
 Thu Dec 13 15:33:04 CET 2007 - jsuchome@suse.cz
 
 - allow to set delivering root's mail to user's mailbox: also

@@ -16,7 +16,7 @@ import "Directory";
 import "FileUtils";
 import "Label";
 import "Ldap";
-import "NetworkDevices";
+import "NetworkInterfaces";
 import "NetworkService";
 import "Package";
 import "Popup";
@@ -82,7 +82,7 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
 
 
 // Check if lan is configured
-list<string> net_devices = NetworkDevices::ListDevicesExcept("dialup");
+list<string> net_devices = NetworkInterfaces::ListDevicesExcept("dialup");
 y2debug("net_devices: %1", net_devices);
 
 boolean found = (size (net_devices) > 0) || NetworkService::IsManaged ();
