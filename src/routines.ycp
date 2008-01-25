@@ -11,6 +11,14 @@
 textdomain "users";
 
 /**
+ * check if this is installation stage -
+ * adding user during firstboot should be same as during 2nd stage
+ */
+define boolean installation () {
+    return Stage::cont () || Stage::firstboot ();
+}
+
+/**
  * helper function: return the 'any' value as integer
  */
 define integer GetInt (any value, integer default_value) {
