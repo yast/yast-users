@@ -23,6 +23,6 @@ X-SuSE-YaST-AutoInstSchema=users.rnc
 Icon=yast-users
 Exec=/sbin/yast2 users
 
-Name=User Management
-GenericName=Add, Edit or Delete Users
+Name=User and Group Management
+GenericName=Add, Edit, Delete Users or User Groups
 X-KDE-SubstituteUID=true
