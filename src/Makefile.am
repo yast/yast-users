@@ -45,8 +45,7 @@ client_DATA = 		\
     users_plugin_quota.ycp
 
 desktop_DATA =		\
-    users.desktop	\
-    groups.desktop
+    users.desktop
 
 rnc_DATA =		\
     users.rnc

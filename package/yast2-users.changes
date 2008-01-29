@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jan 29 14:56:17 CET 2008 - jsuchome@suse.cz
+
+- "User Management" is "User and Group Management" now in control
+  center: group desktop file removed (F303392)
+- 2.16.7
+
+-------------------------------------------------------------------
 Fri Jan 25 11:27:21 CET 2008 - jsuchome@suse.cz
 
 - inst_auth: replaced deprecated NetworkDevices by NetworkInterfaces
