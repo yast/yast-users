@@ -12,17 +12,49 @@
 
     textdomain "users";
 
+    import "Autologin";
     import "GetInstArgs";
     import "Package";
     import "Label";
     import "Ldap";
+    import "Progress";
     import "Users";
     import "UsersCache";
+    import "UsersSimple";
     import "Wizard";
 
     include "users/wizards.ycp";
 
-    any ret	= `back;
+    symbol ret	= `back;
+    if (!GetInstArgs::going_back() &&
+	UsersSimple::AfterAuth () == "users" &&
+	UsersSimple::GetUser () != $[])
+    {
+	map<string,any> user	= UsersSimple::GetUser ();
+	y2milestone ("user defined in 1st stage, let's save now...");
+	boolean progress_orig = Progress::set (false);
+	Users::Read ();
+	string error	= Users::AddUser (user); //TODO check ret values
+	error		= Users::CheckUser ($[]);
+	if (Users::CommitUser ())
+	{
+	    if (UsersSimple::AutologinUsed ()) // TODO check available?
+	    {
+		Autologin::user	= UsersSimple::GetAutologinUser ();
+		Autologin::used = true;
+		Autologin::modified = true;
+	    }
+	    string root_alias	= UsersSimple::GetRootAlias ();
+	    if (root_alias != "")
+	    {
+		Users::AddRootAlias (root_alias);
+	    }
+	    error = Users::Write ();
+	    UsersSimple::SetUser ($[]);
+	}
+	Progress::set (progress_orig);
+	return `next;
+    }
 
     // dialog caption
     string caption = _("User Authentication Method");

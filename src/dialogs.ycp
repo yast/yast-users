@@ -1644,15 +1644,15 @@ _("Change home directory to %1?"), generated_home))))
 	    if (root_mail_checked)
 	    {
 		if (username != org_username)
-		    Users::RemoveRootMail (org_username);
-		Users::AddRootMail (username);
+		    Users::RemoveRootAlias (org_username);
+		Users::AddRootAlias (username);
 	    }
 	    else if (root_mail) // not checked now, but checked before
 	    {
 		if (username != org_username)
-		    Users::RemoveRootMail (org_username);
+		    Users::RemoveRootAlias (org_username);
 		else
-		    Users::RemoveRootMail (username);
+		    Users::RemoveRootAlias (username);
 	    }
 	}
 

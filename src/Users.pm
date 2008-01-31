@@ -238,6 +238,7 @@ YaST::YCP::Import ("UsersLDAP");
 YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
+YaST::YCP::Import ("UsersSimple");
 YaST::YCP::Import ("UsersUI");
 
 ##-------------------------------------------------------------------------
@@ -351,7 +352,7 @@ BEGIN { $TYPEINFO{SetRootMail} = ["function", "void", "string"]; }
 sub SetRootMail {
     my $self		= shift;
     my $root_a 		= shift;
-    y2warning ("this function is obsolete, use RemoveRootMail/AddRootMail instead");
+    y2warning ("this function is obsolete, use RemoveRootAlias/AddRootAlias instead");
     foreach my $alias (split (/,/, $root_a)) {
 	$alias	=~ s/[ \t]//g;
 	$root_aliases{$alias}	= 1;
@@ -365,16 +366,16 @@ sub GetRootAliases {
 }
 
 # remove the given user from root's aliases set
-BEGIN { $TYPEINFO{RemoveRootMail} = ["function", "void", "string"]; }
-sub RemoveRootMail {
+BEGIN { $TYPEINFO{RemoveRootAlias} = ["function", "void", "string"]; }
+sub RemoveRootAlias {
     my $self		= shift;
     my $u		= shift;
     delete $root_aliases{$u} if (defined $root_aliases{$u});
 }
 
 # add the given user to root's aliases set
-BEGIN { $TYPEINFO{AddRootMail} = ["function", "void", "string"]; }
-sub AddRootMail {
+BEGIN { $TYPEINFO{AddRootAlias} = ["function", "void", "string"]; }
+sub AddRootAlias {
     my $self		= shift;
     my $u		= shift;
     $root_aliases{$u}	= 1;
@@ -1873,7 +1874,7 @@ sub DeleteUser {
 	if (Autologin->user () eq $username) {
 	    Autologin->Disable ();
 	}
-	$self->RemoveRootMail ($username);
+	$self->RemoveRootAlias ($username);
 
 	my $type		= $user_in_work{"type"};
 	my $plugins		= $user_in_work{"plugins"};
@@ -4710,49 +4711,37 @@ sub Write {
 }
 
 ##-------------------------------------------------------------------------
-##----------------- check routines (TODO move outside...) ---------
-
-# "-" means range! -> at the begining or at the end!
-# now CHARACTER_CLASS from /etc/login.defs is used
-my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._-";
-
-my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`~<>]|]";# the ']' is or-ed...
-
-# error popup	
-my $valid_password_message = __("The password may only contain the following characters:
-0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
-Try again.");
-
-my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_.-]";
+##----------------- check routines ----------------------------------------
 
 ##------------------------------------
 BEGIN { $TYPEINFO{ValidLognameChars} = ["function", "string"]; }
 sub ValidLognameChars {
-    return $valid_logname_chars;
+    return UsersSimple->ValidLognameChars ();
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{ValidPasswordChars} = ["function", "string"]; }
 sub ValidPasswordChars {
-    return $valid_password_chars;
+    return UsersSimple->ValidPasswordChars ();
+}
+
+##------------------------------------
+BEGIN { $TYPEINFO{ValidHomeChars} = ["function", "string"]; }
+sub ValidHomeChars {
+    return UsersSimple->ValidHomeChars ();
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{ValidPasswordMessage} = ["function", "string"]; }
 sub ValidPasswordMessage {
-    return $valid_password_message;
+    return UsersSimple->ValidPasswordMessage ();
 }
 
 ##------------------------------------
 # Return the part of help text about valid password characters
 BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
 sub ValidPasswordHelptext {
-    # help text (default part shown in more places)
-    return __("<p>
-For the password, use only characters that can be found on an English keyboard
-layout.  In cases of system error, it may be necessary to log in without a
-localized keyboard layout.
-</p>");
+    return UsersSimple->ValidPasswordHelptext ();
 }
 
 ##------------------------------------
@@ -5006,11 +4995,12 @@ Try again.");
     }
 
     my $filtered = $pw;
+    my $valid_password_chars	= $self->ValidPasswordChars ();
     $filtered =~ s/$valid_password_chars//g;
     $filtered =~ s/\\//g; # bug 175706
 
     if ($filtered ne "") {
-	return $valid_password_message;
+	return $self->ValidPasswordMessage ();
     }
     return "";
 }
@@ -5228,6 +5218,7 @@ sub CheckHome {
     my $type		= UsersCache->GetUserType ();
     my $first 		= substr ($home, 0, 1);
     my $filtered 	= $home;
+    my $valid_home_chars= $self->ValidHomeChars ();
     $filtered 		=~ s/$valid_home_chars//g;
 
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {

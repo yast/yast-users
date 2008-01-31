@@ -1,0 +1,53 @@
+/**
+ * File:	include/users/users_finish.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Installation client for writing users configuration
+ *		at the end of 1st stage
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+{
+textdomain "users";
+
+import "UsersSimple";
+
+any ret = nil;
+string func = "";
+map param = $[];
+
+/* Check arguments */
+if(size(WFM::Args()) > 0 && is(WFM::Args(0), string)) {
+    func = (string)WFM::Args(0);
+    if(size(WFM::Args()) > 1 && is(WFM::Args(1), map))
+	param = (map)WFM::Args(1);
+}
+
+y2milestone ("starting users_finish");
+y2debug("func=%1", func);
+y2debug("param=%1", param);
+
+if (func == "Info")
+{
+    return (any)$[
+	"steps" : 1,
+	// progress step title
+	"title" : _("Writing Users Configuration..."),
+	"when" : [ `installation,  `autoinst ],
+    ];
+}
+else if (func == "Write")
+{
+    UsersSimple::Write ();
+}
+else
+{
+    y2error ("unknown function: %1", func);
+    ret = nil;
+}
+
+y2debug("ret=%1", ret);
+y2milestone("users_finish finished");
+return ret;
+
+}
