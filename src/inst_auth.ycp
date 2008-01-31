@@ -14,6 +14,7 @@ textdomain "users";
 
 import "Directory";
 import "FileUtils";
+import "GetInstArgs";
 import "Label";
 import "Ldap";
 import "NetworkInterfaces";
@@ -22,9 +23,8 @@ import "Package";
 import "Popup";
 import "Users";
 import "UsersCache";
+import "UsersSimple";
 import "Wizard";
-import "GetInstArgs";
-
 
 
 /**
@@ -80,6 +80,17 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
     return ret == `ok ? selected : nil;
 }
 
+//----------------------------------------- main body ----------------------
+
+// first check if some settings were written in first stage
+if (!GetInstArgs::going_back()) {
+
+    Users::SetKerberosConfiguration (UsersSimple::KerberosConfiguration ());
+    Users::SetAfterAuth (UsersSimple::AfterAuth ());
+    y2milestone ("skipping authentication dialog...");
+    return `next;
+    // TODO: actually, this could be all for this client...
+}
 
 // Check if lan is configured
 list<string> net_devices = NetworkInterfaces::ListDevicesExcept("dialup");

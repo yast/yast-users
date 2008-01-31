@@ -30,9 +30,20 @@ import "Security"; // Perl module (Users.pm) donesn't call constructor...
 import "Stage";
 import "Users";
 import "UsersCache";
+import "UsersSimple";
 import "Wizard";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
+
+    UsersSimple::Read ();
+    if (!GetInstArgs::going_back() && UsersSimple::RootPasswordWritten ())
+    {
+	y2milestone ("root password was already written...");
+	// write encryption method (makes sense even if no local user is set)
+	Users::SetEncryptionMethod (UsersSimple::EncryptionMethod ());
+	Users::WriteSecurity ();
+	return `auto;
+    }
 
     boolean check_CA_constraints	=
 	ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");

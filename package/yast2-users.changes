@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Thu Jan 31 16:11:28 CET 2008 - jsuchome@suse.cz
+
+- unified function names for RootAlias handling
+- first steps for implementation of FATE 302980,
+    "Simplified user config during installation" :
+- added inst_user_first.ycp, client for user configuration in first
+  stage of installation
+- UsersSimple.pm is module for saving the data gathered from firs
+  stage
+- inst_root, inst_auth, inst_user updated to check for first stage
+  configuration data
+- 2.16.7
+
+-------------------------------------------------------------------
 Tue Jan 29 14:56:17 CET 2008 - jsuchome@suse.cz
 
 - "User Management" is "User and Group Management" now in control

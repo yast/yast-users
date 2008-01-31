@@ -1,0 +1,452 @@
+{
+    import "GetInstArgs";
+    import "Label";
+    import "Mode";
+    import "Stage";
+    import "Report";
+    import "String";
+    import "UsersSimple";
+    import "Wizard";
+
+    textdomain "users";
+
+    string auth_method		= UsersSimple::AfterAuth ();
+
+    string encryption_method	= UsersSimple::EncryptionMethod ();
+
+    boolean use_kerberos	= UsersSimple::KerberosConfiguration ();
+
+    map button_labels = $[
+	// radiobutton to select ldap user auth.
+	"ldap":      _("&LDAP"),
+	// radiobutton to select nis user auth.
+	"nis":       _("N&IS"),
+	// radiobutton to select samba user auth.
+	"samba":       _("&Windows Domain"),
+	// radiobutton to select local user auth.
+	"users":     _("L&ocal (/etc/passwd)"),
+	// radiobutton to select local user auth.
+	"edir_ldap":	_("&eDirectory LDAP"),
+	// radiobutton to select local user auth.
+	"users":     _("L&ocal (/etc/passwd)"),
+    ];
+
+    map auth2label = $[
+	// authentication type
+	"ldap":      _("LDAP"),
+	// authentication type
+	"nis":       _("NIS"),
+	// authentication type
+	"samba":       _("Samba (Windows Domain)"),
+	// authentication type
+	"edir_ldap":	_("eDirectory LDAP"),
+    ];
+
+    map<string,string> encoding2label	= $[
+	// encryption type
+	"des"		: _("DES"),
+	// encryption type
+	"md5"		: _("MD5"),
+	// encryption type
+	"blowfish"	: _("Blowfish"),
+    ];
+
+    term buttons = `VBox (`VSpacing(0.5));
+    list<string> available_clients = [
+	"users", "ldap", "nis", "samba", "edir_ldap" ];
+
+    foreach (string client, available_clients, {
+	buttons = add (buttons, `Left (`RadioButton (
+	    `id(client), `opt (`notify), button_labels[client]:"")
+	));
+    });
+// FIXME 'import previous user' is missing
+
+    buttons = add (buttons, `VSpacing(0.5));
+
+    term auth_term = `VBox (
+	`Frame (_("Authentication Method"),
+	    `RadioButtonGroup (`id (`auth_method), buttons)
+	),
+	`VSpacing (),
+	// check box label
+	`Left (`CheckBox (`id(`krb), _("Set Up &Kerberos Authentication")))
+    );
+
+    // frame label
+    term encryption_term	= `Frame (_("Password Encryption Type"),
+	`RadioButtonGroup (`id (`encryption_method), `VBox (
+	    `VSpacing (0.5),
+	    // Radio button label: password encryption type
+	    `Left (`RadioButton (`id ("des"), _("&DES (Linux default)"))),
+	    // Radio button label: password encryption type
+	    `Left (`RadioButton (`id ("md5"), _("&MD5"))),
+	    // Radio button label: password encryption type
+	    `Left (`RadioButton (`id ("blowfish"), _("&Blowfish"))),
+	    `VSpacing (0.5)
+	))
+    );
+
+    // help text for dialog "User Authentication Method" 1/3
+    string auth_help = _("<p>
+<b>Authentication</b><br>
+Select the authentication method to use for users on your system.
+</p>") +
+
+// helptext 2/3
+_("<p>Select <b>Local</b> to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>");
+
+    auth_help = auth_help +
+	// helptext 3/3 -- nis & samba & ldap avialable
+_("<p>If you are using a NIS or LDAP server to store user data or if you want
+to authenticate users against an NT server, choose the appropriate value.</p>") +
+
+    // helptext: additional kerberos support
+    _("<p>Check <b>Set Up Kerberos Authentication</b> to configure Kerberos after configuring the user data source.</p>");
+
+      // Help text for password expert dialog
+      string encryption_help = _("<p>
+Choose a password encryption method for local and system users.
+<b>DES</b>, the Linux default method, works in all network environments, but it
+restricts passwords to eight characters or less.
+</p>
+") +
+      // Help text for password expert dialog
+      _("<p>
+<b>MD5</b> allows longer passwords, so provides more security, but some
+network protocols do not support this and you may have problems with NIS.
+</p>") +
+
+      // Help text for password expert dialog
+      _("<p>
+<b>Blowfish</b> is similar to MD5, but uses a different algorithm
+to encrypt passwords.
+</P>");
+
+    // help text for main add user dialog
+    string main_help () {
+	// help text for main add user dialog
+	string help	= _("<p>
+Enter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to
+assign to this user account.
+</p>
+") +
+	// help text for main add user dialog
+	_("<p>
+When entering a password, distinguish between uppercase and
+lowercase. Passwords should not contain any special characters, such as
+accented characters. 
+</p>
+") +
+	// help text %1 is encryption type, %2,%3 numbers
+	sformat (_("<p>
+With the current password encryption (%1), the password length should be between
+ %2 and %3 characters.
+</p>"),
+	    encoding2label[encryption_method]:encryption_method,
+	    UsersSimple::GetMinPasswordLength ("local"),
+	    UsersSimple::GetMaxPasswordLength ("local")
+	) +
+
+	UsersSimple::ValidPasswordHelptext () +
+
+	// help text for main add user dialog
+	_("<p>
+To ensure that the password was entered correctly,
+repeat it exactly in a second field. Do not forget your password.
+</p>
+") +
+	// help text for main add user dialog
+	_("<p>
+Create the <b>Username</b> from components of the full name by
+clicking <b>Suggestion</b>. It may be modified, but use only
+letters (no accented characters), digits, and <tt>._-</tt>.
+Do not use uppercase letters in this entry unless you know what you are doing.
+Usernames have stricter restrictions than passwords. You can redefine the
+restrictions in the /etc/login.defs file. Read its man page for information.
+</p>
+") +
+
+	// help text for main add user dialog
+	_("<p>
+The username and password created here are needed to log in and work with your Linux system. With <b>Automatic Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>
+") +
+
+	// help text for main add user dialog
+ _("<p>
+Have mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>
+");
+	return help;
+    }
+
+    /**
+     * Dialog for expert user settings: authentication method as well
+     * as password encryption (see fate 302980)
+     * @return true if user accepted expert settings
+     */
+    boolean ExpertDialog () {
+
+	term contents = `HBox (
+	    `HWeight (1, `HBox ()),
+	    `HWeight (9, `HBox (`VBox (
+		`VStretch (),
+		auth_term,
+		`VSpacing (),
+		encryption_term,
+		`VStretch ()
+	    ))),
+	    `HWeight (1, `HBox ())
+	);
+
+
+	Wizard::OpenAcceptDialog ();
+	Wizard::SetContents (_("Expert Settings"), contents,
+	    auth_help + encryption_help, true, true
+	);
+	UI::ChangeWidget (`id (`auth_method), `CurrentButton, auth_method);
+	UI::ChangeWidget (`id (`encryption_method), `CurrentButton,
+	    encryption_method);
+	UI::ChangeWidget (`id (`krb), `Value, use_kerberos);
+	UI::ChangeWidget (`id (`krb), `Enabled,
+	    auth_method != "users" && auth_method != "samba");
+	foreach (string enc, string l, encoding2label, {
+	    UI::ChangeWidget (`id(enc),`Enabled, auth_method == "users");
+	});
+	any retval =	`cancel;
+	while (true)
+	{
+	    retval = UI::UserInput ();
+	    if (is (retval, string) && haskey (button_labels, (string)retval))
+	    {
+		UI::ChangeWidget (`id(`krb),`Enabled,
+		    retval != "users" && retval != "samba");
+		foreach (string enc, string l, encoding2label, {
+		    UI::ChangeWidget (`id(enc),`Enabled, retval == "users");
+		});
+	    }
+	    if (retval == `cancel || retval == `accept || retval == `back)
+		break;
+	}
+	if (retval == `accept)
+	{
+	    auth_method	= (string)
+		UI::QueryWidget (`id (`auth_method), `CurrentButton);
+	    encryption_method = (string)
+		UI::QueryWidget (`id(`encryption_method), `CurrentButton);
+	    UsersSimple::SetEncryptionMethod (encryption_method);
+	    if (auth_method == "users" || auth_method == "samba")
+		use_kerberos	= false;
+	    else
+		use_kerberos	= (boolean) UI::QueryWidget (`id(`krb), `Value);
+	}
+	Wizard::CloseDialog ();
+	return (retval == `accept);
+    }
+
+    // build the term with current user configuration status
+    term get_status_term	() {
+	if (auth_method == "users")
+	    return `VBox (
+		`Left (`Label (
+		    // summary label
+		    _("The authentication method is local /etc/passwd."))),
+		`Left (`Label (
+		    // summary label
+		    sformat (_("The password encryption method is %1."),
+		    encoding2label[encryption_method]:encryption_method)
+		))
+	    );
+	else
+	{
+	    // summary line: %1 is LDAP/NIS etc.
+	    string auth_line = sformat (_("The authentication method is %1."),
+		auth2label[auth_method]:auth_method);
+	    if (use_kerberos)
+		// summary line: %1 is LDAP/NIS etc.
+		auth_line = sformat (_("The authentication method is %1 and Kerberos."), auth2label[auth_method]:auth_method);
+	    term cont	= `VBox (
+		`Left (`Label (auth_line)),
+		`Left (`Label (
+		    // summary label FIXME too long for ncurses
+		    _("The configuration will be available later during the installation.")
+		))
+	    );
+	    return cont;
+	}
+    }
+
+    map<string,any>user	= UsersSimple::GetUser ();
+
+    string user_type	= user["type"]:"local";
+    string username	= user["uid"]:"";
+    string cn		= user["cn"]:"";
+    string password	= (string)user["userpassword"]:nil;
+
+    // this user gets root's mail
+    boolean root_mail	=
+	(username != "" && UsersSimple::GetRootAlias () == username);
+
+    map display_info        = UI::GetDisplayInfo ();
+    boolean text_mode	= display_info["TextMode"]:false;
+
+    term fields = `VBox(
+	// text entry
+	`TextEntry (`id(`cn), `opt (`notify), _("User's &Full Name"), cn),
+	// input field for login name
+	`TextEntry (`id(`username), `opt (`notify),_("&Username"),username),
+	`Password(`id(`pw1), Label::Password(), ""),
+	`Password(`id(`pw2), Label::ConfirmPassword(), "")
+    );
+
+    term optionbox = `VBox (
+	`Left (`CheckBox (`id (`root_pw),
+	    // checkbox label
+	    _("U&se this password for system administrator"), false)
+// FIXME no help text
+	),
+	`Left (
+	    // checkbox label
+	    `CheckBox (`id (`root_mail), _("Receive S&ystem Mail"), root_mail)
+	),
+	// checkbox label
+	`Left (`CheckBox (`id (`autologin),_("&Automatic Login"),
+	    UsersSimple::AutologinUsed ())
+	)
+    );
+    term contents = `HBox (
+	`HWeight (1, `HBox ()),
+	`HWeight (9, `HBox (
+	`VBox (
+		`VStretch (),
+		`ReplacePoint (`id (`rp_user), `VBox (
+		    fields,
+		    `VSpacing (0.2),
+		    optionbox
+		)),
+		`VSpacing (),
+		// frame label
+		`Frame (_("Summary"), `HBox (`HSpacing (0.2), `VBox (
+		    `ReplacePoint (`id (`rp_status), get_status_term ()),
+		    // pushbutton label
+		    `HBox (`Right (`PushButton (`id(`change),_("&Change...")))),
+		    `VSpacing (0.2)
+		))),
+		`VStretch ()
+	))),
+	`HWeight (1, `HBox ())
+    );
+
+    if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
+
+    Wizard::SetDesktopIcon("users");
+    // dialog caption
+    Wizard::SetContents (_("Create New User"), contents,
+	main_help (),
+	GetInstArgs::enable_back(), GetInstArgs::enable_next()
+    );
+    string proposed_login	= "";
+    boolean login_modified	= false;
+    symbol ret			= `back;
+    while (true)
+    {
+	ret = (symbol) UI::UserInput ();
+	if (ret == `change)
+	{
+	    if (ExpertDialog ())
+	    {
+		// show correct values now
+		UI::ReplaceWidget (`id (`rp_status), get_status_term ());
+		foreach (symbol w, [`cn, `username, `pw1, `pw2, `root_pw,
+		    `root_mail, `autologin ], {
+		    UI::ChangeWidget (`id (w), `Enabled,auth_method == "users");
+		});
+		Wizard::RestoreHelp (main_help ());
+	    }
+	}
+	if (ret == `cn)
+	{
+	    string uname = (string)UI::QueryWidget (`id (`username), `Value);
+	    if (login_modified && uname == "")
+		login_modified = false; // reenable suggestion
+	    if (!login_modified)
+	    {
+		string full	= (string)UI::QueryWidget (`id (`cn), `Value);
+		UI::ChangeWidget (`id (`username), `Value, tolower (
+		    filterchars (full, UsersSimple::ValidLognameChars ()))
+		);
+	    }
+	}
+	if (ret == `username)
+	{
+	    login_modified	= true;
+	}
+	if (ret == `next)
+	{
+	    // TODO do all the checks
+	    username	= (string) UI::QueryWidget(`id(`username), `Value);
+	    if (username == "" || auth_method != "users")
+	    {
+		break;
+	    }
+            string pw1          = (string) UI::QueryWidget(`id(`pw1), `Value);
+            string pw2          = (string) UI::QueryWidget(`id(`pw2),`Value);
+
+	    // --------------------------------- password checks
+            if (pw1 != pw2)
+            {
+                // The two group password information do not match
+                // error popup
+                Report::Error(_("The passwords do not match.
+Try again.")) ;
+
+                continue;
+            }
+	    // all the checks are done, we can save the data
+	    password	= pw1;
+	}
+	if (contains ([`back, `abort, `cancel, `next], ret))
+	    break;
+    }
+    if (ret == `next)
+    {
+	UsersSimple::SetAfterAuth (auth_method);
+	UsersSimple::SetKerberosConfiguration (use_kerberos);
+	if (auth_method == "users" && username != "")
+	{
+	    // save the first user data
+	    UsersSimple::SetUser ($[
+		"uid"		: username,
+		"userpassword"	: password,
+		"cn"		: cn
+	    ]);
+	    if ((boolean) UI::QueryWidget (`id (`root_pw), `Value))
+	    {
+		UsersSimple::SetRootPassword (password);
+	    }
+	    UsersSimple::SetAutologinUser (
+		(UI::QueryWidget(`id (`autologin),`Value)==true) ? username : ""
+	    );
+	    UsersSimple::SetRootAlias (
+		(UI::QueryWidget (`id (`root_mail), `Value) == true) ?
+		username : ""
+	    );
+	}
+	else if (auth_method != "users")
+	{
+	    // TODO: preselect the required packages for installation
+	    y2internal ("TODO: preselect required packages for installation");
+	}
+    }
+    else if (ret == `back)
+    {
+	// reset to defaults
+	UsersSimple::SetAutologinUser ("");
+	UsersSimple::SetRootAlias ("");
+	UsersSimple::SetRootPassword (password);
+	UsersSimple::SetUser ($[]);
+    }
+
+
+    if (Mode::normal ()) Wizard::CloseDialog ();
+    return ret;
+}
