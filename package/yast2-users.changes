@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 13 14:36:28 CET 2008 - visnov@suse.cz
+
+- show icons in users table
+
+-------------------------------------------------------------------
 Thu Jan 31 16:11:28 CET 2008 - jsuchome@suse.cz
 
 - unified function names for RootAlias handling
