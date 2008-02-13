@@ -789,8 +789,11 @@ sub BuildUserItem {
 	$full		= $user{"gecos"};
     }
 
+    my $iconname	= "yast-users.png";
+    
     if ($user{"type"} eq "system") {
 	$full		= UsersUI->SystemUserName ($full);
+	$iconname	= "yast-system-user.png"
     }
     if (ref ($full) eq "ARRAY") {
 	$full	= $full->[0];
@@ -805,7 +808,7 @@ sub BuildUserItem {
     my $all_groups	= join (",", keys %grouplist);
 
     my $id = YaST::YCP::Term ("id", $username);
-    my $t = YaST::YCP::Term ("item", $id, $username, $full, $uid, $all_groups);
+    my $t = YaST::YCP::Term ("item", $id, YaST::YCP::Term("cell", YaST::YCP::Term("icon", $iconname), $username), $full, $uid, $all_groups);
     return $t;
 }
 
