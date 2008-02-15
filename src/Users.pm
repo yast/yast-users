@@ -1207,16 +1207,14 @@ sub ReadCustomSets {
     if (@group_custom_sets == 0) {
 	@group_custom_sets = ("local");
     }
-    # LDAP is not set in nsswitch, but in customs
-    if (contains (\@user_custom_sets, "ldap") ||
-	contains (\@group_custom_sets, "ldap")) {
-	$ldap_available	= 1;
-        if (!contains (\@available_usersets, "ldap")) {
-	    push @available_usersets, "ldap";
-	}
-        if (!contains (\@available_groupsets, "ldap")) {
-	    push @available_groupsets, "ldap";
-	}
+    # LDAP is not set in nsswitch, but in customs: remove from customs (#360600)
+    if (!$ldap_available &&
+	(contains (\@user_custom_sets, "ldap") ||
+	 contains (\@group_custom_sets, "ldap")))
+    {
+	@user_custom_sets       = grep (!/^ldap$/, @user_custom_sets);
+	@group_custom_sets      = grep (!/^ldap$/, @group_custom_sets);
+	$customs_modified       = 1;
     }
 }
 
