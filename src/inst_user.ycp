@@ -38,7 +38,7 @@
 	error		= Users::CheckUser ($[]);
 	if (Users::CommitUser ())
 	{
-	    if (UsersSimple::AutologinUsed ()) // TODO check available?
+	    if (UsersSimple::AutologinUsed ())
 	    {
 		Autologin::user	= UsersSimple::GetAutologinUser ();
 		Autologin::used = true;
@@ -55,6 +55,7 @@
 	Progress::set (progress_orig);
 	return `next;
     }
+    if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
     // dialog caption
     string caption = _("User Authentication Method");
@@ -189,5 +190,6 @@ Install it now?
         y2warning( "UsersSequence returns null!" );
         ret = `auto;
     }
+    if (Mode::normal ()) Wizard::CloseDialog ();
     return (symbol) ret;
 }

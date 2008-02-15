@@ -156,9 +156,6 @@ my $pass_max_days		= "99999";
 # password encryption method
 my $encryption_method		= "des";
 my $group_encryption_method	= "des";
-my $use_cracklib 		= 1;
-my $cracklib_dictpath		= "";
-my $obscure_checks 		= 1;
 
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
@@ -191,18 +188,6 @@ my $root_mail			= "";
 # hash with user names that should get root's mail
 my %root_aliases		= ();
 my %root_aliases_orig		= ();
-
-my %min_pass_length	= (
-    "local"		=> 5,
-    "ldap"		=> 5,
-    "system"		=> 5
-);
-
-my %max_pass_length	= (
-    "local"		=> 8,
-    "ldap"		=> 8,
-    "system"		=> 8
-);
 
 # users sets in "Custom" selection:
 my @user_custom_sets		= ("local");
@@ -758,21 +743,15 @@ after you mount correctly. Continue user configuration?"),
 BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer", "string"]; }
 sub GetMinPasswordLength {
 
-    my $self		= shift;
-    if (defined ($min_pass_length{$_[0]})) {
-	return $min_pass_length{$_[0]};
-    }
-    else { return 5;}
+    my ($self, $type)		= @_;
+    return UsersSimple->GetMinPasswordLength ($type);
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "integer", "string"]; }
 sub GetMaxPasswordLength {
-    my $self		= shift;
-    if (defined ($max_pass_length{$_[0]})) {
-	return $max_pass_length{$_[0]};
-    }
-    else { return 8; }
+    my ($self, $type)		= @_;
+    return UsersSimple->GetMaxPasswordLength ($type);
 }
 
 ##------------------------------------
@@ -1335,13 +1314,13 @@ sub ReadSystemDefaults {
     $group_encryption_method
 	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
 
-    $cracklib_dictpath	= $security{"CRACKLIB_DICTPATH"};
-    $use_cracklib 	= ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
-    $obscure_checks 	= ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
+    UsersSimple->SetCrackLibDictPath ($security{"CRACKLIB_DICTPATH"} || "");
+    UsersSimple->UseCrackLib ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
+    UsersSimple->UseObscureChecks ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
 
     if (defined $security{"PASS_MIN_LEN"}) {
-	$min_pass_length{"local"}	= $security{"PASS_MIN_LEN"};
-	$min_pass_length{"system"}	= $security{"PASS_MIN_LEN"};
+	UsersSimple->SetMinPasswordLength ("local", $security{"PASS_MIN_LEN"});
+	UsersSimple->SetMinPasswordLength ("system", $security{"PASS_MIN_LEN"});
     }
 
     my $login_defs	= SCR->Dir (".etc.login_defs");
@@ -1355,8 +1334,9 @@ sub ReadSystemDefaults {
 
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
-	$max_pass_length{"local"}	= $max_lengths{$encryption_method};
-	$max_pass_length{"system"}	= $max_pass_length{"local"};
+	my $len	= $max_lengths{$encryption_method};
+	UsersSimple->SetMaxPasswordLength ("local", $len);
+	UsersSimple->SetMaxPasswordLength ("system", $len);
     }
 
     UsersCache->InitConstants (\%security);
@@ -1404,8 +1384,8 @@ sub ReadLDAPSet {
     $groups{$type}		= \%{SCR->Read (".ldap.groups")};
     $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
     # read the necessary part of LDAP user configuration
-    $min_pass_length{"ldap"}= UsersLDAP->GetMinPasswordLength ();
-    $max_pass_length{"ldap"}= UsersLDAP->GetMaxPasswordLength ();
+    UsersSimple->SetMinPasswordLength("ldap",UsersLDAP->GetMinPasswordLength());
+    UsersSimple->SetMaxPasswordLength("ldap",UsersLDAP->GetMinPasswordLength());
 
     if ($use_gui) {
 	UsersCache->BuildUserItemList ($type, $users{$type});
@@ -4871,6 +4851,7 @@ Really change the user type to 'system'?"), UsersCache->GetMaxUID ("system") + 1
     # SetUserType has to be called after this function...!
 }
 
+
 ##------------------------------------
 # check the username of current user
 BEGIN { $TYPEINFO{CheckUsername} = ["function", "string", "string"]; }
@@ -4878,40 +4859,13 @@ sub CheckUsername {
 
     my $self		= shift;
     my $username	= $_[0];
-
-    if (!defined $username || $username eq "") {
-	# error popup
-        return __("No username entered.
-Try again.");
-    }
-
-    my $min		= UsersCache->GetMinLoginLength ();
-    my $max		= UsersCache->GetMaxLoginLength ();
-
-    if (length ($username) < $min || length ($username) > $max) {
-
-	# error popup
-	return sprintf (__("The username must be between %i and %i characters in length.
-Try again."), $min, $max);
-    }
-
-    my $filtered	= $username;
     my $type		= $user_in_work{"type"} || "";
-    # Samba users may need to have '$' at the end of username (#40433)
-    if ($type eq "ldap") {
-	$filtered =~ s/\$$//g;
-    }
-    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
-    my $stdout = $grep->{"stdout"} || "";
-    $stdout =~ s/\n//g;
-    if ($stdout ne $filtered) {
-	y2warning ("username $username doesn't match to $character_class");
-	# error popup
-	return __("The username may contain only
-letters, digits, \"-\", \".\", and \"_\"
-and must begin with a letter or \"_\".
-Try again.");
-    }
+
+    my $ret		= UsersSimple->CheckUsernameLength ($username);
+    return $ret if $ret;
+
+    $ret		= UsersSimple->CheckUsernameContents ($username, $type);
+    return $ret if $ret;
 
     if (("add_user" eq ($user_in_work{"what"} || "")) ||
 	($username ne ($user_in_work{"uid"} || "")) ||
@@ -4937,16 +4891,8 @@ Try another one."), $more);
 BEGIN { $TYPEINFO{CheckFullname} = ["function", "string", "string"]; }
 sub CheckFullname {
 
-    my $self		= shift;
-    my $fullname	= $_[0];
-
-    if (defined $fullname && $fullname =~ m/[:,]/) {
-	# error popup
-        return __("The user's full name cannot contain
-\":\" or \",\" characters.
-Try again.");
-    }
-    return "";
+    my ($self, $fullname)        = @_;
+    return UsersSimple->CheckFullname ($fullname);
 }
 
 ##------------------------------------
@@ -4978,138 +4924,26 @@ Remove the surplus.");
 }
 
 ##------------------------------------
-# check the password of current user
+# Check the password of current user for the valid characters
+# This function is OBSOLETE, use UsersSimple->CheckPassword instead
 # return value is error message
 BEGIN { $TYPEINFO{CheckPassword} = ["function", "string", "string"]; }
 sub CheckPassword {
 
     my $self		= shift;
-    my $pw 		= $_[0];
+    my $pw 		= shift;
     my $type		= UsersCache->GetUserType ();
-    my $min_length 	= $min_pass_length{$type};
-
-    if ((!defined $pw) || ($pw eq "" && $min_length > 0)) {
-	# error popup
-	return __("No password entered.
-Try again.");
-    }
-
-    my $filtered = $pw;
-    my $valid_password_chars	= $self->ValidPasswordChars ();
-    $filtered =~ s/$valid_password_chars//g;
-    $filtered =~ s/\\//g; # bug 175706
-
-    if ($filtered ne "") {
-	return $self->ValidPasswordMessage ();
-    }
-    return "";
+    y2warning ("This function is OBSOLETE, use UsersSimple->CheckPassword"); 
+    return UsersSimple->CheckPassword ($pw, $type);
 }
 
-##------------------------------------
-# Try to crack password using cracklib
-# @param username user name
-# @param pw password
-# @return utility output: either "" or error message
-sub CrackPassword {
-
-    my $ret 	= "";
-    my $pw 	= $_[0];
-
-    if (!defined $pw || $pw eq "") {
-	return $ret;
-    }
-    if (!defined $cracklib_dictpath || $cracklib_dictpath eq "" ||
-	!FileUtils->Exists ("$cracklib_dictpath.pwd")) {
-	$ret = SCR->Execute (".crack", $pw);
-    }
-    else {
-	$ret = SCR->Execute (".crack", $pw, $cracklib_dictpath);
-    }
-    if (!defined ($ret)) { $ret = ""; }
-
-    return UsersUI->RecodeUTF ($ret);
-}
 
 ##------------------------------------
-# Just some simple checks for password contens
-# @param username user or group name
-# @param pw password
-# @return error message (password too simple) or empty string (OK)
-sub CheckObscurity {
-
-    my $name		= $_[0];
-    my $pw 		= $_[1];
-    my $current_summary	= UsersCache->GetCurrentSummary ();
-
-    if ($pw =~ m/$name/) {
-	if ($current_summary eq "groups") {
-	    # popup question
-	    return __("You have used the group name as a part of the password.
-This is not a good security practice. Really use this password?");
-	}
-	# popup question
-        return __("You have used the username as a part of the password.
-This is not a good security practice. Really use this password?");
-    }
-
-    # check for lowercase
-    my $filtered 	= $pw;
-    $filtered 		=~ s/[[:lower:]]//g;
-    if ($filtered eq "") {
-	# popup question
-        return __("You have used only lowercase letters for the password.
-This is not a good security practice. Really use this password?");
-    }
-
-    # check for uppercase
-    $filtered 		= $pw;
-    $filtered 		=~ s/[[:upper:]]//g;
-    if ($filtered eq "") {
-	# popup question
-        return __("You have used only uppercase letters for the password.
-This is not a good security practice. Really use this password?");
-    }
-    
-    # check for palindroms
-    $filtered 		= reverse $pw;
-    if ($filtered eq $pw) {
-	# popup question
-        return __("You have used a palindrom for the password.
-This is not a good security practice. Really use this password?");
-    }
-
-    # check for numbers
-    $filtered 		= $pw;
-    $filtered 		=~ s/[0-9]//g;
-    if ($filtered eq "") {
-	# popup question
-        return __("You have used only digits for the password.
-This is not a good security practice. Really use this password?");
-    }
-    return "";
-}
-
-##------------------------------------
-# Checks if password is not too long
-# @param pw password
-sub CheckPasswordMaxLength {
-
-    my $self		= shift;
-    my $pw 		= $_[0];
-    my $type		= UsersCache->GetUserType ();
-    my $max_length 	= $max_pass_length{$type};
-    my $ret		= "";
-
-    if (length ($pw) > $max_length) {
-	# popup question
-        $ret = sprintf (__("The password is too long for the current encryption method.
-Truncate it to %s characters?"), $max_length);
-    }
-    return $ret;
-}
-
-##------------------------------------
-# check the password of current user -- part 2
+# Check the password of given user or group: part 2, checking for
+# problems that may be skipped (accepted) by user
+# This function is OBSOLETE, it is here just for compatibility reasons, new
+# function UsersSimple->CheckPasswordUI has different API)
+# @return value is map with the problem found
 BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
     ["map", "string", "string"],
     "string", "string", ["map", "string", "integer"]];
@@ -5121,15 +4955,16 @@ sub CheckPasswordUI {
     my $pw 		= $_[1];
     my %ui_map		= %{$_[2]};
     my $type		= UsersCache->GetUserType ();
-    my $min_length 	= $min_pass_length{$type};
+    my $min_length 	= $self->GetMinPasswordLength ();
     my %ret		= ();
-
+    
+    y2warning ("this function is obsolete, use UsersSimple->CheckPasswordUI");
     if ($pw eq "") {
 	return \%ret;
     }
 
-    if ($use_cracklib && (($ui_map{"crack"} || 0) != 1)) {
-	my $error = CrackPassword ($pw);
+    if (UsersSimple->CrackLibUsed () && (($ui_map{"crack"} || 0) != 1)) {
+	my $error = UsersSimple->CrackPassword ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
 	    # popup question
@@ -5140,8 +4975,8 @@ Really use this password?"), $error);
 	}
     }
     
-    if ($obscure_checks && (($ui_map{"obscure"} || 0) != 1)) {
-	my $error = CheckObscurity ($name, $pw);
+    if (UsersSimple->ObscureChecksUsed () && (($ui_map{"obscure"} || 0) != 1)) {
+	my $error = UsersSimple->CheckObscurity ($name, $pw, UsersCache->GetCurrentSummary ());
 	if ($error ne "") {
 	    $ret{"question_id"}	= "obscure";
 	    $ret{"question"}	= $error;
@@ -5159,7 +4994,7 @@ Really use this shorter password?"), $min_length);
     }
     
     if (($ui_map{"truncate"} || 0) != 1) {
-	my $error = $self->CheckPasswordMaxLength ($pw);
+	my $error = UsersSimple->CheckPasswordMaxLength ($pw, $type);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "truncate";
 	    $ret{"question"}	= $error;
@@ -5732,8 +5567,9 @@ sub SetEncryptionMethod {
 	$security_modified 		= 1;
 	my %max_lengths			= %{Security->PasswordMaxLengths ()};
 	if (defined $max_lengths{$encryption_method}) {
-	    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
-	    $max_pass_length{"system"}	= $max_pass_length{"local"};
+	    my $len	= $max_lengths{$encryption_method};
+	    UsersSimple->SetMaxPasswordLength ("local", $len);
+	    UsersSimple->SetMaxPasswordLength ("system", $len);
 	}
     }
 }

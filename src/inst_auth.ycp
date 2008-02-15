@@ -89,7 +89,7 @@ if (!GetInstArgs::going_back()) {
     Users::SetAfterAuth (UsersSimple::AfterAuth ());
     y2milestone ("skipping authentication dialog...");
     return `next;
-    // TODO: actually, this could be all for this client...
+    // TODO continue only when control.xml requires it
 }
 
 // Check if lan is configured

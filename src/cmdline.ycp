@@ -17,6 +17,7 @@ import "Ldap";
 import "Users";
 import "UsersCache";
 import "UsersLDAP";
+import "UsersSimple";
 import "Report";
 
 // --------------------------------------------------------------------------
@@ -290,7 +291,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 	}
 	user["userpassword"]	= pw;
     }
-    string error = Users::CheckPassword (user["userpassword"]:"");
+    string error = UsersSimple::CheckPassword (user["userpassword"]:"", type);
 
     if (error != "")
     {
