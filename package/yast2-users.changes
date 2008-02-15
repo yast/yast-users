@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb 15 08:21:47 CET 2008 - jsuchome@suse.cz
+
+- moved password and user name checks to UsersSimple.pm to make
+  them available during first stage of installation
+- 2.16.9
+
+-------------------------------------------------------------------
 Thu Feb 13 14:36:28 CET 2008 - visnov@suse.cz
 
 - show icons in users table
@@ -15,7 +22,7 @@ Thu Jan 31 16:11:28 CET 2008 - jsuchome@suse.cz
   stage
 - inst_root, inst_auth, inst_user updated to check for first stage
   configuration data
-- 2.16.7
+- 2.16.8
 
 -------------------------------------------------------------------
 Tue Jan 29 14:56:17 CET 2008 - jsuchome@suse.cz

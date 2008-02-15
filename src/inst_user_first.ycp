@@ -2,6 +2,7 @@
     import "GetInstArgs";
     import "Label";
     import "Mode";
+    import "Popup";
     import "Stage";
     import "Report";
     import "String";
@@ -26,7 +27,7 @@
 	// radiobutton to select local user auth.
 	"users":     _("L&ocal (/etc/passwd)"),
 	// radiobutton to select local user auth.
-	"edir_ldap":	_("&eDirectory LDAP"),
+	"edir_ldap":	_("&eDirectory LDAP"), // FIXME check if available
 	// radiobutton to select local user auth.
 	"users":     _("L&ocal (/etc/passwd)"),
     ];
@@ -289,19 +290,30 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     map display_info        = UI::GetDisplayInfo ();
     boolean text_mode	= display_info["TextMode"]:false;
 
-    term fields = `VBox(
+    term fields = `VBox (
+	/*
 	// text entry
 	`TextEntry (`id(`cn), `opt (`notify), _("User's &Full Name"), cn),
 	// input field for login name
 	`TextEntry (`id(`username), `opt (`notify),_("&Username"),username),
-	`Password(`id(`pw1), Label::Password(), ""),
-	`Password(`id(`pw2), Label::ConfirmPassword(), "")
+	*/
+	`InputField (`id (`cn), `opt (`notify, `hstretch),
+	    // text entry
+	    _("User's &Full Name"), cn),
+	`InputField (`id (`username), `opt (`notify, `hstretch),
+	    // input field for login name
+	    _("&Username"),username),
+	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
+	    password == nil ? "" : "*****"),
+	`Password (`id (`pw2), `opt (`hstretch), Label::ConfirmPassword(),
+	    password == nil ? "" : "*****")
     );
 
     term optionbox = `VBox (
 	`Left (`CheckBox (`id (`root_pw),
 	    // checkbox label
-	    _("U&se this password for system administrator"), false)
+	    _("U&se this password for system administrator"),
+	    UsersSimple::GetRootPassword () == password)
 // FIXME no help text
 	),
 	`Left (
@@ -316,13 +328,18 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     term contents = `HBox (
 	`HWeight (1, `HBox ()),
 	`HWeight (9, `HBox (
-	`VBox (
+	`HCenter (`HSquash (`VBox (
 		`VStretch (),
-		`ReplacePoint (`id (`rp_user), `VBox (
+		/*
+		`HSquash (`VBox (
 		    fields,
 		    `VSpacing (0.2),
 		    optionbox
 		)),
+		*/
+		fields,
+		`VSpacing (0.2),
+		optionbox,
 		`VSpacing (),
 		// frame label
 		`Frame (_("Summary"), `HBox (`HSpacing (0.2), `VBox (
@@ -332,7 +349,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 		    `VSpacing (0.2)
 		))),
 		`VStretch ()
-	))),
+	))))),
 	`HWeight (1, `HBox ())
     );
 
@@ -382,16 +399,52 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	}
 	if (ret == `next)
 	{
-	    // TODO do all the checks
-	    username	= (string) UI::QueryWidget(`id(`username), `Value);
+	    string error	= "";
+	    // map returned from Check*UI functions
+	    map error_map			= $[];
+	    // map with id's of confirmed questions
+	    map<string,integer> ui_map	= $[];
+	    // --------------------------------- username checks
+	    username	= (string) UI::QueryWidget (`id (`username), `Value);
 	    if (username == "" || auth_method != "users")
 	    {
 		break;
 	    }
+	    error	= UsersSimple::CheckUsernameLength (username);
+	    if (error != "")
+	    {
+                Report::Error (error);
+		UI::SetFocus (`id (`username));
+                continue;
+	    }
+	    error	= UsersSimple::CheckUsernameContents (username, "");
+	    if (error != "")
+	    {
+                Report::Error (error);
+		UI::SetFocus (`id (`username));
+                continue;
+	    }
+	    error       = UsersSimple::CheckUsernameConflicts (username);
+	    if (error != "")
+	    {
+                Report::Error (error);
+		UI::SetFocus (`id (`username));
+                continue;
+	    }
+
+	    // --------------------------------- full name checks
+	    cn		= (string) UI::QueryWidget(`id(`cn), `Value);
+	    error	= UsersSimple::CheckFullname (cn);
+	    if (error != "")
+	    {
+		Report::Error (error);
+		UI::SetFocus (`id (`cn));
+		continue;
+	    }
+	    // --------------------------------- password checks
             string pw1          = (string) UI::QueryWidget(`id(`pw1), `Value);
             string pw2          = (string) UI::QueryWidget(`id(`pw2),`Value);
 
-	    // --------------------------------- password checks
             if (pw1 != pw2)
             {
                 // The two group password information do not match
@@ -399,8 +452,41 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
                 Report::Error(_("The passwords do not match.
 Try again.")) ;
 
+		UI::SetFocus (`id (`pw1));
                 continue;
             }
+
+	    error = UsersSimple::CheckPassword (pw1, "local");
+	    if (error != "")
+	    {
+		Report::Error (error);
+		UI::SetFocus (`id (`pw1));
+		continue;
+	    }
+	    boolean failed			= false;
+	    do
+	    {
+		error_map	= UsersSimple::CheckPasswordUI ($[
+		    "uid"		: username,
+		    "userpassword"	: pw1,
+		    "type"		: "local",
+		], ui_map);
+		if (error_map != $[])
+		{
+		    if (!Popup::YesNo (error_map ["question"]:""))
+			failed = true;
+		    else
+			ui_map[ error_map["question_id"]:"" ] = 1;
+		}
+	    } while (error_map != $[] && !failed);
+
+	    if (failed)
+	    {
+		UI::SetFocus (`id (`pw1));
+		continue;
+	    }
+
+	    // FIXME home dir checks -> change UID if home is found
 	    // all the checks are done, we can save the data
 	    password	= pw1;
 	}
@@ -419,10 +505,9 @@ Try again.")) ;
 		"userpassword"	: password,
 		"cn"		: cn
 	    ]);
-	    if ((boolean) UI::QueryWidget (`id (`root_pw), `Value))
-	    {
-		UsersSimple::SetRootPassword (password);
-	    }
+	    UsersSimple::SetRootPassword (
+		(UI::QueryWidget (`id (`root_pw), `Value)==true) ? password : ""
+	    );
 	    UsersSimple::SetAutologinUser (
 		(UI::QueryWidget(`id (`autologin),`Value)==true) ? username : ""
 	    );
@@ -434,7 +519,26 @@ Try again.")) ;
 	else if (auth_method != "users")
 	{
 	    // TODO: preselect the required packages for installation
-	    y2internal ("TODO: preselect required packages for installation");
+	    y2internal ("preselect required packages for installation");
+	    map<string,list<string> > required_packages	= $[
+		"ldap"	: [ "yast2-ldap-client", "pam_ldap", "nss_ldap"],
+		"nis"	: [ "yast2-nis-client", "ypbind" ],
+		"samba"	: [ "yast2-samba-client" ], // TODO
+	    ];
+/*
+import "PackageSystem";
+
+	    PackageSystem::EnsureSourceInit ();
+//	    PackageSystem::EnsureTargetInit ();
+	    foreach (string package, required_packages[auth_method]:[], {
+		Pkg::ResolvableInstall (package, `package);
+	    });
+	    Pkg::PkgSolve (true);
+import "PackageCallbacksInit";
+	    PackageCallbacksInit::InitPackageCallbacks ();
+	    Pkg::PkgCommit (0);
+	    // TODO + kerberos...
+	    */
 	}
     }
     else if (ret == `back)
@@ -442,7 +546,7 @@ Try again.")) ;
 	// reset to defaults
 	UsersSimple::SetAutologinUser ("");
 	UsersSimple::SetRootAlias ("");
-	UsersSimple::SetRootPassword (password);
+	UsersSimple::SetRootPassword ("");
 	UsersSimple::SetUser ($[]);
     }
 

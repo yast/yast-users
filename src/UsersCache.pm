@@ -69,9 +69,6 @@ my %last_gid		= (
     "ldap"		=> 1000
 );
 
-my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
-my $min_length_login 	= 2;
-
 my $max_length_groupname 	= 32;
 my $min_length_groupname	= 2;
 
@@ -118,71 +115,6 @@ sub ResetProposing {
     $proposal_count	= -1;
 }
 
-
-BEGIN { $TYPEINFO{ProposeUsername} = ["function", "string", "string"]; }
-sub ProposeUsername {
-
-    my $self		= shift;
-    my $cn		= $_[0];
-    my $default_login  	= "lxuser";
-
-    if ($proposal_count == -1) {
-	# generate new list of possible usernames each time cn is changed
-
-	@proposed_usernames	= ();
-	# do not propose username with uppercase (problematic: bug #26409)
-	my @parts 		= split (/ /, lc ($cn));
-	my %tested_usernames 	= ();
-
-	# 1st: add some interesting modifications...
-	my $i = 0;
-	foreach my $part (@parts) { #TODO use 'map'
-	    $tested_usernames{$part}	= 1;
-	}
-	while ($i < @parts - 1) {
-	    my $j = $i;
-	    while ($j < @parts - 1) {
-		$tested_usernames{$parts[$i].$parts[$j+1]}	= 1;
-		$tested_usernames{$parts[$j+1].$parts[$i]}	= 1;
-		$tested_usernames{substr ($parts[$i], 0, 1).$parts[$j+1]} = 1;
-		$tested_usernames{$parts[$j+1].substr ($parts[$i], 0, 1)} = 1;
-		$j++;
-	    }
-	    $i++;
-	}
-
-	# 2nd: check existence
-	foreach my $name (sort keys %tested_usernames) {
-	    my $name_count = 0;
-	    while ($self->UsernameExists ($name)) {
-		$name .= "$name_count";
-		$name_count ++;
-	    }
-	    if (length ($name) < $min_length_login ||
-		length ($name) > $max_length_login) {
-		next;
-	    }
-	    push @proposed_usernames, $name;
-	};
-	if (@proposed_usernames < 1 && !$self->UsernameExists ($default_login)){
-	    push @proposed_usernames, $default_login;
-	}
-
-	if (!$self->UsernameExists ("$the_answer") && @proposed_usernames > 11){
-	    push @proposed_usernames, "$the_answer";
-	}
-	$proposal_count = 0;
-    }
-    if ($proposal_count >= @proposed_usernames) {
-	$proposal_count = 0;
-    }
-
-    my $login = $proposed_usernames[$proposal_count] || $default_login;
-
-    $proposal_count ++;
-
-    return $login;
-}
 
 BEGIN { $TYPEINFO{DebugMap} = ["function", "void", "any"];}
 sub DebugMap {
@@ -549,20 +481,6 @@ BEGIN { $TYPEINFO{GetGroupType} = ["function", "string"]; }
 sub GetGroupType {
 
     return $group_type;
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{GetMinLoginLength} = ["function", "integer" ]; }
-sub GetMinLoginLength {
-    my $self	= shift;
-    return $min_length_login;
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{GetMaxLoginLength} = ["function", "integer" ]; }
-sub GetMaxLoginLength {
-    my $self	= shift;
-    return $max_length_login;
 }
 
 ##------------------------------------
