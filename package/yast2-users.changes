@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb 15 10:07:18 CET 2008 - jsuchome@suse.cz
+
+- remove LDAP entries from custom settings if LDAP is not present
+  in /etc/nsswitch.conf (#bnc360600)
+- 2.13.59
+
+-------------------------------------------------------------------
 Mon Jan 21 11:04:29 CET 2008 - jsuchome@suse.cz
 
 - allow '\' in root's password during installation (#350478)
