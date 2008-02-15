@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb 15 10:10:08 CET 2008 - jsuchome@suse.cz
+
+- remove LDAP entries from custom settings if LDAP is not present
+  in /etc/nsswitch.conf (#bnc360600)
+- 2.16.10
+
+-------------------------------------------------------------------
 Fri Feb 15 08:21:47 CET 2008 - jsuchome@suse.cz
 
 - moved password and user name checks to UsersSimple.pm to make
