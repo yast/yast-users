@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Feb 21 16:22:29 CET 2008 - jsuchome@suse.cz
+
+- added dialog for root pw in first stage (FATE 302980)
+- more variables and API moved from Users to UsersSimple
+- 2.16.11 
+
+-------------------------------------------------------------------
 Fri Feb 15 10:10:08 CET 2008 - jsuchome@suse.cz
 
 - remove LDAP entries from custom settings if LDAP is not present

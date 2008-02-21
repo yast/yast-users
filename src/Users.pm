@@ -28,14 +28,6 @@ our %TYPEINFO;
 # UI-related structures won't be generated.
 my $use_gui			= 1;
 
-# What client to call after authentication dialog during installation:
-# could be "users","nis" or "ldap", for more see inst_auth.ycp
-my $after_auth			= "users";
-
-# If kerberos configuration should be called after authentication
-# during installation (F120214)
-my $run_krb_config		= 0;
-
 # what should be imported during installation (F120103)
 my %installation_import		= (
     "users"		=> (),
@@ -585,27 +577,26 @@ sub AllShells {
 
 BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
 sub AfterAuth {
-    return $after_auth;
+    return UsersSimple->AfterAuth ();
 }
 
 BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
 sub SetAfterAuth {
     my $self	= shift;
-    $after_auth = $_[0];
+    UsersSimple->SetAfterAuth ($_[0]);
 }
 
 # return the value of run_krb_config (should the kerberos config be run?)
 BEGIN { $TYPEINFO{KerberosConfiguration} = ["function", "boolean"];}
 sub KerberosConfiguration {
-    return $run_krb_config;
+    return UsersSimple->KerberosConfiguration ();
 }
 
 # set the new value for run_krb_config
 BEGIN { $TYPEINFO{SetKerberosConfiguration} = ["function", "void", "boolean"];}
 sub SetKerberosConfiguration {
-    my $self	= shift;
-    my $krb	= shift;
-    $run_krb_config = bool ($krb) if (defined $krb);
+    my ($self, $krb)	= @_;
+    return UsersSimple->SetKerberosConfiguration ($krb);
 }
 
 # set the list of users to be imported during installation

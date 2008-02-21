@@ -82,16 +82,6 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
 
 //----------------------------------------- main body ----------------------
 
-// first check if some settings were written in first stage
-if (!GetInstArgs::going_back()) {
-
-    Users::SetKerberosConfiguration (UsersSimple::KerberosConfiguration ());
-    Users::SetAfterAuth (UsersSimple::AfterAuth ());
-    y2milestone ("skipping authentication dialog...");
-    return `next;
-    // TODO continue only when control.xml requires it
-}
-
 // Check if lan is configured
 list<string> net_devices = NetworkInterfaces::ListDevicesExcept("dialup");
 y2debug("net_devices: %1", net_devices);
@@ -100,7 +90,7 @@ boolean found = (size (net_devices) > 0) || NetworkService::IsManaged ();
 
 if (!found && size (Ldap::initial_defaults) == 0) {
     y2milestone ("network not available: no network based authentization");
-    Users::SetAfterAuth ("users");
+    UsersSimple::SetAfterAuth ("users");
     return `auto;
 }
 
@@ -267,7 +257,7 @@ buttons = add (buttons, `VSpacing(0.5));
 
 // set LDAP for default, if ldap-server was configured:
 if (size (Ldap::initial_defaults) > 0)
-    Users::SetAfterAuth ("ldap");
+    UsersSimple::SetAfterAuth ("ldap");
 
 term contents = `VBox (
     `VStretch(),
@@ -281,7 +271,7 @@ term contents = `VBox (
 	    `VSpacing (),
 	    // check box label
 	    `Left (`CheckBox (`id(`krb), _("Set Up &Kerberos Authentication"),
-		Users::KerberosConfiguration ()))
+		UsersSimple::KerberosConfiguration ()))
 	),
 	`HStretch()
     ),
@@ -292,7 +282,7 @@ Wizard::SetDesktopIcon("users");
 Wizard::SetContents (caption, contents, help,
     GetInstArgs::enable_back(), GetInstArgs::enable_next());
 
-string after_client	= Users::AfterAuth ();
+string after_client	= UsersSimple::AfterAuth ();
 // select and enable to correct buttons
 foreach (string client, available_clients, ``{
     UI::ChangeWidget (`id(client), `Value, after_client == client);
@@ -347,7 +337,7 @@ repeat {
 } until ( ret == `next || ret == `back );
 
 string method	= (string)UI::QueryWidget (`id(`method), `CurrentButton);
-Users::SetAfterAuth (method);
+UsersSimple::SetAfterAuth (method);
 
 if (ret == `next && method == "users" && to_import != [])
 {
@@ -363,9 +353,9 @@ if (ret == `next && method == "users" && to_import != [])
 if (ret == `next)
 {
     if (method == "users" || method == "samba")
-	Users::SetKerberosConfiguration (false);
+	UsersSimple::SetKerberosConfiguration (false);
     else
-	Users::SetKerberosConfiguration (
+	UsersSimple::SetKerberosConfiguration (
 	    (boolean)UI::QueryWidget (`id(`krb), `Value));
 }
 

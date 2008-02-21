@@ -21,7 +21,6 @@ textdomain "users";
 
 import "GetInstArgs";
 import "Label";
-import "Linuxrc";
 import "Mode";
 import "Popup";
 import "ProductFeatures";

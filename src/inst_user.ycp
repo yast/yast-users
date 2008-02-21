@@ -26,6 +26,10 @@
     include "users/wizards.ycp";
 
     symbol ret	= `back;
+
+    if (!GetInstArgs::going_back())
+	UsersSimple::Read ();
+
     if (!GetInstArgs::going_back() &&
 	UsersSimple::AfterAuth () == "users" &&
 	UsersSimple::GetUser () != $[])
@@ -65,11 +69,12 @@
     );
 
     // what to call after inst_auth dialog
-    string client	= Users::AfterAuth();
+    string client	= UsersSimple::AfterAuth();
     if (client != "users")
     {
 	// going back from next step, while kerberos was already configured
-	if (Users::KerberosConfiguration () && GetInstArgs::going_back () &&
+	if (UsersSimple::KerberosConfiguration () && GetInstArgs::going_back ()
+	    &&
 	    Package::Installed ("yast2-kerberos-client"))
 	{
 	    ret = (symbol) WFM::CallFunction ("kerberos-client", WFM::Args ());
@@ -103,7 +108,7 @@ Install it now?
 		WFM::Args ());
 
 	    // after nis/ldap/edit client was called, maybe call also kerberos
-	    if (ret == `next && Users::KerberosConfiguration () &&
+	    if (ret == `next && UsersSimple::KerberosConfiguration () &&
 		Package::InstallAllMsg (["yast2-kerberos-client"],
 		// popup label (%1 is package to install)
 		sformat (_("Package %1 is not installed.
@@ -120,7 +125,7 @@ Install it now?
 	if (ret == `next && client == "ldap" && Ldap::initial_defaults_used)
 	{
 	    // continue with users...
-	    Users::SetAfterAuth ("users");
+	    UsersSimple::SetAfterAuth ("users");
 	    y2milestone("calling users module to enable creating LDAP user...");
 	}
 	else

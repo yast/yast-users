@@ -1,15 +1,49 @@
+/**
+ * File:	clients/inst_user_first.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Dialog for creating the first user during installation
+ * Authors:     Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id:$
+ */
 {
+    import "Arch";
     import "GetInstArgs";
     import "Label";
     import "Mode";
     import "Popup";
     import "Stage";
+    import "Package";
+    import "Progress";
     import "Report";
     import "String";
     import "UsersSimple";
     import "Wizard";
 
     textdomain "users";
+
+    string arch	= Arch::architecture ();
+
+    // helper function to se package for installation, together with
+    // architecture dependent version
+    void install_package (string package) {
+
+	Pkg::ResolvableInstall (package, `package);
+	if (issubstring (package, "yast"))
+	    return;
+	map dependency	= $[
+		"ia64"		: "-x86",
+		"ppc64"		: "-64bit",
+		"s390_64"	: "-32bit",
+		"x86_64"	: "-32bit",
+	];
+	string arch_package	= package + dependency[arch]:"";
+	if (arch_package != package && Package::Available (arch_package))
+	    Pkg::ResolvableInstall (package, `package);
+    }
+
+    // do not open package progress wizard window
+    boolean progress_orig	= Progress::set (false);
 
     string auth_method		= UsersSimple::AfterAuth ();
 
@@ -27,7 +61,7 @@
 	// radiobutton to select local user auth.
 	"users":     _("L&ocal (/etc/passwd)"),
 	// radiobutton to select local user auth.
-	"edir_ldap":	_("&eDirectory LDAP"), // FIXME check if available
+	"edir_ldap":	_("&eDirectory LDAP"),
 	// radiobutton to select local user auth.
 	"users":     _("L&ocal (/etc/passwd)"),
     ];
@@ -53,9 +87,15 @@
     ];
 
     term buttons = `VBox (`VSpacing(0.5));
-    list<string> available_clients = [
-	"users", "ldap", "nis", "samba", "edir_ldap" ];
+    list<string> available_clients = filter (string client,
+	[ "ldap", "nis", "samba", "edir_ldap" ], {
 
+	string package	= sformat ("yast2-%1-client", client);
+	if (client == "edir_ldap")
+	    package	= "yast2-linux-user-mgmt";
+	return Mode::normal () || Package::Available (package);
+    });
+    available_clients	= prepend (available_clients, "users");
     foreach (string client, available_clients, {
 	buttons = add (buttons, `Left (`RadioButton (
 	    `id(client), `opt (`notify), button_labels[client]:"")
@@ -167,6 +207,9 @@ Usernames have stricter restrictions than passwords. You can redefine the
 restrictions in the /etc/login.defs file. Read its man page for information.
 </p>
 ") +
+
+	// help text for main add user dialog
+	_("<p>Check <b>Use this password for system administrator</b> if the same password as entered for the first user should be used for root.</p>") +
 
 	// help text for main add user dialog
 	_("<p>
@@ -291,18 +334,20 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     boolean text_mode	= display_info["TextMode"]:false;
 
     term fields = `VBox (
-	/*
-	// text entry
-	`TextEntry (`id(`cn), `opt (`notify), _("User's &Full Name"), cn),
-	// input field for login name
-	`TextEntry (`id(`username), `opt (`notify),_("&Username"),username),
-	*/
 	`InputField (`id (`cn), `opt (`notify, `hstretch),
 	    // text entry
 	    _("User's &Full Name"), cn),
 	`InputField (`id (`username), `opt (`notify, `hstretch),
 	    // input field for login name
 	    _("&Username"),username),
+	/*
+	`TextEntry (`id (`cn), `opt (`notify, `hstretch),
+	    // text entry
+	    _("User's &Full Name"), cn),
+	`TextEntry (`id (`username), `opt (`notify, `hstretch),
+	    // input field for login name
+	    _("&Username"),username),
+	*/
 	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
 	    password == nil ? "" : "*****"),
 	`Password (`id (`pw2), `opt (`hstretch), Label::ConfirmPassword(),
@@ -314,7 +359,6 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    // checkbox label
 	    _("U&se this password for system administrator"),
 	    UsersSimple::GetRootPassword () == password)
-// FIXME no help text
 	),
 	`Left (
 	    // checkbox label
@@ -330,13 +374,6 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	`HWeight (9, `HBox (
 	`HCenter (`HSquash (`VBox (
 		`VStretch (),
-		/*
-		`HSquash (`VBox (
-		    fields,
-		    `VSpacing (0.2),
-		    optionbox
-		)),
-		*/
 		fields,
 		`VSpacing (0.2),
 		optionbox,
@@ -355,12 +392,14 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
-    Wizard::SetDesktopIcon("users");
+    Wizard::SetDesktopIcon("yast-users");
+//    Wizard::SetDesktopIcon("users");
     // dialog caption
     Wizard::SetContents (_("Create New User"), contents,
 	main_help (),
 	GetInstArgs::enable_back(), GetInstArgs::enable_next()
     );
+    UI::SetFocus (`id (`cn));
     string proposed_login	= "";
     boolean login_modified	= false;
     symbol ret			= `back;
@@ -505,9 +544,9 @@ Try again.")) ;
 		"userpassword"	: password,
 		"cn"		: cn
 	    ]);
-	    UsersSimple::SetRootPassword (
-		(UI::QueryWidget (`id (`root_pw), `Value)==true) ? password : ""
-	    );
+	    boolean root_pw = (boolean) UI::QueryWidget (`id (`root_pw),`Value);
+	    UsersSimple::SkipRootPasswordDialog (root_pw);
+	    UsersSimple::SetRootPassword (root_pw ? password : "");
 	    UsersSimple::SetAutologinUser (
 		(UI::QueryWidget(`id (`autologin),`Value)==true) ? username : ""
 	    );
@@ -518,27 +557,25 @@ Try again.")) ;
 	}
 	else if (auth_method != "users")
 	{
-	    // TODO: preselect the required packages for installation
+	    // preselect the required packages for installation
 	    y2internal ("preselect required packages for installation");
 	    map<string,list<string> > required_packages	= $[
 		"ldap"	: [ "yast2-ldap-client", "pam_ldap", "nss_ldap"],
 		"nis"	: [ "yast2-nis-client", "ypbind" ],
-		"samba"	: [ "yast2-samba-client" ], // TODO
+		"samba"	: [
+		    "yast2-samba-client", "krb5", "samba-client",
+		    "samba-winbind"
+		],
 	    ];
-/*
-import "PackageSystem";
-
-	    PackageSystem::EnsureSourceInit ();
-//	    PackageSystem::EnsureTargetInit ();
 	    foreach (string package, required_packages[auth_method]:[], {
-		Pkg::ResolvableInstall (package, `package);
+		install_package (package);
 	    });
-	    Pkg::PkgSolve (true);
-import "PackageCallbacksInit";
-	    PackageCallbacksInit::InitPackageCallbacks ();
-	    Pkg::PkgCommit (0);
-	    // TODO + kerberos...
-	    */
+	}
+	if (use_kerberos)
+	{
+	    foreach (string package, ["pam_krb5", "krb5", "krb5-client"], {
+		install_package (package);
+	    });
 	}
     }
     else if (ret == `back)
@@ -552,5 +589,6 @@ import "PackageCallbacksInit";
 
 
     if (Mode::normal ()) Wizard::CloseDialog ();
+    Progress::set (progress_orig);
     return ret;
 }
