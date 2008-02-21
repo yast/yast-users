@@ -37,6 +37,7 @@ client_DATA = 		\
     users.ycp		\
     groups.ycp		\
     inst_root.ycp	\
+    inst_root_first.ycp	\
     inst_user.ycp	\
     inst_user_first.ycp	\
     users_finish.ycp	\

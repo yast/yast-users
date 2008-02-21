@@ -1,0 +1,199 @@
+/**
+ * File:	clients/inst_root.ycp
+ * Package:	Configuration of users and groups
+ * Summary:
+ * Dialog for setting root's password during 1st stage of the installation
+ * Authors:     Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id:$
+ */
+{
+    textdomain "users";
+
+    import "GetInstArgs";
+    import "Mode";
+    import "Popup";
+    import "ProductFeatures";
+    import "Report";
+    import "UsersSimple";
+    import "Wizard";
+
+    if (UsersSimple::RootPasswordDialogSkipped ())
+    {
+	y2milestone ("root password was set with first user, skipping");
+	return `auto;
+    }
+
+    boolean check_CA_constraints	=
+	ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
+
+    // minimal pw length for CA-management (F#300438)
+    integer pw_min_CA			= 4;
+
+    // Title for root-password dialogue
+    string title = _("Password for the System Administrator \"root\"");
+
+    term contents = `VBox (
+        `VStretch (),
+        `HSquash (`VBox (
+            // advise user to remember his new password
+            `Label(_("Do not forget what you enter here.")),
+            `VSpacing(0.8),
+            // Label: get password for user root
+            `Password (`id(`pw1), _("&Password for root User"), ""),
+            `VSpacing(0.8),
+            // Label: get same password again for verification
+            `Password (`id(`pw2), _("Con&firm Password"), "")
+        )),
+        `VStretch ()
+    );
+
+    // help text ( explain what the user "root" is and does ) 1/5
+    string helptext = _("<p>
+Unlike normal users of the system, who write texts, create
+graphics, or browse the Internet, the user \"root\" exists on
+every system and is called into action whenever
+administrative tasks need to be performed. Only log in as root
+when you need to be the system administrator.
+</p>
+");
+
+    // help text, continued 2/5
+    helptext = helptext + _("<p>
+Because the root user is equipped with extensive permissions, the password
+for \"root\" should be chosen carefully. A combination of letters and numbers
+is recommended. To ensure that the password was entered correctly,
+reenter it in a second field.
+</p>
+");
+
+    // help text, continued 3/5
+    helptext = helptext + _("<p>
+All the rules for user passwords apply to the \"root\" password:
+Distinguish between uppercase and lowercase. A password should have at
+least 5 characters and, as a rule, not contain any special characters,
+such as accented letters or umlauts.
+</p>
+");
+
+    helptext = helptext + UsersSimple::ValidPasswordHelptext ();
+
+    // help text, continued 5/5
+    helptext = helptext + _("<p>
+Do not forget this \"root\" password.
+</p>");
+
+    if (check_CA_constraints)
+    {
+	helptext = helptext + sformat (
+// additional help text about password
+_("<p>If you intend to use this password for creating certificates,
+it has to be at least %1 characters long.</p>"), pw_min_CA);
+    }
+
+    if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
+
+//    Wizard::SetDesktopIcon("yast-users");
+    Wizard::SetDesktopIcon("yast-users");
+    Wizard::SetContents (title, contents, helptext,
+        GetInstArgs::enable_back(),
+	GetInstArgs::enable_next());
+
+    symbol ret = nil;
+
+    repeat
+    {
+	if (ret != `abort)
+	{
+	    UI::SetFocus ( `id(`pw1) );
+	}
+	ret = (symbol) Wizard::UserInput();
+
+	if (ret == `abort || ret == `cancel)
+	{
+	    if ( Popup::ConfirmAbort (`incomplete) )
+		return `abort;
+	    else
+	    {
+		ret = `notnext;
+		continue;
+	    }
+	}
+
+	if (ret == `next)
+	{
+	    string pw1 = (string) UI::QueryWidget(`id(`pw1), `Value);
+	    string pw2 = (string) UI::QueryWidget(`id(`pw2), `Value);
+
+	    if (pw1 != pw2)
+	    {
+		// report misspellings of the password
+		Popup::Message (_("The passwords do not match.
+Try again."));
+		ret = `notnext;
+		continue;
+	    }
+	    if (pw1 == "")
+	    {
+		y2milestone ("root password setting skipped, will occur later");
+		break;
+	    }
+	    string error = UsersSimple::CheckPassword (pw1, "local");
+	    if (error != "")
+	    {
+		Report::Error (error);
+		ret = `notnext;
+		UI::SetFocus (`id (`pw1));
+		continue;
+	    }
+	    // map returned from CheckPasswordUI functions
+	    map error_map			= $[];
+	    // map with id's of confirmed questions
+	    map<string,integer> ui_map	= $[];
+	    boolean failed			= false;
+
+	    if (check_CA_constraints && (size (pw1) < pw_min_CA))
+	    {
+		if (Popup::YesNo (sformat (
+// yes/no popup question, %1 is a number
+_("If you intend to create certificates,
+the password should have at least %1 characters.
+Really use this shorter password?"), pw_min_CA)))
+		{
+		    // skip other checks for short passwords
+		    ui_map["short"]	= 1;
+		}
+		else
+		{
+		    ret = `notnext;
+		    continue;
+		}
+	    }
+	    do
+	    {
+		error_map	= UsersSimple::CheckPasswordUI ($[
+		    "uid"		: "root",
+		    "userpassword"	: pw1,
+		    "type"		: "system",
+		], ui_map);
+		if (error_map != $[])
+		{
+		    if (!Popup::YesNo (error_map ["question"]:""))
+			failed = true;
+		    else
+			ui_map[ error_map["question_id"]:"" ] = 1;
+		}
+	    } while (error_map != $[] && !failed);
+
+	    if (failed)
+	    {
+		ret = `notnext;
+		continue;
+	    }
+	    UsersSimple::SetRootPassword (pw1);
+	}
+    } until (ret == `next || ret == `back || ret == `abort);
+
+    if (Mode::normal ()) Wizard::CloseDialog ();
+    return ret;
+}
