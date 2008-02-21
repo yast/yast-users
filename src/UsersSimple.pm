@@ -30,6 +30,9 @@ my $root_password		= "";
 
 my $root_password_written	= 0;
 
+# only for first stage, remember if root pw dialog should be skipped
+my $skip_root_dialog		= 0;
+
 # data of user configured during installation
 my %user			= ();
 
@@ -82,6 +85,7 @@ my $min_length_login 	= 2;
 ##------------------- global imports
 
 YaST::YCP::Import ("Directory");
+YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersUI");
 
@@ -204,8 +208,7 @@ sub KerberosConfiguration {
 # set the new value for run_krb_config
 BEGIN { $TYPEINFO{SetKerberosConfiguration} = ["function", "void", "boolean"];}
 sub SetKerberosConfiguration {
-    my $self	= shift;
-    my $krb	= shift;
+    my ($self, $krb)	= @_;
     $run_krb_config = bool ($krb) if (defined $krb);
 }
 
@@ -258,6 +261,20 @@ sub SetRootPassword {
 BEGIN { $TYPEINFO{GetRootPassword} = ["function", "string"];}
 sub GetRootPassword {
     return $root_password;
+}
+
+# remember if the checkbox 'Use this password for root' was checked
+BEGIN { $TYPEINFO{SkipRootPasswordDialog} = ["function", "void", "boolean"];}
+sub SkipRootPasswordDialog {
+    my $self	= shift;
+    my $skip	= shift;
+    $skip_root_dialog = bool ($skip) if (defined $skip);
+}
+
+# was the checkbox 'Use this password for root' was checked
+BEGIN { $TYPEINFO{RootPasswordDialogSkipped} = ["function", "boolean"];}
+sub RootPasswordDialogSkipped {
+    return bool ($skip_root_dialog);
 }
 
 
@@ -737,9 +754,25 @@ sub Write {
     # make the file root only readable
     SCR->Execute (".target.bash", "chmod 600 $file") if ($ret);
  
-    # write root password now
-    $self->WriteRootPassword () if ($root_password);
+    my $redraw	= 0;
+    if ($root_password) {
+	# write root password now
+	$self->WriteRootPassword ();
+    }
+    else {
+	ProductControl->EnableModule ("root");
+	$redraw	= 1;
+    }
+    if ($after_auth ne "users" || %user) {
+	ProductControl->EnableModule ("user");
+	$redraw	= 1;
+    }
 
+    if ($redraw) {
+	y2milestone ("wizard steps updated, redraw is needed");
+#FIXME is it? after reboot, it will be read again...
+#	Call->Function ("update_wizard_steps", []); #FIXME import Call
+    }
     return $ret;
 }
 
