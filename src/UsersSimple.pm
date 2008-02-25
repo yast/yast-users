@@ -760,19 +760,14 @@ sub Write {
 	$self->WriteRootPassword ();
     }
     else {
+	y2milestone ("enabling step 'root' for second stage");
 	ProductControl->EnableModule ("root");
-	$redraw	= 1;
     }
     if ($after_auth ne "users" || %user) {
+	y2milestone ("enabling step 'user' for second stage");
 	ProductControl->EnableModule ("user");
-	$redraw	= 1;
     }
 
-    if ($redraw) {
-	y2milestone ("wizard steps updated, redraw is needed");
-#FIXME is it? after reboot, it will be read again...
-#	Call->Function ("update_wizard_steps", []); #FIXME import Call
-    }
     return $ret;
 }
 

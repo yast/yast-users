@@ -10,8 +10,8 @@ Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-i
 # LDAPInitWithTLSCheck
 Requires:	yast2-ldap-client >= 2.15.8
 
-# NetworkInterfaces
-Requires:       yast2 >= 2.16.23
+# ProductControl::EnableModule
+Requires:       yast2 >= 2.16.30
 
 Summary:	Configuration of users and groups
 

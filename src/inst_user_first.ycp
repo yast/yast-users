@@ -4,7 +4,7 @@
  * Summary:	Dialog for creating the first user during installation
  * Authors:     Jiri Suchomel <jsuchome@suse.cz>
  *
- * $Id:$
+ * $Id$
  */
 {
     import "Arch";
@@ -21,6 +21,9 @@
     import "Wizard";
 
     textdomain "users";
+
+    map display_info        = UI::GetDisplayInfo ();
+    boolean text_mode	= display_info["TextMode"]:false;
 
     string arch	= Arch::architecture ();
 
@@ -199,9 +202,7 @@ repeat it exactly in a second field. Do not forget your password.
 ") +
 	// help text for main add user dialog
 	_("<p>
-Create the <b>Username</b> from components of the full name by
-clicking <b>Suggestion</b>. It may be modified, but use only
-letters (no accented characters), digits, and <tt>._-</tt>.
+For the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.
 Do not use uppercase letters in this entry unless you know what you are doing.
 Usernames have stricter restrictions than passwords. You can redefine the
 restrictions in the /etc/login.defs file. Read its man page for information.
@@ -289,34 +290,42 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 
     // build the term with current user configuration status
     term get_status_term	() {
-	if (auth_method == "users")
-	    return `VBox (
-		`Left (`Label (
-		    // summary label
-		    _("The authentication method is local /etc/passwd."))),
-		`Left (`Label (
-		    // summary label
-		    sformat (_("The password encryption method is %1."),
-		    encoding2label[encryption_method]:encryption_method)
-		))
-	    );
-	else
+	// summary label
+	string auth_line = _("The authentication method is local /etc/passwd.");
+	// summary label
+	string details_line =sformat(_("The password encryption method is %1."),
+	    encoding2label[encryption_method]:encryption_method);
+	if (auth_method != "users")
 	{
 	    // summary line: %1 is LDAP/NIS etc.
-	    string auth_line = sformat (_("The authentication method is %1."),
+	    auth_line = sformat (_("The authentication method is %1."),
 		auth2label[auth_method]:auth_method);
 	    if (use_kerberos)
 		// summary line: %1 is LDAP/NIS etc.
 		auth_line = sformat (_("The authentication method is %1 and Kerberos."), auth2label[auth_method]:auth_method);
-	    term cont	= `VBox (
-		`Left (`Label (auth_line)),
-		`Left (`Label (
-		    // summary label FIXME too long for ncurses
-		    _("The configuration will be available later during the installation.")
-		))
-	    );
-	    return cont;
+	    // // summary label
+	    details_line	= _("The configuration will be available later during the installation.");
 	}
+	term status	= text_mode ?
+	    `RichText (auth_line + "<br>" + details_line) :
+	    `VBox (
+		`Left (`Label (auth_line)),
+		`Left (`Label (details_line))
+	    );
+	term button	= `HBox (
+	    // pushbutton label
+	    `Right (`PushButton (`id(`change),_("&Change..."))));
+	return text_mode ?
+	    `VBox (
+		status,
+		button
+	    ) :
+	    // frame label
+	    `Frame (_("Summary"), `HBox (`HSpacing (0.2), `VBox (
+		status,
+		button,
+		`VSpacing (0.2)
+	    )));
     }
 
     map<string,any>user	= UsersSimple::GetUser ();
@@ -329,9 +338,6 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     // this user gets root's mail
     boolean root_mail	=
 	(username != "" && UsersSimple::GetRootAlias () == username);
-
-    map display_info        = UI::GetDisplayInfo ();
-    boolean text_mode	= display_info["TextMode"]:false;
 
     term fields = `VBox (
 	`InputField (`id (`cn), `opt (`notify, `hstretch),
@@ -370,37 +376,26 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	)
     );
     term contents = `HBox (
-	`HWeight (1, `HBox ()),
-	`HWeight (9, `HBox (
 	`HCenter (`HSquash (`VBox (
 		`VStretch (),
 		fields,
 		`VSpacing (0.2),
 		optionbox,
 		`VSpacing (),
-		// frame label
-		`Frame (_("Summary"), `HBox (`HSpacing (0.2), `VBox (
-		    `ReplacePoint (`id (`rp_status), get_status_term ()),
-		    // pushbutton label
-		    `HBox (`Right (`PushButton (`id(`change),_("&Change...")))),
-		    `VSpacing (0.2)
-		))),
+		`ReplacePoint (`id (`rp_status), get_status_term ()),
 		`VStretch ()
-	))))),
-	`HWeight (1, `HBox ())
+	)))
     );
 
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
-    Wizard::SetDesktopIcon("yast-users");
-//    Wizard::SetDesktopIcon("users");
+    Wizard::SetDesktopIcon("users");
     // dialog caption
     Wizard::SetContents (_("Create New User"), contents,
 	main_help (),
 	GetInstArgs::enable_back(), GetInstArgs::enable_next()
     );
     UI::SetFocus (`id (`cn));
-    string proposed_login	= "";
     boolean login_modified	= false;
     symbol ret			= `back;
     while (true)

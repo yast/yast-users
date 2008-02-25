@@ -305,42 +305,36 @@ define symbol EditUserDialog (string what) {
      */
     define term get_edit_term () {
 
-	term name_entries =
-	    // text entry
-	    `TextEntry (`id(`cn), _("User's &Full Name"), cn);
+	// text entry
+	string fullnamelabel	= _("User's &Full Name");
+	term name_entries = what == "add_user" ?
+	    `InputField (`id (`cn), `opt (`notify), fullnamelabel, cn) :
+	    `InputField (`id (`cn), fullnamelabel, cn);
 
 	if (user_type == "ldap")
 	{
-	    name_entries = `HBox(
-            `HWeight(50,
+	    name_entries = `HBox (
 		// text entry
-		`TextEntry(`id(`givenname), _("&First Name"), givenname)
-	    ),
-	    `HSpacing (0.5),
-            `HWeight(50,
+		`InputField (`id(`givenname), _("&First Name"), givenname),
+		`HSpacing (0.8),
 		// text entry
-		`TextEntry(`id(`sn),  _("&Last Name"),  sn )
-	    ));
+		`InputField (`id(`sn),  _("&Last Name"), sn)
+	    );
 	}
 
 	term fields = `VBox(
-	    `VBox (
 	    // label text
 	    do_not_edit ? `Label(_("For remote users, only additional group memberships can be changed.")) : `VSpacing (0),
 	    do_not_edit ? `VSpacing (1) : `VSpacing (0),
-	    name_entries
-	    ),
-	    `VSquash(`HBox(
+	    name_entries,
+	    `InputField (`id (`username), (what == "add_user") ?
+		`opt (`notify, `hstretch) : `opt (`hstretch),
 		// input field for login name
-		`Bottom(`TextEntry(`id(`username), _("&Username"), username)),
-		(what != "add_user")
-		    ? `HSpacing (0)
-		    // push button to generate login from first and last name
-		    : `Bottom(`PushButton(`id(`propose), _("&Suggestion")))
-	    )),
+		_("&Username"), username
+	    ),
 	    `VSpacing (),
-	    `Password(`id(`pw1), Label::Password(), ""),
-	    `Password(`id(`pw2), Label::ConfirmPassword(), "")
+	    `Password(`id(`pw1), `opt (`hstretch), Label::Password(), ""),
+	    `Password(`id(`pw2), `opt (`hstretch), Label::ConfirmPassword(), "")
 	);
 
 	term optionbox = `VBox (
@@ -496,10 +490,10 @@ define symbol EditUserDialog (string what) {
 
 	term additional_data = `Empty();
 	if (user_type == "system" || user_type == "local")
-	    additional_data =
+	    additional_data = `Top (`InputField (`id(`addd), `opt(`hstretch),
 		// textentry label
-		`Top(`TextEntry(`id(`addd), _("Addi&tional User Information"),
-		    addit_data));
+		_("Addi&tional User Information"), addit_data)
+	    );
 
 	term browse = `VBox(
 	    `Label (""),
@@ -510,23 +504,29 @@ define symbol EditUserDialog (string what) {
 
 	term home_w = `VBox(
 	    // textentry label
-	    `TextEntry( `id(`home), _("&Home Directory"), home ),
+	    `InputField (`id(`home),`opt(`hstretch),_("&Home Directory"), home),
 	    action != "edited" ? `Empty () :
-	    // check box label
-	    `Left (`CheckBox (`id (`move_home), _("&Move to New Location"), create_home))
+	    `HBox (`HSpacing (), `Left (`CheckBox (`id (`move_home),
+		// check box label
+		_("&Move to New Location"), create_home))
+	    )
 	);
 	term new_user_term	= action != "added" ? `VBox () : `VBox (
-	    // textentry label
-	    `TextEntry (`id(`mode), _("Home Directory &Permission Mode"), mode),
+	    `InputField (`id(`mode), `opt (`hstretch),
+		// textentry label
+		_("Home Directory &Permission Mode"), mode),
 	    // check box label
-	    `Left (`CheckBox (`id(`skel), _("E&mpty Home"), no_skel))
+	    `HBox (`HSpacing (), `Left (
+		`CheckBox (`id(`skel), _("E&mpty Home"), no_skel))
+	    )
 	);
 	term crypted_home_term	= crypted_home_enabled ? `HBox (
 		`VBox (
 		    `Label (""),
-		    `Left (`CheckBox (`id(`crypted_home), `opt (`notify),
+		    `HBox (`HSpacing (), `Left (
+			`CheckBox (`id(`crypted_home), `opt (`notify),
 			// check box label
-			_("&Use Encrypted Home Directory"), crypted_home_size > 0)
+			_("&Use Encrypted Home Directory"), crypted_home_size > 0))
 		    )
 		),
 		// IntField label
@@ -544,9 +544,9 @@ group memberships can be changed.")) : `VSpacing (0),
 		`HSpacing (1),
                 `VBox(
 		    `VSpacing (0.5),
-                    // textentry label
-                    `Top(`TextEntry( `id(`uid), _("User &ID (uid)"),
-                        sformat("%1",uid ))),
+                    `Top(`InputField( `id(`uid), `opt (`hstretch),
+			// textentry label
+			 _("User &ID (uid)"), sformat("%1",uid ))),
                     `Top(`VBox(
 			`HBox ( home_w, browse),
 			new_user_term,
@@ -639,7 +639,7 @@ group memberships can be changed.")) : `VSpacing (0),
 			_("&Minimum Number of Days for the Same Password"),
 			-1, 99999, min),
                     `VSpacing (0.5),
-                    `TextEntry (`id ("shadowexpire"),
+                    `InputField (`id ("shadowexpire"), `opt (`hstretch),
 			// textentry label
 			_("Ex&piration Date"), exp_date)
                 )),
@@ -777,6 +777,7 @@ group memberships can be changed.")) : `VSpacing (0),
 
     symbol ret		= `edit;
     symbol current	= nil;
+    boolean login_modified	= false;
     list tabids		= [ `edit, `details, `passwordsettings, `plugins ];
     map ldap_user_defaults = UsersLDAP::GetUserDefaults ();
 
@@ -907,21 +908,25 @@ Leave it empty?")))
 	    else
 		user ["cn"]	= cn;
 
-	    // generate a login name from first and last name
-	    if (ret == `propose)
+	    // generate a login name from the full name
+	    // (not for LDAP, there are customized rules...)
+	    if (ret == `cn)
 	    {
-		string to_propose = (issubstring (cn, "%") || cn == "") ?
-		    givenname + " " + sn : cn;
-		if (tmp_fullname != to_propose)
+		string uname =
+		    (string) UI::QueryWidget (`id (`username), `Value);
+		if (login_modified && uname == "")
+		    login_modified = false; // reenable suggestion
+		if (!login_modified)
 		{
-		    UsersCache::ResetProposing ();
-		    tmp_fullname = to_propose;
+		    string full	= (string)UI::QueryWidget (`id (ret), `Value);
+		    UI::ChangeWidget (`id (`username), `Value, tolower (
+			filterchars (full, UsersSimple::ValidLognameChars ()))
+		    );
 		}
-		/* FIXME use same method as in first stage...
-		username = UsersCache::ProposeUsername (
-		    filterchars (to_propose, Users::ValidLognameChars() + " "));
-		*/
-		UI::ChangeWidget(`id(`username), `Value, username);
+	    }
+	    if (ret == `username)
+	    {
+		login_modified	= true;
 	    }
 	    // in continue mode: move to 'User Management' without adding user
 	    if (ret == `additional)
@@ -1766,20 +1771,25 @@ define symbol EditGroupDialog (string what) {
 	});
 
 	return `HBox (
-        `Left(`VBox(
+        `HWeight (1, `VBox(
             `VSpacing(1),
-            // textentry label
-            `Top (`TextEntry (`id (`groupname), _("Group &Name"), groupname)),
-            // textentry label
-            `Top (`TextEntry (`id (`gid), _("Group &ID (gid)"),
-                sformat("%1", gid) )),
+            `Top (`InputField (`id (`groupname), `opt (`hstretch),
+		// textentry label
+		_("Group &Name"), groupname)),
+            `Top (`InputField (`id (`gid), `opt (`hstretch),
+		// textentry label
+		_("Group &ID (gid)"), sformat("%1", gid) )),
             `VSpacing(1),
-            `Bottom (`Password(`id(`pw1), Label::Password (), "")),
-            `Bottom (`Password(`id(`pw2), Label::ConfirmPassword (),  "")),
+            `Bottom (
+		`Password(`id(`pw1), `opt (`hstretch), Label::Password (), "")),
+            `Bottom (
+		`Password(`id(`pw2), `opt (`hstretch), Label::ConfirmPassword(),
+		"")
+	    ),
             `VSpacing(1)
         )),
         `HSpacing(2),
-        `VBox(
+        `HWeight (1, `VBox(
             `VSpacing(1),
 	    `ReplacePoint (`id(`rpuserlist),
 		// selection box label
@@ -1789,7 +1799,7 @@ define symbol EditGroupDialog (string what) {
             more ? `MultiSelectionBox (`id(`more_users), "",
                 more_users_items) : `VSpacing (0),
             `VSpacing(1)
-        ));
+        )));
     }
 
     /**

@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Feb 25 16:12:45 CET 2008 - jsuchome@suse.cz
+
+- proposing of username uses same method on installed system
+  as in installation
+- first dialog handled specially in text mode
+- 2.16.12
+
+-------------------------------------------------------------------
 Thu Feb 21 16:22:29 CET 2008 - jsuchome@suse.cz
 
 - added dialog for root pw in first stage (FATE 302980)
