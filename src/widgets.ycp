@@ -2037,7 +2037,7 @@ map tabs_description	= $[
     "defaults"	: $[
 	// tab header
 	"header"	: _("De&faults for New Users"),
-	"contents"	: `HBox (`HSpacing (), `VBox (
+	"contents"	: `HBox (`HSpacing (2), `VBox (
 	    `VStretch (),
             `VSpacing(0.2),
 	    "defaults_global",
@@ -2057,7 +2057,7 @@ map tabs_description	= $[
 	    "inactive",
             `VSpacing (0.2),
 	    `VStretch ()
-	), `HSpacing ()),
+	), `HSpacing (2)),
 	"widget_names"	: [
 	    "defaults_global",
 	    "defaultgroup", "groups", "shell", "home", "browse_home",
