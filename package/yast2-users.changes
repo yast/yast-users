@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Feb 27 09:52:03 CET 2008 - jsuchome@suse.cz
+
+- fixed enabling LDAP users with password policy (bnc#364837)
+- 2.16.13 
+
+-------------------------------------------------------------------
 Mon Feb 25 16:12:45 CET 2008 - jsuchome@suse.cz
 
 - proposing of username uses same method on installed system
