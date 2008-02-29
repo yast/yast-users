@@ -41,6 +41,11 @@ my $name	= "UsersPluginLDAPPasswordPolicy";
 # if Password Policy is enabled on the server
 my $ppolicy_enabled	= undef;
 
+
+# value to write into pwdaccountlockedtime if user should be disabled
+# see slapo-ppolicy man-page
+my $disabled_user	= "000001010000Z";
+
 ##----------------------------------------
 ##--------------------- internal functions
 
@@ -260,7 +265,7 @@ sub Disable {
     my ($self, $config, $data)  = @_;
     y2debug ("Disable LDAPAll called");
 
-    $data->{'pwdaccountlockedtime'}	= "000001010000Z"; # see slapo-ppolicy man-page
+    $data->{'pwdaccountlockedtime'}	= $disabled_user;
     return $data;
 }
 
@@ -323,6 +328,13 @@ sub EditBefore {
 the plug-in for Shadow Account attributes is in use.
 ");
 	return undef;
+    }
+    if (!defined $config->{"org_data"}{"enabled"}) {
+	$data->{"enabled"}    = YaST::YCP::Boolean (1);
+	if (($config->{"org_data"}{"pwdaccountlockedtime"} || "") eq $disabled_user) {
+	    $data->{"enabled"}	= YaST::YCP::Boolean (0);
+	    y2milestone ("user is disabled");
+	}
     }
     return $data;
 }
