@@ -109,6 +109,11 @@ sub remove_plugin_data {
         }
     }
     $data->{'objectclass'} = \@updated_oc;
+    foreach my $attr ("shadowinactive", "shadowexpire", "shadowlastchange",
+            "shadowmin", "shadowmax", "shadowwarning", "shadowflag")
+    {
+	$data->{$attr}  = "";
+    }
     return $data;
 }
 
