@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 29 13:45:31 CET 2008 - jsuchome@suse.cz
+
+- fixed removing LDAP Shadow Account plugin (bnc#364833)
+- 2.16.14
+
+-------------------------------------------------------------------
 Wed Feb 27 09:52:03 CET 2008 - jsuchome@suse.cz
 
 - fixed enabling LDAP users with password policy (bnc#364837)
