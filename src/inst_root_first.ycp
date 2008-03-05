@@ -5,7 +5,7 @@
  * Dialog for setting root's password during 1st stage of the installation
  * Authors:     Jiri Suchomel <jsuchome@suse.cz>
  *
- * $Id:$
+ * $Id$
  */
 {
     textdomain "users";
@@ -39,11 +39,13 @@
             // advise user to remember his new password
             `Label(_("Do not forget what you enter here.")),
             `VSpacing(0.8),
-            // Label: get password for user root
-            `Password (`id(`pw1), _("&Password for root User"), ""),
+            `Password (`id(`pw1), `opt (`hstretch),
+		// Label: get password for user root
+		_("&Password for root User"), ""),
             `VSpacing(0.8),
-            // Label: get same password again for verification
-            `Password (`id(`pw2), _("Con&firm Password"), "")
+            `Password (`id(`pw2), `opt (`hstretch),
+		// Label: get same password again for verification
+		_("Con&firm Password"), "")
         )),
         `VStretch ()
     );

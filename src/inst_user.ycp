@@ -38,9 +38,10 @@
 	y2milestone ("user defined in 1st stage, let's save now...");
 	boolean progress_orig = Progress::set (false);
 	Users::Read ();
-	string error	= Users::AddUser (user); //TODO check ret values
-	error		= Users::CheckUser ($[]);
-	if (Users::CommitUser ())
+	string error	= Users::AddUser (user);
+	if (error == "")
+	    error	= Users::CheckUser ($[]);
+	if (error == "" && Users::CommitUser ())
 	{
 	    if (UsersSimple::AutologinUsed ())
 	    {
@@ -56,6 +57,8 @@
 	    error = Users::Write ();
 	    UsersSimple::SetUser ($[]);
 	}
+	if (error != "")
+	    y2error ("error while creating user: %1", error);
 	Progress::set (progress_orig);
 	return `next;
     }

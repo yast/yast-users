@@ -1339,9 +1339,7 @@ sub ReadLoginDefaults {
     my $self		= shift;
     foreach my $key (sort keys %useradd_defaults) {
         my $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
-        if (!$entry) {
-	    $entry = "";
-	}
+        next if (!$entry); # use the defatuls set in this file
 	$entry =~ s/\"//g;
         $useradd_defaults{$key} = $entry;
     }

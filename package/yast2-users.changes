@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Mar  5 09:36:14 CET 2008 - jsuchome@suse.cz
+
+- during installation, check if future /home doesn't contain home
+  directory for the first user and adapt UID of the user according
+  to directory owner (fate#302980)
+- use internal defaults if /etc/default/useradd cannot be read
+  (bnc#365116)
+- 2.16.15
+
+-------------------------------------------------------------------
 Fri Feb 29 13:45:31 CET 2008 - jsuchome@suse.cz
 
 - fixed removing LDAP Shadow Account plugin (bnc#364833)
