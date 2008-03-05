@@ -97,10 +97,10 @@ string AskForOldPassword () {
 	`VBox (
 	    `VSpacing (0.5),
 	    // password entry label
-	    `Password (`id (`pw1), _("To access the data required to modify
+	    `Password (`id (`pw1), `opt (`hstretch), _("To access the data required to modify
 the encryption settings for this user,
 enter the user's current password.")),
-	    `Password (`id(`pw2), Label::ConfirmPassword(), ""),
+	    `Password (`id(`pw2),`opt (`hstretch), Label::ConfirmPassword(),""),
 	    `HBox(
 		`PushButton (`id(`ok),`opt(`key_F10), Label::OKButton()),
 		`PushButton (`id(`cancel),`opt(`key_F9), Label::CancelButton())
