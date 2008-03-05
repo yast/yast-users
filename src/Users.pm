@@ -5389,7 +5389,7 @@ sub CheckUser {
 	# do not check pw when it wasn't changed - must be tested directly
 	if (defined ($user{"userpassword"}) ||
 	    ($user{"what"} || "") eq "add_user") {
-	    $error	= $self->CheckPassword ($user{"userpassword"});
+	    $error = UsersSimple->CheckPassword ($user{"userpassword"}, $type);
 	}
     }
     
@@ -5448,12 +5448,13 @@ sub CheckGroup {
 	%group	= %{$_[0]};
     }
 
+    my $type	= $group{"type"} || "";
 
     my $error = $self->CheckGID ($group{"gidnumber"});
 
     if ($error eq "") {
 	if ((defined $group{"userpassword"}) && ! bool ($group{"encrypted"})) {
-	    $error	= $self->CheckPassword ($group{"userpassword"});
+	    $error = UsersSimple->CheckPassword ($group{"userpassword"}, $type);
 	}
     }
 
@@ -5464,7 +5465,7 @@ sub CheckGroup {
     my $error_map	=
 	UsersPlugins->Apply ("Check", {
 	    "what"	=> "group",
-	    "type"	=> $group{"type"} || "",
+	    "type"	=> $type,
 	    "modified"	=> $group{"modified"} || "",
 	    "plugins"	=> $group{"plugins"}
 	}, \%group);

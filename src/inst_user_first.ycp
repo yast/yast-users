@@ -17,15 +17,12 @@
     import "Package";
     import "Progress";
     import "Report";
-    import "Storage";
     import "String";
     import "UsersSimple";
     import "Wizard";
 
     textdomain "users";
 
-    map home_map	= Storage::GetEntryForMountpoint( "/home" );
-    string tmpdir	= Directory::tmpdir;
     map display_info	= UI::GetDisplayInfo ();
     boolean text_mode	= display_info["TextMode"]:false;
 
@@ -351,14 +348,6 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	`InputField (`id (`username), `opt (`notify, `hstretch),
 	    // input field for login name
 	    _("&Username"),username),
-	/*
-	`TextEntry (`id (`cn), `opt (`notify, `hstretch),
-	    // text entry
-	    _("User's &Full Name"), cn),
-	`TextEntry (`id (`username), `opt (`notify, `hstretch),
-	    // input field for login name
-	    _("&Username"),username),
-	*/
 	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
 	    password == nil ? "" : "*****"),
 	`Password (`id (`pw2), `opt (`hstretch), Label::ConfirmPassword(),
@@ -436,6 +425,8 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	{
 	    login_modified	= true;
 	}
+	if (ret == `accept) // from proposal
+	    ret	= `next;
 	if (ret == `next)
 	{
 	    string error	= "";
@@ -525,18 +516,6 @@ Try again.")) ;
 		continue;
 	    }
 	    // set UID if home directory is found on future home partition
-	    if (home_map != $[] && home_map["format"]:false == false)
-	    {
-		string dir	= tmpdir + "/home";
-		SCR::Execute (.target.mkdir, dir);
-		if ((boolean)
-		    SCR::Execute (.target.mount, [home_map["device"]:"", dir]))
-		{
-		    map stat = (map)SCR::Read (.target.stat, dir+"/"+ username);
-		    uidnumber	= stat["uid"]:-1;
-		    SCR::Execute (.target.umount, dir);
-		}
-	    }
 	    password	= pw1;
 	}
 	if (contains ([`back, `abort, `cancel, `next], ret))
@@ -554,8 +533,6 @@ Try again.")) ;
 		"userpassword"	: password,
 		"cn"		: cn
 	    ];
-	    if (uidnumber != -1)
-		user_map["uidnumber"]	= uidnumber;
 	    UsersSimple::SetUser (user_map);
 	    boolean root_pw = (boolean) UI::QueryWidget (`id (`root_pw),`Value);
 	    UsersSimple::SkipRootPasswordDialog (root_pw);

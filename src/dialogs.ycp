@@ -980,7 +980,7 @@ Try again."));
             }
             if ((pw1 != "" || !tab) && pw1 != default_pw)
             {
-		error = Users::CheckPassword (pw1);
+		error = UsersSimple::CheckPassword (pw1, user_type);
 		if (error != "")
 		{
 		    Report::Error (error);
@@ -1149,6 +1149,15 @@ _("Change home directory to %1?"), generated_home))))
 	if (current == `details && ret == `crypted_home)
 	{
 	    boolean checked	= (boolean) UI::QueryWidget (`id (`crypted_home), `Value);
+	    if (!checked && UserLogged (org_username))
+	    {
+		// error popup
+		Report::Error(_("The home directory for this user cannot be decrypted,
+because the user is currently logged in.
+Log the user out first."));
+		UI::ChangeWidget (`id (`crypted_home), `Value, true);
+		continue;
+	    }
 	    if (checked && (integer) UI::QueryWidget (`id (`dirsize), `Value) == 10)
 		UI::ChangeWidget (`id (`dirsize), `Value, default_crypted_size);
 	    UI::ChangeWidget (`id (`dirsize), `Enabled, checked);
@@ -1964,7 +1973,7 @@ Try again.")) ;
             }
             if ( pw1 != "" && pw1 != default_pw )
             {
-		error = Users::CheckPassword (pw1);
+		error = UsersSimple::CheckPassword (pw1, group_type);
 		if (error != "")
 		{
 		    Report::Error (error);

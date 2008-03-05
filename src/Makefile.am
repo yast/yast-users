@@ -43,6 +43,7 @@ client_DATA = 		\
     users_finish.ycp	\
     inst_auth.ycp	\
     users_auto.ycp	\
+    users_proposal.ycp	\
     users_plugin_ldap_all.ycp			\
     users_plugin_ldap_passwordpolicy.ycp	\
     users_plugin_ldap_shadowaccount.ycp		\

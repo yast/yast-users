@@ -13,6 +13,7 @@
     textdomain "users";
 
     import "Autologin";
+    import "FileUtils";
     import "GetInstArgs";
     import "Package";
     import "Label";
@@ -30,6 +31,7 @@
     if (!GetInstArgs::going_back())
 	UsersSimple::Read ();
 
+    // check if the user was configured in the 1st stage
     if (!GetInstArgs::going_back() &&
 	UsersSimple::AfterAuth () == "users" &&
 	UsersSimple::GetUser () != $[])
@@ -38,6 +40,18 @@
 	y2milestone ("user defined in 1st stage, let's save now...");
 	boolean progress_orig = Progress::set (false);
 	Users::Read ();
+
+	// now, check if home directory exists and adapt uidnumber to its owner
+	string home	= user["home"]:"";
+	if (home == "" && user["uid"]:"" != "")
+	    home	= Users::GetDefaultHome ("local") + user["uid"]:"";
+	if (home != "" && FileUtils::IsDirectory (home))
+	{
+	    map stat	= (map) SCR::Read (.target.stat, home);
+	    integer uid	= stat["uid"]:-1;
+	    if (uid != -1)
+		user["uidnumber"]	= uid;
+	}
 	string error	= Users::AddUser (user);
 	if (error == "")
 	    error	= Users::CheckUser ($[]);
