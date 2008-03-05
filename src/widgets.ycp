@@ -671,11 +671,7 @@ define symbol DeleteUserPopup() ``{
         return nil;
     }
 
-    // if the user has log on system
-    map out	= (map) SCR::Execute (.target.bash_output,
-	sformat ("ps --no-headers -u %1", uid));
-    string proc = out["stdout"]:"";
-    if (size (proc) != 0 && !Mode::config ())
+    if (UserLogged (username))
     {
         // error popup
         Report::Error(_("You cannot delete this user, because the user is

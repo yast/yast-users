@@ -33,6 +33,8 @@
     // Title for root-password dialogue
     string title = _("Password for the System Administrator \"root\"");
 
+    string password	= UsersSimple::GetRootPassword ();
+
     term contents = `VBox (
         `VStretch (),
         `HSquash (`VBox (
@@ -41,11 +43,13 @@
             `VSpacing(0.8),
             `Password (`id(`pw1), `opt (`hstretch),
 		// Label: get password for user root
-		_("&Password for root User"), ""),
+		_("&Password for root User"),
+		password == nil ? "" : "*****"),
             `VSpacing(0.8),
             `Password (`id(`pw2), `opt (`hstretch),
 		// Label: get same password again for verification
-		_("Con&firm Password"), "")
+		_("Con&firm Password"),
+		password == nil ? "" : "*****")
         )),
         `VStretch ()
     );
@@ -95,7 +99,6 @@ it has to be at least %1 characters long.</p>"), pw_min_CA);
 
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
-//    Wizard::SetDesktopIcon("yast-users");
     Wizard::SetDesktopIcon("yast-users");
     Wizard::SetContents (title, contents, helptext,
         GetInstArgs::enable_back(),
@@ -121,6 +124,8 @@ it has to be at least %1 characters long.</p>"), pw_min_CA);
 		continue;
 	    }
 	}
+	if (ret == `accept) // from proposal
+	    ret	= `next;
 
 	if (ret == `next)
 	{

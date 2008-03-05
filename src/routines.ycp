@@ -8,6 +8,8 @@
  *
  */
 {
+import "Mode";
+
 textdomain "users";
 
 /**
@@ -75,6 +77,15 @@ define string SplitFullName(symbol what,string cn) ``{
     });
     if ( what == `sn  ) return sn;
     if ( what == `givenName ) return givenName;
+}
+
+// if the user has log on system
+define boolean UserLogged (string name) {
+
+    map out	= (map) SCR::Execute (.target.bash_output,
+	sformat ("ps --no-headers -u %1", name));
+    string proc = out["stdout"]:"";
+    return (size (proc) != 0 && !Mode::config ());
 }
 
 

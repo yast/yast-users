@@ -16,6 +16,7 @@ our %TYPEINFO;
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("Report");
 YaST::YCP::Import ("SCR");
 
 ##------------------------------------
@@ -320,6 +321,7 @@ sub CryptHome {
     {
 	SCR->Write (".target.string", $pw_path, $pw);
 	my $command = "$cryptconfig open --key-file=$org_key $org_img < $pw_path";
+	y2debug ("cmd: $command");
 	my $out	= SCR->Execute (".target.bash_output", $command);
 	SCR->Execute (".target.remove", $pw_path);
 	if ($out->{"exit"} ne 0) {
@@ -345,9 +347,8 @@ sub CryptHome {
 	    # TODO translated message for mount error
 	    return 0;
 	}
-	SCR->Execute (".target.bash", "/bin/rm -rf $home");
-	# copy the directory content
-	$command = "/bin/cp -ar $mnt_dir $home";
+	# copy the directory content to tmp home
+	$command = "/bin/cp -ar $mnt_dir $tmpdir/$username";
 	y2debug ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
@@ -377,6 +378,11 @@ sub CryptHome {
 	    Report->Error ($out->{"stderr"});
 	    return 0;
 	}
+	# Now, after everything succeeded, remove old home and replace it
+	# with the data from crypted image:
+	SCR->Execute (".target.bash", "/bin/rm -rf $home");
+	$out = SCR->Execute (".target.bash_output", "/bin/mv $tmpdir/$username $home");
+	y2error ("error while mv: ", $out->{"stderr"}) if ($out->{"stderr"});
 	# remove image and key files
 	SCR->Execute (".target.bash", "/bin/rm -rf $org_img");
 	SCR->Execute (".target.bash", "/bin/rm -rf $org_key");
@@ -497,10 +503,17 @@ sub ReadCryptedHomesInfo {
 	if (defined $pam_mount_cont &&
 	    defined $pam_mount_cont->{"pam_mount"}{"volume"})
 	{
-	    foreach my $usermap (@{$pam_mount_cont->{"pam_mount"}{"volume"}}) {
-		my $username	= $usermap->{"user"}{"value"};
-		next if !defined $username;
-		$pam_mount->{$username}	= $usermap;
+	    my $volumes	= $pam_mount_cont->{"pam_mount"}{"volume"};
+	    if (ref ($volumes) eq "HASH") {
+		my $username	= $volumes->{"user"}{"value"};
+		$pam_mount->{$username} = $volumes if defined $username;
+	    }
+	    elsif (ref ($volumes) eq "ARRAY") {
+		foreach my $usermap (@{$volumes}) {
+		    my $username	= $usermap->{"user"}{"value"};
+		    next if !defined $username;
+		    $pam_mount->{$username}	= $usermap;
+		}
 	    }
 	}
 	return 1 if defined $pam_mount;

@@ -1,0 +1,81 @@
+/**
+ * File:		users_proposal.ycp
+ * Author:		Jiri Suchomel <jsuchome@suse.cz>
+ * Purpose:		Proposal for user and root setting
+ *
+ * $Id:$
+ */
+{
+    textdomain "users";
+
+    import "HTML";
+    import "UsersSimple";
+    import "Wizard";
+
+    string func  = (string) WFM::Args(0);
+    map    param = (map) WFM::Args(1);
+    map    ret   = $[];
+
+    if ( func == "MakeProposal" )
+    {
+	boolean force_reset      = param["force_reset"     ]:false;
+
+	string root_proposal	= UsersSimple::GetRootPassword () != "" ?
+	    // summary label <%1>-<%2> are HTML tags, leave untouched
+	    sformat (_("<%1>Root Password<%2> is set"),
+		"a href=\"users--root\"", "/a") :
+	    sformat (_("<%1>Root Password<%2> is not set"),
+		"a href=\"users--root\"", "/a");
+
+	// FIXME
+	list<string> proposal	= [
+	    // summary label <%1>-<%2> are HTML tags, leave untouched
+	    sformat (_("<%1>Authentication<%2>: %3"),
+		"a href=\"users--user\"", "/a", UsersSimple::AfterAuth ()
+	    )
+	];
+
+	ret = $[
+	    "preformatted_proposal" : HTML::List (add (proposal,root_proposal)),
+	    "language_changed"	: false,
+	    "links"	: [ "users--user", "users--root" ],
+	];
+    }
+    else if ( func == "Description" )
+    {
+	ret	= $[
+	    // rich text label
+	    "rich_text_title"	:	_("User Settings"),
+	    "menu_titles"		: [
+		// menu button label
+		$[ "id"	: "users--user", "title" : _("&User") ],
+		// menu button label
+		$[ "id"	: "users--root", "title" : _("&Root Password") ]
+	    ],
+	    "id"			: "users",
+	];
+    }
+    else if (func == "AskUser")
+    {
+
+	Wizard::OpenAcceptDialog();
+	map args = $[
+	    "enable_back"	: true,
+	    "enable_next"	: param["has_next"]:false,
+	];
+	symbol result	= `back;
+	if (param["chosen_id"]:"" == "users--root")
+	{
+	    UsersSimple::SkipRootPasswordDialog (false); // do not skip now...
+	    result	= (symbol)WFM::CallFunction ("inst_root_first", [args]);
+	}
+	else
+	    result	= (symbol)WFM::CallFunction ("inst_user_first", [args]);
+
+	Wizard::CloseDialog();
+
+	ret = $[ "workflow_sequence" : result ];
+	y2debug( "Returning from users_proposal AskUser() with: %1", ret );
+    }
+    return ret;
+}

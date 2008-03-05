@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Wed Mar  5 15:42:07 CET 2008 - jsuchome@suse.cz
+
+- check home directory of first user right before writing 
+- do not allow decrypting home when user is logged in (bnc#365547),
+  remove old home directory after all critical actions are done
+- added installation proposal for user settings (fate#302980)
+- 2.16.16
+
+-------------------------------------------------------------------
 Wed Mar  5 09:36:14 CET 2008 - jsuchome@suse.cz
 
 - during installation, check if future /home doesn't contain home
