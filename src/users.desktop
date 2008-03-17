@@ -26,3 +26,4 @@ Exec=/sbin/yast2 users
 Name=User and Group Management
 GenericName=Add, Edit, Delete Users or User Groups
 X-KDE-SubstituteUID=true
+StartupNotify=true
