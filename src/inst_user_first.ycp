@@ -389,7 +389,14 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	main_help (),
 	GetInstArgs::enable_back(), GetInstArgs::enable_next()
     );
-    UI::SetFocus (`id (`cn));
+    foreach (symbol w, [`cn, `username, `pw1, `pw2, `root_pw, `root_mail,
+	`autologin ], {
+	UI::ChangeWidget (`id (w), `Enabled, auth_method == "users");
+    });
+    if (auth_method == "users")
+	UI::SetFocus (`id (`cn));
+    else
+	UI::SetFocus (`id (`change));
     boolean login_modified	= false;
     symbol ret			= `back;
     while (true)

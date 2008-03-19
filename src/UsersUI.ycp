@@ -17,8 +17,7 @@
  */
 global define string SystemUserName (string name) ``{
 
-// TODO Fo now (9.0), users are added manualy. For future, scripts which goes
-// through all rpms would be better
+// TODO users are added manualy.... :-(
 map SystemUsers = $[
 
     /* User name for user: "root" */
@@ -73,7 +72,7 @@ map SystemUsers = $[
     /* User name for user: "dpbox" */
     "DpBox account" : _("DpBox Account"),
     /* User name for user: "gnats" */
-    "Gnats Gnu Backtracking System" : _("Gnats Gnu Backtracking System"),
+    "GNATS GNU Backtracking System" : _("GNATS GNU Backtracking System"),
     /* User name for user: "gnump3d" */
     "GNUMP3 daemon" : _("GNUMP3 Daemon"),
     /* User name for user: "hacluster" */
@@ -133,6 +132,69 @@ map SystemUsers = $[
     /* User name for user: "partimag" */
     "Partimage Daemon User"	: _("Partimage Daemon User"),
 
+    // User name for user: "avahi"
+    "User for Avahi"		: _("User for Avahi"),
+
+    // User name for user: "beagleindex"
+    "User for Beagle indexing"	: _("User for Beagle indexing"),
+
+    // User name for user: "casaauth"
+    "casa_atvd System User"	: _("casa_atvd System User"),
+
+    // User name for user: "dvbdaemon"
+    "User for DVB daemon"	: _("User for DVB daemon"),
+
+    // User name for user: "festival"
+    "Festival daemon"		: _("Festival daemon"),
+
+    // User name for user: "haldaemon"
+    "User for haldaemon"	: _("User for haldaemon"),
+
+    // User name for user: "icecast"
+    "Icecast streaming server"	: _("Icecast streaming server"),
+
+    // User name for user: "lighttpd"
+    "user for lighttpd"		: _("user for lighttpd"),
+
+    // User name for user: "nagios"
+    "User for Nagios"		: _("User for Nagios"),
+
+    // User name for user: "pdns"
+    "pdns"			: _("User for PowerDNS"),
+
+    // User name for user: "polkituser"
+    "PolicyKit"			: _("PolicyKit"),
+
+    // User name for user: "pound"
+    "Pound"			: _("User for Pound"),
+
+    // User name for user: "pulse"
+    "PulseAudio daemon"		: _("PulseAudio daemon"),
+
+    // User name for user: "quagga"
+    "Quagga routing daemon"	: _("Quagga routing daemon"),
+
+    // User name for user: "sabayon-admin"
+    "Sabayon user"		: _("Sabayon user"),
+
+    // User name for user: "tomcat"
+    "Tomcat - Apache Servlet/JSP Engine"	: _("Tomcat - Apache Servlet/JSP Engine"),
+
+    // User name for user: "tomcat"
+    "Apache Tomcat"		: _("Apache Tomcat"),
+
+    // User name for user: "pegasus"
+    // User name for user: "cimsrvr"
+    "tog-pegasus OpenPegasus WBEM/CIM services"	: _("tog-pegasus OpenPegasus WBEM/CIM services"),
+
+    // User name for user: "ulogd"
+    "ulog daemon"		: _("ulog daemon"),
+
+    // User name for user: "uuidd"
+    "User for uuidd"		: _("User for uuidd"),
+
+    // User name for user: "suse-ncc"
+    "Novell Customer Center User"	: _("Novell Customer Center User"),
 
     ];
     return SystemUsers[name]:name;

@@ -34,6 +34,8 @@
     string title = _("Password for the System Administrator \"root\"");
 
     string password	= UsersSimple::GetRootPassword ();
+    if (password == nil)
+	password	= "";
 
     term contents = `VBox (
         `VStretch (),
@@ -44,12 +46,12 @@
             `Password (`id(`pw1), `opt (`hstretch),
 		// Label: get password for user root
 		_("&Password for root User"),
-		password == nil ? "" : "*****"),
+		password == "" ? "" : "*****"),
             `VSpacing(0.8),
             `Password (`id(`pw2), `opt (`hstretch),
 		// Label: get same password again for verification
 		_("Con&firm Password"),
-		password == nil ? "" : "*****")
+		password == "" ? "" : "*****")
         )),
         `VStretch ()
     );
@@ -143,6 +145,7 @@ Try again."));
 	    if (pw1 == "")
 	    {
 		y2milestone ("root password setting skipped, will occur later");
+		UsersSimple::SetRootPassword (pw1);
 		break;
 	    }
 	    string error = UsersSimple::CheckPassword (pw1, "local");
