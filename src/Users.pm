@@ -1300,6 +1300,7 @@ sub ReadSystemDefaults {
     $groupadd_cmd 	= SCR->Read (".etc.login_defs.GROUPADD_CMD") || "";
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
+    UsersSimple->SetEncryptionMethod ($encryption_method);
     $group_encryption_method
 	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
 
@@ -5549,17 +5550,11 @@ BEGIN { $TYPEINFO{SetEncryptionMethod} = ["function", "void", "string"];}
 sub SetEncryptionMethod {
 
     my $self	= shift;
-
     if ($encryption_method ne $_[0]) {
 	$encryption_method 		= $_[0];
 	$security_modified 		= 1;
-	my %max_lengths			= %{Security->PasswordMaxLengths ()};
-	if (defined $max_lengths{$encryption_method}) {
-	    my $len	= $max_lengths{$encryption_method};
-	    UsersSimple->SetMaxPasswordLength ("local", $len);
-	    UsersSimple->SetMaxPasswordLength ("system", $len);
-	}
     }
+    UsersSimple->SetEncryptionMethod ($_[0]);
 }
 
 ##------------------------------------
