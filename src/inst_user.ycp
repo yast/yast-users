@@ -45,7 +45,7 @@
 	string home	= user["home"]:"";
 	if (home == "" && user["uid"]:"" != "")
 	    home	= Users::GetDefaultHome ("local") + user["uid"]:"";
-	if (home != "" && FileUtils::IsDirectory (home))
+	if (home != "" && FileUtils::IsDirectory (home) == true)
 	{
 	    map stat	= (map) SCR::Read (.target.stat, home);
 	    integer uid	= stat["uid"]:-1;

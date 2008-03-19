@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 19 15:58:17 CET 2008 - jsuchome@suse.cz
+
+- read /etc/login.defs before writing it (bnc#369287)
+- 2.16.19
+
+-------------------------------------------------------------------
 Wed Mar 19 10:06:26 CET 2008 - jsuchome@suse.cz
 
 - blowfish is default: adapt maximum password length (bnc#371147),

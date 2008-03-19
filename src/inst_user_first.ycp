@@ -335,7 +335,6 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     string username	= user["uid"]:"";
     string cn		= user["cn"]:"";
     string password	= (string)user["userpassword"]:nil;
-    integer uidnumber	= user["uidnumber"]:-1;
 
     // this user gets root's mail
     boolean root_mail	=
