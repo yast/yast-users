@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Mar 19 08:32:17 CET 2008 - jsuchome@suse.cz
+
+- do not show "*****" for empty root password
+- added list of system user names to check user name conflicts
+  during 1st stage of installation
+- updated list of system user names for translation
+- better installation proposal
+- 2.16.17
+
+-------------------------------------------------------------------
 Mon Mar 17 12:43:32 CET 2008 - jsrain@suse.cz
 
 - added 'StartupNotify=true' to the desktop file (bnc #304964)

@@ -89,6 +89,86 @@ YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersUI");
 
+# known system users (hard-written here to check user name conflicts)
+# number may mean the UID (but it don't have to be defined)
+my %system_users	= (
+	"root"		=> 0,
+	"bin"		=> 1,
+	"uucp"		=> 10,
+	"daemon"	=> 2,
+	"lp"		=> 4,
+	"mail"		=> 8,
+	"news" 		=> 9,
+	"uucp" 		=> 10,
+	"games" 	=> 12,
+	"man" 		=> 13,
+	"at" 		=> 25,
+	"wwwrun"	=> 30,
+	"ftp" 		=> 40,
+	"named" 	=> 0,
+	"gdm" 		=> 0,
+	"postfix" 	=> 51,
+	"sshd" 		=> 71,
+	"ntp" 		=> 74,
+	"ldap" 		=> 76,
+	"nobody" 	=> 65534,
+	"amanda" 	=> 0,
+	"vscan" 	=> 0,
+	"bigsister" 	=> 0,
+	"wnn" 		=> 0,
+	"cyrus" 	=> 0,
+	"dpbox" 	=> 0,
+	"gnats" 	=> 0,
+	"gnump3d" 	=> 0,
+	"hacluster" 	=> 0,
+	"irc" 		=> 0,
+	"mailman" 	=> 0,
+	"mdom" 		=> 0,
+	"mysql" 	=> 0,
+	"oracle" 	=> 0,
+	"postgres" 	=> 0,
+	"pop" 		=> 0,
+	"sapdb" 	=> 0,
+	"snort" 	=> 0,
+	"squid" 	=> 31,
+	"stunnel" 	=> 0,
+	"zope" 		=> 0,
+	"radiusd" 	=> 0,
+	"otrs" 		=> 0,
+	"privoxy" 	=> 0,
+	"vdr" 		=> 0,
+	"icecream" 	=> 0,
+	"bitlbee" 	=> 0,
+	"dhcpd" 	=> 0,
+	"distcc" 	=> 0,
+	"dovecot" 	=> 0,
+	"fax" 		=> 0,
+	"partimag" 	=> 0,
+	"avahi"		=> 0,
+	"beagleindex"	=> 0,
+	"casaauth"	=> 0,
+	"dvbdaemon"	=> 0,
+	"festival"	=> 0,
+	"haldaemon"	=> 0,
+	"icecast"	=> 0,
+	"lighttpd"	=> 0,
+	"nagios"	=> 0,
+	"pdns"		=> 0,
+	"polkituser"	=> 0,
+	"pound"		=> 0,
+	"pulse"		=> 0,
+	"quagga"	=> 0,
+	"sabayon-admin"	=> 0,
+	"tomcat"	=> 0,
+	"pegasus"	=> 0,
+	"cimsrvr"	=> 0,
+	"ulogd"		=> 0,
+	"uuidd"		=> 0,
+	"suse-ncc"	=> 0,
+	"messagebus"    => 0,
+	"nx"      	=> 0
+);
+
 # check the boolean value, return 0 or 1
 sub bool {
 
@@ -169,6 +249,7 @@ sub GetAutologinUser {
 BEGIN { $TYPEINFO{AutologinUsed} = ["function", "boolean"]; }
 sub AutologinUsed {
     return bool ($autologin_user ne "");
+# FIXME true for the first time...
 }
 
 BEGIN { $TYPEINFO{SetAutologinUser} = ["function", "void", "string"]; }
@@ -698,6 +779,8 @@ Try again.");
     return "";
 }
 
+
+
 ##------------------------------------
 # check given user name for a conflict with a (fixed) set of system users
 # @param user name
@@ -707,17 +790,19 @@ sub CheckUsernameConflicts {
     
     my ($self, $username)	= @_;
 
-    my %system_users	= (
-	"root"	=> 0,
-	"bin"	=> 1,
-	"uucp"	=> 10, #FIXME fill this
-    );
     if (defined $system_users{$username}) {
 	# error popup
 	return __("There is a conflict between the entered
 username and an existing username.
 Try another one.");
     }
+}
+
+# return the %system_users map = these are NOT the current system users,
+# but the names that could be used for system users by packages
+BEGIN { $TYPEINFO{GetSystemUserNames} = ["function", ["map", "string", "integer"]];}
+sub GetSystemUserNames {
+    return \%system_users;
 }
 
 ##---------------------------------------------------------------------------
