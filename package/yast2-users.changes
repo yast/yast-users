@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Mar 19 10:06:26 CET 2008 - jsuchome@suse.cz
+
+- blowfish is default: adapt maximum password length (bnc#371147),
+  adapted testsuite
+- 2.16.18
+
+-------------------------------------------------------------------
 Wed Mar 19 08:32:17 CET 2008 - jsuchome@suse.cz
 
 - do not show "*****" for empty root password

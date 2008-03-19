@@ -50,7 +50,7 @@ my %min_pass_length	= (
 );
 
 my %max_pass_length	= (
-    "local"		=> 8,
+    "local"		=> 72,
     "system"		=> 8,
     "ldap"		=> 8
 );
@@ -439,8 +439,9 @@ BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer", "string"]; }
 sub GetMinPasswordLength {
 
     my $self		= shift;
-    if (defined ($min_pass_length{$_[0]})) {
-	return $min_pass_length{$_[0]};
+    my $type		= shift;
+    if (defined $type && defined ($min_pass_length{$type})) {
+	return $min_pass_length{$type};
     }
     else { return 5;}
 }
@@ -589,6 +590,7 @@ sub CheckPasswordMaxLength {
     my $pw 		= shift;
     my $type		= shift;
     my $max_length 	= $self->GetMaxPasswordLength ($type);
+y2internal ("max is $max_length");
     my $ret		= "";
 
     if (length ($pw) > $max_length) {
@@ -621,7 +623,7 @@ sub CrackPassword {
 	$ret = SCR->Execute (".crack", $pw, $cracklib_dictpath);
     }
     if (!defined ($ret)) { $ret = ""; }
-
+    return $ret if ($ret eq "");
     return UsersUI->RecodeUTF ($ret);
 }
 
