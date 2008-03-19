@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Feb 26 16:43:45 CET 2008 - jsuchome@suse.cz
+
+- fixed enabling LDAP users with password policy (bnc#364837)
+- fixed removing LDAP Shadow Account plugin (bnc#364833)
+- 2.13.56.1
+
+-------------------------------------------------------------------
 Thu Oct  4 14:33:20 CEST 2007 - jsuchome@suse.cz
 
 - backport following features for SLE10SP for F302865 and F302658:
