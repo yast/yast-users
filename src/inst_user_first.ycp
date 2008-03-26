@@ -15,6 +15,7 @@
     import "Popup";
     import "Stage";
     import "Package";
+    import "ProductFeatures";
     import "Progress";
     import "Report";
     import "String";
@@ -27,6 +28,13 @@
     boolean text_mode	= display_info["TextMode"]:false;
 
     string arch	= Arch::architecture ();
+
+    boolean check_CA_constraints        =
+        ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
+
+    // minimal pw length for CA-management (F#300438)
+    integer pw_min_CA			= 4;
+
 
     // helper function to se package for installation, together with
     // architecture dependent version
@@ -193,8 +201,15 @@ With the current password encryption (%1), the password length should be between
 	    UsersSimple::GetMaxPasswordLength ("local")
 	) +
 
-	UsersSimple::ValidPasswordHelptext () +
+	UsersSimple::ValidPasswordHelptext ();
 
+	if (check_CA_constraints)
+	    help = help + sformat (
+// additional help text about password
+_("<p>If you intend to use this password for creating certificates,
+it has to be at least %1 characters long.</p>"), pw_min_CA);
+
+	help	= help +
 	// help text for main add user dialog
 	_("<p>
 To ensure that the password was entered correctly,
@@ -336,6 +351,22 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     string cn		= user["cn"]:"";
     string password	= (string)user["userpassword"]:nil;
 
+    boolean autologin	= UsersSimple::AutologinUsed ();
+    // set the initial default value for autologin
+    if (user == $[] && !autologin)
+    {
+	if (ProductFeatures::GetBooleanFeature ("globals", "enable_autologin"))
+	    autologin	= true;
+    }
+    boolean root_pw	= (UsersSimple::GetRootPassword () == password);
+    // set the initial default value for root pw checkbox
+    if (user == $[] && !root_pw)
+    {
+	if (ProductFeatures::GetBooleanFeature ("globals", "root_password_as_first_user"))
+	    root_pw	= true;
+	y2internal ("root_pw default value: %1", root_pw);
+    }
+
     // this user gets root's mail
     boolean root_mail	=
 	(username != "" && UsersSimple::GetRootAlias () == username);
@@ -356,17 +387,14 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     term optionbox = `VBox (
 	`Left (`CheckBox (`id (`root_pw),
 	    // checkbox label
-	    _("U&se this password for system administrator"),
-	    UsersSimple::GetRootPassword () == password)
+	    _("U&se this password for system administrator"), root_pw)
 	),
 	`Left (
 	    // checkbox label
 	    `CheckBox (`id (`root_mail), _("Receive S&ystem Mail"), root_mail)
 	),
 	// checkbox label
-	`Left (`CheckBox (`id (`autologin),_("&Automatic Login"),
-	    UsersSimple::AutologinUsed ())
-	)
+	`Left (`CheckBox (`id (`autologin), _("&Automatic Login"), autologin))
     );
     term contents = `HBox (
 	`HCenter (`HSquash (`VBox (
@@ -480,6 +508,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    // --------------------------------- password checks
             string pw1          = (string) UI::QueryWidget(`id(`pw1), `Value);
             string pw2          = (string) UI::QueryWidget(`id(`pw2),`Value);
+	    root_pw	= (boolean) UI::QueryWidget (`id (`root_pw),`Value);
 
             if (pw1 != pw2)
             {
@@ -500,6 +529,24 @@ Try again.")) ;
 		continue;
 	    }
 	    boolean failed			= false;
+	    if (root_pw && check_CA_constraints && size (pw1) < pw_min_CA)
+	    {
+		if (Popup::YesNo (sformat (
+// yes/no popup question, %1 is a number
+_("If you intend to create certificates,
+the password should have at least %1 characters.
+Really use this shorter password?"), pw_min_CA)))
+		{
+		    // skip other checks for short passwords
+		    ui_map["short"]	= 1;
+		}
+		else
+		{
+		    ret = `notnext;
+		    UI::SetFocus (`id (`pw1));
+		    continue;
+		}
+	    }
 	    do
 	    {
 		error_map	= UsersSimple::CheckPasswordUI ($[
@@ -540,7 +587,6 @@ Try again.")) ;
 		"cn"		: cn
 	    ];
 	    UsersSimple::SetUser (user_map);
-	    boolean root_pw = (boolean) UI::QueryWidget (`id (`root_pw),`Value);
 	    UsersSimple::SkipRootPasswordDialog (root_pw);
 	    UsersSimple::SetRootPassword (root_pw ? password : "");
 	    UsersSimple::SetAutologinUser (

@@ -249,7 +249,6 @@ sub GetAutologinUser {
 BEGIN { $TYPEINFO{AutologinUsed} = ["function", "boolean"]; }
 sub AutologinUsed {
     return bool ($autologin_user ne "");
-# FIXME true for the first time...
 }
 
 BEGIN { $TYPEINFO{SetAutologinUser} = ["function", "void", "string"]; }
