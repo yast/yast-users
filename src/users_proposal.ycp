@@ -27,6 +27,16 @@
 	"edir_ldap":	_("eDirectory LDAP"),
     ];
 
+    map<string,string> encoding2label	= $[
+	// encryption type
+	"des"		: _("DES"),
+	// encryption type
+	"md5"		: _("MD5"),
+	// encryption type
+	"blowfish"	: _("Blowfish"),
+    ];
+
+
     if ( func == "MakeProposal" )
     {
 	boolean force_reset      = param["force_reset"     ]:false;
@@ -58,12 +68,24 @@
 	else if (user["uid"]:"" != "")
 	{
 	    // summary line: <%1>-<%2> are HTML tags, leave untouched,
-	    // %3 is user name
+	    // %3 is login name
 	    prop	= sformat (_("<%1>User<%2> %3 configured"),
 		ahref, "/a", user["uid"]:"");
+	    if (user["cn"]:"" != "")
+		// summary line: <%1>-<%2> are HTML tags, leave untouched,
+		// %3 is full name, %4 login name
+		prop	= sformat (_("<%1>User<%2> %3 (%4) configured"),
+		    ahref, "/a", user["cn"]:"", user["uid"]:"");
+	}
+	string rest	= "";
+	if (UsersSimple::EncryptionMethod () != "blowfish")
+	{
+	    // summary line
+	    rest	= sformat (_("Password Encrypttion Method: %1"),
+		encoding2label[UsersSimple::EncryptionMethod ()]:"");
 	}
 	ret = $[
-	    "preformatted_proposal" : HTML::List ([ prop, root_proposal ]),
+	    "preformatted_proposal" : HTML::List ([ prop, root_proposal, rest]),
 	    "language_changed"	: false,
 	    "links"	: [ "users--user", "users--root" ],
 	];
