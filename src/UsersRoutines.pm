@@ -501,16 +501,12 @@ sub ReadCryptedHomesInfo {
     if (FileUtils->Exists ($pam_mount_path)) {
 	my $pam_mount_cont	= SCR->Read (".anyxml", $pam_mount_path);
 	if (defined $pam_mount_cont &&
-	    defined $pam_mount_cont->{"pam_mount"}{"volume"})
+	    defined $pam_mount_cont->{"pam_mount"}[0]{"volume"})
 	{
-	    my $volumes	= $pam_mount_cont->{"pam_mount"}{"volume"};
-	    if (ref ($volumes) eq "HASH") {
-		my $username	= $volumes->{"user"}{"value"};
-		$pam_mount->{$username} = $volumes if defined $username;
-	    }
-	    elsif (ref ($volumes) eq "ARRAY") {
+	    my $volumes	= $pam_mount_cont->{"pam_mount"}[0]{"volume"};
+	    if (ref ($volumes) eq "ARRAY") {
 		foreach my $usermap (@{$volumes}) {
-		    my $username	= $usermap->{"user"}{"value"};
+		    my $username	= $usermap->{"user"};
 		    next if !defined $username;
 		    $pam_mount->{$username}	= $usermap;
 		}
@@ -536,7 +532,7 @@ sub CryptedImagePath {
     my $user	= shift;
 
     if ($self->ReadCryptedHomesInfo ()) {
-	return $pam_mount->{$user}{"path"}{"value"} || "";
+	return $pam_mount->{$user}{"path"} || "";
     }
     return "";
 }
@@ -552,7 +548,7 @@ sub CryptedKeyPath {
     my $user	= shift;
 
     if ($self->ReadCryptedHomesInfo ()) {
-	return $pam_mount->{$user}{"fskeypath"}{"value"} || "";
+	return $pam_mount->{$user}{"fskeypath"} || "";
     }
     return "";
 }
