@@ -357,6 +357,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     {
 	if (ProductFeatures::GetBooleanFeature ("globals", "enable_autologin"))
 	    autologin	= true;
+	y2debug ("autologin default value: %1", autologin);
     }
     boolean root_pw	= (UsersSimple::GetRootPassword () == password);
     // set the initial default value for root pw checkbox
@@ -364,7 +365,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     {
 	if (ProductFeatures::GetBooleanFeature ("globals", "root_password_as_first_user"))
 	    root_pw	= true;
-	y2internal ("root_pw default value: %1", root_pw);
+	y2debug ("root_pw default value: %1", root_pw);
     }
 
     // this user gets root's mail
@@ -600,7 +601,7 @@ Really use this shorter password?"), pw_min_CA)))
 	else if (auth_method != "users")
 	{
 	    // preselect the required packages for installation
-	    y2internal ("preselect required packages for installation");
+	    y2milestone ("preselect required packages for installation");
 	    map<string,list<string> > required_packages	= $[
 		"ldap"	: [ "yast2-ldap-client", "pam_ldap", "nss_ldap"],
 		"nis"	: [ "yast2-nis-client", "ypbind" ],
