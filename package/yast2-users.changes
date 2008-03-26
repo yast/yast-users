@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Mar 26 10:51:12 CET 2008 - jsuchome@suse.cz
+
+- installation proposal: show full name and encryption method
+- installation dialogs: check for default values of autologin
+  and "root password = user password" options
+- use new ag_anyxml for reading pam_mount.conf.xml (bnc#366867)
+- use OK button label instead of Accept (fate#120373)
+- 2.16.20
+
+-------------------------------------------------------------------
 Wed Mar 19 15:58:17 CET 2008 - jsuchome@suse.cz
 
 - read /etc/login.defs before writing it (bnc#369287)
