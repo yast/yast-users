@@ -234,7 +234,7 @@ group may have on this file system. Additionally, you can define an inode limit 
 
 	Wizard::SetContentsButtons(
 	    UsersPluginQuota::Name (config, $[]), contents, help_text,
-	    Label::CancelButton(), Label::AcceptButton()
+	    Label::CancelButton(), Label::OKButton()
 	);
 
 	Wizard::HideAbortButton ();
