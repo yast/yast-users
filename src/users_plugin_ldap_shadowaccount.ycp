@@ -136,7 +136,7 @@
 	// dialog caption
 	Wizard::SetContentsButtons (_("Shadow Account Settings"),
 	    contents, EditUserPasswordDialogHelp (),
-	    Label::CancelButton(), Label::AcceptButton());
+	    Label::CancelButton(), Label::OKButton());
 
 	Wizard::HideAbortButton ();
 

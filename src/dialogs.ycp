@@ -770,7 +770,7 @@ group memberships can be changed.")) : `VSpacing (0),
 	    dialog_contents,
 	    EditUserDialogHelp (complex_layout, user_type, what),
 	    Label::CancelButton(),
-	    Label::AcceptButton()
+	    Label::OKButton()
 	);
 	Wizard::HideAbortButton ();
     }
@@ -1899,7 +1899,7 @@ define symbol EditGroupDialog (string what) {
         dialog_labels [ what, group_type ]:"",
         dialog_contents,
         EditGroupDialogHelp (more),
-        Label::CancelButton(), Label::AcceptButton());
+        Label::CancelButton(), Label::OKButton());
     Wizard::HideAbortButton ();
 
     symbol ret		= `edit;

@@ -188,7 +188,7 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 
 	// dialog caption
 	Wizard::SetContentsButtons(_("Additional LDAP Settings"),
-	    contents, help_text, Label::CancelButton(), Label::AcceptButton());
+	    contents, help_text, Label::CancelButton(), Label::OKButton());
 
 	Wizard::HideAbortButton ();
 
