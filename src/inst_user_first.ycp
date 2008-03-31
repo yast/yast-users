@@ -380,9 +380,9 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    // input field for login name
 	    _("&Username"),username),
 	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
-	    password == nil ? "" : "*****"),
+	    password == nil ? "" : password),
 	`Password (`id (`pw2), `opt (`hstretch), Label::ConfirmPassword(),
-	    password == nil ? "" : "*****")
+	    password == nil ? "" : password)
     );
 
     term optionbox = `VBox (
@@ -575,6 +575,7 @@ Really use this shorter password?"), pw_min_CA)))
 	if (contains ([`back, `abort, `cancel, `next], ret))
 	    break;
     }
+y2internal ("password is %1", password);
     if (ret == `next)
     {
 	UsersSimple::SetAfterAuth (auth_method);

@@ -58,14 +58,14 @@ YCPBoolean CrackAgent::Write(const YCPPath &path, const YCPValue& value,
 YCPValue CrackAgent::Execute(const YCPPath &path, const YCPValue& value,
 	   const YCPValue& arg)
 {
-    const char *pass = value->toString().c_str();
+    string pass = value->asString()->value();
     const char *dictpath = "/usr/lib/cracklib_dict";
     if (!arg.isNull())
     {
 	dictpath = arg->asString()->value().c_str();
     }
 
-    const char *out = FascistCheck (pass, dictpath);
+    const char *out = FascistCheck (pass.c_str(), dictpath);
     if (out) {
 	return YCPString (out);
     }

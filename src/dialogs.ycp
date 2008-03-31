@@ -143,6 +143,9 @@ define symbol EditUserDialog (string what) {
 	Users::SetUseNextTime (false);
     }
 
+    map display_info        = UI::GetDisplayInfo ();
+    boolean text_mode	= display_info["TextMode"]:false;
+    
     map<string,any>user	= Users::GetCurrentUser ();
     string error_msg	= "";
 
@@ -541,8 +544,8 @@ define symbol EditUserDialog (string what) {
 group memberships can be changed.")) : `VSpacing (0),
            `VSpacing(0.5),
            `HBox(
-		`HSpacing (1),
-                `VBox(
+		text_mode ? `Empty () : `HSpacing (1),
+		`HWeight (3, `VBox(
 		    `VSpacing (0.5),
                     `Top(`InputField( `id(`uid), `opt (`hstretch),
 			// textentry label
@@ -556,20 +559,20 @@ group memberships can be changed.")) : `VSpacing (0),
                     `Top(edit_shell),
                     `Top(edit_defaultgroup),
                     `VStretch()
-                ),
-                `HSpacing(2),
-		`VBox(
+                )),
+                text_mode ? `Empty () : `HSpacing (2),
+		`HWeight (2, `VBox (
 		    `VSpacing (0.5),
 		    `MultiSelectionBox( `id(`grouplist),
 			// selection box label
-			_("Gr&oups"), additional_groups),
+			_("Additional Gr&oups"), additional_groups),
 		    (user_type == "ldap")
 		    ? `MultiSelectionBox( `id(`ldapgrouplist),
 			// selection box label
 			_("&LDAP Groups"), additional_ldap_groups)
 		    : `Empty()
-		),
-		`HSpacing (1)
+		)),
+		text_mode ? `Empty () : `HSpacing (1)
 	    ),
             `VSpacing(0.5)
            ),

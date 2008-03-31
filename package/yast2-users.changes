@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Mar 31 15:48:58 CEST 2008 - jsuchome@suse.cz
+
+- use the real password in the Password fields (bnc#374787)
+- change the label for the additional groups (bnc#367926)
+- fixed incorrect usage of YCPValue in crack-agent (bnc#375385)
+- 2.16.21
+
+-------------------------------------------------------------------
 Wed Mar 26 10:51:12 CET 2008 - jsuchome@suse.cz
 
 - installation proposal: show full name and encryption method
