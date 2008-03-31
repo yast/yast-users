@@ -45,13 +45,11 @@
             `VSpacing(0.8),
             `Password (`id(`pw1), `opt (`hstretch),
 		// Label: get password for user root
-		_("&Password for root User"),
-		password == "" ? "" : "*****"),
+		_("&Password for root User"), password),
             `VSpacing(0.8),
             `Password (`id(`pw2), `opt (`hstretch),
 		// Label: get same password again for verification
-		_("Con&firm Password"),
-		password == "" ? "" : "*****")
+		_("Con&firm Password"), password)
         )),
         `VStretch ()
     );

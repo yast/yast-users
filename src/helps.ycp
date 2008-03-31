@@ -428,7 +428,7 @@ from the list of all groups existing on your system.
 </p>") +
 	// help text 8/8
 		_("<p>
-<b>Groups:</b>
+<b>Additional Groups:</b>
 Select the additional groups in which the user should be a member.
 </p>
 ");
