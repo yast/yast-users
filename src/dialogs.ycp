@@ -922,6 +922,7 @@ Leave it empty?")))
 		if (!login_modified)
 		{
 		    string full	= (string)UI::QueryWidget (`id (ret), `Value);
+		    full	= splitstring (full, " ")[0]:"";
 		    UI::ChangeWidget (`id (`username), `Value, tolower (
 			filterchars (full, UsersSimple::ValidLognameChars ()))
 		    );
@@ -1521,8 +1522,6 @@ Log the user out first."));
 	    }
 	    if (what == "add_user")
 	    {
-		if (user_type == "system")
-		    UI::ChangeWidget(`id(`propose), `Enabled, false);
 		if (user_type == "ldap")
 		    UI::SetFocus(`id(`givenname));
 		else

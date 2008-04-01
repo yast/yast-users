@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr  1 11:34:17 CEST 2008 - jsuchome@suse.cz
+
+- propose login only from the first chunk of full name (bnc#372202)
+- 2.16.22 
+
+-------------------------------------------------------------------
 Mon Mar 31 15:48:58 CEST 2008 - jsuchome@suse.cz
 
 - use the real password in the Password fields (bnc#374787)

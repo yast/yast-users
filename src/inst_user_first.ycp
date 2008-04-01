@@ -451,6 +451,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    if (!login_modified)
 	    {
 		string full	= (string)UI::QueryWidget (`id (`cn), `Value);
+		full	= splitstring (full, " ")[0]:"";
 		UI::ChangeWidget (`id (`username), `Value, tolower (
 		    filterchars (full, UsersSimple::ValidLognameChars ()))
 		);
@@ -575,7 +576,6 @@ Really use this shorter password?"), pw_min_CA)))
 	if (contains ([`back, `abort, `cancel, `next], ret))
 	    break;
     }
-y2internal ("password is %1", password);
     if (ret == `next)
     {
 	UsersSimple::SetAfterAuth (auth_method);
