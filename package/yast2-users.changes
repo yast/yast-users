@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Apr  3 14:10:57 CEST 2008 - jsrain@suse.cz
+
+- save users configuration during live installation
+
+-------------------------------------------------------------------
 Tue Apr  1 11:34:17 CEST 2008 - jsuchome@suse.cz
 
 - propose login only from the first chunk of full name (bnc#372202)

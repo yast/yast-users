@@ -33,7 +33,7 @@ if (func == "Info")
 	"steps" : 1,
 	// progress step title
 	"title" : _("Writing Users Configuration..."),
-	"when" : [ `installation,  `autoinst ],
+	"when" : [ `installation, `live_installation, `autoinst ],
     ];
 }
 else if (func == "Write")
