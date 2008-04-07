@@ -3967,8 +3967,8 @@ sub WriteSecurity {
 	my $progress_orig = Progress->set (0);
 	$ret = Security->Write();
 	Progress->set ($progress_orig);
+	y2milestone ("Security module settings written: $ret");	
     }
-    y2milestone ("Security module settings written: $ret");	
     return $ret;
 }
 
