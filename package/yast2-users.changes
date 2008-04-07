@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Apr  7 13:38:19 CEST 2008 - jsuchome@suse.cz
+
+- import the user settings before reading system ones (bnc#373654)
+- 2.16.23 
+
+-------------------------------------------------------------------
 Thu Apr  3 14:10:57 CEST 2008 - jsrain@suse.cz
 
 - save users configuration during live installation

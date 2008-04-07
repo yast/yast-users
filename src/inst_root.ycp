@@ -34,8 +34,8 @@ import "Wizard";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
-    UsersSimple::Read ();
     Users::ReadSystemDefaults ();
+    UsersSimple::Read ();
 
     if (!GetInstArgs::going_back() && UsersSimple::RootPasswordWritten ())
     {
