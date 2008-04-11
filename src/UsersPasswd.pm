@@ -273,7 +273,7 @@ sub read_group {
     return 1;
 }
 
-# actually read /etc/passwd and save into internal stricture
+# actually read /etc/passwd and save into internal structure
 sub read_passwd {
 
     my $file	= "$base_directory/passwd";
