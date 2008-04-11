@@ -34,7 +34,7 @@ import "Wizard";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
-    Users::ReadSystemDefaults ();
+    Users::ReadSystemDefaults (false);
     UsersSimple::Read ();
 
     boolean check_CA_constraints	=
