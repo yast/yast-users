@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Apr 11 09:13:47 CEST 2008 - jsuchome@suse.cz
+
+- better fix of bnc#373654: read system settings in inst_user
+
+-------------------------------------------------------------------
 Mon Apr  7 13:38:19 CEST 2008 - jsuchome@suse.cz
 
 - import the user settings before reading system ones (bnc#373654)
