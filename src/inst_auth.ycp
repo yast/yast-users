@@ -82,6 +82,19 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
 
 //----------------------------------------- main body ----------------------
 
+// first check if some settings were configured in first stage
+if (!GetInstArgs::going_back()) {
+    Users::ReadSystemDefaults (false);
+    UsersSimple::Read ();
+    if (UsersSimple::AfterAuth () != "users" || UsersSimple::GetUser () != $[])
+    {
+	Users::SetKerberosConfiguration (UsersSimple::KerberosConfiguration ());
+	Users::SetAfterAuth (UsersSimple::AfterAuth ());
+	y2milestone ("skipping authentication dialog...");
+	return `next;
+    }
+}
+
 // Check if lan is configured
 list<string> net_devices = NetworkInterfaces::ListDevicesExcept("dialup");
 y2debug("net_devices: %1", net_devices);
