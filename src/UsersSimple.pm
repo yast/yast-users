@@ -34,7 +34,10 @@ my $root_password_written	= 0;
 my $skip_root_dialog		= 0;
 
 # data of user configured during installation
-my %user			= ();
+#my %user			= ();
+
+# data of users configured during installation
+my @users			= ();
 
 
 # password encryption method
@@ -80,11 +83,18 @@ my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
 my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
 my $min_length_login 	= 2;
 
+# see SYSTEM_UID_MAX and SYSTEM_GID_MAX in /etc/login.defs
+my $max_system_uid	= 499;
+
+# maps for user data read in 1st stage ('from previous installation')
+my %imported_users		= ();
+my %imported_shadow		= ();
 
 ##------------------------------------
 ##------------------- global imports
 
 YaST::YCP::Import ("Directory");
+YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersUI");
@@ -302,7 +312,18 @@ BEGIN { $TYPEINFO{GetUser} = [ "function",
 }
 sub GetUser {
 
-    return \%user;
+    my %ret	= ();
+    %ret	= %{$users[0]} if (defined $users[0]);
+    return \%ret;
+}
+
+##------------------------------------
+# Returns the list users configured during installation
+# @return the list of user maps
+BEGIN { $TYPEINFO{GetUsers} = [ "function", ["list", "any" ]]; }
+sub GetUsers {
+
+    return \@users;
 }
 
 ##------------------------------------
@@ -317,10 +338,30 @@ sub SetUser {
     my $self	= shift;
     my $data	= shift;
     if (defined $data && (ref ($data) eq "HASH")) {
-	%user	= %{$data};
+	my %user	= %{$data};
+	@users	= ();
+	push @users, %user;
     }
     return "";
 }
+
+##------------------------------------
+# Saves the user data into the list
+# @param list with user data maps (could be empty)
+BEGIN { $TYPEINFO{SetUsers} = ["function",
+    "string",
+    ["list", "any" ]];		# data to fill in
+}
+sub SetUsers {
+
+    my $self	= shift;
+    my $data	= shift;
+    if (defined $data && (ref ($data) eq "ARRAY")) {
+	@users	= @{$data};
+    }
+    return "";
+}
+
 
 # was root password written in 1st stage?
 BEGIN { $TYPEINFO{RootPasswordWritten} = ["function", "boolean"];}
@@ -589,7 +630,6 @@ sub CheckPasswordMaxLength {
     my $pw 		= shift;
     my $type		= shift;
     my $max_length 	= $self->GetMaxPasswordLength ($type);
-y2internal ("max is $max_length");
     my $ret		= "";
 
     if (length ($pw) > $max_length) {
@@ -815,15 +855,20 @@ sub GetSystemUserNames {
 BEGIN { $TYPEINFO{Write} = ["function", "boolean"];}
 sub Write {
 
-    my $self	= shift;
-    if (defined $user{"userpassword"}) {
-	$user{"userpassword"}	= $self->CryptPassword ($user{"userpassword"});
-	$user{"encrypted"}	= YaST::YCP::Integer (1);
+    my $self		= shift;
+    my $user_defined	= 0;
+    foreach my $user (@users) {
+	if (defined $user->{"userpassword"}) {
+	    $user->{"userpassword"}	=
+		$self->CryptPassword($user->{"userpassword"});
+	    $user->{"encrypted"}	= YaST::YCP::Integer (1);
+	}
+	$user_defined	= 1;
     }
     my %data = (
         "after_auth"		=> $after_auth,
 	"run_krb_config"	=> YaST::YCP::Integer ($run_krb_config),
-        "user"			=> \%user,
+        "users"			=> \@users,
 	"encryption_method"	=> $encryption_method,
 	"root_alias"		=> $root_alias,
 	"autologin_user"	=> $autologin_user
@@ -849,9 +894,10 @@ sub Write {
 	y2milestone ("enabling step 'root' for second stage");
 	ProductControl->EnableModule ("root");
     }
-    if ($after_auth ne "users" || %user) {
+    if ($after_auth ne "users" || $user_defined) {
 	y2milestone ("enabling step 'user' for second stage");
 	ProductControl->EnableModule ("user");
+# FIXME also when e.g. only encryption was modified
     }
 
     return $ret;
@@ -875,15 +921,206 @@ sub Read {
 	    $encryption_method	=
 		$data->{"encryption_method"} || $encryption_method; 
 	    $run_krb_config	= bool ($data->{"run_krb_config"});
-	    if (ref ($data->{"user"}) eq "HASH") {
-		%user		= %{$data->{"user"}};
+#	    if (ref ($data->{"user"}) eq "HASH") {
+#		%user		= %{$data->{"user"}};
+#	    }
+	    if (ref ($data->{"users"}) eq "ARRAY") {
+		@users		= @{$data->{"users"}};
 	    }
 	    $root_password_written = bool ($data->{"root_password_written"});
 	    $ret	= 1;
 	}
 #	SCR->Execute (".target.remove", $file); FIXME not removed due to testing
+	SCR->Execute (".target.bash", "mv $file $file.bak");
     }
     return bool ($ret);
 }
-1
+
+##---------------------------------------------------------------------------
+## functions for handling passwd/shadow files in the 1st stage
+## (simplified version of functions from UsersPasswd and Users)
+
+
+# read 'shadow' file from a given directory
+# return hash with shadow description
+sub read_shadow {
+
+    my $base_directory	= shift;
+    my $file		= "$base_directory/shadow";
+    my %shadow_tmp	= ();
+    my $in		= SCR->Read (".target.string", $file);
+
+    if (! FileUtils->Exists ($file)) {
+	y2warning ("$file is not available!");
+	return undef;
+    }
+    if (! defined $in) {
+	y2warning ("$file cannot be opened for reading!");
+	return undef;
+    }
+
+    foreach my $shadow_entry (split (/\n/,$in)) {
+	chomp $shadow_entry;
+	next if ($shadow_entry eq "");
+
+	my ($uname,$pass,$last_change,$min, $max, $warn, $inact, $expire, $flag)
+	    = split(/:/,$shadow_entry);  
+        my $first = substr ($uname, 0, 1);
+
+	if ($first ne "#" && $first ne "+" && $first ne "-")
+	{
+	    if (!defined $uname || $uname eq "") {
+		y2error ("strange line in shadow file: '$shadow_entry'");
+		return undef;
+	    }
+	    if (defined $shadow_tmp{$uname})
+	    {
+		y2error ("duplicated username in /etc/shadow! Exiting...");
+		return undef;
+	    }
+	    $shadow_tmp{$uname} = {
+		"shadowlastchange"	=> $last_change,
+		"shadowwarning"		=> $warn,
+		"shadowinactive"	=> $inact,
+		"shadowexpire"		=> $expire,
+		"shadowmin"		=> $min,
+		"shadowmax"		=> $max,
+		"shadowflag"		=> $flag,
+		"userpassword"		=> $pass
+	    };
+	}
+    }
+    return \%shadow_tmp;
+}
+
+# read content of 'passwd' file under given directory
+# - save data into internal structure
+# return boolean (success)
+sub read_passwd {
+
+    my $base_directory	= shift;
+    my $shadow_tmp	= shift;
+    my $file		= "$base_directory/passwd";
+
+    %imported_users 		= ();
+    %imported_shadow		= ();
+    my %usernames		= ();
+
+    if (! FileUtils->Exists ($file)) {
+	y2warning ("$file is not available!");
+	return 0;
+    }
+    my $in	= SCR->Read (".target.string", $file);
+    if (! defined $in) {
+	y2warning ("$file cannot be opened for reading!");
+	return 0;
+    }
+
+    foreach my $user (split (/\n/,$in)) {
+	chomp $user;
+	next if ($user eq "");
+
+	my ($username, $password, $uid, $gid, $full, $home, $shell)
+	    = split(/:/,$user);
+        my $first = substr ($username, 0, 1);
+
+	if ($first ne "#" && $first ne "+" && $first ne "-") {
+
+	    if (!defined $password || !defined $uid || !defined $gid ||
+		!defined $full || !defined $home || !defined $shell ||
+		$username eq "" || $uid eq "" || $gid eq "") {
+		y2error ("strange line in passwd file: '$user'");
+		return 0;
+	    }
+		
+            my $user_type	= "local";
+#	    my %grouplist	= (); FIXME read group list?
+
+	    if (($uid <= $max_system_uid) || ($username eq "nobody")) {
+		$user_type = "system";
+	    }
+    
+	    my $colon = index ($full, ",");
+	    my $additional = "";
+	    if ( $colon > -1)
+	    {
+		$additional = $full;
+		$full = substr ($additional, 0, $colon);
+		$additional = substr ($additional, $colon + 1,
+		    length ($additional));
+	    }
+	    
+	    if (defined $usernames{"local"}{$username} ||
+		defined $usernames{"system"}{$username})
+	    {
+		y2error ("duplicated username in /etc/passwd! Exiting...");
+		return 0;
+	    }
+	    else
+	    {
+		$usernames{$user_type}{$username} = 1;
+	    }
+    
+	    # such map we would like to export from the read script...
+	    $imported_users{$user_type}{$username} = {
+		"addit_data"	=> $additional,
+		"cn"		=> $full,
+		"homedirectory"	=> $home,
+		"uid"		=> $username,
+		"uidnumber"	=> $uid,
+		"gidnumber"	=> $gid,
+		"loginshell"	=> $shell,
+	    };
+	    if (defined $shadow_tmp->{$username}) {
+		# divide shadow map accoring to user type
+		$imported_shadow{$user_type}{$username} =
+		    $shadow_tmp->{$username};
+	    }
+	}
+    }
+    return 1;
+}
+
+##------------------------------------
+# Read passwd and shadow files in 1st stage of the installation
+# string parameter is path to directory with passwd, shadow files
+BEGIN { $TYPEINFO{ReadUserData} = ["function", "boolean", "string"]; }
+sub ReadUserData {
+
+    my ($self, $base_directory)	= @_;
+    my $ret			= 0;
+    my $shadow_tmp	= read_shadow ($base_directory);
+    if (defined $shadow_tmp && ref ($shadow_tmp) eq "HASH") {
+	$ret	= read_passwd ($base_directory, $shadow_tmp);
+    }
+# FIXME do not read again for the same directory
+    return $ret;
+}
+
+##------------------------------------
+# returns hash with imported users of given type
+# @param user type
+BEGIN { $TYPEINFO{GetImportedUsers} = [
+    "function", ["map", "string", "any"], "string"];
+}
+sub GetImportedUsers {
+
+    my ($self, $type)	= @_;
+    my %ret		= ();
+    if (defined $imported_users{$type} && ref($imported_users{$type}) eq "HASH")
+    {
+	%ret 	= %{$imported_users{$type}};
+	next if (!defined $imported_shadow{$type});
+	# add the shadow data into each user map
+	foreach my $username (keys %ret) {
+	    next if (!defined $imported_shadow{$type}{$username});
+	    foreach my $key (keys %{$imported_shadow{$type}{$username}}) {
+	      $ret{$username}{$key} = $imported_shadow{$type}{$username}{$key};
+	    }
+	}
+    }
+    return \%ret;
+}
+
+42
 # EOF
