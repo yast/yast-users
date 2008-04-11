@@ -188,6 +188,9 @@ my @group_custom_sets		= ("local");
 # list of available plugin modules for local and system users (groups)
 my @local_plugins		= ();
 
+# if system settings already read by ReadSystemDefaults
+my $system_defaults_read	= 0;
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -1273,12 +1276,17 @@ sub ReadSourcesSettings {
 
 
 ##------------------------------------
-BEGIN { $TYPEINFO{ReadSystemDefaults} = ["function", "void"]; }
+# Read settings from Security module
+# @param force	force reading, even if already read before
+BEGIN { $TYPEINFO{ReadSystemDefaults} = ["function", "void", "boolean"]; }
 sub ReadSystemDefaults {
 
     if (Mode->test ()) { return; }
 
     my $self		= shift;
+    my $force		= shift;
+
+    return if ($system_defaults_read && !$force);
 
     if (! Security->GetModified ()) {
 	my $progress_orig = Progress->set (0);
@@ -1331,6 +1339,7 @@ sub ReadSystemDefaults {
 
     UsersCache->InitConstants (\%security);
     UsersLDAP->SetUmask ($umask);
+    $system_defaults_read	= 1;
 }
 
 ##------------------------------------
@@ -1587,7 +1596,7 @@ sub Read {
     # default system settings
     if ($use_gui) { Progress->NextStage (); }
 
-    $self->ReadSystemDefaults();
+    $self->ReadSystemDefaults (1);
 
     $self->ReadAllShells();
 
@@ -3968,6 +3977,7 @@ sub WriteSecurity {
 	$ret = Security->Write();
 	Progress->set ($progress_orig);
 	y2milestone ("Security module settings written: $ret");	
+	$security_modified	= 0 if ($ret);
     }
     return $ret;
 }
@@ -4635,9 +4645,7 @@ sub Write {
     }
 
     if ($security_modified) {
-	if ($self->WriteSecurity()) {
-	    $security_modified	= 0;
-	}
+	WriteSecurity();
     }
 
     my @new_aliases	= sort (keys %root_aliases);
@@ -5965,7 +5973,7 @@ sub Initialize {
     my $self		= shift;
 
     $self->ReadLoginDefaults ();
-    $self->ReadSystemDefaults();
+    $self->ReadSystemDefaults(1);
 
     my $error_msg = $self->ReadLocal ();
     if ($error_msg) {
@@ -6038,7 +6046,7 @@ sub Import {
         $defaults_modified	= 1;
     }
 
-    $self->ReadSystemDefaults();
+    $self->ReadSystemDefaults(1);
 
     # remove cache entries (#50265)
     UsersCache->ResetCache ();

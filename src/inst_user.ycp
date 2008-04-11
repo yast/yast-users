@@ -30,7 +30,7 @@
 
     if (!GetInstArgs::going_back())
     {
-	Users::ReadSystemDefaults ();
+	Users::ReadSystemDefaults (false);
 	UsersSimple::Read ();
 	Users::SetEncryptionMethod (UsersSimple::EncryptionMethod ());
 	Users::WriteSecurity ();
