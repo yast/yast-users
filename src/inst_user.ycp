@@ -29,7 +29,12 @@
     symbol ret	= `back;
 
     if (!GetInstArgs::going_back())
+    {
+	Users::ReadSystemDefaults ();
 	UsersSimple::Read ();
+	Users::SetEncryptionMethod (UsersSimple::EncryptionMethod ());
+	Users::WriteSecurity ();
+    }
 
     // check if the user was configured in the 1st stage
     if (!GetInstArgs::going_back() &&
