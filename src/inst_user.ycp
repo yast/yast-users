@@ -3,6 +3,7 @@
  *
  * Authors:     Klaus Kaempf <kkaempf@suse.de>
  *              Stefan Hundhammer <sh@suse.de>
+ *              Jiri Suchomel <jsuchome@suse.cz>
  *
  * Purpose:     Start user management module from within installation workflow
  *
@@ -26,22 +27,31 @@
 
     include "users/wizards.ycp";
 
-    symbol ret	= `back;
+    symbol ret		= `back;
+    boolean importing	= false;
+    list<map> users     = [];
+    map<string,any>user	= $[];
 
     if (!GetInstArgs::going_back())
     {
 	Users::ReadSystemDefaults (false);
 	UsersSimple::Read ();
 	Users::SetEncryptionMethod (UsersSimple::EncryptionMethod ());
-	Users::WriteSecurity ();
+	users	= (list<map>) UsersSimple::GetUsers ();
+	user	= UsersSimple::GetUser ();
+	if (size (users) > 1 || user["__imported"]:nil != nil)
+	{
+	    Users::SetUsersForImport (users);
+	    importing	= true;
+	}
     }
+    // what to call after inst_auth dialog
+    string client	= UsersSimple::AfterAuth();
 
     // check if the user was configured in the 1st stage
     if (!GetInstArgs::going_back() &&
-	UsersSimple::AfterAuth () == "users" &&
-	UsersSimple::GetUser () != $[])
+	client == "users" && user != $[] && !importing)
     {
-	map<string,any> user	= UsersSimple::GetUser ();
 	y2milestone ("user defined in 1st stage, let's save now...");
 	boolean progress_orig = Progress::set (false);
 	Users::Read ();
@@ -85,13 +95,13 @@
 
     // dialog caption
     string caption = _("User Authentication Method");
-    // help text (shown in the 'busy' situation)
-    Wizard::SetContents (caption, `Empty (), _("Initialization of module for configuration of authentication..."),
-	GetInstArgs::enable_back(), GetInstArgs::enable_next()
-    );
 
-    // what to call after inst_auth dialog
-    string client	= UsersSimple::AfterAuth();
+    if (!importing)
+	Wizard::SetContents (caption, `Empty (),
+	// help text (shown in the 'busy' situation)
+	_("Initialization of module for configuration of authentication..."),
+	GetInstArgs::enable_back(), GetInstArgs::enable_next());
+
     if (client != "users")
     {
 	// going back from next step, while kerberos was already configured
@@ -183,7 +193,6 @@ Install it now?
 			user	= remove (user, "gidnumber");
 		}
 	    }
-
 	    string error = Users::AddUser (user);
 	    if (error != "")
 	    {
@@ -196,7 +205,7 @@ Install it now?
 	    }
 	    Users::CommitUser ();
 	});
-	Users::Write ();
+	WriteDialog (false);
 	ret = `auto;
     }
     else

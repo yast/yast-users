@@ -35,7 +35,37 @@
     // minimal pw length for CA-management (F#300438)
     integer pw_min_CA			= 4;
 
+    // if importing users from different partition is possible
+    boolean import_available	= false;
+    string import_dir	= Directory::vardir + "/imported/userdata/etc";
+    // full info about imported users
+    map<string,map> imported_users	= $[];
+    // user names of imported users
+    list<string> user_names	= [];
+    // names of imported users selected for writing
+    list<string> to_import	= [];
 
+    /*
+    if (FileUtils::Exists (import_dir + "/passwd") &&
+	FileUtils::Exists (import_dir + "/shadow"))
+    {
+	import_available	= true;
+    }
+    */
+    if (!GetInstArgs::going_back() && import_available)
+    {
+	if (UsersSimple::ReadUserData (import_dir))
+	{
+	    imported_users = (map<string,map>)
+		UsersSimple::GetImportedUsers ("local");
+	    user_names	= maplist (string name, map u, imported_users,``(name));
+	}
+	if (size (user_names) < 1)
+	{
+	    y2milestone ("No users to import");
+	    import_available	= false;
+	}
+    }
     // helper function to se package for installation, together with
     // architecture dependent version
     void install_package (string package) {
@@ -97,6 +127,13 @@
 	// encryption type
 	"blowfish"	: _("Blowfish"),
     ];
+    term import_checkbox = `Left (`CheckBox (`id (`import_ch),
+	// check box label
+	_("&Read User Data from a Previous Installation")
+    ));
+
+    // button label
+    term import_button = `PushButton (`id(`import), _("&Choose"));
 
     term buttons = `VBox (`VSpacing(0.5));
     list<string> available_clients = filter (string client,
@@ -108,12 +145,25 @@
 	return Mode::normal () || Package::Available (package);
     });
     available_clients	= prepend (available_clients, "users");
+
     foreach (string client, available_clients, {
-	buttons = add (buttons, `Left (`RadioButton (
-	    `id(client), `opt (`notify), button_labels[client]:"")
-	));
+	if (client == "users" && import_available)
+	    buttons	= add (buttons, `VBox (
+		`Left (`RadioButton (
+		    `id(client), `opt (`notify), button_labels[client]:""
+		)),
+		`HBox (
+		    `HSpacing (3),
+		    text_mode ?
+			`VBox (import_checkbox, `Left (import_button)) :
+			`HBox (import_checkbox, import_button)
+		)
+	    ));
+	else
+	    buttons = add (buttons, `Left (`RadioButton (
+		`id(client), `opt (`notify), button_labels[client]:"")
+	    ));
     });
-// FIXME 'import previous user' is missing
 
     buttons = add (buttons, `VSpacing(0.5));
 
@@ -241,6 +291,60 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     }
 
     /**
+     * Helper function: ask user which users to import
+    */
+    list<string> choose_to_import (list<string> all, list<string> selected) {
+
+	list items	= maplist (string u, all, ``(
+	    `item (`id (u), u, contains (selected, u))
+	));
+	boolean all_checked = (size (all) == size (selected)) && size (all) > 0;
+	integer vsize	= size (all) + 3;
+	if (vsize > 15) vsize = 15;
+
+	UI::OpenDialog (`opt(`decorated), `HBox(`VSpacing (vsize), `VBox (
+	    `HSpacing(50),
+	    `MultiSelectionBox (`id(`userlist),
+		// selection box label
+		_("&Select Users to Read"), items),
+	    `Left (`CheckBox (`id(`all), `opt(`notify),
+		// check box label
+		_("Select or Deselect &All"), all_checked
+	    )),
+	    `HBox (
+		`PushButton (`id(`ok), `opt(`default), Label::OKButton()),
+		`PushButton (`id(`cancel), Label::CancelButton())
+	    )
+	)));
+
+	any ret	= nil;
+	while (true)
+	{
+	    ret	= UI::UserInput ();
+	    if (ret == `all)
+	    {
+		boolean ch  = (boolean)UI::QueryWidget (`id(`all),`Value);
+		if (ch != all_checked)
+		{
+		    UI::ChangeWidget (`id(`userlist), `Items,
+			maplist (string u, all, ``(`item (`id (u), u, ch)))
+		    );
+		    all_checked	= ch;
+		}
+	    }
+	    if (ret == `ok || ret == `cancel)
+		break;
+	}
+	if (ret == `ok)
+	{
+	    selected = (list<string>)
+		UI::QueryWidget(`id(`userlist),`SelectedItems);
+	}
+	UI::CloseDialog ();
+	return ret == `ok ? selected : nil;
+    }
+
+    /**
      * Dialog for expert user settings: authentication method as well
      * as password encryption (see fate 302980)
      * @return true if user accepted expert settings
@@ -273,10 +377,19 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	foreach (string enc, string l, encoding2label, {
 	    UI::ChangeWidget (`id(enc),`Enabled, auth_method == "users");
 	});
+	UI::ChangeWidget (`id (`import_ch), `Value, auth_method == "users" &&
+	    size (to_import) > 0);
 	any retval =	`cancel;
 	while (true)
 	{
 	    retval = UI::UserInput ();
+	    if (retval == `import)
+	    {
+		list<string> selected = choose_to_import (user_names,to_import);
+		if (selected != nil)
+		    to_import	= selected;
+		UI::ChangeWidget (`id (`import_ch), `Value, size(to_import)> 0);
+	    }
 	    if (is (retval, string) && haskey (button_labels, (string)retval))
 	    {
 		UI::ChangeWidget (`id(`krb),`Enabled,
@@ -284,6 +397,21 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 		foreach (string enc, string l, encoding2label, {
 		    UI::ChangeWidget (`id(enc),`Enabled, retval == "users");
 		});
+		UI::ChangeWidget (`id (`import_ch), `Enabled, retval== "users");
+		UI::ChangeWidget (`id (`import), `Enabled, retval == "users");
+	    }
+	    if (retval == `accept && import_available && to_import == [] &&
+		UI::QueryWidget (`id(`import_ch), `Value) == true)
+	    {
+		// force selecting when only checkbox is checked
+		list<string> selected = choose_to_import (user_names,to_import);
+		if (selected != nil)
+		    to_import	= selected;
+		else
+		{
+		    retval	= `notnext;
+		    continue;
+		}
 	    }
 	    if (retval == `cancel || retval == `accept || retval == `back)
 		break;
@@ -299,6 +427,9 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 		use_kerberos	= false;
 	    else
 		use_kerberos	= (boolean) UI::QueryWidget (`id(`krb), `Value);
+	    if (auth_method != "users" ||
+		UI::QueryWidget (`id (`import_ch), `Value) == false)
+		to_import	= [];
 	}
 	Wizard::CloseDialog ();
 	return (retval == `accept);
@@ -311,6 +442,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	// summary label
 	string details_line =sformat(_("The password encryption method is %1."),
 	    encoding2label[encryption_method]:encryption_method);
+	term imported_term	= `Empty ();
 	if (auth_method != "users")
 	{
 	    // summary line: %1 is LDAP/NIS etc.
@@ -322,10 +454,25 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    // // summary label
 	    details_line	= _("The configuration will be available later during the installation.");
 	}
+	else if (to_import != [])
+	{
+	    // summary label, %1 are user names (comma separated)
+	    string imported	= sformat (_("Users %1 will be imported."),
+		mergestring (to_import, ","));
+	    if (size (to_import) == 1)
+		// summary label, %1 is user name
+		imported	= sformat (_("User %1 will be imported."),
+		    to_import[0]:"");
+	    if (text_mode)
+		auth_line	= auth_line + "<br>" + imported;
+	    else
+		imported_term	= `Left (`Label (imported));
+	}
 	term status	= text_mode ?
 	    `RichText (auth_line + "<br>" + details_line) :
 	    `VBox (
 		`Left (`Label (auth_line)),
+		imported_term,
 		`Left (`Label (details_line))
 	    );
 	term button	= `HBox (
@@ -344,7 +491,19 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    )));
     }
 
-    map<string,any>user	= UsersSimple::GetUser ();
+    list<map> users	= (list<map>) UsersSimple::GetUsers ();
+    map<string,any>user	= $[];
+    if (size (users) > 1)
+    {
+	to_import	= maplist (map u, users, ``(u["uid"]:""));
+    }
+    if (size (users) == 1)
+    {
+	if (users[0,"__imported"]:nil != nil)
+	    to_import	= [ users[0,"uid"]:"" ];
+	else
+	    user	= (map<string,any>) users[0]:$[];
+    }
 
     string user_type	= user["type"]:"local";
     string username	= user["uid"]:"";
@@ -373,10 +532,18 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	(username != "" && UsersSimple::GetRootAlias () == username);
 
     term fields = `VBox (
+	/*
 	`InputField (`id (`cn), `opt (`notify, `hstretch),
 	    // text entry
 	    _("User's &Full Name"), cn),
 	`InputField (`id (`username), `opt (`notify, `hstretch),
+	    // input field for login name
+	    _("&Username"),username),
+	*/
+	`TextEntry (`id (`cn), `opt (`notify, `hstretch),
+	    // text entry
+	    _("User's &Full Name"), cn),
+	`TextEntry (`id (`username), `opt (`notify, `hstretch),
 	    // input field for login name
 	    _("&Username"),username),
 	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
@@ -415,7 +582,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     // dialog caption
     Wizard::SetContents (_("Create New User"), contents,
 	main_help (),
-	GetInstArgs::enable_back(), GetInstArgs::enable_next()
+	GetInstArgs::enable_back(), GetInstArgs::enable_next() || Mode::normal()
     );
     foreach (symbol w, [`cn, `username, `pw1, `pw2, `root_pw, `root_mail,
 	`autologin ], {
@@ -438,7 +605,8 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 		UI::ReplaceWidget (`id (`rp_status), get_status_term ());
 		foreach (symbol w, [`cn, `username, `pw1, `pw2, `root_pw,
 		    `root_mail, `autologin ], {
-		    UI::ChangeWidget (`id (w), `Enabled,auth_method == "users");
+		    UI::ChangeWidget (`id (w), `Enabled,
+			auth_method == "users" && to_import == []);
 		});
 		Wizard::RestoreHelp (main_help ());
 	    }
@@ -580,7 +748,21 @@ Really use this shorter password?"), pw_min_CA)))
     {
 	UsersSimple::SetAfterAuth (auth_method);
 	UsersSimple::SetKerberosConfiguration (use_kerberos);
-	if (auth_method == "users" && username != "")
+	if (auth_method == "users" && to_import != [])
+	{
+	    list create_users	= [];
+	    foreach (string name, to_import, {
+		map u		= imported_users[name]:$[];
+		u["__imported"]	= true;
+		create_users	= add (create_users, u);
+	    });
+	    UsersSimple::SetUsers (create_users);
+	    UsersSimple::SkipRootPasswordDialog (false);
+	    UsersSimple::SetRootPassword ("");
+	    UsersSimple::SetAutologinUser ("");
+	    UsersSimple::SetRootAlias ("");
+	}
+	else if (auth_method == "users" && username != "")
 	{
 	    // save the first user data
 	    map<string,any> user_map	= $[
@@ -588,7 +770,7 @@ Really use this shorter password?"), pw_min_CA)))
 		"userpassword"	: password,
 		"cn"		: cn
 	    ];
-	    UsersSimple::SetUser (user_map);
+	    UsersSimple::SetUsers ([user_map]);
 	    UsersSimple::SkipRootPasswordDialog (root_pw);
 	    UsersSimple::SetRootPassword (root_pw ? password : "");
 	    UsersSimple::SetAutologinUser (
@@ -628,7 +810,7 @@ Really use this shorter password?"), pw_min_CA)))
 	UsersSimple::SetAutologinUser ("");
 	UsersSimple::SetRootAlias ("");
 	UsersSimple::SetRootPassword ("");
-	UsersSimple::SetUser ($[]);
+	UsersSimple::SetUsers ([]);
     }
 
 
