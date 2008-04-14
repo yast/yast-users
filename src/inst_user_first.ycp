@@ -9,6 +9,7 @@
 {
     import "Arch";
     import "Directory";
+    import "FileUtils";
     import "GetInstArgs";
     import "Label";
     import "Mode";
@@ -19,6 +20,7 @@
     import "Progress";
     import "Report";
     import "String";
+    import "SystemFilesCopy";
     import "UsersSimple";
     import "Wizard";
 
@@ -37,7 +39,6 @@
 
     // if importing users from different partition is possible
     boolean import_available	= false;
-    string import_dir	= Directory::vardir + "/imported/userdata/etc";
     // full info about imported users
     map<string,map> imported_users	= $[];
     // user names of imported users
@@ -45,13 +46,16 @@
     // names of imported users selected for writing
     list<string> to_import	= [];
 
-    /*
-    if (FileUtils::Exists (import_dir + "/passwd") &&
+    string tmp_dir	= Directory::tmpdir + "/users";
+    SCR::Execute (.target.mkdir, tmp_dir);
+    string import_dir	= tmp_dir + Directory::vardir +"/imported/userdata/etc";
+
+    if (SystemFilesCopy::CopyFilesToSystem (tmp_dir) &&
+	FileUtils::Exists (import_dir + "/passwd") &&
 	FileUtils::Exists (import_dir + "/shadow"))
     {
 	import_available	= true;
     }
-    */
     if (!GetInstArgs::going_back() && import_available)
     {
 	if (UsersSimple::ReadUserData (import_dir))
@@ -66,6 +70,8 @@
 	    import_available	= false;
 	}
     }
+    SCR::Execute (.target.bash_output, sformat ("/bin/rm -rf %1", tmp_dir));
+
     // helper function to se package for installation, together with
     // architecture dependent version
     void install_package (string package) {
@@ -586,7 +592,8 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     );
     foreach (symbol w, [`cn, `username, `pw1, `pw2, `root_pw, `root_mail,
 	`autologin ], {
-	UI::ChangeWidget (`id (w), `Enabled, auth_method == "users");
+	UI::ChangeWidget (`id (w), `Enabled,
+	    auth_method == "users" && to_import == []);
     });
     if (auth_method == "users")
 	UI::SetFocus (`id (`cn));

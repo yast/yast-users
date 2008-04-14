@@ -52,7 +52,8 @@
 	// summary label <%1>-<%2> are HTML tags, leave untouched
 	string prop	= sformat (_("No <%1>user<%2> configured"),ahref, "/a");
 	string auth_method	= UsersSimple::AfterAuth ();
-	map user		= UsersSimple::GetUser ();
+	list<map> users     = (list<map>) UsersSimple::GetUsers ();
+	map user		= users[0]:$[];
 	if (auth_method != "users")
 	{
 	    // summary line: <%1>-<%2> are HTML tags, leave untouched,
@@ -64,6 +65,18 @@
 		// % is LDAP/NIS etc.
 		prop	= sformat (_("<%1>Authentication method<%2>: %3 and Kerberos."),
 		    ahref, "/a", auth2label[auth_method]:auth_method);
+	}
+	else if (size (users) > 1 || user["__imported"]:nil != nil)
+	{
+	    list<string> to_import = maplist (map u, users, ``(u["uid"]:""));
+	    // summary line, %3 are user names (comma separated)
+	    // <%1>,<%2> are HTML tags, leave untouched,
+            prop = sformat (_("<%1>Users<%2> %3 selected for import"),
+		ahref, "/a", mergestring (to_import, ","));
+	    if (size (to_import) == 1)
+		// summary line,  <%1>,<%2> are HTML tags, %3 user name
+		prop = sformat (_("<%1>User<%2> %3 will be imported."),
+		ahref, "/a", to_import[0]:"");
 	}
 	else if (user["uid"]:"" != "")
 	{

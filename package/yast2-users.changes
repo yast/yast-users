@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Apr 14 15:54:26 CEST 2008 - jsuchome@suse.cz
+
+- use SystemFilesCopy::CopyFilesToSystem to acquire /etc/passwd
+  and /etc/shadow in the 1st stage (fate#302980) 
+- show imported users in installation summary
+- 2.16.25
+
+-------------------------------------------------------------------
 Fri Apr 11 15:44:37 CEST 2008 - jsuchome@suse.cz
 
 - prepare API for "Import User From Previous Installation" in
