@@ -702,7 +702,7 @@ Try again.");
 # @return value is map with the problem found FIXME example
 BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
     ["map", "string", "string"],
-    ["map", "string", "any"], ["map", "string", "integer"]];
+    ["map", "string", "any"], ["map", "string", "any"]];
 }
 sub CheckPasswordUI {
 
@@ -719,7 +719,7 @@ sub CheckPasswordUI {
 	return \%ret;
     }
 
-    if ($self->CrackLibUsed () && (($ui_map->{"crack"} || 0) != 1)) {
+    if ($self->CrackLibUsed () && (($ui_map->{"crack"} || "") ne $pw)) {
 	my $error = $self->CrackPassword ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
@@ -731,7 +731,7 @@ Really use this password?"), $error);
 	}
     }
     
-    if ($self->ObscureChecksUsed () && (($ui_map->{"obscure"} || 0) != 1)) {
+    if ($self->ObscureChecksUsed () && (($ui_map->{"obscure"} || "") ne $pw)) {
 	my $what	= "users";
 	$what		= "groups" if (! defined $data->{"uid"});
 	my $error	= $self->CheckObscurity ($name, $pw, $what);
@@ -742,7 +742,7 @@ Really use this password?"), $error);
 	}
     }
 
-    if (($ui_map->{"short"} || 0) != 1) {
+    if (($ui_map->{"short"} || "") ne $pw) {
 	if (length ($pw) < $min_length) {
 	    $ret{"question_id"}	= "short";
 	    # popup questionm, %i is number
@@ -751,7 +751,7 @@ Really use this shorter password?"), $min_length);
 	}
     }
     
-    if (($ui_map->{"truncate"} || 0) != 1) {
+    if (($ui_map->{"truncate"} || "") ne $pw) {
 	my $error = $self->CheckPasswordMaxLength ($pw, $type);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "truncate";

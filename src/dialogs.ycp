@@ -145,7 +145,7 @@ define symbol EditUserDialog (string what) {
 
     map display_info        = UI::GetDisplayInfo ();
     boolean text_mode	= display_info["TextMode"]:false;
-    
+
     map<string,any>user	= Users::GetCurrentUser ();
     string error_msg	= "";
 
@@ -220,6 +220,7 @@ define symbol EditUserDialog (string what) {
     }
 
     boolean create_home		= user["create_home"]:true;
+    boolean chown_home		= user["chown_home"]:true;
     boolean no_skel		= user["no_skeleton"]:false;
     boolean do_not_edit		= (user_type == "nis");
     boolean crypted_home_enabled=
@@ -297,11 +298,44 @@ define symbol EditUserDialog (string what) {
 		givenname = user["givenname"]:SplitFullName(`givenname, cn);
 	}
 
-	create_home	= user["create_home"]:create_home;
+	chown_home	= user["chowne_home"]:chown_home;
 	no_skel		= user["no_skeleton"]:no_skel;
 	groups		= user["grouplist"]:$[];
 	do_not_edit	= (user_type == "nis");
     }
+
+    /**
+     * helper function: show a popup if existing home directory should be used
+     * and its ownership should be changed
+     */
+    map ask_chown_home (string dir, boolean chown_default) {
+
+	UI::OpenDialog (`opt(`decorated), `HBox(`HSpacing (1), `VBox (
+	    `VSpacing (0.2),
+	    // popup label, %1 is path to directory
+	    `Label (sformat (_("The home directory (%1) already exists.
+Use it anyway?"), dir)),
+	    `Left (
+		// checkbox label
+		`CheckBox (`id(`chown_home), _("&Change directory owner"),
+		chown_default)
+	    ),
+	    `HBox(
+		`PushButton (`id(`yes), `opt(`default), Label::YesButton()),
+		`PushButton (`id(`no), Label::NoButton())
+	    ),
+	    `VSpacing (0.2)
+	), `HSpacing (1)));
+	any ui = UI::UserInput ();
+	map retmap	= $[
+	    "retval"	: ui == `yes
+	];
+	if (ui == `yes)
+	    retmap["chown_home"] = UI::QueryWidget (`id (`chown_home),`Value);
+	UI::CloseDialog ();
+	return retmap;
+    }
+
 
     /**
      * generate contents for User Data Dialog
@@ -792,12 +826,13 @@ group memberships can be changed.")) : `VSpacing (0),
 	ret = `notnext;
     }
 
+    // map with id's of confirmed questions
+    map<string,any> ui_map	= $[];
+
     while (true)
     {
 	// map returned from Check*UI functions
 	map error_map			= $[];
-	// map with id's of confirmed questions
-	map<string,integer> ui_map	= $[];
 	// error message
 	string error			= "";
 
@@ -1006,7 +1041,7 @@ Try again."));
 			    failed = true;
 			}
 			else
-			    ui_map[ error_map["question_id"]:"" ] = 1;
+			    ui_map[ error_map["question_id"]:"" ] = pw1;
 		    }
 		} while (error_map != $[] && !failed);
 
@@ -1067,10 +1102,25 @@ _("Change home directory to %1?"), generated_home))))
 		    error_map = Users::CheckHomeUI (uid, home, ui_map);
 		    if (error_map != $[])
 		    {
-			if (!Popup::YesNo (error_map ["question"]:""))
-			    failed = true;
+			if (error_map["question_id"]:"" == "chown" &&
+			    !haskey (error_map, "owned"))
+			{
+			    map ret = ask_chown_home (home, chown_home);
+			    if (ret["retval"]:false)
+			    {
+				ui_map["chown"]	= home;
+				chown_home	= ret["chown_home"]:chown_home;
+			    }
+			    else
+				failed	= true;
+			}
 			else
-			    ui_map[ error_map["question_id"]:"" ] = 1;
+			{
+			    if (!Popup::YesNo (error_map ["question"]:""))
+				failed = true;
+			    else
+				ui_map[ error_map["question_id"]:"" ] = home;
+			}
 		    }
 		} while (error_map != $[] && !failed);
 
@@ -1081,6 +1131,7 @@ _("Change home directory to %1?"), generated_home))))
 		}
 	    }
 	    user["homedirectory"]	= home;
+	    user["chown_home"]		= chown_home;
 
 	    // --------------------------------- username checks, part 2/2
             if (what == "add_user" || username != org_username)
@@ -1219,19 +1270,33 @@ Log the user out first."));
 		    focus_tab (current, `uid);
 		    continue;
 		}
-		error_map = Users::CheckUIDUI (new_i_uid, ui_map);
-		if (error_map != $[])
+		boolean failed                  = false;
+		do
 		{
-		    if (!Popup::YesNo (error_map ["question"]:""))
+		    error_map = Users::CheckUIDUI (new_i_uid, ui_map);
+		    if (error_map != $[])
 		    {
-			focus_tab (current, `uid);
-			continue;
+			if (!Popup::YesNo (error_map ["question"]:""))
+			{
+			    focus_tab (current, `uid);
+			    failed	= true;
+			}
+			else
+			{
+			    ui_map[ error_map["question_id"]:"" ] = new_i_uid;
+			    if(contains(["local","system"],
+				error_map["question_id"]:""))
+			    {
+				new_type = error_map["question_id"]:"local";
+				UsersCache::SetUserType (new_type);
+			    }
+			}
 		    }
-		    if(contains(["local","system"],error_map["question_id"]:""))
-		    {
-			new_type = error_map["question_id"]:"local";
-			UsersCache::SetUserType (new_type);
-		    }
+		} while (error_map != $[] && !failed);
+		if (failed)
+		{
+		    focus_tab (current, `uid);
+		    continue;
 		}
             } // end of uid checks
 
@@ -1259,10 +1324,25 @@ Log the user out first."));
 		    error_map = Users::CheckHomeUI(new_i_uid, new_home, ui_map);
 		    if (error_map != $[])
 		    {
-			if (!Popup::YesNo (error_map ["question"]:""))
-			    failed = true;
+			if (error_map["question_id"]:"" == "chown" &&
+			    !haskey (error_map, "owned"))
+			{
+			    map ret = ask_chown_home (new_home, chown_home);
+			    if (ret["retval"]:false)
+			    {
+				ui_map["chown"]	= new_home;
+				chown_home	= ret["chown_home"]:chown_home;
+			    }
+			    else
+				failed	= true;
+			}
 			else
-			    ui_map[ error_map["question_id"]:"" ] = 1;
+			{
+			    if (!Popup::YesNo (error_map ["question"]:""))
+				failed = true;
+			    else
+				ui_map[ error_map["question_id"]:""] = new_home;
+			}
 		    }
 		} while (error_map != $[] && !failed);
 
@@ -1299,6 +1379,8 @@ Log the user out first."));
 		    focus_tab (current, `shell);
 		    continue;
 		}
+		else
+		    ui_map[ error_map["question_id"]:"" ] = new_shell;
 	    }
 
 	    // generate new map of groups (NIS groups were not shown!)
@@ -1322,7 +1404,10 @@ Log the user out first."));
 	    if (do_not_edit && !grouplist_modified && groups != new_groups)
 		grouplist_modified	= true;
 	    if (new_home == "/var/lib/nobody")
+	    {
 		create_home	= false;
+		chown_home	= false;
+	    }
 	    if (UI::WidgetExists (`id (`move_home)) &&
 		UI::QueryWidget (`id (`move_home), `Value) == false)
 		create_home	= false;
@@ -1341,6 +1426,7 @@ Log the user out first."));
 	    user["groupname"]		= new_defaultgroup;
 	    user["type"]		= new_type;
 	    user["create_home"]		= create_home;
+	    user["chown_home"]		= chown_home;
 	    user["addit_data"]		= addit_data;
 	    user["no_skeleton"]		= no_skel;
 	    user["home_mode"]		= mode;
@@ -1921,7 +2007,7 @@ define symbol EditGroupDialog (string what) {
 	// map returned from Check*UI functions
 	map error_map			= $[];
 	// map with id's of confirmed questions
-	map<string,integer> ui_map	= $[];
+	map<string,any> ui_map	= $[];
 	// error message
 	string error			= "";
 
@@ -1997,7 +2083,7 @@ Try again.")) ;
 			    failed = true;
 			}
 			else
-			    ui_map[ error_map["question_id"]:"" ] = 1;
+			    ui_map[ error_map["question_id"]:"" ] = pw1;
 		    }
 		} while (error_map != $[] && !failed);
 		if (failed)
@@ -2020,19 +2106,32 @@ Try again.")) ;
 		    focus_tab (current, `gid);
 		    continue;
 		}
-		error_map = Users::CheckGIDUI (new_i_gid, ui_map);
-		if (error_map != $[])
+		boolean failed	= false;
+		do
 		{
-		    if (!Popup::YesNo (error_map ["question"]:""))
+		    error_map = Users::CheckGIDUI (new_i_gid, ui_map);
+		    if (error_map != $[])
 		    {
-			focus_tab (current, `gid);
-			continue;
+			if (!Popup::YesNo (error_map ["question"]:""))
+			{
+			    failed	= true;
+			}
+			else
+			{
+			    ui_map[ error_map["question_id"]:"" ] = new_i_gid;
+			    if(contains(["local","system"],
+				error_map["question_id"]:""))
+			    {
+				new_type = error_map["question_id"]:"local";
+				UsersCache::SetGroupType (new_type);
+			    }
+			}
 		    }
-		    if(contains(["local","system"],error_map["question_id"]:""))
-		    {
-			new_type = error_map["question_id"]:"local";
-			UsersCache::SetGroupType (new_type);
-		    }
+		} while (error_map != $[] && !failed);
+		if (failed)
+                {
+		    focus_tab (current, `gid);
+		    continue;
 		}
 	    }
 

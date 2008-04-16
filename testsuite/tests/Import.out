@@ -14,4 +14,4 @@ Dump	local user names:
 Dump	 ["ggg", "hh", "ii"]
 Return	nil
 Dump	---- user 'ggg':
-Dump	 $["cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/ggg", "loginshell":"", "modified":"added", "org_homedirectory":"/home/ggg", "org_uid":"ggg", "org_uidnumber":"1000", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"ggg", "uidnumber":"1000", "userpassword":"crypted_password", "what":"add_user"]
+Dump	 $["chown_home":true, "cn":"", "create_home":true, "encrypted":true, "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/ggg", "loginshell":"", "modified":"added", "org_homedirectory":"/home/ggg", "org_uid":"ggg", "org_uidnumber":"1000", "plugins":[], "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"0", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"ggg", "uidnumber":"1000", "userpassword":"crypted_password", "what":"add_user"]

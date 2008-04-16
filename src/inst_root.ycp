@@ -198,7 +198,7 @@ Try again."));
 		// map returned from CheckPasswordUI functions
 		map error_map			= $[];
 		// map with id's of confirmed questions
-		map<string,integer> ui_map	= $[];
+		map<string,any> ui_map	= $[];
 		boolean failed			= false;
 
 		if (check_CA_constraints && (size (pw1) < pw_min_CA))
@@ -233,7 +233,7 @@ Really use this shorter password?"), pw_min_CA)))
 			}
 			else
 			{
-			    ui_map[ error_map["question_id"]:"" ] = 1;
+			    ui_map[ error_map["question_id"]:"" ] = pw1;
 			}
 		    }
 		} while (error_map != $[] && !failed);
