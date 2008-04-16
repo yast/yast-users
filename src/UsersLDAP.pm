@@ -120,7 +120,7 @@ my @user_internal_keys		=
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
      "warning_message", "warning_message_ID", "confirmed_warnings", "home_mode",
-     "crypted_home_size");
+     "crypted_home_size","chown_home");
 
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
@@ -1263,6 +1263,7 @@ sub WriteUsers {
         my $gid		= $user->{"gidnumber"};
 	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my $create_home	= bool ($user->{"create_home"});
+	my $chown_home	= bool ($user->{"chown_home"});
 	my $delete_home	= bool ($user->{"delete_home"});
 	my $enabled	= bool ($user->{"enabled"});
 	my $disabled	= bool ($user->{"disabled"});
@@ -1377,7 +1378,7 @@ sub WriteUsers {
 			UsersRoutines->CreateHome (
 			    $useradd_defaults{"skel"}, $home);
 		    }
-		    if ($home ne "/var/lib/nobody") {
+		    if ($home ne "/var/lib/nobody" && $chown_home) {
 			if (UsersRoutines->ChownHome ($uid, $gid, $home)) {
 			    UsersRoutines->ChmodHome($home, $mode);
 			}
@@ -1420,7 +1421,10 @@ sub WriteUsers {
 		    if ($create_home) {
 			UsersRoutines->MoveHome ($org_home, $home);
 		    }
-		    if (!defined $user->{"crypted_home_size"} || $user->{"crypted_home_size"} eq 0){
+		    if ($chown_home &&
+			(!defined $user->{"crypted_home_size"} ||
+			$user->{"crypted_home_size"} eq 0))
+		    {
 			UsersRoutines->ChownHome ($uid, $gid, $home);
 		    }
 		}

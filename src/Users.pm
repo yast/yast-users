@@ -2165,6 +2165,11 @@ sub EditUser {
 	    $user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
 	}
 
+	# set the default value ("change the owner of home to its user")
+	if (!defined $user_in_work{"chown_home"}) {
+	    $user_in_work{"chown_home"}		= YaST::YCP::Boolean (1);
+	}
+
 	# check if user is using crypted directory
 	$user_in_work{"crypted_home_size"} = 0;
 	my $dir	= UsersRoutines->CryptedImagePath ($username);
@@ -2301,6 +2306,7 @@ sub EditUser {
 	    }
 	}
 	if ($key eq "create_home" || $key eq "delete_home" ||
+	    $key eq "chown_home" ||
 	    $key eq "encrypted" ||$key eq "no_skeleton" ||
 	    $key eq "disabled" || $key eq "enabled") {
 	    if (ref $data{$key} eq "YaST::YCP::Boolean") {
@@ -3025,6 +3031,7 @@ sub AddUser {
     # now copy the data to map of current user
     foreach my $key (keys %data) {
 	if ($key eq "create_home" || $key eq "encrypted" ||
+	    $key eq "chown_home" ||
 	    $key eq "delete_home" || $key eq "no_skeleton" ||
 	    $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
@@ -3080,6 +3087,9 @@ sub AddUser {
     }
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
+    }
+    if (!defined $user_in_work{"chown_home"}) {
+	$user_in_work{"chown_home"}	= YaST::YCP::Boolean (1);
     }
     my %default_shadow = %{$self->GetDefaultShadow ($type)};
     foreach my $shadow_item (keys %default_shadow) {
@@ -4418,6 +4428,7 @@ sub Write {
 		my $user_mod 	= $user{"modified"} || "no";
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
+		my $chown_home	= $user{"chown_home"};
 		my $skel	= $useradd_defaults{"skel"};
 		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
 		    $users_with_crypted_dir{$username}	= \%user;
@@ -4435,7 +4446,7 @@ sub Write {
 		    {
 			UsersRoutines->CreateHome ($skel, $home);
 		    }
-		    if ($home ne "/var/lib/nobody") {
+		    if ($home ne "/var/lib/nobody" && bool ($chown_home)) {
 			if (UsersRoutines->ChownHome ($uid, $gid, $home))
 			{
 			    my $mode = 777 - String->CutZeros ($umask);
@@ -4465,7 +4476,10 @@ sub Write {
 			    UsersRoutines->CreateHome ($skel, $home);
 			}
 			# do not change root's ownership of home directories
-			if (!defined $user{"crypted_home_size"} || $user{"crypted_home_size"} eq 0){
+			if ((!defined $user{"crypted_home_size"} ||
+			    $user{"crypted_home_size"} eq 0) &&
+			    bool ($chown_home))
+			{
 			    UsersRoutines->ChownHome ($uid, $gid, $home);
 			}
 		    }
@@ -4774,7 +4788,7 @@ Select a valid integer between %i and %i."), $min, $max);
 # check the uid of current user - part 2
 BEGIN { $TYPEINFO{CheckUIDUI} = ["function",
     ["map", "string", "string"],
-    "integer", ["map", "string", "integer"]];
+    "integer", ["map", "string", "any"]];
 }
 sub CheckUIDUI {
 
@@ -4784,7 +4798,7 @@ sub CheckUIDUI {
     my $type	= UsersCache->GetUserType ();
     my %ret	= ();
 
-    if (($ui_map{"duplicated_uid"} || 0) != 1) {
+    if (($ui_map{"duplicated_uid"} || -1) != $uid) {
 	if (
 	   (("add_user" eq ($user_in_work{"what"} || "")) 	||
 	    ($uid != ($user_in_work{"uidnumber"} || 0))		||
@@ -4801,7 +4815,7 @@ Really use it?");
 	}
     }
 
-    if (($ui_map{"ldap_range"} || 0) != 1) {
+    if (($ui_map{"ldap_range"} || -1) != $uid) {
 	if ($type eq "ldap" &&
 	    $uid < UsersCache->GetMinUID ("ldap"))
 	{
@@ -4816,7 +4830,7 @@ Really use it?"),
 	}
     }
 
-    if (($ui_map{"local"} || 0) != 1) {
+    if (($ui_map{"local"} || -1) != $uid) {
 	if ($type eq "system" &&
 	    $uid > UsersCache->GetMinUID ("local") &&
 	    $uid < UsersCache->GetMaxUID ("local") + 1)
@@ -4830,7 +4844,7 @@ Really change the user type to 'local'?"), UsersCache->GetMinUID ("local"));
 	}
     }
 
-    if (($ui_map{"system"} || 0) != 1) {
+    if (($ui_map{"system"} || -1) != $uid) {
 	if ($type eq "local" &&
 	    $uid > UsersCache->GetMinUID ("system") &&
 	    $uid < UsersCache->GetMaxUID ("system") + 1)
@@ -4942,7 +4956,7 @@ sub CheckPassword {
 # @return value is map with the problem found
 BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
     ["map", "string", "string"],
-    "string", "string", ["map", "string", "integer"]];
+    "string", "string", ["map", "string", "any"]];
 }
 sub CheckPasswordUI {
 
@@ -4959,7 +4973,7 @@ sub CheckPasswordUI {
 	return \%ret;
     }
 
-    if (UsersSimple->CrackLibUsed () && (($ui_map{"crack"} || 0) != 1)) {
+    if (UsersSimple->CrackLibUsed () && (($ui_map{"crack"} || "") ne $pw)) {
 	my $error = UsersSimple->CrackPassword ($pw);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "crack";
@@ -4971,7 +4985,9 @@ Really use this password?"), $error);
 	}
     }
     
-    if (UsersSimple->ObscureChecksUsed () && (($ui_map{"obscure"} || 0) != 1)) {
+    if (UsersSimple->ObscureChecksUsed () &&
+	(($ui_map{"obscure"} || "") ne $pw))
+    {
 	my $error = UsersSimple->CheckObscurity ($name, $pw, UsersCache->GetCurrentSummary ());
 	if ($error ne "") {
 	    $ret{"question_id"}	= "obscure";
@@ -4980,7 +4996,7 @@ Really use this password?"), $error);
 	}
     }
 
-    if (($ui_map{"short"} || 0) != 1) {
+    if (($ui_map{"short"} || "") ne $pw) {
 	if (length ($pw) < $min_length) {
 	    $ret{"question_id"}	= "short";
 	    # popup questionm, %i is number
@@ -4989,7 +5005,7 @@ Really use this shorter password?"), $min_length);
 	}
     }
     
-    if (($ui_map{"truncate"} || 0) != 1) {
+    if (($ui_map{"truncate"} || "") ne $pw) {
 	my $error = UsersSimple->CheckPasswordMaxLength ($pw, $type);
 	if ($error ne "") {
 	    $ret{"question_id"}	= "truncate";
@@ -5098,7 +5114,7 @@ Try again.");
 # check the home directory of current user - part 2
 BEGIN { $TYPEINFO{CheckHomeUI} = ["function",
     ["map", "string", "string"],
-    "integer", "string", ["map", "string", "integer"]];
+    "integer", "string", ["map", "string", "any"]];
 }
 sub CheckHomeUI {
 
@@ -5125,7 +5141,7 @@ sub CheckHomeUI {
 	
     my %stat 	= %{SCR->Read (".target.stat", $home)};
     
-    if ((($ui_map{"not_dir"} || 0) != 1)	&&
+    if ((($ui_map{"not_dir"} || "") ne $home)	&&
 	%stat && !($stat{"isdir"} || 0))	{
 
 	$ret{"question_id"}	= "not_dir";
@@ -5136,7 +5152,7 @@ Really use this path?");
 	return \%ret;
     }
 
-    if ((($ui_map{"chown"} || 0) != 1)		&&
+    if ((($ui_map{"chown"} || "") ne $home) &&
 	%stat && ($stat{"isdir"} || 0))	{
         
 	$ret{"question_id"}	= "chown";
@@ -5148,9 +5164,10 @@ Use it and change its owner?");
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
 	    # yes/no popup
-	    $ret{"question"}	= __("The home directory selected already exists
-and is owned by the currently edited user.
-Use this directory?");
+	    $ret{"question"}	= sprintf (__("The home directory selected (%s)
+already exists and is owned by the currently edited user.
+Use this directory?"), $home);
+	    $ret{"owned"}	= 1;
 	}
 	# maybe it is home of some user marked to delete...
 	elsif (defined $removed_homes{$home}) {
@@ -5168,7 +5185,7 @@ Use this directory?"), $home);
 # check the shell of current user
 BEGIN { $TYPEINFO{CheckShellUI} = ["function",
     ["map", "string", "string"],
-    "string", ["map", "string", "integer"]];
+    "string", ["map", "string", "any"]];
 }
 sub CheckShellUI {
 
@@ -5177,7 +5194,7 @@ sub CheckShellUI {
     my %ui_map	= %{$_[1]};
     my %ret	= ();
 
-    if (($ui_map{"shell"} || 0) != 1 &&
+    if (($ui_map{"shell"} || "") ne $shell &&
 	($user_in_work{"loginshell"} || "") ne $shell ) {
 
 	if (!defined ($all_shells{$shell})) {
@@ -5246,7 +5263,7 @@ Select a valid integer between %i and %i."), $min, $max);
 # check the gid of current group - part 2
 BEGIN { $TYPEINFO{CheckGIDUI} = ["function",
     ["map", "string", "string"],
-    "integer", ["map", "string", "integer"]];
+    "integer", ["map", "string", "any"]];
 }
 sub CheckGIDUI {
 
@@ -5256,7 +5273,7 @@ sub CheckGIDUI {
     my $type	= UsersCache->GetGroupType ();
     my %ret	= ();
 
-    if (($ui_map{"duplicated_gid"} || 0) != 1) {
+    if (($ui_map{"duplicated_gid"} || -1) != $gid) {
 	if ((
 	    ("add_group" eq ($group_in_work{"what"} || "")) 	||
 	    ($gid != ($group_in_work{"gidnumber"} || 0))	||
@@ -5271,7 +5288,7 @@ Really use it?");
 	}
     }
 
-    if (($ui_map{"ldap_range"} || 0) != 1) {
+    if (($ui_map{"ldap_range"} || -1) != $gid) {
 	if ($type eq "ldap" &&
 	    $gid < UsersCache->GetMinGID ("ldap"))
 	{
@@ -5286,7 +5303,7 @@ Really use it?"),
 	}
     }
 
-    if (($ui_map{"local"} || 0) != 1) {
+    if (($ui_map{"local"} || -1) != $gid) {
 	if ($type eq "system" &&
 	    $gid > UsersCache->GetMinGID ("local") &&
 	    $gid < UsersCache->GetMaxGID ("local"))
@@ -5300,7 +5317,7 @@ Really change the group type to 'local'?"), UsersCache->GetMinGID ("local"));
 	}
     }
 
-    if (($ui_map{"system"} || 0) != 1) {
+    if (($ui_map{"system"} || -1) != $gid) {
 	if ($type eq "local" &&
 	    $gid > UsersCache->GetMinGID ("system") &&
 	    $gid < UsersCache->GetMaxGID ("system"))
