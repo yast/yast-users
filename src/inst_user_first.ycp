@@ -538,18 +538,10 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	(username != "" && UsersSimple::GetRootAlias () == username);
 
     term fields = `VBox (
-	/*
 	`InputField (`id (`cn), `opt (`notify, `hstretch),
 	    // text entry
 	    _("User's &Full Name"), cn),
 	`InputField (`id (`username), `opt (`notify, `hstretch),
-	    // input field for login name
-	    _("&Username"),username),
-	*/
-	`TextEntry (`id (`cn), `opt (`notify, `hstretch),
-	    // text entry
-	    _("User's &Full Name"), cn),
-	`TextEntry (`id (`username), `opt (`notify, `hstretch),
 	    // input field for login name
 	    _("&Username"),username),
 	`Password (`id (`pw1), `opt (`hstretch), Label::Password(),
