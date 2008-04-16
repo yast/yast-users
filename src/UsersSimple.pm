@@ -90,6 +90,9 @@ my $max_system_uid	= 499;
 my %imported_users		= ();
 my %imported_shadow		= ();
 
+# if importing users during installation is possible
+my $import_available;
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -97,6 +100,7 @@ YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("SystemFilesCopy");
 YaST::YCP::Import ("UsersUI");
 
 # known system users (hard-written here to check user name conflicts)
@@ -921,9 +925,6 @@ sub Read {
 	    $encryption_method	=
 		$data->{"encryption_method"} || $encryption_method; 
 	    $run_krb_config	= bool ($data->{"run_krb_config"});
-#	    if (ref ($data->{"user"}) eq "HASH") {
-#		%user		= %{$data->{"user"}};
-#	    }
 	    if (ref ($data->{"users"}) eq "ARRAY") {
 		@users		= @{$data->{"users"}};
 	    }
@@ -950,10 +951,6 @@ sub read_shadow {
     my %shadow_tmp	= ();
     my $in		= SCR->Read (".target.string", $file);
 
-    if (! FileUtils->Exists ($file)) {
-	y2warning ("$file is not available!");
-	return undef;
-    }
     if (! defined $in) {
 	y2warning ("$file cannot be opened for reading!");
 	return undef;
@@ -1006,10 +1003,6 @@ sub read_passwd {
     %imported_shadow		= ();
     my %usernames		= ();
 
-    if (! FileUtils->Exists ($file)) {
-	y2warning ("$file is not available!");
-	return 0;
-    }
     my $in	= SCR->Read (".target.string", $file);
     if (! defined $in) {
 	y2warning ("$file cannot be opened for reading!");
@@ -1093,7 +1086,6 @@ sub ReadUserData {
     if (defined $shadow_tmp && ref ($shadow_tmp) eq "HASH") {
 	$ret	= read_passwd ($base_directory, $shadow_tmp);
     }
-# FIXME do not read again for the same directory
     return $ret;
 }
 
@@ -1107,6 +1099,7 @@ sub GetImportedUsers {
 
     my ($self, $type)	= @_;
     my %ret		= ();
+
     if (defined $imported_users{$type} && ref($imported_users{$type}) eq "HASH")
     {
 	%ret 	= %{$imported_users{$type}};
@@ -1120,6 +1113,34 @@ sub GetImportedUsers {
 	}
     }
     return \%ret;
+}
+
+##------------------------------------
+# Check if importing user data from the system is available:
+# if yes, go and read the data
+BEGIN { $TYPEINFO{ImportAvailable} = ["function", "boolean"]; }
+sub ImportAvailable {
+
+    return $import_available if defined $import_available;
+
+    my $self		= shift;
+    my $tmp_dir		= Directory->tmpdir()."/users";
+    my $vardir		= Directory->vardir();
+    my $import_dir	= $tmp_dir.$vardir."/imported/userdata/etc";
+
+    $import_available	= (
+	SCR->Execute (".target.mkdir", $tmp_dir) &&
+	SystemFilesCopy->CopyFilesToSystem ($tmp_dir) &&
+	FileUtils->Exists ($import_dir."/passwd") &&
+	FileUtils->Exists ($import_dir."/shadow") &&
+	$self->ReadUserData ($import_dir)
+    );
+    y2milestone ("import available: $import_available");
+
+    # remove the directory with copied data after reading it
+    SCR->Execute (".target.bash", "/bin/rm -rf $tmp_dir");
+
+    return $import_available;
 }
 
 42
