@@ -9,7 +9,6 @@
 {
     import "Arch";
     import "Directory";
-    import "FileUtils";
     import "GetInstArgs";
     import "Label";
     import "Mode";
@@ -20,7 +19,6 @@
     import "Progress";
     import "Report";
     import "String";
-    import "SystemFilesCopy";
     import "UsersSimple";
     import "Wizard";
 
@@ -37,8 +35,6 @@
     // minimal pw length for CA-management (F#300438)
     integer pw_min_CA			= 4;
 
-    // if importing users from different partition is possible
-    boolean import_available	= false;
     // full info about imported users
     map<string,map> imported_users	= $[];
     // user names of imported users
@@ -46,31 +42,20 @@
     // names of imported users selected for writing
     list<string> to_import	= [];
 
-    string tmp_dir	= Directory::tmpdir + "/users";
-    SCR::Execute (.target.mkdir, tmp_dir);
-    string import_dir	= tmp_dir + Directory::vardir +"/imported/userdata/etc";
+    // if importing users from different partition is possible
+    boolean import_available	= UsersSimple::ImportAvailable ();
 
-    if (SystemFilesCopy::CopyFilesToSystem (tmp_dir) &&
-	FileUtils::Exists (import_dir + "/passwd") &&
-	FileUtils::Exists (import_dir + "/shadow"))
-    {
-	import_available	= true;
-    }
     if (!GetInstArgs::going_back() && import_available)
     {
-	if (UsersSimple::ReadUserData (import_dir))
-	{
-	    imported_users = (map<string,map>)
-		UsersSimple::GetImportedUsers ("local");
-	    user_names	= maplist (string name, map u, imported_users,``(name));
-	}
+	imported_users = (map<string,map>)
+	    UsersSimple::GetImportedUsers ("local");
+	user_names	= maplist (string name, map u, imported_users,``(name));
 	if (size (user_names) < 1)
 	{
 	    y2milestone ("No users to import");
 	    import_available	= false;
 	}
     }
-    SCR::Execute (.target.bash_output, sformat ("/bin/rm -rf %1", tmp_dir));
 
     // helper function to se package for installation, together with
     // architecture dependent version

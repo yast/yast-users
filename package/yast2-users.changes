@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Apr 16 16:04:34 CEST 2008 - jsuchome@suse.cz
+
+- during 1st stage of installation import users only once
+- 2.16.27
+
+-------------------------------------------------------------------
 Wed Apr 16 14:31:03 CEST 2008 - jsuchome@suse.cz
 
 - changed behavior of Check functions: remember the accepted values
