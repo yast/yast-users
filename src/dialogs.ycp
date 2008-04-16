@@ -298,7 +298,7 @@ define symbol EditUserDialog (string what) {
 		givenname = user["givenname"]:SplitFullName(`givenname, cn);
 	}
 
-	chown_home	= user["chowne_home"]:chown_home;
+	chown_home	= user["chown_home"]:chown_home;
 	no_skel		= user["no_skeleton"]:no_skel;
 	groups		= user["grouplist"]:$[];
 	do_not_edit	= (user_type == "nis");
