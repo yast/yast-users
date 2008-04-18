@@ -54,8 +54,8 @@ my %min_pass_length	= (
 
 my %max_pass_length	= (
     "local"		=> 72,
-    "system"		=> 8,
-    "ldap"		=> 8
+    "system"		=> 72,
+    "ldap"		=> 72
 );
 
 
@@ -251,6 +251,7 @@ sub SetEncryptionMethod {
 	$encryption_method 		= $method;
 	if (defined $max_lengths{$encryption_method}) {
 	    $max_pass_length{"local"}	= $max_lengths{$encryption_method};
+	    $max_pass_length{"system"}	= $max_lengths{$encryption_method};
 	}
     }
 }
