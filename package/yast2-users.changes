@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr 18 14:48:08 CEST 2008 - jsuchome@suse.cz
+
+- correctly change the encryption type for root (bnc#371147)
+- 2.16.28
+
+-------------------------------------------------------------------
 Wed Apr 16 16:04:34 CEST 2008 - jsuchome@suse.cz
 
 - during 1st stage of installation import users only once

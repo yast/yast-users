@@ -368,8 +368,9 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	foreach (string enc, string l, encoding2label, {
 	    UI::ChangeWidget (`id(enc),`Enabled, auth_method == "users");
 	});
-	UI::ChangeWidget (`id (`import_ch), `Value, auth_method == "users" &&
-	    size (to_import) > 0);
+	if (size (to_import) > 0)
+	    UI::ChangeWidget (`id (`import_ch), `Value,
+		auth_method == "users" && size (to_import) > 0);
 	any retval =	`cancel;
 	while (true)
 	{
