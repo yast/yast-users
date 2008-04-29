@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr 29 11:32:30 CEST 2008 - jsuchome@suse.cz
+
+- correctly set maximum password length for LDAP (bnc#384414)
+- 2.16.29 
+
+-------------------------------------------------------------------
 Fri Apr 18 14:48:08 CEST 2008 - jsuchome@suse.cz
 
 - correctly change the encryption type for root (bnc#371147)
