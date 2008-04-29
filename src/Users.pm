@@ -1382,7 +1382,7 @@ sub ReadLDAPSet {
     $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
     # read the necessary part of LDAP user configuration
     UsersSimple->SetMinPasswordLength("ldap",UsersLDAP->GetMinPasswordLength());
-    UsersSimple->SetMaxPasswordLength("ldap",UsersLDAP->GetMinPasswordLength());
+    UsersSimple->SetMaxPasswordLength("ldap",UsersLDAP->GetMaxPasswordLength());
 
     if ($use_gui) {
 	UsersCache->BuildUserItemList ($type, $users{$type});
