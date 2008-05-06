@@ -1263,7 +1263,8 @@ sub WriteUsers {
         my $gid		= $user->{"gidnumber"};
 	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my $create_home	= bool ($user->{"create_home"});
-	my $chown_home	= bool ($user->{"chown_home"});
+	my $chown_home	= $user->{"chown_home"};
+	$chown_home	= 1 if (!defined $chown_home);
 	my $delete_home	= bool ($user->{"delete_home"});
 	my $enabled	= bool ($user->{"enabled"});
 	my $disabled	= bool ($user->{"disabled"});

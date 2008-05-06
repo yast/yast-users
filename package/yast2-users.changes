@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue May  6 11:06:37 CEST 2008 - jsuchome@suse.cz
+
+- change ownership of home during autoinstallation (bnc#386329)
+- 2.16.30
+
+-------------------------------------------------------------------
 Tue Apr 29 11:32:30 CEST 2008 - jsuchome@suse.cz
 
 - correctly set maximum password length for LDAP (bnc#384414)
