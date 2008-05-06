@@ -4429,6 +4429,7 @@ sub Write {
 		my $gid 	= $user{"gidnumber"};
 		my $create_home	= $user{"create_home"};
 		my $chown_home	= $user{"chown_home"};
+		$chown_home	= 1 if (!defined $chown_home);
 		my $skel	= $useradd_defaults{"skel"};
 		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
 		    $users_with_crypted_dir{$username}	= \%user;
