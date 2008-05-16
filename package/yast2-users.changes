@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri May 16 16:40:22 CEST 2008 - jsrain@suse.cz
+
+- added categories Settings and System into desktop file
+  (bnc #382778)
+
+-------------------------------------------------------------------
 Tue May  6 11:06:37 CEST 2008 - jsuchome@suse.cz
 
 - change ownership of home during autoinstallation (bnc#386329)
