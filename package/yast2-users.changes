@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Tue May 20 10:34:59 CEST 2008 - jsuchome@suse.cz
+
+- do not allow encrypting directories when pam_thinkfinger is used
+  (bnc#390810)
+- do not crypt already encrypted password when importing users
+  (bnc#392053)
+- ignore first user when imporing existing ones (bnc#392034)
+- 2.16.31
+
+-------------------------------------------------------------------
 Fri May 16 16:40:22 CEST 2008 - jsrain@suse.cz
 
 - added categories Settings and System into desktop file

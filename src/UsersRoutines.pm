@@ -16,6 +16,7 @@ our %TYPEINFO;
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("Pam");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("SCR");
 
@@ -30,6 +31,9 @@ my $pam_mount_path	= "/etc/security/pam_mount.conf.xml";
 
 # 'volume' information from pam_mount (info about crypted homes)
 my $pam_mount		= undef;
+
+# could we use pam_mount? currntly not if thinkfinger is in use (bnc#390810)
+my $crypted_homes_enabled	= undef;
 
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
@@ -552,5 +556,17 @@ sub CryptedKeyPath {
     }
     return "";
 }
+
+# 
+BEGIN { $TYPEINFO{CryptedHomesEnabled} = ["function", "boolean"];}
+sub CryptedHomesEnabled {
+
+    if (!defined $crypted_homes_enabled) {
+	$crypted_homes_enabled	= !Pam->Enabled ("thinkfinger");
+    }
+    return $crypted_homes_enabled;
+}
+
+
 1
 # EOF

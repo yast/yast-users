@@ -14,6 +14,7 @@
     textdomain "users";
 
     import "Autologin";
+    import "Directory";
     import "FileUtils";
     import "GetInstArgs";
     import "Package";
@@ -43,6 +44,10 @@
 	{
 	    Users::SetUsersForImport (users);
 	    importing	= true;
+	    string import_dir	= Directory::vardir + "/imported/userdata/etc";
+	    foreach (string file, [ "/passwd", "/shadow", "/group" ], {
+		SCR::Execute (.target.remove, import_dir + file);
+	    });
 	}
     }
     // what to call after inst_auth dialog
