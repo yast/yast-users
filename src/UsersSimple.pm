@@ -864,8 +864,10 @@ sub Write {
     my $user_defined	= 0;
     foreach my $user (@users) {
 	if (defined $user->{"userpassword"}) {
-	    $user->{"userpassword"}	=
-		$self->CryptPassword($user->{"userpassword"});
+	    if (!defined $user->{"__imported"}) {
+		$user->{"userpassword"}	=
+		    $self->CryptPassword($user->{"userpassword"});
+	    }
 	    $user->{"encrypted"}	= YaST::YCP::Integer (1);
 	}
 	$user_defined	= 1;

@@ -28,6 +28,7 @@ import "Users";
 import "UsersCache";
 import "UsersLDAP";
 import "UsersPlugins";
+import "UsersRoutines";
 import "UsersSimple";
 import "Wizard";
 
@@ -224,6 +225,7 @@ define symbol EditUserDialog (string what) {
     boolean no_skel		= user["no_skeleton"]:false;
     boolean do_not_edit		= (user_type == "nis");
     boolean crypted_home_enabled=
+	UsersRoutines::CryptedHomesEnabled () &&
 	((user_type == "ldap" && Ldap::file_server) ||
 	(user_type == "local" || user_type == "system"));
 
