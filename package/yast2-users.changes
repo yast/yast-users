@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed May 21 14:26:55 CEST 2008 - jsuchome@suse.cz
+
+- install architecture dependent cryptconfig (bnc#392028)
+- 2.16.32
+
+-------------------------------------------------------------------
 Tue May 20 10:34:59 CEST 2008 - jsuchome@suse.cz
 
 - do not allow encrypting directories when pam_thinkfinger is used
