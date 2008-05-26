@@ -15,6 +15,7 @@
     import "Popup";
     import "Stage";
     import "Package";
+    import "ProductControl";
     import "ProductFeatures";
     import "Progress";
     import "Report";
@@ -625,10 +626,27 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    map<string,any> ui_map	= $[];
 	    // --------------------------------- username checks
 	    username	= (string) UI::QueryWidget (`id (`username), `Value);
-	    if (username == "" || auth_method != "users" ||  to_import != [])
+	    if (auth_method != "users" ||  to_import != [])
 	    {
 		break;
 	    }
+	    if (username == "")
+	    {
+		// when 2nd stage is enabled, there will be inst_auth anyway
+		if (ProductControl::GetUseAutomaticConfiguration () == false ||
+		    // yes-no popup headline
+		    Popup::YesNoHeadline(_("Empty User Login"),
+		    // yes-no popup contents
+		    _("Leaving the user name empty only makes sense
+in a network environment with an authentication server.
+Leave it empty?")))
+		{
+		    break;
+		}
+		else
+		    continue;
+	    }
+
 	    error	= UsersSimple::CheckUsernameLength (username);
 	    if (error != "")
 	    {
@@ -740,7 +758,6 @@ Really use this shorter password?"), pw_min_CA)))
 		map u		= imported_users[name]:$[];
 		u["__imported"]	= true;
 		create_users	= add (create_users, u);
-// FIXME encrypted
 	    });
 	    UsersSimple::SetUsers (create_users);
 	    UsersSimple::SkipRootPasswordDialog (false);

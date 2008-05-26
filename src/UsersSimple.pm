@@ -901,10 +901,16 @@ sub Write {
 	y2milestone ("enabling step 'root' for second stage");
 	ProductControl->EnableModule ("root");
     }
+    # enable inst_user to either run auth client or write first user
     if ($after_auth ne "users" || $user_defined) {
 	y2milestone ("enabling step 'user' for second stage");
 	ProductControl->EnableModule ("user");
-# FIXME also when e.g. only encryption was modified
+    }
+    # no user entered + 2nd stage visible => enable clients (bnc#393722)
+    elsif (!ProductControl->GetUseAutomaticConfiguration ()) {
+	y2milestone ("enabling steps 'auth' and 'user' for second stage");
+	ProductControl->EnableModule ("auth");
+	ProductControl->EnableModule ("user");
     }
 
     return $ret;
@@ -934,8 +940,7 @@ sub Read {
 	    $root_password_written = bool ($data->{"root_password_written"});
 	    $ret	= 1;
 	}
-#	SCR->Execute (".target.remove", $file); FIXME not removed due to testing
-	SCR->Execute (".target.bash", "mv $file $file.bak");
+	SCR->Execute (".target.remove", $file);
     }
     return bool ($ret);
 }
@@ -1030,7 +1035,6 @@ sub read_passwd {
 	    }
 		
             my $user_type	= "local";
-#	    my %grouplist	= (); FIXME read group list?
 
 	    if (($uid <= $max_system_uid) || ($username eq "nobody")) {
 		$user_type = "system";
