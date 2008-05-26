@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri May 23 15:51:33 CEST 2008 - jsuchome@suse.cz
+
+- enable auth and user clients in 2nd stage when necessary
+- ask for confirmation when 1st user creation is skipped
+  (bnc#393722)
+- 2.16.33
+
+-------------------------------------------------------------------
 Wed May 21 14:26:55 CEST 2008 - jsuchome@suse.cz
 
 - install architecture dependent cryptconfig (bnc#392028)
