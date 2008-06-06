@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jun  6 10:28:23 CEST 2008 - jsuchome@suse.cz
+
+- fixed typo (bnc#374628)
+- 2.17.0 
+
+-------------------------------------------------------------------
 Fri May 23 15:51:33 CEST 2008 - jsuchome@suse.cz
 
 - enable auth and user clients in 2nd stage when necessary
