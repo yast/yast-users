@@ -134,7 +134,7 @@ user may have on this file system. Additionally, you can define an inode limit s
 	    help_text = _("<p>Here, configure quota settings of the group on selected file systems.</p>") +
 
 	    // helptext for quota, cont.
-	    _("<p>Define a size simit by specifying the number of 1 kB blocks the
+	    _("<p>Define a size limit by specifying the number of 1 kB blocks the
 group may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the group may have on the file system.</p>
 ") +
 
