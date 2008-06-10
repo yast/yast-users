@@ -441,7 +441,7 @@ my $valid_password_message = __("The password may only contain the following cha
 0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
 Try again.");
 
-my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/_.-]";
+my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@/_.-]";
 
 ##------------------------------------
 BEGIN { $TYPEINFO{ValidLognameChars} = ["function", "string"]; }
