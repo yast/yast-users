@@ -562,8 +562,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     );
 
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
-
-    Wizard::SetDesktopIcon("users");
+    Wizard::SetTitleIcon("yast-users");
     // dialog caption
     Wizard::SetContents (_("Create New User"), contents,
 	main_help (),

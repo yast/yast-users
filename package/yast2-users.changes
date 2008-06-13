@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jun 13 10:03:33 CEST 2008 - jsuchome@suse.cz
+
+- set title icon in installation cliens (bnc#398335) 
+
+-------------------------------------------------------------------
 Fri Jun  6 16:16:04 CEST 2008 - jsuchome@suse.cz
 
 - allow @ in home directory path (bnc#397811) 
