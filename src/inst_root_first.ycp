@@ -99,7 +99,7 @@ it has to be at least %1 characters long.</p>"), pw_min_CA);
 
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
-    Wizard::SetDesktopIcon("yast-users");
+    Wizard::SetTitleIcon("yast-users");
     Wizard::SetContents (title, contents, helptext,
         GetInstArgs::enable_back(),
 	GetInstArgs::enable_next());
