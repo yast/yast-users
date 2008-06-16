@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jun 16 16:26:22 CEST 2008 - jsuchome@suse.cz
+
+- remember root password during installation (bnc#396399)
+
+-------------------------------------------------------------------
 Fri Jun 13 10:03:33 CEST 2008 - jsuchome@suse.cz
 
 - set title icon in installation cliens (bnc#398335) 
