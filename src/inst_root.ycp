@@ -49,6 +49,10 @@ include "users/widgets.ycp";   // for EncryptionPopup()
 
     string encryptionMethod = UsersSimple::EncryptionMethod ();
 
+    string pw	= "";
+    if (GetInstArgs::going_back() && Users::GetRootPassword () != nil)
+	pw	= Users::GetRootPassword ();
+
     // Title for root-password dialogue
     string title = _("Password for the System Administrator \"root\"");
 
@@ -60,11 +64,11 @@ include "users/widgets.ycp";   // for EncryptionPopup()
                `VSpacing(0.8),
                `Password (`id(`pw1), `opt (`hstretch),
 		    // Label: get password for user root
-		    _("&Password for root User"), ""),
+		    _("&Password for root User"), pw),
                `VSpacing(0.8),
                `Password (`id(`pw2), `opt (`hstretch),
 		    // Label: get same password again for verification
-		    _("Con&firm Password"), ""),
+		    _("Con&firm Password"), pw),
 		`VSpacing (2.4),
 		// text entry label
 		`InputField (`opt(`hstretch),_("&Test Keyboard Layout"))
