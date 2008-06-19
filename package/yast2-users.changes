@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Jun 19 10:09:58 CEST 2008 - jsuchome@suse.cz
+
+- save the information if users were already written in 2nd stage
+  of installation (bnc#395796)
+- 2.17.1
+
+-------------------------------------------------------------------
 Mon Jun 16 16:26:22 CEST 2008 - jsuchome@suse.cz
 
 - remember root password during installation (bnc#396399)

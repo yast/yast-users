@@ -36,7 +36,7 @@
     if (!GetInstArgs::going_back())
     {
 	Users::ReadSystemDefaults (false);
-	UsersSimple::Read ();
+	UsersSimple::Read (false);
 	Users::SetEncryptionMethod (UsersSimple::EncryptionMethod ());
 	users	= (list<map>) UsersSimple::GetUsers ();
 	user	= UsersSimple::GetUser ();
@@ -94,10 +94,17 @@
 	if (error != "")
 	    y2error ("error while creating user: %1", error);
 	Progress::set (progress_orig);
+	UsersSimple::RemoveUserData ();
 	return `next;
     }
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only
 
+    if (!GetInstArgs::going_back() && client == "users" &&
+	UsersSimple::UsersWritten ())
+    {
+	y2milestone ("users already written, going next");
+	return `next;
+    }
     // dialog caption
     string caption = _("User Authentication Method");
 
@@ -230,6 +237,10 @@ Install it now?
     {
         y2warning( "UsersSequence returns null!" );
         ret = `auto;
+    }
+    if (ret == `next)
+    {
+	UsersSimple::RemoveUserData ();
     }
     if (Mode::normal ()) Wizard::CloseDialog ();
     return (symbol) ret;

@@ -35,7 +35,7 @@ import "Wizard";
 include "users/widgets.ycp";   // for EncryptionPopup()
 
     Users::ReadSystemDefaults (false);
-    UsersSimple::Read ();
+    UsersSimple::Read (true);
 
     boolean check_CA_constraints	=
 	ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
