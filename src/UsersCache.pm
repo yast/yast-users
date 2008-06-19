@@ -1,4 +1,3 @@
-#! /usr/bin/perl -w
 #
 # UsersCache module written in Perl
 #
@@ -93,6 +92,9 @@ my @current_groups	= ();
 # Is the currrent table view "customized"?
 my $customized_usersview	= 1;
 my $customized_groupsview	= 1;
+
+# the length of UID/GID string item
+my $uid_length			= 6;
 
 # the final answer ;-)
 my $the_answer			= 42;
@@ -694,13 +696,32 @@ sub SetGroupType {
     $group_type = $_[0];
 }
 
+# Add spaces before the text to make it long enough.
+# Used for creating UID/GID items with same length, so they can be sorted
+# "as integers" (bnc#399215).
+sub PadBefore {
+    
+    my $text	= shift;
+    $text	= "" if !defined $text;
+
+    my $rest	= $uid_length - length ($text);
+    my $pad	= "";
+
+    while ($rest > 0) {
+	$pad	= $pad." ";
+	$rest	= $rest - 1;
+    }
+    return $pad.$text;
+}
+
+
 ##------------------------------------
 # build item for one user
 sub BuildUserItem {
     
     my $self		= shift;
     my %user		= %{$_[0]};
-    my $uid		= $user{"uidnumber"};
+    my $uid		= PadBefore ($user{"uidnumber"});
     my $username	= $user{"uid"} || "";
     my $full		= $user{"cn"} || "";
     if (defined $user{"gecos"} && $user{"gecos"} ne "") {
@@ -769,7 +790,7 @@ sub BuildGroupItem {
 
     my $self		= shift;
     my %group		= %{$_[0]};
-    my $gid		= $group{"gidnumber"};
+    my $gid		= PadBefore ($group{"gidnumber"});
     my $groupname	= $group{"cn"} || "";
 
     my %userlist	= ();
