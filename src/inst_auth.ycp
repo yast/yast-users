@@ -85,7 +85,7 @@ define list<string> choose_to_import (list<string> all, list<string> selected) {
 // first check if some settings were configured in first stage
 if (!GetInstArgs::going_back()) {
     Users::ReadSystemDefaults (false);
-    UsersSimple::Read ();
+    UsersSimple::Read (false);
     if (UsersSimple::AfterAuth () != "users" || UsersSimple::GetUser () != $[])
     {
 	Users::SetKerberosConfiguration (UsersSimple::KerberosConfiguration ());

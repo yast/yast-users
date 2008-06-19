@@ -28,7 +28,11 @@ my $run_krb_config		= 0;
 
 my $root_password		= "";
 
+# root password already written
 my $root_password_written	= 0;
+
+# users from 1st stage already written
+my $users_written		= 0;
 
 # only for first stage, remember if root pw dialog should be skipped
 my $skip_root_dialog		= 0;
@@ -92,6 +96,9 @@ my %imported_shadow		= ();
 
 # if importing users during installation is possible
 my $import_available;
+
+# prevent re-reading data map with 1st stage settingss
+my $first_stage_data_not_read	= 1;
 
 ##------------------------------------
 ##------------------- global imports
@@ -367,6 +374,11 @@ sub SetUsers {
     return "";
 }
 
+# were users from 1st stage already written?
+BEGIN { $TYPEINFO{UsersWritten} = ["function", "boolean"];}
+sub UsersWritten {
+    return bool ($users_written);
+}
 
 # was root password written in 1st stage?
 BEGIN { $TYPEINFO{RootPasswordWritten} = ["function", "boolean"];}
@@ -917,15 +929,17 @@ sub Write {
 }
 
 # Read the settings configured in 1st stage
-BEGIN { $TYPEINFO{Read} = ["function", "boolean"];}
+BEGIN { $TYPEINFO{Read} = ["function", "boolean", "boolean"];}
 sub Read {
 
     my $self	= shift;
+    my $force	= shift;
     my $file	= Directory->vardir()."/users_first_stage.ycp";
     my $ret	= 0;
 
-    if (FileUtils->Exists ($file)) {
+    if (FileUtils->Exists ($file) && ($force || $first_stage_data_not_read)) {
 	my $data	= SCR->Read (".target.ycp", $file);
+	$first_stage_data_not_read	= 0;
 	if (defined $data && ref ($data) eq "HASH") {
 
 	    $autologin_user	= $data->{"autologin_user"}	|| "";
@@ -938,9 +952,32 @@ sub Read {
 		@users		= @{$data->{"users"}};
 	    }
 	    $root_password_written = bool ($data->{"root_password_written"});
+	    $users_written	= bool ($data->{"users_written"});
 	    $ret	= 1;
 	}
-	SCR->Execute (".target.remove", $file);
+#	SCR->Execute (".target.remove", $file);
+    }
+    return bool ($ret);
+}
+
+# Remove the private data from users_first_stage.ycp after they were
+# written (bnc#395796)
+BEGIN { $TYPEINFO{RemoveUserData} = ["function", "boolean"];}
+sub RemoveUserData {
+
+    my $self	= shift;
+    my $file	= Directory->vardir()."/users_first_stage.ycp";
+    my $ret	= 1;
+
+    if (FileUtils->Exists ($file)) {
+	my $data	= SCR->Read (".target.ycp", $file);
+	if (defined $data && ref ($data) eq "HASH") {
+	    if (defined $data->{"users"}) {
+		delete $data->{"users"};
+	    }
+	    $data->{"users_written"}	= YaST::YCP::Integer (1);
+	    $ret	= SCR->Write (".target.ycp", $file, $data);
+	}
     }
     return bool ($ret);
 }
