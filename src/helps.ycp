@@ -44,8 +44,7 @@
 	// help text 1/4
     string help_text =  _("<p>
 When entering a password, distinguish between uppercase and
-lowercase. Passwords should not contain any special characters, such as
-accented characters. 
+lowercase. Passwords should not contain any accented characters or umlauts. 
 </p>
 ");
 
