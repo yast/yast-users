@@ -229,8 +229,7 @@ assign to this user account.
 	// help text for main add user dialog
 	_("<p>
 When entering a password, distinguish between uppercase and
-lowercase. Passwords should not contain any special characters, such as
-accented characters. 
+lowercase. Passwords should not contain any accented characters or umlauts.
 </p>
 ") +
 	// help text %1 is encryption type, %2,%3 numbers

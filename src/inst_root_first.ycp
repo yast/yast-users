@@ -77,8 +77,7 @@ reenter it in a second field.
     helptext = helptext + _("<p>
 All the rules for user passwords apply to the \"root\" password:
 Distinguish between uppercase and lowercase. A password should have at
-least 5 characters and, as a rule, not contain any special characters,
-such as accented letters or umlauts.
+least 5 characters and, as a rule, not contain any accented letters or umlauts.
 </p>
 ");
 
