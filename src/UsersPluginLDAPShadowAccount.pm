@@ -30,7 +30,7 @@ YaST::YCP::Import ("UsersLDAP");
 ##--------------------- global variables
 
 # object classes handled by this plugin
-my $user_object_class			= "shadowaccount";
+my $user_object_class			= "shadowAccount";
 
 # conflicting plugin name
 my $pwdpolicy_plugin			= "UsersPluginLDAPPasswordPolicy";
@@ -77,12 +77,12 @@ sub update_object_classes {
 
     my ($config, $data)	= @_;
 
-    if (defined $data->{"objectclass"} && ref $data->{"objectclass"} eq "ARRAY")
+    if (defined $data->{"objectClass"} && ref $data->{"objectClass"} eq "ARRAY")
     {
-	my @orig_object_class	= @{$data->{"objectclass"}};
+	my @orig_object_class	= @{$data->{"objectClass"}};
 	if (!contains (\@orig_object_class, $user_object_class, 1)) {
 	    push @orig_object_class, $user_object_class;
-	    $data->{"objectclass"}	= \@orig_object_class;
+	    $data->{"objectClass"}	= \@orig_object_class;
 	}
 	# set default values for new variables
 	my $shadow	= UsersLDAP->GetDefaultShadow ();
@@ -91,8 +91,8 @@ sub update_object_classes {
 		$data->{$attr}  = $shadow->{$attr};
 	    }
 	}
-	if (!defined $data->{"shadowlastchange"}) {
-	    $data->{"shadowlastchange"} = last_change_is_now ();
+	if (!defined $data->{"shadowLastChange"}) {
+	    $data->{"shadowLastChange"} = last_change_is_now ();
 	}
     }
     return $data;
@@ -103,14 +103,14 @@ sub remove_plugin_data {
 
     my ($config, $data) = @_;
     my @updated_oc;
-    foreach my $oc (@{$data->{'objectclass'}}) {
-        if (lc($oc) ne $user_object_class) {
+    foreach my $oc (@{$data->{"objectClass"}}) {
+        if (lc($oc) ne lc ($user_object_class)) {
             push @updated_oc, $oc;
         }
     }
-    $data->{'objectclass'} = \@updated_oc;
-    foreach my $attr ("shadowinactive", "shadowexpire", "shadowlastchange",
-            "shadowmin", "shadowmax", "shadowwarning", "shadowflag")
+    $data->{"objectClass"} = \@updated_oc;
+    foreach my $attr ("shadowInactive", "shadowExpire", "shadowLastChange",
+            "shadowMin", "shadowMax", "shadowWarning", "shadowFlag")
     {
 	$data->{$attr}  = "";
     }
@@ -180,7 +180,7 @@ sub PluginPresent {
 
     my ($self, $config, $data)	= @_;
 
-    if (contains ($data->{'objectclass'}, $user_object_class, 1)) {
+    if (contains ($data->{"objectClass"}, $user_object_class, 1)) {
 	y2milestone ("LDAPShadowAccount plugin present");
 	return 1;
     } else {
@@ -236,9 +236,9 @@ sub Check {
     # attribute conversion
     my @required_attrs		= ();
     my @object_classes		= ();
-    if (defined $data->{"objectclass"} && ref $data->{"objectclass"} eq "ARRAY")
+    if (defined $data->{"objectClass"} && ref $data->{"objectClass"} eq "ARRAY")
     {
-	@object_classes		= @{$data->{"objectclass"}};
+	@object_classes		= @{$data->{"objectClass"}};
     }
 
     # get the attributes required for entry's object classes
@@ -255,8 +255,7 @@ sub Check {
     my $action		= $data->{"what"} || "";
     # check the presence of required attributes
     foreach my $req (@required_attrs) {
-	my $attr	= lc ($req);
-	my $val		= $data->{$attr};
+	my $val		= $data->{$req};
 	if (substr ($action, 0, 5) eq "edit_" && !defined $val) {
 	    # when editing using YaPI, attribute dosn't have to be loaded
 	    next;
@@ -266,7 +265,7 @@ sub Check {
 		((@{$val} == 0) || (@{$val} == 1 && $val->[0] eq "")))) {
 	    # error popup (user forgot to fill in some attributes)
 	    return sprintf (__("The attribute '%s' is required for this object according
-to its LDAP configuration, but it is currently empty."), $attr);
+to its LDAP configuration, but it is currently empty."), $req);
 	}
     }
     return "";
@@ -280,20 +279,20 @@ BEGIN { $TYPEINFO{Enable} = ["function",
 sub Enable {
 
     my ($self, $config, $data)	= @_;
-    my $pw	= $data->{"userpassword"};
+    my $pw	= $data->{"userPassword"};
     
     if ((defined $pw) && $pw =~ m/^\!/) {
 	$pw	=~ s/^\!//;
-	$data->{"userpassword"}	= $pw;
+	$data->{"userPassword"}	= $pw;
     }
-    $data->{"shadowexpire"}	= "";
+    $data->{"shadowExpire"}	= "";
     y2debug ("Enable LDAPAll called");
     return $data;
 }
 
 # this will be called from Users::DisableUser
 #    	set "shadowExpire" to "0",
-#	set a "!" before the hash-value in the "userpassword"
+#	set a "!" before the hash-value in the "userPassword"
 BEGIN { $TYPEINFO{Disable} = ["function",
     ["map", "string", "any"],
     "any", "any"];
@@ -302,12 +301,12 @@ sub Disable {
 
     my ($self, $config, $data)	= @_;
 
-    my $pw	= $data->{"userpassword"};
+    my $pw	= $data->{"userPassword"};
     
     if ((defined $pw) && $pw !~ m/^\!/) {
-	$data->{"userpassword"}	= "!".$pw;
+	$data->{"userPassword"}	= "!".$pw;
     }
-    $data->{"shadowexpire"}	= 0;
+    $data->{"shadowExpire"}	= 0;
     y2debug ("Disable LDAPAll called");
     return $data;
 }

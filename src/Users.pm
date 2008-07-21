@@ -828,14 +828,14 @@ sub GetDefaultShadow {
     my $self	= shift;
     my $type	= $_[0];
     my %ret 	= (
-            "shadowinactive"	=> $useradd_defaults{"inactive"},
-            "shadowexpire"      => $useradd_defaults{"expire"},
-            "shadowwarning"     => $pass_warn_age,
-            "shadowmin"         => $pass_min_days,
-            "shadowmax"         => $pass_max_days,
-            "shadowflag"        => "",
-            "shadowlastchange"	=> "",
-	    "userpassword"	=> undef
+            "shadowInactive"	=> $useradd_defaults{"inactive"},
+            "shadowExpire"      => $useradd_defaults{"expire"},
+            "shadowWarning"     => $pass_warn_age,
+            "shadowMin"         => $pass_min_days,
+            "shadowMax"         => $pass_max_days,
+            "shadowFlag"        => "",
+            "shadowLastChange"	=> "",
+	    "userPassword"	=> undef
     );
     if ($type eq "ldap") {
 	%ret	= %{UsersLDAP->GetDefaultShadow()};
@@ -1998,9 +1998,9 @@ sub DisableUser {
     if ($no_plugin && ($type eq "local" || $type eq "system") &&
 	bool ($user{"encrypted"})) {
 	# no plugins available: local user
-	my $pw			= $user{"userpassword"};
+	my $pw			= $user{"userPassword"};
 	if ((defined $pw) && ($pw !~ m/^\!/)) {
-	    $user{"userpassword"}	= "!".$pw;
+	    $user{"userPassword"}	= "!".$pw;
 	}
     }
 
@@ -2076,10 +2076,10 @@ sub EnableUser {
     if ($no_plugin && ($type eq "local" || $type eq "system") &&
 	bool ($user{"encrypted"})) {
 	# no plugins available: local user
-	my $pw	= $user{"userpassword"};
+	my $pw	= $user{"userPassword"};
 	if (defined $pw) {
 	    $pw				=~ s/^\!//;
-	    $user{"userpassword"}	= $pw;
+	    $user{"userPassword"}	= $pw;
 	}
     }
 
@@ -2149,7 +2149,7 @@ sub EditUser {
 	}
 
 	# password we have read was real -> set "encrypted" flag
-	my $pw	= $user_in_work{"userpassword"};
+	my $pw	= $user_in_work{"userPassword"};
 	if (defined $pw) {
 	    if (!defined $user_in_work{"encrypted"} ||
 		bool ($user_in_work{"encrypted"})) {
@@ -2186,7 +2186,7 @@ sub EditUser {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
 	    # set 'groupname' if default group is not LDAP (#43433)
 	    if (!defined $user_in_work{"groupname"}) {
-		my %g	= %{$self->GetGroup ($user_in_work{"gidnumber"}, "")};
+		my %g	= %{$self->GetGroup ($user_in_work{"gidNumber"}, "")};
 		if (%g && defined ($g{"cn"})) {
 	            $user_in_work{"groupname"}  		= $g{"cn"};
 		    # TODO adapt the 'more_users' entry of this group?
@@ -2196,7 +2196,7 @@ sub EditUser {
 	# empty password entry for autoinstall config (do not want to
 	# read password from disk: #30573)
 	if (Mode->config () && ($user_in_work{"modified"} || "") ne "imported"){
-	    $user_in_work{"userpassword"} = undef;
+	    $user_in_work{"userPassword"} = undef;
 	}
     }
     # ------------------------- initialize list of current user plugins
@@ -2262,8 +2262,8 @@ sub EditUser {
     
     # update the settings which should be changed
     foreach my $key (keys %data) {
-	if ($key eq "uid" || $key eq "homedirectory" ||
-	    $key eq "uidnumber" || $key eq "type" || $key eq "groupname")
+	if ($key eq "uid" || $key eq "homeDirectory" ||
+	    $key eq "uidNumber" || $key eq "type" || $key eq "groupname")
 	{
 	    # backup the values of important keys (if not already done)
 	    my $org_key = "org_$key";
@@ -2321,7 +2321,7 @@ sub EditUser {
 	if ($key eq "org_user") {
 	    next;
 	}
-	if ($key eq "userpassword" && (defined $data{$key}) &&
+	if ($key eq "userPassword" && (defined $data{$key}) &&
 	    (!defined $user_in_work{$key} || $data{$key} ne $user_in_work{$key})
 	)
 	{
@@ -2398,7 +2398,7 @@ sub EditGroup {
 	($group_in_work{"what"} || "") ne "add_group") {
 
 	# password we have read was real -> set "encrypted" flag
-	if (defined ($group_in_work{"userpassword"}) &&
+	if (defined ($group_in_work{"userPassword"}) &&
 	    (!defined $group_in_work{"encrypted"} ||
 	     bool ($group_in_work{"encrypted"}))) {
 	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
@@ -2472,7 +2472,7 @@ sub EditGroup {
 
     # update the settings which should be changed
     foreach my $key (keys %data) {
-	if ($key eq "cn" || $key eq "gidnumber" || $key eq "type") {
+	if ($key eq "cn" || $key eq "gidNumber" || $key eq "type") {
 	    # backup the values of important keys (if not already done)
 	    my $org_key = "org_$key";
 	    if (defined $group_in_work{$key} &&
@@ -2522,7 +2522,7 @@ sub EditGroup {
 		$group_in_work{"removed_userlist"} = \%removed;
 	    }
 	}
-	if ($key eq "userpassword" && (defined $data{$key}) &&
+	if ($key eq "userPassword" && (defined $data{$key}) &&
 	    # crypt password only once (when changed)
 	    !bool ($data{"encrypted"}))
 	{
@@ -3037,7 +3037,7 @@ sub AddUser {
 	    $key eq "disabled" || $key eq "enabled") {
 	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
 	}
-	elsif ($key eq "userpassword" && (defined $data{$key}) &&
+	elsif ($key eq "userPassword" && (defined $data{$key}) &&
 	    # crypt password only once
 	    !bool ($data{"encrypted"}))
 	{
@@ -3054,8 +3054,8 @@ sub AddUser {
 
     UsersCache->SetUserType ($type);
 
-    if (!defined $user_in_work{"uidnumber"}) {
-	$user_in_work{"uidnumber"} = UsersCache->NextFreeUID ();
+    if (!defined $user_in_work{"uidNumber"}) {
+	$user_in_work{"uidNumber"} = UsersCache->NextFreeUID ();
     }
     my $username		= $data{"uid"} || $data{"username"};
     if (defined $username) {
@@ -3065,11 +3065,11 @@ sub AddUser {
     if (!defined $user_in_work{"cn"}) {
 	$user_in_work{"cn"}	= "";
     }
-    if (!defined $user_in_work{"gidnumber"}) {
-	$user_in_work{"gidnumber"}	= $self->GetDefaultGID ($type);
+    if (!defined $user_in_work{"gidNumber"}) {
+	$user_in_work{"gidNumber"}	= $self->GetDefaultGID ($type);
     }
     if (!defined $user_in_work{"groupname"} || $user_in_work{"groupname"} eq "") {
-	my %group	= %{$self->GetGroup ($user_in_work{"gidnumber"}, "")};
+	my %group	= %{$self->GetGroup ($user_in_work{"gidNumber"}, "")};
 	if (%group) {
 	    $user_in_work{"groupname"}	= $group{"cn"};
 	}
@@ -3080,11 +3080,11 @@ sub AddUser {
     if (!defined $user_in_work{"grouplist"}) {
 	$user_in_work{"grouplist"}	= $self->GetDefaultGrouplist ($type);
     }
-    if (!defined $user_in_work{"homedirectory"} && defined ($username)) {
-	$user_in_work{"homedirectory"} = $self->GetDefaultHome ($type).$username;
+    if (!defined $user_in_work{"homeDirectory"} && defined ($username)) {
+	$user_in_work{"homeDirectory"} = $self->GetDefaultHome ($type).$username;
     }
-    if (!defined $user_in_work{"loginshell"}) {
-	$user_in_work{"loginshell"}	= $self->GetDefaultShell ($type);
+    if (!defined $user_in_work{"loginShell"}) {
+	$user_in_work{"loginShell"}	= $self->GetDefaultShell ($type);
     }
     if (!defined $user_in_work{"create_home"}) {
 	$user_in_work{"create_home"}	= YaST::YCP::Boolean (1);
@@ -3098,12 +3098,12 @@ sub AddUser {
 	    $user_in_work{$shadow_item}	= $default_shadow{$shadow_item};
 	}
     }
-    if (!defined $user_in_work{"shadowlastchange"} ||
-	$user_in_work{"shadowlastchange"} eq "") {
-        $user_in_work{"shadowlastchange"} = LastChangeIsNow ();
+    if (!defined $user_in_work{"shadowLastChange"} ||
+	$user_in_work{"shadowLastChange"} eq "") {
+        $user_in_work{"shadowLastChange"} = LastChangeIsNow ();
     }
-#    if (!defined $user_in_work{"userpassword"}) {
-#	$user_in_work{"userpassword"}	= "";
+#    if (!defined $user_in_work{"userPassword"}) {
+#	$user_in_work{"userPassword"}	= "";
 #    }
     if (!defined $user_in_work{"no_skeleton"} && $type eq "system") {
 	$user_in_work{"no_skeleton"}	= YaST::YCP::Boolean (1);
@@ -3261,7 +3261,7 @@ sub AddGroup {
     # ----------------------------------------------------------------
 
     foreach my $key (keys %data) {
-	if ($key eq "userpassword" && (defined $data{$key}) &&
+	if ($key eq "userPassword" && (defined $data{$key}) &&
 	    !bool ($data{"encrypted"}))
 	{
 	    $group_in_work{$key}	=
@@ -3278,8 +3278,8 @@ sub AddGroup {
 	
     UsersCache->SetGroupType ($type);
 
-    if (!defined $group_in_work{"gidnumber"}) {
-	$group_in_work{"gidnumber"}	= UsersCache->NextFreeGID ($type);
+    if (!defined $group_in_work{"gidNumber"}) {
+	$group_in_work{"gidNumber"}	= UsersCache->NextFreeGID ($type);
     }
     
     if ($type eq "ldap") {
@@ -3445,8 +3445,8 @@ sub CryptedHomeModified {
 
     my $username	= $user->{"uid"} || "";
     my $org_username	= $user->{"org_user"}{"uid"} || $username;
-    my $home		= $user->{"homedirectory"} || "";
-    my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
+    my $home		= $user->{"homeDirectory"} || "";
+    my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
     my $home_size   	= $user->{"crypted_home_size"} || 0;
     my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
     my $pw		= $user->{"current_text_userpassword"};
@@ -3491,12 +3491,12 @@ sub CommitUser {
     }
     my $org_type	= $user{"org_type"} || $type;
     my $what_user	= $user{"what"};
-    my $uid		= $user{"uidnumber"};
-    my $org_uid		= $user{"org_uidnumber"} || $uid;
+    my $uid		= $user{"uidNumber"};
+    my $org_uid		= $user{"org_uidNumber"} || $uid;
     my $username	= $user{"uid"};
     my $org_username	= $user{"org_uid"} || $username;
     my $groupname	= $user{"groupname"} || $self->GetDefaultGroupname ($type);
-    my $home		= $user{"homedirectory"} || "";
+    my $home		= $user{"homeDirectory"} || "";
     my %grouplist	= ();
     if (defined $user{"grouplist"} && ref ($user{"grouplist"}) eq "HASH") {
 	%grouplist	= %{$user{"grouplist"}};
@@ -3660,8 +3660,8 @@ sub CommitUser {
 	# store deleted directories... someone could want to use them
 	if ($type ne "ldap" && bool ($user{"delete_home"})) {
 	    my $h	= $home;
-	    if (defined $user{"org_user"}{"homedirectory"}) {
-	        $h	= $user{"org_user"}{"homedirectory"};
+	    if (defined $user{"org_user"}{"homeDirectory"}) {
+	        $h	= $user{"org_user"}{"homeDirectory"};
 	    }
 	    $removed_homes{$h}	= $org_username;
 	}
@@ -3706,10 +3706,10 @@ sub CommitUser {
 	    }
 	}
 
-        $user{"org_uidnumber"}			= $uid;
+        $user{"org_uidNumber"}			= $uid;
         $user{"org_uid"}			= $username;
 	if ($home ne "") {
-	    $user{"org_homedirectory"}		= $home;
+	    $user{"org_homeDirectory"}		= $home;
 	}
         $users{$type}{$username}		= \%user;
 	if (!defined $users_by_uidnumber{$type}{$uid}) {
@@ -3744,7 +3744,7 @@ sub CommitGroup {
 
     my $self	= shift;
 
-    if (!%group_in_work || !defined $group_in_work{"gidnumber"} ||
+    if (!%group_in_work || !defined $group_in_work{"gidNumber"} ||
 	!defined $group_in_work{"cn"}) {
 	return 0;
     }
@@ -3765,8 +3765,8 @@ sub CommitGroup {
     my $org_type    	= $group{"org_type"} || $type;
     my $groupname    	= $group{"cn"};
     my $org_groupname	= $group{"org_cn"} || $groupname;
-    my $gid    		= $group{"gidnumber"};
-    my $org_gid		= $group{"org_gidnumber"} || $gid;
+    my $gid    		= $group{"gidNumber"};
+    my $org_gid		= $group{"org_gidNumber"} || $gid;
     my %userlist	= ();
     if (defined $group{"userlist"}) {
 	%userlist	= %{$group{"userlist"}};
@@ -3844,7 +3844,7 @@ sub CommitGroup {
                 %user_in_work = %{$self->GetUserByName ($user, "")};
                 if (%user_in_work) {
 		    $user_in_work{"groupname"}	= $groupname;
-                    $user_in_work{"gidnumber"}	= $gid;
+                    $user_in_work{"gidNumber"}	= $gid;
 		    $user_in_work{"what"}	= "group_change";
 		    if ($gid != $org_gid) {
 			$user_in_work{"what"} 	= "group_change_default";
@@ -3899,7 +3899,7 @@ sub CommitGroup {
 
         # this has to be done due to multiple changes of groupname
         $group{"org_cn"}			= $groupname;
-        $group{"org_gidnumber"}			= $gid;
+        $group{"org_gidNumber"}			= $gid;
 
         $groups{$type}{$groupname}			= \%group;
 
@@ -4043,7 +4043,7 @@ sub PreDeleteUsers {
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
 	    my $cmd = sprintf ("$userdel_precmd $username %i %i %s",
-		$user{"uidnumber"}, $user{"gidnumber"}, $user{"homedirectory"});
+		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
 	    SCR->Execute (".target.bash", $cmd);
 	};
     };
@@ -4085,7 +4085,7 @@ sub PostDeleteUsers {
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
 	    my $cmd = sprintf ("$userdel_postcmd $username %i %i %s",
-		$user{"uidnumber"}, $user{"gidnumber"}, $user{"homedirectory"});
+		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
 	    SCR->Execute (".target.bash", $cmd);
 	    # call the "Write" function from plugins...
 	    my $args	= {
@@ -4438,11 +4438,11 @@ sub Write {
 	    foreach my $username (keys %{$modified_users{$type}}) {
 	    
 		my %user	= %{$modified_users{$type}{$username}};
-		my $home 	= $user{"homedirectory"} || "";
-		my $uid		= $user{"uidnumber"} || 0;
+		my $home 	= $user{"homeDirectory"} || "";
+		my $uid		= $user{"uidNumber"} || 0;
 		my $command 	= "";
 		my $user_mod 	= $user{"modified"} || "no";
-		my $gid 	= $user{"gidnumber"};
+		my $gid 	= $user{"gidNumber"};
 		my $create_home	= $user{"create_home"};
 		my $chown_home	= $user{"chown_home"};
 		$chown_home	= 1 if (!defined $chown_home);
@@ -4480,8 +4480,8 @@ sub Write {
 		    }
 		}
 		elsif ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
-		    my $org_home = $user{"org_user"}{"homedirectory"} || $home;
-		    my $org_uid = $user{"org_user"}{"uidnumber"} || $uid;
+		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
+		    my $org_uid = $user{"org_user"}{"uidNumber"} || $uid;
 		    # chown only when directory was changed (#39417)
 		    if ($home ne $org_home || $uid ne $org_uid) {
 			# move the home directory
@@ -4818,9 +4818,9 @@ sub CheckUIDUI {
     if (($ui_map{"duplicated_uid"} || -1) != $uid) {
 	if (
 	   (("add_user" eq ($user_in_work{"what"} || "")) 	||
-	    ($uid != ($user_in_work{"uidnumber"} || 0))		||
-	    (defined $user_in_work{"org_uidnumber"} 	&& 
-		     $user_in_work{"org_uidnumber"} != $uid))	&&
+	    ($uid != ($user_in_work{"uidNumber"} || 0))		||
+	    (defined $user_in_work{"org_uidNumber"} 	&& 
+		     $user_in_work{"org_uidNumber"} != $uid))	&&
 	    UsersCache->UIDExists ($uid))
 	{
 	    
@@ -5094,9 +5094,9 @@ Try again.");
 
     my $modified	= 
 	(($user_in_work{"what"} || "") eq "add_user")		||
-	($home ne ($user_in_work{"homedirectory"} || "")) 	||
-	(defined $user_in_work{"org_homedirectory"} && 
-		 $user_in_work{"org_homedirectory"} ne $home);
+	($home ne ($user_in_work{"homeDirectory"} || "")) 	||
+	(defined $user_in_work{"org_homeDirectory"} && 
+		 $user_in_work{"org_homeDirectory"} ne $home);
 
     if (!$modified) {
 	return "";
@@ -5177,7 +5177,7 @@ Really use this path?");
 	$ret{"question"}	= __("The home directory selected already exists.
 Use it and change its owner?");
 
-	my $dir_uid	= $stat{"uidnumber"} || 0;
+	my $dir_uid	= $stat{"uidNumber"} || 0;
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
 	    # yes/no popup
@@ -5212,7 +5212,7 @@ sub CheckShellUI {
     my %ret	= ();
 
     if (($ui_map{"shell"} || "") ne $shell &&
-	($user_in_work{"loginshell"} || "") ne $shell ) {
+	($user_in_work{"loginShell"} || "") ne $shell ) {
 
 	if (!defined ($all_shells{$shell})) {
 	    $ret{"question_id"}	= "shell";
@@ -5293,9 +5293,9 @@ sub CheckGIDUI {
     if (($ui_map{"duplicated_gid"} || -1) != $gid) {
 	if ((
 	    ("add_group" eq ($group_in_work{"what"} || "")) 	||
-	    ($gid != ($group_in_work{"gidnumber"} || 0))	||
-	    (defined $group_in_work{"org_gidnumber"} && 
-		     $group_in_work{"org_gidnumber"} != $gid)) 	&&
+	    ($gid != ($group_in_work{"gidNumber"} || 0))	||
+	    (defined $group_in_work{"org_gidNumber"} && 
+		     $group_in_work{"org_gidNumber"} != $gid)) 	&&
 	    UsersCache->GIDExists ($gid))
 	{
 	    $ret{"question_id"} = "duplicated_gid";
@@ -5422,7 +5422,7 @@ sub CheckUser {
 
     my $type	= $user{"type"} || "";
 
-    my $error	= $self->CheckUID ($user{"uidnumber"});
+    my $error	= $self->CheckUID ($user{"uidNumber"});
 
     if ($error eq "") {
 	$error	= $self->CheckUsername ($user{"uid"});
@@ -5430,14 +5430,14 @@ sub CheckUser {
 
     if ($error eq "") {
 	# do not check pw when it wasn't changed - must be tested directly
-	if (defined ($user{"userpassword"}) ||
+	if (defined ($user{"userPassword"}) ||
 	    ($user{"what"} || "") eq "add_user") {
-	    $error = UsersSimple->CheckPassword ($user{"userpassword"}, $type);
+	    $error = UsersSimple->CheckPassword ($user{"userPassword"}, $type);
 	}
     }
     
     if ($error eq "") {
-	$error	= $self->CheckHome ($user{"homedirectory"});
+	$error	= $self->CheckHome ($user{"homeDirectory"});
     }
 
     if ($error eq "" && $type ne "ldap") {
@@ -5493,11 +5493,11 @@ sub CheckGroup {
 
     my $type	= $group{"type"} || "";
 
-    my $error = $self->CheckGID ($group{"gidnumber"});
+    my $error = $self->CheckGID ($group{"gidNumber"});
 
     if ($error eq "") {
-	if ((defined $group{"userpassword"}) && ! bool ($group{"encrypted"})) {
-	    $error = UsersSimple->CheckPassword ($group{"userpassword"}, $type);
+	if ((defined $group{"userPassword"}) && ! bool ($group{"encrypted"})) {
+	    $error = UsersSimple->CheckPassword ($group{"userPassword"}, $type);
 	}
     }
 
@@ -5795,19 +5795,17 @@ sub ImportUser {
     }
     y2debug("Username=$username");
 
-    my $uid		= $user->{"uidnumber"};
+    my $uid		= $user->{"uidNumber"};
     if (!defined $uid) {
-	$uid		= $user->{"uid"};
-	if (!defined $uid) {
-	    $uid 		= -1;
-	}
+	$uid            = $user->{"uidnumber"};
+	$uid		= $user->{"uid"} if (!defined $uid);
+	$uid		= -1 if (!defined $uid);
     }
-    my $gid		= $user->{"gidnumber"};
+    my $gid		= $user->{"gidNumber"};
     if (!defined $gid) {
-	$gid		= $user->{"gid"};
-	if (!defined $gid) {
-	    $gid 		= -1;
-	}
+	$gid            = $user->{"gidnumber"};
+	$gid		= $user->{"gid"} if (!defined $gid);
+	$gid		= -1 if (!defined $gid);
     }
 
     if ($cn eq "") {
@@ -5873,7 +5871,7 @@ sub ImportUser {
 		$finalpw 	= $pass;
 	    }
 	    else {
-		$finalpw 	= $existing{"userpassword"};
+		$finalpw 	= $existing{"userPassword"};
 	    }
 
 	    if (!defined $user->{"forename"} && !defined $user->{"surname"} &&
@@ -5881,19 +5879,19 @@ sub ImportUser {
 		$cn		= $existing{"cn"} || "";
 	    }
 	    if ($gid == -1) {
-		$gid		= $existing{"gidnumber"};
+		$gid		= $existing{"gidNumber"};
 	    }
 	    %ret	= (
-		"userpassword"	=> $finalpw,
+		"userPassword"	=> $finalpw,
 		"grouplist"	=> \%grouplist,
 		"uid"		=> $username,
 		"encrypted"	=> $encrypted,
 		"cn"		=> $cn,
-		"uidnumber"	=> $existing{"uidnumber"},
-		"loginshell"	=> $user->{"shell"} || $user->{"loginshell"} || $existing{"loginshell"} || $self->GetDefaultShell ($type),
+		"uidNumber"	=> $existing{"uidNumber"},
+		"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || $self->GetDefaultShell ($type),
 
-		"gidnumber"	=> $gid,
-		"homedirectory"	=> $user->{"homedirectory"} || $user->{"home"} || $existing{"homedirectory"} || $home,
+		"gidNumber"	=> $gid,
+		"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $existing{"homeDirectory"} || $home,
 		"type"		=> $type,
 		"modified"	=> "imported"
 	    );
@@ -5907,36 +5905,44 @@ sub ImportUser {
 	%ret	= (
 	"uid"		=> $username,
 	"encrypted"	=> $encrypted,
-	"userpassword"	=> $pass,
+	"userPassword"	=> $pass,
 	"cn"		=> $cn,
-	"uidnumber"	=> $uid,
-	"gidnumber"	=> $gid,
-	"loginshell"	=> $user->{"shell"} || $user->{"loginshell"} || $self->GetDefaultShell ($type),
+	"uidNumber"	=> $uid,
+	"gidNumber"	=> $gid,
+	"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $self->GetDefaultShell ($type),
 
 	"grouplist"	=> \%grouplist,
-	"homedirectory"	=> $user->{"homedirectory"} || $user->{"home"} || $home,
+	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
 	"type"		=> $type,
 	"modified"	=> "imported"
 	);
     }
     my %translated = (
-	"inact"		=> "shadowinactive",
-	"expire"	=> "shadowexpire",
-	"warn"		=> "shadowwarning",
-	"min"		=> "shadowmin",
-        "max"		=> "shadowmax",
-        "flag"		=> "shadowflag",
-	"last_change"	=> "shadowlastchange",
-	"password"	=> "userpassword",
+	"inact"		=> "shadowInactive",
+	"expire"	=> "shadowExpire",
+	"warn"		=> "shadowWarning",
+	"min"		=> "shadowMin",
+        "max"		=> "shadowMax",
+        "flag"		=> "shadowFlag",
+	"last_change"	=> "shadowLastChange",
+	"password"	=> "userPassword",
+	"shadowinactive"=> "shadowInactive",
+	"shadowexpire"	=> "shadowExpire",
+	"shadowwarning"	=> "shadowWarning",
+	"shadowmin"	=> "shadowMin",
+        "shadowmax"	=> "shadowMax",
+        "shadowflag"	=> "shadowFlag",
+	"shadowlastchange"	=> "shadowLastChange",
+	"userpassword"	=> "userPassword",
     );
     foreach my $key (keys %user_shadow) {
 	my $new_key	= $translated{$key} || $key;
-	if ($key eq "userpassword") { next; }
+	if ($key eq "userPassword") { next; }
 	$ret{$new_key}	= $user_shadow{$key};
     }
-    if (!defined $ret{"shadowlastchange"} ||
-	$ret{"shadowlastchange"} eq "") {
-	$ret{"shadowlastchange"}	= LastChangeIsNow ();
+    if (!defined $ret{"shadowLastChange"} ||
+	$ret{"shadowLastChange"} eq "") {
+	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
     return \%ret;
 }
@@ -5956,18 +5962,17 @@ sub ImportGroup {
 	$groupname	= $group{"cn"}	|| "";
     }
 
-    my $gid		= $group{"gidnumber"};
+    my $gid		= $group{"gidNumber"};
     if (!defined $gid) {
-	$gid		= $group{"gid"};
-	if (!defined $gid) {
-	    $gid 	= -1;
-	}
+	$gid		= $group{"gidnumber"};
+	$gid		= $group{"gid"} if (!defined $gid);
+	$gid		= -1 if (!defined $gid);
     }
     if ($gid == -1) {
 	# check for existence of this group (and change it with given values)
 	my $existing 	= $self->GetGroupByName ($groupname, "");
 	if (ref ($existing) eq "HASH" && %{$existing}) {
-	    $gid	= $existing->{"gidnumber"};
+	    $gid	= $existing->{"gidNumber"};
 	    $type       = $existing->{"type"} || $type;
 	}
     }
@@ -5989,9 +5994,9 @@ sub ImportGroup {
 	}
     }
     my %ret		= (
-        "userpassword"	=> $group{"group_password"},
+        "userPassword"	=> $group{"group_password"},
         "cn"		=> $groupname,
-        "gidnumber"	=> $gid,
+        "gidNumber"	=> $gid,
         "userlist"	=> \%userlist,
         "modified"	=> "imported",
         "type"		=> $type
@@ -6025,7 +6030,7 @@ sub Initialize {
     $groups_by_gidnumber{"local"}	= {};
     if (%group_users) {
 	$groups{"local"}{"users"}	= \%group_users;
-	my $gid	= $group_users{"gidnumber"};
+	my $gid	= $group_users{"gidNumber"};
 	$groups_by_gidnumber{"local"}{$gid}	= { "users" => 1 };
 	RemoveDiskUsersFromGroups ($groups{"local"});
     }
@@ -6114,9 +6119,9 @@ sub Import {
 	    my %user		= %{$self->ImportUser ($imp_user)};
 	    my $type		= $user{"type"} || "local";
 	    my $username 	= $user{"uid"} || "";
-	    my $uid 		= $user{"uidnumber"};
+	    my $uid 		= $user{"uidNumber"};
 	    if (!defined $uid || $uid == -1) {
-		delete $user{"uidnumber"};
+		delete $user{"uidNumber"};
 		push @without_uid, \%user;
 	    }
 	    else {
@@ -6172,9 +6177,9 @@ sub Import {
 
 	foreach my $imp_group (@{$settings{"groups"}}) {
 	    my %group	= %{$self->ImportGroup ($imp_group)};
-	    my $gid 	= $group{"gidnumber"};
+	    my $gid 	= $group{"gidNumber"};
 	    if (!defined $gid || $gid == -1) {
-		delete $group{"gidnumber"};
+		delete $group{"gidNumber"};
 		push @without_gid, \%group;
 	    }
 	    else {
@@ -6214,9 +6219,9 @@ sub Import {
         # group 'users' must be created
 	my $gid		= $self->GetDefaultGID ("local");
         %group_u	= (
-             "gidnumber"		=> $gid,
+             "gidNumber"		=> $gid,
 	     "cn"			=> "users",
-	     "userpassword"		=> undef,
+	     "userPassword"		=> undef,
 	     "userlist"			=> {},
 	     "type"			=> "local"
 	);
@@ -6243,8 +6248,8 @@ sub Import {
         foreach my $username (keys %{$users{$type}}) {
 
 	    my $user		= $users{$type}{$username};
-            my $uid 		= $user->{"uidnumber"}	|| 0;
-            my $gid 		= $user->{"gidnumber"};
+            my $uid 		= $user->{"uidNumber"}	|| 0;
+            my $gid 		= $user->{"gidNumber"};
 	    if (!defined $gid) {
 		$gid		= $self->GetDefaultGID($type);
 	    }
@@ -6264,7 +6269,7 @@ sub Import {
 		%group		= %{$self->GetGroup ($gid, "")};
 		# adapt user's gid to new one:
 		if (%group) {
-		    $users{$type}{$username}{"gidnumber"}	= $gid;
+		    $users{$type}{$username}{"gidNumber"}	= $gid;
 		}
 	    }
 	    if (defined $group{"cn"}) {
@@ -6282,12 +6287,12 @@ sub Import {
     # check if root password is set (bug #76404)
     if (Mode->autoinst ()) {
 	my %root_user	= %{$self->GetUserByName ("root", "system")};
-	if (%root_user && (($root_user{"userpassword"} || "") eq "")) {
+	if (%root_user && (($root_user{"userPassword"} || "") eq "")) {
 
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
 	    if (defined $pw){
 
-		$root_user{"userpassword"}	=
+		$root_user{"userPassword"}	=
 		    $self->CryptPassword ($pw, "system");
 
 		$users{"system"}{"root"}		= \%root_user;
@@ -6338,14 +6343,14 @@ sub ExportUser {
     my $username 	= $user->{"uid"} || "";
     my %user_shadow	= ();
     my %translated = (
-	"shadowinactive"	=> "inact",
-	"shadowexpire"		=> "expire",
-	"shadowwarning"		=> "warn",
-	"shadowmin"		=> "min",
-        "shadowmax"		=> "max",
-        "shadowflag"		=> "flag",
-	"shadowlastchange"	=> "last_change",
-	"userpassword"		=> "password"
+	"shadowInactive"	=> "inact",
+	"shadowExpire"		=> "expire",
+	"shadowWarning"		=> "warn",
+	"shadowMin"		=> "min",
+        "shadowMax"		=> "max",
+        "shadowFlag"		=> "flag",
+	"shadowLastChange"	=> "last_change",
+	"userPassword"		=> "password"
     );
     my %shadow_map	= %{$self->CreateShadowMap ($user)};
     my %org_user	= ();
@@ -6356,7 +6361,7 @@ sub ExportUser {
     foreach my $key (keys %shadow_map) {
 	my $new_key		= $translated{$key} || $key;
 	# actual shadowlastchange must be created in Import
-	if ($key eq "userpassword" || $key eq "shadowlastchange" ||
+	if ($key eq "userPassword" || $key eq "shadowLastChange" ||
 	    (defined $org_user{$key} && $shadow_map{$key} eq $org_user{$key} &&
 	     ($user->{"modified"} || "") ne "imported"))
 	{
@@ -6386,12 +6391,12 @@ sub ExportUser {
 
     # change the key names
     my %keys_to_export 	= (
-        "userpassword"	=> "user_password",
+        "userPassword"	=> "user_password",
 	"cn"		=> "fullname",
-        "loginshell"	=> "shell",
-        "uidnumber"	=> "uid",
-        "gidnumber"	=> "gid",
-        "homedirectory"	=> "home"
+        "loginShell"	=> "shell",
+        "uidNumber"	=> "uid",
+        "gidNumber"	=> "gid",
+        "homeDirectory"	=> "home"
     );
     foreach my $key (keys %exported_user) {
 	if (defined $keys_to_export{$key}) {
@@ -6431,17 +6436,17 @@ sub ExportGroup {
     );
     if (($group->{"modified"} || "edited") ne "edited" ||
 	(defined $group->{"org_group"} &&
-	(defined $group->{"org_group"}{"gidnumber"} &&
-	$group->{"gidnumber"} ne $group->{"org_group"}{"gidnumber"})
+	(defined $group->{"org_group"}{"gidNumber"} &&
+	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"})
 	||
 	(defined $group->{"org_group"}{"cn"} &&
 	$group->{"cn"} ne $group->{"org_group"}{"cn"}))
 	)
     {
-	$ret{"gid"}		= $group->{"gidnumber"};
+	$ret{"gid"}		= $group->{"gidNumber"};
     }
-    if (defined $group->{"userpassword"}) {
-	$ret{"group_password"}	= $group->{"userpassword"};
+    if (defined $group->{"userPassword"}) {
+	$ret{"group_password"}	= $group->{"userPassword"};
     }
 
     return \%ret;
@@ -6517,7 +6522,7 @@ sub Summary {
 	if (!defined $users{$type}) { next; }
 	while (my ($username, $user) = each %{$users{$type}}) {
             if (defined $user->{"modified"}) {
-                $ret .= sprintf (" %i $username %s<br>", $user->{"uidnumber"} || 0, $user->{"cn"} || "");
+                $ret .= sprintf (" %i $username %s<br>", $user->{"uidNumber"} || 0, $user->{"cn"} || "");
 	    }
 	}
     }
@@ -6527,7 +6532,7 @@ sub Summary {
 	if (!defined $groups{$type}) { next; }
 	while (my ($groupname, $group) = each %{$groups{$type}}) {
             if (defined $group->{"modified"}) {
-                $ret .= sprintf (" %i $groupname<br>", $group->{"gidnumber"} || 0);
+                $ret .= sprintf (" %i $groupname<br>", $group->{"gidNumber"} || 0);
 	    }
 	}
     }

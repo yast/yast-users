@@ -500,7 +500,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     string user_type	= user["type"]:"local";
     string username	= user["uid"]:"";
     string cn		= user["cn"]:"";
-    string password	= (string)user["userpassword"]:nil;
+    string password	= (string)user["userPassword"]:nil;
 
     boolean autologin	= UsersSimple::AutologinUsed ();
     // set the initial default value for autologin
@@ -722,7 +722,7 @@ Really use this shorter password?"), pw_min_CA)))
 	    {
 		error_map	= UsersSimple::CheckPasswordUI ($[
 		    "uid"		: username,
-		    "userpassword"	: pw1,
+		    "userPassword"	: pw1,
 		    "type"		: "local",
 		], ui_map);
 		if (error_map != $[])
@@ -768,7 +768,7 @@ Really use this shorter password?"), pw_min_CA)))
 	    // save the first user data
 	    map<string,any> user_map	= $[
 		"uid"		: username,
-		"userpassword"	: password,
+		"userPassword"	: password,
 		"cn"		: cn
 	    ];
 	    UsersSimple::SetUsers ([user_map]);

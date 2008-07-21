@@ -63,7 +63,7 @@
 	string action	= data["what"]:"";
 
 	map<string, any> tmp_data	= $[];
-	list<string> object_class = (list<string>)sort (data["objectclass"]:[]);
+	list<string> object_class = (list<string>)sort (data["objectClass"]:[]);
 
 	// helptext 1/3
 	string help_text = _("<p>
@@ -72,7 +72,7 @@ Here, see the table of all allowed attributes for the current LDAP entry that we
 	// helptext 1/3 (don't translate objectclass"),
         // %1 is list of values
 	sformat (_("<p>
-The list of attributes is given by the value of \"objectclass\"
+The list of attributes is given by the value of \"objectClass\"
 (which is currently:
 <br>%1).
 </p>
@@ -93,35 +93,33 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	// (either because they were edited before or it is to hard to edit
 	// them (objectclass, DN)
 	list do_not_show_keys	= (what == "user") ?
-	[ "uid", "username", "uidnumber", "homedirectory",
-	// "givenname", "sn",
-	"userpassword", "objectclass", "loginshell", "gidnumber",
-	"shadowlastchange", "shadowwarning", "shadowinactive", "shadowexpire",
-	"shadowmin", "shadowmax", "shadowflag"
+	[ "uid", "username", "uidNumber", "homeDirectory",
+	// "givenName", "sn",
+	"userPassword", "objectClass", "loginShell", "gidNumber",
+	"shadowLastChange", "shadowWarning", "shadowInactive", "shadowExpire",
+	"shadowMin", "shadowMax", "shadowFlag"
 	] :
 	// and now for groups
-	[ "groupname", "gidnumber", "userpassword", "objectclass", "userlist",
+	[ "groupname", "gidNumber", "userPassword", "objectClass", "userlist",
 	  "cn", Ldap::member_attribute
 	];
 
 	// keys in user's map which are not saved anywhere
 	list internal_keys = (what == "user") ?
 	    UsersLDAP::GetUserInternal () : UsersLDAP::GetGroupInternal ();
-
 	// show only attributes allowed by schema
 	list allowed_attrs= Ldap::GetObjectAttributes (object_class);
 
 	// do not allow editing of binary values (perl converts them to string)
-	list binary_attrs = [ "jpegphoto", "usercertificate" ];
+	list binary_attrs = [ "jpegPhoto", "userCertificate" ];
 
 	// generate table items from already existing values
         foreach (string attr, any val, data, ``{
-	    string at = tolower (attr);
-	    if (contains (internal_keys, at))
+	    if (contains (internal_keys, attr))
 		return;
-	    if (contains (do_not_show_keys, at))
+	    if (contains (do_not_show_keys, attr))
 		return;
-	    if (!contains (allowed_attrs, at))
+	    if (!contains (allowed_attrs, attr))
 		return;
 	    if (is (val, map) || val == nil)
 		return;
@@ -130,24 +128,24 @@ could be required, as defined in the user template in the <b>LDAP Client Module<
 	    {
 		value = (list<string>)val;
 	    }
-	    if (contains (binary_attrs, at) || is (val, byteblock) ||
+	    if (contains (binary_attrs, attr) || is (val, byteblock) ||
 		(is (val, list) && is (value[0]:nil, byteblock)))
 	    {
-		y2warning ("binary value (%1) cannot be edited", at);
+		y2warning ("binary value (%1) cannot be edited", attr);
 		return;
 	    }
 	    else if (is (val, integer))
 	    {
 		value = [ sformat ("%1", val) ];
-		data [at] = value;
+		data [attr] = value;
 	    }
 	    else if (is (val, string))
 	    {
 		value = [ (string)val ];
-		data [at] = value;
+		data [attr] = value;
 	    }
-	    used_attributes = add (used_attributes, at);
-	    items = add (items,`item (`id(at), at, mergestring(value,",")));
+	    used_attributes = add (used_attributes, attr);
+	    items = add (items,`item (`id(attr), attr, mergestring(value,",")));
 	});
 
 	// generate table items with empty values

@@ -75,8 +75,8 @@ sub remove_plugin_data {
 
     my ($config, $data) = @_;
     my @updated_oc;
-    if (defined $data->{'pwdpolicysubentry'}) {
-	$data->{'pwdpolicysubentry'}	= "";
+    if (defined $data->{'pwdPolicySubEntry'}) {
+	$data->{'pwdPolicySubEntry'}	= "";
     }
     return $data;
 }
@@ -152,8 +152,10 @@ sub PluginPresent {
 	});
 	y2milestone ("Password Policy enabled globaly: $ppolicy_enabled");
     }
-    if (contains ($data->{'plugins'}, $name, 1) ||		# already checked, still no data
-	contains ((keys %$data), "pwdpolicysubentry", 1)) {	# checking for data
+    if (contains ($data->{'plugins'}, $name, 1) ||
+	# already checked, still no data
+	contains ((keys %$data), "pwdPolicySubEntry", 1)) # checking for data
+    {
 	y2milestone ("LDAPPasswordPolicy plugin present");
 	return 1;
     } elsif ($ppolicy_enabled) {
@@ -208,7 +210,7 @@ BEGIN { $TYPEINFO{Check} = ["function",
 sub Check {
 
     my ($self, $config, $data)  = @_;
-    my $pwdpolicysubentry	= $data->{'pwdpolicysubentry'};
+    my $pwdpolicysubentry	= $data->{'pwdPolicySubEntry'};
     if (defined $pwdpolicysubentry && $pwdpolicysubentry ne "") {
 
 	# validate DN
@@ -220,7 +222,7 @@ sub Check {
 	# ldap.init has been done before
 	my $search	= SCR->Read (".ldap.search", {
 	        "base_dn"	=> $pwdpolicysubentry,
-		"attrs"		=> [ "objectclass" ],
+		"attrs"		=> [ "objectClass" ],
 		"map"		=> 1
 	});
 	if (not defined $search) {
@@ -229,9 +231,9 @@ sub Check {
 	    return sprintf (__("Error while searching for \"%s\":
 %s"), $pwdpolicysubentry, $error->{'msg'});
 	}
-	my $oc	= $search->{$pwdpolicysubentry}{'objectclass'};
+	my $oc	= $search->{$pwdpolicysubentry}{'objectClass'};
 	if (defined $oc && ref ($oc) eq "ARRAY") {
-	    if (not contains ($oc, "pwdpolicy", 1)) {
+	    if (not contains ($oc, "pwdPolicy", 1)) {
 		# error popup, %s is object DN
 		return sprintf (__("The object \"%s\"
 is not a Password Policy object"), $pwdpolicysubentry);
@@ -251,7 +253,7 @@ sub Enable {
     my ($self, $config, $data)  = @_;
     y2debug ("Enable LDAPAll called");
 
-    $data->{'pwdaccountlockedtime'}	= "";
+    $data->{'pwdAccountLockedTime'}	= "";
     return $data;
 }
 
@@ -265,7 +267,7 @@ sub Disable {
     my ($self, $config, $data)  = @_;
     y2debug ("Disable LDAPAll called");
 
-    $data->{'pwdaccountlockedtime'}	= $disabled_user;
+    $data->{'pwdAccountLockedTime'}	= $disabled_user;
     return $data;
 }
 
@@ -331,7 +333,8 @@ the plugin for Shadow Account attributes is in use.
     }
     if (!defined $config->{"org_data"}{"enabled"}) {
 	$data->{"enabled"}    = YaST::YCP::Boolean (1);
-	if (($config->{"org_data"}{"pwdaccountlockedtime"} || "") eq $disabled_user) {
+	if (($config->{"org_data"}{"pwdAccountLockedTime"} || "") eq $disabled_user)
+	{
 	    $data->{"enabled"}	= YaST::YCP::Boolean (0);
 	    y2milestone ("user is disabled");
 	}

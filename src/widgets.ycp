@@ -299,24 +299,24 @@ define boolean LDAPSearchFilterPopup () ``{
     // attributes are listed here, because during filter editing, the connection
     // to LDAP server doesn't have to be run yet
     list user_attributes	= [
-	"objectclass", "loginshell", "gecos", "description", "cn", "uid",
-	"uidnumber", "gidnumber", "homedirectory", "shadowlastchange",
-	"shadowmin", "shadowmax", "shadowwarning", "shadowinactive",
-	"shadowexpire", "shadowflag", "audio", "businesscategory", "carlicense",
-	"departmentnumber", "displayname", "employeenumber", "employeetype",
-	"givenname", "homephone", "homepostaladdress", "initials", "jpegphoto",
-	"labeleduri", "mail", "manager", "mobile", "o", "pager", "photo",
-	"roomnumber", "secretary", "usercertificate", "x500uniqueidentifier",
-	"preferredlanguage", "usersmimecertificate", "userpkcs12", "title",
-	"x121address", "registeredaddress", "destinationindicator",
-	"preferreddeliverymethod", "telexnumber", "teletexterminalidentifier",
-	"telephonenumber", "internationalisdnnumber","facsimiletelephonenumber",
-	"street", "postofficebox", "postalcode", "postaladdress",
-	"physicaldeliveryofficename", "ou", "st", "l", "seealso", "sn"
+	"objectClass", "loginShell", "gecos", "description", "cn", "uid",
+	"uidNumber", "gidNumber", "homeDirectory", "shadowLastChange",
+	"shadowMin", "shadowMax", "shadowWarning", "shadowInactive",
+	"shadowExpire", "shadowFlag", "audio", "businessCategory", "carLicense",
+	"departmentNumber", "displayName", "employeeNumber", "employeeType",
+	"givenName", "homePhone", "homePostalAddress", "initials", "jpegPhoto",
+	"labeledUri", "mail", "manager", "mobile", "o", "pager", "photo",
+	"roomNumber", "secretary", "userCertificate", "x500uniqueIdentifier",
+	"preferredLanguage", "userSMIMECertificate", "userPKCS12", "title",
+	"x121Address", "registeredAddress", "destinationIndicator",
+	"preferredDeliveryMethod", "telexNumber", "teletexTerminalIdentifier",
+	"telephoneNumber", "internationalISDNNumber","facsimileTelephoneNumber",
+	"street", "postOfficeBox", "postalCode", "postalAddress",
+	"physicalDeliveryOfficeName", "ou", "st", "l", "seeAlso", "sn"
     ];
     list group_attributes	= [
-	"objectclass", "memberuid", "description", "gidnumber",
-	"businesscategory", "seealso", "owner", "ou", "o", "member", "cn"
+	"objectClass", "memberUid", "description", "gidNumber",
+	"businessCategory", "seeAlso", "owner", "ou", "o", "member", "cn"
     ];
 
     list connectives	= [
@@ -338,7 +338,7 @@ _("<p>Here, extend the search filters for users and groups beyond the default se
 
 // helptext 3/4
 _("<p>With <b>Default</b>, load the default filter from the user and group
-configuration modules saved on the LDAP server (values of 'susesearchfilter' attributes).
+configuration modules saved on the LDAP server (values of 'suseSearchFilter' attributes).
 If you are not connected yet, you are prompted for the password.</p>
 ") +
 
@@ -346,7 +346,7 @@ If you are not connected yet, you are prompted for the password.</p>
 _("<p><b>Example:</b>
 <br>With the user filter
 <br>
-<tt>(&(objectclass=posixaccount)(uid=u*))</tt>
+<tt>(&(objectClass=posixAccount)(uid=u*))</tt>
 <br>
 only obtain users with a username beginning with 'u'.</p>
 ");
@@ -657,9 +657,9 @@ define symbol DeleteUserPopup() ``{
     string type		= UsersCache::GetUserType ();
     map user		= Users::GetCurrentUser ();
     string username     = user["uid"]:"";
-    string home		= user["org_user","homedirectory"]:user["org_homedirectory"]:user["homedirectory"]:"";
+    string home		= user["org_user","homeDirectory"]:user["org_homeDirectory"]:user["homeDirectory"]:"";
     integer uid		= -1;
-    any uid_a		= user["org_user","uidnumber"]:user["org_uidnumber"]:user["uidnumber"]:"-1";
+    any uid_a		= user["org_user","uidNumber"]:user["org_uidNumber"]:user["uidNumber"]:"-1";
     if (is (uid_a, string))
 	uid = tointeger (uid_a);
     else uid = (integer) uid_a;
@@ -1387,7 +1387,7 @@ define void StoreDefaults (string key, map event) {
     if (Users::GetDefaultGroupname ("local") != new_defgroup)
     {
 	map g	= Users::GetGroupByName (new_defgroup, "");
-	new_defaults["group"] = sformat ("%1", GetInt (g["gidnumber"]:nil,
+	new_defaults["group"] = sformat ("%1", GetInt (g["gidNumber"]:nil,
 	    Users::GetDefaultGID ("local")));
     }
     if (new_defaults != $[])

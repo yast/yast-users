@@ -27,8 +27,8 @@
 	    "schema": $[
 		"oc": $[
 		    "may": [
-			"gidnumber", "gecos", "objectclass", "uid", "uidnumber",
-			"userpassword", "loginshell"
+			"gidNumber", "gecos", "objectClass", "uid", "uidNumber",
+			"userPassword", "loginShell"
 		    ],
 		],
 	    ],
@@ -43,35 +43,35 @@
 
     map<string,any> user = $[
 	"dn"		: "uid=test2,ou=people,dc=suse,dc=cz",
-	"gidnumber"	: 100,
+	"gidNumber"	: 100,
 	"groupname"	: "users",
 	"encrypted"	: true,
 	"gecos"		: "test",
 	"grouplist"	: $[ "audio" : 1 ],
-	"loginshell"	: "/bin/csh",
+	"loginShell"	: "/bin/csh",
 	"modified"	: "edited",
-	"objectclass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
+	"objectClass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
 	"org_uid"	: "test2",
 	"org_uidnumber"	: 11111,
 	"plugins"	: [ "UsersPluginLDAPAll" ],
 	"type"		: "ldap",
 	"uid"		: "test2",
-	"uidnumber"	: 11111,
-	"userpassword"	: "{crypt}IVj2W92x/IuFs",
+	"uidNumber"	: 11111,
+	"userPassword"	: "{crypt}IVj2W92x/IuFs",
 	"what"		: "edit_user",
 
 	"org_user"	: $[
 	    "dn"		: "uid=test2,ou=people,dc=suse,dc=cz",
-	    "gidnumber"		: 100,
+	    "gidNumber"		: 100,
 	    "groupname"		: "users",
 	    "gecos"		: "test",
-	    "loginshell"	: "/bin/bash",
+	    "loginShell"	: "/bin/bash",
 	    "grouplist"		: $[ "audio" : 1 ],
-	    "objectclass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
+	    "objectClass"	: [ "inetOrgPerson", "posixAccount", "shadowAccount", "top" ],
 	    "type"		: "ldap",
 	    "uid"		: "test2",
-	    "uidnumber"		: 11111,
-	    "userpassword"	: "{crypt}IVj2W92x/IuFs",
+	    "uidNumber"		: 11111,
+	    "userPassword"	: "{crypt}IVj2W92x/IuFs",
 	]
     ];
 
@@ -83,7 +83,7 @@
 
     Testsuite::Dump ("==========================================================");
 
-    user["userpassword"]	= "qqqqq";
+    user["userPassword"]	= "qqqqq";
 
     Testsuite::Dump (sformat ("--------- user (new password):\n %1", user));
 
@@ -93,9 +93,9 @@
 
     Testsuite::Dump ("==========================================================");
 
-    user["objectclass"]	= [ "inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambasamaccount" ];
-    user["userpassword"]		= converted["userpassword"]:"";
-    user["org_user", "userpassword"]	= converted["userpassword"]:"";
+    user["objectClass"]	= [ "inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount" ];
+    user["userPassword"]		= converted["userPassword"]:"";
+    user["org_user", "userPassword"]	= converted["userPassword"]:"";
 
     Testsuite::Dump (sformat ("--------- user (new object class):\n %1", user));
 

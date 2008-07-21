@@ -145,14 +145,14 @@ sub read_shadow {
 		return 0;
 	    }
 	    $shadow_tmp{$uname} = {
-		"shadowlastchange"	=> $last_change,
-		"shadowwarning"		=> $warn,
-		"shadowinactive"	=> $inact,
-		"shadowexpire"		=> $expire,
-		"shadowmin"		=> $min,
-		"shadowmax"		=> $max,
-		"shadowflag"		=> $flag,
-		"userpassword"		=> $pass
+		"shadowLastChange"	=> $last_change,
+		"shadowWarning"		=> $warn,
+		"shadowInactive"	=> $inact,
+		"shadowExpire"		=> $expire,
+		"shadowMin"		=> $min,
+		"shadowMax"		=> $max,
+		"shadowFlag"		=> $flag,
+		"userPassword"		=> $pass
 	    };
 	}
 	else # plus line in /etc/shadow
@@ -252,10 +252,10 @@ sub read_group {
 	    }
 	    $groups{$group_type}{$groupname} = {
 		"cn"		=> $groupname,
-		"gidnumber" 	=> $gid,
+		"gidNumber" 	=> $gid,
 		"userlist"	=> \%userlist,
 		"type"		=> $group_type,
-		"userpassword"	=> $pass,
+		"userPassword"	=> $pass,
 		"more_users"	=> {}
 	    };
 
@@ -410,14 +410,14 @@ sub read_passwd {
 	    $users{$user_type}{$username} = {
 		"addit_data"	=> $additional,
 		"cn"		=> $full,
-		"homedirectory"	=> $home,
+		"homeDirectory"	=> $home,
 		"uid"		=> $username,
-		"uidnumber"	=> $uid,
-		"gidnumber"	=> $gid,
-		"loginshell"	=> $shell,
+		"uidNumber"	=> $uid,
+		"gidNumber"	=> $gid,
+		"loginShell"	=> $shell,
 		"groupname"	=> $groupname,
 		"grouplist"	=> \%grouplist,
-		"userpassword"	=> undef,
+		"userPassword"	=> undef,
 		"type"		=> $user_type
 	    };
 
@@ -694,11 +694,11 @@ sub WriteUsers {
 	    my $userline	= join (":", (
 		$user{"uid"} || "",
 		$pass,
-		$user{"uidnumber"} || 0,
-		$user{"gidnumber"} || 0,
+		$user{"uidNumber"} || 0,
+		$user{"gidNumber"} || 0,
 		$cn,
-		$user{"homedirectory"} || "",
-		$user{"loginshell"} || "",
+		$user{"homeDirectory"} || "",
+		$user{"loginShell"} || "",
 	    ));
 	    if (defined $userline) {
 		$out	= $out."$userline\n";
@@ -750,7 +750,7 @@ sub WriteShadow {
         foreach my $uname (sort keys %{$shadow_w{$type}}) {
 
 	    my %shadow_entry	= %{$shadow_w{$type}{$uname}};
-	    foreach my $key ("shadowwarning", "shadowinactive", "shadowexpire", "shadowflag", "userpassword", "shadowmin", "shadowmax") {
+	    foreach my $key ("shadowWarning", "shadowInactive", "shadowExpire", "shadowFlag", "userPassword", "shadowMin", "shadowMax") {
 		# -1 should disable feature, it should not be written (#259896)
 		if (!defined $shadow_entry{$key} || $shadow_entry{$key} eq -1) {
 		    $shadow_entry{$key}	= "";
@@ -758,14 +758,14 @@ sub WriteShadow {
 	    }
 	    my $shadowline	= join (":", (
 		$uname,
-		$shadow_entry{"userpassword"},
-		$shadow_entry{"shadowlastchange"},
-		$shadow_entry{"shadowmin"},
-		$shadow_entry{"shadowmax"},
-		$shadow_entry{"shadowwarning"},
-		$shadow_entry{"shadowinactive"},
-		$shadow_entry{"shadowexpire"},
-		$shadow_entry{"shadowflag"}
+		$shadow_entry{"userPassword"},
+		$shadow_entry{"shadowLastChange"},
+		$shadow_entry{"shadowMin"},
+		$shadow_entry{"shadowMax"},
+		$shadow_entry{"shadowWarning"},
+		$shadow_entry{"shadowInactive"},
+		$shadow_entry{"shadowExpire"},
+		$shadow_entry{"shadowFlag"}
 	    ));
 	    if (defined $shadowline) {
 		$out	= $out."$shadowline\n";
@@ -819,13 +819,13 @@ sub WriteGroups {
 
 	    my %group	= %{$groups_w{$type}{$groupname}};
 	    my $pass	= "x";
-	    if (defined $group{"userpassword"}) {
-		$pass 	= $group{"userpassword"};
+	    if (defined $group{"userPassword"}) {
+		$pass 	= $group{"userPassword"};
 	    }
 	    my @group_entry	= (
 		$group{"cn"},
 		$pass,
-		$group{"gidnumber"} || 0,
+		$group{"gidNumber"} || 0,
 		join (",", sort keys %{$group{"userlist"}})
 	    );
 	    my $groupline	= join (":", @group_entry);

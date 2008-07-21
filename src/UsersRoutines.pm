@@ -294,10 +294,10 @@ sub CryptHome {
     my $user		= shift;   
 
     my $username	= $user->{"uid"} || "";
-    my $home		= $user->{"homedirectory"} || "";
+    my $home		= $user->{"homeDirectory"} || "";
     my $home_size   	= $user->{"crypted_home_size"} || 0;
     my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
-    my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
+    my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
     my $org_username	= $user->{"org_user"}{"uid"} || $username;
     my $pw		= $user->{"current_text_userpassword"};
     my $new_pw		= $user->{"text_userpassword"};

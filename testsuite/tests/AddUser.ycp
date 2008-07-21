@@ -83,13 +83,13 @@
 
     Testsuite::Dump (sformat ("---- current user (empty add):\n %1", Users::GetCurrentUser ()));
     map<string,any> user = $[
-	"uidnumber"	: 501,
+	"uidNumber"	: 501,
 	"uid"		:"aaa",
-	"gidnumber"	: 100,
+	"gidNumber"	: 100,
 	"groupname"	: "users",
 	"grouplist"	: $[ "audio" : 1 ],
-	"homedirectory"	:"/local/home/aaa",
-	"userpassword"	:"qqqqq",
+	"homeDirectory"	:"/local/home/aaa",
+	"userPassword"	:"qqqqq",
 	"type"		:"local",
     ];
 
@@ -131,7 +131,7 @@
     Testsuite::Dump ("==================== username conflict ========================");
 
     Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    Testsuite::Test (``(Users::AddUser ($[ "uid": "root", "userpassword": "qqqqq"])),
+    Testsuite::Test (``(Users::AddUser ($[ "uid": "root", "userPassword": "qqqqq"])),
 	[READ, WRITE, EXEC], 0);
 
     Testsuite::Dump (sformat ("---- current user (just added):\n %1", Users::GetCurrentUser ()));
@@ -141,14 +141,14 @@
 
     Testsuite::Dump (sformat ("---- check user after add:\n %1", error));
 
-    Testsuite::Dump ("==================== uidnumber problems ===================");
+    Testsuite::Dump ("==================== uidNumber problems ===================");
 
     Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
     Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "rrr",
-	"uidnumber"	: 5,
+	"uidNumber"	: 5,
 	"type"		: "local",
-	"userpassword"	: "qqqqq"
+	"userPassword"	: "qqqqq"
 	])),
 	[READ, WRITE, EXEC], 0);
 
@@ -166,7 +166,7 @@
     Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "iii$",
 	"type"		: "local",
-	"userpassword"	: "qqqqq"
+	"userPassword"	: "qqqqq"
 	])),
 	[READ, WRITE, EXEC], 0);
 
@@ -183,8 +183,8 @@
     Testsuite::Test (``(Users::AddUser ($[
 	"uid"		: "iii$",
 	"type"		: "ldap",
-	"homedirectory"	: "/home/ldap/iii",
-	"userpassword"	: "qqqqq"
+	"homeDirectory"	: "/home/ldap/iii",
+	"userPassword"	: "qqqqq"
 	])),
 	[READ, WRITE, EXEC], 0);
 
@@ -200,8 +200,8 @@
     Testsuite::Dump ("============== duplicated UID number =====================");
 
     Testsuite::Test (``(Users::AddUser ($[])), [READ, WRITE, EXEC], 0);
-    Testsuite::Test (``(Users::AddUser ($[ "uid": "admin", "uidnumber": 0,
-	"userpassword": "qqqqq", "type" : "system"])), [READ, WRITE, EXEC], 0);
+    Testsuite::Test (``(Users::AddUser ($[ "uid": "admin", "uidNumber": 0,
+	"userPassword": "qqqqq", "type" : "system"])), [READ, WRITE, EXEC], 0);
 
     EXEC ["target", "bash_output", "stdout"] = "admin";
 

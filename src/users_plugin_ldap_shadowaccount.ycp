@@ -65,15 +65,15 @@
 	// date of password expiration
         string exp_date = "";
 
-	string last_change	= GetString (data["shadowlastchange"]:nil, "0");
-	string expires		= GetString (data["shadowexpire"]:nil, "0");
+	string last_change	= GetString (data["shadowLastChange"]:nil, "0");
+	string expires		= GetString (data["shadowExpire"]:nil, "0");
 	if (expires == "")
 	    expires = "0";
 
-	integer inact	= GetInt (data["shadowinactive"]:nil, 0);
-	integer max	= GetInt (data["shadowmax"]:nil, 0);
-	integer min	= GetInt (data["shadowmin"]:nil, 0);
-	integer warn	= GetInt (data["shadowwarning"]:nil, 0);
+	integer inact	= GetInt (data["shadowInactive"]:nil, 0);
+	integer max	= GetInt (data["shadowMax"]:nil, 0);
+	integer min	= GetInt (data["shadowMin"]:nil, 0);
+	integer warn	= GetInt (data["shadowWarning"]:nil, 0);
 
 	if (last_change != "0")
 	{
@@ -102,27 +102,27 @@
 			// label
 			_("Last Password Change: %1"), last_change ))),
 		    `VSpacing (1),
-                    `IntField (`id ("shadowwarning"),
+                    `IntField (`id ("shadowWarning"),
 			// intfield label
 			_("Days &before Password Expiration to Issue Warning"),
 			-1, 99999, warn),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowinactive"),
+                    `IntField (`id ("shadowInactive"),
 			// intfield label
 			_("Days after Password Expires with Usable &Login"),
 			-1, 99999, inact),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowmax"),
+                    `IntField (`id ("shadowMax"),
 			// intfield label
 			_("Ma&ximum Number of Days for the Same Password"),
 			-1, 99999, max),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowmin"),
+                    `IntField (`id ("shadowMin"),
 			// intfield label
 			_("&Minimum Number of Days for the Same Password"),
 			-1, 99999, min),
                     `VSpacing (0.5),
-                    `TextEntry (`id ("shadowexpire"),
+                    `TextEntry (`id ("shadowExpire"),
 			// textentry label
 			_("Ex&piration Date"), exp_date)
                 )),
@@ -147,19 +147,19 @@
 	    if (ret == `next)
 	    {
 		string exp = (string)
-		    UI::QueryWidget (`id ("shadowexpire"), `Value);
+		    UI::QueryWidget (`id ("shadowExpire"), `Value);
 		if (exp != "" &&
                 !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
 		{
 		    // popup text: Don't reorder the letters YYYY-MM-DD!!!
 		    // The date must stay in this format
 		    Popup::Message(_("The expiration date must be in the format YYYY-MM-DD."));
-		    UI::SetFocus (`id ("shadowexpire"));
+		    UI::SetFocus (`id ("shadowExpire"));
 		    continue;
 		}
 
 		foreach (string shadowsymbol,
-		    ["shadowwarning","shadowmax","shadowmin", "shadowinactive"],
+		    ["shadowWarning","shadowMax","shadowMin", "shadowInactive"],
 		{
 		    string sval	= sformat ("%1",
 			UI::QueryWidget (`id(shadowsymbol), `Value));
@@ -170,13 +170,13 @@
 		});
 
 		string new_exp_date = (string)
-		    UI::QueryWidget(`id("shadowexpire"),`Value);
+		    UI::QueryWidget(`id("shadowExpire"),`Value);
 		if (new_exp_date != exp_date)
 		{
 		    exp_date	= new_exp_date;
 		    if (exp_date == "")
 		    {
-			tmp_data["shadowexpire"] = "";
+			tmp_data["shadowExpire"] = "";
 		    }
 		    else
 		    {
@@ -186,7 +186,7 @@
 			if (seconds_s != "")
 			{
 			    integer days = (tointeger (seconds_s)) / (60*60*24);
-			    tmp_data["shadowexpire"] = sformat("%1", days);
+			    tmp_data["shadowExpire"] = sformat("%1", days);
 			}
 		    }
 		}

@@ -28,15 +28,15 @@ YaST::YCP::Import ("Ldap");
 
 # default object classes of LDAP users
 my @user_object_class                  =
-    ("top","posixaccount", "inetorgperson");
+    ("top","posixAccount", "inetOrgPerson");
 
 # default object classes of LDAP groups
 my @group_object_class                 =
-    ( "top", "posixgroup", "groupofnames");
+    ( "top", "posixGroup", "groupOfNames");
 
 # object classes of LDAP groups using uniqmember attribute
 my @unique_group_object_class          =
-    ( "top", "posixgroup", "groupofuniquenames");
+    ( "top", "posixGroup", "groupOfUniqueNames");
 
 # error message, returned when some plugin function fails
 my $error	= "";
@@ -230,8 +230,8 @@ sub Check {
     # attribute conversion
     my @required_attrs		= ();
     my @object_classes		= ();
-    if (defined $data->{"objectclass"} && ref ($data->{"objectclass"}) eq "ARRAY") {
-	@object_classes		= @{$data->{"objectclass"}};
+    if (defined $data->{"objectClass"} && ref ($data->{"objectClass"}) eq "ARRAY") {
+	@object_classes		= @{$data->{"objectClass"}};
     }
 
     # get the attributes required for entry's object classes
@@ -248,8 +248,7 @@ sub Check {
     my $action		= $data->{"what"} || "";
     # check the presence of required attributes
     foreach my $req (@required_attrs) {
-	my $attr	= lc ($req);
-	my $val		= $data->{$attr};
+	my $val		= $data->{$req};
 	if (substr ($action, 0, 5) eq "edit_" && !defined $val) {
 	    # when editing using YaPI, attribute dosn't have to be loaded
 	    next;
@@ -259,7 +258,7 @@ sub Check {
 		((@{$val} == 0) || (@{$val} == 1 && $val->[0] eq "")))) {
 	    # error popup (user forgot to fill in some attributes)
 	    return sprintf (__("The attribute '%s' is required for this object according
-to its LDAP configuration, but it is currently empty."), $attr);
+to its LDAP configuration, but it is currently empty."), $req);
 	}
     }
     return "";
@@ -315,9 +314,9 @@ sub update_object_classes {
 
     # define the object class for new user/groupa
     my @orig_object_class	= ();
-    if (defined $data->{"objectclass"} && ref $data->{"objectclass"} eq "ARRAY")
+    if (defined $data->{"objectClass"} && ref $data->{"objectClass"} eq "ARRAY")
     {
-	@orig_object_class	= @{$data->{"objectclass"}};
+	@orig_object_class	= @{$data->{"objectClass"}};
     }
     my @ocs			= @user_object_class;
     if (($config->{"what"} || "") eq "group") {
@@ -334,7 +333,7 @@ sub update_object_classes {
 	}
     }
 
-    $data->{"objectclass"}	= \@orig_object_class;
+    $data->{"objectClass"}	= \@orig_object_class;
 
     return $data;
 }

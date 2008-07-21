@@ -70,7 +70,7 @@
     Testsuite::Test (``(Users::Read ()), [READ, WRITE, EXEC], 0);
 
     map <string,any> group = $[
-	"gidnumber"	: 555,
+	"gidNumber"	: 555,
 	"cn"		: "ggl",
 	"userlist"	: $[ "hh" : 1 ],
 	"password"	:"x",

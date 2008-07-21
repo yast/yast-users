@@ -56,7 +56,7 @@
            "encrypted": false,
         ],
         $[ "username":"root",
-	    "uidnumber": 0,
+	    "uidNumber": 0,
            "user_password":"pass",
         ],
      ];

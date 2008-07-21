@@ -70,7 +70,7 @@
 	    map stat	= (map) SCR::Read (.target.stat, home);
 	    integer uid	= stat["uid"]:-1;
 	    if (uid != -1)
-		user["uidnumber"]	= uid;
+		user["uidNumber"]	= uid;
 	}
 	string error	= Users::AddUser (user);
 	if (error == "")
@@ -193,16 +193,16 @@ Install it now?
 	foreach (map<string,any> user, (list<map<string,any> >) import_u, {
 	    user["encrypted"]	= true;
 	    // check if default group exists
-	    if (haskey (user, "gidnumber"))
+	    if (haskey (user, "gidNumber"))
 	    {
-		map g	= Users::GetGroup (GetInt (user["gidnumber"]:nil, -1), "");
+		map g	= Users::GetGroup (GetInt (user["gidNumber"]:nil, -1), "");
 		if (g == $[])
 		{
 		    g	= Users::GetGroupByName (user["groupname"]:"", "");
 		    if (g != $[])
-			user["gidnumber"]	= g["gidnumber"]:-1;
+			user["gidNumber"]	= g["gidNumber"]:-1;
 		    else
-			user	= remove (user, "gidnumber");
+			user	= remove (user, "gidNumber");
 		}
 	    }
 	    string error = Users::AddUser (user);

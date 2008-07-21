@@ -42,8 +42,8 @@ my $user_base			= "";
 my $group_base			= "";
 
 # default filters for searching
-my $default_user_filter		= "objectclass=posixaccount";
-my $default_group_filter	= "objectclass=posixgroup";
+my $default_user_filter		= "objectClass=posixAccount";
+my $default_group_filter	= "objectClass=posixGroup";
 
 # which attribute have groups for list of members
 my $member_attribute		= "member";
@@ -71,11 +71,11 @@ my $encryption			= "crypt";
 
 # default object classes of LDAP users (read from Ldap module)
 my @user_class 			=
-    ("top","posixaccount","shadowaccount", "inetorgperson");
+    ("top","posixAccount","shadowAccount", "inetOrgPerson");
 
 # default object classes of LDAP groups (read from Ldap module)
 my @group_class 		=
-    ( "top", "posixgroup", "groupofnames");
+    ( "top", "posixGroup", "groupOfNames");
 
 # attributes for LDAP search; if empty, all non-empty attrs will be returned
 my @user_attributes		= ();
@@ -116,7 +116,7 @@ my @user_internal_keys		=
     ("create_home", "grouplist", "groupname", "modified", "org_username",
      "org_uid", "plugins", "text_userpassword", "current_text_userpassword",
      "plugins_to_remove", "plugin_modified",
-     "org_uidnumber", "org_homedirectory","org_user", "type", "org_groupname",
+     "org_uidNumber", "org_homeDirectory","org_user", "type", "org_groupname",
      "org_type", "what", "encrypted", "no_skeleton", "disabled", "enabled",
      "dn", "org_dn", "removed_grouplist", "delete_home", "addit_data",
      "warning_message", "warning_message_ID", "confirmed_warnings", "home_mode",
@@ -124,7 +124,7 @@ my @user_internal_keys		=
 
 my @group_internal_keys		=
     ("modified", "type", "more_users", "s_userlist", "encrypted", "org_type",
-     "dn", "org_dn", "org_groupname", "org_gidnumber", "removed_userlist",
+     "dn", "org_dn", "org_groupname", "org_gidNumber", "removed_userlist",
      "what", "org_cn", "plugins", "plugins_to_remove", "org_group",
      "warning_message", "warning_message_ID", "confirmed_warnings",
      "plugin_modified");
@@ -240,27 +240,27 @@ sub Initialize {
     my %modules = %{Ldap->GetConfigModules ()};
     while ( my ($dn, $config_module) = each %modules) {
 
-	if (!defined $config_module->{"objectclass"}) {
+	if (!defined $config_module->{"objectClass"}) {
 	    next;
 	}
-	my $oc = $config_module->{"objectclass"};
-	if (contains ($oc, "suseuserconfiguration", 1) ) {
+	my $oc = $config_module->{"objectClass"};
+	if (contains ($oc, "suseUserConfiguration", 1) ) {
 	    $user_config_dn	= $dn;
 	    %user_config 	= %{$config_module};
 	}
-	if (contains ($oc, "susegroupconfiguration", 1) ) {
+	if (contains ($oc, "suseGroupConfiguration", 1) ) {
 	    $group_config_dn	= $dn;
 	    %group_config 	= %{$config_module};
 	}
     };
 
     my @user_templates		= ();
-    if (defined $user_config{"susedefaulttemplate"}) {
-	@user_templates 	= @{$user_config{"susedefaulttemplate"}};
+    if (defined $user_config{"suseDefaultTemplate"}) {
+	@user_templates 	= @{$user_config{"suseDefaultTemplate"}};
     }
     my @group_templates		= ();
-    if (defined $group_config{"susedefaulttemplate"}) {
-	@group_templates 	= @{$group_config{"susedefaulttemplate"}};
+    if (defined $group_config{"suseDefaultTemplate"}) {
+	@group_templates 	= @{$group_config{"suseDefaultTemplate"}};
     }
     my $user_template_dn	= $user_templates[0] || "";
     my $group_template_dn	= $group_templates[0] || "";
@@ -300,11 +300,11 @@ sub ReadFilters {
     if ($init ne "") { return $init; }
 
     # get the default filters from config modules (already read)
-    if (defined $user_config{"susesearchfilter"}[0]) {
-        $default_user_filter = @{$user_config{"susesearchfilter"}}[0];
+    if (defined $user_config{"suseSearchFilter"}[0]) {
+        $default_user_filter = @{$user_config{"suseSearchFilter"}}[0];
     }
-    if (defined $group_config{"susesearchfilter"}[0]) {
-        $default_group_filter = @{$group_config{"susesearchfilter"}}[0];
+    if (defined $group_config{"suseSearchFilter"}[0]) {
+        $default_group_filter = @{$group_config{"suseSearchFilter"}}[0];
     }
 
     $filters_read = 1;
@@ -331,8 +331,8 @@ sub ReadSettings {
     my %tmp_group_template	= %group_template;
 
     # every time take the first value from the list...
-    if (defined $user_config{"susedefaultbase"}[0]) {
-	$user_base = $user_config{"susedefaultbase"}[0];
+    if (defined $user_config{"suseDefaultBase"}[0]) {
+	$user_base = $user_config{"suseDefaultBase"}[0];
 	# ask to create if not present
 	my $base_map	= Ldap->GetLDAPEntry ($user_base);
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
@@ -346,7 +346,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	    {
 		if (Ldap->ParentExists ($dn) && Ldap->WriteLDAP ( {
 		    $dn	=> {
-			"objectclass"	=> [ "top", "organizationalunit"],
+			"objectClass"	=> [ "top", "organizationalUnit"],
 			"modified"	=> "added",
 			"ou"		=> UsersCache->get_first ($dn)
 		    }})) {
@@ -359,8 +359,8 @@ exists on the LDAP server. Create it now?"), $dn)))
 	$user_base = Ldap->GetDomain();
     }
 
-    if (defined $group_config{"susedefaultbase"}[0]) {
-	$group_base = $group_config{"susedefaultbase"}[0];
+    if (defined $group_config{"suseDefaultBase"}[0]) {
+	$group_base = $group_config{"suseDefaultBase"}[0];
 	my $base_map	= Ldap->GetLDAPEntry ($group_base);
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
 	    my $dn	= $group_base;
@@ -372,7 +372,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	    {
 		if (Ldap->ParentExists ($dn) && Ldap->WriteLDAP ( {
 		    $dn	=> {
-			"objectclass"	=> [ "top", "organizationalunit"],
+			"objectClass"	=> [ "top", "organizationalUnit"],
 			"modified"	=> "added",
 			"ou"		=> UsersCache->get_first ($dn)
 		    }})) {
@@ -386,70 +386,87 @@ exists on the LDAP server. Create it now?"), $dn)))
     }
 
     $member_attribute	= Ldap->member_attribute ();
-    if (defined $user_template{"suseplugin"}) {
-	@default_user_plugins = @{$user_template{"suseplugin"}};
+    if (defined $user_template{"susePlugin"}) {
+	@default_user_plugins = @{$user_template{"susePlugin"}};
     }
 
-    if (defined $group_template{"suseplugin"}) {
-	@default_group_plugins = @{$group_template{"suseplugin"}};
+    if (defined $group_template{"susePlugin"}) {
+	@default_group_plugins = @{$group_template{"susePlugin"}};
     }
+
+    # change the case-insensitive keys back to sensitive ones
+    my %translated = (
+	"homedirectory"	=> "homeDirectory",
+	"uidnumber"	=> "uidNumber",
+	"loginshell"	=> "loginShell",
+	"gidnumber"	=> "gidNumber",
+    );
 
     if (defined $user_template{"default_values"}) {
-	%user_defaults = %{$user_template{"default_values"}};
+	my %user_defs = %{$user_template{"default_values"}};
+	# update possible wrong (lowercased) names to the correct ones
+	foreach my $key (keys %user_defs) {
+	    my $new_key	= $translated{$key} || $key;
+	    $user_defaults{$new_key}	= $user_defs{$key};
+	}
     }
 
     if (defined $group_template{"default_values"}) {
-	%group_defaults = %{$group_template{"default_values"}};
+	my %group_defs = %{$group_template{"default_values"}};
+	foreach my $key (keys %group_defs) {
+	    my $new_key	= $translated{$key} || $key;
+	    $group_defaults{$new_key}	= $group_defs{$key};
+	}
     }
 
     # default shadow for new LDAP users
-    foreach my $key ("shadowwarning", "shadowinactive", "shadowexpire", "shadowmin", "shadowmax", "shadowflag") {
+    foreach my $key ("shadowWarning", "shadowInactive", "shadowExpire", "shadowMin", "shadowMax", "shadowFlag") {
 	if (defined $user_defaults{$key}) {
 	    $shadow{$key}	= $user_defaults{$key};
 	}
     }
 	
-    if (defined $user_defaults{"homedirectory"}) {
-	$useradd_defaults{"home"}	= $user_defaults{"homedirectory"};
+    if (defined $user_defaults{"homeDirectory"}) {
+	$useradd_defaults{"home"}	= $user_defaults{"homeDirectory"};
     }
-    if (defined $user_defaults{"gidnumber"}) {
-	$useradd_defaults{"group"}	= $user_defaults{"gidnumber"};
+    if (defined $user_defaults{"gidNumber"}) {
+	$useradd_defaults{"group"}	= $user_defaults{"gidNumber"};
     }
-    if (defined $user_defaults{"loginshell"}) {
-	$useradd_defaults{"shell"}	= $user_defaults{"loginshell"};
+    if (defined $user_defaults{"loginShell"}) {
+	$useradd_defaults{"shell"}	= $user_defaults{"loginShell"};
     }
-    if (defined $user_config{"suseskeldir"}[0]) {
-	$useradd_defaults{"skel"}	= $user_config{"suseskeldir"}[0];
+    if (defined $user_config{"suseSkelDir"}[0]) {
+	$useradd_defaults{"skel"}	= $user_config{"suseSkelDir"}[0];
     }
     # set default secondary groups
     # Warning: there are DN's, but we want (?) only names...
-    if (defined ($user_template{"susesecondarygroup"})) {
+    if (defined ($user_template{"suseSecondaryGroup"})) {
 	my @grouplist	= ();
-	foreach my $dn (@{$user_template{"susesecondarygroup"}}) {
+	foreach my $dn (@{$user_template{"suseSecondaryGroup"}}) {
 	    push @grouplist, UsersCache->get_first ($dn);
 	}
 	$useradd_defaults{"groups"}	= join (",", @grouplist);
     };
 
     # password length (there is no check if it is correct for current hash)
-    if (defined ($user_config{"suseminpasswordlength"}[0])) {
-	$min_pass_length	= $user_config{"suseminpasswordlength"}[0];
+    if (defined ($user_config{"suseMinPasswordLength"}[0])) {
+	$min_pass_length	= $user_config{"suseMinPasswordLength"}[0];
     }
-    if (defined ($user_config{"susemaxpasswordlength"}[0])) {
-	$max_pass_length	= $user_config{"susemaxpasswordlength"}[0];
+    if (defined ($user_config{"suseMaxPasswordLength"}[0])) {
+	$max_pass_length	= $user_config{"suseMaxPasswordLength"}[0];
     }
 
     # last used Id
-    if (defined ($user_config{"susenextuniqueid"}[0])) {
-	$last_uid = $user_config{"susenextuniqueid"}[0];
+    if (defined ($user_config{"suseNextUniqueId"}[0])) {
+	$last_uid = $user_config{"suseNextUniqueId"}[0];
     }
     else {
 	$last_uid = UsersCache->GetLastUID ("local");
     }
     UsersCache->SetLastUID ($last_uid, "ldap");
 
-    if (defined ($group_config{"susenextuniqueid"}[0])) {
-	$last_gid = $group_config{"susenextuniqueid"}[0];
+    if (defined ($group_config{"suseNextUniqueId"}[0])) {
+	$last_gid = $group_config{"suseNextUniqueId"}[0];
     }
     else {
 	$last_gid = UsersCache->GetLastGID ("local");
@@ -457,35 +474,35 @@ exists on the LDAP server. Create it now?"), $dn)))
     UsersCache->SetLastGID ($last_gid, "ldap");
 
     # naming attributes
-    if (defined ($user_template{"susenamingattribute"}[0])) {
-        $user_naming_attr = $user_template{"susenamingattribute"}[0];
+    if (defined ($user_template{"suseNamingAttribute"}[0])) {
+        $user_naming_attr = $user_template{"suseNamingAttribute"}[0];
     }
-    if (defined ($group_template{"susenamingattribute"}[0])) {
-        $group_naming_attr = $group_template{"susenamingattribute"}[0];
+    if (defined ($group_template{"suseNamingAttribute"}[0])) {
+        $group_naming_attr = $group_template{"suseNamingAttribute"}[0];
     }
 
     # max id
-    if (defined ($user_config{"susemaxuniqueid"}[0])) {
-	$max_uid	= $user_config{"susemaxuniqueid"}[0];
+    if (defined ($user_config{"suseMaxUniqueId"}[0])) {
+	$max_uid	= $user_config{"suseMaxUniqueId"}[0];
     }
-    if (defined ($group_config{"susemaxuniqueid"}[0])) {
-	$max_gid	= $group_config{"susemaxuniqueid"}[0];
+    if (defined ($group_config{"suseMaxUniqueId"}[0])) {
+	$max_gid	= $group_config{"suseMaxUniqueId"}[0];
     }
     UsersCache->SetMaxUID ($max_uid, "ldap");
     UsersCache->SetMaxGID ($max_gid, "ldap");
 
     # min id
-    if (defined ($user_config{"suseminuniqueid"}[0])) {
-	$min_uid	= $user_config{"suseminuniqueid"}[0];
+    if (defined ($user_config{"suseMinUniqueId"}[0])) {
+	$min_uid	= $user_config{"suseMinUniqueId"}[0];
     }
-    if (defined ($group_config{"suseminuniqueid"}[0])) {
-	$min_gid	= $group_config{"suseminuniqueid"}[0];
+    if (defined ($group_config{"suseMinUniqueId"}[0])) {
+	$min_gid	= $group_config{"suseMinUniqueId"}[0];
     }
     UsersCache->SetMinUID ($min_uid, "ldap");
     UsersCache->SetMinGID ($min_gid, "ldap");
 
-    if (defined ($user_config{"susepasswordhash"}[0])) {
-	$encryption 	= $user_config{"susepasswordhash"}[0];
+    if (defined ($user_config{"susePasswordHash"}[0])) {
+	$encryption 	= $user_config{"susePasswordHash"}[0];
     }
     else {
 	$encryption	= Ldap->pam_password ();
@@ -511,7 +528,7 @@ sub Read {
 
     my $user_attrs	= \@user_attributes;
     if (@$user_attrs < 1) {
-	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory", "userpassword" ];
+	$user_attrs	= [ "uid", "uidNumber", "gidNumber", "gecos", "cn", "homeDirectory", "userPassword" ];
 	y2milestone ("minimal set of user attrs to read: ", @$user_attrs);
     }
     my $group_attrs 	= \@group_attributes;
@@ -967,7 +984,7 @@ sub CreateGroupDN {
 # LDAP types to internal yast-names.
 # @param what "user" or "group"
 # @param data map of already gathered keys and values
-# @example map of default values contains pair "homedirectory": "/home/%uid"
+# @example map of default values contains pair "homeDirectory": "/home/%uid"
 # -> value of "home" is set to "/home/" + username
 # @return new data map with substituted values
 BEGIN { $TYPEINFO{SubstituteValues} = ["function",
@@ -988,7 +1005,7 @@ sub SubstituteValues {
 
     if (Mode->test ()) {
 	%defaults	= (
-	    "homedirectory" 	=> "/home/\%uid",
+	    "homeDirectory" 	=> "/home/\%uid",
 	    "cn"		=> "\%uid",
 	)
     }
@@ -996,8 +1013,7 @@ sub SubstituteValues {
     # 'value' of 'attr' should be changed
     foreach my $attr (keys %{$data}) {
 
-	my $lattr	= lc ($attr);
-	my $value	= $data->{$lattr};
+	my $value	= $data->{$attr};
 	my $svalue 	= "";
 
 	if (!defined $value || ref ($value) eq "HASH") {
@@ -1010,26 +1026,27 @@ sub SubstituteValues {
 	    $svalue = $value;
 	}
 	# substitute only when current value is empty or contains "%"
+# FIXME homedirectory already defined -> what now?
 	if (!defined $svalue ||
-	    contains (\@internal, $lattr, 1) ||
+	    contains (\@internal, $attr, 1) ||
 	    ($svalue ne "" && !($svalue =~ m/%/))) {
 	    next;
 	}
 	# translate attribute names from LDAP to yast-type
-	my $val = $defaults{$lattr};
+	my $val = $defaults{$attr};
 
 	if (defined ($val) && $val =~ m/%/) {
 	    my @parts	= split (/%/, $val);
 	    my $result	= $parts[0];
 	    my $i	= 1;
 	    while ($i < @parts) {
-		my $part	= lc ($parts[$i]);
+		my $part	= $parts[$i];
 		my $replaced 	= 0;
 		# find a contens of substitution (filled in current user/group)
 		foreach my $at (sort keys %{$data}) {
-		    my $a = lc ($at);
-		    my $v = $data->{$a};
-		    if (!defined $v || contains (\@internal, $a, 1) || $replaced){
+		    my $v = $data->{$at};
+		    if (!defined $v || contains (\@internal, $at, 1) ||
+			$replaced) {
 			next;
 		    }
 		    if (ref ($v) eq "HASH") {
@@ -1039,8 +1056,8 @@ sub SubstituteValues {
 		    if (ref ($v) eq "ARRAY") {
 			$sv = $v->[0];
 		    }
-		    if (substr ($part, 0, length ($a)) eq $a) {
-			$result	= $result.$sv.substr ($part, length ($a));
+		    if (substr ($part, 0, length ($at)) eq $at) {
+			$result	= $result.$sv.substr ($part, length ($at));
 			$replaced = 1;
 		    }
 		}
@@ -1050,8 +1067,8 @@ sub SubstituteValues {
 		$i ++;
 	    }
 	    if ($result ne $svalue) {
-		y2milestone ("attribute '$lattr' changed from '$svalue' to '$result'");
-		$ret{$lattr}	= $result;
+		y2milestone ("attribute '$attr' changed from '$svalue' to '$result'");
+		$ret{$attr}	= $result;
 	    }
 	}
     }
@@ -1093,13 +1110,13 @@ sub ConvertMap {
     if (defined $data->{"org_group"} && $data->{"modified"} eq "edited") {
 	$org_object	= $data->{"org_group"};
     }
-    if (defined $org_object->{"objectclass"}) {
-	$org_ocs	= $org_object->{"objectclass"};
+    if (defined $org_object->{"objectClass"}) {
+	$org_ocs	= $org_object->{"objectClass"};
     }
 
     my %ret		= ();
     my @attributes	= ();
-    my $attributes	= Ldap->GetObjectAttributes ($data->{"objectclass"});
+    my $attributes	= Ldap->GetObjectAttributes ($data->{"objectClass"});
     if (defined $attributes && ref ($attributes) eq "ARRAY") {
 	@attributes	= @{$attributes};
     }
@@ -1108,7 +1125,7 @@ sub ConvertMap {
 	my @ocs		= ();
 	foreach my $oc (@$org_ocs) {
 	    # object class was deleted
-	    if (!contains ($data->{"objectclass"}, $oc, 1)) {
+	    if (!contains ($data->{"objectClass"}, $oc, 1)) {
 		push @ocs, $oc;
 	    }
 	}
@@ -1118,7 +1135,7 @@ sub ConvertMap {
     }
 
     my @internal	= @user_internal_keys;
-    if (!defined $data->{"uidnumber"}) {
+    if (!defined $data->{"uidNumber"}) {
 	@internal	= @group_internal_keys;
     }
     foreach my $key (keys %{$data}) {
@@ -1126,7 +1143,7 @@ sub ConvertMap {
 	if (contains (\@internal, $key, 1)) {
 	    next;
 	}
-	if ($key eq "userpassword") {
+	if ($key eq "userPassword") {
 	    if (!defined $val) {
 		next;
 	    }
@@ -1153,7 +1170,7 @@ sub ConvertMap {
 	    }
 	}
 
-	# check if the attributes are allowed by objectclass
+	# check if the attributes are allowed by objectClass
 	if (!contains (\@attributes, $key, 1)) {
 	    if (contains ($old_attributes, $key, 1)) {
 		# remove the old attribute
@@ -1166,8 +1183,10 @@ sub ConvertMap {
 		    $attribute_usage->{$key}	= $at->{'usage'};
 		    $attribute_usage->{$key}	= 0 if not defined $at->{'usage'};
 		}
-		# 1, 2 and 3 are operational attributes, they do not require object class
-		# 0=userApplications, 1=directoryOperation, 2=distributedOperation, 3=dSAOperation
+		# 1, 2 and 3 are operational attributes, they do not require
+		# object class:
+		# 0=userApplications, 1=directoryOperation,
+		# 2=distributedOperation, 3=dSAOperation
 		if ($attribute_usage->{$key} < 1) {
 		    y2warning ("Attribute '$key' is not allowed by schema.");
 		    next;
@@ -1256,11 +1275,11 @@ sub WriteUsers {
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
-	my $uid		= $user->{"uidnumber"};
+	my $uid		= $user->{"uidNumber"};
 	if (! defined $uid) { $uid	= GetDefaultUID (); }
-        my $home	= $user->{"homedirectory"} || "";
-        my $org_home	= $user->{"org_user"}{"homedirectory"} || $home;
-        my $gid		= $user->{"gidnumber"};
+        my $home	= $user->{"homeDirectory"} || "";
+        my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
+        my $gid		= $user->{"gidNumber"};
 	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my $create_home	= bool ($user->{"create_home"});
 	my $chown_home	= $user->{"chown_home"};
@@ -1277,9 +1296,9 @@ sub WriteUsers {
 	my $dn		= $user->{"dn"}	|| "";
 	my $org_dn	= $user->{"org_user"}{"dn"} || $dn;
 	my @obj_classes	= @user_class;
-	if (defined $user->{"objectclass"} &&
-	    ref ($user->{"objectclass"}) eq "ARRAY") {
-	    @obj_classes= @{$user->{"objectclass"}};
+	if (defined $user->{"objectClass"} &&
+	    ref ($user->{"objectClass"}) eq "ARRAY") {
+	    @obj_classes= @{$user->{"objectClass"}};
 	}
 	# check allowed object classes
 	my @ocs		= ();
@@ -1289,7 +1308,7 @@ sub WriteUsers {
 		    push @ocs, $oc;
 		}
 	    }
-	    $user->{"objectclass"}	= \@ocs;
+	    $user->{"objectClass"}	= \@ocs;
 	}
 	my $mode = 777 - String->CutZeros ($umask);
 	if (defined ($user->{"home_mode"})) {
@@ -1461,14 +1480,14 @@ sub WriteUsers {
     }
     if ($last_id != $last_uid && $user_config_dn ne "")  {
 	# set nextuniqueid in user config module
-	$user_config{"susenextuniqueid"}	= [ $last_id ];
+	$user_config{"suseNextUniqueId"}	= [ $last_id ];
 	my %modules	= (
 	    $user_config_dn => {
 		"modified"	=> "edited"
 	    }
 	);
-	$modules{$user_config_dn}{"susenextuniqueid"} =
-	    $user_config{"susenextuniqueid"};
+	$modules{$user_config_dn}{"suseNextUniqueId"} =
+	    $user_config{"suseNextUniqueId"};
         my %new_ret = %{Ldap->WriteToLDAP (\%modules)};
 	%ret    = %new_ret if not defined $ret{"msg"};
     }
@@ -1506,7 +1525,7 @@ sub WriteGroups {
         if (!defined ($action) || defined ($ret{"msg"})) {
             next; 
 	}
-	my $gid		= $group->{"gidnumber"};
+	my $gid		= $group->{"gidNumber"};
 	if (!defined $gid) { $gid	= GetDefaultGID (); }
 	my %new_group	= ();
 	my $dn		= $group->{"dn"}	|| "";
@@ -1516,19 +1535,19 @@ sub WriteGroups {
 	my $plugin_error	= "";
 
 	my @obj_classes	= @group_class;
-	if (defined $group->{"objectclass"} &&
-	    ref ($group->{"objectclass"}) eq "ARRAY") {
-	    @obj_classes= @{$group->{"objectclass"}};
+	if (defined $group->{"objectClass"} &&
+	    ref ($group->{"objectClass"}) eq "ARRAY") {
+	    @obj_classes= @{$group->{"objectClass"}};
 	}
 	my %o_classes	= ();
 	foreach my $oc (@obj_classes) {
-	    $o_classes{lc($oc)}	= 1;
+	    $o_classes{$oc}	= 1;
 	}
-	my $group_oc	= "groupofnames";
-	my $other_oc	= "groupofuniquenames";
+	my $group_oc	= "groupOfNames";
+	my $other_oc	= "groupOfUniqueNames";
 	if (lc($member_attribute) eq "uniquemember") {
-	    $group_oc	= "groupofuniquenames";
-	    $other_oc	= "groupofnames";
+	    $group_oc	= "groupOfUniqueNames";
+	    $other_oc	= "groupOfNames";
 	}
 	# if there is no member of the group, group must be changed
 	# to namedObject
@@ -1538,23 +1557,23 @@ sub WriteGroups {
 	{
 	    if ($action eq "added" || $action eq "edited") {
 		delete $o_classes{$group_oc};
-		$o_classes{"namedobject"}	= 1;
+		$o_classes{"namedObject"}	= 1;
 	    }
 	    if ($action eq "edited") {
-		# delete old group and create new with altered objectclass
+		# delete old group and create new with altered objectClass
 		%new_group	= %{$group};
 		$action		= "deleted";
 	    }
 	}
 	# we are adding users to empty group (=namedObject):
-	# group must be changed to groupofuniquenames/groupofnames
+	# group must be changed to groupOfUniqueNames/groupOfNames
 	elsif (%{$group->{$member_attribute}} && $action eq "edited" &&
 	       !defined $o_classes{$group_oc})
 	{
 	    # delete old group...
 	    $action		= "deleted";
-	    # ... and create new one with altered objectclass
-	    delete $o_classes{"namedobject"};
+	    # ... and create new one with altered objectClass
+	    delete $o_classes{"namedObject"};
 	    $o_classes{$group_oc}	= 1;
 	    if (defined $o_classes{$other_oc}) {
 		delete $o_classes{$other_oc};
@@ -1567,7 +1586,7 @@ sub WriteGroups {
 	        push @ocs, $oc;
 	    }
 	}
-	$group->{"objectclass"}	= \@ocs;
+	$group->{"objectClass"}	= \@ocs;
 	# ----------- now call the WriteBefore plugin function for this group
     
 	if (!defined $plugins) {
@@ -1710,11 +1729,11 @@ sub WriteGroups {
 		$ret{"msg"}	= $plugin_error;
 		last; # stop processing LDAP write...
 	    }
-	    # now add new group with modified objectclass
+	    # now add new group with modified objectClass
 	    if (lc ($dn) ne lc ($org_dn)) {
 		$arg_map{"dn"}	= $dn;
 	    }
-	    $new_group{"objectclass"}	= \@ocs;
+	    $new_group{"objectClass"}	= \@ocs;
 	    # remove the org_group submap, we are adding new group:
 	    delete $new_group{"org_group"};
 	    if (!SCR->Write (".ldap.add", \%arg_map,
@@ -1755,14 +1774,14 @@ sub WriteGroups {
     }
     if ($last_id != $last_gid && $group_config_dn ne "")  {
 	# set nextuniqueid in group config module
-	$group_config{"susenextuniqueid"}	= [ $last_id ];
+	$group_config{"suseNextUniqueId"}	= [ $last_id ];
 	my %modules	= (
 	    $group_config_dn => {
 		"modified"	=> "edited"
 	    }
 	);
-	$modules{$group_config_dn}{"susenextuniqueid"} =
-	    $group_config{"susenextuniqueid"};
+	$modules{$group_config_dn}{"suseNextUniqueId"} =
+	    $group_config{"suseNextUniqueId"};
         my %new_ret = %{Ldap->WriteToLDAP (\%modules)};
 	%ret    = %new_ret if not defined $ret{"msg"};
     }

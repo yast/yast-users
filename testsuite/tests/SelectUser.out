@@ -13,11 +13,11 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Return	nil
 Dump	selected user with id 500:
-Dump	 $["addit_data":"", "cn":"HaHa", "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13727", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":"heslo"]
+Dump	 $["addit_data":"", "cn":"HaHa", "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo"]
 Dump	==========================================================
 Return	nil
 Dump	selected user with id 25:
-Dump	 $["addit_data":"", "cn":"Batch jobs daemon", "gidnumber":"25", "grouplist":$[], "groupname":"", "homedirectory":"/var/spool/atjobs", "loginshell":"/bin/bash", "shadowexpire":"", "shadowflag":"", "shadowinactive":"", "shadowlastchange":"13636", "shadowmax":"99999", "shadowmin":"0", "shadowwarning":"7", "type":"system", "uid":"at", "uidnumber":"25", "userpassword":"!"]
+Dump	 $["addit_data":"", "cn":"Batch jobs daemon", "gidNumber":"25", "grouplist":$[], "groupname":"", "homeDirectory":"/var/spool/atjobs", "loginShell":"/bin/bash", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13636", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"system", "uid":"at", "uidNumber":"25", "userPassword":"!"]
 Dump	==========================================================
 Return	nil
 Dump	selected user with id 5001:
