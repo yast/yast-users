@@ -12,7 +12,7 @@ Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Dump	---- current group:
-Dump	 $["cn":"audio", "gidnumber":"17", "more_users":$[], "type":"system", "userlist":$["ii":"1"], "userpassword":"x"]
+Dump	 $["cn":"audio", "gidNumber":"17", "more_users":$[], "type":"system", "userPassword":"x", "userlist":$["ii":"1"]]
 Dump	---- create additional users list:
 Dump	
 Return	[`item (`id ("at"), "at", false), `item (`id ("bin"), "bin", false), `item (`id ("daemon"), "daemon", false), `item (`id ("hh"), "hh", false), `item (`id ("ii"), "ii", true), `item (`id ("mail"), "mail", false), `item (`id ("nobody"), "nobody", false), `item (`id ("root"), "root", false), `item (`id ("uucp"), "uucp", false)]

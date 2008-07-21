@@ -167,7 +167,7 @@ sub InitializeUsersLdapConfiguration {
 	UsersLDAP->SetCurrentUserFilter (UsersLDAP->GetDefaultUserFilter ());
     }
 
-    # this could replace the settings saved in LDAP config ("susedefaultbase")
+    # this could replace the settings saved in LDAP config ("suseDefaultBase")
     if (defined $config->{"user_base"}) {
 	UsersLDAP->SetUserBase ($config->{"user_base"});
     }
@@ -236,7 +236,7 @@ sub SetNecessaryUserAttributes {
 
     my $more		= shift;
     my @necessary	=
-	("uid", "uidnumber", "objectclass", UsersLDAP->GetUserNamingAttr ());
+	("uid", "uidNumber", "objectClass", UsersLDAP->GetUserNamingAttr ());
     my $current		= UsersLDAP->GetUserAttributes ();
     my %attributes	= ();
     foreach my $a (@$current) {
@@ -258,7 +258,7 @@ sub SetNecessaryGroupAttributes {
 
     my $more		= shift;
     my @necessary	=
-	("cn", "gidnumber", "objectclass", UsersLDAP->GetGroupNamingAttr ());
+	("cn", "gidNumber", "objectClass", UsersLDAP->GetGroupNamingAttr ());
     my $current		= UsersLDAP->GetGroupAttributes ();
     my %attributes	= ();
     foreach my $a (@$current) {
@@ -320,12 +320,12 @@ PARAMETERS:
 
     "user_filter"
 		Filter for restricting LDAP searches (string).
-		The default value is stored as "susesearchfilter" in 
+		The default value is stored as "suseSearchFilter" in 
 		LDAP configuration.
 
     "user_base"
 		DN of LDAP base where the users are stored (string). By
-		default, the value of "susedefaultbase" stored in LDAP
+		default, the value of "suseDefaultBase" stored in LDAP
 		configuration is used.
 
     "user_scope"
@@ -356,10 +356,10 @@ PARAMETERS:
 
     "uid"		Login name
     "cn"		Full name
-    "userpassword"	User's password
-    "homedirectory"	Users's home directory
-    "loginshell"	User's login shell
-    "gidnumber"		GID of user's default group
+    "userPassword"	User's password
+    "homeDirectory"	Users's home directory
+    "loginShell"	User's login shell
+    "gidNumber"		GID of user's default group
     "grouplist" 	Hash (of type { <group_name> => 1 }) with groups
 			this user should be member of.
     "shadowinactive"	Days after password expires that account is disabled
@@ -381,8 +381,8 @@ EXAMPLE:
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
   };
   my $data	= { "uid"		=> "ll",
-		    "uidnumber"		=> 1111,
-		    "userpassword"	=> "qqqqq"
+		    "uidNumber"		=> 1111,
+		    "userPassword"	=> "qqqqq"
 		    "givenName"		=> "l",
 		    "cn"		=> [ "ll" ]
 		    "description"	=> [ "first", "second" ],
@@ -418,11 +418,11 @@ sub UserAdd {
     # this translation table should not be neccessary...
     my $new_keys	= {
 	"username"	=> "uid",
-	"password"	=> "userpassword",
-	"home"		=> "homedirectory",
-	"shell"		=> "loginshell",
+	"password"	=> "userPassword",
+	"home"		=> "homeDirectory",
+	"shell"		=> "loginShell",
 	"fullname"	=> "cn",
-	"gid"		=> "gidnumber",
+	"gid"		=> "gidNumber",
 	"groups"	=> "grouplist"
     };
     if (defined $config->{"create_home"} && !defined $data->{"create_home"}) {
@@ -461,11 +461,11 @@ sub UserAdd {
 	# now rewrite default values (read from LDAP) with given values
 	InitializeUsersLdapConfiguration ($config);
 
-	SetNecessaryUserAttributes (["homedirectory"]);
+	SetNecessaryUserAttributes (["homeDirectory"]);
 	# read only users ID's (because we need to create new one -> TODO
 	# update UsersCache->NextFreeUID)
 	if (defined $config->{"fast_ldap"}) {
-	    UsersLDAP->SetUserAttributes (["uidnumber"]);
+	    UsersLDAP->SetUserAttributes (["uidNumber"]);
 	}
 	# finally read LDAP tree
 	$ret	= Users->ReadLDAPSet ();
@@ -489,7 +489,7 @@ sub UserAdd {
     # EXPERIMENTAL MODE: do not read LDAP users before adding, but check
     # possible conflicts with multiple search calls
     if ($type eq "ldap" && defined $config->{"fast_ldap"}) {
-	# do the searches for uid and homedirectory
+	# do the searches for uid and homeDirectory
 	$user	= Users->GetCurrentUser ();
 	my $res = SCR->Read (".ldap.search", {
 	    "base_dn"	=> UsersLDAP->GetUserBase (),
@@ -506,8 +506,8 @@ Try another one.");
 	$res = SCR->Read (".ldap.search", {
 	    "base_dn"	=> UsersLDAP->GetUserBase (),
 	    "scope"	=> YaST::YCP::Integer (2),
-	    "filter"	=> "homedirectory=".$user->{"homedirectory"},
-	    "attrs"	=> [ "homedirectory" ]
+	    "filter"	=> "homeDirectory=".$user->{"homeDirectory"},
+	    "attrs"	=> [ "homeDirectory" ]
 	});
 	if (defined $res && ref ($res) eq "ARRAY" && @{$res} > 0) {
 	    # error message
@@ -539,7 +539,7 @@ PARAMETERS:
 
     "dn"	Distinguished name (DN) - only for LDAP user
     "uid"	User name (which is value of "uid" for LDAP user)
-    "uidnumber"	UID number ("uidnumber" value for LDAP user)
+    "uidNumber"	UID number ("uidNumber" value for LDAP user)
 
     For values in $data hash, see L<UserAdd>.
 
@@ -547,15 +547,15 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidnumber"		=> 500
+		    "uidNumber"		=> 500
   };
-  my $data	= { "userpassword"	=> "wwwww"
+  my $data	= { "userPassword"	=> "wwwww"
   };
   # changes a password of LDAP user (identified with id)
   my $error	= UserModify ($config, $data);
 
   # change GID value of local user (identified with name)
-  $error	= UserModify ({ "uid" => "hh" }, { "gidnumber" => 5555 });
+  $error	= UserModify ({ "uid" => "hh" }, { "gidNumber" => 5555 });
 
 =cut
 
@@ -589,8 +589,8 @@ sub UserModify {
     elsif (defined $config->{"uid"}) {
 	$key	= "uid";
     }
-    elsif (defined $config->{"uidnumber"}) {
-	$key	= "uidnumber";
+    elsif (defined $config->{"uidNumber"}) {
+	$key	= "uidNumber";
     }
 
     if ($type eq "ldap") {
@@ -603,14 +603,14 @@ sub UserModify {
 	InitializeUsersLdapConfiguration ($config);
 
 	# If we want to change atributes, that should be unique
-	# (uid/dn/uidnumber/home we must read everything to check
+	# (uid/dn/uidNumber/home we must read everything to check
 	# possible conflicts...
 	my $read_all	= 0;
-	if (defined $data->{"uid"} || defined $data->{"uidnumber"}) {
+	if (defined $data->{"uid"} || defined $data->{"uidNumber"}) {
 	    $read_all	= 1;
 	}
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn" && !$read_all) {
 	    UsersLDAP->SetUserBase ($config->{$key});
@@ -620,9 +620,9 @@ sub UserModify {
 	    UsersLDAP->AddToCurrentUserFilter ($filter);
 	}
 	# Let's create the minimal list of neccessary attributes to get
-	if (defined $data->{"homedirectory"}) {
+	if (defined $data->{"homeDirectory"}) {
 	    # we must check possible directory conflicts...
-	    SetNecessaryUserAttributes (["homedirectory"]);
+	    SetNecessaryUserAttributes (["homeDirectory"]);
 	}
 	else {
 	    SetNecessaryUserAttributes ([]);
@@ -634,7 +634,7 @@ sub UserModify {
     elsif ($type eq "nis") {
 	Users->ReadNewSet ($type);
     }
-    if ($key eq "uidnumber") {
+    if ($key eq "uidNumber") {
 	Users->SelectUser ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -722,8 +722,8 @@ sub UserFeatureAdd {
     elsif (defined $config->{"uid"}) {
 	$key	= "uid";
     }
-    elsif (defined $config->{"uidnumber"}) {
-	$key	= "uidnumber";
+    elsif (defined $config->{"uidNumber"}) {
+	$key	= "uidNumber";
     }
 
     if ($type eq "ldap") {
@@ -735,7 +735,7 @@ sub UserFeatureAdd {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetUserBase ($config->{$key});
@@ -758,7 +758,7 @@ sub UserFeatureAdd {
 	return __("It is not possible to edit a NIS user.");
     }
 
-    if ($key eq "uidnumber") {
+    if ($key eq "uidNumber") {
 	Users->SelectUser ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -839,8 +839,8 @@ sub UserFeatureDelete {
     elsif (defined $config->{"uid"}) {
 	$key	= "uid";
     }
-    elsif (defined $config->{"uidnumber"}) {
-	$key	= "uidnumber";
+    elsif (defined $config->{"uidNumber"}) {
+	$key	= "uidNumber";
     }
 
     if ($type eq "ldap") {
@@ -852,7 +852,7 @@ sub UserFeatureDelete {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetUserBase ($config->{$key});
@@ -875,7 +875,7 @@ sub UserFeatureDelete {
 	return __("It is not possible to edit a NIS user.");
     }
 
-    if ($key eq "uidnumber") {
+    if ($key eq "uidNumber") {
 	Users->SelectUser ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -957,8 +957,8 @@ sub UserDelete {
     elsif (defined $config->{"uid"}) {
 	$key	= "uid";
     }
-    elsif (defined $config->{"uidnumber"}) {
-	$key	= "uidnumber";
+    elsif (defined $config->{"uidNumber"}) {
+	$key	= "uidNumber";
     }
 
     if ($type eq "ldap") {
@@ -970,7 +970,7 @@ sub UserDelete {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetUserBase ($config->{$key});
@@ -988,7 +988,7 @@ sub UserDelete {
 	return __("It is not possible to delete a NIS user.");
     }
 
-    if ($key eq "uidnumber") {
+    if ($key eq "uidNumber") {
 	Users->SelectUser ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -1027,7 +1027,7 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidnumber"		=> 500,
+		    "uidNumber"		=> 500,
   };
   # disables LDAP user (as it is defined its plugins)
   my $error	= UserDisable ($config);
@@ -1048,8 +1048,8 @@ sub UserDisable {
 	ref ($config->{"user_attributes"}) eq "ARRAY") {
 	@attributes	= @{$config->{"user_attributes"}};
     }
-    if (! grep /^userpassword$/i, @attributes) {
-	push @attributes, "userpassword";
+    if (! grep /^userPassword$/i, @attributes) {
+	push @attributes, "userPassword";
     }
     $config->{"user_attributes"}	= \@attributes;
 
@@ -1074,7 +1074,7 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "uidnumber"		=> 500,
+		    "uidNumber"		=> 500,
   };
   # enables LDAP user (in a default way, defined for LDAP users)
   my $error	= UserEnable ($config);
@@ -1095,8 +1095,8 @@ sub UserEnable {
 	ref ($config->{"user_attributes"}) eq "ARRAY") {
 	@attributes	= @{$config->{"user_attributes"}};
     }
-    if (! grep /^userpassword$/i, @attributes) {
-	push @attributes, "userpassword";
+    if (! grep /^userPassword$/i, @attributes) {
+	push @attributes, "userPassword";
     }
     $config->{"user_attributes"}	= \@attributes;
 
@@ -1118,10 +1118,10 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "user_attributes"	=> [ "uid", "uidnumber", "cn" ],
-		    "uidnumber"		=> 500
+		    "user_attributes"	=> [ "uid", "uidNumber", "cn" ],
+		    "uidNumber"		=> 500
   };
-  # searches for LDAP user with uidnumber 500 and returns the hash with given
+  # searches for LDAP user with uidNumber 500 and returns the hash with given
   # attributes
   
   my $user	= UserGet ($config);
@@ -1163,8 +1163,8 @@ sub UserGet {
     elsif (defined $config->{"uid"}) {
 	$key	= "uid";
     }
-    elsif (defined $config->{"uidnumber"}) {
-	$key	= "uidnumber";
+    elsif (defined $config->{"uidNumber"}) {
+	$key	= "uidNumber";
     }
 
     if ($type eq "ldap") {
@@ -1176,7 +1176,7 @@ sub UserGet {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetUserBase ($config->{$key});
@@ -1193,7 +1193,7 @@ sub UserGet {
 	Users->ReadNewSet ($type);
     }
 
-    if ($key eq "uidnumber") {
+    if ($key eq "uidNumber") {
 	$ret	= Users->GetUser ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -1234,10 +1234,10 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "user_attributes"	=> [ "uid", "uidnumber", "cn" ],
+		    "user_attributes"	=> [ "uid", "uidNumber", "cn" ],
 		    "user_base"		=> "ou=people,dc=example,dc=com",
 		    "user_scope"	=> YaST::YCP::Integer (2),
-		    "user_filter"	=> [ "objectclass=posixAccount" ]
+		    "user_filter"	=> [ "objectClass=posixAccount" ]
 		    "index"		=> "dn"
   };
   # searches for LDAP users in given search base and returns the hash
@@ -1281,7 +1281,7 @@ sub UsersGet {
 	Users->ReadNewSet ($type);
     }
 	
-    my $index		= $config->{"index"} || "uidnumber";
+    my $index		= $config->{"index"} || "uidNumber";
 
     return Users->GetUsers ($index, $type);
 }
@@ -1334,12 +1334,12 @@ PARAMETERS:
 
     "group_base"
 		DN of LDAP base where the groups are stored (string). By
-		default, the value of "susedefaultbase" stored in LDAP
+		default, the value of "suseDefaultBase" stored in LDAP
 		configuration is used.
 
     "group_filter"
 		Filter for restricting LDAP searches (string).
-		The default value is stored as "susesearchfilter" in 
+		The default value is stored as "suseSearchFilter" in 
 		LDAP configuration.
 
     "group_scope"
@@ -1358,9 +1358,9 @@ PARAMETERS:
 
     Possible parameters for $data hash:
 
-    "gidnumber"		GID number of the group
+    "gidNumber"		GID number of the group
     "cn"		Group name
-    "userpassword"	Password for the group.
+    "userPassword"	Password for the group.
     "userlist"		Hash (of type { <username> => 1 }) with
 			the users that should be members of this group.
 			Optionally, this could be also the list of
@@ -1382,7 +1382,7 @@ EXAMPLE:
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
 		    "group_base"	=> "ou=groups,dc=example,dc=com"
   };
-  my $data	= { "gidnumber"		=> 5555,
+  my $data	= { "gidNumber"		=> 5555,
 		    "cn"		=> "lgroup",
 		    "member"		=> {
 			"uid=test,ou=people,dc=example,dc=com"	=> 1,
@@ -1498,16 +1498,16 @@ PARAMETERS:
 
     "dn"	Distingueshed name (only for of LDAP group)
     "cn"	Group name (or value of "cn" attribute for LDAP group).
-    "gidnumber"	GID number (value of "gidnumber" for LDAP group).
+    "gidNumber"	GID number (value of "gidNumber" for LDAP group).
 
 
 EXAMPLE
 
   # change GID value of local group (identified with name)
-  my $error	= GroupModify ({ "cn" => "users" }, { "gidnumber" => 101 });
+  my $error	= GroupModify ({ "cn" => "users" }, { "gidNumber" => 101 });
 
   my $config	= { "type"		=> "ldap",
-		    "gidnumber"		=> 5555
+		    "gidNumber"		=> 5555
   };
   my $data	= { "member"		=> [
 			"uid=test,ou=people,dc=example,dc=com",
@@ -1556,8 +1556,8 @@ sub GroupModify {
     elsif (defined $config->{"cn"}) {
 	$key	= "cn";
     }
-    elsif (defined $config->{"gidnumber"}) {
-	$key	= "gidnumber";
+    elsif (defined $config->{"gidNumber"}) {
+	$key	= "gidNumber";
     }
 
     # convert 'member' from list to hash if necessary
@@ -1583,15 +1583,15 @@ sub GroupModify {
 	InitializeUsersLdapConfiguration ($config);
 
 	# If we want to atributes, that should be unique
-	# (cn/dn/gidnumber/memebr we must read everything to check
+	# (cn/dn/gidNumber/memebr we must read everything to check
 	# possible conflicts...
 	my $read_all	= 0;
-	if (defined $data->{"cn"} || defined $data->{"gidnumber"} ||
+	if (defined $data->{"cn"} || defined $data->{"gidNumber"} ||
 	    defined $data->{$member_attr}) {
 	    $read_all	= 1;
 	}
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn" && !$read_all) {
 	    UsersLDAP->SetGroupBase ($config->{$key});
@@ -1606,12 +1606,12 @@ sub GroupModify {
 
 	# -----------------------------------------------------
 	# let's limit also user data which we need to read
-	# (gidnumber is changed) <-> (user modification necessary)
-	if (!defined $data->{"gidnumber"}) {
+	# (gidNumber is changed) <-> (user modification necessary)
+	if (!defined $data->{"gidNumber"}) {
 	    # -> so we don't need to read any user now...
 	    UsersLDAP->SetCurrentUserFilter ("0=1");
 	}
-	SetNecessaryUserAttributes (["gidnumber"]);
+	SetNecessaryUserAttributes (["gidNumber"]);
 	# ----------
 	
 	$error	= Users->ReadLDAPSet ();
@@ -1622,7 +1622,7 @@ sub GroupModify {
 	return __("It is not possible to modify a NIS group.");
     }
 
-    if ($key eq "gidnumber") {
+    if ($key eq "gidNumber") {
 	Users->SelectGroup ($config->{$key}, $type);
     }
     elsif ($key ne "") {
@@ -1664,14 +1664,14 @@ PARAMETERS:
 
     "dn"	Distinguished name (DN) [only for LDAP users]
     "uid"	User name (which is "uid" attribute for LDAP user)
-    "uidnumber"	UID (which is "uidnumber" attribute for LDAP user)
+    "uidNumber"	UID (which is "uidNumber" attribute for LDAP user)
 
 
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
 		    "bind_dn"		=> "uid=admin,dc=example,dc=com",
-		    "gidnumber"		=> 5555
+		    "gidNumber"		=> 5555
   };
   my $user	= { "uid"		=> "my_user" }
   };
@@ -1712,8 +1712,8 @@ sub GroupMemberAdd {
     elsif (defined $config->{"cn"}) {
 	$key	= "cn";
     }
-    elsif (defined $config->{"gidnumber"}) {
-	$key	= "gidnumber";
+    elsif (defined $config->{"gidNumber"}) {
+	$key	= "gidNumber";
     }
 
     if ($type eq "ldap") {
@@ -1725,7 +1725,7 @@ sub GroupMemberAdd {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetGroupBase ($config->{$key});
@@ -1755,7 +1755,7 @@ sub GroupMemberAdd {
 	return __("It is not possible to modify a NIS group.");
     }
 
-    if ($key eq "gidnumber") {
+    if ($key eq "gidNumber") {
 	Users->SelectGroup ($config->{$key}, $type);
     }
     elsif ($key eq "cn") {
@@ -1779,13 +1779,13 @@ sub GroupMemberAdd {
 	if (defined $user->{"uid"}) {
 	    $usermap	= Users->GetUserByName ($user->{"uid"}, $type);
 	}
-	elsif (defined $user->{"uidnumber"}) {
-	    $usermap	= Users->GetUser ($user->{"uidnumber"}, $type);
+	elsif (defined $user->{"uidNumber"}) {
+	    $usermap	= Users->GetUser ($user->{"uidNumber"}, $type);
 	}
 	if ($type eq "ldap") {
 	    $user_id	= $usermap->{"dn"};
 	    # TODO maybe there is ony one user loaded, but not specified by
-	    # uid/uidnumber/dn... ->GetUserByAttribute...
+	    # uid/uidNumber/dn... ->GetUserByAttribute...
 	}
 	else {
 	    $user_id	= $usermap->{"uid"};
@@ -1835,9 +1835,9 @@ EXAMPLE:
   my $config	= { "type"		=> "ldap",
 		    "dn"		=> "cn=lgroup,dc=example,dc=com"
   };
-  my $user	= { "uidnumber"		=> 1000 }
+  my $user	= { "uidNumber"		=> 1000 }
 
-  # removes user with given uidnumber from group with given DN
+  # removes user with given uidNumber from group with given DN
   my $error	= GroupMemberDelete ($config, $user);
 
 =cut
@@ -1875,8 +1875,8 @@ sub GroupMemberDelete {
     elsif (defined $config->{"cn"}) {
 	$key	= "cn";
     }
-    elsif (defined $config->{"gidnumber"}) {
-	$key	= "gidnumber";
+    elsif (defined $config->{"gidNumber"}) {
+	$key	= "gidNumber";
     }
 
     if ($type eq "ldap") {
@@ -1888,7 +1888,7 @@ sub GroupMemberDelete {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetGroupBase ($config->{$key});
@@ -1918,7 +1918,7 @@ sub GroupMemberDelete {
 	return __("It is not possible to modify a NIS group.");
     }
 
-    if ($key eq "gidnumber") {
+    if ($key eq "gidNumber") {
 	Users->SelectGroup ($config->{$key}, $type);
     }
     elsif ($key eq "cn") {
@@ -1942,13 +1942,13 @@ sub GroupMemberDelete {
 	if (defined $user->{"uid"}) {
 	    $usermap	= Users->GetUserByName ($user->{"uid"}, $type);
 	}
-	elsif (defined $user->{"uidnumber"}) {
-	    $usermap	= Users->GetUser ($user->{"uidnumber"}, $type);
+	elsif (defined $user->{"uidNumber"}) {
+	    $usermap	= Users->GetUser ($user->{"uidNumber"}, $type);
 	}
 	if ($type eq "ldap") {
 	    $user_id	= $usermap->{"dn"};
 	    # TODO maybe there is ony one user loaded, but not specified by
-	    # uid/uidnumber/dn... ->GetUserByAttribute...
+	    # uid/uidNumber/dn... ->GetUserByAttribute...
 	}
 	else {
 	    $user_id	= $usermap->{"uid"};
@@ -2031,8 +2031,8 @@ sub GroupDelete {
     elsif (defined $config->{"cn"}) {
 	$key	= "cn";
     }
-    elsif (defined $config->{"gidnumber"}) {
-	$key	= "gidnumber";
+    elsif (defined $config->{"gidNumber"}) {
+	$key	= "gidNumber";
     }
     
     if ($type eq "ldap") {
@@ -2044,7 +2044,7 @@ sub GroupDelete {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetGroupBase ($config->{$key});
@@ -2056,12 +2056,12 @@ sub GroupDelete {
 	# we must read users to check if group is not default group for someone
 
 	# read only users 'affected' by our group number
-	if (defined $config->{"gidnumber"}) {
-	    my $filter = "gidnumber=".$config->{"gidnumber"};
+	if (defined $config->{"gidNumber"}) {
+	    my $filter = "gidNumber=".$config->{"gidNumber"};
 	    UsersLDAP->AddToCurrentUserFilter ($filter);
-	    # TODO read gidnumber by ldapsearch if not given
+	    # TODO read gidNumber by ldapsearch if not given
 	}
-	SetNecessaryUserAttributes (["gidnumber"]);
+	SetNecessaryUserAttributes (["gidNumber"]);
 
 	$error	= Users->ReadLDAPSet ();
 	if ($error ne "") { return $error; }
@@ -2071,7 +2071,7 @@ sub GroupDelete {
 	return __("It is not possible to delete a NIS group.");
     }
 
-    if ($key eq "gidnumber") {
+    if ($key eq "gidNumber") {
 	Users->SelectGroup ($config->{$key}, $type);
     }
     elsif ($key eq "cn") {
@@ -2113,10 +2113,10 @@ PARAMETERS:
 EXAMPLE:
 
   my $config	= { "type"		=> "ldap",
-		    "group_attributes"	=> [ "cn", "gidnumber", "member" ],
-		    "gidnumber"		=> 500
+		    "group_attributes"	=> [ "cn", "gidNumber", "member" ],
+		    "gidNumber"		=> 500
   };
-  # searches for LDAP group with gidnumber 500 and returns the hash
+  # searches for LDAP group with gidNumber 500 and returns the hash
   # with given attributes
   my $group	= GroupGet ($config);
 
@@ -2148,8 +2148,8 @@ sub GroupGet {
     elsif (defined $config->{"cn"}) {
 	$key	= "cn";
     }
-    elsif (defined $config->{"gidnumber"}) {
-	$key	= "gidnumber";
+    elsif (defined $config->{"gidNumber"}) {
+	$key	= "gidNumber";
     }
 
     if ($type eq "ldap") {
@@ -2161,7 +2161,7 @@ sub GroupGet {
 	if ($error ne "") { return $error; }
 	InitializeUsersLdapConfiguration ($config);
 
-	# search with proper filter (= one DN/uid/uidnumber)
+	# search with proper filter (= one DN/uid/uidNumber)
 	# should be sufficient in this case...
 	if ($key eq "dn") {
 	    UsersLDAP->SetGroupBase ($config->{$key});
@@ -2171,16 +2171,16 @@ sub GroupGet {
 	    UsersLDAP->AddToCurrentGroupFilter ($filter);
 	}
 	# read only users 'affected' by our group number
-	if (defined $config->{"gidnumber"}) {
-	    my $filter = "gidnumber=".$config->{"gidnumber"};
+	if (defined $config->{"gidNumber"}) {
+	    my $filter = "gidNumber=".$config->{"gidNumber"};
 	    UsersLDAP->AddToCurrentUserFilter ($filter);
-	    # TODO read gidnumber by ldapsearch if not given
+	    # TODO read gidNumber by ldapsearch if not given
 	}
 	else {
 	    # we don't need any users -> fake filter for faster searching
 	    UsersLDAP->SetCurrentUserFilter ("0=1");
 	}
-	SetNecessaryUserAttributes (["gidnumber"]);
+	SetNecessaryUserAttributes (["gidNumber"]);
 
 	$error	= Users->ReadLDAPSet ();
 	if ($error ne "") { return $ret; }
@@ -2189,7 +2189,7 @@ sub GroupGet {
 	Users->ReadNewSet ($type);
     }
 
-    if ($key eq "gidnumber") {
+    if ($key eq "gidNumber") {
 	$ret	= Users->GetGroup ($config->{$key}, $type);
     }
     elsif ($key eq "cn") {
@@ -2227,7 +2227,7 @@ PARAMETERS:
     Additionally, there is a special key
 
     "index"	The name of the key, which should be used as a index
-		in the return hash (default value is "gidnumber").
+		in the return hash (default value is "gidNumber").
 
 
 EXAMPLE:
@@ -2284,7 +2284,7 @@ sub GroupsGet {
 	Users->ReadNewSet ($type);
     }
 	
-    my $index		= $config->{"index"} || "gidnumber";
+    my $index		= $config->{"index"} || "gidNumber";
 
     return Users->GetGroups ($index, $type);
 }
@@ -2404,12 +2404,12 @@ sub GroupsGetByUser {
     }
 
     # index to search the output
-    my $index		= $config->{"index"} || "gidnumber";
+    my $index		= $config->{"index"} || "gidNumber";
 
     if ($type ne "ldap") {
 	# get the specified user
 
-	if (!defined $user->{"uid"} && !defined $user->{"uidnumber"}) {
+	if (!defined $user->{"uid"} && !defined $user->{"uidNumber"}) {
 	    # error message
 	    my $error = __("User was not correctly specified.");
 	    y2warning ($error);
@@ -2422,7 +2422,7 @@ sub GroupsGetByUser {
 	    $usermap	= Users->GetUserByName ($user->{"uid"}, $user_type);
 	}
 	else {
-	    $usermap	= Users->GetUser ($user->{"uidnumber"}, $user_type);
+	    $usermap	= Users->GetUser ($user->{"uidNumber"}, $user_type);
 	}
 	if (!defined $usermap || ref ($usermap) ne "HASH" || !%{$usermap}) {
 	    # error message

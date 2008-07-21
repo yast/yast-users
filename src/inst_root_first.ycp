@@ -180,7 +180,7 @@ Really use this shorter password?"), pw_min_CA)))
 	    {
 		error_map	= UsersSimple::CheckPasswordUI ($[
 		    "uid"		: "root",
-		    "userpassword"	: pw1,
+		    "userPassword"	: pw1,
 		    "type"		: "system",
 		], ui_map);
 		if (error_map != $[])

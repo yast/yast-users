@@ -61,25 +61,25 @@ define map<string,any> convert_keys (map<string,any> input) ``{
     map<string,any> ret	= $[];
     map keys = $[
 	"username"	: "uid",
-	"password"	: "userpassword",
-	"home"		: "homedirectory",
-	"shell"		: "loginshell",
+	"password"	: "userPassword",
+	"home"		: "homeDirectory",
+	"shell"		: "loginShell",
 	"fullname"	: "cn",
-	"gid"		: "gidnumber",
-	"uid"		: "uidnumber",
+	"gid"		: "gidNumber",
+	"uid"		: "uidNumber",
 	"no_home"	: "create_home",
 	"groupname"	: "cn",
 	"new_username"	: "uid",
 	"new_groupname"	: "cn",
-	"new_uid"	: "uidnumber",
-	"new_gid"	: "gidnumber",
+	"new_uid"	: "uidNumber",
+	"new_gid"	: "gidNumber",
 	UsersLDAP::GetMemberAttribute (): "userlist",
     ];
     foreach (string key, any value, input, ``{
 	string new_key	= keys[key]:key;
 	if (new_key == "create_home")
 	    value = false;
-	if (new_key == "gidnumber" && value != "" &&
+	if (new_key == "gidNumber" && value != "" &&
 	    (haskey (input,"username") || haskey (input,"uid")))
 	{
 	    // check group existence!
@@ -174,7 +174,7 @@ define boolean UsersListHandler (map<string,any> options ) ``{
 define boolean UserShowHandler (map options ) ``{
 
     map<string,any> user = $[];
-    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
+    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
     string type = options ["type"]:"local";
@@ -211,11 +211,11 @@ define boolean UserShowHandler (map options ) ``{
 	// label shown at command line (user attribute)
 	"uid"		: _("Login Name:"),
 	// label shown at command line (user attribute)
-	"homedirectory"	: _("Home Directory:"),
+	"homeDirectory"	: _("Home Directory:"),
 	// label shown at command line (user attribute)
-	"loginshell"	: _("Login Shell:"),
+	"loginShell"	: _("Login Shell:"),
 	// label shown at command line (user attribute)
-	"uidnumber"	: _("UID:"),
+	"uidNumber"	: _("UID:"),
 	// label shown at command line (user attribute)
 	"groupname"	: _("Default Group:"),
 	// label shown at command line (user attribute)
@@ -261,7 +261,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 
     Users::ResetCurrentUser ();
 
-    if (!haskey(user,"userpassword"))
+    if (!haskey(user,"userPassword"))
     {
 	string pw	= "";
 	integer i	= 0;
@@ -289,9 +289,9 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 	    }
 	    else break;
 	}
-	user["userpassword"]	= pw;
+	user["userPassword"]	= pw;
     }
-    string error = UsersSimple::CheckPassword (user["userpassword"]:"", type);
+    string error = UsersSimple::CheckPassword (user["userPassword"]:"", type);
 
     if (error != "")
     {
@@ -328,7 +328,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
  */
 define boolean UserDeleteHandler (map  <string, any>options ) ``{
 
-    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
+    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
     boolean delete_home = haskey (options, "delete_home");
 
@@ -346,10 +346,10 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
     {
 	Users::SelectUserByName (username);
 	map u	= Users::GetCurrentUser();
-	if (is (u["uidnumber"]:nil, integer))
-	    uid	= u["uidnumber"]:-1;
-	else if (is (u["uidnumber"]:nil, string))
-	    uid	= tointeger (u["uidnumber"]:"-1");
+	if (is (u["uidNumber"]:nil, integer))
+	    uid	= u["uidNumber"]:-1;
+	else if (is (u["uidNumber"]:nil, string))
+	    uid	= tointeger (u["uidNumber"]:"-1");
     }
     if (Users::GetCurrentUser () == $[])
     {
@@ -376,7 +376,7 @@ Please log off the user first."));
  */
 define boolean UserEditHandler (map<string,any> options) {
 
-    integer uid = tointeger (options ["uidnumber"]:options["uid"]:"-1");
+    integer uid = tointeger (options ["uidNumber"]:options["uid"]:"-1");
     string username = options ["username"]:"";
 
     string type = options["type"]:"local";
@@ -486,7 +486,7 @@ define boolean GroupsListHandler (map<string,string> options ) ``{
 define boolean GroupShowHandler (map options ) ``{
 
     map<string,any> group = $[];
-    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
+    integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
     string groupname = options ["groupname"]:"";
 
     string type = options ["type"]:"local";
@@ -521,7 +521,7 @@ define boolean GroupShowHandler (map options ) ``{
 	// label shown at command line (user attribute)
 	"cn"		: _("Group Name:"),
 	// label shown at command line (user attribute)
-	"gidnumber"	: _("GID:"),
+	"gidNumber"	: _("GID:"),
 	// label shown at command line (user attribute)
 	"userlist"	: _("List of Members:"),
 	// label shown at command line (user attribute)
@@ -548,7 +548,7 @@ define boolean GroupShowHandler (map options ) ``{
  */
 define boolean GroupDeleteHandler (map<string,any> options ) {
 
-    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
+    integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
     string groupname = options ["cn"]:options["groupname"]:"";
 
     string type = options["type"]:"local";
@@ -638,7 +638,7 @@ define boolean GroupAddHandler (map <string, any> options ) {
  */
 define boolean GroupEditHandler (map<string,any> options) {
 
-    integer gid = tointeger (options ["gidnumber"]:options["gid"]:"-1");
+    integer gid = tointeger (options ["gidNumber"]:options["gid"]:"-1");
     string groupname = options ["cn"]:options["groupname"]:"";
 
     string type = options["type"]:"local";

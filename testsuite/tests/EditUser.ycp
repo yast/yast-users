@@ -86,7 +86,7 @@
     Testsuite::Dump (sformat ("---- user 'hh':\n %1", Users::GetCurrentUser ()));
 
     map<string,any> changes = $[
-	"uidnumber"	: 501,
+	"uidNumber"	: 501,
     ];
 
     Testsuite::Test (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);
@@ -114,7 +114,7 @@
     Testsuite::Dump (sformat ("---- user 501:\n %1", Users::GetCurrentUser ()));
 
     changes = $[
-	"homedirectory"	: "/new/home/hh",
+	"homeDirectory"	: "/new/home/hh",
     ];
 
     Testsuite::Test (``(Users::EditUser (changes)), [READ, WRITE, EXEC], 0);

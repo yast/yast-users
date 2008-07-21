@@ -724,7 +724,7 @@ BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
 sub CheckPasswordUI {
 
     my ($self, $data, $ui_map)	= @_;
-    my $pw		= $data->{"userpassword"} || "";
+    my $pw		= $data->{"userPassword"} || "";
     my $name		= $data->{"uid"};
     $name		= ($data->{"cn"} || "") if (!defined $name);
     my $type		= $data->{"type"} || "local";
@@ -875,10 +875,10 @@ sub Write {
     my $self		= shift;
     my $user_defined	= 0;
     foreach my $user (@users) {
-	if (defined $user->{"userpassword"}) {
+	if (defined $user->{"userPassword"}) {
 	    if (!defined $user->{"__imported"}) {
-		$user->{"userpassword"}	=
-		    $self->CryptPassword($user->{"userpassword"});
+		$user->{"userPassword"}	=
+		    $self->CryptPassword($user->{"userPassword"});
 	    }
 	    $user->{"encrypted"}	= YaST::YCP::Integer (1);
 	}
@@ -1021,14 +1021,14 @@ sub read_shadow {
 		return undef;
 	    }
 	    $shadow_tmp{$uname} = {
-		"shadowlastchange"	=> $last_change,
-		"shadowwarning"		=> $warn,
-		"shadowinactive"	=> $inact,
-		"shadowexpire"		=> $expire,
-		"shadowmin"		=> $min,
-		"shadowmax"		=> $max,
-		"shadowflag"		=> $flag,
-		"userpassword"		=> $pass
+		"shadowLastChange"	=> $last_change,
+		"shadowWarning"		=> $warn,
+		"shadowInactive"	=> $inact,
+		"shadowExpire"		=> $expire,
+		"shadowMin"		=> $min,
+		"shadowMax"		=> $max,
+		"shadowFlag"		=> $flag,
+		"userPassword"		=> $pass
 	    };
 	}
     }
@@ -1102,11 +1102,11 @@ sub read_passwd {
 	    $imported_users{$user_type}{$username} = {
 		"addit_data"	=> $additional,
 		"cn"		=> $full,
-		"homedirectory"	=> $home,
+		"homeDirectory"	=> $home,
 		"uid"		=> $username,
-		"uidnumber"	=> $uid,
-		"gidnumber"	=> $gid,
-		"loginshell"	=> $shell,
+		"uidNumber"	=> $uid,
+		"gidNumber"	=> $gid,
+		"loginShell"	=> $shell,
 	    };
 	    if (defined $shadow_tmp->{$username}) {
 		# divide shadow map accoring to user type

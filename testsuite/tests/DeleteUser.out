@@ -11,25 +11,25 @@ Read	.etc.nsswitch_conf.passwd 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Dump	local users:
-Dump	 $["hh":$["addit_data":"", "cn":"HaHa", "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":nil], "ii":$["addit_data":"", "cn":"Test user", "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/home/ii", "loginshell":"/bin/bash", "type":"local", "uid":"ii", "uidnumber":"555", "userpassword":nil]]
+Dump	 $["hh":$["addit_data":"", "cn":"HaHa", "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":nil], "ii":$["addit_data":"", "cn":"Test user", "gidNumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homeDirectory":"/home/ii", "loginShell":"/bin/bash", "type":"local", "uid":"ii", "uidNumber":"555", "userPassword":nil]]
 Dump	local user names:
 Dump	 ["hh", "ii"]
 Dump	local group names:
 Dump	 ["users"]
 Dump	---- user 'ii':
-Dump	 $["addit_data":"", "cn":"Test user", "gidnumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homedirectory":"/home/ii", "loginshell":"/bin/bash", "type":"local", "uid":"ii", "uidnumber":"555", "userpassword":nil]
+Dump	 $["addit_data":"", "cn":"Test user", "gidNumber":"100", "grouplist":$["audio":"1"], "groupname":"users", "homeDirectory":"/home/ii", "loginShell":"/bin/bash", "type":"local", "uid":"ii", "uidNumber":"555", "userPassword":nil]
 Dump	---- group 'audio':
-Dump	 $["cn":"audio", "gidnumber":"17", "more_users":$[], "type":"system", "userlist":$["ii":"1"], "userpassword":"x"]
+Dump	 $["cn":"audio", "gidNumber":"17", "more_users":$[], "type":"system", "userPassword":"x", "userlist":$["ii":"1"]]
 Dump	---- group 'users':
-Dump	 $["cn":"users", "gidnumber":"100", "more_users":$["hh":"1", "ii":"1"], "type":"local", "userlist":$[], "userpassword":"x"]
+Dump	 $["cn":"users", "gidNumber":"100", "more_users":$["hh":"1", "ii":"1"], "type":"local", "userPassword":"x", "userlist":$[]]
 Dump	==================== running delete ======================
 Return	true
 Return	true
 Dump	local user names:
 Dump	 ["hh"]
 Dump	local users:
-Dump	 $["hh":$["addit_data":"", "cn":"HaHa", "gidnumber":"100", "grouplist":$[], "groupname":"users", "homedirectory":"/home/hh", "loginshell":"/bin/bash", "type":"local", "uid":"hh", "uidnumber":"500", "userpassword":nil]]
+Dump	 $["hh":$["addit_data":"", "cn":"HaHa", "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":nil]]
 Dump	---- group 'audio':
-Dump	 $["cn":"audio", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"audio", "org_gidnumber":"17", "type":"system", "userlist":$[], "userpassword":"x", "what":"user_change"]
+Dump	 $["cn":"audio", "gidNumber":"17", "modified":"edited", "more_users":$[], "org_cn":"audio", "org_gidNumber":"17", "type":"system", "userPassword":"x", "userlist":$[], "what":"user_change"]
 Dump	---- group 'users':
-Dump	 $["cn":"users", "gidnumber":"100", "more_users":$["hh":"1"], "org_cn":"users", "org_gidnumber":"100", "type":"local", "userlist":$[], "userpassword":"x", "what":"user_change_default"]
+Dump	 $["cn":"users", "gidNumber":"100", "more_users":$["hh":"1"], "org_cn":"users", "org_gidNumber":"100", "type":"local", "userPassword":"x", "userlist":$[], "what":"user_change_default"]

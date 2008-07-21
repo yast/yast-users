@@ -99,7 +99,7 @@
     Testsuite::Dump (sformat ("---- current group (empty add, to get default values):\n %1", Users::GetCurrentGroup ()));
 
     map <string,any> group = $[
-	"gidnumber"	: 555,
+	"gidNumber"	: 555,
 	"cn"		: "testgrp",
 	"userlist"	: $[ "hh" : 1 ],
 	"password"	:"x",
@@ -136,7 +136,7 @@
     EXEC ["target", "bash_output", "stdout"] = "new";
 
     Testsuite::Test (``(Users::AddGroup ($[])), [READ, WRITE, EXEC], 0);
-    Testsuite::Test (``(Users::AddGroup ($[ "cn" : "new", "gidnumber": 0, "type": "system"])),
+    Testsuite::Test (``(Users::AddGroup ($[ "cn" : "new", "gidNumber": 0, "type": "system"])),
 	[READ, WRITE, EXEC], 0);
 
     Testsuite::Dump (sformat ("---- current group after add:\n %1", Users::GetCurrentGroup ()));

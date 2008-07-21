@@ -19,11 +19,11 @@ Return
 Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- unchanged group 'ggl':
-Dump	 $["cn":"ggl", "gidnumber":"555", "modified":"added", "org_cn":"ggl", "org_gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]
+Dump	 $["cn":"ggl", "gidNumber":"555", "modified":"added", "org_cn":"ggl", "org_gidNumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]
 Dump	---- unchanged group 'audio':
-Dump	 $["cn":"audio", "gidnumber":"17", "more_users":$[], "type":"system", "userlist":$["ii":"1"], "userpassword":"x"]
+Dump	 $["cn":"audio", "gidNumber":"17", "more_users":$[], "type":"system", "userPassword":"x", "userlist":$["ii":"1"]]
 Return	true
 Dump	---- changed group 'ggl':
-Dump	 $["cn":"ggl", "gidnumber":"555", "modified":"added", "org_cn":"ggl", "org_gidnumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$[], "what":"user_change"]
+Dump	 $["cn":"ggl", "gidNumber":"555", "modified":"added", "org_cn":"ggl", "org_gidNumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$[], "what":"user_change"]
 Dump	---- changed group 'audio':
-Dump	 $["cn":"audio", "gidnumber":"17", "modified":"edited", "more_users":$[], "org_cn":"audio", "org_gidnumber":"17", "type":"system", "userlist":$["hh":"1", "ii":"1"], "userpassword":"x", "what":"user_change"]
+Dump	 $["cn":"audio", "gidNumber":"17", "modified":"edited", "more_users":$[], "org_cn":"audio", "org_gidNumber":"17", "type":"system", "userPassword":"x", "userlist":$["hh":"1", "ii":"1"], "what":"user_change"]

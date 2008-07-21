@@ -97,11 +97,11 @@ $[
 	    500: $[
 		    "cn"		:"Ha Ha Herman",
 		    "uid"		:"hh",
-		    "uidnumber"		:500,
-		    "gidnumber"		:100,
-		    "homedirectory"	:"/home/hh",
-		    "userpassword"	:"x",
-		    "loginshell"	:"/bin/bash",
+		    "uidNumber"		:500,
+		    "gidNumber"		:100,
+		    "homeDirectory"	:"/home/hh",
+		    "userPassword"	:"x",
+		    "loginShell"	:"/bin/bash",
 		    "type"		: "local",
 		    "grouplist"		: $[
 			    "audio" : 1,
@@ -114,22 +114,22 @@ $[
 	"ldap": $[
 	    5000: $[
 		    "cn"	:"LDAP user",
-		    "givenname"	: "LDAP",
+		    "givenName"	: "LDAP",
 		    "sn"	: "user",
 		    "dn"	: "uid=ldap1,ou=people,dc=suse,dc=cz",
 		    "uid"	: "ldap1",
-		    "uidnumber"	: 5000,
-		    "gidnumber"	: 100,
-		    "homedirectory"	: "/ldap_homes/ldap1",
-		    "userpassword"	: "x",
-		    "loginshell"	: "/bin/bash",
+		    "uidNumber"	: 5000,
+		    "gidNumber"	: 100,
+		    "homeDirectory"	: "/ldap_homes/ldap1",
+		    "userPassword"	: "x",
+		    "loginShell"	: "/bin/bash",
 		
-		    "shadowexpire"	: "0",
-		    "shadowinact"	: "-1",
-		    "shadowlastchange"	: "11984",
-		    "shadowmax"		: "99999",
-		    "shadowmin"		: "0",
-		    "shadowwarn"	: "7",
+		    "shadowExpire"	: "0",
+		    "shadowInactive"	: "-1",
+		    "shadowLastChange"	: "11984",
+		    "shadowMax"		: "99999",
+		    "shadowMin"		: "0",
+		    "shadowWarning"	: "7",
 
 		    "type"		: "ldap",
 		    "grouplist"		: $[
@@ -219,7 +219,7 @@ $[
 
             these which were read from the config file (/etc/passwd) or
             other user repository (LDAP directory) and will be written
-            there at the end, like "gidnumber", "uidnumber", or "username".
+            there at the end, like "gidNumber", "uidNumber", or "username".
 
 <li>helper structures
 <p>
@@ -233,21 +233,21 @@ $[
 <pre>
 $[
 	    "cn"		: "LDAP user",
-	    "givenname"		: "LDAP",
+	    "givenName"		: "LDAP",
 	    "sn"		: "user",
 	    "dn"		: "uid=ldap1,ou=people,dc=suse,dc=cz",
 	    "uid"		: "ldap1",
-	    "uidnumber"		: 5000,
-	    "gidnumber"		: 100,
-	    "homedirectory"	: "/ldap_homes/ldap1",
-	    "userpassword"	: "x",
-	    "loginshell"	: "/bin/bash",
-	    "shadowexpire"	: "0",
-	    "shadowinact"	: "-1",
-	    "shadowlastChange"	: "11984",
-	    "shadowmax"		: "99999",
-	    "shadowmin"		: "0",
-	    "shadowwarn"	: "7",
+	    "uidNumber"		: 5000,
+	    "gidNumber"		: 100,
+	    "homeDirectory"	: "/ldap_homes/ldap1",
+	    "userPassword"	: "x",
+	    "loginShell"	: "/bin/bash",
+	    "shadowExpire"	: "0",
+	    "shadowInactive"	: "-1",
+	    "shadowLastChange"	: "11984",
+	    "shadowMax"		: "99999",
+	    "shadowMin"		: "0",
+	    "shadowWarning"	: "7",
 	    "type"		: "ldap",
 	    "grouplist"		: $[
 			"audio" : 1,

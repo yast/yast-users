@@ -721,7 +721,7 @@ sub BuildUserItem {
     
     my $self		= shift;
     my %user		= %{$_[0]};
-    my $uid		= PadBefore ($user{"uidnumber"});
+    my $uid		= PadBefore ($user{"uidNumber"});
     my $username	= $user{"uid"} || "";
     my $full		= $user{"cn"} || "";
     if (defined $user{"gecos"} && $user{"gecos"} ne "") {
@@ -790,7 +790,7 @@ sub BuildGroupItem {
 
     my $self		= shift;
     my %group		= %{$_[0]};
-    my $gid		= PadBefore ($group{"gidnumber"});
+    my $gid		= PadBefore ($group{"gidNumber"});
     my $groupname	= $group{"cn"} || "";
 
     my %userlist	= ();
@@ -877,10 +877,10 @@ sub CommitUser {
     my $what		= $user{"what"};
     my $type		= $user{"type"}	|| "";
     my $org_type	= $user{"org_type"} || $type;
-    my $uid		= $user{"uidnumber"};
-    my $org_uid		= $user{"org_uidnumber"} || $uid;
-    my $home		= $user{"homedirectory"} || "";
-    my $org_home	= $user{"org_homedirectory"} || $home;
+    my $uid		= $user{"uidNumber"};
+    my $org_uid		= $user{"org_uidNumber"} || $uid;
+    my $home		= $user{"homeDirectory"} || "";
+    my $org_home	= $user{"org_homeDirectory"} || $home;
     my $username	= $user{"uid"};
     my $org_username	= $user{"org_uid"} || $username;
 
@@ -984,8 +984,8 @@ sub CommitGroup {
     my $org_type	= $group{"org_type"} || $type;
     my $groupname	= $group{"cn"} || "";
     my $org_groupname	= $group{"org_cn"} || $groupname;
-    my $gid		= $group{"gidnumber"};
-    my $org_gid		= $group{"org_gidnumber"} || $gid;
+    my $gid		= $group{"gidNumber"};
+    my $org_gid		= $group{"org_gidNumber"} || $gid;
 
     if ($what eq "add_group") {
         $gids{$type}{$gid}		= ($gids{$type}{$gid} || 0) + 1;
@@ -1084,7 +1084,7 @@ sub BuildUserLists {
 	if (defined ($username)) {
 	    $usernames{$type}{$username}	= 1;
 	}
-	my $home	= $map_of_users{$uid}{"homedirectory"};
+	my $home	= $map_of_users{$uid}{"homeDirectory"};
 	if (defined ($home)) {
 	    $homes{$type}{$home}	= 1;
 	}

@@ -11,7 +11,7 @@
     import "UsersLDAP";
 
     map<string,any> user = $[
-	"homedirectory"	: "/home/%uid",
+	"homeDirectory"	: "/home/%uid",
 	"cn"		: "%uid",
 	"uid"		: "hh",
     ];

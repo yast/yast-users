@@ -175,25 +175,25 @@ define symbol EditUserDialog (string what) {
 	cn	= user["cn"]:"";
     string tmp_fullname	= cn; // for login proposing
     string default_home = Users::GetDefaultHome (user_type);
-    string home		= user["homedirectory"]:default_home;
-    string org_home	= user["org_homedirectory"]:home;
+    string home		= user["homeDirectory"]:default_home;
+    string org_home	= user["org_homeDirectory"]:home;
     string default_mode	=
 	sformat ("%1", 777 - tointeger (String::CutZeros (Users::GetUmask ())));
     string mode		= user["home_mode"]:default_mode;
     integer default_crypted_size	= 100;
     integer crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
     integer org_crypted_home_size	= GetInt (user["org_user","crypted_home_size"]:nil, 0);
-    string password	= (string)user["userpassword"]:nil;
+    string password	= (string)user["userPassword"]:nil;
     string org_username = user["org_uid"]:username;
-    integer uid		= GetInt (user["uidnumber"]:nil, nil);
+    integer uid		= GetInt (user["uidNumber"]:nil, nil);
     integer gid		=
-	GetInt (user["gidnumber"]:nil, Users::GetDefaultGID (user_type));
+	GetInt (user["gidNumber"]:nil, Users::GetDefaultGID (user_type));
     string dn		= user["dn"]:"";
     boolean enabled	= user["enabled"]:true;
     if (user["disabled"]:false)
 	enabled		= false;
 
-    string shell        = user["loginshell"]:"";
+    string shell        = user["loginShell"]:"";
     string defaultgroup = user["groupname"]:"";
     // additional parts of GECOS (shown by `finger <username>`) (passwd only)
     string addit_data	= user["addit_data"]:"";
@@ -212,12 +212,12 @@ define symbol EditUserDialog (string what) {
 	    sn	= user["sn"]:SplitFullName(`sn, cn);
     }
     string givenname		= "";
-    if (haskey (user, "givenname"))
+    if (haskey (user, "givenName"))
     {
-	if (is (user["givenname"]:nil, list))
-	    givenname	= user["givenname",0]:SplitFullName(`givenname, cn);
-	else if (is (user["givenname"]:nil, string))
-	    givenname	= user["givenname"]:SplitFullName(`givenname, cn);
+	if (is (user["givenName"]:nil, list))
+	    givenname	= user["givenName",0]:SplitFullName(`givenname, cn);
+	else if (is (user["givenName"]:nil, string))
+	    givenname	= user["givenName"]:SplitFullName(`givenname, cn);
     }
 
     boolean create_home		= user["create_home"]:true;
@@ -268,20 +268,20 @@ define symbol EditUserDialog (string what) {
 	    cn	= user["cn",0]:cn;
 	else
 	    cn	= user["cn"]:cn;
-	home		= user["homedirectory"]:home;
-	org_home	= user["org_homedirectory"]:org_home;
+	home		= user["homeDirectory"]:home;
+	org_home	= user["org_homeDirectory"]:org_home;
 	crypted_home_size	= GetInt (user["crypted_home_size"]:nil, 0);
 	mode		= user["home_mode"]:default_mode;
-	password	= user["userpassword"]:password;
+	password	= user["userPassword"]:password;
 	org_username	= user["org_uid"]:org_username;
-	uid		= GetInt (user["uidnumber"]:nil, uid);
-	gid		= GetInt (user["gidnumber"]:nil, gid);
+	uid		= GetInt (user["uidNumber"]:nil, uid);
+	gid		= GetInt (user["gidNumber"]:nil, gid);
 	dn		= user["dn"]:dn;
 	enabled		= user["enabled"]:true;
 	if (user["disabled"]:false)
 	    enabled	= false;
 
-	shell		= user["loginshell"]:shell;
+	shell		= user["loginShell"]:shell;
 	defaultgroup	= user["groupname"]:defaultgroup;
 	addit_data	= user["addit_data"]:addit_data;
 
@@ -292,12 +292,12 @@ define symbol EditUserDialog (string what) {
 	    else
 		sn	= user["sn"]:SplitFullName(`sn, cn);
 	}
-	if (haskey (user, "givenname"))
+	if (haskey (user, "givenName"))
 	{
-	    if (is (user["givenname"]:nil, list))
-		givenname = user["givenname",0]:SplitFullName(`givenname, cn);
-	    else if (is (user["givenname"]:nil, string))
-		givenname = user["givenname"]:SplitFullName(`givenname, cn);
+	    if (is (user["givenName"]:nil, list))
+		givenname = user["givenName",0]:SplitFullName(`givenname, cn);
+	    else if (is (user["givenName"]:nil, string))
+		givenname = user["givenName"]:SplitFullName(`givenname, cn);
 	}
 
 	chown_home	= user["chown_home"]:chown_home;
@@ -621,15 +621,15 @@ group memberships can be changed.")) : `VSpacing (0),
      */
     define term get_password_term () {
 
-	string last_change	= GetString (user["shadowlastchange"]:nil, "0");
-	string expires		= GetString (user["shadowexpire"]:nil, "0");
+	string last_change	= GetString (user["shadowLastChange"]:nil, "0");
+	string expires		= GetString (user["shadowExpire"]:nil, "0");
 	if (expires == "")
 	    expires = "0";
 
-	integer inact	= GetInt (user["shadowinactive"]:nil, -1);
-	integer max	= GetInt (user["shadowmax"]:nil, -1);
-	integer min	= GetInt (user["shadowmin"]:nil, -1);
-	integer warn	= GetInt (user["shadowwarning"]:nil, -1);
+	integer inact	= GetInt (user["shadowInactive"]:nil, -1);
+	integer max	= GetInt (user["shadowMax"]:nil, -1);
+	integer min	= GetInt (user["shadowMin"]:nil, -1);
+	integer warn	= GetInt (user["shadowWarning"]:nil, -1);
 
 	if (last_change != "0")
 	{
@@ -658,27 +658,27 @@ group memberships can be changed.")) : `VSpacing (0),
 			// label
 			_("Last Password Change: %1"), last_change ))),
 		    `VSpacing (1),
-                    `IntField (`id ("shadowwarning"),
+                    `IntField (`id ("shadowWarning"),
 			// intfield label
 			_("Days &before Password Expiration to Issue Warning"),
 			-1, 99999, warn),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowinactive"),
+                    `IntField (`id ("shadowInactive"),
 			// intfield label
 			_("Days after Password Expires with Usable &Login"),
 			-1, 99999, inact),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowmax"),
+                    `IntField (`id ("shadowMax"),
 			// intfield label
 			_("Ma&ximum Number of Days for the Same Password"),
 			-1, 99999, max),
                     `VSpacing (0.5),
-                    `IntField (`id ("shadowmin"),
+                    `IntField (`id ("shadowMin"),
 			// intfield label
 			_("&Minimum Number of Days for the Same Password"),
 			-1, 99999, min),
                     `VSpacing (0.5),
-                    `InputField (`id ("shadowexpire"), `opt (`hstretch),
+                    `InputField (`id ("shadowExpire"), `opt (`hstretch),
 			// textentry label
 			_("Ex&piration Date"), exp_date)
                 )),
@@ -916,7 +916,7 @@ Leave it empty?")))
 		    // if 'givenname' or 'sn' should be substitued, wait for it
 		    // and do not create cn now:
 		    if (!haskey (ldap_user_defaults, "sn") &&
-			!haskey (ldap_user_defaults, "givenname"))
+			!haskey (ldap_user_defaults, "givenName"))
 		    {
 			cn = givenname + ((givenname != "") ? " " : "") + sn;
 		    }
@@ -935,10 +935,10 @@ Leave it empty?")))
 		    continue;
 		}
 	    }
-	    if (haskey (user, "givenname") && is (user["givenname"]:nil, list))
-		user ["givenname",0]	= givenname;
+	    if (haskey (user, "givenName") && is (user["givenName"]:nil, list))
+		user ["givenName",0]	= givenname;
 	    else
-		user ["givenname"]	= givenname;
+		user ["givenName"]	= givenname;
 	    if (haskey (user, "sn") && is (user["sn"]:nil, list))
 		user["sn",0]	= sn;
 	    else
@@ -1033,7 +1033,7 @@ Try again."));
 		{
 		    error_map	= UsersSimple::CheckPasswordUI ($[
 			"uid"		: username,
-			"userpassword"	: pw1,
+			"userPassword"	: pw1,
 			"type"		: user_type
 		    ], ui_map);
 		    if (error_map != $[])
@@ -1055,8 +1055,8 @@ Try again."));
 		// now saving plain text password
 		if (user["encrypted"]:false)
 		    user["encrypted"]	= false;
-		user ["userpassword"]		= pw1;
-		user ["shadowlastchange"]	= Users::LastChangeIsNow();
+		user ["userPassword"]		= pw1;
+		user ["shadowLastChange"]	= Users::LastChangeIsNow();
 		password			= pw1;
 	    }
 
@@ -1067,7 +1067,7 @@ Try again."));
 		if (user_type == "ldap" && issubstring (home, "%"))
 		{
 		    user = UsersLDAP::SubstituteValues ("user", user);
-		    home = user["homedirectory"]:default_home;
+		    home = user["homeDirectory"]:default_home;
 		}
 		if (home == default_home || home == "")
                     home = default_home + username;
@@ -1078,7 +1078,7 @@ Try again."));
 		if (user_type == "ldap" && issubstring (default_home, "%"))
 		{
 		    map tmp_user = UsersLDAP::SubstituteValues ("user", user);
-		    generated_home = tmp_user["homedirectory"]:home;
+		    generated_home = tmp_user["homeDirectory"]:home;
 		}
 		if (home != generated_home &&
 		    (what == "add_user" || Popup::YesNo (sformat (
@@ -1132,7 +1132,7 @@ _("Change home directory to %1?"), generated_home))))
 		    continue;
 		}
 	    }
-	    user["homedirectory"]	= home;
+	    user["homeDirectory"]	= home;
 	    user["chown_home"]		= chown_home;
 
 	    // --------------------------------- username checks, part 2/2
@@ -1307,7 +1307,7 @@ Log the user out first."));
 		map g	= Users::GetGroupByName (new_defaultgroup, new_type);
 		if (g == $[])
 		    g   = Users::GetGroupByName (new_defaultgroup, "");
-                gid	= GetInt (g["gidnumber"]:nil, gid);
+                gid	= GetInt (g["gidNumber"]:nil, gid);
             }
 
             // check the homedirectory
@@ -1420,10 +1420,10 @@ Log the user out first."));
 	    groups			= new_groups;
 	    defaultgroup		= new_defaultgroup;
 	    user_type			= new_type;
-	    user["homedirectory"]	= new_home;
-	    user["loginshell"]		= new_shell;
-	    user["gidnumber"]		= gid;
-	    user["uidnumber"]		= new_i_uid;
+	    user["homeDirectory"]	= new_home;
+	    user["loginShell"]		= new_shell;
+	    user["gidNumber"]		= gid;
+	    user["uidNumber"]		= new_i_uid;
 	    user["grouplist"]		= new_groups;
 	    user["groupname"]		= new_defaultgroup;
 	    user["type"]		= new_type;
@@ -1437,19 +1437,19 @@ Log the user out first."));
 
 	if (current == `passwordsettings && (ret == `next || tab))
 	{
-            string exp = (string)UI::QueryWidget (`id ("shadowexpire"), `Value);
+            string exp = (string)UI::QueryWidget (`id ("shadowExpire"), `Value);
             if (exp != "" &&
                 !regexpmatch (exp,"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"))
             {
 		// popup text: Don't reorder the letters YYYY-MM-DD!!!
 		// The date must stay in this format
 		Popup::Message(_("The expiration date must be in the format YYYY-MM-DD."));
-		focus_tab (current, "shadowexpire");
+		focus_tab (current, "shadowExpire");
 		continue;
             }
 
             foreach (string shadowsymbol,
-		["shadowwarning", "shadowmax", "shadowmin", "shadowinactive"],
+		["shadowWarning", "shadowMax", "shadowMin", "shadowInactive"],
 	    {
                 if (user[shadowsymbol]:nil != UI::QueryWidget (
                         `id(shadowsymbol), `Value))
@@ -1460,13 +1460,13 @@ Log the user out first."));
             });
 
             string new_exp_date = (string)
-		UI::QueryWidget(`id("shadowexpire"),`Value);
+		UI::QueryWidget(`id("shadowExpire"),`Value);
             if (new_exp_date != exp_date)
             {
 		exp_date	= new_exp_date;
                 if (exp_date == "")
 		{
-                    user["shadowexpire"] = (user_type == "ldap") ? "" : "0";
+                    user["shadowExpire"] = (user_type == "ldap") ? "" : "0";
 		}
                 else
                 {
@@ -1476,7 +1476,7 @@ Log the user out first."));
                     if (seconds_s != "")
                     {
 			integer days = (tointeger (seconds_s)) / (60*60*24);
-                        user["shadowexpire"] = sformat("%1", days);
+                        user["shadowExpire"] = sformat("%1", days);
                     }
                 }
             }
@@ -1709,7 +1709,7 @@ Log the user out first."));
 		    org_crypted_home_size == 0)
 		{
 		    user["current_text_userpassword"]	= (user["text_userpassword"]:nil != nil) ?
-			user["text_userpassword"]:nil : user["userpassword"]:"";
+			user["text_userpassword"]:nil : user["userPassword"]:"";
 		}
 		else
 		{
@@ -1791,8 +1791,8 @@ define symbol EditGroupDialog (string what) {
     // create a local copy of current group
     map<string,any> group	= Users::GetCurrentGroup ();
     string  groupname		= group["cn"]:"";
-    string  password		= (string) group["userpassword"]:nil;
-    integer gid			= GetInt (group["gidnumber"]:nil, -1);
+    string  password		= (string) group["userPassword"]:nil;
+    integer gid			= GetInt (group["gidNumber"]:nil, -1);
     // these are the users with this group as a default:
     map<string,any> more_users	= group["more_users"]:$[];
     // these are users from /etc/group:
@@ -1841,8 +1841,8 @@ define symbol EditGroupDialog (string what) {
     define void reinit_groupdata () {
 
 	groupname	= group["cn"]:groupname;
-	password	= group["userpassword"]:password;
-	gid		= GetInt (group["gidnumber"]:nil, gid);
+	password	= group["userPassword"]:password;
+	gid		= GetInt (group["gidNumber"]:nil, gid);
 	more_users	= group["more_users"]:more_users;
 	userlist	= group["userlist"]:userlist;
 	group_type	= group["type"]:group_type;
@@ -2075,7 +2075,7 @@ Try again.")) ;
 		{
 		    error_map	= UsersSimple::CheckPasswordUI ($[
 			"cn"		: new_groupname,
-			"userpassword"	: pw1,
+			"userPassword"	: pw1,
 			"type"		: group_type
 		    ], ui_map);
 		    if (error_map != $[])
@@ -2144,9 +2144,9 @@ Try again.")) ;
 
 	    // --------------------------------- now everything should be OK
             group["cn"]			= new_groupname;
-            group["userpassword"]	= password;
+            group["userPassword"]	= password;
             group["more_users"]		= more_users;
-            group["gidnumber"]		= new_i_gid;
+            group["gidNumber"]		= new_i_gid;
             group["type"]		= new_type;
 	    if (group_type == "ldap")
 	    {
