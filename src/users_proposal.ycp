@@ -94,7 +94,7 @@
 	if (UsersSimple::EncryptionMethod () != "blowfish")
 	{
 	    // summary line
-	    rest	= sformat (_("Password Encrypttion Method: %1"),
+	    rest	= sformat (_("Password Encryption Method: %1"),
 		encoding2label[UsersSimple::EncryptionMethod ()]:"");
 	}
 	ret = $[
