@@ -470,8 +470,11 @@ Save the current user and group settings to the system.
    * @return string help text
    */
   define string  EditUserPasswordDialogHelp() ``{
-// Help text 1/5
-      return _("<p>
+    // Help text 1/6
+    return _("<p>Activate <b>Force Password Change</b> to force user to change the password at the next login. If <b>Last Password Change</b> is set to <i>Never</i>, user will be forced to change the password.</p>") +
+
+// Help text 2/6
+_("<p>
 <b>Days before Password Expiration to Issue Warning</B><BR>
 Users can be warned before their passwords expire. Set 
 how long before expiration the warning should be issued. Set -1 to disable
@@ -479,24 +482,24 @@ the warning.
 </p>
 ")
 +
-// Help text 2/5
+// Help text 3/6
 _("<P><B>Days after Password Expires with Usable Login</B><BR>
 Users can log in after their passwords have expired. Set how many days to
 allow login. Use -1 for unlimited access.
 </P>
 ")
 +
-//Help text 3/5
+//Help text 4/6
 _("<P><B>Maximum Number of Days for the Same Password</B><BR>Set how many days a user 
 can use the same password before it expires.</P>
 ")
 +
-// Help text 4/5
+// Help text 5/6
 _("<P><B>Minimum Number of Days for the Same Password</B><BR>Set the minimum age of 
 a password before a user is allowed to change it.</P>
 ")
 +
-// Help text 5/5 : Don't reorder letters YYYY-MM-DD, date must be set in this format
+// Help text 6/6 : Don't reorder letters YYYY-MM-DD, date must be set in this format
 _("<P><B>Expiration Date</B><BR>Set the date when this account expires. 
 The date must be in the format YYYY-MM-DD. 
 Leave it empty if this account never expires.</P>

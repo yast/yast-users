@@ -622,6 +622,7 @@ group memberships can be changed.")) : `VSpacing (0),
     define term get_password_term () {
 
 	string last_change	= GetString (user["shadowLastChange"]:nil, "0");
+	string last_change_label= "";
 	string expires		= GetString (user["shadowExpire"]:nil, "0");
 	if (expires == "")
 	    expires = "0";
@@ -635,12 +636,12 @@ group memberships can be changed.")) : `VSpacing (0),
 	{
 	    map out	= (map)SCR::Execute (.target.bash_output, sformat ("date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"", last_change));
 	    // label (date of last password change)
-	    last_change = out["stdout"]:_("Unknown");
+	    last_change_label = out["stdout"]:_("Unknown");
 	}
 	else
 	{
 	    // label (date of last password change)
-	    last_change = _("Never");
+	    last_change_label = _("Never");
 	}
 	if (expires != "0" && expires != "-1" && expires != "")
 	{
@@ -656,7 +657,13 @@ group memberships can be changed.")) : `VSpacing (0),
                 `HSquash(`VBox(
 		    `Left (`Label (sformat (
 			// label
-			_("Last Password Change: %1"), last_change ))),
+			_("Last Password Change: %1"), last_change_label ))),
+		    `VSpacing (0.2),
+		    `Left (
+			// check box label
+			`CheckBox (`id (`force_pw), _("Force Password Change"),
+			last_change == "0")
+		    ),
 		    `VSpacing (1),
                     `IntField (`id ("shadowWarning"),
 			// intfield label
@@ -1480,6 +1487,11 @@ Log the user out first."));
                     }
                 }
             }
+	    if (UI::QueryWidget (`id (`force_pw), `Value) == true)
+	    {
+		// force password change
+		user["shadowLastChange"]	= "0";
+	    }
 	}
 
 	// inside plugins dialog
@@ -1668,6 +1680,11 @@ Log the user out first."));
 	if (ret == `passwordsettings)
 	{
 	    UI::ReplaceWidget(`tabContents, get_password_term ());
+	    if (GetString (user["shadowLastChange"]:nil, "0") == "0")
+	    {
+		// forcing password change cannot be undone
+		UI::ChangeWidget  (`id (`force_pw), `Enabled, false);
+	    }
 	    Wizard::SetHelpText (EditUserPasswordDialogHelp());
 	    current	= ret;
 	}

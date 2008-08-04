@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul 24 15:42:24 CEST 2008 - jsuchome@suse.cz
+
+- checkbox to force a change of password (bnc#368613)
+- 2.17.3
+
+-------------------------------------------------------------------
 Mon Jul 21 14:13:56 CEST 2008 - jsuchome@suse.cz
 
 - do not lowecase LDAP object names (fate#303596):
