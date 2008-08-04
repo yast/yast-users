@@ -7,8 +7,8 @@ Requires:	yast2-perl-bindings yast2-country yast2-pam yast2-security cracklib pe
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 
-# LDAPInitWithTLSCheck
-Requires:	yast2-ldap-client >= 2.15.8
+# this forces using yast2-ldap with orrect LDAP object names (fate#303596)
+Requires:	yast2-ldap-client >= 2.17.1
 
 # new ag_anyxml
 Requires:       yast2 >= 2.16.40
