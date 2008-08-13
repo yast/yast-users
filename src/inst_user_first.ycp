@@ -58,6 +58,9 @@
 	}
     }
 
+    // check if LDAP/Kerberos are available
+    UsersSimple::CheckNetworkMethodsAvailability ();
+
     // helper function to se package for installation, together with
     // architecture dependent version
     void install_package (string package) {
