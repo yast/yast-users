@@ -10,6 +10,7 @@
 package UsersSimple;
 
 use strict;
+use Data::Dumper;
 
 use YaST::YCP qw(:LOGGING sformat);
 use YaPI;
@@ -17,6 +18,7 @@ use YaPI;
 textdomain("users");
 
 our %TYPEINFO;
+
 
 # What client to call after authentication dialog during installation:
 # could be "users","nis" or "ldap", for more see inst_auth.ycp
@@ -97,6 +99,9 @@ my %imported_shadow		= ();
 # if importing users during installation is possible
 my $import_available;
 
+# if check for LDAP/Kerberos via DNS was done
+my $network_methods_checked	= 0;
+
 # prevent re-reading data map with 1st stage settingss
 my $first_stage_data_not_read	= 1;
 
@@ -105,6 +110,7 @@ my $first_stage_data_not_read	= 1;
 
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
+YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("SystemFilesCopy");
@@ -1185,6 +1191,89 @@ sub ImportAvailable {
     SCR->Execute (".target.bash", "/bin/rm -rf $tmp_dir");
 
     return $import_available;
+}
+
+##------------------------------------
+# check if LDAP/Kerberos are available (fate#301340)
+BEGIN { $TYPEINFO{CheckNetworkMethodsAvailability} = ["function", "boolean"]; }
+sub CheckNetworkMethodsAvailability {
+     
+    my $self	= shift;
+
+    return $network_methods_checked if $network_methods_checked;
+
+    my $domain	= Hostname->CurrentDomain ();
+
+    # First, check if LDAP server is available
+    my $out = SCR->Execute (".target.bash_output", "dig _ldap._tcp.$domain SRV +short");
+    y2debug ("dig output: ", Dumper ($out));
+    my $ldap_server	= "";
+    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	y2debug ("line: $line");
+	if ($line !~ m/^;/) {
+	    $ldap_server	= (split (/[ \t]/, $line))[3] || ".";
+	    chop $ldap_server;
+	    y2debug ("proposed LDAP server '$ldap_server'");
+	}
+	last if $ldap_server ne "";
+    }
+    if ($ldap_server ne "")
+    {
+	y2milestone ("LDAP server found, proposing LDAP authentication");
+	$self->SetAfterAuth ("ldap");
+    }
+
+    # check if AD server is available
+    $out = SCR->Execute (".target.bash_output", "dig _ldap._tcp.dc._msdcs.$domain SRV +short");
+    y2debug ("dig output: ", Dumper ($out));
+    my $ad_server	= "";
+    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	y2debug ("line: $line");
+	if ($line !~ m/^;/) {
+	    $ad_server	= (split (/[ \t]/, $line))[3] || ".";
+	    chop $ad_server;
+	    y2debug ("proposed AD server '$ad_server'");
+	}
+	last if $ad_server ne "";
+    }
+    if ($ad_server ne "")
+    {
+	y2milestone ("AD server found, proposing winbind authentication");
+	$self->SetAfterAuth ("samba");
+	$network_methods_checked	= 1;
+	# no check for kerberos when AD is detected
+	return 1;
+    }
+    # check for eDirectory now
+    else {
+	$out	= SCR->Execute (".target.bash_output", "ldapsearch -x -h $ldap_server -s base -b '' vendorName | grep -i '^vendorName: Novell'");
+	y2debug ("ldapsearch output: ", Dumper ($out));
+	if ($out->{"exit"} eq 0) {
+	    y2milestone ("eDirectory found, proposing for authentication");
+	    $self->SetAfterAuth ("edir_ldap");
+	}
+    }
+	 
+    # Now, check if kerberos is available
+    $out = SCR->Execute (".target.bash_output", "dig _kerberos._udp.$domain SRV +short");
+    y2debug ("dig output: ", Dumper ($out));
+    my $kdc	= "";
+    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	    
+	y2debug ("line: $line");
+	if ($line !~ m/^;/) {
+	    $kdc	= (split (/[ \t]/, $line))[3] || ".";
+	    chop $kdc;
+	}
+	last if $kdc ne "";
+    }
+    if ($kdc ne "" && $ldap_server ne "")
+    {
+	y2milestone ("KDC found, proposing Kerberos authentication");
+	SetKerberosConfiguration (1);
+    }
+    $network_methods_checked	= 1;
+    return 1;
 }
 
 42

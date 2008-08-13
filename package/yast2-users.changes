@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Aug 13 09:19:10 CEST 2008 - jsuchome@suse.cz
+
+- detect available Kerberos and LDAP Servers during installation 
+  (fate#301340)
+- 2.17.4
+
+-------------------------------------------------------------------
 Thu Jul 24 15:42:24 CEST 2008 - jsuchome@suse.cz
 
 - checkbox to force a change of password (bnc#368613)
