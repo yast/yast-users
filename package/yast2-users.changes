@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Aug 22 10:56:44 CEST 2008 - jsuchome@suse.cz
+
+- fixed setting Kerberos during installation
+- 2.17.5 
+
+-------------------------------------------------------------------
 Wed Aug 13 09:19:10 CEST 2008 - jsuchome@suse.cz
 
 - detect available Kerberos and LDAP Servers during installation 

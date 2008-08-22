@@ -1270,7 +1270,7 @@ sub CheckNetworkMethodsAvailability {
     if ($kdc ne "" && $ldap_server ne "")
     {
 	y2milestone ("KDC found, proposing Kerberos authentication");
-	SetKerberosConfiguration (1);
+	$self->SetKerberosConfiguration (1);
     }
     $network_methods_checked	= 1;
     return 1;
