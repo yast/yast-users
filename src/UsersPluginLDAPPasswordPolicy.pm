@@ -75,8 +75,8 @@ sub remove_plugin_data {
 
     my ($config, $data) = @_;
     my @updated_oc;
-    if (defined $data->{'pwdPolicySubEntry'}) {
-	$data->{'pwdPolicySubEntry'}	= "";
+    if (defined $data->{'pwdPolicySubentry'}) {
+	$data->{'pwdPolicySubentry'}	= "";
     }
     return $data;
 }
@@ -148,13 +148,13 @@ sub PluginPresent {
     if (not defined $ppolicy_enabled) {
 	$ppolicy_enabled	= SCR->Execute (".ldap.ppolicy", {
 	    "hostname"	=> Ldap->GetFirstServer (Ldap->server ()),
-	    "bind_dn"	=> Ldap->GetDomain ()
+	    "bind_dn"	=> Ldap->GetBaseDN ()
 	});
 	y2milestone ("Password Policy enabled globaly: $ppolicy_enabled");
     }
     if (contains ($data->{'plugins'}, $name, 1) ||
 	# already checked, still no data
-	contains ((keys %$data), "pwdPolicySubEntry", 1)) # checking for data
+	contains ((keys %$data), "pwdPolicySubentry", 1)) # checking for data
     {
 	y2milestone ("LDAPPasswordPolicy plugin present");
 	return 1;
@@ -210,7 +210,7 @@ BEGIN { $TYPEINFO{Check} = ["function",
 sub Check {
 
     my ($self, $config, $data)  = @_;
-    my $pwdpolicysubentry	= $data->{'pwdPolicySubEntry'};
+    my $pwdpolicysubentry	= $data->{'pwdPolicySubentry'};
     if (defined $pwdpolicysubentry && $pwdpolicysubentry ne "") {
 
 	# validate DN

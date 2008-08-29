@@ -338,7 +338,7 @@ sub ReadSettings {
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
 
 	    my $dn	= $user_base;
-	    $user_base 	= Ldap->GetDomain();
+	    $user_base 	= Ldap->GetBaseDN ();
 	    if (!$use_gui || Stage->cont() ||
 		# popup question, %s is string argument
 		Popup->YesNo (sprintf (__("No entry with DN '%s'
@@ -356,7 +356,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	}
     }
     if ($user_base eq "") {
-	$user_base = Ldap->GetDomain();
+	$user_base = Ldap->GetBaseDN ();
     }
 
     if (defined $group_config{"suseDefaultBase"}[0]) {
@@ -364,7 +364,7 @@ exists on the LDAP server. Create it now?"), $dn)))
 	my $base_map	= Ldap->GetLDAPEntry ($group_base);
 	if (ref ($base_map) eq "HASH" && !%$base_map) {
 	    my $dn	= $group_base;
-	    $group_base 	= Ldap->GetDomain();
+	    $group_base 	= Ldap->GetBaseDN ();
 	    if (!$use_gui || Stage->cont() ||
 		# popup question, %s is string argument
 		Popup->YesNo (sprintf (__("No entry with DN '%s'

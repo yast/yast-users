@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Aug 29 11:53:07 CEST 2008 - jsuchome@suse.cz
+
+- fixed capitalization of LDAP entries (bnc#420010)
+- show if the "default policy" is active (bnc#421342, rhafer)
+- 2.17.6
+
+-------------------------------------------------------------------
 Fri Aug 22 10:56:44 CEST 2008 - jsuchome@suse.cz
 
 - fixed setting Kerberos during installation
