@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Sep  1 10:17:24 CEST 2008 - jsuchome@suse.cz
+
+- help text for directory encryption even if it is not available
+- 2.17.7
+
+-------------------------------------------------------------------
 Fri Aug 29 11:53:07 CEST 2008 - jsuchome@suse.cz
 
 - fixed capitalization of LDAP entries (bnc#420010)
