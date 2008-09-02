@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Sep  2 15:23:12 CEST 2008 - jsuchome@suse.cz
+
+- do not show installation step when the work is hidden(bnc#401319)
+- 2.17.8
+
+-------------------------------------------------------------------
 Mon Sep  1 10:17:24 CEST 2008 - jsuchome@suse.cz
 
 - help text for directory encryption even if it is not available
