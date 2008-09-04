@@ -10,8 +10,8 @@ Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-i
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
 Requires:	yast2-ldap-client >= 2.17.1
 
-# new ag_anyxml
-Requires:       yast2 >= 2.16.40
+# InstExtensionImage::LoadExtension
+Requires:       yast2 >= 2.17.17
 
 Summary:	Configuration of users and groups
 

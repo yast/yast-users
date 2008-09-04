@@ -723,6 +723,7 @@ Really use this shorter password?"), pw_min_CA)))
 	    }
 	    do
 	    {
+		UsersSimple::LoadCracklib ();
 		error_map	= UsersSimple::CheckPasswordUI ($[
 		    "uid"		: username,
 		    "userPassword"	: pw1,
@@ -806,6 +807,10 @@ Really use this shorter password?"), pw_min_CA)))
 	    foreach (string package, ["pam_krb5", "krb5", "krb5-client"], {
 		install_package (package);
 	    });
+	}
+	if (root_pw)
+	{
+	    UsersSimple::UnLoadCracklib ();
 	}
     }
     else if (ret == `back)

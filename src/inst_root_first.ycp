@@ -159,6 +159,7 @@ Try again."));
 	    map<string,any> ui_map	= $[];
 	    boolean failed			= false;
 
+	    UsersSimple::LoadCracklib ();
 	    if (check_CA_constraints && (size (pw1) < pw_min_CA))
 	    {
 		if (Popup::YesNo (sformat (
@@ -198,6 +199,7 @@ Really use this shorter password?"), pw_min_CA)))
 		continue;
 	    }
 	    UsersSimple::SetRootPassword (pw1);
+	    UsersSimple::UnLoadCracklib ();
 	}
     } until (ret == `next || ret == `back || ret == `abort);
 

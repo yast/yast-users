@@ -111,6 +111,7 @@ my $first_stage_data_not_read	= 1;
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Hostname");
+YaST::YCP::Import ("InstExtensionImage");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("SystemFilesCopy");
@@ -1279,6 +1280,26 @@ sub CheckNetworkMethodsAvailability {
     }
     $network_methods_checked	= 1;
     return 1;
+}
+
+##------------------------------------
+# load cracklib image into the inst-sys
+BEGIN { $TYPEINFO{LoadCracklib} = ["function", "boolean"]; }
+sub LoadCracklib {
+
+    return InstExtensionImage->LoadExtension ("cracklib-dict-full.rpm",
+	# busy popup message
+	sformat (__("Downloading %1 extension..."), "cracklib-dict-full.rpm"));
+}
+
+##------------------------------------
+# release cracklib image from the inst-sys
+BEGIN { $TYPEINFO{UnLoadCracklib} = ["function", "boolean"]; }
+sub UnLoadCracklib {
+	
+    return InstExtensionImage->UnLoadExtension ("cracklib-dict-full.rpm",
+	# busy popup message
+	sformat (__("Releasing %1 extension..."), "cracklib-dict-full.rpm"));
 }
 
 42
