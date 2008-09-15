@@ -93,8 +93,8 @@
 
     Testsuite::Dump ("==================== running delete ======================");
 
-    Testsuite::Test(``(Users::DeleteUser (true)), [], 0);
-    Testsuite::Test(``(Users::CommitUser ()), [], 0);
+    Testsuite::Test(``(Users::DeleteUser (true)), [READ], 0);
+    Testsuite::Test(``(Users::CommitUser ()), [READ], 0);
 
     Testsuite::Dump ( sformat ("local user names:\n %1", UsersCache::GetUsernames ("local")));
     Testsuite::Dump ( sformat ("local users:\n %1", Users::GetUsers ("uid", "local")));

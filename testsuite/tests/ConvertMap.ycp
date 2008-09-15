@@ -5,12 +5,7 @@
  */
 {
     // testedfiles: Users.pm UsersLDAP.pm
-
-    import "Testsuite";
-    import "Users";
-    import "Mode";
-    import "Directory";
-    import "UsersLDAP";
+    include "testsuite.ycp";
 
     map READ = $[
 	"product": $[
@@ -33,10 +28,20 @@
 		],
 	    ],
 	],
+	"target" : $[
+	    "stat" : $[],
+	],
     ];
     map WRITE = $[];
     map EXEC = $[];
 
+    import "Testsuite";
+    import "Users";
+    import "Mode";
+    import "Directory";
+    import "UsersLDAP";
+
+    TESTSUITE_INIT ([READ, WRITE, EXEC], nil);
     Testsuite::Dump ("==========================================================");
 
     Mode::SetTest ("test");

@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Sep 15 16:38:15 CEST 2008 - jsrain@suse.cz
+
+- adapted testsuite in order to build
+- 2.17.10
+
+-------------------------------------------------------------------
 Thu Sep  4 13:32:10 CEST 2008 - jsuchome@suse.cz
 
 - load/unload cracklib image during installation
