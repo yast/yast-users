@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Sep 16 15:32:47 CEST 2008 - jsuchome@suse.cz
+
+- do not try to install cryptconfig.i386 package
+- 2.17.11
+
+-------------------------------------------------------------------
 Mon Sep 15 16:38:15 CEST 2008 - jsrain@suse.cz
 
 - adapted testsuite in order to build

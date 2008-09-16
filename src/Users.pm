@@ -4210,6 +4210,7 @@ sub cryptconfig_packages {
 
     my $arch	= Arch->architecture ();
     my @ret	= ("cryptconfig");
+    return \@ret  if $arch eq "i386";
     my %dependency	= (
 	"ia64"		=> "-x86",
 	"ppc64"		=> "-64bit",
