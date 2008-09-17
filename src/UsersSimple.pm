@@ -1208,6 +1208,14 @@ sub CheckNetworkMethodsAvailability {
 
     return $network_methods_checked if $network_methods_checked;
 
+    if (!InstExtensionImage->LoadExtension ("bind.rpm",
+	# busy popup message
+	sformat (__("Downloading %1 extension..."), "bind.rpm")))
+    {
+	y2error ("loading bind.rpm failed, check for network methods skipped");
+	return 0;
+    }
+
     my $domain	= Hostname->CurrentDomain ();
 
     # First, check if LDAP server is available
@@ -1279,6 +1287,11 @@ sub CheckNetworkMethodsAvailability {
 	$self->SetKerberosConfiguration (1);
     }
     $network_methods_checked	= 1;
+
+    InstExtensionImage->UnLoadExtension ("bind.rpm",
+	# busy popup message
+	sformat (__("Releasing %1 extension..."), "bind.rpm"));
+
     return 1;
 }
 
