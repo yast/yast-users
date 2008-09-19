@@ -1208,7 +1208,7 @@ sub CheckNetworkMethodsAvailability {
 
     return $network_methods_checked if $network_methods_checked;
 
-    if (!InstExtensionImage->LoadExtension ("bind.rpm",
+    if (Stage->initial () && !InstExtensionImage->LoadExtension ("bind.rpm",
 	# busy popup message
 	sformat (__("Downloading %1 extension..."), "bind.rpm")))
     {
@@ -1288,9 +1288,12 @@ sub CheckNetworkMethodsAvailability {
     }
     $network_methods_checked	= 1;
 
-    InstExtensionImage->UnLoadExtension ("bind.rpm",
-	# busy popup message
-	sformat (__("Releasing %1 extension..."), "bind.rpm"));
+    if (Stage->initial ())
+    {
+	InstExtensionImage->UnLoadExtension ("bind.rpm",
+	    # busy popup message
+	    sformat (__("Releasing %1 extension..."), "bind.rpm"));
+    }
 
     return 1;
 }
