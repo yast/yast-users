@@ -95,6 +95,9 @@ if (!GetInstArgs::going_back()) {
     }
 }
 
+// check if LDAP/Kerberos are available
+UsersSimple::CheckNetworkMethodsAvailability ();
+
 // Check if lan is configured
 list<string> net_devices = NetworkInterfaces::ListDevicesExcept("dialup");
 y2debug("net_devices: %1", net_devices);
