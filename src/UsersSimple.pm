@@ -114,6 +114,7 @@ YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("InstExtensionImage");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("SystemFilesCopy");
 YaST::YCP::Import ("UsersUI");
 

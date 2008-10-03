@@ -996,18 +996,18 @@ define list GetSetsItems (string set) ``{
 define list GetExpertList () ``{
 
     list expert_list = [];
+    if (Autologin::available)
+    {
+	expert_list = add (expert_list,
+	    // menubutton label
+	    `item(`id(`autologinconf), _("&Login Settings")));
+    }
     if (!Mode::config ())
     {
-	expert_list = merge (expert_list, [
+	expert_list = prepend (expert_list,
 	    // menubutton label
-	    `item(`id(`enc), _("Password &Encryption")),
-	]);
-	if (Autologin::available)
-	{
-	    expert_list = add (expert_list,
-	        // menubutton label
-		`item(`id(`autologinconf), _("&Login Settings")));
-	}
+	    `item (`id(`enc), _("Password &Encryption"))
+	);
 	if (!Stage::cont ())
 	{
 	    expert_list = add (expert_list,

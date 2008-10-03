@@ -6085,11 +6085,29 @@ sub Import {
         %useradd_defaults 	= %{$settings{"user_defaults"}};
         $defaults_modified	= 1;
     }
+    if (defined $settings{"login_settings"} &&
+	ref ($settings{"login_settings"}) eq "HASH")
+    {
+	my $autologin	= $settings{"login_settings"};
+	my $auto_user	= $autologin->{"autologin_user"} || "";
+	if ($auto_user) {
+	    Autologin->Use (1);
+	    Autologin->user ($auto_user);
+	}
+	if (defined $autologin->{"password_less_login"}) {
+	    Autologin->pw_less ($autologin->{"password_less_login"});
+	}
+    }
 
     $self->ReadSystemDefaults(1);
 
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
+
+    # do not replace possible sysconfig value of autologin (bnc#430111)
+    if (Mode->autoinst ()) {
+        Autologin->Read ();
+    }
 
     my $error_msg = Mode->test () ? "" : $self->ReadLocal ();
     if ($error_msg) {
@@ -6402,7 +6420,7 @@ sub ExportUser {
     foreach my $key (keys %exported_user) {
 	if (defined $keys_to_export{$key}) {
 	    my $new_key		= $keys_to_export{$key};
-	    $ret{$new_key}	= $exported_user{$key};
+	    $ret{$new_key}	= $exported_user{$key} if defined ($exported_user{$key});
 	}
     }
     
@@ -6501,11 +6519,20 @@ sub Export {
 	}
     }
 
-    return {
+    my %ret	= (
         "users"		=> \@exported_users,
         "groups"	=> \@exported_groups,
         "user_defaults"	=> \%useradd_defaults
-    };
+    );
+    if (Autologin->used ()) {
+	my %autologin	= ();
+	if (Autologin->pw_less ()) {
+	    $autologin{"password_less_login"}	= YaST::YCP::Boolean (1);
+	}
+	$autologin{"autologin_user"}	= Autologin->user ();
+	$ret{"login_settings"}	= \%autologin;
+    }
+    return \%ret;
 }
 
 ##------------------------------------
@@ -6536,6 +6563,13 @@ sub Summary {
                 $ret .= sprintf (" %i $groupname<br>", $group->{"gidNumber"} || 0);
 	    }
 	}
+    }
+    if (Autologin->used ()) {
+	# summary label
+	$ret .= __("<h3>Login Settings</h3>");
+	# summary item, %1 is user name
+	$ret .= sformat (__("User %1 configured for automatic login"),
+	    Autologin->user ());
     }
     return $ret;
 }

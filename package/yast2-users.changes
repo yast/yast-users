@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Oct  3 12:26:07 CEST 2008 - jsuchome@suse.cz
+
+- added autoYaST support for autologin (bnc#430111)
+- UsersSimple: import Stage module before using it (bnc#431890)
+- 2.17.14 
+
+-------------------------------------------------------------------
 Fri Sep 19 14:28:21 CEST 2008 - jsuchome@suse.cz
 
 - detect authentication methods also in 2nd stage (bnc#427256)
