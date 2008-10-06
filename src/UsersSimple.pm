@@ -1210,8 +1210,8 @@ sub CheckNetworkMethodsAvailability {
     return $network_methods_checked if $network_methods_checked;
 
     if (Stage->initial () && !InstExtensionImage->LoadExtension ("bind.rpm",
-	# busy popup message
-	sformat (__("Downloading %1 extension..."), "bind.rpm")))
+	# busy popup message, %1 is package name
+	sformat (__("Retrieving %1 extension..."), "bind.rpm")))
     {
 	y2error ("loading bind.rpm failed, check for network methods skipped");
 	return 0;
@@ -1292,7 +1292,7 @@ sub CheckNetworkMethodsAvailability {
     if (Stage->initial ())
     {
 	InstExtensionImage->UnLoadExtension ("bind.rpm",
-	    # busy popup message
+	    # busy popup message, %1 is package name
 	    sformat (__("Releasing %1 extension..."), "bind.rpm"));
     }
 
@@ -1306,7 +1306,7 @@ sub LoadCracklib {
 
     return InstExtensionImage->LoadExtension ("cracklib-dict-full.rpm",
 	# busy popup message
-	sformat (__("Downloading %1 extension..."), "cracklib-dict-full.rpm"));
+	sformat (__("Retrieving %1 extension..."), "cracklib-dict-full.rpm"));
 }
 
 ##------------------------------------
