@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Oct  6 13:01:38 CEST 2008 - jsuchome@suse.cz
+
+- better message when loading package into inst-sys (bnc#432298)
+- fingerprint-reader: thinkfinger replaced by fp (fate#300416)
+- 2.17.15
+
+-------------------------------------------------------------------
 Fri Oct  3 12:26:07 CEST 2008 - jsuchome@suse.cz
 
 - added autoYaST support for autologin (bnc#430111)
