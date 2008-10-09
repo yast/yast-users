@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct  9 14:24:45 CEST 2008 - jsuchome@suse.cz
+
+- users.desktop adapted for autoYaST (bnc#430111)
+- 2.17.16
+
+-------------------------------------------------------------------
 Mon Oct  6 13:01:38 CEST 2008 - jsuchome@suse.cz
 
 - better message when loading package into inst-sys (bnc#432298)
