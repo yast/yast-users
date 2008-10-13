@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Oct 13 16:06:59 CEST 2008 - jsuchome@suse.cz
+
+- added CLI option 'batchmode': do not ask for data (bnc#431685)
+- 2.17.17
+
+-------------------------------------------------------------------
 Thu Oct  9 14:24:45 CEST 2008 - jsuchome@suse.cz
 
 - users.desktop adapted for autoYaST (bnc#430111)

@@ -172,6 +172,10 @@ map cmdline = $[
 	    "help"	: _("Password for LDAP server"),
 	    "type"	: "string"
 	],
+	"batchmode"	:$[
+	    // translators: command line help text for batchmode option
+	    "help"	: _("Don't ask for missing data; return error instead.")
+	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis" ],// + "custom"

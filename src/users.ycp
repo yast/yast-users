@@ -194,13 +194,25 @@ map cmdline = $[
 	    "help"	: _("New UID of the user"),
 	    "type"	: "string"
 	],
+	"batchmode"	:$[
+	    // translators: command line help text for batchmode option
+	    "help"	: _("Don't ask for missing data; return error instead.")
+	],
     ],
     "mappings"		: $[
 	"list"	: [ "local", "system", "ldap", "nis", ],// + "custom"
 	"show"  : [ "uid", "username", "type" ],
-	"add"	: [ "username", "uid", "cn", "password", "home", "no_home", "shell", "gid", "grouplist", "type", "ldap_password" ],
-	"edit"	: [ "username", "uid", "cn", "password", "home", "shell", "gid", "grouplist", "new_username", "new_uid", "type", "ldap_password" ],
-	"delete": [ "username", "uid", "delete_home", "type", "ldap_password" ],
+	"add"	: [ "username", "uid", "cn", "password", "home", "no_home",
+		    "shell", "gid", "grouplist", "type", "ldap_password",
+		    "batchmode"
+	],
+	"edit"	: [ "username", "uid", "cn", "password", "home", "shell", "gid",
+		    "grouplist", "new_username", "new_uid", "type",
+		    "ldap_password", "batchmode"
+	],
+	"delete": [ "username", "uid", "delete_home", "type", "ldap_password",
+		    "batchmode"
+	],
     ]
 ];
 

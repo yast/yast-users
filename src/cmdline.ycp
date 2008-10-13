@@ -26,13 +26,14 @@ import "Report";
 /**
  * set LDAP admin password and read LDAP users and groups
  */
-define boolean bind_and_read_LDAP (string pw) {
+define boolean bind_and_read_LDAP (map<string,any> options) {
 
+    string pw	= options["ldap_password"]:"";
     if (Users::LDAPAvailable() && Users::LDAPNotRead())
     {
 	if (Ldap::bind_pass == nil)
 	{
-	    if (pw == "")
+	    if (pw == "" && !haskey (options, "batchmode"))
 	    {
 		// password entering label
 		pw = CommandLine::PasswordInput (_("LDAP Server Password:"));
@@ -253,7 +254,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
     string type = user["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
 	if (!haskey (user,"sn"))
 	    user["sn"] = user["uid"]:"";
@@ -261,7 +262,7 @@ define boolean UserAddHandler (map <string, any> options ) ``{
 
     Users::ResetCurrentUser ();
 
-    if (!haskey(user,"userPassword"))
+    if (!haskey(user,"userPassword") && !haskey (user, "batchmode"))
     {
 	string pw	= "";
 	integer i	= 0;
@@ -335,7 +336,7 @@ define boolean UserDeleteHandler (map  <string, any>options ) ``{
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
     }
     if (uid != -1 && uid != nil)
@@ -382,7 +383,7 @@ define boolean UserEditHandler (map<string,any> options) {
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
     }
     if (uid != -1 && uid != nil)
@@ -554,7 +555,7 @@ define boolean GroupDeleteHandler (map<string,any> options ) {
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
     }
     if (gid != -1 && gid != nil)
@@ -591,7 +592,7 @@ define boolean GroupAddHandler (map <string, any> options ) {
     string type = group["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
     }
     string member_attr	= (type == "ldap") ? UsersLDAP::GetMemberAttribute () :
@@ -644,7 +645,7 @@ define boolean GroupEditHandler (map<string,any> options) {
     string type = options["type"]:"local";
     if (type == "ldap")
     {
-	if (!bind_and_read_LDAP (options["ldap_password"]:""))
+	if (!bind_and_read_LDAP (options))
 	    return false;
     }
     if (gid != -1 && gid != nil)
