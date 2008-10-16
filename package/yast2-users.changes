@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Oct 16 11:32:53 CEST 2008 - jsuchome@suse.cz
+
+- check the return value of dig command (bnc#435878)
+- use domainname to get the domain name (workaround for bnc#393951)
+- 2.17.18
+
+-------------------------------------------------------------------
 Mon Oct 13 16:06:59 CEST 2008 - jsuchome@suse.cz
 
 - added CLI option 'batchmode': do not ask for data (bnc#431685)
