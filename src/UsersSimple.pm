@@ -1218,19 +1218,31 @@ sub CheckNetworkMethodsAvailability {
     }
 
     my $domain	= Hostname->CurrentDomain ();
+    y2milestone ("current domain : '$domain'");
+    if (!$domain && Stage->cont ())
+    {
+	my $out = SCR->Execute (".target.bash_output", "domainname");
+	if ($out->{"exit"} eq 0) {
+	    $domain	= $out->{"stdout"};
+	    chomp $domain;
+	    y2milestone ("current domain from domainname: '$domain'");
+	}
+    }
 
     # First, check if LDAP server is available
-    my $out = SCR->Execute (".target.bash_output", "dig _ldap._tcp.$domain SRV +short");
+    my $out = SCR->Execute (".target.bash_output", "dig '_ldap._tcp.$domain' SRV +short");
     y2debug ("dig output: ", Dumper ($out));
     my $ldap_server	= "";
-    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	y2debug ("line: $line");
-	if ($line !~ m/^;/) {
-	    $ldap_server	= (split (/[ \t]/, $line))[3] || ".";
-	    chop $ldap_server;
-	    y2debug ("proposed LDAP server '$ldap_server'");
+    if ($out->{"exit"} eq 0) {
+	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	    y2debug ("line: $line");
+	    if ($line !~ m/^;/) {
+		$ldap_server	= (split (/[ \t]/, $line))[3] || ".";
+		chop $ldap_server;
+		y2debug ("proposed LDAP server '$ldap_server'");
+	    }
+	    last if $ldap_server ne "";
 	}
-	last if $ldap_server ne "";
     }
     if ($ldap_server ne "")
     {
@@ -1239,17 +1251,19 @@ sub CheckNetworkMethodsAvailability {
     }
 
     # check if AD server is available
-    $out = SCR->Execute (".target.bash_output", "dig _ldap._tcp.dc._msdcs.$domain SRV +short");
+    $out = SCR->Execute (".target.bash_output", "dig '_ldap._tcp.dc._msdcs.$domain' SRV +short");
     y2debug ("dig output: ", Dumper ($out));
     my $ad_server	= "";
-    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	y2debug ("line: $line");
-	if ($line !~ m/^;/) {
-	    $ad_server	= (split (/[ \t]/, $line))[3] || ".";
-	    chop $ad_server;
-	    y2debug ("proposed AD server '$ad_server'");
+    if ($out->{"exit"} eq 0) {
+	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	    y2debug ("line: $line");
+	    if ($line !~ m/^;/) {
+		$ad_server	= (split (/[ \t]/, $line))[3] || ".";
+		chop $ad_server;
+		y2debug ("proposed AD server '$ad_server'");
+	    }
+	    last if $ad_server ne "";
 	}
-	last if $ad_server ne "";
     }
     if ($ad_server ne "")
     {
@@ -1260,7 +1274,7 @@ sub CheckNetworkMethodsAvailability {
 	return 1;
     }
     # check for eDirectory now
-    else {
+    elsif ($ldap_server) {
 	$out	= SCR->Execute (".target.bash_output", "ldapsearch -x -h $ldap_server -s base -b '' vendorName | grep -i '^vendorName: Novell'");
 	y2debug ("ldapsearch output: ", Dumper ($out));
 	if ($out->{"exit"} eq 0) {
@@ -1270,17 +1284,18 @@ sub CheckNetworkMethodsAvailability {
     }
 	 
     # Now, check if kerberos is available
-    $out = SCR->Execute (".target.bash_output", "dig _kerberos._udp.$domain SRV +short");
+    $out = SCR->Execute (".target.bash_output", "dig '_kerberos._udp.$domain' SRV +short");
     y2debug ("dig output: ", Dumper ($out));
     my $kdc	= "";
-    foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	    
-	y2debug ("line: $line");
-	if ($line !~ m/^;/) {
-	    $kdc	= (split (/[ \t]/, $line))[3] || ".";
-	    chop $kdc;
+    if ($out->{"exit"} eq 0) {
+	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
+	    y2debug ("line: $line");
+	    if ($line !~ m/^;/) {
+		$kdc	= (split (/[ \t]/, $line))[3] || ".";
+		chop $kdc;
+	    }
+	    last if $kdc ne "";
 	}
-	last if $kdc ne "";
     }
     if ($kdc ne "" && $ldap_server ne "")
     {
