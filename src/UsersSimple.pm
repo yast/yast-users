@@ -112,6 +112,7 @@ YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("InstExtensionImage");
+YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
@@ -1209,7 +1210,9 @@ sub CheckNetworkMethodsAvailability {
 
     return $network_methods_checked if $network_methods_checked;
 
-    if (Stage->initial () && !InstExtensionImage->LoadExtension ("bind.rpm",
+    my $call_extend	= Stage->initial () && !Mode->live_installation ();
+
+    if ($call_extend && !InstExtensionImage->LoadExtension ("bind.rpm",
 	# busy popup message, %1 is package name
 	sformat (__("Retrieving %1 extension..."), "bind.rpm")))
     {
@@ -1219,6 +1222,7 @@ sub CheckNetworkMethodsAvailability {
 
     my $domain	= Hostname->CurrentDomain ();
     y2milestone ("current domain : '$domain'");
+
     if (!$domain && Stage->cont ())
     {
 	my $out = SCR->Execute (".target.bash_output", "domainname");
@@ -1304,7 +1308,7 @@ sub CheckNetworkMethodsAvailability {
     }
     $network_methods_checked	= 1;
 
-    if (Stage->initial ())
+    if ($call_extend)
     {
 	InstExtensionImage->UnLoadExtension ("bind.rpm",
 	    # busy popup message, %1 is package name
