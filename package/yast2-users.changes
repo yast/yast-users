@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Oct 22 12:55:32 CEST 2008 - jsuchome@suse.cz
+
+- do not call extend during live installation
+- 2.17.19 
+
+-------------------------------------------------------------------
 Thu Oct 16 11:32:53 CEST 2008 - jsuchome@suse.cz
 
 - check the return value of dig command (bnc#435878)
