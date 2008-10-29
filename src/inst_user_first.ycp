@@ -75,7 +75,7 @@
 		"x86_64"	: "-32bit",
 	];
 	string arch_package	= package + dependency[arch]:"";
-	if (arch_package != package && Package::Available (arch_package))
+	if (arch_package != package && Package::Available(arch_package) == true)
 	    Pkg::ResolvableInstall (package, `package);
     }
 
@@ -137,7 +137,9 @@
 	string package	= sformat ("yast2-%1-client", client);
 	if (client == "edir_ldap")
 	    package	= "yast2-linux-user-mgmt";
-	return Mode::normal () || Package::Available (package);
+	return Mode::normal () || Package::Available (package) == true ||
+	    // during Mode::live_installation, available = installed
+	    (Mode::live_installation () && Package::Installed (package));
     });
     available_clients	= prepend (available_clients, "users");
 

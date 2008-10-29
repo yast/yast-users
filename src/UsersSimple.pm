@@ -1323,6 +1323,10 @@ sub CheckNetworkMethodsAvailability {
 BEGIN { $TYPEINFO{LoadCracklib} = ["function", "boolean"]; }
 sub LoadCracklib {
 
+    if (!Stage->initial () || Mode->live_installation ()) {
+	y2debug ("no extend in this stage/mode");
+	return 1;
+    }
     return InstExtensionImage->LoadExtension ("cracklib-dict-full.rpm",
 	# busy popup message
 	sformat (__("Retrieving %1 extension..."), "cracklib-dict-full.rpm"));
@@ -1333,6 +1337,10 @@ sub LoadCracklib {
 BEGIN { $TYPEINFO{UnLoadCracklib} = ["function", "boolean"]; }
 sub UnLoadCracklib {
 	
+    if (!Stage->initial () || Mode->live_installation ()) {
+	y2debug ("no extend in this stage/mode");
+	return 1;
+    }
     return InstExtensionImage->UnLoadExtension ("cracklib-dict-full.rpm",
 	# busy popup message
 	sformat (__("Releasing %1 extension..."), "cracklib-dict-full.rpm"));
