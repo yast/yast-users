@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Oct 31 15:09:40 CET 2008 - jsuchome@suse.cz
+
+- delete crypted homes before writing /etc/passwd
+- check for cracklib-devel in configure
+- 2.17.21 
+
+-------------------------------------------------------------------
 Wed Oct 29 09:08:54 CET 2008 - jsuchome@suse.cz
 
 - during live installation, available package is installed one

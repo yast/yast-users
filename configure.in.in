@@ -11,5 +11,13 @@
 @YAST2-CHECKS-TESTSUITE@
 @YAST2-CHECKS-PROGRAM@
 
+AC_LANG_PUSH(C++)
+yast_found_cracklib=no
+AC_CHECK_HEADER(crack.h,[yast_found_cracklib=yes])
+if [[ "$yast_found_cracklib" = "no" ]]; then
+    AC_MSG_ERROR(Headers for cracklib are missing. Install the package cracklib-devel.)
+fi
+AC_LANG_POP(C++)
+
 ## and generate the output...
 @YAST2-OUTPUT@
