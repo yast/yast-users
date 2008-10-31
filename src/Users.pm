@@ -4399,6 +4399,7 @@ sub Write {
     # Write users
     if ($use_gui) { Progress->NextStage (); }
 
+
     if ($users_modified) {
 	if ($passwd_not_read) {
 	    # error popup (%s is a file name)
@@ -4420,6 +4421,13 @@ sub Write {
 		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
+	}
+	# remove the crypted directories now, so cryptconfig still knows them
+        if (!DeleteCryptedHomes ()) {
+       	    # error popup
+	    $ret = __("An error occurred while removing users.");
+	    Report->Error ($ret);
+	    return $ret;
 	}
 	# -------------------------------------- write /etc/passwd
         if ($plugin_error eq "" && !WritePasswd ()) {
@@ -4507,16 +4515,6 @@ sub Write {
     }
     if (%users_with_crypted_dir) {
 	Package->InstallAll (cryptconfig_packages ());
-    }
-
-    # remove the crypted directories now
-    if ($users_modified) {
-        if (!DeleteCryptedHomes ()) {
-       	    # error popup
-	    $ret = __("An error occurred while removing users.");
-	    Report->Error ($ret);
-	    return $ret;
-	}
     }
 
     # Write passwords
