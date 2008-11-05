@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov  5 12:33:06 CET 2008 - jsuchome@suse.cz
+
+- button labels adapted to current style guide (bnc#440518)
+- 2.17.22 
+
+-------------------------------------------------------------------
 Fri Oct 31 15:09:40 CET 2008 - jsuchome@suse.cz
 
 - delete crypted homes before writing /etc/passwd
