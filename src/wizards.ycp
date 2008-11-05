@@ -82,9 +82,12 @@ define symbol SummaryDialog() {
 	"contents"	: contents,
 	// dialog caption
 	"caption"	: _("User and Group Administration"),
-	"back_button"	: Label::BackButton (),
+	"back_button"	: Stage::cont () ?
+	    Label::BackButton () : Label::CancelButton (),
 	"next_button"	: Stage::cont () ?
-	    Label::NextButton() : Label::FinishButton (),
+	    Label::NextButton() : Label::OKButton (),
+	"abort_button"	: Stage::cont () ?
+	    Label::AbortButton () : "",
 	"fallback_functions"	: $[
 	    `back: ReallyBack
 	],
@@ -274,7 +277,7 @@ define symbol UsersSequence(string start) ``{
 
     if( ! Stage::cont () )
     {
-	Wizard::CreateDialog();
+	Wizard::OpenOKDialog ();
     }
     Wizard::SetDesktopIcon("users");
 
