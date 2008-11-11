@@ -958,7 +958,11 @@ sub CreateUserDN {
     if (!defined $user->{$user_attr} || $user->{$user_attr} eq "") {
 	return undef;
     }
-    return sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr}, $user_base);
+    my $base		= $user_base;
+    $base		= get_base ($user->{"dn"}) if ($user->{"dn"});
+    my $ret	= sprintf ("%s=%s,%s", $dn_attr, $user->{$user_attr}, $base);
+    y2milestone ("new user DN: $ret");
+    return $ret;
 }
 
 ##------------------------------------
@@ -975,7 +979,11 @@ sub CreateGroupDN {
     if (!defined $group->{$group_attr} || $group->{$group_attr} eq "") {
 	return undef;
     }
-    return sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, $group_base);
+    my $base		= $group_base;
+    $base		= get_base ($group->{"dn"}) if ($group->{"dn"});
+    my $ret	= sprintf ("%s=%s,%s", $dn_attr, $group->{$group_attr}, $base);
+    y2milestone ("new group DN: $ret");
+    return $ret;
 }
 
 ##------------------------------------ 
@@ -1428,6 +1436,7 @@ sub WriteUsers {
 		my $new_base		= get_base ($dn);
 		if ($new_base ne get_base ($arg_map{"dn"})) {
 		    $arg_map{"newParentDN"}	= $new_base;
+		    y2milestone ("new_base $new_base, org_dn $org_dn, dn $dn");
 		}
 	    }
 	    if (!SCR->Write (".ldap.modify", \%arg_map, $self->ConvertMap ($user))) {
