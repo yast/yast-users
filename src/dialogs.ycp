@@ -188,7 +188,6 @@ define symbol EditUserDialog (string what) {
     integer uid		= GetInt (user["uidNumber"]:nil, nil);
     integer gid		=
 	GetInt (user["gidNumber"]:nil, Users::GetDefaultGID (user_type));
-    string dn		= user["dn"]:"";
     boolean enabled	= user["enabled"]:true;
     if (user["disabled"]:false)
 	enabled		= false;
@@ -276,7 +275,6 @@ define symbol EditUserDialog (string what) {
 	org_username	= user["org_uid"]:org_username;
 	uid		= GetInt (user["uidNumber"]:nil, uid);
 	gid		= GetInt (user["gidNumber"]:nil, gid);
-	dn		= user["dn"]:dn;
 	enabled		= user["enabled"]:true;
 	if (user["disabled"]:false)
 	    enabled	= false;
@@ -1816,8 +1814,6 @@ define symbol EditGroupDialog (string what) {
     map<string,any> userlist	= group["userlist"]:$[];
     string group_type		= group["type"]:"";
     string new_type		= group_type;
-    string dn			= group["dn"]:"";
-    string new_dn		= dn;
     list additional_users	= [];
     string member_attribute	= UsersLDAP::GetMemberAttribute ();
 
@@ -1863,7 +1859,6 @@ define symbol EditGroupDialog (string what) {
 	more_users	= group["more_users"]:more_users;
 	userlist	= group["userlist"]:userlist;
 	group_type	= group["type"]:group_type;
-	dn		= group["dn"]:dn;
 	if (group_type == "ldap")
 	{
 	    userlist	= group[member_attribute]:$[];
