@@ -1212,11 +1212,11 @@ sub CheckNetworkMethodsAvailability {
 
     my $call_extend	= Stage->initial () && !Mode->live_installation ();
 
-    if ($call_extend && !InstExtensionImage->LoadExtension ("bind.rpm",
+    if ($call_extend && !InstExtensionImage->LoadExtension ("bind",
 	# busy popup message, %1 is package name
-	sformat (__("Retrieving %1 extension..."), "bind.rpm")))
+	sformat (__("Retrieving %1 extension..."), "bind")))
     {
-	y2error ("loading bind.rpm failed, check for network methods skipped");
+	y2error ("loading bind failed, check for network methods skipped");
 	return 0;
     }
 
@@ -1310,9 +1310,9 @@ sub CheckNetworkMethodsAvailability {
 
     if ($call_extend)
     {
-	InstExtensionImage->UnLoadExtension ("bind.rpm",
+	InstExtensionImage->UnLoadExtension ("bind",
 	    # busy popup message, %1 is package name
-	    sformat (__("Releasing %1 extension..."), "bind.rpm"));
+	    sformat (__("Releasing %1 extension..."), "bind"));
     }
 
     return 1;

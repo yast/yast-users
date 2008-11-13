@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Nov 13 08:29:54 CET 2008 - jsuchome@suse.cz
+
+- really rename 'bind.rpm' to 'bind' (bnc#438691)
+- 2.17.24 
+
+-------------------------------------------------------------------
 Tue Nov 11 15:05:28 CET 2008 - jsuchome@suse.cz
 
 - do not move LDAP objects in the tree when not needed (bnc#434324)
