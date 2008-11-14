@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Nov 14 15:15:40 CET 2008 - jsuchome@suse.cz
+
+- do not use Wizard::OpenOKDialog together with hiding Abort button
+  (bnc#444176)
+- 2.17.25 
+
+-------------------------------------------------------------------
 Thu Nov 13 08:29:54 CET 2008 - jsuchome@suse.cz
 
 - really rename 'bind.rpm' to 'bind' (bnc#438691)

@@ -277,7 +277,7 @@ define symbol UsersSequence(string start) ``{
 
     if( ! Stage::cont () )
     {
-	Wizard::OpenOKDialog ();
+	Wizard::OpenNextBackDialog ();
     }
     Wizard::SetDesktopIcon("users");
 
