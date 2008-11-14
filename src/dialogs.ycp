@@ -847,7 +847,6 @@ group memberships can be changed.")) : `VSpacing (0),
 	{
 	    ret = (symbol) UI::UserInput ();
 	}
-
 	if ((ret == `abort || ret == `cancel) && ReallyAbort () != `abort)
 	{
 	    ret = `notnext;
@@ -855,6 +854,8 @@ group memberships can be changed.")) : `VSpacing (0),
 	}
 	if (contains ([`abort,`back,`cancel], ret))
 	    break;
+	if (ret == `ok)
+	    ret = `next;
 
 	boolean tab	= contains (tabids, ret);
 	if (tab && ret == current)

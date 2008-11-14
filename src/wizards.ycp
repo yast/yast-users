@@ -92,7 +92,6 @@ define symbol SummaryDialog() {
 	    `back: ReallyBack
 	],
     ]);
-
     if (ret != nil &&
 	is (ret,symbol) && contains ([`new, `edit, `delete], (symbol) ret))
     {
@@ -182,6 +181,7 @@ define symbol MainSequence(string start) {
 	    `abort		: "without_save",
 	    `cancel		: "without_save",
 	    `next		: `next,
+	    `ok			: `next,
             `nosave		: `nosave,
 	    `exit		: `abort,
 	    `summary		: "summary"
