@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 25 10:38:49 CET 2008 - jsuchome@suse.cz
+
+- installation: do not reset root password when modifying 1st user
+  settings (bnc#445512)
+- 2.17.26
+
+-------------------------------------------------------------------
 Fri Nov 14 15:15:40 CET 2008 - jsuchome@suse.cz
 
 - do not use Wizard::OpenOKDialog together with hiding Abort button

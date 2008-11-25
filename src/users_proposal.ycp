@@ -132,7 +132,10 @@
 	    result	= (symbol)WFM::CallFunction ("inst_root_first", [args]);
 	}
 	else
+	{
+	    args["root_dialog_follows"]	= false;
 	    result	= (symbol)WFM::CallFunction ("inst_user_first", [args]);
+	}
 
 	Wizard::CloseDialog();
 

@@ -523,6 +523,9 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    root_pw	= true;
 	y2debug ("root_pw default value: %1", root_pw);
     }
+    map args	= GetInstArgs::argmap ();
+    // indication that client was called directly from proposal
+    boolean root_dialog_follows	= args["root_dialog_follows"]:true;
 
     // this user gets root's mail
     boolean root_mail	=
@@ -765,7 +768,8 @@ Really use this shorter password?"), pw_min_CA)))
 	    });
 	    UsersSimple::SetUsers (create_users);
 	    UsersSimple::SkipRootPasswordDialog (false);
-	    UsersSimple::SetRootPassword ("");
+	    if (root_dialog_follows)
+		UsersSimple::SetRootPassword ("");
 	    UsersSimple::SetAutologinUser ("");
 	    UsersSimple::SetRootAlias ("");
 	}
@@ -779,7 +783,9 @@ Really use this shorter password?"), pw_min_CA)))
 	    ];
 	    UsersSimple::SetUsers ([user_map]);
 	    UsersSimple::SkipRootPasswordDialog (root_pw);
-	    UsersSimple::SetRootPassword (root_pw ? password : "");
+	    if (root_dialog_follows || root_pw)
+		UsersSimple::SetRootPassword (root_pw ? password : "");
+
 	    UsersSimple::SetAutologinUser (
 		(UI::QueryWidget(`id (`autologin),`Value)==true) ? username : ""
 	    );
