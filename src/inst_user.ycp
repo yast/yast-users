@@ -33,6 +33,11 @@
     list<map> users     = [];
     map<string,any>user	= $[];
 
+    if (UsersSimple::UserCreationSkipped ())
+    {
+	y2milestone ("preconfigured user already written...");
+	return `auto;
+    }
     if (!GetInstArgs::going_back())
     {
 	Users::ReadSystemDefaults (false);
@@ -50,6 +55,7 @@
 	    });
 	}
     }
+
     // what to call after inst_auth dialog
     string client	= UsersSimple::AfterAuth();
 
@@ -95,6 +101,7 @@
 	    y2error ("error while creating user: %1", error);
 	Progress::set (progress_orig);
 	UsersSimple::RemoveUserData ();
+	UsersSimple::SkipUserCreation (true);
 	return `next;
     }
     if (Mode::normal ()) Wizard::CreateDialog (); // for testing only

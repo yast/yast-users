@@ -105,6 +105,9 @@ my $network_methods_checked	= 0;
 # prevent re-reading data map with 1st stage settingss
 my $first_stage_data_not_read	= 1;
 
+# note if users configuration should be run or skipped in 2nd stage (bnc#450231)
+my $skip_user_creation		= 0;
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -113,6 +116,7 @@ YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("InstExtensionImage");
 YaST::YCP::Import ("Mode");
+YaST::YCP::Import ("NetworkService");
 YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
@@ -323,7 +327,18 @@ sub SetKerberosConfiguration {
     $run_krb_config = bool ($krb) if (defined $krb);
 }
 
-    
+# note if users configuration should be run in 2nd stage
+BEGIN { $TYPEINFO{SkipUserCreation} = ["function", "void", "boolean"];}
+sub SkipUserCreation {
+    my ($self, $skip)	= @_;
+    $skip_user_creation = bool ($skip);
+}
+
+# return the value of skip_user_creation
+BEGIN { $TYPEINFO{UserCreationSkipped} = ["function", "boolean"];}
+sub UserCreationSkipped {
+    return bool ($skip_user_creation);
+} 
 
 ##------------------------------------
 # Returns the map of user configured during installation
@@ -1209,6 +1224,11 @@ sub CheckNetworkMethodsAvailability {
     my $self	= shift;
 
     return $network_methods_checked if $network_methods_checked;
+
+    if (!NetworkService->isNetworkRunning()) {
+	y2milestone ("network is not running, skipping network methods test");
+	return 0;
+    }
 
     my $call_extend	= Stage->initial () && !Mode->live_installation ();
 

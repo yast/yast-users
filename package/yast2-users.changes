@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Dec  1 15:51:14 CET 2008 - jsuchome@suse.cz
+
+- do not open user dialogs in 2nd stage if user was configured
+  before (bnc#450231)
+- check for network before checking for network methods (bnc#450469) 
+- 2.17.27
+
+-------------------------------------------------------------------
 Tue Nov 25 10:38:49 CET 2008 - jsuchome@suse.cz
 
 - installation: do not reset root password when modifying 1st user
