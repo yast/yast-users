@@ -4,6 +4,13 @@ default namespace = "http://www.suse.com/1.0/yast2ns"
 namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 namespace config = "http://www.suse.com/1.0/configns"
 
+login_settings = element login_settings {
+    LIST,
+    element FIXME {
+        element FIXME_TOO { text }?
+    }*
+}
+
 groups =
   element groups {
     LIST,

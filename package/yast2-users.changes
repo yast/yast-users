@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Dec  2 14:32:27 CET 2008 - ug@suse.de
+
+- rnc file fixed
+
+-------------------------------------------------------------------
 Mon Dec  1 15:51:14 CET 2008 - jsuchome@suse.cz
 
 - do not open user dialogs in 2nd stage if user was configured
