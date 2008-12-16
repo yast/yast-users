@@ -1225,6 +1225,13 @@ sub CheckNetworkMethodsAvailability {
 
     return $network_methods_checked if $network_methods_checked;
 
+    # no check during firstboot (bnc#458468)
+    if (Stage->firstboot ()) {
+	$network_methods_checked	= 1;
+	y2milestone ("firstboot stage: no check for network methods");
+	return 1;
+    }
+
     if (!NetworkService->isNetworkRunning()) {
 	y2milestone ("network is not running, skipping network methods test");
 	return 0;

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec 16 19:41:55 CET 2008 - jsuchome@suse.cz
+
+- do not try to detect network authentication methods during
+  firstboot (bnc#458468)
+- 2.17.28
+
+-------------------------------------------------------------------
 Tue Dec  2 14:32:27 CET 2008 - ug@suse.de
 
 - rnc file fixed
