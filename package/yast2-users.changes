@@ -2,7 +2,7 @@
 Tue Dec 16 19:44:10 CET 2008 - jsuchome@suse.cz
 
 - do not try to detect network authentication methods during
-  firstboot (#bnc458468)
+  firstboot (bnc#458468)
 - 2.18.0 
 
 -------------------------------------------------------------------
