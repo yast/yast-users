@@ -19,6 +19,7 @@ import "Popup";
 import "Progress";
 import "Report";
 import "Stage";
+import "String";
 import "Summary";
 import "Users";
 import "UsersCache";
@@ -1060,10 +1061,8 @@ a unique identity. Additionally, every user belongs to at least one group.
  */
 define string help_main_end()``{
 
-    // button label (without shortcut sign)
-    string button = Stage::cont () ? _("Next") :
-    // button label (without shortcut sign)
-	_("Finish");
+    string button = Stage::cont () ? Label::NextButton_() :
+	Label::FinishButton_();
 
     // help text 1/3
     return _("<p>
@@ -1084,7 +1083,7 @@ all changes made so far without exiting the configuration module.</p>
 To save the modified user and group settings to your system, press
 <b>%1</b>.
 </p>
-"), button);
+"), String::RemoveShortcut (button));
 }
 
 /**

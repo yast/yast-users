@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jan  6 14:27:21 CET 2009 - jsuchome@suse.cz
+
+- used String::RemoveShortcut where button labels are in the help
+  texts (bnc#307220)
+- 2.18.1 
+
+-------------------------------------------------------------------
 Tue Dec 16 19:44:10 CET 2008 - jsuchome@suse.cz
 
 - do not try to detect network authentication methods during
