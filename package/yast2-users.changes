@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan 15 08:34:35 CET 2009 - jsuchome@suse.cz
+
+- no exit confirmation popup if no changes were made (bnc#458329)
+- fixed typo made in previous change
+
+-------------------------------------------------------------------
 Tue Jan  6 14:27:21 CET 2009 - jsuchome@suse.cz
 
 - used String::RemoveShortcut where button labels are in the help

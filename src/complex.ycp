@@ -114,7 +114,7 @@ define symbol ReallyAbort() ``{
 
     if ( ! Stage::cont () )
     {
-        ret = Popup::ReallyAbort (Modified());
+        ret = Modified() ? Popup::ReallyAbort (true) : true;
     }
     else
     {
