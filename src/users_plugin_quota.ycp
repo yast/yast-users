@@ -118,7 +118,7 @@
 	string help_text = _("<p>Here, configure quota settings of the user on selected file systems.</p>") +
 
 	// helptext for quota, cont.
-	_("<p>Define a size limit by specifying the number of 1 kB blocks the
+	_("<p>Define a size limit by specifying the number of 1 KB blocks the
 user may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the user may have on the file system.</p>
 ") +
 
