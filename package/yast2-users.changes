@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Feb  4 15:21:48 CET 2009 - jsuchome@suse.cz
+
+- read objectClass for LDAP users every time (bnc#471971) 
+
+-------------------------------------------------------------------
 Thu Jan 15 08:34:35 CET 2009 - jsuchome@suse.cz
 
 - no exit confirmation popup if no changes were made (bnc#458329)
