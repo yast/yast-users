@@ -97,6 +97,7 @@ sub CreateHome {
 	    y2error ("error calling $command: ", $out{"stderr"} || "");
 	    return 0;
 	}
+	y2usernote ("Home directory created: '$command'.");
     }
     y2milestone ("The directory $home was successfully created.");
     return 1;
@@ -137,6 +138,7 @@ sub ChownHome {
 	return 0;
     }
     y2milestone ("Owner of files in $home changed to user with UID $uid");
+    y2usernote ("Home directory ownership changed: '$command'");
     return 1;
 }
 
@@ -167,6 +169,7 @@ sub ChmodHome {
 	return 0;
     }
     y2milestone ("Mode of directory $home changed to $mode");
+    y2usernote ("Home directory mode changed: '$command'");
     return 1;
 }
 
@@ -213,6 +216,7 @@ sub MoveHome {
 	return 0;
     }
     y2milestone ("The directory $org_home was successfully moved to $home");
+    y2usernote ("Home directory moved: '$command'");
     return 1;
 }
 
@@ -238,6 +242,7 @@ sub DeleteHome {
 	return 0;
     }
     y2milestone ("The directory $home was succesfully deleted");
+    y2usernote ("Home directory removed: '$command'");
     return 1;
 }
 
@@ -260,25 +265,30 @@ sub DeleteCryptedHome {
     my $key_path	= $self->CryptedKeyPath ($username);
 
     if (%{SCR->Read (".target.stat", $key_path)}) {
-	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $key_path");
+	my $cmd	= "/bin/rm -rf $key_path";
+	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if (($out->{"exit"} || 0) ne 0) {
 	    y2error ("error while removing $key_path file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
+	y2usernote ("Encrypted directory key removed: '$cmd'");
     }
     if (%{SCR->Read (".target.stat", $img_path)}) {
-	my $out     = SCR->Execute (".target.bash_output", "/bin/rm -rf $img_path");
+	my $cmd	= "/bin/rm -rf $img_path";
+	my $out	= SCR->Execute (".target.bash_output", "/bin/rm -rf $img_path");
 	if (($out->{"exit"} || 0) ne 0) {
 	    y2error ("error while removing $img_path file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
-	my $command = "$cryptconfig pm-disable $username";
-	$out	= SCR->Execute (".target.bash_output", $command);
+	y2usernote ("Encrypted directory image removed: '$cmd'");
+	$cmd	= "$cryptconfig pm-disable $username";
+	$out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
-	    y2error ("error calling $command: ", $out->{"stderr"});
+	    y2error ("error calling $cmd: ", $out->{"stderr"});
 	    Report->Error ($out->{"stderr"});
 	    $ret	= 0;
 	}
+	y2usernote ("Disabled pam_mount for $username: '$cmd'");
     }
     return $ret;
 }
@@ -454,14 +464,17 @@ sub CryptHome {
 	SCR->Write (".target.string", $pw_path, $new_pw);
     }
 
+    my $note	= "";
     # resize existing image
     if ($org_size < $home_size && defined $key_file && defined $image_file) {
 	my $add	= $home_size - $org_size;
 	$cmd	=  "$cryptconfig enlarge-image --key-file=$key_file $image_file $add <  $pw_path";
+	$note	= "Encrypted directory resized: '$cmd'";
     }
     # create new image
     elsif ($home_size > $org_size) {
-        $cmd = "$cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+        $cmd	= "$cryptconfig make-ehd --no-verify $username $home_size < $pw_path";
+	$note	= "Encrypted directory created: '$cmd'";
     }
     # ok, only password change was needed
     else {
@@ -476,6 +489,8 @@ sub CryptHome {
 	Report->Error ($out->{"stderr"});
     }
     SCR->Execute (".target.remove", $pw_path);
+    $note =~ s/ [^ ]+$/ (password)/; # hide password in the log
+    y2usernote ($note);
     return 1;
 }
 

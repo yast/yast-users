@@ -28,6 +28,7 @@ Return	nil
 Return	nil
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.target.string "/etc/passwd" "at:x:25:25:Batch jobs daemon:/var/spool/atjobs:/bin/bash\nbin:x:1:1:bin:/bin:/bin/bash\ndaemon:x:2:2:Daemon:/sbin:/bin/bash\nmail:x:8:12:Mailer daemon:/var/spool/clientmqueue:/bin/false\nnobody:x:65534:65533:nobody:/var/lib/nobody:/bin/bash\nroot:x:0:0:root:/root:/bin/bash\nuucp:x:10:14:Unix-to-Unix CoPy system:/etc/uucp:/bin/bash\nhh:x:501:100:HaHa:/home/hh:/bin/bash\nii:x:555:100:Test user:/home/ii:/bin/bash\n+::::::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/passwd.YaST2save /etc/passwd" $["stdout":"hh"]
 Read	.target.stat "/home" $["isdir":true]
 Read	.target.stat "/home/hh" $["isdir":true]
 Read	.target.stat "/home/hh" $["isdir":true]
@@ -55,6 +56,7 @@ Dump	---- commit user:
 Return	true
 Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
 Write	.target.string "/etc/passwd" "at:x:25:25:Batch jobs daemon:/var/spool/atjobs:/bin/bash\nbin:x:1:1:bin:/bin:/bin/bash\ndaemon:x:2:2:Daemon:/sbin:/bin/bash\nmail:x:8:12:Mailer daemon:/var/spool/clientmqueue:/bin/false\nnobody:x:65534:65533:nobody:/var/lib/nobody:/bin/bash\nroot:x:0:0:root:/root:/bin/bash\nuucp:x:10:14:Unix-to-Unix CoPy system:/etc/uucp:/bin/bash\nhh:x:501:100:HaHa:/new/home/hh:/bin/bash\nii:x:555:100:Test user:/home/ii:/bin/bash\n+::::::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/passwd.YaST2save /etc/passwd" $["stdout":"hh"]
 Read	.target.stat "/new/home" $[]
 Execute	.target.mkdir "/new/home" 0
 Read	.target.stat "/new/home/hh" $[]

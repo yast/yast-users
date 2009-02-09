@@ -1413,16 +1413,20 @@ sub WriteUsers {
 			}
 		    }
 		}
+		y2usernote ("LDAP user '$username' was created.");
 	    }
         }
         elsif ($action eq "deleted") {
 	    if (! SCR->Write (".ldap.delete", \%arg_map)) {
 		%ret = %{Ldap->LDAPErrorMap ()};
 	    }
-            elsif ($server && $delete_home) {
-                UsersRoutines->DeleteHome ($home);
-		UsersRoutines->DeleteCryptedHome ($home, $org_username);
-            }
+	    else {
+		if ($server && $delete_home) {
+		    UsersRoutines->DeleteHome ($home);
+		    UsersRoutines->DeleteCryptedHome ($home, $org_username);
+		}
+		y2usernote ("LDAP user '$username' was deleted.");
+	    }
         }
         elsif ($action eq "edited") {
 	    # if there are some attributes with empty values, agent should
@@ -1458,6 +1462,7 @@ sub WriteUsers {
 			UsersRoutines->ChownHome ($uid, $gid, $home);
 		    }
 		}
+		y2usernote ("LDAP user '$username' was modified.");
             }
         }
 	if (defined $ret{"msg"}) {
@@ -1661,13 +1666,19 @@ sub WriteGroups {
 	    if (!SCR->Write (".ldap.add",\%arg_map,$self->ConvertMap($group))) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
-	    elsif ($gid > $last_id) {
-		$last_id	= $gid;
+	    else {
+		if ($gid > $last_id) {
+		    $last_id	= $gid;
+		}
+		y2usernote ("LDAP group '$groupname' was created.");
 	    }
         }
         elsif ($action eq "deleted") {
 	    if (!SCR->Write (".ldap.delete", \%arg_map)) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
+	    }
+	    else {
+		y2usernote ("LDAP group '$groupname' was deleted.");
 	    }
         }
         elsif ($action eq "edited") {
@@ -1682,8 +1693,11 @@ sub WriteGroups {
 	    if (!SCR->Write (".ldap.modify", \%arg_map, $self->ConvertMap($group))) {
 		%ret 		= %{Ldap->LDAPErrorMap ()};
 	    }
-	    elsif ($gid > $last_id) {
-		$last_id	= $gid;
+	    else {
+		if ($gid > $last_id) {
+		    $last_id	= $gid;
+		}
+		y2usernote ("LDAP group '$groupname' was modified.");
 	    }
         }
 	if (defined $ret{"msg"}) {

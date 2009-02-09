@@ -3556,13 +3556,17 @@ sub CommitUser {
         foreach my $group (keys %grouplist) {
             %group_in_work = %{$self->GetGroupByName ($group, "")};
             if (%group_in_work) {
+		my $commit_group	= 0;
 	        # username changed - remove org_username
 	        if ($org_username ne $username) {
-		   $self->RemoveUserFromGroup ($org_username);
+		    if ($self->RemoveUserFromGroup ($org_username)) {
+			$commit_group	= 1;
+		    }
 	        }
 	        if ($self->AddUserToGroup ($username)) {
-		   $self->CommitGroup ();
-	        }
+		    $commit_group	= 1;
+		}
+		$self->CommitGroup () if $commit_group;
 	    }
         };
 
@@ -3932,9 +3936,11 @@ sub WriteCustomSets {
 	YaST::YCP::Boolean ($not_ask_uppercase);
     $customs{"dont_warn_when_nisserver_notdes"} =
 	YaST::YCP::Boolean ($not_ask_nisserver_notdes);
-    my $ret = SCR->Write (".target.ycp", Directory->vardir()."/users.ycp", \%customs);
+    my $file	= Directory->vardir()."/users.ycp";
+    my $ret = SCR->Write (".target.ycp", $file, \%customs);
 
     y2milestone ("Custom user information written: ", $ret);
+    y2usernote ("Custom user information written: '$file'");
     return $ret;
 }
 
@@ -3954,6 +3960,7 @@ sub WriteLoginDefaults {
 	SCR->Write (".etc.default.useradd", "force");
     }
     y2milestone ("Succesfully written useradd defaults: $ret");
+    y2usernote ("File '/etc/default/useradd' was modified.");
     return $ret;
 }
 
@@ -3968,6 +3975,7 @@ sub WriteLoginDefs {
 	SCR->Write (".etc.login_defs", "force");
     }
     y2milestone ("Succesfully written /etc/login.defs: $ret");
+    y2usernote ("File '/etc/login.defs' was modified.");
     return $ret;
 }
 
@@ -3998,31 +4006,52 @@ sub WriteSecurity {
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
-    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/group $base_directory/group.YaST2save") != 0)
+    my $cmd	= "/bin/cp $base_directory/group $base_directory/group.YaST2save";
+    if (SCR->Execute (".target.bash", $cmd) != 0)
     {
+	y2error ("creating backup of $base_directory/group failed");
 	return 0;
     }
-    return UsersPasswd->WriteGroups (\%groups);
+    y2usernote ("Backup created: '$cmd'");
+    my $ret	= UsersPasswd->WriteGroups (\%groups);
+    $cmd	= "diff -U 1 $base_directory/group.YaST2save $base_directory/group";
+    my $out	= SCR->Execute (".target.bash_output", $cmd);
+    my $stdout	= $out->{"stdout"} || "";
+    y2usernote ("Comparing original and new version:
+$stdout`");
+    return $ret;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
-    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save") != 0)
+    my $cmd	= "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save";
+    if (SCR->Execute (".target.bash", $cmd) != 0)
     {
+	y2error ("creating backup of $base_directory/passwd failed");
 	return 0;
     }
-    return UsersPasswd->WriteUsers (\%users);
+    y2usernote ("Backup created: '$cmd'");
+    my $ret	= UsersPasswd->WriteUsers (\%users);
+    $cmd	= "diff -U 1 $base_directory/passwd.YaST2save $base_directory/passwd";
+    my $out	= SCR->Execute (".target.bash_output", $cmd);
+    my $stdout	= $out->{"stdout"} || "";
+    y2usernote ("Comparing original and new version:
+$stdout`");
+    return $ret;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
     
-    if (SCR->Execute (".target.bash", "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save") != 0)
+    my $cmd	= "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save";
+    if (SCR->Execute (".target.bash", $cmd) != 0)
     {
+	y2error ("creating backup of $base_directory/shadow failed");
 	return 0;
     }
+    y2usernote ("Backup created: '$cmd'");
     return UsersPasswd->WriteShadow (\%shadow);
 }
 
@@ -4045,6 +4074,7 @@ sub PreDeleteUsers {
 	    my $cmd = sprintf ("$userdel_precmd $username %i %i %s",
 		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
 	    SCR->Execute (".target.bash", $cmd);
+	    y2usernote ("User pre-deletion script called: '$cmd'");
 	};
     };
     return $ret;
@@ -4095,6 +4125,7 @@ sub PostDeleteUsers {
 	    };
 	    my $result		= UsersPlugins->Apply ("Write", $args, \%user);
 	    $plugin_error	= GetPluginError ($args, $result);
+	    y2usernote ("User post-deletion script called: '$cmd'");
 	};
     };
     return $ret;
@@ -4439,7 +4470,8 @@ sub Write {
 	    $nscd_passwd	= 1;
 	}
 
-	# check for homedir changes
+	# check for homedir changes,
+	# and while going through modified users, log what was done to the user log (y2usernote)
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") {
 		next; #rest of work with homes for LDAP are ruled in WriteLDAP
@@ -4460,6 +4492,9 @@ sub Write {
 		    $users_with_crypted_dir{$username}	= \%user;
 		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
+
+		    y2usernote ("User '$username' created");
+
 		    if ($user_mod eq "imported" && FileUtils->Exists ($home)) {
 			y2milestone ("home directory $home of user $username already exists");
 			next;
@@ -4488,7 +4523,16 @@ sub Write {
 			push @useradd_postcommands, $command;
 		    }
 		}
-		elsif ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
+		if ($user_mod eq "edited") {
+		    my $org_username	= $user{"org_user"}{"uid"} || $username;
+		    if ($username ne $org_username) {
+			y2usernote ("User '$org_username' renamed to '$username'");
+		    }
+		    else {
+			y2usernote ("User '$username' modified");
+		    }
+		}
+		if ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
 		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
 		    my $org_uid = $user{"org_user"}{"uidNumber"} || $uid;
 		    # chown only when directory was changed (#39417)
@@ -4537,10 +4581,14 @@ sub Write {
     # remove the passwd cache for nscd (bug 24748, 41648)
     if (!$write_only && Package->Installed ("nscd")) {
 	if ($nscd_passwd) {
-	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i passwd");
+	    my $cmd	= "/usr/sbin/nscd -i passwd";
+	    SCR->Execute (".target.bash", $cmd);
+	    y2usernote ("nscd cache invalidated: '$cmd'");
 	}
 	if ($nscd_group) {
-	    SCR->Execute (".target.bash", "/usr/sbin/nscd -i group");
+	    my $cmd	= "/usr/sbin/nscd -i group";
+	    SCR->Execute (".target.bash", $cmd);
+	    y2usernote ("nscd cache invalidated: '$cmd'");
 	}
     }
 
@@ -4574,7 +4622,8 @@ sub Write {
 	delete $modified_users{"system"};
     }
     if ($groups_modified) {
-	# -------------------------------------- call Write on plugins
+	# -------------------------------------- call Write on plugins,
+	# (+do some other work while looping over groups)
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
 	    foreach my $groupname (keys %{$modified_groups{$type}}) {
@@ -4587,14 +4636,28 @@ sub Write {
 		my $result = UsersPlugins->Apply ("Write", $args,
 		    $modified_groups{$type}{$groupname});
 		$plugin_error	= GetPluginError ($args, $result);
+		
+		my $group	= $modified_groups{$type}{$groupname};
+		my $mod 	= $group->{"modified"} || "no";
 
 		# store commands for calling groupadd_cmd script
 		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
-		    my $group	= $modified_groups{$type}{$groupname};
-		    my $mod 	= $group->{"modified"} || "no";
 		    if ($mod eq "imported" || $mod eq "added") {
 			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
 			push @groupadd_postcommands, $cmd;
+		    }
+		}
+		# now, log what was done to current modified group
+		if ($mod eq "imported" || $mod eq "added") {
+		    y2usernote ("Group '$groupname' created");
+		}
+		elsif ($mod eq "edited") {
+		    my $org_groupname	= $group->{"org_group"}{"cn"} || $groupname;
+		    if ($groupname ne $org_groupname) {
+			y2usernote ("Group '$org_groupname' renamed to '$groupname'");
+		    }
+		    else {
+			y2usernote ("Group '$groupname' modified");
 		    }
 		}
 	    }
@@ -4612,11 +4675,14 @@ sub Write {
 
     # call make on NIS server
     if (($users_modified || $groups_modified) && $nis_master) {
-        my %out	= %{SCR->Execute (".target.bash_output",
-	    "/usr/bin/make -C /var/yp")};
+	my $cmd	= "/usr/bin/make -C /var/yp";
+        my %out	= %{SCR->Execute (".target.bash_output", $cmd)};
         if (!defined ($out{"exit"}) || $out{"exit"} != 0) {
             y2error ("Cannot make NIS database: ", %out);
         }
+	else {
+	    y2usernote ("NIS server database rebuilt: '$cmd'");
+	}
     }
 
     # complete adding groups
@@ -4624,6 +4690,7 @@ sub Write {
 	foreach my $command (@groupadd_postcommands) {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
+	    y2usernote ("Group post-add script called: '$command'");
 	}
     }
 
@@ -4640,6 +4707,7 @@ sub Write {
 	foreach my $command (@useradd_postcommands) {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
+	    y2usernote ("User post-add script called: '$command'");
 	}
     }
 

@@ -16,6 +16,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\nusers:x:100:\n+:::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/group.YaST2save /etc/group" $["stdout":"gg"]
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
@@ -35,6 +36,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg2' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg2"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\ngg2:x:1001:hh1,hh2\nusers:x:100:\n+:::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/group.YaST2save /etc/group" $["stdout":"gg2"]
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
@@ -54,6 +56,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg3' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg3"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\ngg2:x:1001:hh1,hh2\ngg3:x:1002:hh1,hh2\nusers:x:100:\n+:::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/group.YaST2save /etc/group" $["stdout":"gg3"]
 Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
