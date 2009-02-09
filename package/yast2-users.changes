@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb  9 12:47:40 CET 2009 - jsuchome@suse.cz
+
+- added new logging functions which should produce human readable
+  log file (fate#100386)
+- 2.18.2
+
+-------------------------------------------------------------------
 Wed Feb  4 15:21:48 CET 2009 - jsuchome@suse.cz
 
 - read objectClass for LDAP users every time (bnc#471971) 

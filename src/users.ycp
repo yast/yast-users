@@ -14,6 +14,7 @@ textdomain "users";
 
 y2milestone ("----------------------------------------");
 y2milestone ("Users module started");
+y2useritem ("User and Group Management module started");
 
 import "CommandLine";
 import "Ldap";
@@ -218,7 +219,7 @@ map cmdline = $[
 
 ret = CommandLine::Run (cmdline);
 
-/* Finish */
+y2useritem ("User and Group Management module finished");
 y2milestone("Users module finished with %1", ret);
 y2milestone("----------------------------------------");
 return ret;

@@ -3,9 +3,12 @@
 @HEADER@
 BuildRequires:	cracklib-devel doxygen gcc-c++ perl-Digest-SHA1 perl-XML-Writer update-desktop-files yast2 yast2-devtools yast2-ldap-client yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
 
-Requires:	yast2-perl-bindings yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
+Requires:	yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
 Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
+
+# y2usernote, y2useritem
+Requires:	yast2-perl-bindings >= 2.18.0
 
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
 Requires:	yast2-ldap-client >= 2.17.1

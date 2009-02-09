@@ -715,8 +715,9 @@ sub WriteUsers {
 	    $out	= $out."$plusline\n";
 	}
     }
-    SCR->Write (".target.string", $file, $out);
-    return 1;
+    my $ret	= SCR->Write (".target.string", $file, $out);
+    y2usernote ("File written: '$file'");
+    return $ret;
 }
 
 #--------------------------------------------
@@ -782,7 +783,9 @@ sub WriteShadow {
 	    $out	= $out."$plusline\n";
 	}
     }
-    return SCR->Write (".target.string", $file, $out);
+    my $ret	= SCR->Write (".target.string", $file, $out);
+    y2usernote ("File written: '$file'");
+    return $ret;
 }
 
 
@@ -845,7 +848,9 @@ sub WriteGroups {
 	    $out	= $out."$plusline\n";
 	}
     }
-    return SCR->Write (".target.string", $file, $out);
+    my $ret	= SCR->Write (".target.string", $file, $out);
+    y2usernote ("File written: '$file'");
+    return $ret;
 }
 
 #---------------------------------------------------------------------
