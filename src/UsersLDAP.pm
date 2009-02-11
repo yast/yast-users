@@ -509,7 +509,8 @@ sub Read {
 
     my $user_attrs	= \@user_attributes;
     if (@$user_attrs < 1) {
-	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn", "homedirectory", "userpassword" ];
+	$user_attrs	= [ "uid", "uidnumber", "gidnumber", "gecos", "cn",
+	    "homedirectory", "userpassword", "objectclass" ];
 	y2milestone ("minimal set of user attrs to read: ", @$user_attrs);
     }
     my $group_attrs 	= \@group_attributes;
