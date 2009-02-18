@@ -1762,7 +1762,9 @@ Log the user out first."));
 		continue;
 	    }
 	    // check if autologin is not set for some user
-	    if (what == "add_user" && !complex_layout)
+	    if (what == "add_user" && !complex_layout &&
+		// ask only when there is still one user (bnc#332729)
+		size (UsersCache::GetUsernames ("local")) == 1)
 	    {
 		Autologin::AskForDisabling (
 		    // popup text
