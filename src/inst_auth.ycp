@@ -189,7 +189,7 @@ if (found)
 	"samba"	: "yast2-samba-client", "edir_ldap" : "yast2-linux-user-mgmt" ], {
 	if (available == nil)
 	    return;
-	available   = Package::Available (package);
+	available   = Package::Installed (package) || Package::Available (package);
 	if (available == true)
 	    available_clients = add (available_clients, client);
     });
