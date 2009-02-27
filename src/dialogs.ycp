@@ -966,6 +966,7 @@ Leave it empty?")))
 		{
 		    string full	= (string)UI::QueryWidget (`id (ret), `Value);
 		    full	= splitstring (full, " ")[0]:"";
+		    full	= UsersSimple::Transliterate (full);
 		    UI::ChangeWidget (`id (`username), `Value, tolower (
 			filterchars (full, UsersSimple::ValidLognameChars ()))
 		    );
