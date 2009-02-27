@@ -115,6 +115,7 @@ YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("InstExtensionImage");
+YaST::YCP::Import ("Language");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("NetworkService");
 YaST::YCP::Import ("ProductControl");
@@ -1371,6 +1372,23 @@ sub UnLoadCracklib {
     return InstExtensionImage->UnLoadExtension ("cracklib-dict-full.rpm",
 	# busy popup message
 	sformat (__("Releasing %1 extension..."), "cracklib-dict-full.rpm"));
+}
+
+##------------------------------------
+# use iconv transliteration feature to convert special characters to similar
+# ASCII ones (bnc#442225)
+BEGIN { $TYPEINFO{Transliterate} = ["function", "string", "string"]; }
+sub Transliterate {
+
+    my ($self, $text)	= @_;
+
+    return "" if ! $text;
+    my $language	= Language->language ();
+    my $out = SCR->Execute (".target.bash_output",
+	"echo '$text' | iconv -f utf-8 -t ascii//translit",
+	{ "LANG" => $language });
+    my $stdout = $out->{"stdout"} || "";
+    return $stdout;
 }
 
 42

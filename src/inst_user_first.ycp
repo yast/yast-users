@@ -612,6 +612,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    {
 		string full	= (string)UI::QueryWidget (`id (`cn), `Value);
 		full	= splitstring (full, " ")[0]:"";
+		full	= UsersSimple::Transliterate (full);
 		UI::ChangeWidget (`id (`username), `Value, tolower (
 		    filterchars (full, UsersSimple::ValidLognameChars ()))
 		);

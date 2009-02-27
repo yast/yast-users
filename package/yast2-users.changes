@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb 27 13:41:16 CET 2009 - jsuchome@suse.cz
+
+- transliteration of UTF-8 accented characters to ASCII during
+  name generation (bnc#442225)
+- 2.18.3 
+
+-------------------------------------------------------------------
 Wed Feb 18 16:01:03 CET 2009 - jsuchome@suse.cz
 
 - ask for disabling autologin only when adding 2nd user(bnc#332729) 
