@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 11 10:08:53 CET 2009 - jsuchome@suse.cz
+
+- fixed schema file (bnc#480466) 
+
+-------------------------------------------------------------------
 Fri Feb 27 13:41:16 CET 2009 - jsuchome@suse.cz
 
 - transliteration of UTF-8 accented characters to ASCII during
