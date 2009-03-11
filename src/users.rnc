@@ -5,10 +5,8 @@ namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 namespace config = "http://www.suse.com/1.0/configns"
 
 login_settings = element login_settings {
-    LIST,
-    element FIXME {
-        element FIXME_TOO { text }?
-    }*
+    element autologin_user { text }? & 
+    element password_less_login { BOOLEAN }? 
 }
 
 groups =
