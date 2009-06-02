@@ -81,6 +81,7 @@ my $cracklib_dictpath		= "";
 # if cracklib is used for password checking
 my $use_cracklib 		= 1;
 
+# this is yast2-users internal check now, feature was removed from PAM
 my $obscure_checks 		= 1;
 
 # User/group names must match the following regex expression. (/etc/login.defs)
