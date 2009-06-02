@@ -23,7 +23,13 @@ gr_group = element group {
 
 user_defaults =
   element user_defaults {
-    expire?, ud_group?, ud_groups?, home?, inactive?, shell?, skel?
+    expire? & 
+    ud_group? & 
+    ud_groups? & 
+    home? & 
+    inactive? & 
+    shell? & 
+    skel?
   }
 expire = element expire { text }
 ud_group = element group { text }

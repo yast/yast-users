@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jun  2 13:39:34 CEST 2009 - ug@suse.de
+
+- RNC file is less strict for <user_defaults>
+
+-------------------------------------------------------------------
 Wed Mar 11 10:08:53 CET 2009 - jsuchome@suse.cz
 
 - fixed schema file (bnc#480466) 
