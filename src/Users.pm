@@ -1315,7 +1315,6 @@ sub ReadSystemDefaults {
 
     UsersSimple->SetCrackLibDictPath ($security{"CRACKLIB_DICTPATH"} || "");
     UsersSimple->UseCrackLib ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
-    UsersSimple->UseObscureChecks ($security{"OBSCURE_CHECKS_ENAB"} eq "yes");
 
     if (defined $security{"PASS_MIN_LEN"}) {
 	UsersSimple->SetMinPasswordLength ("local", $security{"PASS_MIN_LEN"});

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jun  2 22:42:58 CEST 2009 - jsuchome@suse.cz
+
+- OBSCURE_CHECKS_ENAB not available from PAM since
+  yast2-security-2.18.0, making related functionality YaST specific
+- 2.18.4
+
+-------------------------------------------------------------------
 Tue Jun  2 13:39:34 CEST 2009 - ug@suse.de
 
 - RNC file is less strict for <user_defaults>
