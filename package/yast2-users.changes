@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jun 19 12:13:05 CEST 2009 - mvidner@suse.cz
+
+- Using autodocs-ycp.ami, which contains a fix for automake 1.11.
+
+-------------------------------------------------------------------
 Tue Jun  2 22:42:58 CEST 2009 - jsuchome@suse.cz
 
 - OBSCURE_CHECKS_ENAB not available from PAM since
