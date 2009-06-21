@@ -19,7 +19,7 @@ Requires:       yast2 >= 2.18.0
 Summary:	YaST2 - User and Group Configuration
 
 %description
--
+This package provides GUI for maintenance of linux users and groups.
 
 @PREP@
 
