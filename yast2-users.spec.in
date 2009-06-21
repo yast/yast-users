@@ -16,7 +16,7 @@ Requires:	yast2-ldap-client >= 2.17.1
 # String::RemoveShortcut
 Requires:       yast2 >= 2.18.0
 
-Summary:	Configuration of users and groups
+Summary:	YaST2 - User and Group Configuration
 
 %description
 -
