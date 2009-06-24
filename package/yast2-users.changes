@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jun 24 11:37:53 CEST 2009 - jsuchome@suse.cz
+
+- in firstboot, allow "Use this password for root" check box
+  (fate#306297)
+- 2.18.5
+
+-------------------------------------------------------------------
 Fri Jun 19 12:13:05 CEST 2009 - mvidner@suse.cz
 
 - Using autodocs-ycp.ami, which contains a fix for automake 1.11.
