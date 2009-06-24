@@ -31,7 +31,7 @@
     string arch	= Arch::architecture ();
 
     boolean check_CA_constraints        =
-        ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
+        (ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check") == true);
 
     // minimal pw length for CA-management (F#300438)
     integer pw_min_CA			= 4;
@@ -511,7 +511,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     // set the initial default value for autologin
     if (user == $[] && !autologin)
     {
-	if (ProductFeatures::GetBooleanFeature ("globals", "enable_autologin"))
+	if (ProductFeatures::GetBooleanFeature ("globals", "enable_autologin") == true)
 	    autologin	= true;
 	y2debug ("autologin default value: %1", autologin);
     }
@@ -519,7 +519,7 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
     // set the initial default value for root pw checkbox
     if (user == $[] && !root_pw)
     {
-	if (ProductFeatures::GetBooleanFeature ("globals", "root_password_as_first_user"))
+	if (ProductFeatures::GetBooleanFeature ("globals", "root_password_as_first_user") == true)
 	    root_pw	= true;
 	y2debug ("root_pw default value: %1", root_pw);
     }
