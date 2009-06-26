@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jun 26 13:47:50 CEST 2009 - jsuchome@suse.cz
+
+- YaPI: enable returing set of attributes (UsersGet, UserGet)
+- 2.18.6
+
+-------------------------------------------------------------------
 Wed Jun 24 11:37:53 CEST 2009 - jsuchome@suse.cz
 
 - in firstboot, allow "Use this password for root" check box
