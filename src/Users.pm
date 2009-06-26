@@ -199,7 +199,6 @@ my $save_root_password		= 0;
 ##------------------- global imports
 
 YaST::YCP::Import ("SCR");
-YaST::YCP::Import ("Arch");
 YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Call");
 YaST::YCP::Import ("Directory");
@@ -4245,23 +4244,6 @@ sub ShowPluginWarning {
     return $result;
 }
 
-# return the list of packages needed for crypted home directories
-# (+ architecture specific, see bnc#392028)
-sub cryptconfig_packages {
-
-    my $arch	= Arch->architecture ();
-    my @ret	= ("cryptconfig");
-    return \@ret  if $arch eq "i386";
-    my %dependency	= (
-	"ia64"		=> "-x86",
-	"ppc64"		=> "-64bit",
-	"s390_64"	=> "-32bit",
-	"x86_64"	=> "-32bit"
-    );
-    push @ret, "cryptconfig".$dependency{$arch};
-    return \@ret;
-}
-
 ##------------------------------------
 BEGIN { $TYPEINFO{Write} = ["function", "string"]; }
 sub Write {
@@ -4568,7 +4550,7 @@ sub Write {
 	}
     }
     if (%users_with_crypted_dir) {
-	Package->InstallAll (cryptconfig_packages ());
+	Package->Install ("cryptconfig");
     }
 
     # Write passwords
