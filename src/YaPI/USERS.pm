@@ -108,6 +108,8 @@ textdomain ("users");
 
 
 # ------------------- imported modules
+YaST::YCP::Import ("Mode");
+
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
 YaST::YCP::Import ("UsersLDAP");
@@ -1148,6 +1150,9 @@ sub UserGet {
     my $ret	= {};
     my $error	= "";
 
+    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
+    Mode->SetUI ("commandline");
+    
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -1212,6 +1217,16 @@ sub UserGet {
 	    }
 	}
     }
+    # return only requested attributes...
+    if ($type eq "local" && $config->{"user_attributes"}) {
+	my $attrs	= {};
+	foreach my $key (@{$config->{"user_attributes"}}) {
+	    $attrs->{$key}	= 1;
+	}
+	foreach my $key (keys %{$ret}) {
+	    delete $ret->{$key} if !$attrs->{$key};
+	}
+    }
     return $ret;
 }
 
@@ -1256,6 +1271,9 @@ sub UsersGet {
     my $config	= $_[0];
     my $ret	= {};
 
+    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
+    Mode->SetUI ("commandline");
+
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -1283,7 +1301,21 @@ sub UsersGet {
 	
     my $index		= $config->{"index"} || "uidNumber";
 
-    return Users->GetUsers ($index, $type);
+    $ret	= Users->GetUsers ($index, $type);
+
+    # return only requested attributes...
+    if ($type eq "local" && $config->{"user_attributes"}) {
+	my $attrs	= {};
+	foreach my $key (@{$config->{"user_attributes"}}) {
+	    $attrs->{$key}	= 1;
+	}
+	foreach my $user (values %{$ret}) {
+	    foreach my $key (keys %{$user}) {
+		delete $user->{$key} if !$attrs->{$key};
+	    }
+	}
+    }
+    return $ret;
 }
 
 =item *
