@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jun 26 15:13:55 CEST 2009 - jsuchome@suse.cz
+
+- manual installation of 32bit packages packages no longer needed
+  (bnc#354164)
+- 2.18.7
+
+-------------------------------------------------------------------
 Fri Jun 26 13:47:50 CEST 2009 - jsuchome@suse.cz
 
 - YaPI: enable returing set of attributes (UsersGet, UserGet)

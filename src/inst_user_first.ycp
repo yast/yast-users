@@ -7,7 +7,6 @@
  * $Id$
  */
 {
-    import "Arch";
     import "Directory";
     import "GetInstArgs";
     import "Label";
@@ -27,8 +26,6 @@
 
     map display_info	= UI::GetDisplayInfo ();
     boolean text_mode	= display_info["TextMode"]:false;
-
-    string arch	= Arch::architecture ();
 
     boolean check_CA_constraints        =
         (ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check") == true);
@@ -60,24 +57,6 @@
 
     // check if LDAP/Kerberos are available
     UsersSimple::CheckNetworkMethodsAvailability ();
-
-    // helper function to se package for installation, together with
-    // architecture dependent version
-    void install_package (string package) {
-
-	Pkg::ResolvableInstall (package, `package);
-	if (issubstring (package, "yast"))
-	    return;
-	map dependency	= $[
-		"ia64"		: "-x86",
-		"ppc64"		: "-64bit",
-		"s390_64"	: "-32bit",
-		"x86_64"	: "-32bit",
-	];
-	string arch_package	= package + dependency[arch]:"";
-	if (arch_package != package && Package::Available(arch_package) == true)
-	    Pkg::ResolvableInstall (package, `package);
-    }
 
     // do not open package progress wizard window
     boolean progress_orig	= Progress::set (false);
@@ -808,13 +787,13 @@ Really use this shorter password?"), pw_min_CA)))
 		],
 	    ];
 	    foreach (string package, required_packages[auth_method]:[], {
-		install_package (package);
+		Pkg::ResolvableInstall (package, `package);
 	    });
 	}
 	if (use_kerberos)
 	{
 	    foreach (string package, ["pam_krb5", "krb5", "krb5-client"], {
-		install_package (package);
+		Pkg::ResolvableInstall (package, `package);
 	    });
 	}
 	if (root_pw)
