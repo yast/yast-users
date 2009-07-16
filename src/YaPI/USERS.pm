@@ -443,6 +443,7 @@ sub UserAdd {
     }
 
     Users->SetGUI (0);
+    Mode->SetUI ("commandline");
 
     $ret = Users->Read ();
     if ($ret ne "") { return $ret; }
