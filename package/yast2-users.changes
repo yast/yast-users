@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Jul 16 15:58:18 CEST 2009 - jsuchome@suse.cz
+
+- use GetFeature instead of GetBooleanFeature to detect if the
+  key is present
+- 2.18.8
+
+-------------------------------------------------------------------
 Fri Jun 26 15:13:55 CEST 2009 - jsuchome@suse.cz
 
 - manual installation of 32bit packages packages no longer needed
