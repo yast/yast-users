@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug 13 10:50:56 CEST 2009 - jsuchome@suse.cz
+
+- fixed key names in the agent for reading NIS data (bnc#526211)
+- 2.18.9
+
+-------------------------------------------------------------------
 Thu Jul 16 15:58:18 CEST 2009 - jsuchome@suse.cz
 
 - use GetFeature instead of GetBooleanFeature to detect if the
