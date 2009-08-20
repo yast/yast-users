@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug 20 16:43:17 CEST 2009 - jsuchome@suse.cz
+
+- text fixes: use YaST, not YaST2 (bnc#532518)
+- 2.18.10 
+
+-------------------------------------------------------------------
 Thu Aug 13 10:50:56 CEST 2009 - jsuchome@suse.cz
 
 - fixed key names in the agent for reading NIS data (bnc#526211)
