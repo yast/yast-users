@@ -335,7 +335,7 @@ global define string GetPasswdErrorMessage (integer errno, string more) ``{
 
     string last =
 // error message 2/2 (= next sentence)
-_("Correct them manually before running the YaST2 users module again.");
+_("Correct them manually before running the YaST users module again.");
 
     map read_error = $[
 
@@ -359,7 +359,7 @@ _("There are multiple groups with the same name (\"%2\") in the file %1.
 _("There is a strange line in the file %1:
 %2
 Perhaps the number of colons is wrong or some line entry is missing.
-Correct the file manually before running the YaST2 users module again."),
+Correct the file manually before running the YaST users module again."),
 "/etc/passwd", more),
 
     8: sformat(
@@ -367,14 +367,14 @@ Correct the file manually before running the YaST2 users module again."),
 _("There is a strange line in the file %1:
 %2
 Perhaps the number of colons is wrong or some line entry is missing.
-Correct the file manually before running the YaST2 users module again."),
+Correct the file manually before running the YaST users module again."),
 "/etc/group", more),
 
     9: sformat(
 // error message 1/2: %1 is file name
 _("There is a strange line in the file %1.
 Perhaps the number of colons is wrong or some line entry is missing.
-Correct the file manually before running the YaST2 users module again."),
+Correct the file manually before running the YaST users module again."),
 "/etc/shadow"),
 
 
