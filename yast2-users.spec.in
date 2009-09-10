@@ -39,7 +39,7 @@ This package provides GUI for maintenance of linux users and groups.
 @desktopdir@/*.desktop
 @moduledir@/*.pm
 @moduledir@/UsersUI.y*
-@moduledir@/YaPI/USERS.pm
+@moduledir@/YaPI/*.pm
 @yncludedir@/users/*
 @schemadir@/autoyast/rnc/users.rnc
 #agents:
