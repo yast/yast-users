@@ -58,6 +58,7 @@ rnc_DATA =		\
 YaPI_perldir = @moduledir@/YaPI
 
 YaPI_perl_DATA = \
+    YaPI/ADMINISTRATOR.pm	\
     YaPI/USERS.pm
 
 
