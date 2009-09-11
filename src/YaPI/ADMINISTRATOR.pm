@@ -8,6 +8,7 @@ textdomain ("users");
 
 # ------------------- imported modules
 YaST::YCP::Import ("MailAliases");
+YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Users");
 # -------------------------------------
 
@@ -29,6 +30,9 @@ BEGIN{$TYPEINFO{Read} = ["function",
 sub Read {
 
     my $self	= shift;
+
+    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
+    Mode->SetUI ("commandline");
 
     my $root_mail	= MailAliases->GetRootAlias ();
     return {} if !defined $root_mail;
@@ -65,6 +69,8 @@ sub Write {
     my $self	= shift;
     my $args	= shift;
     my $ret	= "";
+
+    Mode->SetUI ("commandline");
 
     if ($args->{"aliases"} && ref ($args->{"aliases"}) eq "ARRAY") {
 
