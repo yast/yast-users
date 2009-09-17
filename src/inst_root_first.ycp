@@ -159,7 +159,11 @@ Try again."));
 	    map<string,any> ui_map	= $[];
 	    boolean failed			= false;
 
-	    UsersSimple::LoadCracklib ();
+	    if (!UsersSimple::LoadCracklib ())
+	    {
+		y2error ("loading cracklib failed, not used for pw check");
+		UsersSimple::UseCrackLib (false);
+	    }
 	    if (check_CA_constraints && (size (pw1) < pw_min_CA))
 	    {
 		if (Popup::YesNo (sformat (
