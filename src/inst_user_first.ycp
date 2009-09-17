@@ -706,9 +706,13 @@ Really use this shorter password?"), pw_min_CA)))
 		    continue;
 		}
 	    }
+	    if (!UsersSimple::LoadCracklib ())
+	    {
+		y2error ("loading cracklib failed, not used for pw check");
+		UsersSimple::UseCrackLib (false);
+	    }
 	    do
 	    {
-		UsersSimple::LoadCracklib ();
 		error_map	= UsersSimple::CheckPasswordUI ($[
 		    "uid"		: username,
 		    "userPassword"	: pw1,

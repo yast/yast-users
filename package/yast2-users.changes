@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Sep 17 14:20:04 CEST 2009 - jsuchome@suse.cz
+
+- check for return value of extend (bnc#510999)
+- 2.18.13 
+
+-------------------------------------------------------------------
 Mon Sep 14 14:08:31 CEST 2009 - jsuchome@suse.cz
 
 - new file YaPI/ADMINISTRATOR.pm for root's password and aliases
