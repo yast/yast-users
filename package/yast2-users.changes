@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct  1 14:41:38 CEST 2009 - jsuchome@suse.cz
+
+- add GID to autoYaST group export map in more cases (bnc#540787)
+- 2.18.14
+
+-------------------------------------------------------------------
 Thu Sep 17 14:20:04 CEST 2009 - jsuchome@suse.cz
 
 - check for return value of extend (bnc#510999)

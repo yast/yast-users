@@ -6516,7 +6516,7 @@ sub ExportGroup {
         "groupname"		=> $group->{"cn"}		|| "",
         "userlist"		=> $userlist
     );
-    if (($group->{"modified"} || "edited") ne "edited" ||
+    if (($group->{"modified"} || "") ne "edited" ||
 	(defined $group->{"org_group"} &&
 	(defined $group->{"org_group"}{"gidNumber"} &&
 	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"})
