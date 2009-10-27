@@ -191,6 +191,10 @@ my @local_plugins		= ();
 # if system settings already read by ReadSystemDefaults
 my $system_defaults_read	= 0;
 
+# if new value of root password should be written at the end
+my $save_root_password		= 0;
+
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -282,6 +286,13 @@ sub Modified {
 		$security_modified;
 
     return $ret;
+}
+
+# if root password value should be explicitely written
+BEGIN { $TYPEINFO{SaveRootPassword} = ["function", "void", "boolean"]; }
+sub SaveRootPassword {
+    my $self		= shift;
+    $save_root_password	= bool ($_[0]);
 }
 
 BEGIN { $TYPEINFO{NISAvailable} = ["function", "boolean"]; }
@@ -4706,6 +4717,11 @@ sub Write {
         $use_next_time	= 0;
         undef %saved_user;
         undef %user_in_work;
+    }
+
+    if (Stage->firstboot () && $save_root_password) {
+	$self->WriteRootPassword ();
+	$save_root_password	= 0;
     }
 
     $users_modified	= 0;

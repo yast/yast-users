@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 27 14:27:56 CET 2009 - jsuchome@suse.cz
+
+- in firstboot, allow "Use this password for root" check box
+  (fate#306297)
+- 2.17.30 
+
+-------------------------------------------------------------------
 Thu Oct  1 12:38:00 CEST 2009 - jsuchome@suse.cz
 
 - YaPI: added ADMINISTRATOR.pm (root password, mail aliases)
