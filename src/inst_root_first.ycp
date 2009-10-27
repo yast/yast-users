@@ -25,7 +25,7 @@
     }
 
     boolean check_CA_constraints	=
-	ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check");
+	(ProductFeatures::GetBooleanFeature ("globals","root_password_ca_check") == true);
 
     // minimal pw length for CA-management (F#300438)
     integer pw_min_CA			= 4;
