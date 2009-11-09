@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Nov  6 13:49:32 CET 2009 - jsuchome@suse.cz
+
+- live installation: implicit check for empty user login
+- do not default secondary group list to "video" (bnc#552039)
+- 2.18.15
+
+-------------------------------------------------------------------
 Thu Oct  1 14:41:38 CEST 2009 - jsuchome@suse.cz
 
 - add GID to autoYaST group export map in more cases (bnc#540787)
