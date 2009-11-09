@@ -97,7 +97,7 @@ my %useradd_defaults		= (
     "expire"		=> "",
     "shell"		=> "",
     "skel"		=> "",
-    "groups"		=> "video",
+    "groups"		=> "",
 );
 
 # which sets of users are available:

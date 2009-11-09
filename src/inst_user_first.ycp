@@ -619,7 +619,8 @@ Have mail for root forwarded to this user by checking <b>Receive System Mail</b>
 	    if (username == "")
 	    {
 		// when 2nd stage is enabled, there will be inst_auth anyway
-		if (ProductControl::GetUseAutomaticConfiguration () == false ||
+		if (
+		    (!Mode::live_installation () && ProductControl::GetUseAutomaticConfiguration () == false) ||
 		    // yes-no popup headline
 		    Popup::YesNoHeadline(_("Empty User Login"),
 		    // yes-no popup contents
