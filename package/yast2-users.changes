@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 10 11:00:58 CET 2009 - jsuchome@suse.cz
+
+- YaPI: added ADMINISTRATOR.pm (root password, mail aliases:
+  fate#307141)
+- YaPI: enable returning set of attributes (UsersGet, UserGet)
+- 2.17.28.1 
+
+-------------------------------------------------------------------
 Tue Dec 16 19:41:55 CET 2008 - jsuchome@suse.cz
 
 - do not try to detect network authentication methods during
