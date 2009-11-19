@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Nov 19 08:09:43 CET 2009 - jsuchome@suse.cz
+
+- fix HTML list in proposal (bnc#544981)
+- 2.19.0
+
+-------------------------------------------------------------------
 Fri Nov  6 13:49:32 CET 2009 - jsuchome@suse.cz
 
 - live installation: implicit check for empty user login

@@ -98,7 +98,7 @@
 		encoding2label[UsersSimple::EncryptionMethod ()]:"");
 	}
 	ret = $[
-	    "preformatted_proposal" : HTML::List ([ prop, root_proposal, rest]),
+	    "preformatted_proposal" : rest == "" ? HTML::List ([ prop, root_proposal]) : HTML::List ([ prop, root_proposal, rest]),
 	    "language_changed"	: false,
 	    "links"	: [ "users--user", "users--root" ],
 	];
