@@ -395,7 +395,7 @@ Use it anyway?"), dir)),
 		optionbox = add (optionbox,
 		    `Left (`CheckBox (`id (`root_pw),
 		    // checkbox label
-		    _("U&se this password for system administrator"), root_pw, root_pw_feature)
+		    _("U&se this password for system administrator"), root_pw_feature == true)
 		));
 	}
 	else if (!do_not_edit && !installation ())
