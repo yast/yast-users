@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Nov 30 13:24:17 CET 2009 - jsuchome@suse.cz
+
+- YaPI: call newaliases after updating aliases (bnc#559135)
+- 2.17.28.2
+
+-------------------------------------------------------------------
 Tue Nov 10 11:00:58 CET 2009 - jsuchome@suse.cz
 
 - YaPI: added ADMINISTRATOR.pm (root password, mail aliases:
