@@ -390,8 +390,8 @@ Use it anyway?"), dir)),
 		`Left( `CheckBox (`id (`autologin),_("A&utomatic Login"),
 		    Autologin::used) )
 	    );
-	    boolean root_pw_feature = ProductFeatures::GetBooleanFeature ("globals", "root_password_as_first_user");
-	    if (root_pw_feature != nil)
+	    any root_pw_feature = ProductFeatures::GetFeature ("globals", "root_password_as_first_user");
+	    if (root_pw_feature != "")
 		optionbox = add (optionbox,
 		    `Left (`CheckBox (`id (`root_pw),
 		    // checkbox label

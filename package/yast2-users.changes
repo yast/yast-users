@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Dec  4 15:17:21 CET 2009 - jsuchome@suse.cz
+
+- YaPI: call newaliases after updating aliases (bnc#559135)
+- correctly check for control.xml feature (bnc#560422)
+- 2.17.32 
+
+-------------------------------------------------------------------
 Wed Nov 25 09:12:08 CET 2009 - jsuchome@suse.cz
 
 - fixed syntax error in dialogs.ycp (bnc#557786)
