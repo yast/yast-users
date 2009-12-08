@@ -1651,6 +1651,15 @@ Log the user out first."));
 		UI::ChangeWidget(`id(`autologin), `Value, false);
 	    }
 
+	    // LDAP users can be disabled only with certain plugins (bnc#557714)
+	    if (UI::WidgetExists (`id (`ena)) && user_type == "ldap")
+	    {
+		boolean ena = (
+		    contains (user["plugins"]:[], "UsersPluginLDAPShadowAccount") ||
+		    contains (user["plugins"]:[], "UsersPluginLDAPPasswordPolicy"));
+		UI::ChangeWidget (`id (`ena), `Enabled, ena);
+	    }
+
 	    current	= ret;
 	}
 	if (ret == `details)

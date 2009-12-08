@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec  8 10:37:37 CET 2009 - jsuchome@suse.cz
+
+- show Enabled/Disable checkbox for LDAP users only when action is
+  available (bnc#557714)
+- 2.19.2
+
+-------------------------------------------------------------------
 Mon Nov 30 14:37:51 CET 2009 - jsuchome@suse.cz
 
 - YaPI: call newaliases after updating aliases (bnc#559135)
