@@ -9,6 +9,7 @@ textdomain ("users");
 # ------------------- imported modules
 YaST::YCP::Import ("MailAliases");
 YaST::YCP::Import ("Mode");
+YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Users");
 # -------------------------------------
 
@@ -80,6 +81,8 @@ sub Write {
 	    $ret = __("An error occurred while setting forwarding for root's mail.");
 	    return $ret;
 	}
+	my $out = SCR->Execute (".target.bash_output", "newaliases");
+	$ret = $out->{"stderr"} || "";
     }
     if ($args->{"password"}) {
 	Users->SetRootPassword ($args->{"password"});
