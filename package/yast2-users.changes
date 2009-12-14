@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Dec 14 15:28:24 CET 2009 - jsuchome@suse.cz
+
+- fixed key names in the agent for reading NIS data (bnc#526211) 
+- 2.17.33
+
+-------------------------------------------------------------------
 Fri Dec  4 15:17:21 CET 2009 - jsuchome@suse.cz
 
 - YaPI: call newaliases after updating aliases (bnc#559135)
