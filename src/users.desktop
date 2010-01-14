@@ -22,9 +22,8 @@ X-SuSE-YaST-AutoInstSchema=users.rnc
 X-SuSE-YaST-Keywords=user,group,authentication,login,password
 
 Icon=yast-users
-Exec=/sbin/yast2 users
+Exec=xdg-su -c "/sbin/yast2 users"
 
 Name=User and Group Management
 GenericName=Add, Edit, Delete Users or User Groups
-X-KDE-SubstituteUID=true
 StartupNotify=true
