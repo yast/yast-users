@@ -171,6 +171,7 @@ sub read_group {
     %groups	= ();
     %gids	= ();
     %groupnames	= ();
+    %users_groups       = ();
     %groups_by_gidnumber= ();
     @plus_lines_group	= ();
     @comments_group	= ();

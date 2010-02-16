@@ -63,8 +63,6 @@
 
 //    param = $["users": users];
 
-    block<boolean> abort_block = ``{ return false; };
-
     if (func == "Import") {
 	ret = Users::Import(param);
     }
