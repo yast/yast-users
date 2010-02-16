@@ -1,3 +1,9 @@
+-------------------------------------------------------------------
+Tue Feb 16 14:01:20 CET 2010 - jsuchome@suse.cz
+
+- empty hash before reading, to avoid caching problems (bnc#580167)
+- 2.19.3 
+
 ------------------------------------------------------------------
 Wed Jan 13 18:56:03 CET 2010 - kmachalkova@suse.cz
 
