@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb 16 14:00:46 CET 2010 - jsuchome@suse.cz
+
+- empty hash before reading, to avoid caching problems (bnc#580167) 
+- 2.17.34
+
+-------------------------------------------------------------------
 Mon Dec 14 15:28:24 CET 2009 - jsuchome@suse.cz
 
 - fixed key names in the agent for reading NIS data (bnc#526211) 
