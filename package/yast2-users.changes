@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 26 14:20:43 CET 2010 - jsuchome@suse.cz
+
+- password warnings merged into one big message (bnc#571777)
+- 2.19.4 
+
+-------------------------------------------------------------------
 Tue Feb 16 14:01:20 CET 2010 - jsuchome@suse.cz
 
 - empty hash before reading, to avoid caching problems (bnc#580167)
