@@ -615,12 +615,10 @@ sub CheckObscurity {
     if ($pw =~ m/$name/) {
 	if ($what eq "groups") {
 	    # popup question
-	    return __("You have used the group name as a part of the password.
-This is not a good security practice. Really use this password?");
+	    return __("You have used the group name as a part of the password.");
 	}
 	# popup question
-        return __("You have used the username as a part of the password.
-This is not a good security practice. Really use this password?");
+        return __("You have used the username as a part of the password.");
     }
 
     # check for lowercase
@@ -628,8 +626,7 @@ This is not a good security practice. Really use this password?");
     $filtered 		=~ s/[[:lower:]]//g;
     if ($filtered eq "") {
 	# popup question
-        return __("You have used only lowercase letters for the password.
-This is not a good security practice. Really use this password?");
+        return __("You have used only lowercase letters for the password.");
     }
 
     # check for uppercase
@@ -637,16 +634,14 @@ This is not a good security practice. Really use this password?");
     $filtered 		=~ s/[[:upper:]]//g;
     if ($filtered eq "") {
 	# popup question
-        return __("You have used only uppercase letters for the password.
-This is not a good security practice. Really use this password?");
+        return __("You have used only uppercase letters for the password.");
     }
     
     # check for palindroms
     $filtered 		= reverse $pw;
     if ($filtered eq $pw) {
 	# popup question
-        return __("You have used a palindrom for the password.
-This is not a good security practice. Really use this password?");
+        return __("You have used a palindrom for the password.");
     }
 
     # check for numbers
@@ -654,8 +649,7 @@ This is not a good security practice. Really use this password?");
     $filtered 		=~ s/[0-9]//g;
     if ($filtered eq "") {
 	# popup question
-        return __("You have used only digits for the password.
-This is not a good security practice. Really use this password?");
+        return __("You have used only digits for the password.");
     }
     return "";
 }
@@ -678,7 +672,7 @@ sub CheckPasswordMaxLength {
     if (length ($pw) > $max_length) {
 	# popup question
         $ret = sprintf (__("The password is too long for the current encryption method.
-Truncate it to %s characters?"), $max_length);
+It will be truncated to %s characters."), $max_length);
     }
     return $ret;
 }
@@ -736,72 +730,55 @@ Try again.");
     return "";
 }
 
-##------------------------------------
 # Check the password of given user or group: part 2, checking for
 # problems that may be skipped (accepted) by user
 # @param data map containing user/group name, password and type
-# @param answer map containing all the problems that were already skipped by
-# user
-# @return value is map with the problem found FIXME example
+#
+# Merges all error reports and returns them in the list
 BEGIN { $TYPEINFO{CheckPasswordUI} = ["function",
-    ["map", "string", "string"],
-    ["map", "string", "any"], ["map", "string", "any"]];
+    ["list", "string"],
+    ["map", "string", "any"]];
 }
 sub CheckPasswordUI {
 
-    my ($self, $data, $ui_map)	= @_;
+    my ($self, $data)	= @_;
     my $pw		= $data->{"userPassword"} || "";
     my $name		= $data->{"uid"};
     $name		= ($data->{"cn"} || "") if (!defined $name);
     my $type		= $data->{"type"} || "local";
     my $min_length 	= $self->GetMinPasswordLength ($type);
 
-    my %ret		= ();
+    my @ret		= ();
 
     if ($pw eq "") {
-	return \%ret;
+	return \@ret;
     }
 
-    if ($self->CrackLibUsed () && (($ui_map->{"crack"} || "") ne $pw)) {
+    if ($self->CrackLibUsed ()) {
 	my $error = $self->CrackPassword ($pw);
 	if ($error ne "") {
-	    $ret{"question_id"}	= "crack";
-	    # popup question
-	    $ret{"question"}	= sprintf (__("The password is too simple:
-%s
-Really use this password?"), $error);
-	    return \%ret;
+	    # error message
+	    push @ret, sprintf (__("The password is too simple:
+%s."), $error);
 	}
     }
     
-    if ($self->ObscureChecksUsed () && (($ui_map->{"obscure"} || "") ne $pw)) {
+    if (1) {#$self->ObscureChecksUsed ()) {
 	my $what	= "users";
 	$what		= "groups" if (! defined $data->{"uid"});
 	my $error	= $self->CheckObscurity ($name, $pw, $what);
-	if ($error ne "") {
-	    $ret{"question_id"}	= "obscure";
-	    $ret{"question"}	= $error;
-	    return \%ret;
-	}
+	push @ret, $error if $error;
     }
 
-    if (($ui_map->{"short"} || "") ne $pw) {
-	if (length ($pw) < $min_length) {
-	    $ret{"question_id"}	= "short";
-	    # popup questionm, %i is number
-	    $ret{"question"}	= sprintf (__("The password should have at least %i characters.
-Really use this shorter password?"), $min_length);
-	}
+    if (length ($pw) < $min_length) {
+	# popup error, %i is number
+	push @ret, sprintf (__("The password should have at least %i characters."), $min_length);
     }
     
-    if (($ui_map->{"truncate"} || "") ne $pw) {
-	my $error = $self->CheckPasswordMaxLength ($pw, $type);
-	if ($error ne "") {
-	    $ret{"question_id"}	= "truncate";
-	    $ret{"question"}	= $error;
-	}
-    }
-    return \%ret;
+    my $error = $self->CheckPasswordMaxLength ($pw, $type);
+    push @ret, $error if $error;
+
+    return \@ret;
 }
 
 ##------------------------------------
