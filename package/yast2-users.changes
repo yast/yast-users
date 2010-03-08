@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar  8 10:45:57 CET 2010 - jsuchome@suse.cz
+
+- handle possible empty shadow (bnc#583338)
+- 2.17.35
+
+-------------------------------------------------------------------
 Tue Feb 16 14:00:46 CET 2010 - jsuchome@suse.cz
 
 - empty hash before reading, to avoid caching problems (bnc#580167) 
