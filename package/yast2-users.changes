@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar  8 11:55:53 CET 2010 - jsuchome@suse.cz
+
+- handle possible empty shadow (bnc#583338)
+- 2.19.5 
+
+-------------------------------------------------------------------
 Fri Feb 26 14:20:43 CET 2010 - jsuchome@suse.cz
 
 - password warnings merged into one big message (bnc#571777)

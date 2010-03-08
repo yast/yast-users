@@ -68,6 +68,9 @@ my $base_directory	 = "/etc";
 # data correctly initialized ? (Read must be called before Get*)
 my $initialized		= 0;
 
+# indicates that /etc/shadow is missing (may be intentional, see bnc#583338)
+my $no_shadow		= 0;
+
 #---------------------------------------------------------------------
 #-------------------------------------------------- internal functions
 
@@ -100,11 +103,13 @@ sub read_shadow {
     %shadow_tmp	= ();
     @plus_lines_shadow	= ();
     @comments_shadow	= ();
+    $no_shadow	= 0;
 
     my $file	= "$base_directory/shadow";
 
     if (! FileUtils->Exists ($file)) {
 	y2warning ("$file is not available!");
+    	$no_shadow	= 1;
 	return 1;
     }
     my $in	= SCR->Read (".target.string", $file);
@@ -421,6 +426,10 @@ sub read_passwd {
 		"userPassword"	=> undef,
 		"type"		=> $user_type
 	    };
+	    # sometimes real password might be in /etc/passwd
+	    if ($password ne "" && $password ne "x" && $no_shadow) {
+	    	$users{$user_type}{$username}{"userPassword"} = $password;
+	    }
 
 	    if (! defined $shadow_tmp{$username}) {
 		y2debug ("There is no shadow entry for user $username.");
@@ -688,6 +697,10 @@ sub WriteUsers {
 
 	    my %user	= %{$users_w{$type}{$username}};
 	    my $pass	= "x";
+	    if ($no_shadow && $user{"userPassword"})
+	    {
+		$pass	= $user{"userPassword"};
+	    }
 	    my $cn	= $user{"cn"} || "";
 	    if (defined $user{"addit_data"} && $user{"addit_data"} ne "") {
 		$cn	.= ",".$user{"addit_data"};

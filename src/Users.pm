@@ -4057,11 +4057,19 @@ sub WriteShadow {
     my $cmd	= "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save";
     if (SCR->Execute (".target.bash", $cmd) != 0)
     {
-	y2error ("creating backup of $base_directory/shadow failed");
-	return 0;
+	if (FileUtils->Exists ("$base_directory/shadow")) {
+	    y2error ("creating backup of $base_directory/shadow failed");
+	    return 0;
+	} else {
+	    y2milestone ("$base_directory/shadow does not exists, so it won't be written");
+	    return 1;
+	}
     }
-    y2usernote ("Backup created: '$cmd'");
-    return UsersPasswd->WriteShadow (\%shadow);
+    else
+    {
+	y2usernote ("Backup created: '$cmd'");
+        return UsersPasswd->WriteShadow (\%shadow);
+    }
 }
 
 ##------------------------------------
