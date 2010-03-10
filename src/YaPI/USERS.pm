@@ -103,13 +103,12 @@ package YaPI::USERS;
 use strict;
 use YaST::YCP qw(:LOGGING);
 use YaPI;
+use Data::Dumper;
 
 textdomain ("users");
 
 
 # ------------------- imported modules
-YaST::YCP::Import ("Mode");
-
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
 YaST::YCP::Import ("UsersLDAP");
@@ -362,6 +361,7 @@ PARAMETERS:
     "homeDirectory"	Users's home directory
     "loginShell"	User's login shell
     "gidNumber"		GID of user's default group
+    "groupname"		name of user's default group; YaST itself will look for GID
     "grouplist" 	Hash (of type { <group_name> => 1 }) with groups
 			this user should be member of.
     "shadowinactive"	Days after password expires that account is disabled
@@ -443,7 +443,6 @@ sub UserAdd {
     }
 
     Users->SetGUI (0);
-    Mode->SetUI ("commandline");
 
     $ret = Users->Read ();
     if ($ret ne "") { return $ret; }
@@ -477,6 +476,13 @@ sub UserAdd {
     $user->{"type"}	= $type;
 
     Users->ResetCurrentUser ();
+
+    # if groupname was specified and not gidNumber, find the GID
+    if (($user->{"groupname"} || "") && ! defined $user->{"gidNumber"}) {
+
+	my $group = Users->GetGroupByName ($user->{"groupname"} || "", "");
+	$user->{"gidNumber"} = $group->{"gidNumber"} if (defined $group->{"gidNumber"});
+    }
     
     $ret = Users->AddUser ($user);
     if ($ret ne "") { return $ret; }
@@ -650,6 +656,12 @@ sub UserModify {
     if ($type eq "ldap" && !defined $data->{"dn"}) {
 	my $user	= Users->GetCurrentUser ();
 	$data->{"dn"}	= $user->{"dn"};
+    }
+
+    # if groupname was specified and not gidNumber, find the GID
+    if (($data->{"groupname"} || "") && ! defined $data->{"gidNumber"}) {
+	my $group = Users->GetGroupByName ($data->{"groupname"} || "", "");
+	$data->{"gidNumber"} = $group->{"gidNumber"} if (defined $group->{"gidNumber"});
     }
 
     $error = Users->EditUser ($data);
@@ -1151,9 +1163,7 @@ sub UserGet {
     my $ret	= {};
     my $error	= "";
 
-    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
-    Mode->SetUI ("commandline");
-    
+   
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -1271,9 +1281,6 @@ sub UsersGet {
     my $self	= shift;
     my $config	= $_[0];
     my $ret	= {};
-
-    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
-    Mode->SetUI ("commandline");
 
     Users->SetGUI (0);
 

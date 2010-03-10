@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 10 15:11:56 CET 2010 - jsuchome@suse.cz
+
+- YaPI: allow to specify default group by name (bnc#582254)
+- 2.19.6 
+
+-------------------------------------------------------------------
 Mon Mar  8 11:55:53 CET 2010 - jsuchome@suse.cz
 
 - handle possible empty shadow (bnc#583338)
