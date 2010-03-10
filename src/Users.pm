@@ -1655,7 +1655,7 @@ sub Read {
 	Autologin->Read ();
     }
 
-    if (Stage->cont () && Autologin->available () && !$use_next_time &&
+    if ((Stage->cont () || Stage->firstboot ()) && Autologin->available () && !$use_next_time &&
 	ProductFeatures->GetBooleanFeature ("globals", "enable_autologin")) {
 	Autologin->Use (YaST::YCP::Boolean (1));
     }
