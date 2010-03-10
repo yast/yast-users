@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 10 13:02:43 CET 2010 - jsuchome@suse.cz
+
+- check for autologin status also during firstboot (bnc#576899)
+- 2.17.28.3 
+
+-------------------------------------------------------------------
 Mon Nov 30 13:24:17 CET 2009 - jsuchome@suse.cz
 
 - YaPI: call newaliases after updating aliases (bnc#559135)
