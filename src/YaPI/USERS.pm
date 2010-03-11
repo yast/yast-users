@@ -103,15 +103,16 @@ package YaPI::USERS;
 use strict;
 use YaST::YCP qw(:LOGGING);
 use YaPI;
+use Data::Dumper;
 
 textdomain ("users");
 
 
 # ------------------- imported modules
-YaST::YCP::Import ("Mode");
-
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
+YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersLDAP");
 # -------------------------------------
 
@@ -362,6 +363,7 @@ PARAMETERS:
     "homeDirectory"	Users's home directory
     "loginShell"	User's login shell
     "gidNumber"		GID of user's default group
+    "groupname"		name of user's default group; YaST itself will look for GID
     "grouplist" 	Hash (of type { <group_name> => 1 }) with groups
 			this user should be member of.
     "shadowinactive"	Days after password expires that account is disabled
@@ -443,7 +445,6 @@ sub UserAdd {
     }
 
     Users->SetGUI (0);
-    Mode->SetUI ("commandline");
 
     $ret = Users->Read ();
     if ($ret ne "") { return $ret; }
@@ -477,6 +478,13 @@ sub UserAdd {
     $user->{"type"}	= $type;
 
     Users->ResetCurrentUser ();
+
+    # if groupname was specified and not gidNumber, find the GID
+    if (($user->{"groupname"} || "") && ! defined $user->{"gidNumber"}) {
+
+	my $group = Users->GetGroupByName ($user->{"groupname"} || "", "");
+	$user->{"gidNumber"} = $group->{"gidNumber"} if (defined $group->{"gidNumber"});
+    }
     
     $ret = Users->AddUser ($user);
     if ($ret ne "") { return $ret; }
@@ -650,6 +658,12 @@ sub UserModify {
     if ($type eq "ldap" && !defined $data->{"dn"}) {
 	my $user	= Users->GetCurrentUser ();
 	$data->{"dn"}	= $user->{"dn"};
+    }
+
+    # if groupname was specified and not gidNumber, find the GID
+    if (($data->{"groupname"} || "") && ! defined $data->{"gidNumber"}) {
+	my $group = Users->GetGroupByName ($data->{"groupname"} || "", "");
+	$data->{"gidNumber"} = $group->{"gidNumber"} if (defined $group->{"gidNumber"});
     }
 
     $error = Users->EditUser ($data);
@@ -1151,9 +1165,7 @@ sub UserGet {
     my $ret	= {};
     my $error	= "";
 
-    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
-    Mode->SetUI ("commandline");
-    
+   
     Users->SetGUI (0);
 
     my $type	= $config->{"type"} || "local";
@@ -1271,9 +1283,6 @@ sub UsersGet {
     my $self	= shift;
     my $config	= $_[0];
     my $ret	= {};
-
-    # FIXME HACK to prevent setting mode to testsuite (bnc#243624)
-    Mode->SetUI ("commandline");
 
     Users->SetGUI (0);
 
@@ -2475,6 +2484,53 @@ sub GroupsGetByUser {
     }
     else {
 	$ret = Users->GetGroups ($index, $type);
+    }
+    return $ret;
+}
+
+# Read various default values. The argument map defines what should be returned
+# in the return map
+BEGIN{$TYPEINFO{Read} = ["function",
+    [ "map", "string", "any" ],
+    [ "map", "string", "any" ]];
+}
+sub Read {
+
+    my $self	= shift;
+    my $args	= shift;
+    my $ret	= {};
+
+    Users->SetGUI (0);
+
+    my $user_type	= $args->{"user_type"} || "local";
+
+    if ($args->{"login_defaults"} || 0) {
+	Users->ReadLoginDefaults ();
+	$ret->{"login_defaults"}	= Users->GetLoginDefaults ();
+    }
+    # return password length limitation for given user ('local' by default)
+    if ($args->{"password_length"} || 0) {
+	Users->ReadSystemDefaults (1);
+	$ret->{"pw_min"}	= Users->GetMinPasswordLength ($user_type);
+	$ret->{"pw_max"}	= Users->GetMaxPasswordLength ($user_type);
+    }
+
+    if ($args->{"uid_limits"} || 0) {
+	Users->ReadSystemDefaults (0);
+	my %configuration 	= (
+	    "max_system_uid"	=> UsersCache->GetMaxUID ("system"),
+	    "max_system_gid"	=> UsersCache->GetMaxGID ("system")
+	);
+	UsersPasswd->Read (\%configuration); # for filling last UID...
+
+	UsersCache->SetLastUID (UsersPasswd->GetLastUID ($user_type), $user_type);
+	$ret->{"uid_min"}	= UsersCache->GetMinUID ($user_type);
+	$ret->{"uid_max"}	= UsersCache->GetMaxUID ($user_type);
+	$ret->{"uid_next"}	= UsersCache->NextFreeUID ();
+    }
+    if ($args->{"all_shells"} || 0) {
+	Users->ReadAllShells ();
+	$ret->{"all_shells"}	= Users->AllShells ();
     }
     return $ret;
 }
