@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Mar 11 10:59:20 CET 2010 - jsuchome@suse.cz
+
+- YaPI: allow to specify default group by name (bnc#582254)
+- YaPI enhanced to return default values
+- 2.18.15 
+
+-------------------------------------------------------------------
 Thu Oct  1 14:41:38 CEST 2009 - jsuchome@suse.cz
 
 - add GID to autoYaST group export map in more cases (bnc#540787)
