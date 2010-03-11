@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 11 10:56:49 CET 2010 - jsuchome@suse.cz
+
+- YaPI enhanced to return default values
+- 2.19.7 
+
+-------------------------------------------------------------------
 Wed Mar 10 15:11:56 CET 2010 - jsuchome@suse.cz
 
 - YaPI: allow to specify default group by name (bnc#582254)

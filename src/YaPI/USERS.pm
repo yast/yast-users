@@ -111,6 +111,8 @@ textdomain ("users");
 # ------------------- imported modules
 YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
+YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersLDAP");
 # -------------------------------------
 
@@ -2482,6 +2484,53 @@ sub GroupsGetByUser {
     }
     else {
 	$ret = Users->GetGroups ($index, $type);
+    }
+    return $ret;
+}
+
+# Read various default values. The argument map defines what should be returned
+# in the return map
+BEGIN{$TYPEINFO{Read} = ["function",
+    [ "map", "string", "any" ],
+    [ "map", "string", "any" ]];
+}
+sub Read {
+
+    my $self	= shift;
+    my $args	= shift;
+    my $ret	= {};
+
+    Users->SetGUI (0);
+
+    my $user_type	= $args->{"user_type"} || "local";
+
+    if ($args->{"login_defaults"} || 0) {
+	Users->ReadLoginDefaults ();
+	$ret->{"login_defaults"}	= Users->GetLoginDefaults ();
+    }
+    # return password length limitation for given user ('local' by default)
+    if ($args->{"password_length"} || 0) {
+	Users->ReadSystemDefaults (1);
+	$ret->{"pw_min"}	= Users->GetMinPasswordLength ($user_type);
+	$ret->{"pw_max"}	= Users->GetMaxPasswordLength ($user_type);
+    }
+
+    if ($args->{"uid_limits"} || 0) {
+	Users->ReadSystemDefaults (0);
+	my %configuration 	= (
+	    "max_system_uid"	=> UsersCache->GetMaxUID ("system"),
+	    "max_system_gid"	=> UsersCache->GetMaxGID ("system")
+	);
+	UsersPasswd->Read (\%configuration); # for filling last UID...
+
+	UsersCache->SetLastUID (UsersPasswd->GetLastUID ($user_type), $user_type);
+	$ret->{"uid_min"}	= UsersCache->GetMinUID ($user_type);
+	$ret->{"uid_max"}	= UsersCache->GetMaxUID ($user_type);
+	$ret->{"uid_next"}	= UsersCache->NextFreeUID ();
+    }
+    if ($args->{"all_shells"} || 0) {
+	Users->ReadAllShells ();
+	$ret->{"all_shells"}	= Users->AllShells ();
     }
     return $ret;
 }
