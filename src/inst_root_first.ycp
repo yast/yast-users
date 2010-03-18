@@ -141,9 +141,23 @@ Try again."));
 	    }
 	    if (pw1 == "")
 	    {
-		y2milestone ("root password setting skipped, will occur later");
-		UsersSimple::SetRootPassword (pw1);
-		break;
+		// yes-no popup headline
+		if (Popup::YesNoHeadline(_("No Password Entered"),
+		    // yes-no popup contents
+		    _("If you leave the password empty,
+you will be asked for it later during the configuration sequence.
+
+Leave it empty for now?")))
+		{
+		    y2milestone ("root password setting skipped, will occur later");
+		    UsersSimple::SetRootPassword (pw1);
+		    break;
+		}
+		else
+		{
+		    ret = `notnext;
+		    continue;
+		}
 	    }
 	    string error = UsersSimple::CheckPassword (pw1, "local");
 	    if (error != "")
