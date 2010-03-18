@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 18 09:19:01 CET 2010 - jsuchome@suse.cz
+
+- ask for confirmation when inital root pw not entered (bnc#569322)
+- 2.19.8
+
+-------------------------------------------------------------------
 Thu Mar 11 10:56:49 CET 2010 - jsuchome@suse.cz
 
 - YaPI enhanced to return default values
