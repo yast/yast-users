@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Mar 30 16:10:13 CEST 2010 - jsuchome@suse.cz
+
+- change home directory onwer in case of GID change (bnc#592229)
+- 2.19.9 
+
+-------------------------------------------------------------------
 Thu Mar 18 09:19:01 CET 2010 - jsuchome@suse.cz
 
 - ask for confirmation when inital root pw not entered (bnc#569322)
