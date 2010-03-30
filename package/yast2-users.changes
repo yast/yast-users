@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Mar 30 16:09:23 CEST 2010 - jsuchome@suse.cz
+
+- change home directory onwer in case of GID change (bnc#592229)
+- 2.17.39 
+
+-------------------------------------------------------------------
 Thu Mar 11 10:54:50 CET 2010 - jsuchome@suse.cz
 
 - YaPI enhanced to return default values

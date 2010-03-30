@@ -3859,6 +3859,7 @@ sub CommitGroup {
 		    $user_in_work{"what"}	= "group_change";
 		    if ($gid != $org_gid) {
 			$user_in_work{"what"} 	= "group_change_default";
+			$user_in_work{"org_gidNumber"} = $org_gid unless $user_in_work{"org_gidNumber"};
 		    }
                     $self->CommitUser ();
                 }
@@ -4512,9 +4513,18 @@ sub Write {
 		}
 		elsif ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
 		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
-		    my $org_uid = $user{"org_user"}{"uidNumber"} || $uid;
+		    my $org_uid = $uid;
+		    $org_uid	= $user{"org_user"}{"uidNumber"} if (defined $user{"org_user"}{"uidNumber"});
+		    my $org_gid = $gid;
+		    if (defined $user{"org_user"}{"gidNumber"}) {
+			$org_gid = $user{"org_user"}{"gidNumber"};
+		    }
+		    # this would be actually caused by group modification
+		    elsif (defined $user{"org_gidNumber"}) {
+			$org_gid = $user{"org_gidNumber"};
+		    }
 		    # chown only when directory was changed (#39417)
-		    if ($home ne $org_home || $uid ne $org_uid) {
+		    if ($home ne $org_home || $uid ne $org_uid || $gid ne $org_gid) {
 			# move the home directory
 			if (bool ($create_home)) {
 			    UsersRoutines->MoveHome ($org_home, $home);
