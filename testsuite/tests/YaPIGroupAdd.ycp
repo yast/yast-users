@@ -84,7 +84,7 @@
     Testsuite::Dump ("============ add new group 'gg' - done ====================");
 
 
-    data_map ["userlist"]	= [ "hh1", "hh2" ];
+    data_map ["userlist"]	= [ "hh" ];
     data_map ["cn"]		= "gg2";
     E ["target", "bash_output", "stdout"] = "gg2";
 
@@ -93,8 +93,8 @@
     Testsuite::Dump ("============ add new group 'gg2' - done ====================");
 
     data_map ["userlist"]	= $[
-	"hh1"	: 1,
-	"hh2"	: 1
+	"hh"	: 1,
+	"ii"	: 1
     ];
     data_map ["cn"]		= "gg3";
     E ["target", "bash_output", "stdout"] = "gg3";
@@ -102,6 +102,16 @@
     Testsuite::Dump ("============ add new group 'gg3' with first userlist as map ==");
     Testsuite::Test (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
     Testsuite::Dump ("============ add new group 'gg3' - done ====================");
+
+    data_map ["userlist"]	= $[
+	"hh2"	: 1,
+    ];
+    data_map ["cn"]		= "gg4";
+    E ["target", "bash_output", "stdout"] = "gg4";
+
+    Testsuite::Dump ("============ add new group 'gg4' with non existent user ==");
+    Testsuite::Test (``(YaPI::USERS::GroupAdd (config_map, data_map)), [R,W,E], 0);
+    Testsuite::Dump ("============ add new group 'gg4' - done ====================");
 
     Testsuite::Dump ("============ add new group 'root' (groupname conflict): ======");
 
