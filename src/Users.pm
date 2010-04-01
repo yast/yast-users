@@ -5541,6 +5541,16 @@ sub CheckGroup {
 	$error = $self->CheckGroupname ($group{"cn"});
     }
 
+    if ($error eq "") {
+	my %userlist	= ();
+	if (defined $group{"userlist"}) {
+	    %userlist	= %{$group{"userlist"}};
+	}
+	foreach my $user (keys %userlist) {
+	    my %u = %{$self->GetUserByName ($user, "")};
+	    $error = sprintf (__("User %s does not exist."), $user) unless %u;
+	}
+    }
     my $error_map	=
 	UsersPlugins->Apply ("Check", {
 	    "what"	=> "group",
