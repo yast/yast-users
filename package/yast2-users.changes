@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr  8 14:34:08 CEST 2010 - jsuchome@suse.cz
+
+- check for autologin status also during firstboot (bnc#576899)
+- 2.19.11 
+
+-------------------------------------------------------------------
 Thu Apr  1 12:58:05 CEST 2010 - jsuchome@suse.cz
 
 - check user existence before adding to the group (bnc#592223)
