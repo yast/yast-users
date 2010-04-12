@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr  8 14:17:53 CEST 2010 - jsuchome@suse.cz
+
+- combine password warnings into one popup dialog (bnc#571777)
+- 2.17.28.4 
+
+-------------------------------------------------------------------
 Wed Mar 10 13:02:43 CET 2010 - jsuchome@suse.cz
 
 - check for autologin status also during firstboot (bnc#576899)
