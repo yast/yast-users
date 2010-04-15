@@ -100,8 +100,8 @@ it has to be at least %1 characters long.</p>"), pw_min_CA);
 
     Wizard::SetTitleIcon("yast-users");
     Wizard::SetContents (title, contents, helptext,
-        GetInstArgs::enable_back(),
-	GetInstArgs::enable_next());
+        GetInstArgs::enable_back() || Mode::normal (),
+	GetInstArgs::enable_next() || Mode::normal ());
 
     symbol ret = nil;
 
@@ -160,44 +160,38 @@ Try again."));
 	    boolean failed			= false;
 
 	    UsersSimple::LoadCracklib ();
+	    if (!UsersSimple::LoadCracklib ())
+	    {
+		y2error ("loading cracklib failed, not used for pw check");
+		UsersSimple::UseCrackLib (false);
+	    }
+
+	    list<string> errors	= UsersSimple::CheckPasswordUI ($[
+		    "uid"		: "root",
+		    "userPassword"	: pw1,
+		    "type"		: "system",
+	    ]);
+
 	    if (check_CA_constraints && (size (pw1) < pw_min_CA))
 	    {
-		if (Popup::YesNo (sformat (
+		errors	= add (errors, sformat (
 // yes/no popup question, %1 is a number
 _("If you intend to create certificates,
-the password should have at least %1 characters.
-Really use this shorter password?"), pw_min_CA)))
-		{
-		    // skip other checks for short passwords
-		    ui_map["short"]	= pw1;
-		}
-		else
+the password should have at least %1 characters."), pw_min_CA));
+	    }
+
+	    if (errors != [])
+	    {
+		string message	= mergestring (errors, "\n\n") +
+		    // last part of message popup
+		    "\n\n" + _("Really use this password?");
+		if (!Popup::YesNo (message))
 		{
 		    ret = `notnext;
 		    continue;
 		}
 	    }
-	    do
-	    {
-		error_map	= UsersSimple::CheckPasswordUI ($[
-		    "uid"		: "root",
-		    "userPassword"	: pw1,
-		    "type"		: "system",
-		], ui_map);
-		if (error_map != $[])
-		{
-		    if (!Popup::YesNo (error_map ["question"]:""))
-			failed = true;
-		    else
-			ui_map[ error_map["question_id"]:"" ] = pw1;
-		}
-	    } while (error_map != $[] && !failed);
 
-	    if (failed)
-	    {
-		ret = `notnext;
-		continue;
-	    }
 	    UsersSimple::SetRootPassword (pw1);
 	    UsersSimple::UnLoadCracklib ();
 	}
