@@ -1045,29 +1045,22 @@ Try again."));
 		    focus_tab (current, `pw1);
 		    continue;
 		}
-		boolean failed			= false;
-		do
-		{
-		    error_map	= UsersSimple::CheckPasswordUI ($[
+
+		list<string> errors	= UsersSimple::CheckPasswordUI ($[
 			"uid"		: username,
 			"userPassword"	: pw1,
 			"type"		: user_type
-		    ], ui_map);
-		    if (error_map != $[])
-		    {
-			if (!Popup::YesNo (error_map ["question"]:""))
-			{
-			    failed = true;
-			}
-			else
-			    ui_map[ error_map["question_id"]:"" ] = pw1;
-		    }
-		} while (error_map != $[] && !failed);
-
-		if (failed)
+		]);
+		if (errors != [])
 		{
-		    focus_tab (current, `pw1);
-		    continue;
+		    string message	= mergestring (errors, "\n\n") +
+		    // last part of message popup
+		    "\n\n" + _("Really use this password?");
+		    if (!Popup::YesNo (message))
+		    {
+			focus_tab (current, `pw1);
+			continue;
+		    }
 		}
 		// now saving plain text password
 		if (user["encrypted"]:false)
@@ -2104,29 +2097,24 @@ Try again.")) ;
 		    focus_tab (current, `pw1);
 		    continue;
 		}
-		boolean failed			= false;
-		do
-		{
-		    error_map	= UsersSimple::CheckPasswordUI ($[
+
+		list<string> errors	= UsersSimple::CheckPasswordUI ($[
 			"cn"		: new_groupname,
 			"userPassword"	: pw1,
 			"type"		: group_type
-		    ], ui_map);
-		    if (error_map != $[])
-		    {
-			if (!Popup::YesNo (error_map ["question"]:""))
-			{
-			    failed = true;
-			}
-			else
-			    ui_map[ error_map["question_id"]:"" ] = pw1;
-		    }
-		} while (error_map != $[] && !failed);
-		if (failed)
+		]);
+		if (errors != [])
 		{
-		    focus_tab (current, `pw1);
-		    continue;
+		    string message	= mergestring (errors, "\n\n") +
+		    // last part of message popup
+		    "\n\n" + _("Really use this password?");
+		    if (!Popup::YesNo (message))
+		    {
+			focus_tab (current, `pw1);
+			continue;
+		    }
 		}
+
 		password = pw1;
 		if (group["encrypted"]:false)
 		    group["encrypted"]	= false;

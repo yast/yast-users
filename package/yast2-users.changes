@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr 15 09:20:04 CEST 2010 - jsuchome@suse.cz
+
+- combine password warnings into one popup dialog (bnc#571777) 
+- 2.17.41
+
+-------------------------------------------------------------------
 Thu Apr  1 12:57:31 CEST 2010 - jsuchome@suse.cz
 
 - check user existence before adding to the group (bnc#592223)
