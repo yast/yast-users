@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Apr 22 11:44:39 CEST 2010 - jsuchome@suse.cz
+
+- do not read autologin settings during autoinstallation
+  (bnc#596750)
+- 2.17.42   
+
+-------------------------------------------------------------------
 Thu Apr 15 09:20:04 CEST 2010 - jsuchome@suse.cz
 
 - combine password warnings into one popup dialog (bnc#571777) 
