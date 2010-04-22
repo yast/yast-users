@@ -6113,11 +6113,6 @@ sub Import {
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
 
-    # do not replace possible sysconfig value of autologin (bnc#430111)
-    if (Mode->autoinst ()) {
-        Autologin->Read ();
-    }
-
     my $error_msg = Mode->test () ? "" : $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
