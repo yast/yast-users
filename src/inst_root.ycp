@@ -34,6 +34,13 @@ import "Wizard";
 
 include "users/widgets.ycp";   // for EncryptionPopup()
 
+    // e.g. during firstboot, root pw may be set from first user setup (bnc#599287)
+    if (!GetInstArgs::going_back() && Users::GetRootPassword () != "")
+    {
+	y2milestone ("root password already set, skipping");
+	return `auto;
+    }
+
     Users::ReadSystemDefaults (false);
     UsersSimple::Read (true);
 
