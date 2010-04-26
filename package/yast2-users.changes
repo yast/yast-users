@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Apr 26 13:27:05 CEST 2010 - jsuchome@suse.cz
+
+- skip root password creation if it was already saved (bnc#599287)
+- 2.17.43 
+
+-------------------------------------------------------------------
 Thu Apr 22 11:44:39 CEST 2010 - jsuchome@suse.cz
 
 - do not read autologin settings during autoinstallation
