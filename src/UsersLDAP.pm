@@ -107,8 +107,6 @@ my $min_gid 			= 1000;
 my $min_pass_length		= 5;
 my $max_pass_length		= 8;
 
-# Umask which is used for creating new home directories. (/etc/login.defs)
-my $umask			= "022";
 
 # keys in user's map which are not saved anywhere, they are used for internal
 # purposes only
@@ -626,16 +624,6 @@ sub SetDefaultShadow {
     }
 }
 
-##------------------------------------
-BEGIN { $TYPEINFO{SetUmask} = ["function", "void", "string"];}
-sub SetUmask {
-
-    my $self    = shift;
-    my $u	= shift;
-    if (defined ($u) && $u ne "") {
-	$umask	= $u;
-    }
-}
 
 ##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
@@ -1272,6 +1260,8 @@ sub WriteUsers {
     my $dn_attr 	= $user_naming_attr;
     my $last_id 	= $last_uid;
     my $users		= $_[0];
+    my $umask		= $useradd_defaults{"umask"};
+    $umask		= "022" unless $umask;
     
     # if ldap home directiories are on this machine
     my $server		= Ldap->file_server ();

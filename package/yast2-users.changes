@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon May 24 14:02:03 CEST 2010 - jsuchome@suse.cz
+
+- UMASK setting moved to /etc/default/useradd (bnc#606249)
+- /etc/login.defs no more written 
+- 2/19.14
+
+-------------------------------------------------------------------
 Mon Apr 26 15:14:11 CEST 2010 - jsuchome@suse.cz
 
 - skip root password creation if it was already saved (bnc#599287)

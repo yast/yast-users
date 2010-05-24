@@ -9,6 +9,7 @@ Read	.etc.default.useradd."home" "/tmp/local/home"
 Read	.etc.default.useradd."inactive" 0
 Read	.etc.default.useradd."shell" 0
 Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -29,6 +30,7 @@ Read	.etc.default.useradd."home" "/tmp/local/home"
 Read	.etc.default.useradd."inactive" 0
 Read	.etc.default.useradd."shell" 0
 Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -49,6 +51,7 @@ Read	.etc.default.useradd."home" "/tmp/local/home"
 Read	.etc.default.useradd."inactive" 0
 Read	.etc.default.useradd."shell" 0
 Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -69,6 +72,7 @@ Read	.etc.default.useradd."home" "/tmp/local/home"
 Read	.etc.default.useradd."inactive" 0
 Read	.etc.default.useradd."shell" 0
 Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
@@ -84,6 +88,7 @@ Read	.etc.default.useradd."home" "/tmp/local/home"
 Read	.etc.default.useradd."inactive" 0
 Read	.etc.default.useradd."shell" 0
 Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
 Read	.etc.nsswitch_conf.passwd 0
