@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Dec  3 12:41:56 CET 2010 - jsuchome@suse.cz
+
+- when user is disabled, disable its autologin (bnc#653559)
+- 2.20.1 
+
+-------------------------------------------------------------------
 Mon Sep 13 15:38:48 CEST 2010 - jsuchome@suse.cz
 
 - YaPI: user_attributes also for system users (bnc#638907)
