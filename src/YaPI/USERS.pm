@@ -1231,7 +1231,7 @@ sub UserGet {
 	}
     }
     # return only requested attributes...
-    if ($type eq "local" && $config->{"user_attributes"}) {
+    if (($type eq "local" || $type eq "system") && $config->{"user_attributes"}) {
 	my $attrs	= {};
 	foreach my $key (@{$config->{"user_attributes"}}) {
 	    $attrs->{$key}	= 1;
