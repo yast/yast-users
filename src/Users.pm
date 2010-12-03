@@ -3715,6 +3715,11 @@ sub CommitUser {
 	if ((($user{"modified"} || "") ne "") && $what_user ne "group_change") {
 	    $modified_users{$type}{$username}	= \%user;
 	}
+
+	if (bool ($user{"disabled"}) && Autologin->user () eq $username) {
+	    y2milestone ("user is disabled, disabling autologin");
+	    Autologin->Disable ();
+	}
     }
     undef %user_in_work;
     return 1;
