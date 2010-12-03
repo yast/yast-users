@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Dec  3 10:03:09 CET 2010 - jsuchome@suse.cz
+
+- YaPI: user_attributes also for system users (bnc#638907)
+- when user is disabled, disable its autologin (bnc#653559)
+- 2.17.44 
+
+-------------------------------------------------------------------
 Mon Apr 26 13:27:05 CEST 2010 - jsuchome@suse.cz
 
 - skip root password creation if it was already saved (bnc#599287)
