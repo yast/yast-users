@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Feb 17 10:59:38 CET 2011 - jsuchome@suse.cz
+
+- do not run both 'user' and 'user_non_interactive' steps
+  (bnc#672139)
+- 2.20.2
+
+-------------------------------------------------------------------
 Fri Dec  3 12:41:56 CET 2010 - jsuchome@suse.cz
 
 - when user is disabled, disable its autologin (bnc#653559)
