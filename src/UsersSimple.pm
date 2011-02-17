@@ -918,12 +918,16 @@ sub Write {
     }
     # enable inst_user to either run auth client or write first user
     if ($after_auth ne "users" || $user_defined) {
-	y2milestone ("enabling step 'user' for second stage");
+	# do not let both steps to run (bnc#672139)
 	if ($user_defined) {
+	    y2milestone ("enabling 'user_non_interactive', disabling 'user' for second stage");
 	    ProductControl->EnableModule ("user_non_interactive");
+	    ProductControl->DisableModule ("user");
 	}
 	else {
+	    y2milestone ("enabling 'user', disabling 'user_non_interactive' for second stage");
 	    ProductControl->EnableModule ("user");
+	    ProductControl->DisableModule ("user_non_interactive");
 	}
     }
     # no user entered + 2nd stage visible => enable clients (bnc#393722)
