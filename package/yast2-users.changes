@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Mar 10 15:58:17 CET 2011 - jsuchome@suse.cz
+
+- added possibility to take old encrypted directory by new user
+  (bnc#425745)
+- 2.21.0 
+
+-------------------------------------------------------------------
 Thu Feb 17 10:59:38 CET 2011 - jsuchome@suse.cz
 
 - do not run both 'user' and 'user_non_interactive' steps

@@ -3445,7 +3445,8 @@ sub CryptedHomeModified {
 
     return 0 if ($home_size == 0 && $org_size == 0); # nothing to do
     return 0 if (!defined $pw && !defined $new_pw); # no change without password provided :-(
-    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size && $pw eq $new_pw);
+    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size &&
+		(($pw || "") eq ($new_pw || "")));
     return 1;
 }
 

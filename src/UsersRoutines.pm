@@ -16,6 +16,7 @@ our %TYPEINFO;
 ##------------------------------------
 ##------------------- global imports
 
+YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Pam");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("SCR");
@@ -31,6 +32,12 @@ my $pam_mount_path	= "/etc/security/pam_mount.conf.xml";
 
 # 'volume' information from pam_mount (info about crypted homes)
 my $pam_mount		= undef;
+
+# owners of img files
+my $img2user		= undef;
+
+# owners of key files
+my $key2user		= undef;
 
 # could we use pam_mount? currntly not if fingerprint dev is in use (bnc#390810)
 my $crypted_homes_enabled	= undef;
@@ -335,7 +342,7 @@ sub CryptHome {
     {
 	SCR->Write (".target.string", $pw_path, $pw);
 	my $command = "$cryptconfig open --key-file=$org_key $org_img < $pw_path";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	my $out	= SCR->Execute (".target.bash_output", $command);
 	SCR->Execute (".target.remove", $pw_path);
 	if ($out->{"exit"} ne 0) {
@@ -354,7 +361,7 @@ sub CryptHome {
 	SCR->Execute (".target.bash", "/bin/rm -rf $mnt_dir") if (FileUtils->Exists ($mnt_dir));
 	SCR->Execute (".target.mkdir", $mnt_dir);
 	$command = "mount -o loop $image_path $mnt_dir";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	$out = SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"}); 
@@ -363,21 +370,21 @@ sub CryptHome {
 	}
 	# copy the directory content to tmp home
 	$command = "/bin/cp -ar $mnt_dir $tmpdir/$username";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
 	    return 0;
 	}
 	$command = "umount $mnt_dir";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	$out = SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"}); 
 	    return 0;
 	}
 	$command = "$cryptconfig pm-disable $username";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
@@ -385,7 +392,7 @@ sub CryptHome {
 	    return 0;
 	}
 	$command = "$cryptconfig close $org_img";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	$out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $command: ", $out->{"stderr"});
@@ -402,7 +409,6 @@ sub CryptHome {
 	SCR->Execute (".target.bash", "/bin/rm -rf $org_key");
 	return 1;
     }
-
     # check user renaming or directory move
     if ($home ne $org_home || $org_username ne $username) {
 	if (FileUtils->Exists ($org_img)) {
@@ -428,21 +434,26 @@ sub CryptHome {
 	    }
 	}
     }
-    SCR->Write (".target.string", $pw_path, $pw);
+    if (defined $user->{"take_existing_image"}) {
+	$image_file	= "$home.img" if FileUtils->Exists ("$home.img");
+	$key_file	= "$home.key" if FileUtils->Exists ("$home.key");
+	y2milestone ("going to yake image $image_file by user $username");
+    }
 
     if (defined $key_file || defined $image_file) {
 	$cmd = "$cryptconfig pm-enable --replace ";
 	$cmd = $cmd."--key-file=$key_file " if defined $key_file;
 	$cmd = $cmd."--image-file=$image_file " if defined $image_file;
 	$cmd = $cmd."$username";
-	y2debug ("cmd: $cmd");
+	y2milestone ("cmd: $cmd");
 	my $out = SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    Report->Error ($out->{"stderr"});
-	    SCR->Execute (".target.remove", $pw_path);
 	    return 0; 
 	}
     }
+
+    SCR->Write (".target.string", $pw_path, $pw);
 
     # now check if existing image doesn't need resizing
     $key_file	= $org_key if (!defined $key_file && FileUtils->Exists ($org_key));
@@ -452,7 +463,7 @@ sub CryptHome {
     if ($modified eq "edited" && defined $key_file && defined $new_pw && $new_pw ne $pw) {
 	SCR->Write (".target.string", $pw_path, "$pw\n$new_pw");
 	my $command = "$cryptconfig passwd --no-verify $key_file < $pw_path";
-	y2debug ("cmd: $command");
+	y2milestone ("cmd: $command");
 	my $out	= SCR->Execute (".target.bash_output", $command);
 	if ($out->{"exit"} ne 0) {
 	    y2error ("error calling $command");
@@ -478,12 +489,12 @@ sub CryptHome {
     }
     # ok, only password change was needed
     else {
-	y2debug ("nothing to do");
+	y2milestone ("nothing to do");
 	SCR->Execute (".target.remove", $pw_path);
 	return 1;
     }
 
-    y2debug ("cmd: $cmd");
+    y2milestone ("cmd: $cmd");
     my $out = SCR->Execute (".target.bash_output", $cmd);
     if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	Report->Error ($out->{"stderr"});
@@ -528,6 +539,10 @@ sub ReadCryptedHomesInfo {
 		    my $username	= $usermap->{"user"};
 		    next if !defined $username;
 		    $pam_mount->{$username}	= $usermap;
+		    my $img	= $usermap->{"path"} || "";
+		    $img2user->{$img}	= $username if $img;
+		    my $key	= $usermap->{"fskeypath"} || "";
+		    $key2user->{$key}	= $username if $key;
 		}
 	    }
 	}
@@ -538,6 +553,38 @@ sub ReadCryptedHomesInfo {
 	$pam_mount	= {};
     }
     return 0;
+}
+
+##------------------------------------
+# Return the owner of given crypted directory image
+# @param image name
+# @return string
+BEGIN { $TYPEINFO{CryptedImageOwner} = ["function", "string", "string"];}
+sub CryptedImageOwner {
+
+    my $self    = shift;
+    my $img_file= shift;
+
+    if ($self->ReadCryptedHomesInfo ()) {
+	return $img2user->{$img_file} || "";
+    }
+    return "";
+}
+
+##------------------------------------
+# Return the owner of given crypted directory key
+# @param key name
+# @return string
+BEGIN { $TYPEINFO{CryptedKeyOwner} = ["function", "string", "string"];}
+sub CryptedKeyOwner {
+
+    my $self    = shift;
+    my $key_file= shift;
+
+    if ($self->ReadCryptedHomesInfo ()) {
+	return $key2user->{$key_file} || "";
+    }
+    return "";
 }
 
 ##------------------------------------
