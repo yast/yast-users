@@ -309,6 +309,20 @@ define symbol EditUserDialog (string what) {
     }
 
     /**
+     * helper function: show a popup if existing crypted home directory file
+     * should be used by current user
+     */
+    boolean ask_take_image (string img_file, string key_file) {
+
+	// yes/no popup label, %1,%2 are file paths
+	return Popup::YesNo (sformat (_("Crypted directory image and key files
+'%1' and '%2'
+were found. Use them for current user?
+
+This means that data from this image will be used instead of current home directory."), img_file, key_file));
+    }
+
+    /**
      * helper function: show a popup if existing home directory should be used
      * and its ownership should be changed
      */
@@ -324,7 +338,7 @@ Use it anyway?"), dir)),
 		`CheckBox (`id(`chown_home), _("&Change directory owner"),
 		chown_default)
 	    ),
-	    `HBox(
+	    `ButtonBox(
 		`PushButton (`id(`yes), `opt(`default), Label::YesButton()),
 		`PushButton (`id(`no), Label::NoButton())
 	    ),
@@ -1736,8 +1750,26 @@ Log the user out first."));
 		)
 	    )
 	    {
+		string img_file	= sformat ("%1.img", home);
+		string key_file	= sformat ("%1.key", home);
+		// ask to take existing orphaned image by user
+		// without current directory encrypted (bnc#425745)
+		if (org_crypted_home_size == 0 &&
+		    FileUtils::Exists (img_file) && FileUtils::Exists (key_file) &&
+		    UsersRoutines::CryptedImageOwner (img_file) == "" &&
+		    UsersRoutines::CryptedImageOwner (key_file) == "" &&
+		    ask_take_image (img_file, key_file)
+		)
+		{
+		    user["take_existing_image"]	= img_file;
+		}
+
+
 		// do not ask when enabling for first time and password was already entered
-		if ((user["encrypted"]:false == false || user["text_userpassword"]:nil != nil) &&
+		// do not ask when taking existing image, pw not needed for that FIXME really?
+		if ((user["encrypted"]:false == false ||
+		     user["text_userpassword"]:nil != nil ||
+		     user["take_existing_image"]:"" != "") &&
 		    org_crypted_home_size == 0)
 		{
 		    user["current_text_userpassword"]	= (user["text_userpassword"]:nil != nil) ?
