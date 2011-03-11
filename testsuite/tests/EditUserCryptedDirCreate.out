@@ -1,0 +1,34 @@
+Dump	==========================================================
+Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."group" 100
+Read	.etc.default.useradd."groups" "audio,video"
+Read	.etc.default.useradd."home" "/home"
+Read	.etc.default.useradd."inactive" 0
+Read	.etc.default.useradd."shell" 0
+Read	.etc.default.useradd."skel" 0
+Read	.etc.default.useradd."umask" 0
+Read	.target.string "/etc/shells" 0
+Read	.etc.nsswitch_conf.passwd 0
+Read	.etc.nsswitch_conf.passwd 0
+Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
+Return	
+Return	nil
+Read	.anyxml "/etc/security/pam_mount.conf.xml" $["pam_mount":[$["volume":[$["fskeypath":"/home/hh.key", "path":"/home/hh.img", "user":"not-hh"]]]]]
+Return	
+Dump	---- user 'hh':
+Dump	 $["addit_data":"", "chown_home":true, "cn":"HaHa", "create_home":true, "crypted_home_size":"100", "current_text_userpassword":"password", "encrypted":true, "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "org_user":$["addit_data":"", "chown_home":true, "cn":"HaHa", "create_home":true, "crypted_home_size":"0", "encrypted":true, "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo"], "plugins":[], "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo", "what":"edit_user"]
+Return	true
+Return	nil
+Return	nil
+Return	nil
+Execute	.target.bash "/bin/cp /etc/passwd /etc/passwd.YaST2save" 0
+Write	.target.string "/etc/passwd" "at:x:25:25:Batch jobs daemon:/var/spool/atjobs:/bin/bash\nbin:x:1:1:bin:/bin:/bin/bash\ndaemon:x:2:2:Daemon:/sbin:/bin/bash\nmail:x:8:12:Mailer daemon:/var/spool/clientmqueue:/bin/false\nnobody:x:65534:65533:nobody:/var/lib/nobody:/bin/bash\nroot:x:0:0:root:/root:/bin/bash\nuucp:x:10:14:Unix-to-Unix CoPy system:/etc/uucp:/bin/bash\nhh:x:500:100:HaHa:/home/hh:/bin/bash\nii:x:555:100:Test user:/home/ii:/bin/bash\n+::::::\n" true
+Execute	.target.bash_output "diff -U 1 /etc/passwd.YaST2save /etc/passwd" $["exit":0]
+Execute	.target.bash "/bin/cp /etc/shadow /etc/shadow.YaST2save" 0
+Write	.target.string "/etc/shadow" "at:!:13636:0:99999:7:::\nbin:*:13636::::::\ndaemon:*:13636::::::\nmail:*:13636::::::\nnobody:*:13636::::::\nroot:password:13636::::::\nuucp:*:13636::::::\nhh:heslo:13727:0:99999:7:::\n+::0:0:0::::\n" true
+Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
+Write	.target.string "/tmp/YaST/pw" "password" true
+Execute	.target.bash_output "/usr/sbin/cryptconfig enlarge-image --key-file=  100 <  /tmp/YaST/pw" $["exit":0]
+Execute	.target.remove "/tmp/YaST/pw" 0
+Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
+Return	

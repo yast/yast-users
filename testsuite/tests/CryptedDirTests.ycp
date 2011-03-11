@@ -1,0 +1,67 @@
+/**
+ * File		: CryptedDirTests.ycp
+ * Module	: Users configurator
+ * Summary	: Testing functions from UsersRoutines related to crypted dirs
+ * Author	: Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+
+{
+    import "Directory";
+    import "Mode";
+    import "UsersRoutines";
+
+    map READ = $[
+	"target": $[
+	    "stat"	: $[ "size" : 1 ],
+	    "size"	: -1,
+	    "tmpdir"	: "/tmp/YaST"
+	],
+	"anyxml"	: $[
+	    "pam_mount"	: [
+		$[
+		    "volume":	[
+			$[
+			    "user"	: "hh",
+			    "path"	: "/home/hh.img",
+			    "fskeypath"	: "/home/hh.key"
+			]
+		    ]
+		]
+	    ]
+	]
+    ];
+    map WRITE = $[];
+    map EXEC = $[];
+
+    import "Testsuite";
+
+    Mode::SetTest ("test");
+
+    Testsuite::Test (``(UsersRoutines::ReadCryptedHomesInfo ()), [ READ, WRITE, EXEC], 0);
+
+    Testsuite::Test (``(UsersRoutines::CryptedKeyPath ("hh")), [], 0);
+    Testsuite::Test (``(UsersRoutines::CryptedImagePath ("hh")), [], 0);
+    // no such user -> empty string
+    Testsuite::Test (``(UsersRoutines::CryptedKeyPath ("hhh")), [], 0);
+
+    Testsuite::Test (``(UsersRoutines::CryptedImageOwner ("/home/hh.img")), [], 0);
+    Testsuite::Test (``(UsersRoutines::CryptedKeyOwner ("/home/hh.key")), [], 0);
+    // no such key file -> empty string
+    Testsuite::Test (``(UsersRoutines::CryptedKeyOwner ("/home/hh.img")), [], 0);
+
+    map RSIZE	= $[
+	"target": $[
+	    "stat"	: $[]
+	],
+    ];
+    Testsuite::Test (``(UsersRoutines::FileSizeInMB ("/home/hh.img")), [ RSIZE, $[], $[]], 0);
+    RSIZE["target","stat","size"]	= 1024;
+    Testsuite::Test (``(UsersRoutines::FileSizeInMB ("/home/hh.img")), [ RSIZE, $[], $[]], 0);
+    RSIZE["target","stat","size"]	= 1024 * 1024;
+    Testsuite::Test (``(UsersRoutines::FileSizeInMB ("/home/hh.img")), [ RSIZE, $[], $[]], 0);
+    RSIZE["target","stat","size"]	= 1024 * 1024 * 42;
+    Testsuite::Test (``(UsersRoutines::FileSizeInMB ("/home/hh.img")), [ RSIZE, $[], $[]], 0);
+
+}

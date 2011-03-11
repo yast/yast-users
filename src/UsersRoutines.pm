@@ -518,8 +518,11 @@ sub FileSizeInMB {
 
     my $stat	= SCR->Read (".target.stat", $file);
 
-    return "0" if not defined $stat->{"size"};
-    return sprintf ("%i", $stat->{"size"} / (1024 * 1024));
+    my $size	= $stat->{"size"};
+    return "0" if not $size;
+
+    my $mb	= 1024 * 1024;
+    return ($size < $mb) ? "1" : sprintf ("%i", $size / $mb);
 }
 
 # Read the 'volume' data from pam_mount config file and fill in the global map
