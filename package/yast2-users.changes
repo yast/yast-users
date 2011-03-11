@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Mar 11 11:39:21 CET 2011 - jsuchome@suse.cz
+
+- added tests for encrypted directories
+- 2.21.1 
+
+-------------------------------------------------------------------
 Thu Mar 10 15:58:17 CET 2011 - jsuchome@suse.cz
 
 - added possibility to take old encrypted directory by new user
