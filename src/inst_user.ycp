@@ -179,10 +179,16 @@ Install it now?
 	    UsersSimple::SetAfterAuth ("users");
 	    y2milestone("calling users module to enable creating LDAP user...");
 	}
+	// ldap not used, or the client configuration is different than
+	// proposal from ldap server
 	else
 	{
-	    // ldap not used, or the client configuration is different than
-	    // proposal from ldap server
+	    // make it possible to skip authentication step (bnc#678650)
+	    if (ret == `abort || ret == `cancel)
+	    {
+		y2milestone ("called client aborted, skipping the step");
+		ret	= `next;
+	    }
 	    return (symbol) ret;
 	}
     }
