@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 23 12:10:32 CET 2011 - jsuchome@suse.cz
+
+- do not abort whole installation from auth clients (bnc#678650)
+- 2.21.2 
+
+-------------------------------------------------------------------
 Fri Mar 11 11:39:21 CET 2011 - jsuchome@suse.cz
 
 - added tests for encrypted directories
