@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Apr  1 10:13:20 CEST 2011 - jsuchome@suse.cz
+
+- check for 'sss' in nsswitch.conf for LDAP users (bnc#683782)
+
+-------------------------------------------------------------------
 Wed Mar 23 12:10:32 CET 2011 - jsuchome@suse.cz
 
 - do not abort whole installation from auth clients (bnc#678650)
