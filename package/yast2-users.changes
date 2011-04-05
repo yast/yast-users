@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr  5 11:01:12 CEST 2011 - jsuchome@suse.cz
+
+- added support for SHA-2 based crypto methods (fate309705)
+- 2.21.3 
+
+-------------------------------------------------------------------
 Fri Apr  1 10:13:20 CEST 2011 - jsuchome@suse.cz
 
 - check for 'sss' in nsswitch.conf for LDAP users (bnc#683782)
