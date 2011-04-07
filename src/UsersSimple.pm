@@ -70,6 +70,8 @@ my %max_lengths			= (
     "des"	=> 8,
     "md5"	=> 127,
     "blowfish"	=> 72,
+    "sha256"	=> 127, # arbitrary high number, there's probably no limit
+    "sha512"	=> 127
 );
 
 # name of user that should be logged in automatically

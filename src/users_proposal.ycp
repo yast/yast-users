@@ -34,6 +34,10 @@
 	"md5"		: _("MD5"),
 	// encryption type
 	"blowfish"	: _("Blowfish"),
+	// encryption type
+	"sha256"	: _("SHA-256"),
+	// encryption type
+	"sha512"	: _("SHA-512"),
     ];
 
 

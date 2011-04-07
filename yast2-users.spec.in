@@ -13,6 +13,9 @@ Requires:	yast2-ldap-client >= 2.17.1
 # InstExtensionImage::LoadExtension
 Requires:       yast2 >= 2.17.17
 
+# cryptsha256, cryptsha516
+Requires:       yast2-core >= 2.17.36
+
 Summary:	Configuration of users and groups
 
 %description

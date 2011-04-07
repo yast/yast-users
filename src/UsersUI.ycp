@@ -401,6 +401,10 @@ global define string HashPassword (string method, string pw) ``{
 	return cryptmd5 (pw);
     if (method == "blowfish")
 	return cryptblowfish (pw);
+    if (method == "sha256")
+	return cryptsha256 (pw);
+    if (method == "sha512")
+	return cryptsha512 (pw);
     return crypt (pw);
 }
 
