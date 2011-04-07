@@ -172,20 +172,25 @@ As a general rule of thumb, use DES if you are unsure.
 	  `VSpacing( 0.7 ),
 	  `HBox(
 		`HSpacing( 2 ),
-		`RadioButtonGroup(
 		// frame label
-		`Frame( _("Encryption Type"),
+		`RadioButtonGroup(`id (`methods), `Frame( _("Encryption Type"),
 		  `VBox(
 		  `VSpacing( 0.5 ),
 		  // Radio buttons for password encryption: DES-crypt
-		  `Left(`RadioButton(`id(`des), _("&DES (Linux default)"),
+		  `Left(`RadioButton(`id("des"), _("&DES (Linux default)"),
 			method == "des" ) ),
 		  // Radio buttons for password encryption: MD5-crypt
-		  `Left(`RadioButton(`id(`md5), _("&MD5"),
+		  `Left(`RadioButton(`id("md5"), _("&MD5"),
 			method == "md5" ) ),
 		  // Radio buttons for password encryption: blowfish-crypt
-		  `Left(`RadioButton(`id(`blowfish), _("&Blowfish"),
-			method == "blowfish" ) )
+		  `Left(`RadioButton(`id("blowfish"), _("&Blowfish"),
+			method == "blowfish" ) ),
+		  // Radio buttons for password encryption: sha256 crypt
+		  `Left(`RadioButton(`id("sha256"), _("SHA-&256"),
+			method == "sha256" ) ),
+		  // Radio buttons for password encryption: sha512 crypt
+		  `Left(`RadioButton(`id("sha512"), _("SHA-&512"),
+			method == "sha512" ) )
 		  )
 		)),
 		`HSpacing( 2 )
@@ -217,12 +222,7 @@ As a general rule of thumb, use DES if you are unsure.
 	  }
 	  else if ( button == `ok )
 	  {
-	      if      ( (boolean) UI::QueryWidget( `id(`des), `Value ) )
-		  method = "des";
-	      else if ( (boolean) UI::QueryWidget( `id(`md5), `Value ) )
-		  method = "md5";
-	      else if ( (boolean) UI::QueryWidget( `id(`blowfish), `Value ) )
-		  method = "blowfish";
+	      method	= (string) UI::QueryWidget (`id (`methods), `CurrentButton);
 	      y2milestone( "Changing encryption method to %1", method );
 	  }
       } while ( button != `ok && button != `cancel );

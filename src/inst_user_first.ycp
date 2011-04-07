@@ -121,6 +121,10 @@
 	"md5"		: _("MD5"),
 	// encryption type
 	"blowfish"	: _("Blowfish"),
+	// encryption type
+	"sha256"	: _("SHA-256"),
+	// encryption type
+	"sha512"	: _("SHA-512"),
     ];
     term import_checkbox = `Left (`CheckBox (`id (`import_ch),
 	// check box label
@@ -183,6 +187,10 @@
 	    `Left (`RadioButton (`id ("md5"), _("&MD5"))),
 	    // Radio button label: password encryption type
 	    `Left (`RadioButton (`id ("blowfish"), _("&Blowfish"))),
+	    // Radio button label: password encryption type
+	    `Left (`RadioButton (`id ("sha256"), _("SHA-&256"))),
+	    // Radio button label: password encryption type
+	    `Left (`RadioButton (`id ("sha512"), _("SHA-&512"))),
 	    `VSpacing (0.5)
 	))
     );
@@ -222,6 +230,7 @@ network protocols do not support this and you may have problems with NIS.
 <b>Blowfish</b> is similar to MD5, but uses a different algorithm
 to encrypt passwords.
 </P>");
+
 
     // help text for main add user dialog
     string main_help () {
