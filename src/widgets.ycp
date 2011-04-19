@@ -1337,7 +1337,7 @@ define void InitDefaults (string key) {
         exp_date = deletechars (out["stdout"]:"", "\n");
     }
     UI::ChangeWidget (`id ("expire"), `Value, exp_date);
-    UI::ChangeWidget (`id ("umask"), `Value, Users::GetUmask ());
+    UI::ChangeWidget (`id ("umask"), `Value, defaults["umask"]:"");
     UI::ChangeWidget (`id ("umask"), `InputMaxLength, 3);
 }
 
@@ -1349,7 +1349,7 @@ define void StoreDefaults (string key, map event) {
 
     map defaults	= Users::GetLoginDefaults ();
     map<string,string> new_defaults = $[];
-    foreach (string key, [ "home", "shell", "skel", "inactive" ], {
+    foreach (string key, [ "home", "shell", "skel", "inactive", "umask" ], {
 	any val	= UI::QueryWidget (`id (key), `Value);
 	if (is (val, integer))
 	    val	= sformat("%1", val);
@@ -1394,9 +1394,6 @@ define void StoreDefaults (string key, map event) {
     {
 	Users::SetLoginDefaults (new_defaults, new_defgroup);
     }
-    string umask = (string)UI::QueryWidget (`id ("umask"), `Value);
-    if (umask != Users::GetUmask ())
-	Users::SetUmask (umask);
 }
 
 /**

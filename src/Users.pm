@@ -98,6 +98,7 @@ my %useradd_defaults		= (
     "shell"		=> "",
     "skel"		=> "",
     "groups"		=> "video",
+    "umask"		=> "022"
 );
 
 # which sets of users are available:
@@ -117,7 +118,6 @@ my $ldap_modified		= 0;
 my $customs_modified 		= 0;
 my $defaults_modified 		= 0;
 my $security_modified 		= 0;
-my $login_defs_modified		= 0;
 
 # variables describing available users sets:
 my $nis_available 		= 1;
@@ -151,9 +151,6 @@ my $group_encryption_method	= "des";
 
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
-
-# Umask which is used for creating new home directories. (/etc/login.defs)
-my $umask			= "022";
 
 # the +/- entries in config files:
 my @pluses_passwd		= ();
@@ -282,7 +279,6 @@ sub Modified {
 		$ldap_modified		||
 		$customs_modified	||
 		$defaults_modified	||
-		$login_defs_modified	||
 		$security_modified;
 
     return $ret;
@@ -430,18 +426,9 @@ sub GetAvailableGroupSets {
 # return the global $umask value
 BEGIN { $TYPEINFO{GetUmask} = ["function", "string"]; }
 sub GetUmask {
+    my $umask	= $useradd_defaults{"umask"};
+    $umask 	= "022" unless $umask;
     return $umask;
-}
-
-# set the new value of umask
-BEGIN { $TYPEINFO{SetUmask} = ["function", "void", "string"]; }
-sub SetUmask {
-    my $self	= shift;
-    my $u       = shift;
-    if (defined ($u) && $u ne "" && $u ne $umask) {
-	$umask  = $u;
-	$login_defs_modified	= 1;
-    }
 }
 
 ##------------------------------------
@@ -1338,10 +1325,6 @@ sub ReadSystemDefaults {
 	$character_class= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
     }
 
-    if (contains ($login_defs, "UMASK")) {
-	$umask		= SCR->Read (".etc.login_defs.UMASK");
-    }
-
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
 	my $len	= $max_lengths{$encryption_method};
@@ -1350,7 +1333,6 @@ sub ReadSystemDefaults {
     }
 
     UsersCache->InitConstants (\%security);
-    UsersLDAP->SetUmask ($umask);
     $system_defaults_read	= 1;
 }
 
@@ -3975,20 +3957,6 @@ sub WriteLoginDefaults {
 }
 
 ##------------------------------------
-# Writes settings to /etc/login.defs
-sub WriteLoginDefs {
-
-    my $ret 	= 1;
-
-    $ret	= SCR->Write (".etc.login_defs.UMASK", $umask);
-    if ($ret) {
-	SCR->Write (".etc.login_defs", "force");
-    }
-    y2milestone ("Succesfully written /etc/login.defs: $ret");
-    return $ret;
-}
-
-##------------------------------------
 # Save Security settings (encryption method) if changed in Users module
 BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
@@ -4259,6 +4227,8 @@ sub Write {
     my $nscd_group	= 0;
     my @useradd_postcommands	= ();
     my @groupadd_postcommands	= ();
+
+    my $umask		= $self->GetUmask ();
 
     # progress caption
     my $caption 	= __("Writing User and Group Configuration");
@@ -4706,9 +4676,6 @@ sub Write {
         if ($self->WriteLoginDefaults()) {
 	    $defaults_modified	= 0;
 	}
-    }
-    if ($login_defs_modified && $self->WriteLoginDefs ()) {
-	$login_defs_modified	= 0;
     }
 
     if ($security_modified) {
@@ -6545,7 +6512,7 @@ BEGIN { $TYPEINFO{SetModified} = ["function", "void", "boolean"];}
 sub SetModified {
     my $self	= shift;
     $users_modified = $groups_modified = $customs_modified =
-    $defaults_modified = $security_modified = $login_defs_modified	= $_[0];
+    $defaults_modified = $security_modified = $_[0];
 }
 
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}

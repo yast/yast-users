@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Apr 18 15:58:27 CEST 2011 - jsuchome@suse.cz
+
+- UMASK setting moved to /etc/default/useradd, /etc/login.defs
+  no more written (fate#312153, backport of bnc#606249)
+- 2.17.46 
+
+-------------------------------------------------------------------
 Thu Apr  7 14:16:24 CEST 2011 - jsuchome@suse.cz
 
 - added support for SHA-2 based crypto methods (fate309705)
