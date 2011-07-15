@@ -643,7 +643,7 @@ sub CheckObscurity {
     $filtered 		= reverse $pw;
     if ($filtered eq $pw) {
 	# popup question
-        return __("You have used a palindrom for the password.");
+        return __("You have used a palindrome for the password.");
     }
 
     # check for numbers

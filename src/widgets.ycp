@@ -245,7 +245,7 @@ define symbol AskForNISServerEncryptionPopup (string encr) {
 You have changed the default encryption for user passwords.</p>") +
 
     // help text 2/3
-    _("<p>It seems that you are running a NIS server. In some network enviroments,
+    _("<p>It seems that you are running a NIS server. In some network environments,
 you could be unable to log in to a NIS client when a user password is
 encrypted with a method other than DES.
 </p>
