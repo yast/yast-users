@@ -157,14 +157,7 @@ network protocols do not support this and you may have problems with NIS.
 </p>");
 
       // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-      // Help text for password expert dialog 5/5
-      help_text = help_text + _("<p>
-As a general rule of thumb, use DES if you are unsure.
-</p>");
+      help_text = help_text + _("<p><b>SHA-512</b> is the current standard hash method, using other algorithms is not recommended unless needed for compatibility purpose.</p>");
 
       UI::OpenDialog(
 	`VBox(
@@ -174,26 +167,22 @@ As a general rule of thumb, use DES if you are unsure.
 	  `HBox(
 		`HSpacing( 2 ),
 		// frame label
-		`RadioButtonGroup(`id (`methods), `Frame( _("Encryption Type"),
-		  `VBox(
+		`RadioButtonGroup(`id (`methods), `Frame( _("Encryption Type"), `HBox (`HSpacing (), `VBox(
 		  `VSpacing( 0.5 ),
 		  // Radio buttons for password encryption: DES-crypt
-		  `Left(`RadioButton(`id("des"), _("&DES (Linux default)"),
+		  `Left(`RadioButton(`id("des"), _("&DES"),
 			method == "des" ) ),
 		  // Radio buttons for password encryption: MD5-crypt
 		  `Left(`RadioButton(`id("md5"), _("&MD5"),
 			method == "md5" ) ),
-		  // Radio buttons for password encryption: blowfish-crypt
-		  `Left(`RadioButton(`id("blowfish"), _("&Blowfish"),
-			method == "blowfish" ) ),
 		  // Radio buttons for password encryption: sha256 crypt
 		  `Left(`RadioButton(`id("sha256"), _("SHA-&256"),
 			method == "sha256" ) ),
 		  // Radio buttons for password encryption: sha512 crypt
 		  `Left(`RadioButton(`id("sha512"), _("SHA-&512"),
-			method == "sha512" ) )
-		  )
-		)),
+			method == "sha512" ) ),
+		  `VSpacing( 0.5 )
+		)))),
 		`HSpacing( 2 )
 	  ),
 	  `VSpacing( 0.5 ),

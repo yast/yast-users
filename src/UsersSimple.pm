@@ -47,7 +47,7 @@ my @users			= ();
 
 
 # password encryption method
-my $encryption_method		= "blowfish";
+my $encryption_method		= "sha512";
 
 # mail alias for root
 my $root_alias			= "";

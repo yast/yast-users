@@ -35,8 +35,6 @@
 	"crypt" :_("DES"),
 	// encryption type
 	"md5" :	_("MD5"),
-	// encryption type
-	"blowfish" : _("Blowfish")
     ];
     string method = Users::EncryptionMethod ();
     if (type == "ldap")

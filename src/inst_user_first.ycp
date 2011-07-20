@@ -99,8 +99,6 @@
 	// encryption type
 	"md5"		: _("MD5"),
 	// encryption type
-	"blowfish"	: _("Blowfish"),
-	// encryption type
 	"sha256"	: _("SHA-256"),
 	// encryption type
 	"sha512"	: _("SHA-512"),
@@ -161,11 +159,9 @@
 	`RadioButtonGroup (`id (`encryption_method), `VBox (
 	    `VSpacing (0.5),
 	    // Radio button label: password encryption type
-	    `Left (`RadioButton (`id ("des"), _("&DES (Linux default)"))),
+	    `Left (`RadioButton (`id ("des"), _("&DES"))),
 	    // Radio button label: password encryption type
 	    `Left (`RadioButton (`id ("md5"), _("&MD5"))),
-	    // Radio button label: password encryption type
-	    `Left (`RadioButton (`id ("blowfish"), _("&Blowfish"))),
 	    // Radio button label: password encryption type
 	    `Left (`RadioButton (`id ("sha256"), _("SHA-&256"))),
 	    // Radio button label: password encryption type
@@ -205,11 +201,7 @@ network protocols do not support this and you may have problems with NIS.
 </p>") +
 
       // Help text for password expert dialog
-      _("<p>
-<b>Blowfish</b> is similar to MD5, but uses a different algorithm
-to encrypt passwords.
-</P>");
-
+      _("<p><b>SHA-512</b> is the current standard hash method, using other algorithms is not recommended unless needed for compatibility purpose.</p>");
 
     // help text for main add user dialog
     string main_help () {
