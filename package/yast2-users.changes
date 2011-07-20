@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jul 20 11:10:22 CEST 2011 - jsuchome@suse.cz
+
+- remove blowfish hash from selections, make sha512 the default
+  (fate#312321)
+- 2.21.6 
+
+-------------------------------------------------------------------
 Fri Jul 15 12:45:19 CEST 2011 - jsuchome@suse.cz
 
 - adapted testsuite to previous change

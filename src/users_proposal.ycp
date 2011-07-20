@@ -33,8 +33,6 @@
 	// encryption type
 	"md5"		: _("MD5"),
 	// encryption type
-	"blowfish"	: _("Blowfish"),
-	// encryption type
 	"sha256"	: _("SHA-256"),
 	// encryption type
 	"sha512"	: _("SHA-512"),
@@ -95,7 +93,8 @@
 		    ahref, "/a", user["cn"]:"", user["uid"]:"");
 	}
 	string rest	= "";
-	if (UsersSimple::EncryptionMethod () != "blowfish")
+	// only show in summary if non-default method is used
+	if (UsersSimple::EncryptionMethod () != "sha512")
 	{
 	    // summary line
 	    rest	= sformat (_("Password Encryption Method: %1"),
