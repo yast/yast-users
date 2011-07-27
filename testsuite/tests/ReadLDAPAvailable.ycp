@@ -1,0 +1,32 @@
+/**
+ * File		: ReadLDAPAvailable.ycp
+ * Module	: Users configurator
+ * Summary	: Test of UsersLDAP::ReadAvailable
+ * Authors	: Jiri Suchomel <jsuchome@suse.cz>
+ */
+
+{
+    // testedfiles: UsersLDAP.pm
+
+    map READ = $[
+	"etc" : $[
+	    "nsswitch_conf" : $[
+		"passwd"	: "ldap files"
+	    ],
+	],
+    ];
+
+    import "Testsuite";
+    import "UsersLDAP";
+
+    Testsuite::Test (``(UsersLDAP::ReadAvailable ()), [READ, $[], $[]], 0);
+
+    READ["etc","nsswitch_conf","passwd"]	= "files";
+
+    Testsuite::Test (``(UsersLDAP::ReadAvailable ()), [READ, $[], $[]], 0);
+
+    READ["etc","nsswitch_conf","passwd"]	= "sss";
+
+    Testsuite::Test (``(UsersLDAP::ReadAvailable ()), [READ, $[], $[]], 0);
+
+}

@@ -173,7 +173,7 @@ sub ReadAvailable {
     my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
     if (defined $passwd_source) {
 	foreach my $source (split (/ /, $passwd_source)) {
-	    if ($source eq "ldap") { return 1; }
+	    if ($source eq "ldap" || $source eq "sss") { return 1; }
 	    if ($source eq "compat") { $compat = 1; }
 	}
     }
