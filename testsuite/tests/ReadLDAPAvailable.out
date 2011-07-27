@@ -1,0 +1,6 @@
+Read	.etc.nsswitch_conf.passwd "ldap files"
+Return	true
+Read	.etc.nsswitch_conf.passwd "files"
+Return	false
+Read	.etc.nsswitch_conf.passwd "sss"
+Return	true
