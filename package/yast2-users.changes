@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jul 27 11:32:42 CEST 2011 - jsuchome@suse.cz
+
+- check for 'sss' in nsswitch.conf for LDAP users, added test
+  (bnc#708565, bnc#683782)
+- 2.17.48
+
+-------------------------------------------------------------------
 Fri Jul 15 12:40:56 CEST 2011 - jsuchome@suse.cz
 
 - fixed typos (bnc#703227)
