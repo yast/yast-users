@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Aug  5 12:35:46 CEST 2011 - tgoettlicher@suse.de
+
+- fixed .desktop file (bnc #681249)
+
+-------------------------------------------------------------------
 Wed Jul 20 11:10:22 CEST 2011 - jsuchome@suse.cz
 
 - remove blowfish hash from selections, make sha512 the default
