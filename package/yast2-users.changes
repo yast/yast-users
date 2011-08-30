@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug 30 14:41:26 CEST 2011 - jsuchome@suse.cz
+
+- added help text about SHA hashing functions (bnc#714389)
+- 2.17.49 
+
+-------------------------------------------------------------------
 Wed Jul 27 11:32:42 CEST 2011 - jsuchome@suse.cz
 
 - check for 'sss' in nsswitch.conf for LDAP users, added test
