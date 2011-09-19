@@ -945,7 +945,9 @@ sub Read {
     my $file	= Directory->vardir()."/users_first_stage.ycp";
     my $ret	= 0;
 
-    if (FileUtils->Exists ($file) && ($force || $first_stage_data_not_read)) {
+    if (Stage->cont () && FileUtils->Exists ($file) &&
+	($force || $first_stage_data_not_read)) 
+    {
 	my $data	= SCR->Read (".target.ycp", $file);
 	$first_stage_data_not_read	= 0;
 	if (defined $data && ref ($data) eq "HASH") {
