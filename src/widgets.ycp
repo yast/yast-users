@@ -1593,7 +1593,7 @@ modified and deleted on the server.
 	    return nil;
 	}
 	Wizard::CreateDialog ();
-        Wizard::SetDesktopIcon("users");
+        Wizard::SetDesktopTitleAndIcon("users");
 	any ret = WriteDialog (true);
 	Wizard::CloseDialog ();
 	y2milestone ("WriteDialog returned %1", ret);
