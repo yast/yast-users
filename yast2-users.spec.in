@@ -16,7 +16,8 @@ Requires:	yast2-perl-bindings >= 2.18.0
 Requires:	yast2-ldap-client >= 2.17.1
 
 # String::RemoveShortcut
-Requires:       yast2 >= 2.18.0
+# Wizard::SetDialogTitleAndIcon
+Requires:       yast2 >= 2.21.22
 
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
