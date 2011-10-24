@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Oct 24 11:35:05 CEST 2011 - jsuchome@suse.cz
+
+- testsuite adapted to last change of yast2-pam
+- 2.21.9 
+
+-------------------------------------------------------------------
 Mon Sep 26 16:01:05 CEST 2011 - visnov@suse.cz
 
 - set dialog title
