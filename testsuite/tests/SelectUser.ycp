@@ -45,7 +45,8 @@
 	],
 	"sysconfig"	: $[
 	    "displaymanager"	: $[
-		"DISPLAYMANAGER"	: ""
+		"DISPLAYMANAGER_AUTOLOGIN"	: "",
+		"DISPLAYMANAGER_PASSWORD_LESS_LOGIN"	: "",
 	    ],
 	],
     ];
