@@ -1636,6 +1636,10 @@ sub Read {
 		undef %user_in_work;
 		$users{$type}{$id}	= \%user;
 	    }
+	    # do not re-crypt group password value (bnc#722421)
+	    foreach my $id (keys %{$groups{$type}}) {
+		$groups{$type}{$id}{"encrypted"}	= YaST::YCP::Boolean (1);
+	    }
 	}
     }
 
@@ -5929,8 +5933,22 @@ sub ImportGroup {
 	    }
 	}
     }
+    my $encrypted	= $group{"encrypted"};
+    $encrypted		= YaST::YCP::Boolean (1) if !defined $encrypted;
+    if (defined $encrypted && ref ($encrypted) ne "YaST::YCP::Boolean") {
+	$encrypted	= YaST::YCP::Boolean ($encrypted);
+    }
+    my $pass		= $group{"group_password"};
+    if ((!defined $encrypted || !bool ($encrypted)) &&
+	(defined $pass) && !Mode->config ())
+    {
+	$pass 		= $self->CryptPassword ($pass, $type);
+	$encrypted	= YaST::YCP::Boolean (1);
+    }
+
     my %ret		= (
-        "userPassword"	=> $group{"group_password"},
+	"userPassword"	=> $pass,
+	"encrypted"	=> $encrypted,
         "cn"		=> $groupname,
         "gidNumber"	=> $gid,
         "userlist"	=> \%userlist,
@@ -6383,7 +6401,7 @@ sub ExportGroup {
         "groupname"		=> $group->{"cn"}		|| "",
         "userlist"		=> $userlist
     );
-    if (($group->{"modified"} || "edited") ne "edited" ||
+    if (($group->{"modified"} || "") ne "edited" ||
 	(defined $group->{"org_group"} &&
 	(defined $group->{"org_group"}{"gidNumber"} &&
 	$group->{"gidNumber"} ne $group->{"org_group"}{"gidNumber"})
@@ -6395,6 +6413,12 @@ sub ExportGroup {
 	$ret{"gid"}		= $group->{"gidNumber"};
     }
     if (defined $group->{"userPassword"}) {
+
+    	my $encrypted	= bool ($group->{"encrypted"});
+    	if (!defined $group->{"encrypted"}) {
+	    $encrypted	= 1;
+	}
+	$ret{"encrypted"}	= YaST::YCP::Boolean ($encrypted);
 	$ret{"group_password"}	= $group->{"userPassword"};
     }
 
