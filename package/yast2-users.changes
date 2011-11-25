@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Nov 25 12:26:28 UTC 2011 - coolo@suse.com
+
+- add libtool as buildrequire to avoid implicit dependency
+
+-------------------------------------------------------------------
 Mon Oct 24 11:35:05 CEST 2011 - jsuchome@suse.cz
 
 - testsuite adapted to last change of yast2-pam
