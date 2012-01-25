@@ -2,7 +2,7 @@
 
 @HEADER@
 Group:		System/YaST
-License:	GPL-2.0+
+License:	GPL-2.0
 BuildRequires:	cracklib-devel doxygen gcc-c++ perl-Digest-SHA1 perl-XML-Writer update-desktop-files libtool
 BuildRequires:  yast2 yast2-devtools yast2-ldap-client yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
 
