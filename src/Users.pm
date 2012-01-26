@@ -1278,7 +1278,7 @@ sub ReadSourcesSettings {
 
     $nis_available		= ReadNISAvailable ();
     $nis_master 		= ReadNISMaster ();
-    $ldap_available 		= 1;#UsersLDAP->ReadAvailable ();
+    $ldap_available 		= UsersLDAP->ReadAvailable ();
 
     if (!$nis_master && $nis_available) {
         push @available_usersets, "nis";
