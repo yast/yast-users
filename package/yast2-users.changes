@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jan 31 15:50:13 CET 2012 - jsuchome@suse.cz
+
+- check if security settings were not modified on read (bnc#743715)
+- 2.22.2 
+
+-------------------------------------------------------------------
 Thu Jan 26 13:13:55 CET 2012 - jsuchome@suse.cz
 
 - reverted accidental change

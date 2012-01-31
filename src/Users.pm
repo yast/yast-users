@@ -1311,6 +1311,7 @@ sub ReadSystemDefaults {
 	Security->Read ();
 	Progress->set ($progress_orig);
     }
+    $security_modified 		= $security_modified || Security->GetModified ();
 
     my %security	= %{Security->Export ()};
     $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
