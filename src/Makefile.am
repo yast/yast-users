@@ -27,6 +27,7 @@ module_DATA =		\
 ynclude_DATA =		\
     complex.ycp		\
     dialogs.ycp		\
+    ldap_dialogs.ycp    \
     helps.ycp		\
     wizards.ycp		\
     widgets.ycp		\

@@ -138,6 +138,8 @@ my $ldap_modified		= 0;
 my $customs_modified 		= 0;
 my $defaults_modified 		= 0;
 my $security_modified 		= 0;
+my $sysconfig_ldap_modified     = 0;
+my $ldap_settings_read          = 0;
 
 # variables describing available users sets:
 my $nis_available 		= 1;
@@ -4748,6 +4750,10 @@ sub Write {
     if ($security_modified) {
 	WriteSecurity();
     }
+    if ($sysconfig_ldap_modified) {
+        SCR->Write (".sysconfig.ldap.FILE_SERVER", Ldap->file_server? "yes": "no");
+        SCR->Write (".sysconfig.ldap", undef);
+    }
 
     my @new_aliases	= sort (keys %root_aliases);
     my @old_aliases	= sort (keys %root_aliases_orig);
@@ -6580,6 +6586,26 @@ sub SetModified {
     my $self	= shift;
     $users_modified = $groups_modified = $customs_modified =
     $defaults_modified = $security_modified = $_[0];
+}
+
+# Sets modified flag for sysconfig/ldap
+BEGIN { $TYPEINFO{SetLdapSysconfigModified} = ["function", "void", "boolean"];}
+sub SetLdapSysconfigModified {
+    my $self	= shift;
+    $sysconfig_ldap_modified = shift;
+}
+
+# Remember reading Ldap client config
+BEGIN { $TYPEINFO{SetLdapSettingsRead} = ["function", "void", "boolean"];}
+sub SetLdapSettingsRead {
+    my $self	= shift;
+    $ldap_settings_read = shift;
+}
+
+# Check if Ldap client config was read
+BEGIN { $TYPEINFO{LdapSettingsRead} = ["function", "boolean"];}
+sub LdapSettingsRead {
+    return $ldap_settings_read;
 }
 
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}

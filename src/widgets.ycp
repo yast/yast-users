@@ -49,6 +49,7 @@ import "Wizard";
 
 include "users/complex.ycp";
 include "users/routines.ycp";
+include "users/ldap_dialogs.ycp";
 
 textdomain "users";
 
@@ -1650,8 +1651,7 @@ modified and deleted on the server.
     }
     if (ev_id == `ldapconf)
     {
-	any ret = WFM::CallFunction ("ldap_config", ["late_dialog"]);
-	if (ret == `next && Ldap::ldap_modified)
+	if (LdapAdministrationDialog () && Ldap::ldap_modified)
 	{
 	    if (!Users::LDAPNotRead () &&
 		// yes/no popup (data were changed)
