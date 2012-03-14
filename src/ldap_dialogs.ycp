@@ -1,0 +1,712 @@
+/* ------------------------------------------------------------------------------
+ * Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
+ *
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of version 2 of the GNU General Public License as published by the
+ * Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, contact Novell, Inc.
+ *
+ * To contact Novell about this file by physical or electronic mail, you may find
+ * current contact information at www.novell.com.
+ * ------------------------------------------------------------------------------
+ */
+
+/**
+ * File:	include/users/widgets.ycp
+ * Package:	Configuration of users and groups
+ * Summary:	Widgets definitions and helper functions
+ * Authors:	Jiri Suchomel <jsuchome@suse.cz>
+ *
+ * $Id$
+ */
+{
+
+import "Label";
+import "Ldap";
+import "Popup";
+import "Users";
+import "Wizard";
+
+include "ldap/routines.ycp";
+
+textdomain "users";
+
+/**
+ * dialog for Password Policy configuration object
+ * @param ppolicy data with Password Policy object to be edited (as obtained from LDAP search)
+ * @return map with modifications of ppolicy object, nil in case of `cancel
+ */
+define map PasswordPolicyDialog (map ppolicy) {
+
+    // reduce the list values to single ones
+    ppolicy	= mapmap (string a, any val, (map<string,any>)ppolicy, {
+	if (is (val, list) && (Ldap::SingleValued (a) || size ((list)val) == 1))
+	    val	= ((list)val)[0]:nil;
+	if (val == "TRUE" || val == "FALSE")
+	    val	= (val == "TRUE");
+	return $[ a: val ];
+    });
+    map ppolicy_orig	= ppolicy;
+
+    // help text for Password Policy Dialog
+    string help_text = _("<p>Select the <b>Password Change Policies</b>, <b>Password Aging Policies</b>, and <b>Lockout Policies</b> tabs to choose LDAP password policy groups of attributes to configure.</p>");
+
+
+    // tab-specific help texts
+    map tabs_help_text	= $[
+	// help text for pwdInHistory attribute
+	`pwchange	: _("<p>Specify the <b>Maximum Number of Passwords Stored in History</b> to set how many previously used passwords should be saved. Saved passwords may not be used.</p>") +
+
+	// help text for pwdMustChange attribute
+	_("<p>Check <b>User Must Change Password after Reset</b> to force users to change their passwords after the the password is reset or changed by an administrator.</p>") +
+
+	// help text for pwdAllowUserChange attribute
+	_("<p>Check <b>User Can Change Password</b> to allow users to change their passwords.</p>") +
+
+	// help text for pwdSafeModify attribute
+	_("<p>If the existing password must be provided along with the new password, check <b>Old Password Required for Password Change</b>.</p>") +
+
+	// help text for pwdCheckQuality attribute
+	_("<p>Select whether the password quality should be verified while passwords are modified or added. Select <b>No Checking</b> if passwords should not be checked at all. With <b>Accept Uncheckable Passwords</b>, passwords are accepted even if the check cannot be performed, for example, if the user has provided an encrypted password. With <b>Only Accept Checked Passwords</b> passwords are refused if the quality test fails or the password cannot be checked.</p>") +
+
+	// help text for pwdMinLength attribute
+	_("Set the minimum number of characters that must be used in a password in <b>Minimum Password Length</b>.</p>"),
+
+	// help text for pwdMinAge attribute
+	`aging		: _("<p><b>Minimum Password Age</b> sets how much time must pass between modifications to the password.</p>") +
+
+	// help text for pwdMaxAge attribute
+	_("<p><b>Maximum Password Age</b> sets how long after modification a password expires.</p>") +
+
+	// help text for pwdExpireWarning attribute
+	_("<p>In <b>Time before Password Expiration to Issue Warning</b> set how long before a password is due to expire that an expiration warning messages should be given to an authenticating user.</p>") +
+
+	// help text for pwdGraceAuthNLimit attribute
+	_("<p>Set the number of times an expired password can be used to authenticate in <b>Allowed Uses of an Expired Password</b>.</p>"),
+
+	// help text for pwdLockout attribute
+	`lockout	: _("<p>Check <b>Enable Password Locking</b> to forbid use of a password after a specified number of consecutive failed bind attempts.</p>") +
+
+	// help text for pwdMaxFailure attribute
+	_("<p>Set the number of consecutive failed bind  attempts after which the password may not be used to authenticate in <b>Bind Failures to Lock the Password</b>.</p>") +
+
+	// help text for pwdLockoutDuration attribute
+	_("<p>Set how long the password cannot be used in <b>Password Lock Duration</b>.</p>") +
+
+	// help text for pwdFailureCountInterval attribute
+	_("<p><b>Bind Failures Cache Duration</b> sets how long before password failures are purged from the failure counter even though no successful authentication has occurred.</p>"),
+    ];
+
+    // map of attribute names for each tab
+    map attributes	= $[
+	`pwchange	: [
+	    "pwdInHistory", "pwdMustChange", "pwdAllowUserChange",
+	    "pwdSafeModify", "pwdCheckQuality", "pwdMinLength"
+	],
+	`aging		: [
+	    "pwdMinAge", "pwdMaxAge", "pwdExpireWarning", "pwdGraceAuthNLimit"
+	],
+	`lockout	: [
+	    "pwdLockout", "pwdLockoutDuration", "pwdMaxFailure",
+	    "pwdFailureCountInterval"
+	],
+    ];
+
+    list time_attributes = [
+	"pwdMinAge", "pwdMaxAge", "pwdExpireWarning", "pwdLockoutDuration",
+	"pwdFailureCountInterval"
+    ];
+
+    map default_values	= $[
+	"pwdMustChange"		: false,
+	"pwdAllowUserChange"	: true,
+	"pwdSafeModify"		: false,
+	"pwdLockout"		: false,
+    ];
+
+    // maximal value of IntFields
+    integer max		= 99999;
+
+    list<term> tabs	= [
+	// tab label
+	`item(`id(`pwchange), _("&Password Change Policies"), true),
+	// tab label
+	`item(`id(`aging), _("Pa&ssword Aging Policies")),
+	// tab label
+	`item(`id(`lockout), _("&Lockout Policies")),
+    ];
+    term tabs_term = `VBox (
+	`DumbTab (`id(`tabs), tabs,
+	    `ReplacePoint(`id(`tabContents ), `VBox (`Empty ())))
+    );
+    boolean has_tabs	= true;
+    if (!UI::HasSpecialWidget (`DumbTab))
+    {
+	has_tabs	= false;
+	term tabbar	= `HBox ();
+	foreach (term it, tabs, {
+	    string label = it[1]:"";
+	    tabbar = add (tabbar,`PushButton (it[0]:`id(label), label));
+	});
+	tabs_term = `VBox (`Left(tabbar),
+	    `Frame ("", `ReplacePoint(`id(`tabContents), `Empty ()))
+	);
+    }
+
+    term contents = tabs_term;
+
+    // generate the term of password policy tab and update the help text
+    void set_password_policies_term () {
+	integer	pwdcheckquality	= tointeger (ppolicy["pwdCheckQuality"]:"0");
+	term tab_cont	= `Top (`HBox (`HSpacing (0.5), `VBox (
+	    `VSpacing (0.8),
+	    `IntField (`id ("pwdInHistory"),
+		// IntField label
+		_("Ma&ximum Number of Passwords Stored in History"),
+		0, max, tointeger (ppolicy["pwdInHistory"]:"0")),
+	    `VSpacing (0.4),
+	    `Left (`CheckBox (`id ("pwdMustChange"),
+		// checkbox label
+		_("U&ser Must Change Password after Reset"),
+		ppolicy["pwdMustChange"]:true)),
+	    `VSpacing (0.2),
+	    `Left (`CheckBox (`id ("pwdAllowUserChange"),
+		// checkbox label
+		_("&User Can Change Password"),
+		ppolicy["pwdAllowUserChange"]:true)),
+	    `VSpacing (0.2),
+	    `Left (`CheckBox (`id ("pwdSafeModify"),
+		// checkbox label
+		_("&Old Password Required for Password Change"),
+		ppolicy["pwdSafeModify"]:false)),
+	    `VSpacing (0.4),
+	    // frame label
+	    `HBox (`HSpacing (2), `Frame (_("Password Quality Checking"), `VBox(
+		`VSpacing (0.5),
+		`RadioButtonGroup (`id("pwdCheckQuality"), `VBox (
+		    `Left (`RadioButton (`id(0), `opt (`notify),
+			_("&No Checking"), pwdcheckquality == 0)),
+		    `Left (`RadioButton(`id(1), `opt (`notify),
+			_("Acc&ept Uncheckable Passwords"),
+			pwdcheckquality == 1)),
+		    `Left (`RadioButton(`id(2), `opt (`notify),
+			_("&Only Accept Checked Passwords"),
+			pwdcheckquality == 2))
+		)),
+		`VSpacing (0.4),
+		// IntField label
+		`IntField (`id ("pwdMinLength"), _("&Minimum Password Length"),
+		    0, max, tointeger (ppolicy["pwdMinLength"]:"0"))
+	    )))
+	), `HSpacing (0.5)));
+
+	UI::ReplaceWidget (`tabContents, tab_cont);
+	UI::ChangeWidget (`id ("pwdMinLength"), `Enabled, pwdcheckquality > 0);
+	return;
+    }
+
+    term time_dialog (string id, string label) {
+
+	integer value	= tointeger (ppolicy[id]:"0");
+	integer days	= value / (24*60*60);
+	if (days > 0) value	= value - (days * 24*60*60);
+	integer	hours	= value / (60*60);
+	if (hours > 0) value	= value - (hours * 60*60);
+	integer minutes	= value / 60;
+	if (minutes > 0) value	= value - (minutes * 60);
+	return `HBox (`HSpacing (0.3), `Frame (label, `HBox (
+	    `IntField (`id (id + "d"), _("Days"), 0, max, days),
+	    `IntField (`id (id + "h"), _("Hours"), 0, 23, hours),
+	    `IntField (`id (id + "m"), _("Minutes"), 0, 59, minutes),
+	    `IntField (`id (id + "s"), _("Seconds"), 0, 59, value)
+	)), `HSpacing (0.3));
+    }
+
+    integer get_seconds_value (string attr) {
+
+	integer days	= (integer) UI::QueryWidget (`id (attr + "d"), `Value);
+	integer hours	= (integer) UI::QueryWidget (`id (attr + "h"), `Value);
+	integer minutes	= (integer) UI::QueryWidget (`id (attr + "m"), `Value);
+	integer seconds	= (integer) UI::QueryWidget (`id (attr + "s"), `Value);
+	return (days * 24*60*60) + (hours * 60*60) + (minutes *60) + seconds;
+    }
+
+    // generate the term of password aging tab
+    void set_aging_policies_term () {
+
+	term tab_cont = `Top (`HBox (`HSpacing (0.5), `VBox (
+	    `VSpacing (0.7),
+	    // frame label
+	    time_dialog ("pwdMinAge", _("Minimum Password Age")),
+	    `VSpacing (0.4),
+	    // frame label
+	    time_dialog ("pwdMaxAge", _("Maximum Password Age")),
+	    `VSpacing (0.4),
+	    time_dialog ("pwdExpireWarning",
+		// frame label
+		_("Time before Password Expiration to Issue Warning")),
+	    `VSpacing (0.2),
+	    `IntField (`id ("pwdGraceAuthNLimit"),
+		// IntField label
+		_("Allowed Uses of an Expired Password"), 0, max,
+		tointeger (ppolicy["pwdGraceAuthNLimit"]:"0")
+	    )
+	), `HSpacing (0.5)));
+	UI::ReplaceWidget (`tabContents, tab_cont);
+	return;
+    }
+
+    // generate the term of lockout aging tab
+    void set_lockout_policies_term () {
+
+	boolean pwdlockout	= ppolicy["pwdLockout"]:false;
+
+	term tab_cont = `Top (`HBox (`HSpacing (0.5), `VBox (
+	    `VSpacing (0.8),
+	    `Left (`CheckBox (`id ("pwdLockout"), `opt (`notify),
+		// check box label
+		_("Enable Password Locking"),
+		pwdlockout)),
+	    `VSpacing (0.4),
+	    `IntField (`id ("pwdMaxFailure"),
+		// intField label
+		_("Bind Failures to Lock the Password"),
+		0, max, tointeger (ppolicy["pwdMaxFailure"]:"0")),
+	    // frame label
+	    time_dialog ("pwdLockoutDuration", _("Password Lock Duration")),
+	    `VSpacing (0.4),
+	    time_dialog ("pwdFailureCountInterval",
+		// frame label
+		_("Bind Failures Cache Duration"))
+	), `HSpacing (0.5)));
+
+	UI::ReplaceWidget (`tabContents, tab_cont);
+	UI::ChangeWidget (`id ("pwdMaxFailure"), `Enabled, pwdlockout);
+	foreach (string suffix, [ "d", "h", "m", "s" ], {
+	    UI::ChangeWidget (`id ("pwdLockoutDuration" + suffix),
+		`Enabled, pwdlockout);
+	    UI::ChangeWidget (`id ("pwdFailureCountInterval" + suffix),
+		`Enabled, pwdlockout);
+	});
+	return;
+    }
+
+    symbol current_tab	= `pwchange;
+    any result		= nil;
+
+    Wizard::OpenNextBackDialog ();
+
+    // dialog label
+    Wizard::SetContentsButtons (_("Password Policy Configuration"), contents,
+	help_text + tabs_help_text[current_tab]:"",
+	Label::CancelButton(), Label::OKButton());
+    Wizard::HideAbortButton();
+
+    set_password_policies_term ();
+
+    while (true)
+    {
+	result		= UI::UserInput ();
+
+	if (is(result,symbol) &&
+	    contains ([`back, `cancel, `abort], (symbol)result))
+	    break;
+
+	// save the values from UI
+	foreach (string attr, attributes[current_tab]:[], {
+	    if (contains (time_attributes, attr))
+	    {
+		ppolicy[attr]	= sformat ("%1", get_seconds_value (attr));
+		return;
+	    }
+	    any val	= UI::QueryWidget (`id (attr), `Value);
+	    if (is (val, integer))
+		val	= sformat ("%1", val);
+	    ppolicy[attr]	= val;
+	});
+
+	if ((result == `pwchange || result == `aging || result == `lockout) &&
+	    result!= current_tab)
+	{
+	    if (result == `pwchange)
+		set_password_policies_term ();
+	    else if (result == `aging)
+		set_aging_policies_term ();
+	    else if (result == `lockout)
+		set_lockout_policies_term ();
+	    current_tab	= (symbol) result;
+	    if (has_tabs)
+		UI::ChangeWidget (`id (`tabs), `CurrentItem, current_tab);
+	    Wizard::SetHelpText (help_text + tabs_help_text[current_tab]:"");
+	    continue;
+	}
+	if (result == `next)
+	{
+	    boolean cont = false;
+
+	    // check the template required attributes...
+	    foreach (string oc, ppolicy["objectClass"]:[], ``{
+		if (cont) return;
+		foreach (string attr, Ldap::GetRequiredAttributes (oc), ``{
+		    any val = ppolicy[attr]:nil;
+		    if (!cont && val == nil || val == [] || val == "") {
+			//error popup, %1 is attribute name
+			Popup::Error (sformat (_("The \"%1\" attribute is mandatory.
+Enter a value."), attr));
+			UI::SetFocus (`id(`table));
+			cont = true;
+		    }
+		});
+	    });
+	    if (cont) continue;
+	    break;
+	}
+	// now solve events inside the tabs
+	if (current_tab == `pwchange && is (result, integer))
+	{
+	    UI::ChangeWidget (`id ("pwdMinLength"), `Enabled, result != 0);
+	}
+	if (current_tab == `lockout && result == "pwdLockout")
+	{
+	    boolean pwdlockout = (boolean) UI::QueryWidget (`id ("pwdLockout"), `Value);
+	    UI::ChangeWidget (`id ("pwdMaxFailure"), `Enabled, pwdlockout);
+	    foreach (string suffix, [ "d", "h", "m", "s" ], {
+		UI::ChangeWidget (`id ("pwdFailureCountInterval" + suffix),
+		    `Enabled, pwdlockout);
+		UI::ChangeWidget (`id ("pwdLockoutDuration" + suffix),
+		    `Enabled, pwdlockout);
+	    });
+	}
+    }
+    Wizard::CloseDialog ();
+
+    map<string,any> ret	= $[];
+    if (result == `next)
+    {
+	foreach (string key, any val, (map<string,any>) ppolicy, {
+	    if (!haskey (ppolicy_orig, key) &&
+		(val == default_values[key]:nil || val == "0"))
+		return;
+	    if (val != ppolicy_orig[key]:nil)
+	    {
+		if (is (val, boolean))
+		    val	= (val == true) ? "TRUE" : "FALSE";
+		ret[key]	= val;
+	    }
+	});
+    }
+    return (result == `next) ? ret : nil;
+}
+
+/**
+ * Dialog for administering User & Group specific LDAP settigns
+ */
+define boolean LdapAdministrationDialog () {
+
+    if (!Users::LdapSettingsRead ())
+    {
+        Users::SetLdapSettingsRead (Ldap::Read ());
+    }
+
+    string base_dn      = Ldap::GetBaseDN ();
+    boolean file_server = Ldap::file_server;
+    boolean modified    = true;
+
+    list ppolicy_list	= [];
+
+    boolean ppolicies_enabled	= false;
+    map<string,map> ppolicies	= $[];
+    map<string,map> ppolicies_orig= $[];
+    list<string> ppolicies_deleted	= []; // list of DN
+
+    // map with modifications of Password Policies objects
+    map<string,map> write_ppolicies	= $[];
+
+    // read the list of pwdpolicy objects under base_config_dn
+    void read_ppolicies () {
+
+	if (base_dn == "") return;
+
+	if (Ldap::ldap_initialized && Ldap::tls_when_initialized != Ldap::ldap_tls)
+	{
+	    Ldap::LDAPClose ();
+	}
+
+	if (Ldap::ldap_initialized || Ldap::LDAPInit () == "")
+	{
+	    ppolicies_enabled	= (boolean) SCR::Execute (.ldap.ppolicy, $[
+		"hostname"	: Ldap::GetFirstServer (Ldap::server),
+		"bind_dn"	: Ldap::GetBaseDN ()
+	    ]);
+
+	    list schemas = (list)SCR::Read (.ldap.search, $[
+		"base_dn":  "",
+		"attrs":    [ "subschemaSubentry" ],
+		"scope":    0,
+	    ]);
+	    string schema_dn = schemas[0,"subschemaSubentry",0]:"";
+	    if (schemas != nil && schema_dn != "" &&
+		SCR::Execute (.ldap.schema, $[ "schema_dn": schema_dn ])== true)
+	    {
+		map<string,map> pp = (map<string,map>) SCR::Read (.ldap.search,
+		$[
+		    "base_dn"		: base_dn,
+		    "filter"		: "objectClass=pwdPolicy",
+		    "scope"		: 2,
+		    "map"		: true,
+		    "not_found_ok"	: true
+		]);
+		if (pp != nil)
+		{
+		    ppolicies	= pp;
+		    ppolicies_orig	= ppolicies;
+		}
+	    }
+	}
+    }
+
+    string help_text    = // help text caption
+    _("<p><b>Home Directories</b></p>") +
+
+    // help text
+    _("<p>If home directories of LDAP users should be stored on this machine,
+check the appropriate option. Changing this value does not cause any direct
+action.  It is only information for the YaST users module, which can manage
+user home directories.</p>
+") +
+
+    // help text
+    _("<p>Press <b>Configure</b> to configure settings stored on the
+LDAP server. You will be asked for the password if you are not connected yet or
+have changed your configuration.</p>
+") +
+
+    // password policy help text caption
+    _("<p><b>Password Policy</b></p>") +
+
+    // password policy help
+    _("<p>Configure the selected password policy with <b>Edit</b>. Use <b>Add</b> to add a new password policy. The configuration is only possible,\n  if the password policies are already enabled on the LDAP server.</p>");
+
+    term contents = `VBox (
+      `VSpacing (0.4),
+      `Left (`CheckBox (`id(`file_server),
+        // checkbox label
+        _("&Home Directories on This Machine"), file_server)
+      ),
+      `VSpacing(0.5),
+      `Right (`PushButton (`id(`configure),
+        // pushbutton label
+        _("Configure User Management &Settings..."))),
+      `VSpacing (),
+      `Table (`id (`ppolicy_table), `opt(`notify), `header (
+        // table header
+	_("Password Policy")),
+	  maplist (string dn, map pp, ppolicies, ``(`item (`id (dn), dn)))
+      ),
+      `HBox (
+        `PushButton (`id (`add), Label::AddButton ()),
+	`PushButton (`id (`edit), Label::EditButton ()),
+	`PushButton (`id (`delete), Label::DeleteButton ()),
+	`HStretch ()
+      ),
+      `VSpacing(0.4)
+    );
+
+    read_ppolicies ();
+
+    Wizard::CreateDialog ();
+    // dialog title
+    Wizard::SetContentsButtons (_("LDAP Administration Settings"), contents,
+      help_text, Label::CancelButton(), Label::OKButton());
+    Wizard::HideAbortButton ();
+
+    foreach (symbol s, [ `ppolicy_table, `add, `edit, `delete ], {
+      UI::ChangeWidget (`id (s), `Enabled, ppolicies_enabled);
+    });
+
+    symbol ret     = (symbol) UI::UserInput ();
+
+    while (true)
+    {
+	if (ret == `add)
+	{
+	    string suffix	= base_dn;
+	    UI::OpenDialog ( `opt(`decorated), `HBox(
+		`HSpacing(1),
+		`VBox(
+		    // InputField label
+		    `InputField (`id (`cn),  `opt (`hstretch),
+			_("Name of Password Policy Object")),
+		    `ReplacePoint (`id (`rp_suf), `HBox (
+			// text label,suffix will follow in next label
+			`Label (`id (`suffix_label), _("Suffix:")),
+			`Label (`id (`suffix), base_dn),
+			// pushbutton label
+			`PushButton (`id (`br_suf), _("Change Suffix"))
+		    )),
+		    `ButtonBox (
+			`PushButton(`id(`ok),`opt(`default,`key_F10),Label::OKButton()),
+			`PushButton(`id(`cancel),`opt (`key_F9), Label::CancelButton())
+		    )
+		),
+		`HSpacing(1)
+	    ));
+	    UI::SetFocus (`id (`cn));
+	    any ret		= nil;
+	    string new_dn	= "";
+	    while (true)
+	    {
+		ret	= UI::UserInput ();
+		if (ret == `cancel)
+		    break;
+		if (ret == `br_suf)
+		{
+		    string suf	= LdapPopup::InitAndBrowseTree (base_dn, $[
+			"hostname"	: Ldap::GetFirstServer (Ldap::server),
+			"port"		: Ldap::GetFirstPort (Ldap::server),
+			"use_tls"	: Ldap::ldap_tls ? "yes" : "no",
+			"cacertdir"	: Ldap::tls_cacertdir,
+			"cacertfile"	: Ldap::tls_cacertfile
+		    ]);
+		    if (suf != "")
+			UI::ReplaceWidget (`id (`rp_suf), `HBox (
+			    // text label,suffix will follow in next label
+			    `Label (`id (`suffix_label), _("Suffix:")),
+			    `Label (`id (`suffix), suf),
+			    // pushbutton label
+			    `PushButton (`id (`br_suf), _("Change Suffix"))
+			));
+		}
+		if (ret == `ok)
+		{
+		    string cn		= (string) UI::QueryWidget (`id (`cn), `Value);
+		    if (cn == "") break;
+		    string suffix	= (string) UI::QueryWidget (`id (`suffix), `Value);
+		    new_dn		= sformat ("cn=%1,%2", cn, suffix);
+		    if (haskey (ppolicies, new_dn))
+		    {
+			Popup::Error (sformat (_("The Policy \'%1\' already exists.
+Please select another one."), new_dn));
+			continue;
+		    }
+		    break;
+		}
+	    }
+	    UI::CloseDialog ();
+	    if (ret == `ok && new_dn != "")
+	    {
+		map new	= PasswordPolicyDialog ($["dn": new_dn ]);
+		if (new != nil)
+		{
+		    ppolicies[new_dn]	= new;
+		    UI::ChangeWidget (`id (`ppolicy_table), `Items, 
+			maplist (string dn, map pp, ppolicies, ``(`item (`id (dn), dn)))
+		    );
+		    UI::ChangeWidget (`id (`edit), `Enabled, size (ppolicies) > 0);
+		    UI::ChangeWidget (`id (`delete), `Enabled, size (ppolicies) > 0);
+		}
+	    }
+	}
+	if (ret == `edit || ret == `ppolicy_table)
+	{
+	    string dn	= (string) UI::QueryWidget (`id (`ppolicy_table), `CurrentItem);
+	    map changes	= PasswordPolicyDialog (ppolicies[dn]:$[]);
+	    if (changes != nil)
+	    {
+		ppolicies[dn]	= union (ppolicies[dn]:$[], changes);
+	    }
+	}
+	if (ret == `delete)
+	{
+	    string dn   = (string) UI::QueryWidget (`id (`ppolicy_table), `CurrentItem);
+	    ppolicies	= remove (ppolicies, dn);
+	    ppolicies_deleted	= (list<string>) union (ppolicies_deleted, [dn]);
+	    UI::ChangeWidget (`id (`ppolicy_table), `Items,
+		maplist (string dn, map pp, ppolicies, ``(`item (`id (dn), dn)))
+	    );
+	    UI::ChangeWidget (`id (`edit), `Enabled, size (ppolicies) > 0);
+	    UI::ChangeWidget (`id (`delete), `Enabled, size (ppolicies) > 0);
+	}
+        // open "LDAP User objects configuration"
+        if (ret == `configure)
+        {
+	    any result = WFM::CallFunction ("ldap_config", ["late_dialog"]);
+            if (result != nil)
+            {
+                ret  = (symbol) result;
+                if (ret == `next)
+                {
+                    modified    = true;
+                }
+            }
+        }
+        if (ret == `back || ret == `cancel || ret == `abort)
+        {
+            break;
+        }
+        if (ret == `next)
+        {
+            file_server     = (boolean) UI::QueryWidget (`id (`file_server), `Value);
+            if (file_server != Ldap::file_server)
+            {
+                Users::SetLdapSysconfigModified (true);
+                Ldap::file_server               = file_server;
+            }
+	    foreach (string dn, map ppolicy, ppolicies, {
+		// new ppolicy
+		if (!haskey (ppolicies_orig, dn))
+		{
+		    ppolicy["modified"]		= "added";
+		    ppolicy["pwdAttribute"]	= "userPassword";
+		    ppolicy["objectClass"]	= ["pwdPolicy", "namedObject"];
+		    ppolicy["cn"]		= get_cn (dn);
+		    write_ppolicies[dn]         = ppolicy;
+
+		}
+		else
+		{
+		    map pp	= $[];
+		    foreach (string a, any val, (map<string,any>) ppolicy, {
+			if (val != ppolicies_orig[dn,a]:nil)
+			    pp[a]	= val;
+		    });
+		    if (pp != $[])
+		    {
+			pp["modified"]		= "edited";
+			write_ppolicies[dn]	= pp;
+		    }
+		}
+	    });
+	    // deleted ppolicies
+	    foreach (string dn, ppolicies_deleted, {
+		map pp	= write_ppolicies[dn]:$[];
+		if (pp["modified"]:"" == "added")
+		{
+		    write_ppolicies	= remove (write_ppolicies, dn);
+		}
+		else if (haskey (ppolicies_orig, dn))
+		{
+		    pp["modified"]	= "deleted";
+		    write_ppolicies[dn]	= pp;
+		}
+	    });
+	    if (write_ppolicies != $[])
+	    {
+	        Ldap::WriteLDAP (write_ppolicies);
+	        write_ppolicies	= $[];
+	    }
+            break;
+        }
+    }
+    Wizard::CloseDialog ();
+    return modified || (ret == `next);
+}
+
+}//EOF
