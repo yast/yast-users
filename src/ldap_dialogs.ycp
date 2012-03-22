@@ -531,10 +531,11 @@ have changed your configuration.</p>
       UI::ChangeWidget (`id (s), `Enabled, ppolicies_enabled);
     });
 
-    symbol ret     = (symbol) UI::UserInput ();
+    symbol ret  = `cancel;
 
     while (true)
     {
+        ret     = (symbol) UI::UserInput ();
 	if (ret == `add)
 	{
 	    string suffix	= base_dn;
@@ -637,15 +638,12 @@ Please select another one."), new_dn));
         // open "LDAP User objects configuration"
         if (ret == `configure)
         {
-	    any result = WFM::CallFunction ("ldap_config", ["late_dialog"]);
-            if (result != nil)
+	    any result = WFM::CallFunction ("ldap_config");
+            if (result == `next)
             {
-                ret  = (symbol) result;
-                if (ret == `next)
-                {
-                    modified    = true;
-                }
+                modified    = true;
             }
+            continue;
         }
         if (ret == `back || ret == `cancel || ret == `abort)
         {
