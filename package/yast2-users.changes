@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Mar 22 11:18:07 CET 2012 - jsuchome@suse.cz
+
+- User specific LDAP configuration moved here from ldap-client,
+  shown as "LDAP Administration Settings" dialog (fate#313143)
+- fixed Password Policy handling 
+- 2.22.3
+
+-------------------------------------------------------------------
 Tue Jan 31 15:50:13 CET 2012 - jsuchome@suse.cz
 
 - check if security settings were not modified on read (bnc#743715)
