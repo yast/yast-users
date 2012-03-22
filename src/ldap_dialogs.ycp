@@ -30,6 +30,7 @@
 
 import "Label";
 import "Ldap";
+import "LdapPopup";
 import "Popup";
 import "Users";
 import "Wizard";
@@ -472,6 +473,8 @@ define boolean LdapAdministrationDialog () {
 	}
     }
 
+    read_ppolicies ();
+
     string help_text    = // help text caption
     _("<p><b>Home Directories</b></p>") +
 
@@ -518,8 +521,6 @@ have changed your configuration.</p>
       ),
       `VSpacing(0.4)
     );
-
-    read_ppolicies ();
 
     Wizard::CreateDialog ();
     // dialog title
