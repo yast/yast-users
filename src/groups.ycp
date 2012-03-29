@@ -195,7 +195,7 @@ map cmdline = $[
 	],
 	"batchmode"	:$[
 	    // translators: command line help text for batchmode option
-	    "help"	: _("Don't ask for missing data; return error instead.")
+	    "help"	: _("Do not ask for missing data; return error instead.")
 	],
     ],
     "mappings"		: $[
