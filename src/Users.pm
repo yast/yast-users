@@ -4984,7 +4984,8 @@ sub CheckUsername {
 	    # additional sentence for error popup
 	    my $more	= (($self->NISAvailable () || $self->LDAPAvailable ()) &&
 		($type eq "local" || $type eq "system")) ? __("
-The existing username might belong to NIS or LDAP user.") : "";
+The existing username might belong to a NIS or LDAP user.
+") : "";
 	    # error popup, %1 might be additional sentence ("The existing username...")
 	    return sformat (__("There is a conflict between the entered
 username and an existing username. %1
@@ -5180,9 +5181,10 @@ Use it and change its owner?");
                     
 	if ($uid == $dir_uid) { # chown is not needed (#25200)
 	    # yes/no popup
-	    $ret{"question"}	= sprintf (__("The home directory selected (%s)
+	    $ret{"question"}	= sprintf (__("The selected home directory (%s)
 already exists and is owned by the currently edited user.
-Use this directory?"), $home);
+Use this directory?
+"), $home);
 	    $ret{"owned"}	= 1;
 	}
 	# maybe it is home of some user marked to delete...

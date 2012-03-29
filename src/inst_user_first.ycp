@@ -221,7 +221,7 @@ network protocols do not support this and you may have problems with NIS.
 </p>") +
 
       // Help text for password expert dialog
-      _("<p><b>SHA-512</b> is the current standard hash method, using other algorithms is not recommended unless needed for compatibility purpose.</p>");
+      _("<p><b>SHA-512</b> is the current standard hash method. Using other algorithms is not recommended unless needed for compatibility purposes.</p>");
 
     // help text for main add user dialog
     string main_help () {

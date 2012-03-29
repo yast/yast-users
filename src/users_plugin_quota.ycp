@@ -135,7 +135,7 @@
 	string what			= config["what"]:"user";
 
 	// helptext for quota
-	string help_text = _("<p>Here, configure quota settings of the user on selected file systems.</p>") +
+	string help_text = _("<p>Configure quota settings for the user on selected file systems.</p>") +
 
 	// helptext for quota, cont.
 	_("<p>Define a size limit by specifying the number of 1 KB blocks the
@@ -151,11 +151,11 @@ user may have on this file system. Additionally, you can define an inode limit s
 	if (what == "group")
 	{
 	    // helptext for quota
-	    help_text = _("<p>Here, configure quota settings of the group on selected file systems.</p>") +
+	    help_text = _("<p>Configure quota settings for the group on selected file systems.</p>") +
 
 	    // helptext for quota, cont.
 	    _("<p>Define a size limit by specifying the number of 1 kB blocks the
-group may have on this file system. Additionally, you can define an inode limit specifying the number of inodes the group may have on the file system.</p>
+group may use on this file system. Additionally, you can define an inode limit specifying the number of inodes the group may use on the file system.</p>
 ") +
 
 	    // helptext for quota, cont.
@@ -231,7 +231,7 @@ group may have on this file system. Additionally, you can define an inode limit 
 		`VSpacing (0.4),
 		`VSpacing (0.4),
 		// frame label
-		`Frame (_("I-nodes Limits"), `HBox (`HSpacing (0.5), `VBox (
+		`Frame (_("I-nodes Limit"), `HBox (`HSpacing (0.5), `VBox (
 		    `IntField (`id ("quota_inodes_soft"),
 			// intfield label
 			_("S&oft limit"), 0, max, quota_inodes_soft),
@@ -283,7 +283,7 @@ group may have on this file system. Additionally, you can define an inode limit 
 		if (sel != current || ret == `next)
 		{
 		    // error popup
-		    string msg	= _("Soft limit cannot be set higher than the hard limit.");
+		    string msg	= _("Soft limit cannot be higher than the hard limit.");
 		    if ((integer)
 			UI::QueryWidget(`id ("quota_blocks_soft"), `Value) >
 			(integer)

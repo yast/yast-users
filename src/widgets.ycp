@@ -178,7 +178,7 @@ network protocols do not support this and you may have problems with NIS.
 </p>");
 
       // Help text for password expert dialog 4/5
-      help_text = help_text + _("<p><b>SHA-512</b> is the current standard hash method, using other algorithms is not recommended unless needed for compatibility purpose.</p>");
+      help_text = help_text + _("<p><b>SHA-512</b> is the current standard hash method. Using other algorithms is not recommended unless needed for compatibility purposes.</p>");
 
       UI::OpenDialog(
 	`VBox(
@@ -256,7 +256,7 @@ You have changed the default encryption for user passwords.</p>") +
 
     // help text 2/3
     _("<p>It seems that you are running a NIS server. In some network environments,
-you could be unable to log in to a NIS client when a user password is
+you might be unable to log in to a NIS client when a user password is
 encrypted with a method other than DES.
 </p>
 ") +

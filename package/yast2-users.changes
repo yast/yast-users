@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 29 16:25:07 CEST 2012 - jsuchome@suse.cz
+
+- merged proofread texts 
+- 2.22.4 
+
+-------------------------------------------------------------------
 Thu Mar 22 11:18:07 CET 2012 - jsuchome@suse.cz
 
 - User specific LDAP configuration moved here from ldap-client,

@@ -174,7 +174,7 @@ map SystemUsers = $[
     "Icecast streaming server"	: _("Icecast streaming server"),
 
     // User name for user: "lighttpd"
-    "user for lighttpd"		: _("user for lighttpd"),
+    "user for lighttpd"		: _("User for lighttpd"),
 
     // User name for user: "nagios"
     "User for Nagios"		: _("User for Nagios"),
