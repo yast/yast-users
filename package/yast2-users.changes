@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Oct 19 11:37:34 CEST 2012 - jsuchome@suse.cz
+
+- report critical actions (adding/removing user) in syslog
+- 2.23.0
+
+-------------------------------------------------------------------
 Thu Mar 29 16:25:07 CEST 2012 - jsuchome@suse.cz
 
 - merged proofread texts 
