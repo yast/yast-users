@@ -229,13 +229,14 @@ YaST::YCP::Import ("Message");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("Package");
 YaST::YCP::Import ("Popup");
+YaST::YCP::Import ("ProductFeatures");
+YaST::YCP::Import ("Progress");
+YaST::YCP::Import ("Report");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
 YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("String");
-YaST::YCP::Import ("ProductFeatures");
-YaST::YCP::Import ("Progress");
-YaST::YCP::Import ("Report");
+YaST::YCP::Import ("Syslog");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersLDAP");
 YaST::YCP::Import ("UsersPasswd");
@@ -4128,8 +4129,10 @@ sub PostDeleteUsers {
 	my $plugin_error;
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
-	    my $cmd = sprintf ("$userdel_postcmd $username %i %i %s",
-		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
+	    my $uid     = $user{"uidNumber"} || 0;
+	    Syslog->Log ("User deleted by YaST: name=$username, UID=$uid");
+	    my $cmd = sprintf ("$userdel_postcmd $username $uid %i %s",
+              $user{"gidNumber"} || 0, $user{"homeDirectory"} || "");
 	    SCR->Execute (".target.bash", $cmd);
 	    # call the "Write" function from plugins...
 	    my $args	= {
@@ -4140,6 +4143,7 @@ sub PostDeleteUsers {
 	    my $result		= UsersPlugins->Apply ("Write", $args, \%user);
 	    $plugin_error	= GetPluginError ($args, $result);
 	    y2usernote ("User post-deletion script called: '$cmd'");
+	    Syslog->Log ("USERDEL_POSTCMD command called by YaST: $cmd");
 	};
     };
     return $ret;
@@ -4516,6 +4520,7 @@ sub Write {
 			    UsersRoutines->ChmodHome($home, $mode);
 			}
 		    }
+		    Syslog->Log ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
 		    if ($useradd_cmd ne "" && FileUtils->Exists ($useradd_cmd))
 		    {
 			$command = sprintf ("%s %s", $useradd_cmd, $username);
@@ -4699,6 +4704,7 @@ sub Write {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
 	    y2usernote ("Group post-add script called: '$command'");
+	    Syslog->Log ("GROUPADD_CMD command called by YaST: $command");
 	}
     }
 
@@ -4716,6 +4722,7 @@ sub Write {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
 	    y2usernote ("User post-add script called: '$command'");
+	    Syslog->Log ("USERADD_CMD command called by YaST: $command");
 	}
     }
 
