@@ -16,10 +16,8 @@ Requires:	yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
 Requires:	yast2-ldap-client >= 2.17.1
 
-# String::RemoveShortcut
-# Wizard::SetDialogTitleAndIcon
-Requires:       yast2 >= 2.21.22
-
+# Syslog.ycp
+Requires:       yast2 >= 2.23.7
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 
