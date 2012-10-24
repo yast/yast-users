@@ -5716,6 +5716,7 @@ sub WriteRootPassword {
     my $self		= shift;
     # Crypt the root password according to method defined in encryption_method
     my $crypted		= $self->CryptPassword ($root_password, "system");
+    Syslog->Log ("Root password changed by YaST");
     return SCR->Write (".target.passwd.root", $crypted);
 }
 
