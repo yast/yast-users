@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Oct 24 15:41:57 CEST 2012 - jsuchome@suse.cz
+
+- report critical actions (adding/removing user) in syslog
+  (bnc#785551)
+- 2.17.52
+
+-------------------------------------------------------------------
 Thu Nov 10 11:59:58 CET 2011 - jsuchome@suse.cz
 
 - do not recrypt group password provided in autoYaST profile
