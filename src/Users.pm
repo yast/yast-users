@@ -260,6 +260,14 @@ sub DebugMap {
     UsersCache->DebugMap ($_[0]);
 }
 
+# write given message to system log
+sub Syslog {
+
+    my $message = String->Quote ($_[0] || "");
+    return 0 == SCR->Execute (".target.bash", "/bin/logger '$message'");
+}
+
+
 ##------------------------------------
 BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
@@ -4084,8 +4092,10 @@ sub PostDeleteUsers {
 	my $plugin_error;
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
-	    my $cmd = sprintf ("$userdel_postcmd $username %i %i %s",
-		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
+	    my $uid     = $user{"uidNumber"} || 0;
+	    Syslog ("User deleted by YaST: name=$username, UID=$uid");
+	    my $cmd = sprintf ("$userdel_postcmd $username $uid %i %s",
+              $user{"gidNumber"} || 0, $user{"homeDirectory"} || "");
 	    SCR->Execute (".target.bash", $cmd);
 	    # call the "Write" function from plugins...
 	    my $args	= {
@@ -4095,6 +4105,7 @@ sub PostDeleteUsers {
 	    };
 	    my $result		= UsersPlugins->Apply ("Write", $args, \%user);
 	    $plugin_error	= GetPluginError ($args, $result);
+	    Syslog ("USERDEL_POSTCMD command called by YaST: $cmd");
 	};
     };
     return $ret;
@@ -4484,6 +4495,7 @@ sub Write {
 			    UsersRoutines->ChmodHome($home, $mode);
 			}
 		    }
+		    Syslog ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
 		    if ($useradd_cmd ne "" && FileUtils->Exists ($useradd_cmd))
 		    {
 			$command = sprintf ("%s %s", $useradd_cmd, $username);
@@ -4635,6 +4647,7 @@ sub Write {
 	foreach my $command (@groupadd_postcommands) {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
+	    Syslog ("GROUPADD_CMD command called by YaST: $command");
 	}
     }
 
@@ -4651,6 +4664,7 @@ sub Write {
 	foreach my $command (@useradd_postcommands) {
 	    y2milestone ("'$command' returns: ", 
 		SCR->Execute (".target.bash", $command));
+	    Syslog ("USERADD_CMD command called by YaST: $command");
 	}
     }
 
