@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Dec  6 13:23:33 CET 2012 - jsuchome@suse.cz
+
+- replaced obsolete SuSEconfig call
+- 2.23.1 
+
+-------------------------------------------------------------------
 Fri Oct 19 11:37:34 CEST 2012 - jsuchome@suse.cz
 
 - report critical actions (adding/removing user) in syslog
