@@ -4776,10 +4776,7 @@ sub Write {
 	    return $ret;
 	}
 	else {
-	    Call->Function ("inst_suseconfig", [ {
-		"enable_back"	=> YaST::YCP::Boolean (0),
-		"enable_next"	=> YaST::YCP::Boolean (0)
-	    }]);
+          SCR->Execute (".target.bash", "/usr/sbin/config.postfix");
 	}
     }
 
