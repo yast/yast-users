@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan 17 14:22:01 CET 2013 - jsuchome@suse.cz
+
+- enable using no secondary groups as a default (bnc#789635)
+- 2.23.2 
+
+-------------------------------------------------------------------
 Thu Dec  6 13:23:33 CET 2012 - jsuchome@suse.cz
 
 - replaced obsolete SuSEconfig call
