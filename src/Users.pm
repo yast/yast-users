@@ -1365,7 +1365,8 @@ sub ReadLoginDefaults {
     my $self		= shift;
     foreach my $key (sort keys %useradd_defaults) {
         my $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
-        next if (!$entry); # use the defatuls set in this file
+        # use the defaults set in this file if $entry not defined
+        next if (!$entry && $entry ne "");
 	$entry =~ s/\"//g;
         $useradd_defaults{$key} = $entry;
     }
@@ -6098,6 +6099,11 @@ sub Import {
     }
     else {
         %useradd_defaults 	= %{$settings{"user_defaults"}};
+        # if no_groups key is specifed, use no secondary groups
+        if ($useradd_defaults{"no_groups"} || 0) {
+          delete $useradd_defaults{"no_groups"};
+          $useradd_defaults{"groups"}   = "";
+        }
         $defaults_modified	= 1;
     }
     if (defined $settings{"login_settings"} &&
@@ -6534,6 +6540,10 @@ sub Export {
         "groups"	=> \@exported_groups,
         "user_defaults"	=> \%useradd_defaults
     );
+    # special key for special case of no secondary groups (bnc#789635)
+    if (($useradd_defaults{"groups"} || "") eq "") {
+      $ret{"user_defaults"}{"no_groups"}        = YaST::YCP::Boolean (1);
+    }
     if (Autologin->used ()) {
 	my %autologin	= ();
 	if (Autologin->pw_less ()) {
