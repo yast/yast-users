@@ -37,7 +37,7 @@ YaST::YCP::Import ("SCR");
 #---------------------------------------------------------------------
 #--------------------------------------------------------- definitions
 
-# see SYSTEM_UID_MAX and SYSTEM_GID_MAX in /etc/login.defs
+# see SYS_UID_MAX and SYS_GID_MAX in /etc/login.defs
 my $max_system_uid	= 499;
 my $max_system_gid	= 499;
 
