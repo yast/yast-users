@@ -112,7 +112,7 @@ my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
 my $max_length_login 	= 32; # reason: see for example man utmp, UT_NAMESIZE
 my $min_length_login 	= 2;
 
-# see SYSTEM_UID_MAX and SYSTEM_GID_MAX in /etc/login.defs
+# see SYS_UID_MAX and SYS_GID_MAX in /etc/login.defs
 my $max_system_uid	= 499;
 
 # maps for user data read in 1st stage ('from previous installation')

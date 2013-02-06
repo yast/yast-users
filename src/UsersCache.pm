@@ -1073,14 +1073,14 @@ sub InitConstants {
     $min_uid{"local"}	= $security->{"UID_MIN"}	|| $min_uid{"local"};
     $max_uid{"local"}	= $security->{"UID_MAX"}	|| $max_uid{"local"};
 
-    $min_uid{"system"}	= $security->{"SYSTEM_UID_MIN"} || $min_uid{"system"};
-    $max_uid{"system"}	= $security->{"SYSTEM_UID_MAX"} || $max_uid{"system"};
+    $min_uid{"system"}	= $security->{"SYS_UID_MIN"} || $min_uid{"system"};
+    $max_uid{"system"}	= $security->{"SYS_UID_MAX"} || $max_uid{"system"};
 
     $min_gid{"local"}	= $security->{"GID_MIN"}	|| $min_gid{"local"};
     $max_gid{"local"}	= $security->{"GID_MAX"}	|| $max_gid{"local"};
 
-    $min_gid{"system"}	= $security->{"SYSTEM_GID_MIN"} || $min_gid{"system"};
-    $max_gid{"system"}	= $security->{"SYSTEM_GID_MAX"} || $max_gid{"system"};
+    $min_gid{"system"}	= $security->{"SYS_GID_MIN"} || $min_gid{"system"};
+    $max_gid{"system"}	= $security->{"SYS_GID_MAX"} || $max_gid{"system"};
 }
 
 ##------------------------------------
