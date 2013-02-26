@@ -2,7 +2,7 @@ Dump	==========================================================
 Return	nil
 Return	nil
 Dump	============ add new group 'gg': ==========================
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/tmp/local/home"
@@ -23,7 +23,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg' - done ====================
 Dump	============ add new group 'gg2' with first userlist as list ==
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/tmp/local/home"
@@ -44,7 +44,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg2' - done ====================
 Dump	============ add new group 'gg3' with first userlist as map ==
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/tmp/local/home"
@@ -65,7 +65,7 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg3' - done ====================
 Dump	============ add new group 'gg4' with non existent user ==
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/tmp/local/home"
@@ -81,7 +81,7 @@ Execute	.target.bash_output "echo 'gg4' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:a
 Return	User hh2 does not exist.
 Dump	============ add new group 'gg4' - done ====================
 Dump	============ add new group 'root' (groupname conflict): ======
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/tmp/local/home"
