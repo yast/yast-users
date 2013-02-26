@@ -31,6 +31,9 @@
 		"useradd": $[
 		    "home":	"/home",
 		    "groups":	"audio,video",
+		    "inactive":	nil,
+		    "expire":	nil,
+		    "shell":	nil,
 		    "group":	100
 		]
 	    ],

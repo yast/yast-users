@@ -34,6 +34,7 @@
 		"useradd": $[
 		    "home":	"/tmp/local/home",
 		    "groups":	"audio,video",
+		    "expire":	nil,
 		    "group":	100
 		]
 	    ],
