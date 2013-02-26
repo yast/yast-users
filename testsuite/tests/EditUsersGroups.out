@@ -1,4 +1,4 @@
-Read	.etc.default.useradd."expire" 0
+Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
 Read	.etc.default.useradd."home" "/home"
