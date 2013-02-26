@@ -25,6 +25,7 @@
 		"useradd": $[
 		    "home":	"/home",
 		    "groups":	"audio,video",
+		    "expire":	nil,
 		    "group":	100
 		]
 	    ],
