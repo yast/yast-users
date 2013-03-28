@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Mar 28 14:38:56 CET 2013 - jsuchome@suse.cz
+
+- set the value of CHARACTER_CLASS, read from /etc/login.defs
+  (bnc#810482)
+- 2.24.0
+
+-------------------------------------------------------------------
 Tue Feb 26 13:07:33 CET 2013 - jsuchome@suse.cz
 
 - correctly check for nil value (bnc#803787)
