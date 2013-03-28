@@ -1345,6 +1345,7 @@ sub ReadSystemDefaults {
     my $login_defs	= SCR->Dir (".etc.login_defs");
     if (contains ($login_defs, "CHARACTER_CLASS")) {
 	$character_class= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
+        UsersSimple->SetCharacterClass ($character_class);
     }
 
     my %max_lengths		= %{Security->PasswordMaxLengths ()};

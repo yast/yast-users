@@ -241,6 +241,14 @@ sub bool {
 }
 
 ##------------------------------------
+# set new value for $character_class
+BEGIN { $TYPEINFO{SetCharacterClass} = ["function", "void", "string"];}
+sub SetCharacterClass {
+    my $self            = shift;
+    $character_class    = shift;
+}
+
+##------------------------------------
 # set new cracklib dictionary path
 BEGIN { $TYPEINFO{SetCrackLibDictPath} = ["function", "void", "string"];}
 sub SetCrackLibDictPath {
