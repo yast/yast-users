@@ -1,5 +1,5 @@
 {
-    // testedfiles: Users.pm
+    // testedfiles: Users.pm UsersLDAP.pm
 
     import "Users";
     import "UsersCache";

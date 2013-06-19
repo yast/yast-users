@@ -7,7 +7,7 @@
  */
 
 {
-    // testedfiles: Users.pm
+    // testedfiles: Users.pm UsersLDAP.pm UsersRoutines.pm UsersSimple.pm
 
     import "Directory";
     import "Mode";
