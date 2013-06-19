@@ -14,7 +14,7 @@
  */
 
 {
-    // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm
+    // testedfiles: Users.pm UsersLDAP.pm UsersCache.pm UsersSimple.pm
 
     import "Directory";
     import "Users";
