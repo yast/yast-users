@@ -8,7 +8,7 @@
  */
 
 {
-    // testedfiles: Users.pm UsersCache.pm USERS.pm
+    // testedfiles: Users.pm UsersCache.pm USERS.pm UsersLDAP.pm UsersPasswd.pm
 
 
     import "Directory";

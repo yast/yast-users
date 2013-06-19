@@ -14,7 +14,7 @@
  */
 
 {
-    // testedfiles: Users.pm UsersPasswd.pm
+    // testedfiles: Users.pm UsersPasswd.pm UsersLDAP.pm UsersRoutines.pm
 
     import "Users";
     import "UsersPasswd";

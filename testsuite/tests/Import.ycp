@@ -6,7 +6,7 @@
  * $Id$
  */
 {
-    // testedfiles: Users.pm UsersCache.pm
+    // testedfiles: Users.pm UsersCache.pm UsersLDAP.pm UsersSimple.pm
 
     import "Users";
     import "UsersCache";
