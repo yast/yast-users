@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul  4 12:19:46 CEST 2013 - jsuchome@suse.cz
+
+- update testedfiles in tests (lslezak)
+- 2.24.0 
+
+-------------------------------------------------------------------
 Thu Mar 28 14:38:56 CET 2013 - jsuchome@suse.cz
 
 - set the value of CHARACTER_CLASS, read from /etc/login.defs
