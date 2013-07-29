@@ -4,7 +4,7 @@
 
 htmldir = $(docdir)/autodocs
 
-html_DATA = $(wildcard *.html *.png) doxygen.css @RPMNAME@.tag
+html_DATA = $(wildcard *.html *.png *.css *.js) @RPMNAME@.tag
 CLEANFILES = $(html_DATA) doxygen.log doxygen.conf installdox
 
 doxygen.css @RPMNAME@.tag: index.html

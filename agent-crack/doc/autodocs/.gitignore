@@ -2,6 +2,8 @@ Makefile
 Makefile.in
 *.html
 *.png
+*.css
+*.js
 *.tag
 doxygen.css
 doxygen.log
