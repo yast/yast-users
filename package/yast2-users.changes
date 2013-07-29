@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Jul 29 05:47:54 UTC 2013 - lslezak@suse.cz
+
+- move the development documentation to -devel-doc subpackage,
+- agent-crack documentation - install JS and CSS files created
+  by doxygen
+- 2.24.1
+
+-------------------------------------------------------------------
 Thu Jul  4 12:19:46 CEST 2013 - jsuchome@suse.cz
 
 - update testedfiles in tests (lslezak)
