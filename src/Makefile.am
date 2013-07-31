@@ -1,73 +1,67 @@
-#
-# Makefile.am for users/src
-#
-# $Id$
-#
+# Sources for users
 
-YCPCFLAGS = -I .
+module_DATA = \
+  modules/UsersUI.rb \
+  modules/UsersRoutines.pm \
+  modules/UsersPluginQuota.pm \
+  modules/Users.pm \
+  modules/UsersPlugins.pm \
+  modules/UsersPluginLDAPShadowAccount.pm \
+  modules/UsersLDAP.pm \
+  modules/UsersSimple.pm \
+  modules/UsersCache.pm \
+  modules/UsersPluginLDAPAll.pm \
+  modules/UsersPluginLDAPPasswordPolicy.pm \
+  modules/UsersPasswd.pm
+
+module1dir = @moduledir@/YaPI
+module1_DATA = \
+  modules/YaPI/ADMINISTRATOR.pm \
+  modules/YaPI/USERS.pm
+
+client_DATA = \
+  clients/users_auto.rb \
+  clients/users_proposal.rb \
+  clients/users_finish.rb \
+  clients/groups.rb \
+  clients/inst_user.rb \
+  clients/inst_auth.rb \
+  clients/users_plugin_quota.rb \
+  clients/users_plugin_ldap_all.rb \
+  clients/users_plugin_ldap_shadowaccount.rb \
+  clients/users_plugin_ldap_passwordpolicy.rb \
+  clients/users.rb \
+  clients/inst_root_first.rb \
+  clients/inst_root.rb \
+  clients/inst_user_first.rb
 
 yncludedir = @yncludedir@/users
+ynclude_DATA = \
+  include/users/widgets.rb \
+  include/users/wizards.rb \
+  include/users/ldap_dialogs.rb \
+  include/users/dialogs.rb \
+  include/users/complex.rb \
+  include/users/routines.rb \
+  include/users/cmdline.rb \
+  include/users/helps.rb
 
-rncdir =  $(schemadir)/autoyast/rnc
+scrconf_DATA = \
+  scrconf/uid.scr \
+  scrconf/etc_default_useradd.scr \
+  scrconf/nis.scr
 
-module_DATA =		\
-    Users.pm		\
-    UsersCache.pm	\
-    UsersLDAP.pm	\
-    UsersRoutines.pm	\
-    UsersUI.ycp		\
-    UsersPasswd.pm	\
-    UsersPlugins.pm	\
-    UsersSimple.pm	\
-    UsersPluginLDAPAll.pm	\
-    UsersPluginLDAPShadowAccount.pm	\
-    UsersPluginLDAPPasswordPolicy.pm	\
-    UsersPluginQuota.pm
+agent_SCRIPTS = \
+  servers_non_y2/ag_nis \
+  servers_non_y2/ag_uid
 
-ynclude_DATA =		\
-    complex.ycp		\
-    dialogs.ycp		\
-    ldap_dialogs.ycp    \
-    helps.ycp		\
-    wizards.ycp		\
-    widgets.ycp		\
-    routines.ycp	\
-    cmdline.ycp
+schemafilesdir = $(schemadir)/autoyast/rnc
+schemafiles_DATA = \
+  autoyast-rnc/users.rnc
 
-client_DATA = 		\
-    users.ycp		\
-    groups.ycp		\
-    inst_root.ycp	\
-    inst_root_first.ycp	\
-    inst_user.ycp	\
-    inst_user_first.ycp	\
-    users_finish.ycp	\
-    inst_auth.ycp	\
-    users_auto.ycp	\
-    users_proposal.ycp	\
-    users_plugin_ldap_all.ycp			\
-    users_plugin_ldap_passwordpolicy.ycp	\
-    users_plugin_ldap_shadowaccount.ycp		\
-    users_plugin_quota.ycp
+desktop_DATA = \
+  desktop/users.desktop
 
-desktop_DATA =		\
-    users.desktop
-
-rnc_DATA =		\
-    users.rnc
-
-YaPI_perldir = @moduledir@/YaPI
-
-YaPI_perl_DATA = \
-    YaPI/ADMINISTRATOR.pm	\
-    YaPI/USERS.pm
-
-
-EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA) $(YaPI_perl_DATA) $(rnc_DATA)
-
-users:
-	ln -sf . users
-
-ycpchook = users
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
 
 include $(top_srcdir)/Makefile.am.common
