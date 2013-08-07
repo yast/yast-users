@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Aug  7 12:23:46 CEST 2013 - jsuchome@suse.cz
+
+- do not recrypt group password provided in autoYaST profile
+  (backport of bnc#722421) 
+- 3.0.1
+
+-------------------------------------------------------------------
 Wed Jul 31 08:44:54 UTC 2013 - yast-devel@opensuse.org
 
 - converted from YCP to Ruby by YCP Killer
