@@ -10,6 +10,7 @@ module_DATA = \
   modules/UsersLDAP.pm \
   modules/UsersSimple.pm \
   modules/UsersCache.pm \
+  modules/UsersPluginBtrfs.pm \
   modules/UsersPluginLDAPAll.pm \
   modules/UsersPluginLDAPPasswordPolicy.pm \
   modules/UsersPasswd.pm

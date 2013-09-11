@@ -4090,13 +4090,23 @@ sub PreDeleteUsers {
 	if (!defined $removed_users{$type}) {
 	    next;
 	}
+	my $plugin_error;
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
 	    my $cmd = sprintf ("$userdel_precmd $username %i %i %s",
 		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
 	    SCR->Execute (".target.bash", $cmd);
 	    y2usernote ("User pre-deletion script called: '$cmd'");
+	    # call the "WriteBefore" function from plugins...
+	    my $args	= {
+	    	"what"		=> "user",
+		"type"		=> $type,
+		"modified"	=> "deleted",
+	    };
+	    my $result		= UsersPlugins->Apply ("WriteBefore", $args, \%user);
+	    $plugin_error	= GetPluginError ($args, $result);
 	};
+        $ret    = $ret && ($plugin_error eq "");
     };
     return $ret;
 }
@@ -4151,6 +4161,7 @@ sub PostDeleteUsers {
 	    y2usernote ("User post-deletion script called: '$cmd'");
 	    Syslog->Log ("USERDEL_POSTCMD command called by YaST: $cmd");
 	};
+        $ret    = $ret && ($plugin_error eq "");
     };
     return $ret;
 }
