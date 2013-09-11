@@ -219,7 +219,7 @@ sub WriteBefore {
           return 1;
         }
 
-        unless (SCR->Execute(".snapper.delete_config", { "config_name" => $username})) {
+        unless (SCR->Execute(".snapper.delete_config", { "config_name" => "home_$username"})) {
           y2error ("deleting config $username failed");
           return 0;
         }
@@ -270,7 +270,7 @@ sub Write {
 
           # create new config
           unless (SCR->Execute(".snapper.create_config", {
-            "config_name"       => $username,
+            "config_name"       => "home_$username",
             "subvolume"         => $home,
             "fstype"            => "btrfs"
           })) {
@@ -281,7 +281,7 @@ sub Write {
           # adapt ALLOW_USERS (there should be a .snapper call for that...)
           my $command   = "/bin/cp -r '$skel/.' '$home/'";
           SCR->Execute (".target.bash",
-            "sed -i -e '/ALLOW_USERS=/ s/\".*\"/\"$username\"/' /etc/snapper/configs/$username");
+            "sed -i -e '/ALLOW_USERS=/ s/\".*\"/\"$username\"/' /etc/snapper/configs/home_$username");
 
 
           if ($skel ne "" && FileUtils->Exists($skel)) {
@@ -300,7 +300,7 @@ sub Write {
         foreach my $file (split (/\n/,$out->{"stdout"} || "")) {
           unless ($file eq ".snapshots") {
             my $command = "/bin/chown -R $uid:$gid '$home/$file'";
-            my $chown   = SCR->Execute (".target.bash_output", "/bin/chown -R $uid:$gid '$home/$file'");
+            my $chown   = SCR->Execute (".target.bash_output", $command);
             if (($chown->{"stderr"} || "") ne "") {
               y2error ("error calling $command: ", $out->{"stderr"} || "");
               return 0;
