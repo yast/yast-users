@@ -46,8 +46,6 @@ my $skel        = "";
 # in 'config' map there is a info of this type:
 # "what"		=> "user" / "group"
 # "modified"		=> "added"/"edited"/"deleted"
-# "enabled"		=> 1/ key not present
-# "disabled"		=> 1/ key not present
 
 # 'data' map contains the atrtributes of the user. It could also contain
 # some keys, which Users module uses internaly (like 'groupname' for name of
@@ -70,7 +68,7 @@ sub Interface {
 	    "Edit",
 	    "EditBefore",
 	    "Interface",
-            "PluginPresent",
+	    "PluginPresent",
 	    "Error"
     );
     return \@interface;
@@ -94,6 +92,7 @@ BEGIN { $TYPEINFO{Restriction} = ["function", ["map", "string", "any"], "any", "
 sub Restriction {
 
     my $self	= shift;
+    # just a basic check first, if the plugin could be used
     my $supported       = Package->Installed("yast2-snapper") && fs_is_btrfs ("/");
 
     # read skel now, so we do not have to import Users
@@ -118,6 +117,9 @@ sub PluginPresent {
     my $self	  = shift;
     my $config    = shift;
     my $data      = shift;
+
+    y2debug ("AddBefore Btrfs called");
+    return 1 unless %$data; # for AddBefore, PluginPresent called with empty hash
 
     my $home    = $data->{"homeDirectory"} || "";
     return 0 unless $home;
@@ -152,7 +154,6 @@ sub Add {
     my $data   = shift;
 
     y2debug ("Add Btrfs called");
-    return undef if !defined $data;
 
     # forbid standard manipulations with home directory
     $data->{"create_home"}      = YaST::YCP::Boolean (0);
@@ -198,14 +199,36 @@ sub Edit {
 }
 
 # what should be done before user is finally written
+# Must be called before Users module tries to rm -rf home directory
 BEGIN { $TYPEINFO{WriteBefore} = ["function", "boolean", "any", "any"];}
 sub WriteBefore {
 
-    my $self   = shift;
-    my $config = shift;
-    my $data   = shift;
+    my $self    = shift;
+    my $config  = shift;
+    my $user    = shift;
 
     y2debug ("WriteBefore Btrfs called");
+
+    my $user_mod        = $config->{"modified"} || "no";
+    my $home            = $user->{"homeDirectory"} || "";
+    my $username        = $user->{"uid"} || "";
+
+    if ($user_mod eq "deleted") {
+        unless (SCR->Read (".snapper.is_subvolume", $home)) {
+          y2milestone ("directory $home does not look like subvolume");
+          return 1;
+        }
+
+        unless (SCR->Execute(".snapper.delete_config", { "config_name" => $username})) {
+          y2error ("deleting config $username failed");
+          return 0;
+        }
+
+        unless (SCR->Execute(".snapper.subvolume.delete", { "path" => $home })) {
+          y2error ("deleting subvolume $home failed");
+          return 0;
+        }
+    }
     return 1;
 }
 
@@ -218,9 +241,7 @@ sub Write {
     my $config  = shift;
     my $user    = shift;
 
-    y2internal ("Write Btrfs called");
-    y2internal( Dumper($config) );
-    y2security( Dumper($user) );
+    y2debug ("Write Btrfs called");
 
     # re-check that /home is using btrfs
     return 1 unless $self->PluginPresent($config,$user);
@@ -241,48 +262,59 @@ sub Write {
         else {
 
           # create a subvolume
-          SCR->Execute(".snapper.subvolume.create", { "path" => $home });
+          unless (SCR->Execute(".snapper.subvolume.create", { "path" => $home })) {
+            y2error ("creating subvolume $home failed");
+	    # error popup, %1 is name
+	    $error	= sformat (__("Creating subvolume \"%1\" failed."), $home);
+          }
 
           # create new config
-          SCR->Execute(".snapper.create_config", {
+          unless (SCR->Execute(".snapper.create_config", {
             "config_name"       => $username,
             "subvolume"         => $home,
             "fstype"            => "btrfs"
-          });
-          # FIXME adapt ALLOW_USERS
+          })) {
+            y2error ("creating config $username failed");
+	    # error popup, %1 is name
+	    $error	= sformat (__("Creating snapper configuration \"%1\" failed."), $username);
+          }
+          # adapt ALLOW_USERS (there should be a .snapper call for that...)
+          my $command   = "/bin/cp -r '$skel/.' '$home/'";
+          SCR->Execute (".target.bash",
+            "sed -i -e '/ALLOW_USERS=/ s/\".*\"/\"$username\"/' /etc/snapper/configs/$username");
+
 
           if ($skel ne "" && FileUtils->Exists($skel)) {
-	    my $command   = "/bin/cp -r $skel/. $home/";
-	    my $out       = SCR->Execute (".target.bash_output", $command);
+            my $command   = "/bin/cp -r $skel/. '$home/'";
+            my $out       = SCR->Execute (".target.bash_output", $command);
             if (($out->{"stderr"} || "") ne "") {
               y2error ("error calling $command: ", $out->{"stderr"} || "");
               return 0;
-	    }
+            }
           }
         }
 
-        # chown all but .snapshots
-        my $command = "/bin/chown -R $uid:$gid $home";
-        my $out	= SCR->Execute (".target.bash_output", $command);
-        if (($out->{"stderr"} || "") ne "") {
-	  y2error ("error calling $command: ", $out->{"stderr"} || "");
-	  return 0;
-        }
+        # chown all but .snapshots:
+        # it would fail on .snapshots if there is already anything inside
+        my $out = SCR->Execute (".target.bash_output", "ls -A1 '$home'");
+        foreach my $file (split (/\n/,$out->{"stdout"} || "")) {
+          unless ($file eq ".snapshots") {
+            my $command = "/bin/chown -R $uid:$gid '$home/$file'";
+            my $chown   = SCR->Execute (".target.bash_output", "/bin/chown -R $uid:$gid '$home/$file'");
+            if (($chown->{"stderr"} || "") ne "") {
+              y2error ("error calling $command: ", $out->{"stderr"} || "");
+              return 0;
+            }
+          }
+        };
 
-        # owner of .snapshots subdirectory is root
-        $command = "/bin/chown -R root:$gid $home/.snapshots";
+        # owner of .snapshots subdirectory must be root
+        my $command = "/bin/chown root:$gid '$home/.snapshots'";
         $out	= SCR->Execute (".target.bash_output", $command);
         if (($out->{"stderr"} || "") ne "") {
-	  y2error ("error calling $command: ", $out->{"stderr"} || "");
-	  return 0;
+          y2error ("error calling $command: ", $out->{"stderr"} || "");
+          return 0;
         }
-    }
-    elsif ($user_mod eq "deleted") {
-        my $ret = SCR->Execute(".snapper.delete_config", { "config_name" => $username});
-y2internal ("deleting config ($username): $ret");
-
-        $ret    = SCR->Execute(".snapper.subvolume.delete", { "path" => $home });
-y2internal ("deleting subvolume ($home): $ret");
     }
     return 1;
 }
