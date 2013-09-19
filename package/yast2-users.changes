@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Sep 19 17:45:35 UTC 2013 - lslezak@suse.cz
+
+- do not use *.spec.in template, use *.spec file with RPM macros
+  instead
+- 3.1.0
+
+-------------------------------------------------------------------
 Wed Aug  7 12:23:46 CEST 2013 - jsuchome@suse.cz
 
 - do not recrypt group password provided in autoYaST profile

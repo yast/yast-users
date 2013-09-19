@@ -7,6 +7,7 @@ config.cache
 config.guess
 config.h
 config.h.in
+config.h.in~
 config.log
 config.status
 config.sub
@@ -24,7 +25,6 @@ stamp-h*
 Makefile.am.common
 *.ami
 *.bz2
-*.spec
 .dep
 tmp.*
 *.log
