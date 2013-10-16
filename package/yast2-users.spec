@@ -89,7 +89,6 @@ provided by yast2-users package.
 %{yast_plugindir}/libpy2ag_crack.so
 %{yast_plugindir}/libpy2ag_crack.la
 %dir %{yast_docdir}
-%doc %{yast_docdir}/README
 %doc %{yast_docdir}/COPYING
 %doc %{yast_docdir}/TODO.txt
 %doc %{yast_docdir}/users.html
