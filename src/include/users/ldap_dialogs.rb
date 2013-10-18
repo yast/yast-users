@@ -586,7 +586,7 @@ module Yast
           end
         end
       end
-      result == :next ? ret : nil
+      result == :next ? deep_copy(ret) : nil
     end
 
     # Dialog for administering User & Group specific LDAP settigns

@@ -791,7 +791,7 @@ module Yast
         )
       end
       UI.CloseDialog
-      ret == :ok ? selected : nil
+      ret == :ok ? deep_copy(selected) : nil
     end
 
     # Dialog for expert user settings: authentication method as well

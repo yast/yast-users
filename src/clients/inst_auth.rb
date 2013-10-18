@@ -465,7 +465,7 @@ module Yast
         )
       end
       UI.CloseDialog
-      ret == :ok ? selected : nil
+      ret == :ok ? deep_copy(selected) : nil
     end
   end
 end
