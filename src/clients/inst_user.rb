@@ -49,6 +49,8 @@ module Yast
       Yast.import "Wizard"
 
       Yast.include self, "users/wizards.rb"
+      # create_users()
+      Yast.include self, "users/routines.rb"
 
       @ret = :back
       @importing = false
@@ -225,35 +227,9 @@ module Yast
         ReadDialog(false) # clear the cache from imported data
         Users.ResetCurrentUser
         Builtins.y2milestone("There are some users to import")
-        Builtins.foreach(
-          Convert.convert(
-            @import_u,
-            :from => "list",
-            :to   => "list <map <string, any>>"
-          )
-        ) do |user|
-          Ops.set(user, "encrypted", true)
-          # check if default group exists
-          if Builtins.haskey(user, "gidNumber")
-            g = Users.GetGroup(GetInt(Ops.get(user, "gidNumber"), -1), "")
-            if g == {}
-              g = Users.GetGroupByName(
-                Ops.get_string(user, "groupname", ""),
-                ""
-              )
-              if g != {}
-                Ops.set(user, "gidNumber", Ops.get_integer(g, "gidNumber", -1))
-              else
-                user = Builtins.remove(user, "gidNumber")
-              end
-            end
-          end
-          error = Users.AddUser(user)
-          Builtins.y2error("error while adding user: %1", error) if error != ""
-          error = Users.CheckUser({})
-          Builtins.y2error("error while adding user: %1", error) if error != ""
-          Users.CommitUser
-        end
+
+        create_users(@import_u)
+
         WriteDialog(false)
         @ret = :auto
       else

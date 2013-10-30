@@ -125,9 +125,6 @@ my $import_available;
 # if check for LDAP/Kerberos via DNS was done
 my $network_methods_checked	= 0;
 
-# prevent re-reading data map with 1st stage settingss
-my $first_stage_data_not_read	= 1;
-
 # note if users configuration should be run or skipped in 2nd stage (bnc#450231)
 my $skip_user_creation		= 0;
 
@@ -901,107 +898,27 @@ sub GetSystemUserNames {
 ##---------------------------------------------------------------------------
 ## Read/Write functions
 
-# Writes the settings configured in 1st stage
+# Writes the root password configured in the 1st stage
 BEGIN { $TYPEINFO{Write} = ["function", "boolean"];}
 sub Write {
-
     my $self		= shift;
-    my $user_defined	= 0;
-    foreach my $user (@users) {
-	if (defined $user->{"userPassword"}) {
-	    if (!defined $user->{"__imported"}) {
-		$user->{"userPassword"}	=
-		    $self->CryptPassword($user->{"userPassword"});
-	    }
-	    $user->{"encrypted"}	= YaST::YCP::Integer (1);
-	}
-	$user_defined	= 1;
-    }
-    my %data = (
-        "after_auth"		=> $after_auth,
-	"run_krb_config"	=> YaST::YCP::Integer ($run_krb_config),
-        "users"			=> \@users,
-	"encryption_method"	=> $encryption_method,
-	"root_alias"		=> $root_alias,
-	"autologin_user"	=> $autologin_user
-    );
-    if ($root_password) {
-	# indication to inst_root
-	$data{"root_password_written"}	= YaST::YCP::Integer (1);
-    }
-    my $file	= Directory->vardir()."/users_first_stage.ycp";
-    my $ret	= SCR->Write (".target.ycp", $file, \%data);
 
-    y2milestone ("1st stage user information written: ", $ret);
-
-    # make the file root only readable
-    SCR->Execute (".target.bash", "chmod 600 $file") if ($ret);
- 
-    my $redraw	= 0;
     if ($root_password) {
 	# write root password now
-	$self->WriteRootPassword ();
-    }
-    else {
-	y2milestone ("enabling step 'root' for second stage");
-	ProductControl->EnableModule ("root");
-    }
-    # enable inst_user to either run auth client or write first user
-    if ($after_auth ne "users" || $user_defined) {
-	# do not let both steps to run (bnc#672139)
-	if ($user_defined) {
-	    y2milestone ("enabling 'user_non_interactive', disabling 'user' for second stage");
-	    ProductControl->EnableModule ("user_non_interactive");
-	    ProductControl->DisableModule ("user");
-	}
-	else {
-	    y2milestone ("enabling 'user', disabling 'user_non_interactive' for second stage");
-	    ProductControl->EnableModule ("user");
-	    ProductControl->DisableModule ("user_non_interactive");
-	}
-    }
-    # no user entered + 2nd stage visible => enable clients (bnc#393722)
-    elsif (!ProductControl->GetUseAutomaticConfiguration ()) {
-	y2milestone ("enabling steps 'auth' and 'user' for second stage");
-	ProductControl->EnableModule ("auth");
-	ProductControl->EnableModule ("user");
+	return $self->WriteRootPassword ();
     }
 
-    return $ret;
+    return bool (1);
 }
 
-# Read the settings configured in 1st stage
+# Empty function (kept for backward compatibility)
 BEGIN { $TYPEINFO{Read} = ["function", "boolean", "boolean"];}
 sub Read {
 
     my $self	= shift;
     my $force	= shift;
-    my $file	= Directory->vardir()."/users_first_stage.ycp";
-    my $ret	= 0;
 
-    if (Stage->cont () && FileUtils->Exists ($file) &&
-	($force || $first_stage_data_not_read)) 
-    {
-	my $data	= SCR->Read (".target.ycp", $file);
-	$first_stage_data_not_read	= 0;
-	if (defined $data && ref ($data) eq "HASH") {
-
-	    $autologin_user	= $data->{"autologin_user"}	|| "";
-	    $root_alias		= $data->{"root_alias"}		|| "";
-	    $after_auth		= $data->{"after_auth"}		|| $after_auth;
-	    $encryption_method	=
-		$data->{"encryption_method"} || $encryption_method; 
-	    $run_krb_config	= bool ($data->{"run_krb_config"});
-	    if (ref ($data->{"users"}) eq "ARRAY") {
-		@users		= @{$data->{"users"}};
-	    }
-	    $root_password_written = bool ($data->{"root_password_written"});
-	    $users_written	= bool ($data->{"users_written"});
-	    $ret	= 1;
-	}
-#	SCR->Execute (".target.remove", $file);
-    }
-    return bool ($ret);
+    return bool (1);
 }
 
 # Remove the private data from users_first_stage.ycp after they were
