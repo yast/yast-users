@@ -4803,8 +4803,6 @@ sub Write {
     $users_modified	= 0;
     $groups_modified	= 0;
 
-    sleep (1);
-
     return $ret;
 }
 

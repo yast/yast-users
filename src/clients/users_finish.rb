@@ -31,9 +31,12 @@ module Yast
     def main
       textdomain "users"
 
+      Yast.import "Users"
       Yast.import "UsersSimple"
 
-      @ret = nil
+      # create_users()
+      Yast.include self, "users/routines.rb"
+
       @func = ""
       @param = {}
 
@@ -59,15 +62,29 @@ module Yast
           "when"  => [:installation, :live_installation, :autoinst]
         }
       elsif @func == "Write"
+        # disable UI (progress)
+        Users.SetGUI(false)
+
+        # write the root password
         UsersSimple.Write
+
+        @users = UsersSimple.GetUsers
+
+        if !@users.empty?
+          Users.Read
+          Users.ResetCurrentUser
+          Builtins.y2milestone("There are #{@users.size} users to import")
+
+          create_users(@users)
+
+          Users.Write
+        end
       else
         Builtins.y2error("unknown function: %1", @func)
-        @ret = nil
       end
 
-      Builtins.y2debug("ret=%1", @ret)
       Builtins.y2milestone("users_finish finished")
-      deep_copy(@ret)
+      nil
     end
   end
 end
