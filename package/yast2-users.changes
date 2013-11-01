@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Nov  1 14:57:58 UTC 2013 - lslezak@suse.cz
+
+- require non-empty root password in the 1st stage (configuring
+  later is not possible, the 2nd stage has been removed)
+
+-------------------------------------------------------------------
 Wed Oct 30 14:09:52 UTC 2013 - lslezak@suse.cz
 
 - do not save the data for the 2nd stage, create the users

@@ -183,28 +183,13 @@ module Yast
             @ret = :notnext
             next
           end
-          if @pw1 == ""
-            # yes-no popup headline
-            if Popup.YesNoHeadline(
-                _("No Password Entered"),
-                # yes-no popup contents
-                _(
-                  "If you leave the password empty,\n" +
-                    "you will be asked for it later during the configuration sequence.\n" +
-                    "\n" +
-                    "Leave it empty for now?"
-                )
-              )
-              Builtins.y2milestone(
-                "root password setting skipped, will occur later"
-              )
-              UsersSimple.SetRootPassword(@pw1)
-              break
-            else
-              @ret = :notnext
-              next
-            end
+
+          if @pw1.empty?
+            Popup.Error(_("No password entered.\nTry again."))
+            @ret = :notnext
+            next
           end
+
           @error = UsersSimple.CheckPassword(@pw1, "local")
           if @error != ""
             Report.Error(@error)
