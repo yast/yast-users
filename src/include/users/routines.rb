@@ -109,7 +109,6 @@ module Yast
   # create users from a list
   def create_users(users)
     users.each do |user|
-      user["encrypted"] = true
       # check if default group exists
       if user.has_key?("gidNumber")
         g = Users.GetGroup(GetInt(Ops.get(user, "gidNumber"), -1), "")
