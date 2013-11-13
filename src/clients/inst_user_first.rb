@@ -28,20 +28,16 @@
 module Yast
   class InstUserFirstClient < Client
     def main
-      Yast.import "Pkg"
       Yast.import "UI"
-      Yast.import "Directory"
       Yast.import "GetInstArgs"
       Yast.import "Label"
       Yast.import "Mode"
       Yast.import "Popup"
-      Yast.import "Stage"
       Yast.import "Package"
       Yast.import "ProductControl"
       Yast.import "ProductFeatures"
       Yast.import "Progress"
       Yast.import "Report"
-      Yast.import "String"
       Yast.import "UsersSimple"
       Yast.import "Wizard"
 
@@ -81,50 +77,16 @@ module Yast
         end
       end
 
-      # check if LDAP/Kerberos are available
-      UsersSimple.CheckNetworkMethodsAvailability
-
       # do not open package progress wizard window
       @progress_orig = Progress.set(false)
 
-      @auth_method = UsersSimple.AfterAuth
-
       @encryption_method = UsersSimple.EncryptionMethod
 
-      @use_kerberos = UsersSimple.KerberosConfiguration
-
       @button_labels = {
-        # radiobutton to select ldap user auth.
-        "ldap"      => _("&LDAP"),
-        # radiobutton to select nis user auth.
-        "nis"       => _("N&IS"),
-        # radiobutton to select samba user auth.
-        "samba"     => _(
-          "&Windows Domain"
-        ),
-        # radiobutton to select local user auth.
-        "users"     => _(
-          "L&ocal (/etc/passwd)"
-        ),
-        # radiobutton to select local user auth.
-        "edir_ldap" => _(
-          "&eDirectory LDAP"
-        ),
         # radiobutton to select local user auth.
         "users"     => _(
           "L&ocal (/etc/passwd)"
         )
-      }
-
-      @auth2label = {
-        # authentication type
-        "ldap"      => _("LDAP"),
-        # authentication type
-        "nis"       => _("NIS"),
-        # authentication type
-        "samba"     => _("Samba (Windows Domain)"),
-        # authentication type
-        "edir_ldap" => _("eDirectory LDAP")
       }
 
       @encoding2label = {
@@ -137,6 +99,7 @@ module Yast
         # encryption type
         "sha512" => _("SHA-512")
       }
+
       @import_checkbox = Left(
         CheckBox(
           Id(:import_ch),
@@ -149,49 +112,37 @@ module Yast
       @import_button = PushButton(Id(:import), _("&Choose"))
 
       @buttons = VBox(VSpacing(0.5))
-      @available_clients = Builtins.filter(
-        ["ldap", "nis", "samba", "edir_ldap"]
-      ) do |client|
-        package = Builtins.sformat("yast2-%1-client", client)
-        package = "yast2-linux-user-mgmt" if client == "edir_ldap"
-        Mode.normal || Package.Available(package) == true ||
-          # during Mode::live_installation, available = installed
-          Mode.live_installation && Package.Installed(package)
-      end
-      @available_clients = Builtins.prepend(@available_clients, "users")
 
-      Builtins.foreach(@available_clients) do |client|
-        if client == "users" && @import_available
-          @buttons = Builtins.add(
-            @buttons,
-            VBox(
-              Left(
-                RadioButton(
-                  Id(client),
-                  Opt(:notify),
-                  Ops.get_string(@button_labels, client, "")
-                )
-              ),
-              HBox(
-                HSpacing(3),
-                @text_mode ?
-                  VBox(@import_checkbox, Left(@import_button)) :
-                  HBox(@import_checkbox, @import_button)
-              )
-            )
-          )
-        else
-          @buttons = Builtins.add(
-            @buttons,
+      if @import_available
+        @buttons = Builtins.add(
+          @buttons,
+          VBox(
             Left(
               RadioButton(
-                Id(client),
+                Id("users"),
                 Opt(:notify),
-                Ops.get_string(@button_labels, client, "")
+                Ops.get_string(@button_labels, "users", "")
               )
+            ),
+            HBox(
+              HSpacing(3),
+              @text_mode ?
+                VBox(@import_checkbox, Left(@import_button)) :
+                HBox(@import_checkbox, @import_button)
             )
           )
-        end
+        )
+      else
+        @buttons = Builtins.add(
+          @buttons,
+          Left(
+            RadioButton(
+              Id("users"),
+              Opt(:notify),
+              Ops.get_string(@button_labels, "users", "")
+            )
+          )
+        )
       end
 
       @buttons = Builtins.add(@buttons, VSpacing(0.5))
@@ -200,10 +151,7 @@ module Yast
         Frame(
           _("Authentication Method"),
           RadioButtonGroup(Id(:auth_method), @buttons)
-        ),
-        VSpacing(),
-        # check box label
-        Left(CheckBox(Id(:krb), _("Set Up &Kerberos Authentication")))
+        )
       )
 
       # frame label
@@ -230,7 +178,6 @@ module Yast
       @auth_help = _(
         "<p>\n" +
           "<b>Authentication</b><br>\n" +
-          "Select the authentication method to use for users on your system.\n" +
           "</p>"
       ) +
         # helptext 2/3
@@ -238,35 +185,12 @@ module Yast
           "<p>Select <b>Local</b> to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>"
         )
 
-      @auth_help = Ops.add(
-        Ops.add(
-          @auth_help,
-          # helptext 3/3 -- nis & samba & ldap avialable
-          _(
-            "<p>If you are using a NIS or LDAP server to store user data or if you want\nto authenticate users against an NT server, choose the appropriate value.</p>"
-          )
-        ),
-        # helptext: additional kerberos support
-        _(
-          "<p>Check <b>Set Up Kerberos Authentication</b> to configure Kerberos after configuring the user data source.</p>"
-        )
-      )
-
       # Help text for password expert dialog
       @encryption_help = _(
         "<p>\n" +
           "Choose a password encryption method for local and system users.\n" +
-          "<b>DES</b>, the Linux default method, works in all network environments, but it\n" +
-          "restricts passwords to eight characters or less.\n" +
           "</p>\n"
       ) +
-        # Help text for password expert dialog
-        _(
-          "<p>\n" +
-            "<b>MD5</b> allows longer passwords, so provides more security, but some\n" +
-            "network protocols do not support this and you may have problems with NIS.\n" +
-            "</p>"
-        ) +
         # Help text for password expert dialog
         _(
           "<p><b>SHA-512</b> is the current standard hash method. Using other algorithms is not recommended unless needed for compatibility purposes.</p>"
@@ -403,14 +327,12 @@ module Yast
         UI.ChangeWidget(
           Id(w),
           :Enabled,
-          @auth_method == "users" && @to_import == []
+          @to_import == []
         )
       end
-      if @auth_method == "users"
-        UI.SetFocus(Id(:cn))
-      else
-        UI.SetFocus(Id(:change))
-      end
+
+      UI.SetFocus(Id(:cn))
+
       @login_modified = false
       @ret = :back
       while true
@@ -425,7 +347,7 @@ module Yast
               UI.ChangeWidget(
                 Id(w),
                 :Enabled,
-                @auth_method == "users" && @to_import == []
+                @to_import == []
               )
             end
             Wizard.RestoreHelp(main_help)
@@ -457,7 +379,6 @@ module Yast
           @ui_map = {}
           # --------------------------------- username checks
           @username = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
-          break if @auth_method != "users" || @to_import != []
           if @username == ""
             # when 2nd stage is enabled, there will be inst_auth anyway
             if !Mode.live_installation &&
@@ -571,9 +492,9 @@ module Yast
         break if Builtins.contains([:back, :abort, :cancel, :next], @ret)
       end
       if @ret == :next
-        UsersSimple.SetAfterAuth(@auth_method)
-        UsersSimple.SetKerberosConfiguration(@use_kerberos)
-        if @auth_method == "users" && @to_import != []
+        UsersSimple.SetAfterAuth("users")
+        UsersSimple.SetKerberosConfiguration(false)
+        if @to_import != []
           @create_users = []
           Builtins.foreach(@to_import) do |name|
             u = Ops.get(@imported_users, name, {})
@@ -585,7 +506,7 @@ module Yast
           UsersSimple.SetRootPassword("") if @root_dialog_follows
           UsersSimple.SetAutologinUser("")
           UsersSimple.SetRootAlias("")
-        elsif @auth_method == "users" && @username != ""
+        elsif @username != ""
           # save the first user data
           @user_map = {
             "uid"          => @username,
@@ -604,26 +525,7 @@ module Yast
           UsersSimple.SetRootAlias(
             UI.QueryWidget(Id(:root_mail), :Value) == true ? @username : ""
           )
-        elsif @auth_method != "users"
-          # preselect the required packages for installation
-          Builtins.y2milestone("preselect required packages for installation")
-          @required_packages = {
-            "ldap"  => ["yast2-ldap-client", "sssd"],
-            "nis"   => ["yast2-nis-client", "ypbind"],
-            "samba" => [
-              "yast2-samba-client",
-              "krb5",
-              "samba-client",
-              "samba-winbind"
-            ]
-          }
-          Builtins.foreach(Ops.get(@required_packages, @auth_method, [])) do |package|
-            Pkg.ResolvableInstall(package, :package)
-          end
         end
-        Builtins.foreach(["pam_krb5", "krb5", "krb5-client"]) do |package|
-          Pkg.ResolvableInstall(package, :package)
-        end if @use_kerberos
         UsersSimple.UnLoadCracklib if @root_pw
       elsif @ret == :back
         # reset to defaults
@@ -632,7 +534,6 @@ module Yast
         UsersSimple.SetRootPassword("")
         UsersSimple.SetUsers([])
       end
-
 
       Wizard.CloseDialog if Mode.normal
       Progress.set(@progress_orig)
@@ -824,27 +725,18 @@ module Yast
         true,
         true
       )
-      UI.ChangeWidget(Id(:auth_method), :CurrentButton, @auth_method)
+      UI.ChangeWidget(Id(:auth_method), :CurrentButton, "users")
       UI.ChangeWidget(
         Id(:encryption_method),
         :CurrentButton,
         @encryption_method
       )
-      UI.ChangeWidget(Id(:krb), :Value, @use_kerberos)
-      UI.ChangeWidget(
-        Id(:krb),
-        :Enabled,
-        @auth_method != "users" && @auth_method != "samba"
-      )
-      Builtins.foreach(@encoding2label) do |enc, l|
-        UI.ChangeWidget(Id(enc), :Enabled, @auth_method == "users")
-      end
+
       if Ops.greater_than(Builtins.size(@to_import), 0)
         UI.ChangeWidget(
           Id(:import_ch),
           :Value,
-          @auth_method == "users" &&
-            Ops.greater_than(Builtins.size(@to_import), 0)
+          Ops.greater_than(Builtins.size(@to_import), 0)
         )
       end
       retval = :cancel
@@ -861,11 +753,6 @@ module Yast
         end
         if Ops.is_string?(retval) &&
             Builtins.haskey(@button_labels, Convert.to_string(retval))
-          UI.ChangeWidget(
-            Id(:krb),
-            :Enabled,
-            retval != "users" && retval != "samba"
-          )
           Builtins.foreach(@encoding2label) do |enc, l|
             UI.ChangeWidget(Id(enc), :Enabled, retval == "users")
           end
@@ -886,22 +773,10 @@ module Yast
         break if retval == :cancel || retval == :accept || retval == :back
       end
       if retval == :accept
-        @auth_method = Convert.to_string(
-          UI.QueryWidget(Id(:auth_method), :CurrentButton)
-        )
         @encryption_method = Convert.to_string(
           UI.QueryWidget(Id(:encryption_method), :CurrentButton)
         )
         UsersSimple.SetEncryptionMethod(@encryption_method)
-        if @auth_method == "users" || @auth_method == "samba"
-          @use_kerberos = false
-        else
-          @use_kerberos = Convert.to_boolean(UI.QueryWidget(Id(:krb), :Value))
-        end
-        if @auth_method != "users" ||
-            UI.QueryWidget(Id(:import_ch), :Value) == false
-          @to_import = []
-        end
       end
       Wizard.CloseDialog
       retval == :accept
@@ -917,24 +792,8 @@ module Yast
         Ops.get(@encoding2label, @encryption_method, @encryption_method)
       )
       imported_term = Empty()
-      if @auth_method != "users"
-        # summary line: %1 is LDAP/NIS etc.
-        auth_line = Builtins.sformat(
-          _("The authentication method is %1."),
-          Ops.get_string(@auth2label, @auth_method, @auth_method)
-        )
-        if @use_kerberos
-          # summary line: %1 is LDAP/NIS etc.
-          auth_line = Builtins.sformat(
-            _("The authentication method is %1 and Kerberos."),
-            Ops.get_string(@auth2label, @auth_method, @auth_method)
-          )
-        end
-        # // summary label
-        details_line = _(
-          "The configuration will be available later during the installation."
-        )
-      elsif @to_import != []
+
+      if @to_import != []
         # summary label, %1 are user names (comma separated)
         imported = Builtins.sformat(
           _("Users %1 will be imported."),
@@ -953,6 +812,7 @@ module Yast
           imported_term = Left(Label(imported))
         end
       end
+
       status = @text_mode ?
         RichText(Ops.add(Ops.add(auth_line, "<br>"), details_line)) :
         VBox(Left(Label(auth_line)), imported_term, Left(Label(details_line)))
