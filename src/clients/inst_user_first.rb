@@ -27,6 +27,10 @@
 # $Id$
 module Yast
   class InstUserFirstClient < Client
+
+    # minimal pw length for CA-management (F#300438)
+    MIN_PW_LEN_CA = 4
+
     def main
       Yast.import "UI"
       Yast.import "GetInstArgs"
@@ -43,15 +47,12 @@ module Yast
 
       textdomain "users"
 
-      @text_mode = UI.GetDisplayInfo["TextMode"]
+      @text_mode = UI.TextMode
 
       @check_CA_constraints = ProductFeatures.GetBooleanFeature(
         "globals",
         "root_password_ca_check"
       ) == true
-
-      # minimal pw length for CA-management (F#300438)
-      @pw_min_CA = 4
 
       # full info about imported users
       @imported_users = {}
@@ -171,23 +172,19 @@ module Yast
       @user = {}
 
       if @users.size > 1
-        @to_import = Builtins.maplist(@users) do |u|
-          Ops.get_string(u, "uid", "")
-        end
-      end
-
-      if @users.size == 1
-        if Ops.get(@users, [0, "__imported"]) != nil
-          @to_import = [Ops.get_string(@users, [0, "uid"], "")]
+        @to_import = @users.map { |u| u["uid"] || "" }
+      elsif @users.size == 1
+        if @users.first["__imported"] != nil
+          @to_import = [@users.first.fetch("uid", "")]
         else
           @user = @users.first
         end
       end
 
-      @user_type = Ops.get_string(@user, "type", "local")
-      @username = Ops.get_string(@user, "uid", "")
-      @cn = Ops.get_string(@user, "cn", "")
-      @password = Ops.get_string(@user, "userPassword")
+      @user_type = @user.fetch("type", "local")
+      @username = @user.fetch("uid", "")
+      @cn = @user.fetch("cn", "")
+      @password = @user["userPassword"]
 
       @autologin = UsersSimple.AutologinUsed
       # set the initial default value for autologin
@@ -198,20 +195,20 @@ module Yast
         Builtins.y2debug("autologin default value: %1", @autologin)
       end
 
-      @root_pw = UsersSimple.GetRootPassword == @password
+      @use_pw_for_root = UsersSimple.GetRootPassword == @password
       # set the initial default value for root pw checkbox
-      if @user == {} && !@root_pw
+      if @user == {} && !@use_pw_for_root
         if ProductFeatures.GetBooleanFeature(
             "globals",
             "root_password_as_first_user"
           ) == true
-          @root_pw = true
+          @use_pw_for_root = true
         end
-        Builtins.y2debug("root_pw default value: %1", @root_pw)
+        Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
       end
 
       # indication that client was called directly from proposal
-      @root_dialog_follows = GetInstArgs.argmap["root_dialog_follows"]
+      @root_dialog_follows = GetInstArgs.argmap.fetch("root_dialog_follows", true)
 
       # this user gets root's mail
       @root_mail = !@username.empty? && UsersSimple.GetRootAlias == @username
@@ -251,7 +248,7 @@ module Yast
             Id(:root_pw),
             # checkbox label
             _("U&se this password for system administrator"),
-            @root_pw
+            @use_pw_for_root
           )
         ),
         Left(
@@ -291,11 +288,7 @@ module Yast
       widgets = [:cn, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
 
       widgets.each do |w|
-        UI.ChangeWidget(
-          Id(w),
-          :Enabled,
-          @to_import.empty?
-        )
+        UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
       end
 
       UI.SetFocus(Id(:cn))
@@ -304,21 +297,20 @@ module Yast
       @ret = :back
       while true
         @ret = UI.UserInput
-        if @ret == :change
-          if ExpertDialog()
-            # show correct values now
-            UI.ReplaceWidget(Id(:rp_status), get_status_term)
 
-            widgets.each do |w|
-              UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
-            end
-            Wizard.RestoreHelp(main_help)
+        if @ret == :change && ExpertDialog()
+          # show correct values now
+          UI.ReplaceWidget(Id(:rp_status), get_status_term)
+
+          widgets.each do |w|
+            UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
           end
+          Wizard.RestoreHelp(main_help)
         end
 
         if @ret == :cn
           @uname = UI.QueryWidget(Id(:username), :Value)
-          @login_modified = false if @login_modified && @uname == "" # reenable suggestion
+          @login_modified = false if @login_modified && @uname.empty? # reenable suggestion
 
           if !@login_modified
             # get the first part
@@ -336,15 +328,18 @@ module Yast
 
         @login_modified = true if @ret == :username
         @ret = :next if @ret == :accept # from proposal
+
         if @ret == :next
           @error = ""
           # map returned from Check*UI functions
           @error_map = {}
           # map with id's of confirmed questions
           @ui_map = {}
-          # --------------------------------- username checks
-          @username = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
-          if @username == ""
+
+          # username checks
+          @username = UI.QueryWidget(Id(:username), :Value)
+
+          if @username.empty?
             # when 2nd stage is enabled, there will be inst_auth anyway
             if !Mode.live_installation &&
                 ProductControl.GetUseAutomaticConfiguration == false ||
@@ -362,29 +357,13 @@ module Yast
             end
           end
 
-          @error = UsersSimple.CheckUsernameLength(@username)
-          if !@error.empty?
-            Report.Error(@error)
-            UI.SetFocus(Id(:username))
-            next
-          end
-
-          @error = UsersSimple.CheckUsernameContents(@username, "")
-          if !@error.empty?
-            Report.Error(@error)
-            UI.SetFocus(Id(:username))
-            next
-          end
-
-          @error = UsersSimple.CheckUsernameConflicts(@username)
-          if !@error.empty?
-            Report.Error(@error)
+          if !valid_username?
             UI.SetFocus(Id(:username))
             next
           end
 
           # full name checks
-          @cn = Convert.to_string(UI.QueryWidget(Id(:cn), :Value))
+          @cn = UI.QueryWidget(Id(:cn), :Value)
           @error = UsersSimple.CheckFullname(@cn)
           if !@error.empty?
             Report.Error(@error)
@@ -392,68 +371,30 @@ module Yast
             next
           end
 
-          # password checks
-          @pw1 = UI.QueryWidget(Id(:pw1), :Value)
-          @pw2 = UI.QueryWidget(Id(:pw2), :Value)
-
-          if @pw1 != @pw2
-            # The two group password information do not match
-            # error popup
-            Report.Error(_("The passwords do not match.\nTry again."))
-
+          if !valid_password?
             UI.SetFocus(Id(:pw1))
             next
-          end
-
-          @error = UsersSimple.CheckPassword(@pw1, "local")
-          if !@error.empty?
-            Report.Error(@error)
-            UI.SetFocus(Id(:pw1))
-            next
-          end
-
-          if !UsersSimple.LoadCracklib
-            Builtins.y2error("loading cracklib failed, not used for pw check")
-            UsersSimple.UseCrackLib(false)
-          end
-
-          @errors = UsersSimple.CheckPasswordUI(
-            { "uid" => @username, "userPassword" => @pw1, "type" => "local" }
-          )
-
-          @root_pw = UI.QueryWidget(Id(:root_pw), :Value)
-          if @root_pw && @check_CA_constraints && @pw1.size < @pw_min_CA
-            # yes/no popup question, %s is a number
-            @errors << (_("If you intend to create certificates,\n" +
-              "the password should have at least %1 characters.") % @pw_min_CA)
-          end
-
-          if !@errors.empty?
-            @message = @errors.join("\n\n") + "\n\n" + _("Really use this password?")
-            if !Popup.YesNo(@message)
-              @ret = :notnext
-              UI.SetFocus(Id(:pw1))
-              next
-            end
           end
 
           # set UID if home directory is found on future home partition
-          @password = @pw1
+          @password = UI.QueryWidget(Id(:pw1), :Value)
         end
-        break if Builtins.contains([:back, :abort, :cancel, :next], @ret)
+        break if [:back, :abort, :cancel, :next].include?(@ret)
       end
 
       if @ret == :next
         UsersSimple.SetAfterAuth("users")
         UsersSimple.SetKerberosConfiguration(false)
         if !@to_import.empty?
-          @create_users = []
-          Builtins.foreach(@to_import) do |name|
-            u = Ops.get(@imported_users, name, {})
-            Ops.set(u, "__imported", true)
-            @create_users = Builtins.add(@create_users, u)
+          create_users = []
+
+          @to_import.each do |name|
+            u = @imported_users.fetch(name, {})
+            u["__imported"] = true
+            create_users << u
           end
-          UsersSimple.SetUsers(@create_users)
+
+          UsersSimple.SetUsers(create_users)
           UsersSimple.SkipRootPasswordDialog(false)
           UsersSimple.SetRootPassword("") if @root_dialog_follows
           UsersSimple.SetAutologinUser("")
@@ -466,9 +407,9 @@ module Yast
             "cn"           => @cn
           }
           UsersSimple.SetUsers([@user_map])
-          UsersSimple.SkipRootPasswordDialog(@root_pw)
-          if @root_dialog_follows || @root_pw
-            UsersSimple.SetRootPassword(@root_pw ? @password : "")
+          UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
+          if @root_dialog_follows || @use_pw_for_root
+            UsersSimple.SetRootPassword(@use_pw_for_root ? @password : "")
           end
 
           UsersSimple.SetAutologinUser(
@@ -478,7 +419,7 @@ module Yast
             UI.QueryWidget(Id(:root_mail), :Value) == true ? @username : ""
           )
         end
-        UsersSimple.UnLoadCracklib if @root_pw
+        UsersSimple.UnLoadCracklib if @use_pw_for_root
       elsif @ret == :back
         # reset to defaults
         UsersSimple.SetAutologinUser("")
@@ -504,7 +445,7 @@ module Yast
         Builtins.sformat(
           _("<p>\nWith the current password encryption (%1), the password length should be between\n" +
             " %2 and %3 characters.\n</p>"),
-          Ops.get(@encoding2label, @encryption_method, @encryption_method),
+          @encoding2label.fetch(@encryption_method, @encryption_method),
           UsersSimple.GetMinPasswordLength("local"),
           UsersSimple.GetMaxPasswordLength("local")
         ) <<
@@ -513,7 +454,7 @@ module Yast
       if @check_CA_constraints
         # additional help text about password
         help << (_("<p>If you intend to use this password for creating certificates,\n" +
-          "it has to be at least %s characters long.</p>") % @pw_min_CA)
+          "it has to be at least %s characters long.</p>") % MIN_PW_LEN_CA)
       end
 
       # help text for main add user dialog
@@ -539,11 +480,7 @@ module Yast
 
     # Helper function: ask user which users to import
     def choose_to_import(all, selected)
-      all = deep_copy(all)
-      selected = deep_copy(selected)
-      items = Builtins.maplist(all) do |u|
-        Item(Id(u), u, selected.include?(u))
-      end
+      items = all.map {|u| Item(Id(u), u, selected.include?(u))}
       all_checked = !all.empty? && all.size == selected.size
       vsize = [all.size, 15].max
 
@@ -592,11 +529,11 @@ module Yast
       end
 
       if ret == :ok
-        selected = UI.QueryWidget(Id(:userlist), :SelectedItems)
+        selected_users = UI.QueryWidget(Id(:userlist), :SelectedItems)
       end
 
       UI.CloseDialog
-      ret == :ok ? selected : nil
+      ret == :ok ? selected_users : nil
     end
 
     # Dialog for expert user settings: authentication method as well
@@ -675,23 +612,16 @@ module Yast
     def get_status_term
       # summary label
       auth_line = _("The authentication method is local /etc/passwd.")
+
       # summary label
-      details_line = Builtins.sformat(
-        _("The password encryption method is %1."),
+      details_line = _("The password encryption method is %s.") %
         @encoding2label.fetch(@encryption_method, @encryption_method)
-      )
+
       imported_term = Empty()
 
       if !@to_import.empty?
-        # summary label, %1 are user names (comma separated)
-        imported = Builtins.sformat(
-          _("Users %1 will be imported."),
-          @to_import.join(",")
-        )
-        if @to_import.size == 1
-          # summary label, %1 is user name
-          imported = _("User #{@to_import.first} will be imported.")
-        end
+        # summary label, %s is a single user name or multiple usernames (comma separated)
+        imported = n_("User %s will be imported.", "Users %s will be imported.", @to_import.size) % @to_import.join(",")
 
         if @text_mode
           auth_line << "<br>" << imported
@@ -717,6 +647,74 @@ module Yast
           HBox(HSpacing(0.2), VBox(status, button, VSpacing(0.2)))
         )
     end
+
+    def valid_username?
+      error = UsersSimple.CheckUsernameLength(@username)
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      error = UsersSimple.CheckUsernameContents(@username, "")
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      error = UsersSimple.CheckUsernameConflicts(@username)
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      return true
+    end
+
+    def valid_password?
+      # password checks
+      pw1 = UI.QueryWidget(Id(:pw1), :Value)
+      pw2 = UI.QueryWidget(Id(:pw2), :Value)
+
+      if pw1 != pw2
+        # The two group password information do not match
+        # error popup
+        Report.Error(_("The passwords do not match.\nTry again."))
+        return false
+      end
+
+      error = UsersSimple.CheckPassword(pw1, "local")
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      if !UsersSimple.LoadCracklib
+        Builtins.y2error("loading cracklib failed, not used for pw check")
+        UsersSimple.UseCrackLib(false)
+      end
+
+      errors = UsersSimple.CheckPasswordUI(
+        { "uid" => @username, "userPassword" => pw1, "type" => "local" }
+      )
+
+      @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
+      if @use_pw_for_root && @check_CA_constraints && pw1.size < MIN_PW_LEN_CA
+        # yes/no popup question, %s is a number
+        errors << (_("If you intend to create certificates,\n" +
+          "the password should have at least %s characters.") % MIN_PW_LEN_CA)
+      end
+
+      if !errors.empty?
+        message = errors.join("\n\n") + "\n\n" + _("Really use this password?")
+        if !Popup.YesNo(message)
+          @ret = :notnext
+          return false
+        end
+      end
+
+      return true
+    end
+
   end
 end
 
