@@ -27,36 +27,32 @@
 # $Id$
 module Yast
   class InstUserFirstClient < Client
+
+    # minimal pw length for CA-management (F#300438)
+    MIN_PW_LEN_CA = 4
+
     def main
-      Yast.import "Pkg"
       Yast.import "UI"
-      Yast.import "Directory"
       Yast.import "GetInstArgs"
       Yast.import "Label"
       Yast.import "Mode"
       Yast.import "Popup"
-      Yast.import "Stage"
       Yast.import "Package"
       Yast.import "ProductControl"
       Yast.import "ProductFeatures"
       Yast.import "Progress"
       Yast.import "Report"
-      Yast.import "String"
       Yast.import "UsersSimple"
       Yast.import "Wizard"
 
       textdomain "users"
 
-      @display_info = UI.GetDisplayInfo
-      @text_mode = Ops.get_boolean(@display_info, "TextMode", false)
+      @text_mode = UI.TextMode
 
       @check_CA_constraints = ProductFeatures.GetBooleanFeature(
         "globals",
         "root_password_ca_check"
       ) == true
-
-      # minimal pw length for CA-management (F#300438)
-      @pw_min_CA = 4
 
       # full info about imported users
       @imported_users = {}
@@ -69,63 +65,22 @@ module Yast
       @import_available = UsersSimple.ImportAvailable
 
       if !GetInstArgs.going_back && @import_available
-        @imported_users = Convert.convert(
-          UsersSimple.GetImportedUsers("local"),
-          :from => "map <string, any>",
-          :to   => "map <string, map>"
-        )
-        @user_names = Builtins.maplist(@imported_users) { |name, u| name }
-        if Ops.less_than(Builtins.size(@user_names), 1)
+        @imported_users = UsersSimple.GetImportedUsers("local")
+        @user_names = @imported_users.keys
+
+        if @user_names.empty?
           Builtins.y2milestone("No users to import")
           @import_available = false
         end
       end
 
-      # check if LDAP/Kerberos are available
-      UsersSimple.CheckNetworkMethodsAvailability
-
       # do not open package progress wizard window
       @progress_orig = Progress.set(false)
 
-      @auth_method = UsersSimple.AfterAuth
-
       @encryption_method = UsersSimple.EncryptionMethod
 
-      @use_kerberos = UsersSimple.KerberosConfiguration
-
-      @button_labels = {
-        # radiobutton to select ldap user auth.
-        "ldap"      => _("&LDAP"),
-        # radiobutton to select nis user auth.
-        "nis"       => _("N&IS"),
-        # radiobutton to select samba user auth.
-        "samba"     => _(
-          "&Windows Domain"
-        ),
-        # radiobutton to select local user auth.
-        "users"     => _(
-          "L&ocal (/etc/passwd)"
-        ),
-        # radiobutton to select local user auth.
-        "edir_ldap" => _(
-          "&eDirectory LDAP"
-        ),
-        # radiobutton to select local user auth.
-        "users"     => _(
-          "L&ocal (/etc/passwd)"
-        )
-      }
-
-      @auth2label = {
-        # authentication type
-        "ldap"      => _("LDAP"),
-        # authentication type
-        "nis"       => _("NIS"),
-        # authentication type
-        "samba"     => _("Samba (Windows Domain)"),
-        # authentication type
-        "edir_ldap" => _("eDirectory LDAP")
-      }
+      # radiobutton label
+      @button_label = _("L&ocal (/etc/passwd)")
 
       @encoding2label = {
         # encryption type
@@ -137,6 +92,7 @@ module Yast
         # encryption type
         "sha512" => _("SHA-512")
       }
+
       @import_checkbox = Left(
         CheckBox(
           Id(:import_ch),
@@ -148,62 +104,36 @@ module Yast
       # button label
       @import_button = PushButton(Id(:import), _("&Choose"))
 
-      @buttons = VBox(VSpacing(0.5))
-      @available_clients = Builtins.filter(
-        ["ldap", "nis", "samba", "edir_ldap"]
-      ) do |client|
-        package = Builtins.sformat("yast2-%1-client", client)
-        package = "yast2-linux-user-mgmt" if client == "edir_ldap"
-        Mode.normal || Package.Available(package) == true ||
-          # during Mode::live_installation, available = installed
-          Mode.live_installation && Package.Installed(package)
-      end
-      @available_clients = Builtins.prepend(@available_clients, "users")
+      @buttons = VBox(
+        VSpacing(0.5),
 
-      Builtins.foreach(@available_clients) do |client|
-        if client == "users" && @import_available
-          @buttons = Builtins.add(
-            @buttons,
-            VBox(
-              Left(
-                RadioButton(
-                  Id(client),
-                  Opt(:notify),
-                  Ops.get_string(@button_labels, client, "")
-                )
-              ),
-              HBox(
-                HSpacing(3),
-                @text_mode ?
-                  VBox(@import_checkbox, Left(@import_button)) :
-                  HBox(@import_checkbox, @import_button)
-              )
+        VBox(
+          Left(
+            RadioButton(
+              Id("users"),
+              Opt(:notify),
+              @button_label
             )
-          )
-        else
-          @buttons = Builtins.add(
-            @buttons,
-            Left(
-              RadioButton(
-                Id(client),
-                Opt(:notify),
-                Ops.get_string(@button_labels, client, "")
-              )
+          ),
+          @import_available ?
+            HBox(
+              HSpacing(3),
+              @text_mode ?
+                VBox(@import_checkbox, Left(@import_button)) :
+                HBox(@import_checkbox, @import_button)
             )
-          )
-        end
-      end
+          :
+            Empty()
+        ),
 
-      @buttons = Builtins.add(@buttons, VSpacing(0.5))
+        VSpacing(0.5)
+      )
 
       @auth_term = VBox(
         Frame(
           _("Authentication Method"),
           RadioButtonGroup(Id(:auth_method), @buttons)
-        ),
-        VSpacing(),
-        # check box label
-        Left(CheckBox(Id(:krb), _("Set Up &Kerberos Authentication")))
+        )
       )
 
       # frame label
@@ -226,105 +156,62 @@ module Yast
         )
       )
 
-      # help text for dialog "User Authentication Method" 1/3
-      @auth_help = _(
-        "<p>\n" +
-          "<b>Authentication</b><br>\n" +
-          "Select the authentication method to use for users on your system.\n" +
-          "</p>"
-      ) +
-        # helptext 2/3
-        _(
-          "<p>Select <b>Local</b> to authenticate users only by using the local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>"
-        )
-
-      @auth_help = Ops.add(
-        Ops.add(
-          @auth_help,
-          # helptext 3/3 -- nis & samba & ldap avialable
-          _(
-            "<p>If you are using a NIS or LDAP server to store user data or if you want\nto authenticate users against an NT server, choose the appropriate value.</p>"
-          )
-        ),
-        # helptext: additional kerberos support
-        _(
-          "<p>Check <b>Set Up Kerberos Authentication</b> to configure Kerberos after configuring the user data source.</p>"
-        )
-      )
+      # help text for dialog "User Authentication Method" 1/2
+      @auth_help = _("<p><b>Authentication</b><br></p>") <<
+        # help text for dialog "User Authentication Method" 2/2
+        _("<p>Select <b>Local</b> to authenticate users only by using the " +
+          "local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>")
 
       # Help text for password expert dialog
-      @encryption_help = _(
-        "<p>\n" +
-          "Choose a password encryption method for local and system users.\n" +
-          "<b>DES</b>, the Linux default method, works in all network environments, but it\n" +
-          "restricts passwords to eight characters or less.\n" +
-          "</p>\n"
-      ) +
+      @encryption_help = _("<p>Choose a password encryption method for local and system users.</p>") <<
         # Help text for password expert dialog
-        _(
-          "<p>\n" +
-            "<b>MD5</b> allows longer passwords, so provides more security, but some\n" +
-            "network protocols do not support this and you may have problems with NIS.\n" +
-            "</p>"
-        ) +
-        # Help text for password expert dialog
-        _(
-          "<p><b>SHA-512</b> is the current standard hash method. Using other algorithms is not recommended unless needed for compatibility purposes.</p>"
-        )
+        _("<p><b>SHA-512</b> is the current standard hash method. Using other " +
+          "algorithms is not recommended unless needed for compatibility purposes.</p>")
 
-      @users = Convert.convert(
-        UsersSimple.GetUsers,
-        :from => "list",
-        :to   => "list <map>"
-      )
+      @users = UsersSimple.GetUsers
       @user = {}
-      if Ops.greater_than(Builtins.size(@users), 1)
-        @to_import = Builtins.maplist(@users) do |u|
-          Ops.get_string(u, "uid", "")
-        end
-      end
-      if Builtins.size(@users) == 1
-        if Ops.get(@users, [0, "__imported"]) != nil
-          @to_import = [Ops.get_string(@users, [0, "uid"], "")]
+
+      if @users.size > 1
+        @to_import = @users.map { |u| u["uid"] || "" }
+      elsif @users.size == 1
+        if @users.first["__imported"] != nil
+          @to_import = [@users.first.fetch("uid", "")]
         else
-          @user = Convert.convert(
-            Ops.get(@users, 0, {}),
-            :from => "map",
-            :to   => "map <string, any>"
-          )
+          @user = @users.first
         end
       end
 
-      @user_type = Ops.get_string(@user, "type", "local")
-      @username = Ops.get_string(@user, "uid", "")
-      @cn = Ops.get_string(@user, "cn", "")
-      @password = Ops.get_string(@user, "userPassword")
+      @user_type = @user.fetch("type", "local")
+      @username = @user.fetch("uid", "")
+      @cn = @user.fetch("cn", "")
+      @password = @user["userPassword"]
 
       @autologin = UsersSimple.AutologinUsed
       # set the initial default value for autologin
-      if @user == {} && !@autologin
+      if @user.empty? && !@autologin
         if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
           @autologin = true
         end
         Builtins.y2debug("autologin default value: %1", @autologin)
       end
-      @root_pw = UsersSimple.GetRootPassword == @password
+
+      @use_pw_for_root = UsersSimple.GetRootPassword == @password
       # set the initial default value for root pw checkbox
-      if @user == {} && !@root_pw
+      if @user == {} && !@use_pw_for_root
         if ProductFeatures.GetBooleanFeature(
             "globals",
             "root_password_as_first_user"
           ) == true
-          @root_pw = true
+          @use_pw_for_root = true
         end
-        Builtins.y2debug("root_pw default value: %1", @root_pw)
+        Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
       end
-      @args = GetInstArgs.argmap
+
       # indication that client was called directly from proposal
-      @root_dialog_follows = Ops.get_boolean(@args, "root_dialog_follows", true)
+      @root_dialog_follows = GetInstArgs.argmap.fetch("root_dialog_follows", true)
 
       # this user gets root's mail
-      @root_mail = @username != "" && UsersSimple.GetRootAlias == @username
+      @root_mail = !@username.empty? && UsersSimple.GetRootAlias == @username
 
       @fields = VBox(
         InputField(
@@ -361,7 +248,7 @@ module Yast
             Id(:root_pw),
             # checkbox label
             _("U&se this password for system administrator"),
-            @root_pw
+            @use_pw_for_root
           )
         ),
         Left(
@@ -397,46 +284,37 @@ module Yast
         GetInstArgs.enable_back,
         GetInstArgs.enable_next || Mode.normal
       )
-      Builtins.foreach(
-        [:cn, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
-      ) do |w|
-        UI.ChangeWidget(
-          Id(w),
-          :Enabled,
-          @auth_method == "users" && @to_import == []
-        )
+
+      widgets = [:cn, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
+
+      widgets.each do |w|
+        UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
       end
-      if @auth_method == "users"
-        UI.SetFocus(Id(:cn))
-      else
-        UI.SetFocus(Id(:change))
-      end
+
+      UI.SetFocus(Id(:cn))
+
       @login_modified = false
       @ret = :back
       while true
-        @ret = Convert.to_symbol(UI.UserInput)
-        if @ret == :change
-          if ExpertDialog()
-            # show correct values now
-            UI.ReplaceWidget(Id(:rp_status), get_status_term)
-            Builtins.foreach(
-              [:cn, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
-            ) do |w|
-              UI.ChangeWidget(
-                Id(w),
-                :Enabled,
-                @auth_method == "users" && @to_import == []
-              )
-            end
-            Wizard.RestoreHelp(main_help)
+        @ret = UI.UserInput
+
+        if @ret == :change && ExpertDialog()
+          # show correct values now
+          UI.ReplaceWidget(Id(:rp_status), get_status_term)
+
+          widgets.each do |w|
+            UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
           end
+          Wizard.RestoreHelp(main_help)
         end
+
         if @ret == :cn
-          @uname = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
-          @login_modified = false if @login_modified && @uname == "" # reenable suggestion
+          @uname = UI.QueryWidget(Id(:username), :Value)
+          @login_modified = false if @login_modified && @uname.empty? # reenable suggestion
+
           if !@login_modified
-            @full = Convert.to_string(UI.QueryWidget(Id(:cn), :Value))
-            @full = Ops.get(Builtins.splitstring(@full, " "), 0, "")
+            # get the first part
+            @full = UI.QueryWidget(Id(:cn), :Value).split(" ", 2).first
             @full = UsersSimple.Transliterate(@full)
             UI.ChangeWidget(
               Id(:username),
@@ -447,30 +325,30 @@ module Yast
             )
           end
         end
+
         @login_modified = true if @ret == :username
         @ret = :next if @ret == :accept # from proposal
+
         if @ret == :next
           @error = ""
           # map returned from Check*UI functions
           @error_map = {}
           # map with id's of confirmed questions
           @ui_map = {}
-          # --------------------------------- username checks
-          @username = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
-          break if @auth_method != "users" || @to_import != []
-          if @username == ""
-            # when 2nd stage is enabled, there will be inst_auth anyway
+
+          # username checks
+          @username = UI.QueryWidget(Id(:username), :Value)
+
+          if @username.empty?
+            # do not ask in live installation
             if !Mode.live_installation &&
-                ProductControl.GetUseAutomaticConfiguration == false ||
-                # yes-no popup headline
                 Popup.YesNoHeadline(
+                  # yes-no popup headline
                   _("Empty User Login"),
                   # yes-no popup contents
-                  _(
-                    "Leaving the user name empty only makes sense\n" +
-                      "in a network environment with an authentication server.\n" +
-                      "Leave it empty?"
-                  )
+                  _("Leaving the user name empty only makes sense\n" +
+                    "in a network environment with an authentication server.\n" +
+                    "Leave it empty?")
                 )
               break
             else
@@ -478,114 +356,54 @@ module Yast
             end
           end
 
-          @error = UsersSimple.CheckUsernameLength(@username)
-          if @error != ""
-            Report.Error(@error)
-            UI.SetFocus(Id(:username))
-            next
-          end
-          @error = UsersSimple.CheckUsernameContents(@username, "")
-          if @error != ""
-            Report.Error(@error)
-            UI.SetFocus(Id(:username))
-            next
-          end
-          @error = UsersSimple.CheckUsernameConflicts(@username)
-          if @error != ""
-            Report.Error(@error)
+          if !valid_username?(@username)
             UI.SetFocus(Id(:username))
             next
           end
 
-          # --------------------------------- full name checks
-          @cn = Convert.to_string(UI.QueryWidget(Id(:cn), :Value))
+          # full name checks
+          @cn = UI.QueryWidget(Id(:cn), :Value)
           @error = UsersSimple.CheckFullname(@cn)
-          if @error != ""
+          if !@error.empty?
             Report.Error(@error)
             UI.SetFocus(Id(:cn))
             next
           end
-          # --------------------------------- password checks
-          @pw1 = Convert.to_string(UI.QueryWidget(Id(:pw1), :Value))
-          @pw2 = Convert.to_string(UI.QueryWidget(Id(:pw2), :Value))
-          @root_pw = Convert.to_boolean(UI.QueryWidget(Id(:root_pw), :Value))
 
-          if @pw1 != @pw2
-            # The two group password information do not match
-            # error popup
-            Report.Error(_("The passwords do not match.\nTry again."))
+          # password checks
+          pw1 = UI.QueryWidget(Id(:pw1), :Value)
+          pw2 = UI.QueryWidget(Id(:pw2), :Value)
+          @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
 
+          if !valid_password?(@username, pw1, pw2)
             UI.SetFocus(Id(:pw1))
             next
-          end
-
-          @error = UsersSimple.CheckPassword(@pw1, "local")
-          if @error != ""
-            Report.Error(@error)
-            UI.SetFocus(Id(:pw1))
-            next
-          end
-
-          if !UsersSimple.LoadCracklib
-            Builtins.y2error("loading cracklib failed, not used for pw check")
-            UsersSimple.UseCrackLib(false)
-          end
-
-          @errors = UsersSimple.CheckPasswordUI(
-            { "uid" => @username, "userPassword" => @pw1, "type" => "local" }
-          )
-
-          if @root_pw && @check_CA_constraints &&
-              Ops.less_than(Builtins.size(@pw1), @pw_min_CA)
-            @errors = Builtins.add(
-              @errors,
-              Builtins.sformat(
-                # yes/no popup question, %1 is a number
-                _(
-                  "If you intend to create certificates,\nthe password should have at least %1 characters."
-                ),
-                @pw_min_CA
-              )
-            )
-          end
-
-          if @errors != []
-            @message = Ops.add(
-              Ops.add(
-                Builtins.mergestring(@errors, "\n\n"),
-                # last part of message popup
-                "\n\n"
-              ),
-              _("Really use this password?")
-            )
-            if !Popup.YesNo(@message)
-              @ret = :notnext
-              UI.SetFocus(Id(:pw1))
-              next
-            end
           end
 
           # set UID if home directory is found on future home partition
-          @password = @pw1
+          @password = pw1
         end
-        break if Builtins.contains([:back, :abort, :cancel, :next], @ret)
+        break if [:back, :abort, :cancel, :next].include?(@ret)
       end
+
       if @ret == :next
-        UsersSimple.SetAfterAuth(@auth_method)
-        UsersSimple.SetKerberosConfiguration(@use_kerberos)
-        if @auth_method == "users" && @to_import != []
-          @create_users = []
-          Builtins.foreach(@to_import) do |name|
-            u = Ops.get(@imported_users, name, {})
-            Ops.set(u, "__imported", true)
-            @create_users = Builtins.add(@create_users, u)
+        UsersSimple.SetAfterAuth("users")
+        UsersSimple.SetKerberosConfiguration(false)
+        if !@to_import.empty?
+          create_users = []
+
+          @to_import.each do |name|
+            u = @imported_users.fetch(name, {})
+            u["__imported"] = true
+            create_users << u
           end
-          UsersSimple.SetUsers(@create_users)
+
+          UsersSimple.SetUsers(create_users)
           UsersSimple.SkipRootPasswordDialog(false)
           UsersSimple.SetRootPassword("") if @root_dialog_follows
           UsersSimple.SetAutologinUser("")
           UsersSimple.SetRootAlias("")
-        elsif @auth_method == "users" && @username != ""
+        elsif !@username.empty?
           # save the first user data
           @user_map = {
             "uid"          => @username,
@@ -593,9 +411,9 @@ module Yast
             "cn"           => @cn
           }
           UsersSimple.SetUsers([@user_map])
-          UsersSimple.SkipRootPasswordDialog(@root_pw)
-          if @root_dialog_follows || @root_pw
-            UsersSimple.SetRootPassword(@root_pw ? @password : "")
+          UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
+          if @root_dialog_follows || @use_pw_for_root
+            UsersSimple.SetRootPassword(@use_pw_for_root ? @password : "")
           end
 
           UsersSimple.SetAutologinUser(
@@ -604,27 +422,8 @@ module Yast
           UsersSimple.SetRootAlias(
             UI.QueryWidget(Id(:root_mail), :Value) == true ? @username : ""
           )
-        elsif @auth_method != "users"
-          # preselect the required packages for installation
-          Builtins.y2milestone("preselect required packages for installation")
-          @required_packages = {
-            "ldap"  => ["yast2-ldap-client", "sssd"],
-            "nis"   => ["yast2-nis-client", "ypbind"],
-            "samba" => [
-              "yast2-samba-client",
-              "krb5",
-              "samba-client",
-              "samba-winbind"
-            ]
-          }
-          Builtins.foreach(Ops.get(@required_packages, @auth_method, [])) do |package|
-            Pkg.ResolvableInstall(package, :package)
-          end
         end
-        Builtins.foreach(["pam_krb5", "krb5", "krb5-client"]) do |package|
-          Pkg.ResolvableInstall(package, :package)
-        end if @use_kerberos
-        UsersSimple.UnLoadCracklib if @root_pw
+        UsersSimple.UnLoadCracklib if @use_pw_for_root
       elsif @ret == :back
         # reset to defaults
         UsersSimple.SetAutologinUser("")
@@ -632,7 +431,6 @@ module Yast
         UsersSimple.SetRootPassword("")
         UsersSimple.SetUsers([])
       end
-
 
       Wizard.CloseDialog if Mode.normal
       Progress.set(@progress_orig)
@@ -642,103 +440,53 @@ module Yast
     # help text for main add user dialog
     def main_help
       # help text for main add user dialog
-      help = Ops.add(
-        Ops.add(
-          _(
-            "<p>\n" +
-              "Enter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
-              "assign to this user account.\n" +
-              "</p>\n"
-          ) +
-            # help text for main add user dialog
-            _(
-              "<p>\n" +
-                "When entering a password, distinguish between uppercase and\n" +
-                "lowercase. Passwords should not contain any accented characters or umlauts.\n" +
-                "</p>\n"
-            ),
-          # help text %1 is encryption type, %2,%3 numbers
-          Builtins.sformat(
-            _(
-              "<p>\n" +
-                "With the current password encryption (%1), the password length should be between\n" +
-                " %2 and %3 characters.\n" +
-                "</p>"
-            ),
-            Ops.get(@encoding2label, @encryption_method, @encryption_method),
-            UsersSimple.GetMinPasswordLength("local"),
-            UsersSimple.GetMaxPasswordLength("local")
-          )
-        ),
+      help = _("<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
+        "assign to this user account.\n</p>\n") <<
+        # help text for main add user dialog
+        _("<p>\nWhen entering a password, distinguish between uppercase and\n" +
+          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n") <<
+        # help text %1 is encryption type, %2,%3 numbers
+        Builtins.sformat(
+          _("<p>\nWith the current password encryption (%1), the password length should be between\n" +
+            " %2 and %3 characters.\n</p>"),
+          @encoding2label.fetch(@encryption_method, @encryption_method),
+          UsersSimple.GetMinPasswordLength("local"),
+          UsersSimple.GetMaxPasswordLength("local")
+        ) <<
         UsersSimple.ValidPasswordHelptext
-      )
 
       if @check_CA_constraints
-        help = Ops.add(
-          help,
-          Builtins.sformat(
-            # additional help text about password
-            _(
-              "<p>If you intend to use this password for creating certificates,\nit has to be at least %1 characters long.</p>"
-            ),
-            @pw_min_CA
-          )
-        )
+        # additional help text about password
+        help << (_("<p>If you intend to use this password for creating certificates,\n" +
+          "it has to be at least %s characters long.</p>") % MIN_PW_LEN_CA)
       end
 
-      help = Ops.add(
-        Ops.add(
-          Ops.add(
-            Ops.add(
-              Ops.add(
-                help,
-                # help text for main add user dialog
-                _(
-                  "<p>\n" +
-                    "To ensure that the password was entered correctly,\n" +
-                    "repeat it exactly in a second field. Do not forget your password.\n" +
-                    "</p>\n"
-                )
-              ),
-              # help text for main add user dialog
-              _(
-                "<p>\n" +
-                  "For the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.\n" +
-                  "Do not use uppercase letters in this entry unless you know what you are doing.\n" +
-                  "Usernames have stricter restrictions than passwords. You can redefine the\n" +
-                  "restrictions in the /etc/login.defs file. Read its man page for information.\n" +
-                  "</p>\n"
-              )
-            ),
-            # help text for main add user dialog
-            _(
-              "<p>Check <b>Use this password for system administrator</b> if the same password as entered for the first user should be used for root.</p>"
-            )
-          ),
-          # help text for main add user dialog
-          _(
-            "<p>\nThe username and password created here are needed to log in and work with your Linux system. With <b>Automatic Login</b> enabled, the login procedure is skipped. This user is logged in automatically.</p>\n"
-          )
-        ),
+      # help text for main add user dialog
+      help << _("<p>\nTo ensure that the password was entered correctly,\n" +
+        "repeat it exactly in a second field. Do not forget your password.\n" +
+        "</p>\n") <<
         # help text for main add user dialog
-        _(
-          "<p>\nHave mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>\n"
-        )
-      )
-      help
+        _("<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.\n" +
+          "Do not use uppercase letters in this entry unless you know what you are doing.\n" +
+          "Usernames have stricter restrictions than passwords. You can redefine the\n" +
+          "restrictions in the /etc/login.defs file. Read its man page for information.\n" +
+          "</p>\n") <<
+        # help text for main add user dialog
+        _("<p>Check <b>Use this password for system administrator</b> if the " +
+          "same password as entered for the first user should be used for root.</p>") <<
+        # help text for main add user dialog
+        _("<p>\nThe username and password created here are needed to log in " +
+          "and work with your Linux system. With <b>Automatic Login</b> enabled, " +
+          "the login procedure is skipped. This user is logged in automatically.</p>\n") <<
+        # help text for main add user dialog
+        _( "<p>\nHave mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>\n")
     end
 
     # Helper function: ask user which users to import
     def choose_to_import(all, selected)
-      all = deep_copy(all)
-      selected = deep_copy(selected)
-      items = Builtins.maplist(all) do |u|
-        Item(Id(u), u, Builtins.contains(selected, u))
-      end
-      all_checked = Builtins.size(all) == Builtins.size(selected) &&
-        Ops.greater_than(Builtins.size(all), 0)
-      vsize = Ops.add(Builtins.size(all), 3)
-      vsize = 15 if Ops.greater_than(vsize, 15)
+      items = all.map {|u| Item(Id(u), u, selected.include?(u))}
+      all_checked = !all.empty? && all.size == selected.size
+      vsize = [all.size, 15].max
 
       UI.OpenDialog(
         Opt(:decorated),
@@ -773,7 +521,7 @@ module Yast
       while true
         ret = UI.UserInput
         if ret == :all
-          ch = Convert.to_boolean(UI.QueryWidget(Id(:all), :Value))
+          ch = UI.QueryWidget(Id(:all), :Value)
           if ch != all_checked
             UI.ChangeWidget(Id(:userlist), :Items, Builtins.maplist(all) do |u|
               Item(Id(u), u, ch)
@@ -783,15 +531,13 @@ module Yast
         end
         break if ret == :ok || ret == :cancel
       end
+
       if ret == :ok
-        selected = Convert.convert(
-          UI.QueryWidget(Id(:userlist), :SelectedItems),
-          :from => "any",
-          :to   => "list <string>"
-        )
+        selected_users = UI.QueryWidget(Id(:userlist), :SelectedItems)
       end
+
       UI.CloseDialog
-      ret == :ok ? selected : nil
+      ret == :ok ? selected_users : nil
     end
 
     # Dialog for expert user settings: authentication method as well
@@ -815,38 +561,22 @@ module Yast
         HWeight(1, HBox())
       )
 
-
       Wizard.OpenAcceptDialog
       Wizard.SetContents(
         _("Expert Settings"),
         contents,
-        Ops.add(@auth_help, @encryption_help),
+        @auth_help + @encryption_help,
         true,
         true
       )
-      UI.ChangeWidget(Id(:auth_method), :CurrentButton, @auth_method)
-      UI.ChangeWidget(
-        Id(:encryption_method),
-        :CurrentButton,
-        @encryption_method
-      )
-      UI.ChangeWidget(Id(:krb), :Value, @use_kerberos)
-      UI.ChangeWidget(
-        Id(:krb),
-        :Enabled,
-        @auth_method != "users" && @auth_method != "samba"
-      )
-      Builtins.foreach(@encoding2label) do |enc, l|
-        UI.ChangeWidget(Id(enc), :Enabled, @auth_method == "users")
+
+      UI.ChangeWidget(Id(:auth_method), :CurrentButton, "users")
+      UI.ChangeWidget(Id(:encryption_method), :CurrentButton, @encryption_method)
+
+      if !@to_import.empty?
+        UI.ChangeWidget(Id(:import_ch), :Value, true)
       end
-      if Ops.greater_than(Builtins.size(@to_import), 0)
-        UI.ChangeWidget(
-          Id(:import_ch),
-          :Value,
-          @auth_method == "users" &&
-            Ops.greater_than(Builtins.size(@to_import), 0)
-        )
-      end
+
       retval = :cancel
       while true
         retval = UI.UserInput
@@ -856,24 +586,12 @@ module Yast
           UI.ChangeWidget(
             Id(:import_ch),
             :Value,
-            Ops.greater_than(Builtins.size(@to_import), 0)
+            !@to_import.empty?
           )
         end
-        if Ops.is_string?(retval) &&
-            Builtins.haskey(@button_labels, Convert.to_string(retval))
-          UI.ChangeWidget(
-            Id(:krb),
-            :Enabled,
-            retval != "users" && retval != "samba"
-          )
-          Builtins.foreach(@encoding2label) do |enc, l|
-            UI.ChangeWidget(Id(enc), :Enabled, retval == "users")
-          end
-          UI.ChangeWidget(Id(:import_ch), :Enabled, retval == "users")
-          UI.ChangeWidget(Id(:import), :Enabled, retval == "users")
-        end
-        if retval == :accept && @import_available && @to_import == [] &&
-            UI.QueryWidget(Id(:import_ch), :Value) == true
+
+        if retval == :accept && @import_available && @to_import.empty? &&
+            UI.QueryWidget(Id(:import_ch), :Value)
           # force selecting when only checkbox is checked
           selected = choose_to_import(@user_names, @to_import)
           if selected != nil
@@ -885,23 +603,10 @@ module Yast
         end
         break if retval == :cancel || retval == :accept || retval == :back
       end
+
       if retval == :accept
-        @auth_method = Convert.to_string(
-          UI.QueryWidget(Id(:auth_method), :CurrentButton)
-        )
-        @encryption_method = Convert.to_string(
-          UI.QueryWidget(Id(:encryption_method), :CurrentButton)
-        )
+        @encryption_method = UI.QueryWidget(Id(:encryption_method), :CurrentButton)
         UsersSimple.SetEncryptionMethod(@encryption_method)
-        if @auth_method == "users" || @auth_method == "samba"
-          @use_kerberos = false
-        else
-          @use_kerberos = Convert.to_boolean(UI.QueryWidget(Id(:krb), :Value))
-        end
-        if @auth_method != "users" ||
-            UI.QueryWidget(Id(:import_ch), :Value) == false
-          @to_import = []
-        end
       end
       Wizard.CloseDialog
       retval == :accept
@@ -911,55 +616,33 @@ module Yast
     def get_status_term
       # summary label
       auth_line = _("The authentication method is local /etc/passwd.")
+
       # summary label
-      details_line = Builtins.sformat(
-        _("The password encryption method is %1."),
-        Ops.get(@encoding2label, @encryption_method, @encryption_method)
-      )
+      details_line = _("The password encryption method is %s.") %
+        @encoding2label.fetch(@encryption_method, @encryption_method)
+
       imported_term = Empty()
-      if @auth_method != "users"
-        # summary line: %1 is LDAP/NIS etc.
-        auth_line = Builtins.sformat(
-          _("The authentication method is %1."),
-          Ops.get_string(@auth2label, @auth_method, @auth_method)
-        )
-        if @use_kerberos
-          # summary line: %1 is LDAP/NIS etc.
-          auth_line = Builtins.sformat(
-            _("The authentication method is %1 and Kerberos."),
-            Ops.get_string(@auth2label, @auth_method, @auth_method)
-          )
-        end
-        # // summary label
-        details_line = _(
-          "The configuration will be available later during the installation."
-        )
-      elsif @to_import != []
-        # summary label, %1 are user names (comma separated)
-        imported = Builtins.sformat(
-          _("Users %1 will be imported."),
-          Builtins.mergestring(@to_import, ",")
-        )
-        if Builtins.size(@to_import) == 1
-          # summary label, %1 is user name
-          imported = Builtins.sformat(
-            _("User %1 will be imported."),
-            Ops.get(@to_import, 0, "")
-          )
-        end
+
+      if !@to_import.empty?
+        # summary label, %s is a single user name or multiple usernames (comma separated)
+        imported = n_("User %s will be imported.", "Users %s will be imported.", @to_import.size) % @to_import.join(",")
+
         if @text_mode
-          auth_line = Ops.add(Ops.add(auth_line, "<br>"), imported)
+          auth_line << "<br>" << imported
         else
           imported_term = Left(Label(imported))
         end
       end
+
       status = @text_mode ?
-        RichText(Ops.add(Ops.add(auth_line, "<br>"), details_line)) :
+        RichText(auth_line + "<br>" + details_line) :
         VBox(Left(Label(auth_line)), imported_term, Left(Label(details_line)))
+
       button = HBox(
         # pushbutton label
         Right(PushButton(Id(:change), _("&Change...")))
       )
+
       @text_mode ?
         VBox(status, button) :
         # frame label
@@ -968,6 +651,68 @@ module Yast
           HBox(HSpacing(0.2), VBox(status, button, VSpacing(0.2)))
         )
     end
+
+    def valid_username?(username)
+      error = UsersSimple.CheckUsernameLength(username)
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      error = UsersSimple.CheckUsernameContents(username, "")
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      error = UsersSimple.CheckUsernameConflicts(username)
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      return true
+    end
+
+    def valid_password?(username, pw1, pw2)
+      if pw1 != pw2
+        # The two group password information do not match
+        # error popup
+        Report.Error(_("The passwords do not match.\nTry again."))
+        return false
+      end
+
+      error = UsersSimple.CheckPassword(pw1, "local")
+      if !error.empty?
+        Report.Error(error)
+        return false
+      end
+
+      if !UsersSimple.LoadCracklib
+        Builtins.y2error("loading cracklib failed, not used for pw check")
+        UsersSimple.UseCrackLib(false)
+      end
+
+      errors = UsersSimple.CheckPasswordUI(
+        { "uid" => username, "userPassword" => pw1, "type" => "local" }
+      )
+
+      if @use_pw_for_root && @check_CA_constraints && pw1.size < MIN_PW_LEN_CA
+        # yes/no popup question, %s is a number
+        errors << (_("If you intend to create certificates,\n" +
+          "the password should have at least %s characters.") % MIN_PW_LEN_CA)
+      end
+
+      if !errors.empty?
+        message = errors.join("\n\n") + "\n\n" + _("Really use this password?")
+        if !Popup.YesNo(message)
+          return false
+        end
+      end
+
+      return true
+    end
+
   end
 end
 

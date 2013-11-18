@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Nov 13 16:25:29 UTC 2013 - lslezak@suse.cz
+
+- installation: removed LDAP/Kerberos autodetection,
+  allow configuring only local users (FATE#314695)
+- 3.1.3
+
+-------------------------------------------------------------------
 Wed Nov 13 15:56:18 UTC 2013 - jreidinger@suse.com
 
 - Add explicit COPYING file
