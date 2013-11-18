@@ -340,11 +340,10 @@ module Yast
           @username = UI.QueryWidget(Id(:username), :Value)
 
           if @username.empty?
-            # when 2nd stage is enabled, there will be inst_auth anyway
+            # do not ask in live installation
             if !Mode.live_installation &&
-                ProductControl.GetUseAutomaticConfiguration == false ||
-                # yes-no popup headline
                 Popup.YesNoHeadline(
+                  # yes-no popup headline
                   _("Empty User Login"),
                   # yes-no popup contents
                   _("Leaving the user name empty only makes sense\n" +
@@ -357,7 +356,7 @@ module Yast
             end
           end
 
-          if !valid_username?
+          if !valid_username?(@username)
             UI.SetFocus(Id(:username))
             next
           end
@@ -371,13 +370,18 @@ module Yast
             next
           end
 
-          if !valid_password?
+          # password checks
+          pw1 = UI.QueryWidget(Id(:pw1), :Value)
+          pw2 = UI.QueryWidget(Id(:pw2), :Value)
+          @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
+
+          if !valid_password?(@username, pw1, pw2)
             UI.SetFocus(Id(:pw1))
             next
           end
 
           # set UID if home directory is found on future home partition
-          @password = UI.QueryWidget(Id(:pw1), :Value)
+          @password = pw1
         end
         break if [:back, :abort, :cancel, :next].include?(@ret)
       end
@@ -648,20 +652,20 @@ module Yast
         )
     end
 
-    def valid_username?
-      error = UsersSimple.CheckUsernameLength(@username)
+    def valid_username?(username)
+      error = UsersSimple.CheckUsernameLength(username)
       if !error.empty?
         Report.Error(error)
         return false
       end
 
-      error = UsersSimple.CheckUsernameContents(@username, "")
+      error = UsersSimple.CheckUsernameContents(username, "")
       if !error.empty?
         Report.Error(error)
         return false
       end
 
-      error = UsersSimple.CheckUsernameConflicts(@username)
+      error = UsersSimple.CheckUsernameConflicts(username)
       if !error.empty?
         Report.Error(error)
         return false
@@ -670,11 +674,7 @@ module Yast
       return true
     end
 
-    def valid_password?
-      # password checks
-      pw1 = UI.QueryWidget(Id(:pw1), :Value)
-      pw2 = UI.QueryWidget(Id(:pw2), :Value)
-
+    def valid_password?(username, pw1, pw2)
       if pw1 != pw2
         # The two group password information do not match
         # error popup
@@ -694,10 +694,9 @@ module Yast
       end
 
       errors = UsersSimple.CheckPasswordUI(
-        { "uid" => @username, "userPassword" => pw1, "type" => "local" }
+        { "uid" => username, "userPassword" => pw1, "type" => "local" }
       )
 
-      @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
       if @use_pw_for_root && @check_CA_constraints && pw1.size < MIN_PW_LEN_CA
         # yes/no popup question, %s is a number
         errors << (_("If you intend to create certificates,\n" +
@@ -707,7 +706,6 @@ module Yast
       if !errors.empty?
         message = errors.join("\n\n") + "\n\n" + _("Really use this password?")
         if !Popup.YesNo(message)
-          @ret = :notnext
           return false
         end
       end
