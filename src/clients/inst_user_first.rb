@@ -441,10 +441,10 @@ module Yast
     def main_help
       # help text for main add user dialog
       help = _("<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
-        "assign to this user account.\n</p>\n") <<
+        "assign to this user account.\n</p>\n") +
         # help text for main add user dialog
         _("<p>\nWhen entering a password, distinguish between uppercase and\n" +
-          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n") <<
+          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n") +
         # help text %1 is encryption type, %2,%3 numbers
         Builtins.sformat(
           _("<p>\nWith the current password encryption (%1), the password length should be between\n" +
@@ -452,32 +452,32 @@ module Yast
           @encoding2label.fetch(@encryption_method, @encryption_method),
           UsersSimple.GetMinPasswordLength("local"),
           UsersSimple.GetMaxPasswordLength("local")
-        ) <<
+        ) +
         UsersSimple.ValidPasswordHelptext
 
       if @check_CA_constraints
         # additional help text about password
-        help << (_("<p>If you intend to use this password for creating certificates,\n" +
+        help += (_("<p>If you intend to use this password for creating certificates,\n" +
           "it has to be at least %s characters long.</p>") % MIN_PW_LEN_CA)
       end
 
       # help text for main add user dialog
-      help << _("<p>\nTo ensure that the password was entered correctly,\n" +
+      help += _("<p>\nTo ensure that the password was entered correctly,\n" +
         "repeat it exactly in a second field. Do not forget your password.\n" +
-        "</p>\n") <<
+        "</p>\n") +
         # help text for main add user dialog
         _("<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.\n" +
           "Do not use uppercase letters in this entry unless you know what you are doing.\n" +
           "Usernames have stricter restrictions than passwords. You can redefine the\n" +
           "restrictions in the /etc/login.defs file. Read its man page for information.\n" +
-          "</p>\n") <<
+          "</p>\n") +
         # help text for main add user dialog
         _("<p>Check <b>Use this password for system administrator</b> if the " +
-          "same password as entered for the first user should be used for root.</p>") <<
+          "same password as entered for the first user should be used for root.</p>") +
         # help text for main add user dialog
         _("<p>\nThe username and password created here are needed to log in " +
           "and work with your Linux system. With <b>Automatic Login</b> enabled, " +
-          "the login procedure is skipped. This user is logged in automatically.</p>\n") <<
+          "the login procedure is skipped. This user is logged in automatically.</p>\n") +
         # help text for main add user dialog
         _( "<p>\nHave mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>\n")
     end
