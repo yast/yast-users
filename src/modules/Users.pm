@@ -4577,7 +4577,12 @@ sub Write {
 	}
     }
     if (%users_with_crypted_dir) {
-	Package->Install ("cryptconfig");
+        unless (Package->Install ("cryptconfig"))
+        {
+          # error message
+          Report->Error(Message->FailedToInstallPackages () + __("
+Encryption support is not installed, home directories will NOT be encrypted."))
+        }
     }
 
     # Write passwords
