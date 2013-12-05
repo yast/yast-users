@@ -4577,7 +4577,12 @@ sub Write {
 	}
     }
     if (%users_with_crypted_dir) {
-	Package->Install ("cryptconfig");
+        unless (Package->Install ("cryptconfig"))
+        {
+          # error message
+          Report.Error(Message.FailedToInstallPackages + __("
+Encrypted directories are not supported."))
+        }
     }
 
     # Write passwords
