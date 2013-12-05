@@ -4580,8 +4580,8 @@ sub Write {
         unless (Package->Install ("cryptconfig"))
         {
           # error message
-          Report.Error(Message.FailedToInstallPackages + __("
-Encrypted directories are not supported."))
+          Report->Error(Message->FailedToInstallPackages () + __("
+Encryption support is not installed, home directories will NOT be encrypted."))
         }
     }
 

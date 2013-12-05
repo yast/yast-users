@@ -1577,6 +1577,13 @@ module Yast
                 focus_tab.call(current, :dirsize)
                 next
               end
+              if !Package.Install("cryptconfig")
+                # error popup
+                Popup.Error(Message.FailedToInstallPackages + _("
+Directory cannot be encrypted."))
+                UI.ChangeWidget(Id(:crypted_home), :Value, false)
+                next
+              end
               crypted_home_size = home_size
             else
               crypted_home_size = 0
