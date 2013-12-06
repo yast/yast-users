@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Dec  6 17:04:33 CET 2013 - jsuchome@suse.cz
+
+- added possibility to delete user although it has some processes
+  running (bnc#849870)
+
+-------------------------------------------------------------------
 Thu Dec  5 14:34:59 CET 2013 - jsuchome@suse.cz
 
 - report error if cryptconfig was not installed (bnc#853189) 
