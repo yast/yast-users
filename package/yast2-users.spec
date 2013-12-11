@@ -27,7 +27,7 @@ Group:		System/YaST
 License:	GPL-2.0
 BuildRequires:	cracklib-devel doxygen gcc-c++ perl-Digest-SHA1 perl-XML-Writer update-desktop-files libtool
 BuildRequires:  yast2 yast2-ldap-client yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
-BuildRequires:  yast2-devtools >= 3.0.6
+BuildRequires:  yast2-devtools >= 3.1.10
 
 Requires:	yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
 Obsoletes:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-inst-user yast2-trans-users y2t_inst-user
