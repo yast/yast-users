@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Dec 13 10:44:23 CET 2013 - jsuchome@suse.cz
+
+- added possibility to delete user although it has some processes
+  running (bnc#849870)
+
+-------------------------------------------------------------------
 Mon Dec  9 14:26:06 UTC 2013 - lslezak@suse.cz
 
 - fixed "can't modify frozen String" error (bnc#854495)
