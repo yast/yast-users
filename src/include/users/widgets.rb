@@ -1114,15 +1114,10 @@ module Yast
         return nil
       end
 
-      if UserLogged(username)
-        # error popup
-        Report.Error(
-          _(
-            "You cannot delete this user, because the user is\n" +
-              "currently logged in.\n" +
-              "Log the user out first."
-          )
-        )
+      if UserLogged(username) &&
+        # Continue/Cancel popup
+        !Popup.ContinueCancel(_("The user seems to be currently logged in.
+Continue anyway?"))
         delete = false
         return nil
       end
