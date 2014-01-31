@@ -26,7 +26,7 @@ Source0:        %{name}-%{version}.tar.bz2
 Group:		System/YaST
 License:	GPL-2.0
 BuildRequires:	cracklib-devel doxygen gcc-c++ perl-Digest-SHA1 perl-XML-Writer update-desktop-files libtool
-BuildRequires:  yast2 yast2-ldap-client yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
+BuildRequires:  yast2 yast2-ldap yast2-perl-bindings yast2-security yast2-testsuite yast2-core-devel
 BuildRequires:  yast2-devtools >= 3.1.10
 
 Requires:	yast2-country yast2-pam yast2-security cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext
@@ -37,7 +37,7 @@ Provides:	yast2-config-users y2c_users yast2-trans-users y2t_users yast2-trans-i
 Requires:	yast2-perl-bindings >= 2.18.0
 
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
-Requires:	yast2-ldap-client >= 2.17.1
+Requires:	yast2-ldap >= 3.1.2
 
 # Syslog.ycp
 Requires:       yast2 >= 2.23.7

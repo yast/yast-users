@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jan 31 09:14:15 UTC 2014 - varkoly@suse.com
+
+- Change requirement from yast2-ldap-client to yast2-ldap 
+
+-------------------------------------------------------------------
 Fri Dec 13 10:44:23 CET 2013 - jsuchome@suse.cz
 
 - added possibility to delete user although it has some processes
