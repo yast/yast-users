@@ -26,6 +26,9 @@
 # Authors:	Jiri Suchomel <jsuchome@suse.cz>
 #
 # $Id$
+
+require "installation/minimal_installation"
+
 module Yast
   class UsersFinishClient < Client
     def main
@@ -55,11 +58,13 @@ module Yast
       Builtins.y2debug("param=%1", @param)
 
       if @func == "Info"
+        minimal_inst = Installation::MinimalInstallation.instance.enabled?
         return {
           "steps" => 1,
           # progress step title
           "title" => _("Writing Users Configuration..."),
-          "when"  => [:installation, :live_installation, :autoinst]
+          "when"  => minimal_inst ? [] :
+            [:installation, :live_installation, :autoinst]
         }
       elsif @func == "Write"
         # disable UI (progress)
