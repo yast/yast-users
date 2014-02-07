@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Feb  7 12:59:26 UTC 2014 - jreidinger@suse.com
+
+- format spec file
+- versioned build requires of yast2-ldap as it is used in testsuite
+- 3.1.6
+
+-------------------------------------------------------------------
 Fri Jan 31 09:14:15 UTC 2014 - varkoly@suse.com
 
 - Change requirement from yast2-ldap-client to yast2-ldap
