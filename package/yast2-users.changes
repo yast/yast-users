@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Feb 12 11:53:03 UTC 2014 - jreidinger@suse.com
+
+- fix namespace collision leading to error message in installation
+- 3.1.8
+
+-------------------------------------------------------------------
 Fri Feb  7 17:06:47 UTC 2014 - jreidinger@suse.com
 
 - support minimal installation(FATE#313149)
