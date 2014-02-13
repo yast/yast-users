@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Feb 13 11:01:33 UTC 2014 - varkoly@suse.com
+
+- BNC#863612 YaST reports Cannot find client ldap/routines.rb 
+- 3.1.9
+
+-------------------------------------------------------------------
 Wed Feb 12 11:53:03 UTC 2014 - jreidinger@suse.com
 
 - fix namespace collision leading to error message in installation

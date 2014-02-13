@@ -37,8 +37,6 @@ module Yast
       Yast.import "Users"
       Yast.import "Wizard"
 
-      Yast.include include_target, "ldap/routines.rb"
-
       textdomain "users"
     end
 
@@ -905,7 +903,7 @@ module Yast
               Ops.set(ppolicy, "modified", "added")
               Ops.set(ppolicy, "pwdAttribute", "userPassword")
               Ops.set(ppolicy, "objectClass", ["pwdPolicy", "namedObject"])
-              Ops.set(ppolicy, "cn", get_cn(dn))
+              Ops.set(ppolicy, "cn", Ldap.get_cn(dn))
               Ops.set(write_ppolicies, dn, ppolicy)
             else
               pp = {}
