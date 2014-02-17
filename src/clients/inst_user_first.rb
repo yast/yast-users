@@ -694,7 +694,7 @@ module Yast
       end
 
       errors = UsersSimple.CheckPasswordUI(
-        { "uid" => username, "userPassword" => pw1, "type" => "local" }
+        { "uid" => username, "userPassword" => pw1, "type" => "local", "root" => @use_pw_for_root }
       )
 
       if @use_pw_for_root && @check_CA_constraints && pw1.size < MIN_PW_LEN_CA

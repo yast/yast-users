@@ -631,21 +631,24 @@ Try again.");
 # @param user/group
 # @return error message (password too simple) or empty string (OK)
 BEGIN { $TYPEINFO{CheckObscurity} = ["function", "string",
-    "string", "string", "string"];}
+    ["list", "string"],
+    "string", "string"];}
 sub CheckObscurity {
 
     my $self		= shift;
-    my $name		= shift;
+    my $names		= shift;
     my $pw 		= shift;
     my $what		= shift;
 
-    if ($pw =~ m/$name/) {
+    foreach my $name (@$names) {
+      if ($pw =~ m/$name/) {
 	if ($what eq "groups") {
 	    # popup question
 	    return __("You have used the group name as a part of the password.");
 	}
 	# popup question
         return __("You have used the username as a part of the password.");
+      }
     }
 
     # check for lowercase
@@ -790,19 +793,19 @@ sub CheckPasswordUI {
 	}
     }
     
-    if (1) {#$self->ObscureChecksUsed ()) {
-	my $what	= "users";
-	$what		= "groups" if (! defined $data->{"uid"});
-	my $error	= $self->CheckObscurity ($name, $pw, $what);
-	push @ret, $error if $error;
-    }
+    my $what	= "users";
+    $what       = "groups" if (! defined $data->{"uid"});
+    my @names   = ( $name );
+    push @names, "root" if $data->{"root"} || 0;
+    my $error	= $self->CheckObscurity (\@names, $pw, $what);
+    push @ret, $error if $error;
 
     if (length ($pw) < $min_length) {
 	# popup error, %i is number
 	push @ret, sprintf (__("The password should have at least %i characters."), $min_length);
     }
     
-    my $error = $self->CheckPasswordMaxLength ($pw, $type);
+    $error = $self->CheckPasswordMaxLength ($pw, $type);
     push @ret, $error if $error;
 
     return \@ret;
