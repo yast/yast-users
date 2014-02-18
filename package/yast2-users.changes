@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Feb 18 11:14:05 CET 2014 - jsuchome@suse.cz
+
+- check root's password when it is same as one for 1st user
+  (bnc#864124)
+- 3.1.10
+
+-------------------------------------------------------------------
 Thu Feb 13 11:01:33 UTC 2014 - varkoly@suse.com
 
 - BNC#863612 YaST reports Cannot find client ldap/routines.rb 
