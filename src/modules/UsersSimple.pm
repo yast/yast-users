@@ -626,7 +626,7 @@ Try again.");
 
 ##------------------------------------
 # Just some simple checks for password contens
-# @param username user or group name
+# @param usernames list of  user or group names
 # @param pw password
 # @param user/group
 # @return error message (password too simple) or empty string (OK)
