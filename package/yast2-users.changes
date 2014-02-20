@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 20 10:46:56 CET 2014 - jsuchome@suse.cz
+
+- save Autologin settings at the end of installation (bnc#863436)
+
+-------------------------------------------------------------------
 Tue Feb 18 11:14:05 CET 2014 - jsuchome@suse.cz
 
 - check root's password when it is same as one for 1st user

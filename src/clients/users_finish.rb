@@ -34,6 +34,7 @@ module Yast
     def main
       textdomain "users"
 
+      Yast.import "Autologin"
       Yast.import "Users"
       Yast.import "UsersSimple"
 
@@ -81,6 +82,14 @@ module Yast
           Builtins.y2milestone("There are #{@users.size} users to import")
 
           create_users(@users)
+
+          if UsersSimple.AutologinUsed
+            Autologin.user = UsersSimple.GetAutologinUser
+            Autologin.Use(true)
+          end
+
+          root_alias = UsersSimple.GetRootAlias
+          Users.AddRootAlias(root_alias) unless root_alias.empty?
 
           Users.Write
         end
