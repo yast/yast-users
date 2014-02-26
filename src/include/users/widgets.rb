@@ -2356,31 +2356,45 @@ Continue anyway?"))
     def InitAuthData(key)
       mb = []
 
-      to_string = {
-        # menubutton label
-        "nis"      => _("&NIS"),
-        # menubutton label
-        "nisplus"  => _("N&IS+"),
-        # menubutton label
-        "ldap"     => _("&LDAP"),
-        # menubutton label
-        "kerberos" => _("&Kerberos"),
-        # menubutton label
-        "samba"    => _("&Samba")
+      auth_methods = {
+        "nis" => {
+          # menubutton label
+          "label" => _("&NIS"),
+          "package" => "yast2-nis-client",
+        },
+        "ldap" => {
+          # menubutton label
+          "label" => _("&LDAP"),
+          "package" => "yast2-auth-client",
+        },
+        "kerberos" => {
+          # menubutton label
+          "label" => _("&Kerberos"),
+          "package" => "yast2-auth-client",
+        },
+        "samba" => {
+          # menubutton label
+          "label" => _("&Samba"),
+          "package" => "yast2-samba-client",
+        },
       }
 
       # check availability of authentication packages,
       # update the RichText summary and menubutton labels accordingly
       Builtins.foreach(@configurable_clients) do |client|
-        package = Builtins.sformat("yast2-%1-client", client)
+        package = auth_methods[client]["package"] or raise "Unknown auth client #{client}"
+
         client_item = Item(
           Id(client),
-          Ops.get_string(to_string, client, client)
+          auth_methods[client]["label"]
         )
+
         if Package.Installed(package)
           @installed_clients = Builtins.add(@installed_clients, client)
         end
-        mb = Builtins.add(mb, client_item)
+
+        mb << client_item
+
         UI.ChangeWidget(
           Id("auth_summary"),
           :Value,
@@ -2390,7 +2404,8 @@ Continue anyway?"))
           )
         )
       end
-      if Ops.greater_than(Builtins.size(mb), 0)
+
+      unless mb.empty?
         UI.ReplaceWidget(
           Id(:rpbutton),
           # menu button label
