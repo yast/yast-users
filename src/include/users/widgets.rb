@@ -2405,7 +2405,7 @@ Continue anyway?"))
         )
       end
 
-      unless mb.empty?
+      if ! mb.empty?
         UI.ReplaceWidget(
           Id(:rpbutton),
           # menu button label
