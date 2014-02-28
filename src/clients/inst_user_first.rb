@@ -336,6 +336,9 @@ module Yast
           # map with id's of confirmed questions
           @ui_map = {}
 
+          # if there's user to import, we do not have to continue with checks
+          break if @to_import.size > 0
+
           # username checks
           @username = UI.QueryWidget(Id(:username), :Value)
 
