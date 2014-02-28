@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 28 13:41:12 CET 2014 - jsuchome@suse.cz
+
+- skip username checks if there's user for import (bnc#866089)
+- 3.1.13
+
+-------------------------------------------------------------------
 Wed Feb 26 16:49:55 CET 2014 - locilka@suse.com
 
 - Fixed users plug-ins package names (bnc#865812)
