@@ -34,6 +34,7 @@ module Yast
       Yast.import "CWMTab"
       Yast.import "Label"
       Yast.import "Ldap"
+      Yast.import "AuthClient"
       Yast.import "Message"
       Yast.import "Mode"
       Yast.import "Package"
@@ -126,7 +127,7 @@ module Yast
       # list of installed clients
       @installed_clients = []
 
-      @configurable_clients = ["nis", "ldap", "kerberos", "samba"]
+      @configurable_clients = ["nis", "sssd", "samba"]
 
       # save if no more Available calls should be done (bug #225484)
       @check_available = true
@@ -135,15 +136,16 @@ module Yast
         # richtext label
         "nis"      => _("NIS"),
         # richtext label
-        "ldap"     => _("LDAP"),
-        # richtext label
-        "kerberos" => _("Kerberos"),
+        "sssd"     => _("SSSD"),
         # richtext label
         "samba"    => _("Samba")
       }
 
       # name of module to call
-      @call_module = { "samba" => "samba-client" }
+      @call_module = {
+        "samba" => "samba-client",
+        "sssd" => "auth-client"
+      }
 
 
       @tabs_description = {
@@ -429,7 +431,7 @@ module Yast
               MenuButton(Opt(:key_F4), _("&Configure..."), [])
             )
           ),
-          "handle_events" => ["ldap", "nis", "kerberos", "samba"]
+          "handle_events" => ["sssd", "nis", "samba"]
         }
       }
     end
@@ -2308,16 +2310,12 @@ Continue anyway?"))
       progress_orig = Progress.set(false)
       if !Builtins.contains(@installed_clients, client)
         ret = Summary.NotConfigured
-      elsif client == "ldap"
-        Ldap.Read
-        ret = Ldap.ShortSummary
+      elsif client == "sssd"
+        AuthClient.Read
+        ret = AuthClient.Summary
       elsif client == "nis"
         WFM.CallFunction("nis_auto", ["Read"])
         a = WFM.CallFunction("nis_auto", ["ShortSummary"])
-        ret = Convert.to_string(a) if Ops.is_string?(a)
-      elsif client == "kerberos"
-        WFM.CallFunction("kerberos-client_auto", ["Read"])
-        a = WFM.CallFunction("kerberos-client_auto", ["ShortSummary"])
         ret = Convert.to_string(a) if Ops.is_string?(a)
       elsif client == "samba"
         WFM.CallFunction("samba-client_auto", ["Read"])
@@ -2362,14 +2360,9 @@ Continue anyway?"))
           "label" => _("&NIS"),
           "package" => "yast2-nis-client",
         },
-        "ldap" => {
+        "sssd" => {
           # menubutton label
-          "label" => _("&LDAP"),
-          "package" => "yast2-auth-client",
-        },
-        "kerberos" => {
-          # menubutton label
-          "label" => _("&Kerberos"),
+          "label" => _("&SSSD"),
           "package" => "yast2-auth-client",
         },
         "samba" => {
@@ -2426,7 +2419,7 @@ Continue anyway?"))
       return nil if !Builtins.contains(@configurable_clients, button)
 
       if !Builtins.contains(@installed_clients, button)
-        package = Builtins.sformat("yast2-%1-client", button)
+        package = button == "sssd" ? "yast2-auth-client" : "yast2-#{button}-client" 
         if @check_available
           avai = Package.Available(package)
           if avai == nil
