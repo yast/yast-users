@@ -1,6 +1,6 @@
 #! /usr/bin/perl -w
 # ------------------------------------------------------------------------------
-# Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
+# Copyright (c) 2014 SUSE LINUX Products All Rights Reserved.
 #
 #
 # This program is free software; you can redistribute it and/or modify it under
