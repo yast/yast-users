@@ -34,6 +34,7 @@ module Yast
       Yast.import "CWMTab"
       Yast.import "Label"
       Yast.import "Ldap"
+      Yast.import "AuthClient"
       Yast.import "Message"
       Yast.import "Mode"
       Yast.import "Package"
@@ -126,7 +127,7 @@ module Yast
       # list of installed clients
       @installed_clients = []
 
-      @configurable_clients = ["nis", "ldap", "kerberos", "samba"]
+      @configurable_clients = ["nis", "sssd", "samba"]
 
       # save if no more Available calls should be done (bug #225484)
       @check_available = true
@@ -135,16 +136,32 @@ module Yast
         # richtext label
         "nis"      => _("NIS"),
         # richtext label
-        "ldap"     => _("LDAP"),
-        # richtext label
-        "kerberos" => _("Kerberos"),
+        "sssd"     => _("SSSD"),
         # richtext label
         "samba"    => _("Samba")
       }
 
-      # name of module to call
-      @call_module = { "samba" => "samba-client" }
-
+      # auth methods and respective module calls 
+      @auth_methods = {
+        "nis" => {
+          # menubutton label
+          "label" => _("&NIS"),
+          "package" => "yast2-nis-client",
+          "call" => "nis-client"
+        },
+        "sssd" => {
+          # menubutton label
+          "label" => _("&SSSD"),
+          "package" => "yast2-auth-client",
+          "call" => "auth-client"
+        },
+        "samba" => {
+          # menubutton label
+          "label" => _("&Samba"),
+          "package" => "yast2-samba-client",
+          "call" => "samba-client"
+        },
+      }
 
       @tabs_description = {
         "users"          => {
@@ -429,7 +446,7 @@ module Yast
               MenuButton(Opt(:key_F4), _("&Configure..."), [])
             )
           ),
-          "handle_events" => ["ldap", "nis", "kerberos", "samba"]
+          "handle_events" => ["sssd", "nis", "samba"]
         }
       }
     end
@@ -2308,16 +2325,12 @@ Continue anyway?"))
       progress_orig = Progress.set(false)
       if !Builtins.contains(@installed_clients, client)
         ret = Summary.NotConfigured
-      elsif client == "ldap"
-        Ldap.Read
-        ret = Ldap.ShortSummary
+      elsif client == "sssd"
+        AuthClient.Read
+        ret = AuthClient.Summary
       elsif client == "nis"
         WFM.CallFunction("nis_auto", ["Read"])
         a = WFM.CallFunction("nis_auto", ["ShortSummary"])
-        ret = Convert.to_string(a) if Ops.is_string?(a)
-      elsif client == "kerberos"
-        WFM.CallFunction("kerberos-client_auto", ["Read"])
-        a = WFM.CallFunction("kerberos-client_auto", ["ShortSummary"])
         ret = Convert.to_string(a) if Ops.is_string?(a)
       elsif client == "samba"
         WFM.CallFunction("samba-client_auto", ["Read"])
@@ -2356,37 +2369,14 @@ Continue anyway?"))
     def InitAuthData(key)
       mb = []
 
-      auth_methods = {
-        "nis" => {
-          # menubutton label
-          "label" => _("&NIS"),
-          "package" => "yast2-nis-client",
-        },
-        "ldap" => {
-          # menubutton label
-          "label" => _("&LDAP"),
-          "package" => "yast2-auth-client",
-        },
-        "kerberos" => {
-          # menubutton label
-          "label" => _("&Kerberos"),
-          "package" => "yast2-auth-client",
-        },
-        "samba" => {
-          # menubutton label
-          "label" => _("&Samba"),
-          "package" => "yast2-samba-client",
-        },
-      }
-
       # check availability of authentication packages,
       # update the RichText summary and menubutton labels accordingly
       Builtins.foreach(@configurable_clients) do |client|
-        package = auth_methods[client]["package"] or raise "Unknown auth client #{client}"
+        package = @auth_methods[client]["package"] or raise "Unknown auth client #{client}"
 
         client_item = Item(
           Id(client),
-          auth_methods[client]["label"]
+          @auth_methods[client]["label"]
         )
 
         if Package.Installed(package)
@@ -2426,7 +2416,7 @@ Continue anyway?"))
       return nil if !Builtins.contains(@configurable_clients, button)
 
       if !Builtins.contains(@installed_clients, button)
-        package = Builtins.sformat("yast2-%1-client", button)
+        package = @auth_methods[client]["package"]
         if @check_available
           avai = Package.Available(package)
           if avai == nil
@@ -2462,7 +2452,7 @@ Continue anyway?"))
         end
       end
       param = installation ? ["from_users"] : []
-      if WFM.CallFunction(Ops.get_string(@call_module, button, button), param) == :next
+      if WFM.CallFunction(@auth_methods[button]["call"], param) == :next
         UI.ChangeWidget(Id("auth_summary"), :Value, reload_config([]))
       end
       nil
