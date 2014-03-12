@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Mar 12 16:15:56 UTC 2014 - varkoly@suse.com
+
+- Add plugin for kreating kerberos accounts
+- Modify check for aviability of LDAP 
+- 3.1.15 
+
+-------------------------------------------------------------------
 Mon Mar  3 10:31:26 UTC 2014 - ckornacker@suse.com
 
 - migrate ldap/kerberos-client to auth-client (bnc#865812)

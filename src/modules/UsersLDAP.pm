@@ -190,20 +190,10 @@ sub ReadAvailable {
 
     my $self 		= shift;
     my $compat		= 0;
-    my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
-    if (defined $passwd_source) {
-	foreach my $source (split (/ /, $passwd_source)) {
-	    if ($source eq "ldap" || $source eq "sss") { return 1; }
-	    if ($source eq "compat") { $compat = 1; }
-	}
-    }
-    if ($compat) {
-	$passwd_source = SCR->Read (".etc.nsswitch_conf.passwd_compat");
-	if (defined $passwd_source) {
-	    foreach my $source (split (/ /, $passwd_source)) {
-		if ($source eq "ldap") { return 1; }
-	    }
-	}
+    my $binddn = SCR->Read (".ldap_conf.v.binddn");
+
+    if (defined $binddn) {
+	return 1;
     }
     return 0;
 }
@@ -225,7 +215,6 @@ sub Initialize {
 	ReadLdap ();
     }
     Ldap->SetGUI ($use_gui);
-
     my $ldap_mesg = Ldap->LDAPInitWithTLSCheck ({});
     if ($ldap_mesg ne "") {
 	Ldap->LDAPErrorMessage ("init", $ldap_mesg);
