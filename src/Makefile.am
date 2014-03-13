@@ -12,6 +12,7 @@ module_DATA = \
   modules/UsersCache.pm \
   modules/UsersPluginLDAPAll.pm \
   modules/UsersPluginLDAPPasswordPolicy.pm \
+  modules/UsersPluginKerberos.pm \
   modules/UsersPasswd.pm
 
 module1dir = @moduledir@/YaPI
