@@ -1,9 +1,14 @@
 -------------------------------------------------------------------
+Thu Mar 13 15:35:00 UTC 2014 - varkoly@suse.com
+
+- Adapt testsuit
+- 3.1.6 
+
+-------------------------------------------------------------------
 Wed Mar 12 16:15:56 UTC 2014 - varkoly@suse.com
 
 - Add plugin for creating kerberos accounts
 - Modify check for aviability of LDAP 
-- Adapt testsuit
 - 3.1.15 
 
 -------------------------------------------------------------------
