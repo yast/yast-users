@@ -1,6 +1,6 @@
-Read	.etc.nsswitch_conf.passwd "ldap files"
+Read  .ldap_conf.v.binddn 0
 Return	true
-Read	.etc.nsswitch_conf.passwd "files"
-Return	false
-Read	.etc.nsswitch_conf.passwd "sss"
+Read  .ldap_conf.v.binddn 0
+Return        true
+Read  .ldap_conf.v.binddn 0
 Return	true
