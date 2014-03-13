@@ -1,6 +1,6 @@
-Read  .ldap_conf.v.binddn 0
+Read	.ldap_conf.v.binddn 0
 Return	true
-Read  .ldap_conf.v.binddn 0
-Return        true
-Read  .ldap_conf.v.binddn 0
+Read	.ldap_conf.v.binddn 0
+Return	true
+Read	.ldap_conf.v.binddn 0
 Return	true

@@ -8,7 +8,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Return	nil

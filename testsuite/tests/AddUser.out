@@ -9,7 +9,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Dump	---- current user:
@@ -50,6 +50,8 @@ Return	There is a conflict between the entered
 Dump	---- check user after add:
 Dump	 There is a conflict between the entered
 Dump	username and an existing username. 
+Dump	The existing username might belong to a NIS or LDAP user.
+Dump	
 Dump	Try another one.
 Dump	==================== uidNumber problems ===================
 Return	
