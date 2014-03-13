@@ -12,7 +12,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
@@ -33,7 +33,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg2' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg2"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
@@ -54,7 +54,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg3' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg3"]
 Execute	.target.bash "/bin/cp /etc/group /etc/group.YaST2save" 0
@@ -75,7 +75,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'gg4' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"gg4"]
 Return	User hh2 does not exist.
@@ -91,7 +91,7 @@ Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
 Read	.target.string "/etc/shells" 0
 Read	.etc.nsswitch_conf.passwd 0
-Read	.etc.nsswitch_conf.passwd 0
+Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Execute	.target.bash_output "echo 'root' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"root"]
 Return	There is a conflict between the entered
