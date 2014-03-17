@@ -34,7 +34,6 @@ module Yast
       Yast.import "CWMTab"
       Yast.import "Label"
       Yast.import "Ldap"
-      Yast.import "AuthClient"
       Yast.import "Message"
       Yast.import "Mode"
       Yast.import "Package"
@@ -2326,8 +2325,14 @@ Continue anyway?"))
       if !Builtins.contains(@installed_clients, client)
         ret = Summary.NotConfigured
       elsif client == "sssd"
-        AuthClient.Read
-        ret = AuthClient.Summary
+        begin
+          Yast.import "AuthClient"
+        rescue NameError
+          ret = _("<b>yast2-auth-client module not installed</b>")
+        else
+          AuthClient.Read
+          ret = AuthClient.Summary
+        end
       elsif client == "nis"
         WFM.CallFunction("nis_auto", ["Read"])
         a = WFM.CallFunction("nis_auto", ["ShortSummary"])
