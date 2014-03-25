@@ -398,6 +398,7 @@ module Yast
           @to_import.each do |name|
             u = @imported_users.fetch(name, {})
             u["__imported"] = true
+            u["encrypted"] = true
             create_users << u
           end
 

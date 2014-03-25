@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Mar 25 11:27:14 CET 2014 - jsuchome@suse.cz
+
+- do not encrypt already crypted password of imported user
+  (bnc#869798)
+- 3.1.18
+
+-------------------------------------------------------------------
 Mon Mar 17 10:59:37 UTC 2014 - ckornacker@suse.com
 
 - fix exception on missing yast2-auth-client module (bnc#868437)
