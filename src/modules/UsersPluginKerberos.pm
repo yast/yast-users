@@ -33,6 +33,7 @@ use strict;
 use YaST::YCP qw(:LOGGING sformat);
 use YaPI;
 use Data::Dumper;
+use IPC::Open3;
 
 textdomain("users");
 
@@ -236,19 +237,37 @@ BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
     my ($self, $config, $data)  = @_;
+    my $command = '/usr/lib/mit/sbin/kadmin.local';
+    my $input = "";
 
-#y2milestone(Dumper($data));
+    #y2milestone(Dumper($data));
+
     if( $data->{what} eq 'add_user' ) {
-       my $out = SCR->Execute (".target.bash_output", '/usr/lib/mit/sbin/kadmin.local -q "addprinc -pw '.$data->{text_userpassword}.' '.$data->{uid}.'"');
+      $input = "addprinc -pw \"$data->{text_userpassword}\" $data->{uid}";
     }
-    elsif( $data->{what} eq 'del_user' ) {
-       my $out  = SCR->Execute (".target.bash_output", '/usr/lib/mit/sbin/kadmin.local -q "delprinc '.$data->{uid}.'"');
+    elsif( $data->{what} eq 'delete_user' ) {
+      $input  = "delprinc -force $data->{uid}";
     }
     elsif( $data->{what} eq 'edit_user' ) {
-     if( defined $data->{text_userpassword} ) {
-       my $out  = SCR->Execute (".target.bash_output", '/usr/lib/mit/sbin/kadmin.local -q "change_password -pw '.$data->{text_userpassword}.' '.$data->{uid}.'"');
-     }
+      if( defined $data->{text_userpassword} ) {
+        $input  = "change_password -pw \"$data->{text_userpassword}\" $data->{uid}";
+      }
     }
+
+    if ( defined $input ) {
+      my $pid = open3(\*IN, \*OUT, \*ERR, "$command")
+      or do {
+        $error = __("Cannot execute kadmin.local.");
+        return YaST::YCP::Boolean (0);
+      };
+      print IN "$input\n";
+    
+      close IN;
+      close OUT;
+      close ERR;
+      waitpid $pid, 0;
+    }
+
     return YaST::YCP::Boolean (1);
 }
 42
