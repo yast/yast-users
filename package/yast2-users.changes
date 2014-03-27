@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar 27 17:22:39 UTC 2014 - ckornacker@suse.com
+
+- hide Kerberos passwords from process list
+- 3.1.19
+
+-------------------------------------------------------------------
 Tue Mar 25 11:27:14 CET 2014 - jsuchome@suse.cz
 
 - do not encrypt already crypted password of imported user
