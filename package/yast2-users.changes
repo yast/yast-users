@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Apr  3 14:36:39 UTC 2014 - jreidinger@suse.com
+
+- remember user input in user dialog when going forward and back
+  (bnc#865540)
+- 3.1.19
+
+-------------------------------------------------------------------
 Tue Mar 25 11:27:14 CET 2014 - jsuchome@suse.cz
 
 - do not encrypt already crypted password of imported user
