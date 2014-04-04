@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr  4 06:56:10 UTC 2014 - jreidinger@suse.com
+
+- fix warning about constant redefinition (bnc#871805)
+- 3.1.20
+
+-------------------------------------------------------------------
 Thu Apr  3 14:36:39 UTC 2014 - jreidinger@suse.com
 
 - remember user input in user dialog when going forward and back
