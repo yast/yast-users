@@ -711,7 +711,7 @@ module Yast
       return true
     end
 
-  end
+  end unless defined? InstUserFirstClient
 end
 
 Yast::InstUserFirstClient.new.main
