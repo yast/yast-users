@@ -428,12 +428,6 @@ module Yast
           )
         end
         UsersSimple.UnLoadCracklib if @use_pw_for_root
-      elsif @ret == :back
-        # reset to defaults
-        UsersSimple.SetAutologinUser("")
-        UsersSimple.SetRootAlias("")
-        UsersSimple.SetRootPassword("")
-        UsersSimple.SetUsers([])
       end
 
       Wizard.CloseDialog if Mode.normal
@@ -717,7 +711,7 @@ module Yast
       return true
     end
 
-  end
+  end unless defined? InstUserFirstClient
 end
 
 Yast::InstUserFirstClient.new.main
