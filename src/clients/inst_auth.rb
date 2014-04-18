@@ -69,7 +69,7 @@ module Yast
       Builtins.y2debug("net_devices: %1", @net_devices)
 
       @found = Ops.greater_than(Builtins.size(@net_devices), 0) ||
-        NetworkService.IsManaged
+        NetworkService.is_network_manager
 
       if !@found && Builtins.size(Ldap.initial_defaults) == 0
         Builtins.y2milestone(
