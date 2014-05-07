@@ -157,13 +157,13 @@ module Yast
       )
 
       # help text for dialog "User Authentication Method" 1/2
-      @auth_help = _("<p><b>Authentication</b><br></p>") <<
+      @auth_help = _("<p><b>Authentication</b><br></p>") +
         # help text for dialog "User Authentication Method" 2/2
         _("<p>Select <b>Local</b> to authenticate users only by using the " +
           "local files <i>/etc/passwd</i> and <i>/etc/shadow</i>.</p>")
 
       # Help text for password expert dialog
-      @encryption_help = _("<p>Choose a password encryption method for local and system users.</p>") <<
+      @encryption_help = _("<p>Choose a password encryption method for local and system users.</p>") +
         # Help text for password expert dialog
         _("<p><b>SHA-512</b> is the current standard hash method. Using other " +
           "algorithms is not recommended unless needed for compatibility purposes.</p>")
@@ -626,7 +626,7 @@ module Yast
         imported = n_("User %s will be imported.", "Users %s will be imported.", @to_import.size) % @to_import.join(",")
 
         if @text_mode
-          auth_line << "<br>" << imported
+          auth_line += "<br>" + imported
         else
           imported_term = Left(Label(imported))
         end
