@@ -137,4 +137,39 @@ module Yast
       end
     end
   end
+
+  # setup ALL users (included root user, autologin, root aliases,...)
+  # Return: true if there has been added a user
+  def setup_all_users
+    ret = false
+
+    # disable UI (progress)
+    old_gui = Users.GetGUI
+    Users.SetGUI(false)
+
+    # write the root password
+    UsersSimple.Write
+
+    users = UsersSimple.GetUsers
+
+    if !users.empty?
+      Users.Read
+      Users.ResetCurrentUser
+      Builtins.y2milestone("There are #{users.size} users to import")
+
+      create_users(users)
+
+      if UsersSimple.AutologinUsed
+        Autologin.user = UsersSimple.GetAutologinUser
+        Autologin.Use(true)
+      end
+
+      root_alias = UsersSimple.GetRootAlias
+      Users.AddRootAlias(root_alias) unless root_alias.empty?
+      ret = true
+    end
+    Users.SetGUI(old_gui)
+    ret
+  end
+
 end

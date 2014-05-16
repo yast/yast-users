@@ -104,6 +104,12 @@ module Yast
         @ret = AutoSequence(@start_dialog)
         Wizard.CloseDialog
       elsif @func == "Export"
+        if Stage.initial
+          # Exporting all users/groups when we are
+          # in the installation workflow
+          Users.SetExportAll(true)
+          setup_all_users
+        end
         @ret = Users.Export
         Users.SetExportAll(false)
       elsif @func == "Read"

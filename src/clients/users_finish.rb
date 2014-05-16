@@ -68,31 +68,8 @@ module Yast
             [:installation, :live_installation, :autoinst]
         }
       elsif @func == "Write"
-        # disable UI (progress)
-        Users.SetGUI(false)
-
-        # write the root password
-        UsersSimple.Write
-
-        @users = UsersSimple.GetUsers
-
-        if !@users.empty?
-          Users.Read
-          Users.ResetCurrentUser
-          Builtins.y2milestone("There are #{@users.size} users to import")
-
-          create_users(@users)
-
-          if UsersSimple.AutologinUsed
-            Autologin.user = UsersSimple.GetAutologinUser
-            Autologin.Use(true)
-          end
-
-          root_alias = UsersSimple.GetRootAlias
-          Users.AddRootAlias(root_alias) unless root_alias.empty?
-
-          Users.Write
-        end
+        # Creating all users and their environment
+        Users.Write if setup_all_users
       else
         Builtins.y2error("unknown function: %1", @func)
       end
