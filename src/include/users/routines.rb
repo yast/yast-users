@@ -147,9 +147,6 @@ module Yast
     old_gui = Users.GetGUI
     Users.SetGUI(false)
 
-    # write the root password
-    UsersSimple.Write
-
     users = UsersSimple.GetUsers
 
     if !users.empty?

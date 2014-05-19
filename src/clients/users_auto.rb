@@ -43,6 +43,7 @@ module Yast
       textdomain "users"
       Yast.import "Mode"
       Yast.import "Users"
+      Yast.import "UsersSimple"
       Yast.import "Wizard"
 
       Yast.include self, "users/wizards.rb"
@@ -105,12 +106,24 @@ module Yast
         Wizard.CloseDialog
       elsif @func == "Export"
         if Stage.initial
-          # Exporting all users/groups when we are
+          # Importing all users/groups from the UI if we are
           # in the installation workflow
           Users.SetExportAll(true)
           setup_all_users
         end
+
         @ret = Users.Export
+
+        if Stage.initial
+          #Setting root password in the return value
+          @ret["users"].collect! do |user|
+            if user["uid"] == "0"
+              user["user_password"] = Users.CryptPassword(
+                UsersSimple.GetRootPassword, "system")
+            end
+            user
+          end
+        end
         Users.SetExportAll(false)
       elsif @func == "Read"
         Yast.import "Progress"

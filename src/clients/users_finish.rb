@@ -69,7 +69,12 @@ module Yast
         }
       elsif @func == "Write"
         # Creating all users and their environment
-        Users.Write if setup_all_users
+
+        # write the root password
+        UsersSimple.Write
+
+        other_users = setup_all_users
+        Users.Write if other_users
       else
         Builtins.y2error("unknown function: %1", @func)
       end
