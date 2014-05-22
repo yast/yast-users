@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Tue May 13 13:32:22 CEST 2014 - jsuchome@suse.cz
+
+- added Test Keyboard Layout field into current root password dialog
+  (bnc#877442)
+- 3.1.24
+
+-------------------------------------------------------------------
+Wed May  7 14:57:31 UTC 2014 - jreidinger@suse.com
+
+- do not modify frozen text from gettext call (bnc#876571)
+- 3.1.23
+
+-------------------------------------------------------------------
 Fri Apr 18 08:34:35 UTC 2014 - mfilka@suse.com
 
 - bnc#872903
