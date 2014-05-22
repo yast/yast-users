@@ -115,14 +115,11 @@ module Yast
         @ret = Users.Export
 
         if Stage.initial
-          #Setting root password in the return value
-          @ret["users"].collect! do |user|
-            if user["uid"] == "0"
-              user["user_password"] = Users.CryptPassword(
-                UsersSimple.GetRootPassword, "system")
-            end
-            user
-          end
+          #Setting root password in the return value. We are in the inst_sys.
+          #The root password has not been written but is only available in
+          #UserSimple model. We have to set it manually.
+          root = @ret["users"].find { |u| u["uid"] == "0" }
+          root["user_password"] = Users.CryptPassword(UsersSimple.GetRootPassword, "system") if root
         end
         Users.SetExportAll(false)
       elsif @func == "Read"
