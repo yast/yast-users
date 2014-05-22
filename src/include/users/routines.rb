@@ -156,6 +156,9 @@ module Yast
 
       create_users(users)
 
+      #resetting Autologin settings
+      Autologin.Disable
+
       if UsersSimple.AutologinUsed
         Autologin.user = UsersSimple.GetAutologinUser
         Autologin.Use(true)
