@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri May 23 14:57:15 CEST 2014 - schubi@suse.de
+
+- Generating user section in autoinst.xml file
+  (bnc#877985)
+- 3.1.25
+
+-------------------------------------------------------------------
 Tue May 13 13:32:22 CEST 2014 - jsuchome@suse.cz
 
 - added Test Keyboard Layout field into current root password dialog
