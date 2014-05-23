@@ -43,6 +43,7 @@ module Yast
       textdomain "users"
       Yast.import "Mode"
       Yast.import "Users"
+      Yast.import "UsersSimple"
       Yast.import "Wizard"
 
       Yast.include self, "users/wizards.rb"
@@ -104,7 +105,22 @@ module Yast
         @ret = AutoSequence(@start_dialog)
         Wizard.CloseDialog
       elsif @func == "Export"
+        if Stage.initial
+          # Importing all users/groups from the UI if we are
+          # in the installation workflow
+          Users.SetExportAll(true)
+          setup_all_users
+        end
+
         @ret = Users.Export
+
+        if Stage.initial
+          #Setting root password in the return value. We are in the inst_sys.
+          #The root password has not been written but is only available in
+          #UserSimple model. We have to set it manually.
+          root = @ret["users"].find { |u| u["uid"] == "0" }
+          root["user_password"] = Users.CryptPassword(UsersSimple.GetRootPassword, "system") if root
+        end
         Users.SetExportAll(false)
       elsif @func == "Read"
         Yast.import "Progress"
