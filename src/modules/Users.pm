@@ -5866,6 +5866,11 @@ sub ImportUser {
     }
     my $home	= $self->GetDefaultHome($type).$username;
 
+    if ($uid == 0) {
+	#user "root" has default home directory "/root"
+	$home = "/root";
+    }
+
     my %grouplist	= ();
     if (defined $user->{"grouplist"}) {
 	if (ref ($user->{"grouplist"}) eq "HASH") {
