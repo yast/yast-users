@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jun 10 08:57:29 CEST 2014 - locilka@suse.com
+
+- Fixed text layout in root-password dialog in installation
+  (bnc#878248)
+- 3.1.27
+
+-------------------------------------------------------------------
 Mon Jun  2 13:40:11 CEST 2014 - schubi@suse.de
 
 - Setting default home directory of user "root" to "/root"

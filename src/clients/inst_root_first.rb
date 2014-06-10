@@ -63,8 +63,8 @@ module Yast
         VStretch(),
         HSquash(
           VBox(
-            # advise user to remember his new password
-            Label(_("Do not forget what you enter here.")),
+            # advise users to remember their new password
+            Left(Label(_("Do not forget what you enter here."))),
             VSpacing(0.8),
             Password(
               Id(:pw1),
