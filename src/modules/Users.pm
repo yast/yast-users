@@ -5859,7 +5859,7 @@ sub ImportUser {
     }
     my $pass		= $user->{"user_password"};
     if ((!defined $encrypted || !bool ($encrypted)) &&
-	(defined $pass) && !Mode->config ())
+	(defined $pass))
     {
 	$pass 		= $self->CryptPassword ($pass, $type);
 	$encrypted	= YaST::YCP::Boolean (1);

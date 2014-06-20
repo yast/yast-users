@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Jun 20 14:30:39 CEST 2014 - schubi@suse.de
+
+- Crypting uncrypted password while autoyast installation (second
+  stage) (bnc#883025)
+- 3.1.28
+
+-------------------------------------------------------------------
 Tue Jun 10 08:57:29 CEST 2014 - locilka@suse.com
 
 - Fixed text layout in root-password dialog in installation
