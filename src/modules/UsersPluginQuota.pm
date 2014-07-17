@@ -177,7 +177,7 @@ sub is_quota_available {
 	$quota_available	= 0;
     }
     else {
-	$quota_available	= (Service->Status ("boot.quota") == 0);
+	$quota_available	= (Service->Status ("quotaon") == 0);
     }
     return $quota_available;
 }
