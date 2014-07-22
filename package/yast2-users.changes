@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jul 22 09:26:17 CEST 2014 - jsuchome@suse.cz
+
+- Fixed 'Quota is not enabled on your system' by adapting
+  to a change of the service name (bnc#887717).
+- 3.1.28
+
+-------------------------------------------------------------------
 Tue Jun 10 08:57:29 CEST 2014 - locilka@suse.com
 
 - Fixed text layout in root-password dialog in installation
