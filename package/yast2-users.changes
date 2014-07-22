@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Thu Jul 17 14:24:25 CEST 2014 - jsuchome@suse.cz
+Tue Jul 22 09:26:17 CEST 2014 - jsuchome@suse.cz
 
-- change the service to check the quota status (bnc#887717)
+- Fixed 'Quota is not enabled on your system' by adapting
+  to a change of the service name (bnc#887717).
 - 3.1.28
 
 -------------------------------------------------------------------
