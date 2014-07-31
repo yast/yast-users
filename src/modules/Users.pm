@@ -5843,7 +5843,7 @@ sub ImportUser {
 
     my $type	= "local";
     if ($uid != -1 &&
-	($uid < UsersCache->GetMaxUID ("system") || $username eq "nobody")) {
+	($uid <= UsersCache->GetMaxUID ("system") || $username eq "nobody")) {
         $type = "system";
     }
 
