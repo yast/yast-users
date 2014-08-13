@@ -379,6 +379,10 @@ module Yast
           @password = pw1
         end
 
+        if @ret == :abort && !Popup.ConfirmAbort(:painless)
+          next
+        end
+
         break if [:back, :abort, :cancel, :next].include?(@ret)
       end
 
@@ -431,9 +435,9 @@ module Yast
     # Takes the first word from full name and proposes a login name which is then used
     # to relace the current login name in UI
     def propose_login
-      # get the first part
+      # get the first name
       full_name = UI.QueryWidget(Id(:full_name), :Value).split(" ", 2).first
-      full_name = UsersSimple.Transliterate_name(full_name)
+      full_name = UsersSimple.Transliterate(full_name)
       full_name.delete("^" << UsersSimple.ValidLognameChars).downcase
 
       UI.ChangeWidget(Id(:username), :Value, full_name)
