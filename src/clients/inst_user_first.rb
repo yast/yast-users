@@ -25,6 +25,8 @@
 # Authors:     Jiri Suchomel <jsuchome@suse.cz>
 #
 # $Id$
+require "yast"
+
 module Yast
   class InstUserFirstClient < Client
 
@@ -183,7 +185,7 @@ module Yast
 
       @user_type = @user.fetch("type", "local")
       @username = @user.fetch("uid", "")
-      @cn = @user.fetch("cn", "")
+      @full_name = @user.fetch("cn", "")
       @password = @user["userPassword"]
 
       @autologin = UsersSimple.AutologinUsed
@@ -215,11 +217,11 @@ module Yast
 
       @fields = VBox(
         InputField(
-          Id(:cn),
+          Id(:full_name),
           Opt(:notify, :hstretch),
           # text entry
           _("User's &Full Name"),
-          @cn
+          @full_name
         ),
         InputField(
           Id(:username),
@@ -285,16 +287,16 @@ module Yast
         GetInstArgs.enable_next || Mode.normal
       )
 
-      widgets = [:cn, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
+      widgets = [:full_name, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin]
 
       widgets.each do |w|
         UI.ChangeWidget(Id(w), :Enabled, @to_import.empty?)
       end
 
-      UI.SetFocus(Id(:cn))
+      UI.SetFocus(Id(:full_name))
 
       @login_modified = false
-      @ret = :back
+
       while true
         @ret = UI.UserInput
 
@@ -308,22 +310,12 @@ module Yast
           Wizard.RestoreHelp(main_help)
         end
 
-        if @ret == :cn
-          @uname = UI.QueryWidget(Id(:username), :Value)
-          @login_modified = false if @login_modified && @uname.empty? # reenable suggestion
+        # UI sends events as user types the full name
+        if @ret == :full_name
+          # reenable suggestion
+          @login_modified = false if UI.QueryWidget(Id(:username), :Value).empty?
 
-          if !@login_modified
-            # get the first part
-            @full = UI.QueryWidget(Id(:cn), :Value).split(" ", 2).first
-            @full = UsersSimple.Transliterate(@full)
-            UI.ChangeWidget(
-              Id(:username),
-              :Value,
-              Builtins.tolower(
-                Builtins.filterchars(@full, UsersSimple.ValidLognameChars)
-              )
-            )
-          end
+          propose_login unless @login_modified
         end
 
         @login_modified = true if @ret == :username
@@ -365,11 +357,11 @@ module Yast
           end
 
           # full name checks
-          @cn = UI.QueryWidget(Id(:cn), :Value)
-          @error = UsersSimple.CheckFullname(@cn)
+          @full_name = UI.QueryWidget(Id(:full_name), :Value)
+          @error = UsersSimple.CheckFullname(@full_name)
           if !@error.empty?
             Report.Error(@error)
-            UI.SetFocus(Id(:cn))
+            UI.SetFocus(Id(:full_name))
             next
           end
 
@@ -386,6 +378,7 @@ module Yast
           # set UID if home directory is found on future home partition
           @password = pw1
         end
+
         break if [:back, :abort, :cancel, :next].include?(@ret)
       end
 
@@ -412,7 +405,7 @@ module Yast
           @user_map = {
             "uid"          => @username,
             "userPassword" => @password,
-            "cn"           => @cn
+            "cn"           => @full_name
           }
           UsersSimple.SetUsers([@user_map])
           UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
@@ -433,6 +426,17 @@ module Yast
       Wizard.CloseDialog if Mode.normal
       Progress.set(@progress_orig)
       @ret
+    end
+
+    # Takes the first word from full name and proposes a login name which is then used
+    # to relace the current login name in UI
+    def propose_login
+      # get the first part
+      full_name = UI.QueryWidget(Id(:full_name), :Value).split(" ", 2).first
+      full_name = UsersSimple.Transliterate_name(full_name)
+      full_name.delete("^" << UsersSimple.ValidLognameChars).downcase
+
+      UI.ChangeWidget(Id(:username), :Value, full_name)
     end
 
     # help text for main add user dialog
