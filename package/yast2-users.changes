@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Aug 13 16:31:09 CEST 2014 - locilka@suse.com
+
+- Fixed handling of the [Abort] button in inst_user_first, user is
+  asked for confirmation (bnc#886662)
+- Fixed UsersSimple.Transliterate not to return a trailing newline
+- 3.1.30
+
+-------------------------------------------------------------------
 Thu Jul 31 17:31:29 CEST 2014 - schubi@suse.de
 
 - Checking max UID for system users correctly while importing from
