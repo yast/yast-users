@@ -1322,6 +1322,8 @@ sub Transliterate {
 	"echo '$text' | iconv -f utf-8 -t ascii//translit",
 	{ "LANG" => $language });
     my $stdout = $out->{"stdout"} || "";
+    chomp($stdout);
+
     return $stdout;
 }
 
