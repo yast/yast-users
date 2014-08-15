@@ -436,11 +436,12 @@ module Yast
     # to relace the current login name in UI
     def propose_login
       # get the first name
-      full_name = UI.QueryWidget(Id(:full_name), :Value).split(" ", 2).first
-      full_name = UsersSimple.Transliterate(full_name)
-      full_name.delete("^" << UsersSimple.ValidLognameChars).downcase
+      full_name = UI.QueryWidget(Id(:full_name), :Value)
 
-      UI.ChangeWidget(Id(:username), :Value, full_name)
+      login = full_name.strip.split(" ", 2).first || ""
+      login = UsersSimple.Transliterate(login).delete("^" + UsersSimple.ValidLognameChars).downcase
+
+      UI.ChangeWidget(Id(:username), :Value, login)
     end
 
     # help text for main add user dialog
