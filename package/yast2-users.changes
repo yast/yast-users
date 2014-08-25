@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Aug 25 09:21:30 CEST 2014 - schubi@suse.de
+
+- Autoyast: Moved minimal configuration to a central place in
+  inst_finish. (bnc#886447)
+- 3.1.31
+
+-------------------------------------------------------------------
 Wed Aug 13 16:31:09 CEST 2014 - locilka@suse.com
 
 - Fixed handling of the [Abort] button in inst_user_first, user is
