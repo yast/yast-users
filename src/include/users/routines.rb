@@ -147,12 +147,12 @@ module Yast
     old_gui = Users.GetGUI
     Users.SetGUI(false)
 
-    # Users.Read has to be called in order to initial the user hash
+    # Users.Read has to be called in order to initialize the user hash
     # in the Users module. This is needed for establishing
     # the system users (espl. the root user). (bnc#893725)
     Users.Read
     Users.ResetCurrentUser
-    #resetting Autologin settings
+    # resetting Autologin settings
     Autologin.Disable
 
     users = UsersSimple.GetUsers
