@@ -135,7 +135,7 @@ sub read_quota_info {
 	my %fsystems	= ();
 	my @quotalist	= ();
 
-	my $cmd	= "LANG=C quota $opt -pv 2>/dev/null | tail +3";
+	my $cmd	= "LANG=C quota $opt -pv 2>/dev/null | tail -n +3";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"stdout"}) {
 	    # each line in stdout reports quota for one filesystem
@@ -186,7 +186,7 @@ sub is_quota_available {
 sub has_quota {
 
     my $opt = shift;
-    my $out = SCR->Execute (".target.bash_output", "LANG=C quota $opt -v 2>/dev/null | tail +3");
+    my $out = SCR->Execute (".target.bash_output", "LANG=C quota $opt -v 2>/dev/null | tail -n +3");
     return ($out->{"stdout"});
 }
 
