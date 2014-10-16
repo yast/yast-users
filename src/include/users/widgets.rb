@@ -2421,7 +2421,7 @@ Continue anyway?"))
       return nil if !Builtins.contains(@configurable_clients, button)
 
       if !Builtins.contains(@installed_clients, button)
-        package = @auth_methods[client]["package"]
+        package = @auth_methods[button]["package"]
         if @check_available
           avai = Package.Available(package)
           if avai == nil
