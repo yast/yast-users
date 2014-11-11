@@ -2,11 +2,10 @@ language: cpp
 compiler:
     - gcc
 before_install:
-      yast2-core-dev yast2-ldap yast2-perl-bindings yast2-security libcrack2-dev doxygen libdigest-sha1-perl
     # disable rvm, use system Ruby
     - rvm reset
     - wget https://raw.githubusercontent.com/yast/yast-devtools/SLE-12-GA/travis-tools/travis_setup.sh
-    - sh ./travis_setup.sh -p "yast2-devtools yast2-testsuite yast2 yast2-perl-bindings"
+    - sh ./travis_setup.sh -p "yast2-devtools yast2-testsuite yast2 yast2-perl-bindings yast2-core-dev yast2-ldap yast2-perl-bindings yast2-security libcrack2-dev doxygen libdigest-sha1-perl"
 script:
     - make -f Makefile.cvs
     - make
