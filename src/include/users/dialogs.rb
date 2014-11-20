@@ -1145,7 +1145,8 @@ module Yast
                 givenname = ""
               end
             end
-            if cn == "" &&
+            # enable changing of cn value only if LDAP user is not saved yet (bnc#904645)
+            if (cn == "" || action == "added") &&
                 # no substitution when editing: TODO bug 238282
                 (what == "edit_user" ||
                   !# cn should not be substitued:
