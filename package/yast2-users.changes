@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Dec  4 09:51:47 UTC 2014 - jreidinger@suse.com
+
+- remove X-KDE-Library from desktop file (bnc#899104)
+
+-------------------------------------------------------------------
 Thu Nov 20 09:26:20 CET 2014 - jsuchome@suse.cz
 
 - enable changing of cn value if LDAP user is not saved yet
