@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul  2 11:37:00 UTC 2015 - jreidinger@suse.com
+
+- allow root password to be set 0 (zero) (bnc#930909)
+- 3.1.38
+
+-------------------------------------------------------------------
 Thu Feb  5 13:21:44 CET 2015 - gs@suse.de
 
 - Text mode: set F9 function key binding correctly (bnc #881396)
