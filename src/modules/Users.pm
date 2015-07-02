@@ -5444,8 +5444,8 @@ sub CheckUser {
 
     if ($error eq "") {
 	# do not check pw when it wasn't changed - must be tested directly
-	if (defined ($user{"userPassword"}) ||
-	    ($user{"what"} || "") eq "add_user") {
+	if ((defined ($user{"userPassword"}) ||
+	    ($user{"what"} || "") eq "add_user") && (!$user{"encrypted"})) {
 	    $error = UsersSimple->CheckPassword ($user{"userPassword"}, $type);
 	}
     }
