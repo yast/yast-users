@@ -906,7 +906,7 @@ BEGIN { $TYPEINFO{Write} = ["function", "boolean"];}
 sub Write {
     my $self		= shift;
 
-    if ($root_password) {
+    if ($root_password ne "") {
 	# write root password now
 	return $self->WriteRootPassword ();
     }
