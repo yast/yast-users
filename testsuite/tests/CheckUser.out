@@ -1,0 +1,21 @@
+Dump	------- Correct user
+Return	
+Dump	------- Without uid
+Return	No username entered.
+Dump	------- error: No username entered.
+Dump	Try again.
+Dump	------- With not valid uidNumber
+Return	The selected user ID is not allowed.
+Dump	------- error: The selected user ID is not allowed.
+Dump	Select a valid integer between 1000 and 60000.
+Dump	------- Without password
+Return	No password entered.
+Dump	------- error: No password entered.
+Dump	Try again.
+Dump	------- Without password (but with an encrypted one)
+Return	
+Dump	------- With duplicated uid
+Return	There is a conflict between the entered
+Dump	------- error: There is a conflict between the entered
+Dump	username and an existing username. 
+Dump	Try another one.
