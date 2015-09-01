@@ -66,11 +66,20 @@ module Yast
       elsif @func == "Write"
         # Creating all users and their environment
 
-        # write the root password
-        UsersSimple.Write
+        if Mode.autoinst
+          # Write imported users (during autoupgrade no changes are done)
+          Users.SetWriteOnly(true)
+          @progress_orig = Progress.set(false)
+          @ret = Users.Write == ""
+          Users.SetWriteOnly(true)
+          Progress.set(@progress_orig)
+        else
+          # write the root password
+          UsersSimple.Write
 
-        other_users = setup_all_users
-        Users.Write if other_users
+          other_users = setup_all_users
+          Users.Write if other_users
+        end
       else
         Builtins.y2error("unknown function: %1", @func)
       end
