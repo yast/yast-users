@@ -57,6 +57,7 @@ Provides:       y2t_users
 Provides:       yast2-config-users
 Provides:       yast2-trans-inst-user
 Provides:       yast2-trans-users
+Conflicts:      autoyast2 < 3.1.92
 
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
