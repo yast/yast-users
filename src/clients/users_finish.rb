@@ -71,7 +71,6 @@ module Yast
           Users.SetWriteOnly(true)
           @progress_orig = Progress.set(false)
           @ret = Users.Write == ""
-          Users.SetWriteOnly(true)
           Progress.set(@progress_orig)
         else
           # write the root password
