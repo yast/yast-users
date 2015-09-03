@@ -129,8 +129,15 @@ module Yast
         @ret = Users.Read == ""
         Progress.set(@progress_orig)
       elsif @func == "Write"
-        # NOTE: this code was moved to users_finish client, as users set up is
-        # done now in the 1st stage.
+        # NOTE: this code is not executed during autoinstallation (instead, the
+        # users_finish is used).
+        Yast.import "Progress"
+        Users.SetWriteOnly(true)
+        @progress_orig = Progress.set(false)
+        @ret = Users.Write == ""
+        Progress.set(@progress_orig)
+        # Return if configuration  was changed
+        # return boolean
       elsif @func == "GetModified"
         @ret = Users.Modified
       # Set all modified flags
