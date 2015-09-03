@@ -68,6 +68,15 @@ module Yast
 
         if Mode.autoinst
           # Write imported users (during autoupgrade no changes are done)
+
+          # During installation, some package could add a new user, so we
+          # need to read them again before writing.
+          Users.SetExportAll(true)
+          saved = Users.Export
+          Users.ReadLocal
+          Users.Import(saved)
+
+          # Write users
           Users.SetWriteOnly(true)
           @progress_orig = Progress.set(false)
           @ret = Users.Write == ""
