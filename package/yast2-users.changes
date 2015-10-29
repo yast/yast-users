@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct 29 15:37:37 UTC 2015 - igonzalezsosa@suse.com
+
+- fix validation of AutoYaST profiles (bsc#805275)
+- 2.17.56
+
+-------------------------------------------------------------------
 Thu Nov 20 09:24:06 CET 2014 - jsuchome@suse.cz
 
 - enable changing of cn value if LDAP user is not saved yet
