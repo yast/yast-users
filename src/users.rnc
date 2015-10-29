@@ -4,12 +4,13 @@ default namespace = "http://www.suse.com/1.0/yast2ns"
 namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 namespace config = "http://www.suse.com/1.0/configns"
 
-login_settings = element login_settings {
-    LIST,
-    element FIXME {
-        element FIXME_TOO { text }?
-    }*
+login_settings =
+  element login_settings {
+    autologin_user?, password_less_login?
+  }
 }
+autologin_user = element autologin_user { text }
+password_less_login = element password_less_login { BOOLEAN }
 
 groups =
   element groups {
@@ -17,6 +18,7 @@ groups =
     gr_group*
   }
 gr_group = element group {
+    element encrypted      { text }? &
     element group_password { text }? &
     element groupname      { text }? &
     element userlist       { text }? &
@@ -25,7 +27,7 @@ gr_group = element group {
 
 user_defaults =
   element user_defaults {
-    expire?, ud_group?, ud_groups?, home?, inactive?, shell?, skel?
+    expire?, ud_group?, ud_groups?, home?, inactive?, shell?, skel?, umask?
   }
 expire = element expire { text }
 ud_group = element group { text }
@@ -33,6 +35,7 @@ ud_groups = element groups { text }
 inactive = element inactive { text }
 shell = element shell { text }
 skel = element skel { text }
+umask = element umask { text }
 user = element user {
     encrypted? &
     fullname? &
