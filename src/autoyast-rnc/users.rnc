@@ -15,6 +15,7 @@ groups =
     gr_group*
   }
 gr_group = element group {
+    encrypted? &
     element group_password { text }? &
     element groupname      { text }? &
     element userlist       { text }? &
@@ -29,7 +30,8 @@ user_defaults =
     home? & 
     inactive? & 
     shell? & 
-    skel?
+    skel? &
+    umask?
   }
 expire = element expire { text }
 ud_group = element group { text }
@@ -37,6 +39,7 @@ ud_groups = element groups { text }
 inactive = element inactive { text }
 shell = element shell { text }
 skel = element skel { text }
+umask = element umask { text }
 user = element user {
     encrypted? &
     fullname? &
