@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.36
+Version:        3.1.35.1
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
