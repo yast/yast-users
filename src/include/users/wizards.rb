@@ -102,11 +102,9 @@ module Yast
           "caption"            => _(
             "User and Group Administration"
           ),
-          "back_button"        => Stage.cont ?
-            Label.BackButton :
-            Label.CancelButton,
+          "back_button"        => Stage.cont ? Label.BackButton : "",
           "next_button"        => Stage.cont ? Label.NextButton : Label.OKButton,
-          "abort_button"       => Stage.cont ? Label.AbortButton : "",
+          "abort_button"       => Stage.cont ? Label.AbortButton : Label.CancelButton,
           "fallback_functions" => {
             :back => fun_ref(method(:ReallyBack), "boolean ()")
           }
