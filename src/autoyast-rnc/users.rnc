@@ -29,6 +29,7 @@ user_defaults =
     ud_groups? & 
     home? & 
     inactive? & 
+    no_groups? &
     shell? & 
     skel? &
     umask?
@@ -37,6 +38,7 @@ expire = element expire { text }
 ud_group = element group { text }
 ud_groups = element groups { text }
 inactive = element inactive { text }
+no_groups = element no_groups { BOOLEAN }
 shell = element shell { text }
 skel = element skel { text }
 umask = element umask { text }
