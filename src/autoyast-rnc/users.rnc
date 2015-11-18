@@ -45,6 +45,8 @@ umask = element umask { text }
 user = element user {
     encrypted? &
     fullname? &
+    surname? &
+    u_forename? &
     u_gid? &
     home? &
     shell? &
@@ -57,6 +59,8 @@ user = element user {
 }
 encrypted = element encrypted { BOOLEAN }
 fullname = element fullname { text }
+u_forename = element forename { text }
+surname = element surname { text }
 u_gid = element gid { text }
 home = element home { text }
 user_password = element user_password { text }
