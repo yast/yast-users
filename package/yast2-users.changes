@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 18 08:48:16 UTC 2015 - igonzalezsosa@suse.com
+
+- add some missing elements to AutoYaST schema (bsc#954412)
+- 3.1.37.2
+
+-------------------------------------------------------------------
 Mon Nov  9 10:52:39 UTC 2015 - igonzalezsosa@suse.com
 
 - fix validation of AutoYaST profiles (bsc#805275)
