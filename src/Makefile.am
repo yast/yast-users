@@ -47,6 +47,11 @@ ynclude_DATA = \
   include/users/cmdline.rb \
   include/users/helps.rb
 
+ylibclientdir = "${yast2dir}/lib/installation/clients"
+ylibclient_DATA = \
+  lib/users/clients/inst_root_first.rb \
+  lib/users/clients/inst_user_first.rb
+
 scrconf_DATA = \
   scrconf/uid.scr \
   scrconf/etc_default_useradd.scr \
