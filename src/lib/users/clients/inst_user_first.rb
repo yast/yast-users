@@ -30,9 +30,6 @@ require "yast"
 module Yast
   class InstUserFirstClient < Client
 
-    # minimal pw length for CA-management (F#300438)
-    MIN_PW_LEN_CA = 4
-
     def main
       Yast.import "UI"
       Yast.import "GetInstArgs"
@@ -41,20 +38,15 @@ module Yast
       Yast.import "Popup"
       Yast.import "Package"
       Yast.import "ProductControl"
-      Yast.import "ProductFeatures"
       Yast.import "Progress"
       Yast.import "Report"
       Yast.import "UsersSimple"
+      Yast.import "UsersUtils"
       Yast.import "Wizard"
 
       textdomain "users"
 
       @text_mode = UI.TextMode
-
-      @check_CA_constraints = ProductFeatures.GetBooleanFeature(
-        "globals",
-        "root_password_ca_check"
-      ) == true
 
       # full info about imported users
       @imported_users = {}
@@ -462,10 +454,10 @@ module Yast
         ) +
         UsersSimple.ValidPasswordHelptext
 
-      if @check_CA_constraints
+      if UsersUtils.check_ca_constraints?
         # additional help text about password
         help += (_("<p>If you intend to use this password for creating certificates,\n" +
-          "it has to be at least %s characters long.</p>") % MIN_PW_LEN_CA)
+          "it has to be at least %s characters long.</p>") % UsersUtilsClass::MIN_PASSWORD_LENGTH_CA)
       end
 
       # help text for main add user dialog
@@ -704,10 +696,10 @@ module Yast
         { "uid" => username, "userPassword" => pw1, "type" => "local", "root" => @use_pw_for_root }
       )
 
-      if @use_pw_for_root && @check_CA_constraints && pw1.size < MIN_PW_LEN_CA
+      if @use_pw_for_root && UsersUtils.check_ca_constraints? && pw1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
         # yes/no popup question, %s is a number
         errors << (_("If you intend to create certificates,\n" +
-          "the password should have at least %s characters.") % MIN_PW_LEN_CA)
+          "the password should have at least %s characters.") % UsersUtilsClass::MIN_PASSWORD_LENGTH_CA)
       end
 
       if !errors.empty?

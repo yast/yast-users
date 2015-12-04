@@ -13,7 +13,8 @@ module_DATA = \
   modules/UsersPluginLDAPAll.pm \
   modules/UsersPluginLDAPPasswordPolicy.pm \
   modules/UsersPluginKerberos.pm \
-  modules/UsersPasswd.pm
+  modules/UsersPasswd.pm \
+  modules/UsersUtils.rb
 
 module1dir = @moduledir@/YaPI
 module1_DATA = \

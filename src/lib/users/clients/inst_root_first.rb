@@ -38,20 +38,13 @@ module Yast
       Yast.import "ProductFeatures"
       Yast.import "Report"
       Yast.import "UsersSimple"
+      Yast.import "UsersUtils"
       Yast.import "Wizard"
 
       if UsersSimple.RootPasswordDialogSkipped
         Builtins.y2milestone("root password was set with first user, skipping")
         return :auto
       end
-
-      @check_CA_constraints = ProductFeatures.GetBooleanFeature(
-        "globals",
-        "root_password_ca_check"
-      ) == true
-
-      # minimal pw length for CA-management (F#300438)
-      @pw_min_CA = 4
 
       # Title for root-password dialogue
       @title = _("Password for the System Administrator \"root\"")
@@ -137,7 +130,7 @@ module Yast
         )
       )
 
-      if @check_CA_constraints
+      if UsersUtils.check_ca_constraints?
         @helptext = Ops.add(
           @helptext,
           Builtins.sformat(
@@ -145,7 +138,7 @@ module Yast
             _(
               "<p>If you intend to use this password for creating certificates,\nit has to be at least %1 characters long.</p>"
             ),
-            @pw_min_CA
+            UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
           )
         )
       end
@@ -215,8 +208,7 @@ module Yast
             { "uid" => "root", "userPassword" => @pw1, "type" => "system" }
           )
 
-          if @check_CA_constraints &&
-              Ops.less_than(Builtins.size(@pw1), @pw_min_CA)
+          if UsersUtils.check_ca_constraints? && @pw1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
             @errors = Builtins.add(
               @errors,
               Builtins.sformat(
@@ -224,7 +216,7 @@ module Yast
                 _(
                   "If you intend to create certificates,\nthe password should have at least %1 characters."
                 ),
-                @pw_min_CA
+                UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
               )
             )
           end
