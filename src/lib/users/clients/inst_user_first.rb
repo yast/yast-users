@@ -722,5 +722,3 @@ module Yast
 
   end unless defined? InstUserFirstClient
 end
-
-Yast::InstUserFirstClient.new.main

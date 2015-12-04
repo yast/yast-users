@@ -254,5 +254,3 @@ module Yast
     end
   end
 end
-
-Yast::InstRootFirstClient.new.main
