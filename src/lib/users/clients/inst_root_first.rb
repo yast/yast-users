@@ -10,7 +10,7 @@
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, contact Novell, Inc.
@@ -19,15 +19,17 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-# File:	clients/inst_root.ycp
-# Package:	Configuration of users and groups
-# Summary:
-# Dialog for setting root's password during 1st stage of the installation
-# Authors:     Jiri Suchomel <jsuchome@suse.cz>
 #
-# $Id$
+# This library provides a simple dialog for setting new password for the system
+# adminitrator (root) including checking quality of the password itself. The new
+# password is not stored here, just set in UsersSimple module and stored later
+# during inst_finish.
+#
+
 module Yast
   class InstRootFirstClient < Client
+    include Yast::Logger
+
     def main
       Yast.import "UI"
       textdomain "users"
@@ -41,18 +43,25 @@ module Yast
       Yast.import "UsersUtils"
       Yast.import "Wizard"
 
-      if UsersSimple.RootPasswordDialogSkipped
-        Builtins.y2milestone("root password was set with first user, skipping")
-        return :auto
-      end
+      return :auto unless root_password_dialog_needed?
 
-      # Title for root-password dialogue
-      @title = _("Password for the System Administrator \"root\"")
+      # We do not need to create a wizard dialog in installation, but it's
+      # helpful when testing all manually on a running system
+      Wizard.CreateDialog if separate_wizard_needed?
 
-      @password = UsersSimple.GetRootPassword
-      @password = "" if @password == nil
+      create_ui
+      ret = handle_ui
 
-      @contents = VBox(
+      Wizard.CloseDialog if separate_wizard_needed?
+
+      ret
+    end
+
+    # Returns a UI widget-set for the dialog
+    def root_password_ui
+      current_password = UsersSimple.GetRootPassword || ""
+
+      VBox(
         VStretch(),
         HSquash(
           VBox(
@@ -64,7 +73,7 @@ module Yast
               Opt(:hstretch),
               # Label: get password for user root
               _("&Password for root User"),
-              @password
+              current_password
             ),
             VSpacing(0.8),
             Password(
@@ -72,7 +81,7 @@ module Yast
               Opt(:hstretch),
               # Label: get same password again for verification
               _("Con&firm Password"),
-              @password
+              current_password
             ),
             VSpacing(2.4),
             # text entry label
@@ -81,168 +90,185 @@ module Yast
         ),
         VStretch()
       )
+    end
 
-      # help text ( explain what the user "root" is and does ) 1/5
-      @helptext = _(
-        "<p>\n" +
-          "Unlike normal users of the system, who write texts, create\n" +
-          "graphics, or browse the Internet, the user \"root\" exists on\n" +
-          "every system and is called into action whenever\n" +
-          "administrative tasks need to be performed. Only log in as root\n" +
-          "when you need to be the system administrator.\n" +
-          "</p>\n"
+    # Returns help for the dialog
+    def root_password_help
+      # help text ( explain what the user "root" is and does ) 1
+      helptext = _(
+        "<p>\n" \
+        "Unlike normal users of the system, who write texts, create\n" \
+        "graphics, or browse the Internet, the user \"root\" exists on\n" \
+        "every system and is called into action whenever\n" \
+        "administrative tasks need to be performed. Only log in as root\n" \
+        "when you need to be the system administrator.\n" \
+        "</p>\n"
+      ).dup <<
+
+      # help text, continued 2
+      _(
+        "<p>\n" \
+        "Because the root user is equipped with extensive permissions, the password\n" \
+        "for \"root\" should be chosen carefully. A combination of letters and numbers\n" \
+        "is recommended. To ensure that the password was entered correctly,\n" \
+        "reenter it in a second field.\n" \
+        "</p>\n"
+      ) <<
+
+      # help text, continued 3
+      _(
+        "<p>\n" \
+        "All the rules for user passwords apply to the \"root\" password:\n" \
+        "Distinguish between uppercase and lowercase. A password should have at\n" \
+        "least 5 characters and, as a rule, not contain any accented letters or umlauts.\n" \
+        "</p>\n"
       )
 
-      # help text, continued 2/5
-      @helptext = Ops.add(
-        @helptext,
-        _(
-          "<p>\n" +
-            "Because the root user is equipped with extensive permissions, the password\n" +
-            "for \"root\" should be chosen carefully. A combination of letters and numbers\n" +
-            "is recommended. To ensure that the password was entered correctly,\n" +
-            "reenter it in a second field.\n" +
-            "</p>\n"
-        )
-      )
+      helptext = helptext + UsersSimple.ValidPasswordHelptext
 
-      # help text, continued 3/5
-      @helptext = Ops.add(
-        @helptext,
-        _(
-          "<p>\n" +
-            "All the rules for user passwords apply to the \"root\" password:\n" +
-            "Distinguish between uppercase and lowercase. A password should have at\n" +
-            "least 5 characters and, as a rule, not contain any accented letters or umlauts.\n" +
-            "</p>\n"
-        )
-      )
-
-      @helptext = Ops.add(@helptext, UsersSimple.ValidPasswordHelptext)
-
-      # help text, continued 5/5
-      @helptext = Ops.add(
-        @helptext,
-        _(
-          "<p>\n" +
-            "Do not forget this \"root\" password.\n" +
-            "</p>"
-        )
+      # help text, continued 4
+      helptext << _(
+        "<p>\n" \
+        "Do not forget this \"root\" password.\n" \
+        "</p>"
       )
 
       if UsersUtils.check_ca_constraints?
-        @helptext = Ops.add(
-          @helptext,
-          Builtins.sformat(
-            # additional help text about password
-            _(
-              "<p>If you intend to use this password for creating certificates,\nit has to be at least %1 characters long.</p>"
-            ),
-            UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-          )
+        helptext << Builtins.sformat(
+          # additional help text about password
+          _(
+            "<p>If you intend to use this password for creating certificates,\n" +
+            "it has to be at least %1 characters long.</p>"
+          ),
+          UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
         )
       end
 
-      Wizard.CreateDialog if Mode.normal # for testing only
+      helptext
+    end
 
+    # Sets the wizard dialog contents
+    def create_ui
       Wizard.SetTitleIcon("yast-users")
+
       Wizard.SetContents(
-        @title,
-        @contents,
-        @helptext,
+        # Title for root-password dialogue
+        _("Password for the System Administrator \"root\""),
+        root_password_ui,
+        root_password_help,
         GetInstArgs.enable_back || Mode.normal,
         GetInstArgs.enable_next || Mode.normal
       )
+    end
 
-      @ret = nil
+    # Handles user's input and returns symbol what to do next
+    # @return [Symbol] :next, :back or :abort
+    def handle_ui_passwords
       begin
-        UI.SetFocus(Id(:pw1)) if @ret != :abort
-        @ret = Convert.to_symbol(Wizard.UserInput)
+        UI.SetFocus(Id(:pw1))
+        ret = Wizard.UserInput
 
-        if @ret == :abort || @ret == :cancel
+        if ret == :abort || ret == :cancel
           if Popup.ConfirmAbort(:incomplete)
-            return :abort
+            ret = :abort
           else
-            @ret = :notnext
+            ret = :try_again
             next
           end
         end
-        @ret = :next if @ret == :accept # from proposal
 
-        if @ret == :next
-          @pw1 = Convert.to_string(UI.QueryWidget(Id(:pw1), :Value))
-          @pw2 = Convert.to_string(UI.QueryWidget(Id(:pw2), :Value))
+        ret = :next if ret == :accept # from proposal
 
-          if @pw1 != @pw2
-            # report misspellings of the password
-            Popup.Message(_("The passwords do not match.\nTry again."))
-            @ret = :notnext
-            next
+        if ret == :next
+          password_1 = Convert.to_string(UI.QueryWidget(Id(:pw1), :Value))
+          password_2 = Convert.to_string(UI.QueryWidget(Id(:pw2), :Value))
+
+          if validate_password(password_1, password_2)
+            UsersSimple.SetRootPassword(password_1)
+          else
+            ret = :try_again
           end
-
-          if @pw1.empty?
-            Popup.Error(_("No password entered.\nTry again."))
-            @ret = :notnext
-            next
-          end
-
-          @error = UsersSimple.CheckPassword(@pw1, "local")
-          if @error != ""
-            Report.Error(@error)
-            @ret = :notnext
-            UI.SetFocus(Id(:pw1))
-            next
-          end
-          # map returned from CheckPasswordUI functions
-          @error_map = {}
-          # map with id's of confirmed questions
-          @ui_map = {}
-          @failed = false
-
-          if !UsersSimple.LoadCracklib
-            Builtins.y2error("loading cracklib failed, not used for pw check")
-            UsersSimple.UseCrackLib(false)
-          end
-
-          @errors = UsersSimple.CheckPasswordUI(
-            { "uid" => "root", "userPassword" => @pw1, "type" => "system" }
-          )
-
-          if UsersUtils.check_ca_constraints? && @pw1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-            @errors = Builtins.add(
-              @errors,
-              Builtins.sformat(
-                # yes/no popup question, %1 is a number
-                _(
-                  "If you intend to create certificates,\nthe password should have at least %1 characters."
-                ),
-                UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-              )
-            )
-          end
-
-          if @errors != []
-            @message = Ops.add(
-              Ops.add(
-                Builtins.mergestring(@errors, "\n\n"),
-                # last part of message popup
-                "\n\n"
-              ),
-              _("Really use this password?")
-            )
-            if !Popup.YesNo(@message)
-              @ret = :notnext
-              next
-            end
-          end
-
-          UsersSimple.SetRootPassword(@pw1)
-          UsersSimple.UnLoadCracklib
         end
-      end until @ret == :next || @ret == :back || @ret == :abort
+      end until ret == :next || ret == :back || ret == :abort
 
-      Wizard.CloseDialog if Mode.normal
-      @ret
+      ret
+    end
+
+    # UI handler function, loads and unloads cracklib
+    def handle_ui
+      unless UsersSimple.LoadCracklib
+        log.errror "loading cracklib failed, not used for pw check"
+        UsersSimple.UseCrackLib(false)
+      end
+
+      begin
+        return handle_ui_passwords
+      ensure
+        UsersSimple.UnLoadCracklib
+      end
+    end
+
+    # Validates whether password1 and password2 match and are valid
+    def validate_password(password_1, password_2)
+      if password_1 != password_2
+        # report misspellings of the password
+        Popup.Message(_("The passwords do not match.\nTry again."))
+        return false
+      end
+
+      if password_1.empty?
+        Popup.Error(_("No password entered.\nTry again."))
+        return false
+      end
+
+      error = UsersSimple.CheckPassword(password_1, "local")
+
+      if error != ""
+        Report.Error(error)
+        return false
+      end
+
+      errors = UsersSimple.CheckPasswordUI(
+        {
+          "uid"          => "root",
+          "userPassword" => password_1,
+          "type"         => "system"
+        }
+      )
+
+      if UsersUtils.check_ca_constraints? && password_1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
+        errors << Builtins.sformat(
+          # yes/no popup question, %1 is a number
+          _(
+            "If you intend to create certificates,\n" \
+            "the password should have at least %1 characters."
+          ),
+          UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
+        )
+      end
+
+      # User can confirm using "invalid" password confirming all the errors
+      if errors != []
+        errors << _("Really use this password?")
+        return false unless Popup.YesNo(errors.join("\n\n"))
+      end
+
+      return true
+    end
+
+    # Returns whether we need/ed to create new UI Wizard
+    def separate_wizard_needed?
+      Mode.normal
+    end
+
+    # Returns whether we need to run this dialog
+    def root_password_dialog_needed?
+      if UsersSimple.RootPasswordDialogSkipped
+        log.info "root password was set with first user, skipping"
+        return false
+      end
+
+      true
     end
   end
 end
