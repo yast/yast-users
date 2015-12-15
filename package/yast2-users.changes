@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Dec 15 11:11:32 UTC 2015 - igonzalezsosa@suse.com
+
+- Allow editing password-less users (bsc#928607)
+- 3.0.1.1
+
+-------------------------------------------------------------------
 Wed Aug  7 12:23:46 CEST 2013 - jsuchome@suse.cz
 
 - do not recrypt group password provided in autoYaST profile
