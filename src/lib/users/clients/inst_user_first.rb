@@ -26,6 +26,8 @@
 #
 # $Id$
 require "yast"
+require "users/ca_password_validator"
+require "users/local_password"
 
 module Yast
   class InstUserFirstClient < Client
@@ -37,11 +39,10 @@ module Yast
       Yast.import "Mode"
       Yast.import "Popup"
       Yast.import "Package"
-      Yast.import "ProductControl"
+      Yast.import "ProductFeatures"
       Yast.import "Progress"
       Yast.import "Report"
       Yast.import "UsersSimple"
-      Yast.import "UsersUtils"
       Yast.import "Wizard"
 
       textdomain "users"
@@ -416,7 +417,6 @@ module Yast
             UI.QueryWidget(Id(:root_mail), :Value) == true ? @username : ""
           )
         end
-        UsersSimple.UnLoadCracklib if @use_pw_for_root
       end
 
       Wizard.CloseDialog if Mode.normal
@@ -454,11 +454,8 @@ module Yast
         ) +
         UsersSimple.ValidPasswordHelptext
 
-      if UsersUtils.check_ca_constraints?
-        # additional help text about password
-        help += (_("<p>If you intend to use this password for creating certificates,\n" +
-          "it has to be at least %s characters long.</p>") % UsersUtilsClass::MIN_PASSWORD_LENGTH_CA)
-      end
+      validator = Users::CAPasswordValidator.new
+      help += validator.help_text if validator.enabled?
 
       # help text for main add user dialog
       help += _("<p>\nTo ensure that the password was entered correctly,\n" +
@@ -687,23 +684,9 @@ module Yast
         return false
       end
 
-      if !UsersSimple.LoadCracklib
-        Builtins.y2error("loading cracklib failed, not used for pw check")
-        UsersSimple.UseCrackLib(false)
-      end
-
-      errors = UsersSimple.CheckPasswordUI(
-        { "uid" => username, "userPassword" => pw1, "type" => "local", "root" => @use_pw_for_root }
-      )
-
-      if @use_pw_for_root && UsersUtils.check_ca_constraints? && pw1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-        # yes/no popup question, %s is a number
-        errors << (_("If you intend to create certificates,\n" +
-          "the password should have at least %s characters.") % UsersUtilsClass::MIN_PASSWORD_LENGTH_CA)
-      end
-
-      if !errors.empty?
-        message = errors.join("\n\n") + "\n\n" + _("Really use this password?")
+      passwd = Users::LocalPassword.new(uid: username, plain: pw1, also_for_root: @use_pw_for_root)
+      if !passwd.valid?
+        message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
         if !Popup.YesNo(message)
           return false
         end

@@ -18,15 +18,14 @@
 # To contact Novell about this file by physical or electronic mail, you may find
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
-
-#
-# This library provides a simple dialog for setting new password for the system
-# adminitrator (root) including checking quality of the password itself. The new
-# password is not stored here, just set in UsersSimple module and stored later
-# during inst_finish.
-#
+require "users/ca_password_validator"
+require "users/local_password"
 
 module Yast
+  # This library provides a simple dialog for setting new password for the
+  # system adminitrator (root) including checking quality of the password
+  # itself. The new password is not stored here, just set in UsersSimple module
+  # and stored later during inst_finish.
   class InstRootFirstClient < Client
     include Yast::Logger
 
@@ -37,10 +36,8 @@ module Yast
       Yast.import "GetInstArgs"
       Yast.import "Mode"
       Yast.import "Popup"
-      Yast.import "ProductFeatures"
       Yast.import "Report"
       Yast.import "UsersSimple"
-      Yast.import "UsersUtils"
       Yast.import "Wizard"
 
       return :auto unless root_password_dialog_needed?
@@ -133,16 +130,8 @@ module Yast
         "</p>"
       )
 
-      if UsersUtils.check_ca_constraints?
-        helptext << Builtins.sformat(
-          # additional help text about password
-          _(
-            "<p>If you intend to use this password for creating certificates,\n" +
-            "it has to be at least %1 characters long.</p>"
-          ),
-          UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-        )
-      end
+      validator = Users::CAPasswordValidator.new
+      helptext << validator.help_text if validator.enabled?
 
       helptext
     end
@@ -163,7 +152,7 @@ module Yast
 
     # Handles user's input and returns symbol what to do next
     # @return [Symbol] :next, :back or :abort
-    def handle_ui_passwords
+    def handle_ui
       begin
         UI.SetFocus(Id(:pw1))
         ret = Wizard.UserInput
@@ -194,20 +183,6 @@ module Yast
       ret
     end
 
-    # UI handler function, loads and unloads cracklib
-    def handle_ui
-      unless UsersSimple.LoadCracklib
-        log.errror "loading cracklib failed, not used for pw check"
-        UsersSimple.UseCrackLib(false)
-      end
-
-      begin
-        return handle_ui_passwords
-      ensure
-        UsersSimple.UnLoadCracklib
-      end
-    end
-
     # Validates whether password1 and password2 match and are valid
     def validate_password(password_1, password_2)
       if password_1 != password_2
@@ -228,28 +203,10 @@ module Yast
         return false
       end
 
-      errors = UsersSimple.CheckPasswordUI(
-        {
-          "uid"          => "root",
-          "userPassword" => password_1,
-          "type"         => "system"
-        }
-      )
-
-      if UsersUtils.check_ca_constraints? && password_1.size < UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-        errors << Builtins.sformat(
-          # yes/no popup question, %1 is a number
-          _(
-            "If you intend to create certificates,\n" \
-            "the password should have at least %1 characters."
-          ),
-          UsersUtilsClass::MIN_PASSWORD_LENGTH_CA
-        )
-      end
-
+      passwd = Users::LocalPassword.new(uid: "root", plain: password_1)
       # User can confirm using "invalid" password confirming all the errors
-      if errors != []
-        errors << _("Really use this password?")
+      if !passwd.valid?
+        errors = passwd.errors + [_("Really use this password?")]
         return false unless Popup.YesNo(errors.join("\n\n"))
       end
 

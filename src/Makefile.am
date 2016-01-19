@@ -13,8 +13,7 @@ module_DATA = \
   modules/UsersPluginLDAPAll.pm \
   modules/UsersPluginLDAPPasswordPolicy.pm \
   modules/UsersPluginKerberos.pm \
-  modules/UsersPasswd.pm \
-  modules/UsersUtils.rb
+  modules/UsersPasswd.pm
 
 module1dir = @moduledir@/YaPI
 module1_DATA = \
@@ -48,10 +47,15 @@ ynclude_DATA = \
   include/users/cmdline.rb \
   include/users/helps.rb
 
-ylibclientdir = "${yast2dir}/lib/installation/clients"
+ylibclientdir = @ylibdir@/users/clients
 ylibclient_DATA = \
   lib/users/clients/inst_root_first.rb \
   lib/users/clients/inst_user_first.rb
+
+ylibdir = @ylibdir@/users
+ylib_DATA = \
+  lib/users/ca_password_validator.rb \
+  lib/users/local_password.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \
@@ -69,6 +73,6 @@ schemafiles_DATA = \
 desktop_DATA = \
   desktop/users.desktop
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibclient_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
 
 include $(top_srcdir)/Makefile.am.common
