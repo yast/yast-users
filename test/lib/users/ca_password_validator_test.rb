@@ -54,10 +54,27 @@ describe Users::CAPasswordValidator do
   end
 
   describe "#help_text" do
-    it "returns a set of html paragraphs" do
-      expect(subject.help_text).to be_a String
-      expect(subject.help_text).to start_with "<p>"
-      expect(subject.help_text).to end_with "</p>"
+    before do
+      allow(subject).to(receive(:enabled?))
+        .and_return enabled
+    end
+
+    context "if the CA check is disabled" do
+      let(:enabled) { false }
+
+      it "returns an empty string" do
+        expect(subject.help_text).to eq ""
+      end
+    end
+
+    context "if the CA check is enabled" do
+      let(:enabled) { true }
+
+      it "returns a set of html paragraphs" do
+        expect(subject.help_text).to be_a String
+        expect(subject.help_text).to start_with "<p>"
+        expect(subject.help_text).to end_with "</p>"
+      end
     end
   end
 

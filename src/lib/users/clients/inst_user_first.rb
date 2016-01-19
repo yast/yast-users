@@ -424,6 +424,8 @@ module Yast
       @ret
     end
 
+  private
+
     # Takes the first word from full name and proposes a login name which is then used
     # to relace the current login name in UI
     def propose_login
@@ -454,8 +456,7 @@ module Yast
         ) +
         UsersSimple.ValidPasswordHelptext
 
-      validator = Users::CAPasswordValidator.new
-      help += validator.help_text if validator.enabled?
+      help += ::Users::CAPasswordValidator.new.help_text
 
       # help text for main add user dialog
       help += _("<p>\nTo ensure that the password was entered correctly,\n" +
@@ -684,7 +685,7 @@ module Yast
         return false
       end
 
-      passwd = Users::LocalPassword.new(uid: username, plain: pw1, also_for_root: @use_pw_for_root)
+      passwd = Users::LocalPassword.new(username: username, plain: pw1, also_for_root: @use_pw_for_root)
       if !passwd.valid?
         message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
         if !Popup.YesNo(message)
@@ -694,6 +695,5 @@ module Yast
 
       return true
     end
-
-  end unless defined? InstUserFirstClient
+  end
 end

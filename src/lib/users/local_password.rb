@@ -18,6 +18,7 @@
 
 require "yast"
 require "users/ca_password_validator"
+Yast.import "UsersSimple"
 
 module Users
   # Password for a local user
@@ -27,16 +28,20 @@ module Users
   # The class only checks for non-fatal errors. If a password is considered
   # invalid, it still can be used if the user decides to ignore the warnings.
   class LocalPassword
-    Yast.import "UsersSimple"
     include Yast::I18n
     include Yast::Logger
 
-    attr_reader :plain, :uid, :also_for_root
+    # @return [String] plain-text version of the password
+    attr_reader :plain
+    # @return [String] username of the associated user
+    attr_reader :username
+    # @return [Boolean] whether the password should be reused for root
+    attr_reader :also_for_root
 
-    def initialize(uid: "root", also_for_root: false, plain: "")
+    def initialize(username: "root", also_for_root: false, plain: "")
       textdomain "users"
 
-      @uid = uid
+      @username = username
       @also_for_root = also_for_root
       self.plain = plain
     end
@@ -69,7 +74,6 @@ module Users
   private
 
     attr_accessor :validated
-    attr_writer :errors
 
     def unset_validated
       @errors = []
@@ -77,42 +81,43 @@ module Users
     end
 
     def for_root?
-      uid == "root" || also_for_root
+      username == "root" || also_for_root
     end
 
     def validate
-      validate_strength
+      with_cracklib_if_available do
+        validate_strength
+      end
       validate_ca_constraints if for_root?
       @validated = true
     end
 
-    def validate_strength
+    def with_cracklib_if_available
       if !Yast::UsersSimple.LoadCracklib
         log.error "loading cracklib failed, not used for pw check"
         Yast::UsersSimple.UseCrackLib(false)
       end
 
       begin
-        @errors += call_check_password_ui
+        yield
       ensure
         Yast::UsersSimple.UnLoadCracklib
       end
     end
 
-    def call_check_password_ui
+    def validate_strength
       args_for_cpui = {
-        "uid"          => uid,
+        "uid"          => username,
         "userPassword" => plain,
-        "type"         => uid == "root" ? "system" : "local"
+        "type"         => username == "root" ? "system" : "local"
       }
-      if uid != "root"
+      if username != "root"
         args_for_cpui["root"] = also_for_root
       end
-      Yast::UsersSimple.CheckPasswordUI(args_for_cpui)
+      @errors += Yast::UsersSimple.CheckPasswordUI(args_for_cpui)
     end
 
     def validate_ca_constraints
-      return unless ca_validator.enabled?
       @errors += ca_validator.errors_for(plain)
     end
   end

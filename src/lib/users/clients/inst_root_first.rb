@@ -54,6 +54,8 @@ module Yast
       ret
     end
 
+  private
+
     # Returns a UI widget-set for the dialog
     def root_password_ui
       current_password = UsersSimple.GetRootPassword || ""
@@ -130,8 +132,7 @@ module Yast
         "</p>"
       )
 
-      validator = Users::CAPasswordValidator.new
-      helptext << validator.help_text if validator.enabled?
+      helptext << ::Users::CAPasswordValidator.new.help_text
 
       helptext
     end
@@ -203,7 +204,7 @@ module Yast
         return false
       end
 
-      passwd = Users::LocalPassword.new(uid: "root", plain: password_1)
+      passwd = ::Users::LocalPassword.new(username: "root", plain: password_1)
       # User can confirm using "invalid" password confirming all the errors
       if !passwd.valid?
         errors = passwd.errors + [_("Really use this password?")]

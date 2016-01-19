@@ -44,7 +44,7 @@ describe Users::LocalPassword do
 
   describe "#errors" do
     context "when checking the root password" do
-      subject { Users::LocalPassword.new(uid: "root") }
+      subject { Users::LocalPassword.new(username: "root") }
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)
@@ -102,7 +102,7 @@ describe Users::LocalPassword do
     end
 
     context "when reusing a user password for root" do
-      subject { Users::LocalPassword.new(uid: "user", also_for_root: true) }
+      subject { Users::LocalPassword.new(username: "user", also_for_root: true) }
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)
@@ -160,7 +160,7 @@ describe Users::LocalPassword do
     end
 
     context "when checking a regular user password" do
-      subject { Users::LocalPassword.new(uid: "user", also_for_root: false) }
+      subject { Users::LocalPassword.new(username: "user", also_for_root: false) }
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)

@@ -17,6 +17,7 @@
 #  you may find current contact information at www.suse.com
 
 require "yast"
+Yast.import "ProductFeatures"
 
 module Users
   # Validator to check if a password fulfills the requirements to
@@ -25,7 +26,6 @@ module Users
     MIN_LENGTH = 4
     private_constant :MIN_LENGTH
 
-    Yast.import "ProductFeatures"
     include Yast::I18n
 
     def initialize
@@ -61,12 +61,18 @@ module Users
       end
     end
 
-    # additional help text about password
+    # Localized help text about CA constraints
+    #
+    # @return [String] html text or empty string if validation is disabled
     def help_text
-      _(
-        "<p>If you intend to use this password for creating certificates,\n" +
-        "it has to be at least %s characters long.</p>"
-      ) % MIN_LENGTH
+      if enabled?
+        _(
+          "<p>If you intend to use this password for creating certificates,\n" +
+          "it has to be at least %s characters long.</p>"
+        ) % MIN_LENGTH
+      else
+        ""
+      end
     end
   end
 end

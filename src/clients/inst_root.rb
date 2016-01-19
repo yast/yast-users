@@ -162,8 +162,7 @@ module Yast
         )
       )
 
-      validator = Users::CAPasswordValidator.new
-      @helptext << validator.help_text if validator.enabled?
+      @helptext << ::Users::CAPasswordValidator.new.help_text
 
       # help text for 'test keyboard layout' entry'
       @helptext = Ops.add(
@@ -241,7 +240,7 @@ module Yast
               next
             end
 
-            passwd = Users::LocalPassword.new(uid: "root", plain: @pw1)
+            passwd = Users::LocalPassword.new(username: "root", plain: @pw1)
             if !passwd.valid?
               message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
               if !Popup.YesNo(message)
