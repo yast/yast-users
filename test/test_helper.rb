@@ -30,7 +30,7 @@ if ENV["COVERAGE"]
   end
 
   # for coverage we need to load all ruby files
-  Dir["#{src_path}/{module,lib}/**/*.rb"].each { |f| require_relative f }
+  Dir["#{src_path}/{modules,lib}/**/*.rb"].each { |f| require_relative f }
 
   # use coveralls for on-line code coverage reporting at Travis CI
   if ENV["TRAVIS"]

@@ -43,6 +43,17 @@ describe Users::LocalPassword do
   end
 
   describe "#errors" do
+    before do
+      allow(Yast::UsersSimple).to receive(:LoadCracklib).and_return true
+      allow(Yast::UsersSimple).to receive(:UnLoadCracklib)
+    end
+
+    it "disables cracklib if it couldn't be loaded" do
+      allow(Yast::UsersSimple).to receive(:LoadCracklib).and_return false
+      expect(Yast::UsersSimple).to receive(:UseCrackLib).with false
+      Users::LocalPassword.new(username: "irrelevant").errors
+    end
+
     context "when checking the root password" do
       subject { Users::LocalPassword.new(username: "root") }
 
