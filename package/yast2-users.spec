@@ -37,6 +37,7 @@ BuildRequires:  yast2-ldap >= 3.1.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
+BuildRequires:  rubygem(rspec)
 
 Requires:       cracklib
 Requires:       perl-Digest-SHA1
@@ -107,6 +108,7 @@ provided by yast2-users package.
 %{yast_moduledir}/UsersUI.rb
 %{yast_moduledir}/YaPI/*.pm
 %{yast_yncludedir}/users/*
+%{yast_libdir}/users
 %{yast_schemadir}/autoyast/rnc/users.rnc
 #agents:
 %{yast_scrconfdir}/*.scr

@@ -35,6 +35,9 @@
 # Authors:     Klaus Kämpf <kkaempf@suse.de>
 #
 # $Id$
+require "users/ca_password_validator"
+require "users/local_password"
+
 module Yast
   class InstRootClient < Client
     def main
@@ -45,7 +48,6 @@ module Yast
       Yast.import "Label"
       Yast.import "Mode"
       Yast.import "Popup"
-      Yast.import "ProductFeatures"
       Yast.import "Report"
       Yast.import "Security" # Perl module (Users.pm) donesn't call constructor...
       Yast.import "Stage"
@@ -64,14 +66,6 @@ module Yast
 
       Users.ReadSystemDefaults(false)
       UsersSimple.Read(true)
-
-      @check_CA_constraints = ProductFeatures.GetBooleanFeature(
-        "globals",
-        "root_password_ca_check"
-      )
-
-      # minimal pw length for CA-management (F#300438)
-      @pw_min_CA = 4
 
       @valid_password_chars = Users.ValidPasswordChars
 
@@ -168,18 +162,7 @@ module Yast
         )
       )
 
-      if @check_CA_constraints
-        @helptext = Ops.add(
-          @helptext,
-          Builtins.sformat(
-            # additional help text about password
-            _(
-              "<p>If you intend to use this password for creating certificates,\nit has to be at least %1 characters long.</p>"
-            ),
-            @pw_min_CA
-          )
-        )
-      end
+      @helptext << ::Users::CAPasswordValidator.new.help_text
 
       # help text for 'test keyboard layout' entry'
       @helptext = Ops.add(
@@ -257,34 +240,10 @@ module Yast
               next
             end
 
-            @errors = UsersSimple.CheckPasswordUI(
-              { "uid" => "root", "userPassword" => @pw1, "type" => "system" }
-            )
-
-            if @check_CA_constraints &&
-                Ops.less_than(Builtins.size(@pw1), @pw_min_CA)
-              @errors = Builtins.add(
-                @errors,
-                Builtins.sformat(
-                  # yes/no popup question, %1 is a number
-                  _(
-                    "If you intend to create certificates,\nthe password should have at least %1 characters."
-                  ),
-                  @pw_min_CA
-                )
-              )
-            end
-
-            if @errors != []
-              @message = Ops.add(
-                Ops.add(
-                  Builtins.mergestring(@errors, "\n\n"),
-                  # last part of message popup
-                  "\n\n"
-                ),
-                _("Really use this password?")
-              )
-              if !Popup.YesNo(@message)
+            passwd = Users::LocalPassword.new(username: "root", plain: @pw1)
+            if !passwd.valid?
+              message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
+              if !Popup.YesNo(message)
                 @ret = :notnext
                 next
               end
