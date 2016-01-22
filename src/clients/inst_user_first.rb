@@ -19,5 +19,5 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-require "users/clients/inst_user_first"
-Yast::InstUserFirstClient.new.main
+require "users/dialogs/inst_user_first"
+Yast::InstUserFirstDialog.new.run

@@ -26,19 +26,21 @@ module Yast
   # system adminitrator (root) including checking quality of the password
   # itself. The new password is not stored here, just set in UsersSimple module
   # and stored later during inst_finish.
-  class InstRootFirstClient < Client
+  class InstRootFirstDialog
     include Yast::Logger
+    include Yast::I18n
+    include Yast::UIShortcuts
 
-    def main
+    def run
       Yast.import "UI"
-      textdomain "users"
-
       Yast.import "GetInstArgs"
       Yast.import "Mode"
       Yast.import "Popup"
       Yast.import "Report"
       Yast.import "UsersSimple"
       Yast.import "Wizard"
+
+      textdomain "users"
 
       return :auto unless root_password_dialog_needed?
 
