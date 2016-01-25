@@ -37,17 +37,6 @@ module Yast
       @param = Convert.to_map(WFM.Args(1))
       @ret = {}
 
-      @auth2label = {
-        # authentication type
-        "ldap"      => _("LDAP"),
-        # authentication type
-        "nis"       => _("NIS"),
-        # authentication type
-        "samba"     => _("Samba (Windows Domain)"),
-        # authentication type
-        "edir_ldap" => _("eDirectory LDAP")
-      }
-
       @encoding2label = {
         # encryption type
         "des"    => _("DES"),
@@ -58,7 +47,6 @@ module Yast
         # encryption type
         "sha512" => _("SHA-512")
       }
-
 
       if @func == "MakeProposal"
         @force_reset = Ops.get_boolean(@param, "force_reset", false)
@@ -79,33 +67,13 @@ module Yast
         @ahref = "a href=\"users--user\""
         # summary label <%1>-<%2> are HTML tags, leave untouched
         @prop = Builtins.sformat(_("No <%1>user<%2> configured"), @ahref, "/a")
-        @auth_method = UsersSimple.AfterAuth
         @users = Convert.convert(
           UsersSimple.GetUsers,
           :from => "list",
           :to   => "list <map>"
         )
         @user = Ops.get(@users, 0, {})
-        if @auth_method != "users"
-          # summary line: <%1>-<%2> are HTML tags, leave untouched,
-          # % is LDAP/NIS etc.
-          @prop = Builtins.sformat(
-            _("<%1>Authentication method<%2>: %3"),
-            @ahref,
-            "/a",
-            Ops.get_string(@auth2label, @auth_method, @auth_method)
-          )
-          if UsersSimple.KerberosConfiguration
-            # summary line: <%1>-<%2> are HTML tags, leave untouched,
-            # % is LDAP/NIS etc.
-            @prop = Builtins.sformat(
-              _("<%1>Authentication method<%2>: %3 and Kerberos."),
-              @ahref,
-              "/a",
-              Ops.get_string(@auth2label, @auth_method, @auth_method)
-            )
-          end
-        elsif Ops.greater_than(Builtins.size(@users), 1) ||
+        if Ops.greater_than(Builtins.size(@users), 1) ||
             Ops.get(@user, "__imported") != nil
           @to_import = Builtins.maplist(@users) do |u|
             Ops.get_string(u, "uid", "")
