@@ -23,6 +23,7 @@ module1_DATA = \
 client_DATA = \
   clients/users_auto.rb \
   clients/users_proposal.rb \
+  clients/users_encryption_proposal.rb \
   clients/users_finish.rb \
   clients/groups.rb \
   clients/inst_user.rb \
@@ -34,7 +35,8 @@ client_DATA = \
   clients/users.rb \
   clients/inst_root_first.rb \
   clients/inst_root.rb \
-  clients/inst_user_first.rb
+  clients/inst_user_first.rb \
+  clients/users_encryption_method.rb
 
 yncludedir = @yncludedir@/users
 ynclude_DATA = \
@@ -51,12 +53,14 @@ ylibdialogdir = @ylibdir@/users/dialogs
 ylibdialog_DATA = \
   lib/users/dialogs/inst_root_first.rb \
   lib/users/dialogs/inst_user_first.rb \
-  lib/users/dialogs/users_to_import.rb
+  lib/users/dialogs/users_to_import.rb \
+  lib/users/dialogs/encryption_method.rb
 
 ylibdir = @ylibdir@/users
 ylib_DATA = \
   lib/users/ca_password_validator.rb \
-  lib/users/local_password.rb
+  lib/users/local_password.rb \
+  lib/users/encryption_method.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \

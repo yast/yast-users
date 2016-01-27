@@ -24,6 +24,9 @@
 # Purpose:		Proposal for user and root setting
 #
 # $Id$
+
+require "users/encryption_method"
+
 module Yast
   class UsersProposalClient < Client
     def main
@@ -33,25 +36,12 @@ module Yast
       Yast.import "UsersSimple"
       Yast.import "Wizard"
 
-      @func = Convert.to_string(WFM.Args(0))
-      @param = Convert.to_map(WFM.Args(1))
-      @ret = {}
+      func = Convert.to_string(WFM.Args(0))
+      param = Convert.to_map(WFM.Args(1))
+      ret = {}
 
-      @encoding2label = {
-        # encryption type
-        "des"    => _("DES"),
-        # encryption type
-        "md5"    => _("MD5"),
-        # encryption type
-        "sha256" => _("SHA-256"),
-        # encryption type
-        "sha512" => _("SHA-512")
-      }
-
-      if @func == "MakeProposal"
-        @force_reset = Ops.get_boolean(@param, "force_reset", false)
-
-        @root_proposal = UsersSimple.GetRootPassword != "" ?
+      if func == "MakeProposal"
+        root_proposal = UsersSimple.GetRootPassword != "" ?
           # summary label <%1>-<%2> are HTML tags, leave untouched
           Builtins.sformat(
             _("<%1>Root Password<%2> set"),
@@ -64,114 +54,92 @@ module Yast
             "/a"
           )
 
-        @ahref = "a href=\"users--user\""
+        href = "\"users--user\""
+        ahref = "a href=#{href}"
         # summary label <%1>-<%2> are HTML tags, leave untouched
-        @prop = Builtins.sformat(_("No <%1>user<%2> configured"), @ahref, "/a")
-        @users = Convert.convert(
-          UsersSimple.GetUsers,
-          :from => "list",
-          :to   => "list <map>"
-        )
-        @user = Ops.get(@users, 0, {})
-        if Ops.greater_than(Builtins.size(@users), 1) ||
-            Ops.get(@user, "__imported") != nil
-          @to_import = Builtins.maplist(@users) do |u|
-            Ops.get_string(u, "uid", "")
-          end
-          # summary line, %3 are user names (comma separated)
-          # <%1>,<%2> are HTML tags, leave untouched,
-          @prop = Builtins.sformat(
-            _("<%1>Users<%2> %3 selected for import"),
-            @ahref,
-            "/a",
-            Builtins.mergestring(@to_import, ",")
-          )
-          if Builtins.size(@to_import) == 1
-            # summary line,  <%1>,<%2> are HTML tags, %3 user name
-            @prop = Builtins.sformat(
-              _("<%1>User<%2> %3 will be imported."),
-              @ahref,
-              "/a",
-              Ops.get(@to_import, 0, "")
-            )
-          end
-        elsif Ops.get_string(@user, "uid", "") != ""
-          # summary line: <%1>-<%2> are HTML tags, leave untouched,
+        prop = Builtins.sformat(_("No <%1>user<%2> configured"), ahref, "/a")
+        users = UsersSimple.GetUsers
+        user = users[0] || {}
+        if users.size > 1 || !user["__imported"].nil?
+          to_import = users.map { |u| u["uid"] || "" }
+          # TRANSLATORS: summary line, %d is the number of users
+          prop = n_(
+            "<a href=%s>%d user</a> will be imported",
+            "<a href=%s>%d users</a> will be imported",
+            users.size) % [href, users.size]
+        elsif user.fetch("uid", "") != ""
+          # TRANSLATORS: summary line: <%1>-<%2> are HTML tags, leave untouched,
           # %3 is login name
-          @prop = Builtins.sformat(
+          prop = Builtins.sformat(
             _("<%1>User<%2> %3 configured"),
-            @ahref,
+            ahref,
             "/a",
-            Ops.get_string(@user, "uid", "")
+            user.fetch("uid", "")
           )
-          if Ops.get_string(@user, "cn", "") != ""
+          if user.fetch("cn", "") != ""
             # summary line: <%1>-<%2> are HTML tags, leave untouched,
             # %3 is full name, %4 login name
-            @prop = Builtins.sformat(
+            prop = Builtins.sformat(
               _("<%1>User<%2> %3 (%4) configured"),
-              @ahref,
+              ahref,
               "/a",
-              Ops.get_string(@user, "cn", ""),
-              Ops.get_string(@user, "uid", "")
+              user.fetch("cn", ""),
+              user.fetch("uid", "")
             )
           end
         end
-        @rest = ""
-        # only show in summary if non-default method is used
-        if UsersSimple.EncryptionMethod != "sha512"
-          # summary line
-          @rest = Builtins.sformat(
-            _("Password Encryption Method: %1"),
-            Ops.get(@encoding2label, UsersSimple.EncryptionMethod, "")
-          )
-        end
-        @ret = {
-          "preformatted_proposal" => @rest == "" ?
-            HTML.List([@prop, @root_proposal]) :
-            HTML.List([@prop, @root_proposal, @rest]),
+        # TRANSLATORS: summary line. Second %s is the name of the method
+        encrypt = _("Password Encryption Method: <a href=%s>%s</a>") %
+          ["users--encryption", ::Users::EncryptionMethod.current.label]
+        ret = {
+          "preformatted_proposal" => HTML.List([prop, root_proposal, encrypt]),
           "language_changed"      => false,
-          "links"                 => ["users--user", "users--root"]
+          "links"                 => ["users--user", "users--root", "users--encryption"]
         }
-      elsif @func == "Description"
-        @ret = {
+      elsif func == "Description"
+        ret = {
           # rich text label
           "rich_text_title" => _("User Settings"),
           "menu_titles"     => [
             # menu button label
             { "id" => "users--user", "title" => _("&User") },
             # menu button label
-            { "id" => "users--root", "title" => _("&Root Password") }
+            { "id" => "users--root", "title" => _("&Root Password") },
+            # menu button label
+            { "id" => "users--encryption", "title" => _("Password &Encryption Type") }
           ],
           "id"              => "users"
         }
-      elsif @func == "AskUser"
+      elsif func == "AskUser"
         Wizard.OpenAcceptDialog
-        @args = {
+
+        args = {
           "enable_back" => true,
-          "enable_next" => Ops.get_boolean(@param, "has_next", false)
+          "enable_next" => param.fetch("has_next", false),
+          "going_back"  => true
         }
-        @result = :back
-        if Ops.get_string(@param, "chosen_id", "") == "users--root"
+        result = :back
+        case param["chosen_id"]
+        when "users--root"
           UsersSimple.SkipRootPasswordDialog(false) # do not skip now...
-          @result = Convert.to_symbol(
-            WFM.CallFunction("inst_root_first", [@args])
-          )
+          client = "inst_root_first"
+        when "users--user"
+          args["root_dialog_follows"] = false
+          client = "inst_user_first"
         else
-          Ops.set(@args, "root_dialog_follows", false)
-          @result = Convert.to_symbol(
-            WFM.CallFunction("inst_user_first", [@args])
-          )
+          client = "users_encryption_method"
         end
+        result = WFM.CallFunction(client, [args])
 
         Wizard.CloseDialog
 
-        @ret = { "workflow_sequence" => @result }
+        ret = { "workflow_sequence" => result }
         Builtins.y2debug(
           "Returning from users_proposal AskUser() with: %1",
-          @ret
+          ret
         )
       end
-      deep_copy(@ret)
+      ret
     end
   end
 end
