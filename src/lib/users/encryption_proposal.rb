@@ -63,7 +63,7 @@ module Users
         "rich_text_title" => _("Password Encryption Type"),
         "menu_titles"     => [
           # TRANSLATORS: menu button label
-          { "id" => "users--encryption", "title" => _("&Encryption Method") }
+          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }
         ]
       }
     end
