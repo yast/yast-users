@@ -21,9 +21,6 @@ require "ui/dialog"
 
 module Yast
   class UsersToImportDialog < ::UI::Dialog
-    include Yast::I18n
-    include Yast::UIShortcuts
-
     def initialize(all, initial)
       super()
 
