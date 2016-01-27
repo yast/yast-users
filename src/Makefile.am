@@ -60,7 +60,8 @@ ylibdir = @ylibdir@/users
 ylib_DATA = \
   lib/users/ca_password_validator.rb \
   lib/users/local_password.rb \
-  lib/users/encryption_method.rb
+  lib/users/encryption_method.rb \
+	lib/users/encryption_proposal.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \
