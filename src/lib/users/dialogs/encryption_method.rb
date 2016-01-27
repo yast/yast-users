@@ -37,6 +37,7 @@ module Yast
 
     def help_text
       help = _("<p>Choose a password encryption method for local and system users.</p>")
+      # TRANSLATORS: %s is the name of the recommended encryption method
       help += _(
         "<p><b>%s</b> is the current standard hash method. Using other " \
         "algorithms is not recommended unless needed for compatibility purposes.</p>"
@@ -60,11 +61,11 @@ module Yast
     end
 
     def method_widgets
-      widgets = ::Users::EncryptionMethod.all.map do |meth|
-        Left(RadioButton(Id(meth.id), meth.label, meth.current?))
+      ::Users::EncryptionMethod.all.each_with_object([]) do |meth, res|
+        res << Left(RadioButton(Id(meth.id), meth.label, meth.current?))
+        # Let's add some vertical space after each widget
+        res << VSpacing(1)
       end
-      # Let's add some vertical space after each widget
-      widgets.map {|w| [w, VSpacing(1)] }.flatten
     end
 
     def dialog_title

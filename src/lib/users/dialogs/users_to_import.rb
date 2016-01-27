@@ -56,7 +56,7 @@ module Yast
             Id(:userlist),
             # selection box label
             _("&Select Users to Read"),
-            items
+            initial_items
           ),
           Left(
             CheckBox(
@@ -64,7 +64,7 @@ module Yast
               Opt(:notify),
               # check box label
               _("Select or Deselect &All"),
-              all_checked?
+              initially_all_checked?
             )
           ),
           HBox(
@@ -79,11 +79,11 @@ module Yast
       Opt(:decorated)
     end
 
-    def items
+    def initial_items
       @all.map {|u| Item(Id(u), u, @initial.include?(u)) }
     end
 
-    def all_checked?
+    def initially_all_checked?
       @all.size == @initial.size
     end
   end

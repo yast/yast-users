@@ -56,7 +56,7 @@ module Users
     private_constant :DEFAULT_ID
 
     def initialize(id)
-      EncryptionMethod.raise_if_not_found(id)
+      EncryptionMethod.validate_id!(id)
       @id = id
     end
 
@@ -110,7 +110,8 @@ module Users
 
   private
 
-    def self.raise_if_not_found(id)
+    # Raises an exception if the id is unknown
+    def self.validate_id!(id)
       return if LABELS.has_key?(id)
       raise NotFoundError, "#{id} is not a known encryption method"
     end
