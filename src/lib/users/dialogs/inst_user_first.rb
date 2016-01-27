@@ -19,46 +19,34 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-# File:	clients/inst_user_first.ycp
-# Package:	Configuration of users and groups
-# Summary:	Dialog for creating the first user during installation
-# Authors:     Jiri Suchomel <jsuchome@suse.cz>
-#
-# $Id$
 require "yast"
-require "ui/event_dispatcher"
+require "ui/installation_dialog"
 require "users/dialogs/users_to_import"
 require "users/ca_password_validator"
 require "users/local_password"
 
 module Yast
-  class InstUserFirstDialog
-    include ::UI::EventDispatcher
-    include Yast::I18n
-    include Yast::UIShortcuts
-
-    def run
-      create_dialog
-      begin
-        event_loop
-      ensure
-        close_dialog
-      end
-    end
+  # Dialog for creation of local users during first stage of installation
+  # It stores the user(s) information in the UsersSimple module. The user(s)
+  # will then be created by that module during inst_finish
+  class InstUserFirstDialog < ::UI::InstallationDialog
+    # Widgets to enable/disable depending on the selected action
+    # (the first one receives the initial focus if applicable)
+    WIDGETS = {
+      new_user: [:full_name, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin],
+      import: [:choose_users, :import_qty_label],
+      skip: []
+    }
+    private_constant :WIDGETS
 
     def initialize
+      super
       import_yast_modules
       textdomain "users"
 
-      @text_mode = UI.TextMode
-
-      # Widgets to enable/disable depending on the selected action
-      # (the first one receives the initial focus if applicable)
-      @widgets = {
-        new_user: [:full_name, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin],
-        import: [:choose_users, :import_qty_label],
-        skip: []
-      }
+      @login_modified = false
+      # do not open package progress wizard window
+      @progress_orig = Progress.set(false)
 
       # full info about imported users
       @importable_users = {}
@@ -69,7 +57,6 @@ module Yast
 
       # if importing users from different partition is possible
       @import_available = UsersSimple.ImportAvailable
-
       if @import_available
         @importable_users = UsersSimple.GetImportedUsers("local")
         @importable_usernames = @importable_users.keys
@@ -80,31 +67,16 @@ module Yast
         end
       end
 
-      # do not open package progress wizard window
-      @progress_orig = Progress.set(false)
-
       @users = UsersSimple.GetUsers
-      @action = case @users.size
-      when 0
-        # New user is the default option
-        GetInstArgs.going_back ? :skip : :new_user
-      when 1
-        @users.first["__imported"] ? :import : :new_user
-      else
-        :import
-      end
-
+      init_action
       if action == :import
         @usernames_to_import = @users.map { |u| u["uid"] || "" }
       end
-      @usernames_to_import ||= []
       if action == :new_user
         @user = @users.first
       end
       @user ||= {}
       init_user_attributes
-
-      @login_modified = false
     end
 
     # UI sends events as user types the full name
@@ -125,11 +97,6 @@ module Yast
       UI.ReplaceWidget(Id(:import_qty), import_qty_widget)
     end
 
-    # Used from proposal
-    def accept_handler
-      next_handler
-    end
-
     def next_handler
       if action == :new_user
         return unless process_new_user_form
@@ -148,19 +115,7 @@ module Yast
       when :skip
         clean_users_info
       end
-      finish_dialog(:next)
-    end
-
-    def cancel_handler
-      finish_dialog(:cancel)
-    end
-
-    def back_handler
-      finish_dialog(:back)
-    end
-
-    def abort_handler
-      finish_dialog(:abort) if Popup.ConfirmAbort(:painless)
+      super
     end
 
     def skip_handler
@@ -175,18 +130,17 @@ module Yast
       self.action = :import
     end
 
-    # help text
-    def main_help
+    def help_text
       help = _(
         "<p>\nUse one of the available options to add local users to the system.\n" \
         "Local users are stored in <i>/etc/passwd</i> and <i>/etc/shadow</i>.\n</p>\n"
       ) +
         "<p>\n<b>" + _("Create new user") + "</b>\n</p>\n" +
       _(
-        "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
+        "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" \
         "assign to this user account.\n</p>\n") +
       _(
-        "<p>\nWhen entering a password, distinguish between uppercase and\n" +
+        "<p>\nWhen entering a password, distinguish between uppercase and\n" \
         "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
       )
 
@@ -264,7 +218,6 @@ module Yast
       Yast.import "Progress"
       Yast.import "Report"
       Yast.import "UsersSimple"
-      Yast.import "Wizard"
     end
 
     # Initializes the instance variables used to configure a new user
@@ -314,23 +267,37 @@ module Yast
       @root_mail = !@username.empty? && UsersSimple.GetRootAlias == @username
     end
 
+    # Sets the initial value for the action selection
+    # Requires @users to be already set
+    def init_action
+      @action = case @users.size
+      when 0
+        # New user is the default option
+        GetInstArgs.going_back ? :skip : :new_user
+      when 1
+        @users.first["__imported"] ? :import : :new_user
+      else
+        :import
+      end
+    end
+
+    def dialog_title
+      _("Local Users")
+    end
+
+    def title_icon
+      "yast-users"
+    end
+
     def create_dialog
-      Wizard.CreateDialog if Mode.normal # for testing only
-      Wizard.SetTitleIcon("yast-users")
-      # dialog caption
-      Wizard.SetContents(
-        _("Local Users"),
-        contents,
-        main_help,
-        GetInstArgs.enable_back,
-        GetInstArgs.enable_next || Mode.normal
-      )
+      super
       refresh
       set_focus
+      true
     end
 
     def close_dialog
-      Wizard.CloseDialog if Mode.normal
+      super
       Progress.set(@progress_orig)
     end
 
@@ -347,13 +314,13 @@ module Yast
     end
 
     def refresh
-      @widgets.values.flatten.each do |w|
-        UI.ChangeWidget(Id(w), :Enabled, @widgets[action].include?(w))
+      WIDGETS.values.flatten.each do |w|
+        UI.ChangeWidget(Id(w), :Enabled, WIDGETS[action].include?(w))
       end
     end
 
     def set_focus
-      widget = @widgets[action].first
+      widget = WIDGETS[action].first
       UI.SetFocus(Id(widget)) if widget
     end
 
@@ -419,10 +386,10 @@ module Yast
       end
 
       UsersSimple.SetAutologinUser(
-        UI.QueryWidget(Id(:autologin), :Value) == true ? @username : ""
+        UI.QueryWidget(Id(:autologin), :Value) ? @username : ""
       )
       UsersSimple.SetRootAlias(
-        UI.QueryWidget(Id(:root_mail), :Value) == true ? @username : ""
+        UI.QueryWidget(Id(:root_mail), :Value) ? @username : ""
       )
     end
 
@@ -440,12 +407,11 @@ module Yast
     end
 
     def import_users
-      create_users = []
-      @usernames_to_import.each do |name|
+      create_users = @usernames_to_import.map do |name|
         u = @importable_users.fetch(name, {})
         u["__imported"] = true
         u["encrypted"] = true
-        create_users << u
+        u
       end
       set_users_list(create_users)
     end
@@ -509,7 +475,7 @@ module Yast
       return true
     end
 
-    def contents
+    def dialog_content
       HSquash(
         VBox(
           RadioButtonGroup(
