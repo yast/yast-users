@@ -19,5 +19,5 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-require "users/dialogs/inst_user_first"
-Yast::InstUserFirstDialog.new.run
+require "users/dialogs/encryption_method"
+Yast::EncryptionMethodDialog.new.run

@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.41
+Version:        3.1.42
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -66,8 +66,8 @@ Requires:       yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
-# Syslog.ycp
-Requires:       yast2 >= 2.23.7
+# UI::InstallationDialog
+Requires:       yast2 >= 3.1.167
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 

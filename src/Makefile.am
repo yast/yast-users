@@ -23,6 +23,7 @@ module1_DATA = \
 client_DATA = \
   clients/users_auto.rb \
   clients/users_proposal.rb \
+  clients/users_encryption_proposal.rb \
   clients/users_finish.rb \
   clients/groups.rb \
   clients/inst_user.rb \
@@ -34,7 +35,8 @@ client_DATA = \
   clients/users.rb \
   clients/inst_root_first.rb \
   clients/inst_root.rb \
-  clients/inst_user_first.rb
+  clients/inst_user_first.rb \
+  clients/users_encryption_method.rb
 
 yncludedir = @yncludedir@/users
 ynclude_DATA = \
@@ -47,15 +49,20 @@ ynclude_DATA = \
   include/users/cmdline.rb \
   include/users/helps.rb
 
-ylibclientdir = @ylibdir@/users/clients
-ylibclient_DATA = \
-  lib/users/clients/inst_root_first.rb \
-  lib/users/clients/inst_user_first.rb
+ylibdialogdir = @ylibdir@/users/dialogs
+ylibdialog_DATA = \
+  lib/users/dialogs/inst_root_first.rb \
+  lib/users/dialogs/inst_user_first.rb \
+  lib/users/dialogs/users_to_import.rb \
+  lib/users/dialogs/encryption_method.rb
 
 ylibdir = @ylibdir@/users
 ylib_DATA = \
   lib/users/ca_password_validator.rb \
-  lib/users/local_password.rb
+  lib/users/local_password.rb \
+  lib/users/encryption_method.rb \
+  lib/users/proposal.rb \
+  lib/users/encryption_proposal.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \
@@ -73,6 +80,6 @@ schemafiles_DATA = \
 desktop_DATA = \
   desktop/users.desktop
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibclient_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
 
 include $(top_srcdir)/Makefile.am.common
