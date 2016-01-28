@@ -55,8 +55,10 @@ module Users
       when "users--user"
         args["root_dialog_follows"] = false
         client = "inst_user_first"
-      else
+      when "users--encryption"
         client = "users_encryption_method"
+      else
+        raise "Unknown action id: #{id}"
       end
       result = WFM.CallFunction(client, [args])
 
@@ -101,7 +103,7 @@ module Users
       # summary label <%1>-<%2> are HTML tags, leave untouched
       prop = Builtins.sformat(_("No <%1>user<%2> configured"), ahref, "/a")
       users = UsersSimple.GetUsers
-      user = users[0] || {}
+      user = users.first || {}
       if users.size > 1 || !user["__imported"].nil?
         to_import = users.map { |u| u["uid"] || "" }
         # TRANSLATORS: summary line, %d is the number of users

@@ -33,6 +33,7 @@ module Users
     class NotFoundError < Error
     end
 
+    include Yast::I18n
     extend Yast::I18n
     textdomain "users"
 
@@ -42,13 +43,13 @@ module Users
     # as a valid option. See fate#312321
     LABELS = {
       # TRANSLATORS: encryption type
-      "des"    => _("DES"),
+      "des"    => N_("DES"),
       # TRANSLATORS: encryption type
-      "md5"    => _("MD5"),
+      "md5"    => N_("MD5"),
       # TRANSLATORS: encryption type
-      "sha256" => _("SHA-256"),
+      "sha256" => N_("SHA-256"),
       # TRANSLATORS: encryption type
-      "sha512" => _("SHA-512")
+      "sha512" => N_("SHA-512")
     }
     private_constant :LABELS
 
@@ -56,6 +57,7 @@ module Users
     private_constant :DEFAULT_ID
 
     def initialize(id)
+      textdomain "users"
       EncryptionMethod.validate_id!(id)
       @id = id
     end
@@ -69,7 +71,7 @@ module Users
     #
     # @return [String]
     def label
-      LABELS[id]
+      _(LABELS[id])
     end
 
     # Check whether this is the selected method for the system
@@ -93,7 +95,7 @@ module Users
 
     # Current encryption method
     #
-    # Raises an exception if the id returned by UsersSimple is unknown
+    # @raise [NotFoundError] if the id returned by UsersSimple is unknown
     #
     # @return [EncryptionMethod]
     def self.current
@@ -110,7 +112,9 @@ module Users
 
   private
 
-    # Raises an exception if the id is unknown
+    # Checks an id
+    #
+    # @raise [NotFoundError] if the id is unknown
     def self.validate_id!(id)
       return if LABELS.has_key?(id)
       raise NotFoundError, "#{id} is not a known encryption method"
