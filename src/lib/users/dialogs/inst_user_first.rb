@@ -282,7 +282,7 @@ module Yast
     end
 
     def dialog_title
-      _("Local Users")
+      import_available? ? _("Local Users") : _("Local User")
     end
 
     def title_icon

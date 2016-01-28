@@ -41,6 +41,11 @@ module Users
 
     # "blowfish" is also known to UsersSimple, but it's not longer offered
     # as a valid option. See fate#312321
+    #
+    # This code is only executed once (when the class is loaded), but YaST
+    # allows to change the language in execution time. Thus, we use N_() here
+    # to mark the code as translatable and _() in the #label method to perform
+    # the real translation on execution time.
     LABELS = {
       # TRANSLATORS: encryption type
       "des"    => N_("DES"),
