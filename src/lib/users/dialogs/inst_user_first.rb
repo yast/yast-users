@@ -496,10 +496,12 @@ module Yast
           RadioButton(
             Id(:new_user),
             Opt(:notify),
-            "Create new user",
+            # TRANSLATORS: radio button
+            _("&Create New User"),
             action == :new_user
           )
         ),
+        VSpacing(0.3),
         Left(
           HBox(
             HSpacing(5),
@@ -517,10 +519,12 @@ module Yast
             RadioButton(
               Id(:import),
               Opt(:notify),
-              _("Import User Data from a Previous Installation"),
+              # TRANSLATORS: radio button
+              _("&Import User Data from a Previous Installation"),
               action == :import
             )
           ),
+          VSpacing(0.3),
           Left(
             HBox(
               HSpacing(5),
@@ -541,7 +545,8 @@ module Yast
         RadioButton(
           Id(:skip),
           Opt(:notify),
-          _("Skip User Creation"),
+          # TRANSLATORS: radio button
+          _("&Skip User Creation"),
           action == :skip
         )
       )
