@@ -496,10 +496,11 @@ module Yast
           RadioButton(
             Id(:new_user),
             Opt(:notify),
-            "Create new user",
+            "Create New User",
             action == :new_user
           )
         ),
+        VSpacing(0.3),
         Left(
           HBox(
             HSpacing(5),
@@ -521,6 +522,7 @@ module Yast
               action == :import
             )
           ),
+          VSpacing(0.3),
           Left(
             HBox(
               HSpacing(5),
