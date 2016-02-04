@@ -26,6 +26,8 @@
 # For documentation and examples of function arguments and return values, see
 # UsersPluginLDAPAll.pm
 
+# TODO: move to auth_server module which use it
+
 package UsersPluginKerberos;
 
 use strict;

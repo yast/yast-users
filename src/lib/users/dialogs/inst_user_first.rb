@@ -98,22 +98,19 @@ module Yast
     end
 
     def next_handler
-      if action == :new_user
-        return unless process_new_user_form
-      elsif action == :import
-        return unless process_import_form
-      end
-
-      UsersSimple.SetKerberosConfiguration(false)
-
       case action
       when :new_user
+        return unless process_new_user_form
+
         create_new_user
       when :import
+        return unless process_import_form
+
         import_users
       when :skip
         clean_users_info
       end
+
       super
     end
 
