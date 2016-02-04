@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Feb  4 10:05:57 UTC 2016 - jreidinger@suse.com
+
+- drop receive system mail in installation (FATE#320448)
+- 3.1.44
+
+-------------------------------------------------------------------
 Fri Jan 29 13:19:20 UTC 2016 - ancor@suse.com
 
 - Small visual improvements in the "local user" installation
