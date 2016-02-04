@@ -104,7 +104,6 @@ module Yast
         return unless process_import_form
       end
 
-      UsersSimple.SetAfterAuth("users")
       UsersSimple.SetKerberosConfiguration(false)
 
       case action

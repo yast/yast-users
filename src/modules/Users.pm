@@ -599,17 +599,6 @@ sub AllShells {
     return \@shells;
 }
 
-BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
-sub AfterAuth {
-    return UsersSimple->AfterAuth ();
-}
-
-BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
-sub SetAfterAuth {
-    my $self	= shift;
-    UsersSimple->SetAfterAuth ($_[0]);
-}
-
 # return the value of run_krb_config (should the kerberos config be run?)
 BEGIN { $TYPEINFO{KerberosConfiguration} = ["function", "boolean"];}
 sub KerberosConfiguration {
