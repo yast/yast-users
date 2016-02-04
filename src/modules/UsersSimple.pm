@@ -125,9 +125,6 @@ my $import_available;
 # if check for LDAP/Kerberos via DNS was done
 my $network_methods_checked	= 0;
 
-# note if users configuration should be run or skipped in 2nd stage (bnc#450231)
-my $skip_user_creation		= 0;
-
 ##------------------------------------
 ##------------------- global imports
 
@@ -355,19 +352,6 @@ sub SetKerberosConfiguration {
     my ($self, $krb)	= @_;
     $run_krb_config = bool ($krb) if (defined $krb);
 }
-
-# note if users configuration should be run in 2nd stage
-BEGIN { $TYPEINFO{SkipUserCreation} = ["function", "void", "boolean"];}
-sub SkipUserCreation {
-    my ($self, $skip)	= @_;
-    $skip_user_creation = bool ($skip);
-}
-
-# return the value of skip_user_creation
-BEGIN { $TYPEINFO{UserCreationSkipped} = ["function", "boolean"];}
-sub UserCreationSkipped {
-    return bool ($skip_user_creation);
-} 
 
 ##------------------------------------
 # Returns the map of user configured during installation
