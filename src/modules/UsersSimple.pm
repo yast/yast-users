@@ -40,27 +40,10 @@ textdomain("users");
 our %TYPEINFO;
 
 
-# What client to call after authentication dialog during installation:
-# could be "users","nis" or "ldap", for more see inst_auth.ycp
-my $after_auth			= "users";
-
-# If kerberos configuration should be called after authentication
-# during installation (F120214)
-my $run_krb_config		= 0;
-
 my $root_password		= "";
-
-# root password already written
-my $root_password_written	= 0;
-
-# users from 1st stage already written
-my $users_written		= 0;
 
 # only for first stage, remember if root pw dialog should be skipped
 my $skip_root_dialog		= 0;
-
-# data of user configured during installation
-#my %user			= ();
 
 # data of users configured during installation
 my @users			= ();
@@ -103,9 +86,6 @@ my $cracklib_dictpath		= "";
 # if cracklib is used for password checking
 my $use_cracklib 		= 1;
 
-# this is yast2-users internal check now, feature was removed from PAM
-my $obscure_checks 		= 1;
-
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
 
@@ -122,23 +102,14 @@ my %imported_shadow		= ();
 # if importing users during installation is possible
 my $import_available;
 
-# if check for LDAP/Kerberos via DNS was done
-my $network_methods_checked	= 0;
-
-# note if users configuration should be run or skipped in 2nd stage (bnc#450231)
-my $skip_user_creation		= 0;
-
 ##------------------------------------
 ##------------------- global imports
 
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
-YaST::YCP::Import ("Hostname");
 YaST::YCP::Import ("InstExtensionImage");
 YaST::YCP::Import ("Language");
 YaST::YCP::Import ("Mode");
-YaST::YCP::Import ("NetworkService");
-YaST::YCP::Import ("ProductControl");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("SystemFilesCopy");
@@ -274,21 +245,6 @@ sub UseCrackLib {
     $use_cracklib = bool ($crack) if (defined $crack);
 }
 
-# are 'obscure checks' used for password checking?
-BEGIN { $TYPEINFO{ObscureChecksUsed} = ["function", "boolean"]; }
-sub ObscureChecksUsed {
-    return $obscure_checks;
-}
-
-# set the new value of 'obscure checks' usage for password checking
-BEGIN { $TYPEINFO{UseObscureChecks} = ["function", "void", "boolean"]; }
-sub UseObscureChecks {
-    my $self	= shift;
-    my $checks	= shift;
-    $obscure_checks = bool ($checks) if (defined $checks);
-}
-
-
 ##------------------------------------
 # set new encryption method
 BEGIN { $TYPEINFO{SetEncryptionMethod} = ["function", "void", "string"];}
@@ -332,82 +288,12 @@ sub SetRootAlias {
     $root_alias		= shift;
 }
 
-BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
-sub AfterAuth {
-    return $after_auth;
-}
-
-BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
-sub SetAfterAuth {
-    my $self	= shift;
-    $after_auth = $_[0];
-}
-
-# return the value of run_krb_config (should the kerberos config be run?)
-BEGIN { $TYPEINFO{KerberosConfiguration} = ["function", "boolean"];}
-sub KerberosConfiguration {
-    return bool ($run_krb_config);
-}
-
-# set the new value for run_krb_config
-BEGIN { $TYPEINFO{SetKerberosConfiguration} = ["function", "void", "boolean"];}
-sub SetKerberosConfiguration {
-    my ($self, $krb)	= @_;
-    $run_krb_config = bool ($krb) if (defined $krb);
-}
-
-# note if users configuration should be run in 2nd stage
-BEGIN { $TYPEINFO{SkipUserCreation} = ["function", "void", "boolean"];}
-sub SkipUserCreation {
-    my ($self, $skip)	= @_;
-    $skip_user_creation = bool ($skip);
-}
-
-# return the value of skip_user_creation
-BEGIN { $TYPEINFO{UserCreationSkipped} = ["function", "boolean"];}
-sub UserCreationSkipped {
-    return bool ($skip_user_creation);
-} 
-
-##------------------------------------
-# Returns the map of user configured during installation
-# @return the map of user
-BEGIN { $TYPEINFO{GetUser} = [ "function",
-    ["map", "string", "any" ]];
-}
-sub GetUser {
-
-    my %ret	= ();
-    %ret	= %{$users[0]} if (defined $users[0]);
-    return \%ret;
-}
-
 ##------------------------------------
 # Returns the list users configured during installation
 # @return the list of user maps
 BEGIN { $TYPEINFO{GetUsers} = [ "function", ["list", "any" ]]; }
 sub GetUsers {
-
     return \@users;
-}
-
-##------------------------------------
-# Saves the user data into the map
-# @param data user initial data (could be an empty map)
-BEGIN { $TYPEINFO{SetUser} = ["function",
-    "string",
-    ["map", "string", "any" ]];		# data to fill in
-}
-sub SetUser {
-
-    my $self	= shift;
-    my $data	= shift;
-    if (defined $data && (ref ($data) eq "HASH")) {
-	my %user	= %{$data};
-	@users	= ();
-	push @users, %user;
-    }
-    return "";
 }
 
 ##------------------------------------
@@ -425,18 +311,6 @@ sub SetUsers {
 	@users	= @{$data};
     }
     return "";
-}
-
-# were users from 1st stage already written?
-BEGIN { $TYPEINFO{UsersWritten} = ["function", "boolean"];}
-sub UsersWritten {
-    return bool ($users_written);
-}
-
-# was root password written in 1st stage?
-BEGIN { $TYPEINFO{RootPasswordWritten} = ["function", "boolean"];}
-sub RootPasswordWritten {
-    return bool ($root_password_written);
 }
 
 ##------------------------------------
@@ -889,13 +763,6 @@ Try another one.");
     }
 }
 
-# return the %system_users map = these are NOT the current system users,
-# but the names that could be used for system users by packages
-BEGIN { $TYPEINFO{GetSystemUserNames} = ["function", ["map", "string", "integer"]];}
-sub GetSystemUserNames {
-    return \%system_users;
-}
-
 ##---------------------------------------------------------------------------
 
 ##---------------------------------------------------------------------------
@@ -922,28 +789,6 @@ sub Read {
     my $force	= shift;
 
     return bool (1);
-}
-
-# Remove the private data from users_first_stage.ycp after they were
-# written (bnc#395796)
-BEGIN { $TYPEINFO{RemoveUserData} = ["function", "boolean"];}
-sub RemoveUserData {
-
-    my $self	= shift;
-    my $file	= Directory->vardir()."/users_first_stage.ycp";
-    my $ret	= 1;
-
-    if (FileUtils->Exists ($file)) {
-	my $data	= SCR->Read (".target.ycp", $file);
-	if (defined $data && ref ($data) eq "HASH") {
-	    if (defined $data->{"users"}) {
-		delete $data->{"users"};
-	    }
-	    $data->{"users_written"}	= YaST::YCP::Integer (1);
-	    $ret	= SCR->Write (".target.ycp", $file, $data);
-	}
-    }
-    return bool ($ret);
 }
 
 ##---------------------------------------------------------------------------
@@ -1149,135 +994,6 @@ sub ImportAvailable {
     SCR->Execute (".target.bash", "/bin/rm -rf $tmp_dir");
 
     return $import_available;
-}
-
-##------------------------------------
-# check if LDAP/Kerberos are available (fate#301340)
-BEGIN { $TYPEINFO{CheckNetworkMethodsAvailability} = ["function", "boolean"]; }
-sub CheckNetworkMethodsAvailability {
-     
-    my $self	= shift;
-
-    return $network_methods_checked if $network_methods_checked;
-
-    # no check during firstboot (bnc#458468)
-    if (Stage->firstboot ()) {
-	$network_methods_checked	= 1;
-	y2milestone ("firstboot stage: no check for network methods");
-	return 1;
-    }
-
-    if (!NetworkService->isNetworkRunning()) {
-	y2milestone ("network is not running, skipping network methods test");
-	return 0;
-    }
-
-    my $call_extend	= Stage->initial () && !Mode->live_installation ();
-
-    if ($call_extend && !InstExtensionImage->LoadExtension ("bind",
-	# busy popup message, %1 is package name
-	sformat (__("Retrieving %1 extension..."), "bind")))
-    {
-	y2error ("loading bind failed, check for network methods skipped");
-	return 0;
-    }
-
-    my $domain	= Hostname->CurrentDomain ();
-    y2milestone ("current domain : '$domain'");
-
-    if (!$domain && Stage->cont ())
-    {
-	my $out = SCR->Execute (".target.bash_output", "domainname");
-	if ($out->{"exit"} eq 0) {
-	    $domain	= $out->{"stdout"};
-	    chomp $domain;
-	    y2milestone ("current domain from domainname: '$domain'");
-	}
-    }
-
-    # First, check if LDAP server is available
-    my $out = SCR->Execute (".target.bash_output", "dig '_ldap._tcp.$domain' SRV +short");
-    y2debug ("dig output: ", Dumper ($out));
-    my $ldap_server	= "";
-    if ($out->{"exit"} eq 0) {
-	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	    y2debug ("line: $line");
-	    if ($line !~ m/^;/) {
-		$ldap_server	= (split (/[ \t]/, $line))[3] || ".";
-		chop $ldap_server;
-		y2debug ("proposed LDAP server '$ldap_server'");
-	    }
-	    last if $ldap_server ne "";
-	}
-    }
-    if ($ldap_server ne "")
-    {
-	y2milestone ("LDAP server found, proposing LDAP authentication");
-	$self->SetAfterAuth ("ldap");
-    }
-
-    # check if AD server is available
-    $out = SCR->Execute (".target.bash_output", "dig '_ldap._tcp.dc._msdcs.$domain' SRV +short");
-    y2debug ("dig output: ", Dumper ($out));
-    my $ad_server	= "";
-    if ($out->{"exit"} eq 0) {
-	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	    y2debug ("line: $line");
-	    if ($line !~ m/^;/) {
-		$ad_server	= (split (/[ \t]/, $line))[3] || ".";
-		chop $ad_server;
-		y2debug ("proposed AD server '$ad_server'");
-	    }
-	    last if $ad_server ne "";
-	}
-    }
-    if ($ad_server ne "")
-    {
-	y2milestone ("AD server found, proposing winbind authentication");
-	$self->SetAfterAuth ("samba");
-	$network_methods_checked	= 1;
-	# no check for kerberos when AD is detected
-	return 1;
-    }
-    # check for eDirectory now
-    elsif ($ldap_server) {
-	$out	= SCR->Execute (".target.bash_output", "ldapsearch -x -h $ldap_server -s base -b '' vendorName | grep -i '^vendorName: Novell'");
-	y2debug ("ldapsearch output: ", Dumper ($out));
-	if ($out->{"exit"} eq 0) {
-	    y2milestone ("eDirectory found, proposing for authentication");
-	    $self->SetAfterAuth ("edir_ldap");
-	}
-    }
-	 
-    # Now, check if kerberos is available
-    $out = SCR->Execute (".target.bash_output", "dig '_kerberos._udp.$domain' SRV +short");
-    y2debug ("dig output: ", Dumper ($out));
-    my $kdc	= "";
-    if ($out->{"exit"} eq 0) {
-	foreach my $line (split (/\n/,$out->{"stdout"} || "")) {
-	    y2debug ("line: $line");
-	    if ($line !~ m/^;/) {
-		$kdc	= (split (/[ \t]/, $line))[3] || ".";
-		chop $kdc;
-	    }
-	    last if $kdc ne "";
-	}
-    }
-    if ($kdc ne "" && $ldap_server ne "")
-    {
-	y2milestone ("KDC found, proposing Kerberos authentication");
-	$self->SetKerberosConfiguration (1);
-    }
-    $network_methods_checked	= 1;
-
-    if ($call_extend)
-    {
-	InstExtensionImage->UnLoadExtension ("bind",
-	    # busy popup message, %1 is package name
-	    sformat (__("Releasing %1 extension..."), "bind"));
-    }
-
-    return 1;
 }
 
 ##------------------------------------

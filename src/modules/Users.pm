@@ -599,30 +599,6 @@ sub AllShells {
     return \@shells;
 }
 
-BEGIN { $TYPEINFO{AfterAuth} = ["function", "string"];}
-sub AfterAuth {
-    return UsersSimple->AfterAuth ();
-}
-
-BEGIN { $TYPEINFO{SetAfterAuth} = ["function", "void", "string"];}
-sub SetAfterAuth {
-    my $self	= shift;
-    UsersSimple->SetAfterAuth ($_[0]);
-}
-
-# return the value of run_krb_config (should the kerberos config be run?)
-BEGIN { $TYPEINFO{KerberosConfiguration} = ["function", "boolean"];}
-sub KerberosConfiguration {
-    return UsersSimple->KerberosConfiguration ();
-}
-
-# set the new value for run_krb_config
-BEGIN { $TYPEINFO{SetKerberosConfiguration} = ["function", "void", "boolean"];}
-sub SetKerberosConfiguration {
-    my ($self, $krb)	= @_;
-    return UsersSimple->SetKerberosConfiguration ($krb);
-}
-
 # set the list of users to be imported during installation
 BEGIN { $TYPEINFO{SetUsersForImport} = ["function", "void", ["list","any"]];}
 sub SetUsersForImport {

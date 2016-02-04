@@ -33,7 +33,7 @@ module Yast
     # Widgets to enable/disable depending on the selected action
     # (the first one receives the initial focus if applicable)
     WIDGETS = {
-      new_user: [:full_name, :username, :pw1, :pw2, :root_pw, :root_mail, :autologin],
+      new_user: [:full_name, :username, :pw1, :pw2, :root_pw, :autologin],
       import: [:choose_users, :import_qty_label],
       skip: []
     }
@@ -98,23 +98,19 @@ module Yast
     end
 
     def next_handler
-      if action == :new_user
-        return unless process_new_user_form
-      elsif action == :import
-        return unless process_import_form
-      end
-
-      UsersSimple.SetAfterAuth("users")
-      UsersSimple.SetKerberosConfiguration(false)
-
       case action
       when :new_user
+        return unless process_new_user_form
+
         create_new_user
       when :import
+        return unless process_import_form
+
         import_users
       when :skip
         clean_users_info
       end
+
       super
     end
 
@@ -177,9 +173,6 @@ module Yast
         "<p>\nThe username and password created here are needed to log in " \
         "and work with your Linux system. With <b>Automatic Login</b> enabled, " \
         "the login procedure is skipped. This user is logged in automatically.</p>\n"
-      ) +
-      _(
-        "<p>\nHave mail for root forwarded to this user by checking <b>Receive System Mail</b>.</p>\n"
       )
 
       if import_available?
@@ -231,7 +224,6 @@ module Yast
 
       init_autologin
       init_pw_for_root
-      init_root_mail
     end
 
     # Sets the initial default value for autologin
@@ -259,12 +251,6 @@ module Yast
         end
         Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
       end
-    end
-
-    # Sets the initial value of the flag for the user to get root's mail
-    # Requires @username to be already set
-    def init_root_mail
-      @root_mail = !@username.empty? && UsersSimple.GetRootAlias == @username
     end
 
     # Sets the initial value for the action selection
@@ -388,9 +374,6 @@ module Yast
       UsersSimple.SetAutologinUser(
         UI.QueryWidget(Id(:autologin), :Value) ? @username : ""
       )
-      UsersSimple.SetRootAlias(
-        UI.QueryWidget(Id(:root_mail), :Value) ? @username : ""
-      )
     end
 
     def process_import_form
@@ -425,7 +408,6 @@ module Yast
       UsersSimple.SkipRootPasswordDialog(false)
       UsersSimple.SetRootPassword("") if root_dialog_follows
       UsersSimple.SetAutologinUser("")
-      UsersSimple.SetRootAlias("")
     end
 
     def valid_username?(username)
@@ -600,10 +582,6 @@ module Yast
             _("U&se this password for system administrator"),
             @use_pw_for_root
           )
-        ),
-        Left(
-          # checkbox label
-          CheckBox(Id(:root_mail), _("Receive S&ystem Mail"), @root_mail)
         ),
         # checkbox label
         Left(CheckBox(Id(:autologin), _("&Automatic Login"), @autologin))

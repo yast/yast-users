@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.43
+Version:        3.1.44
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -59,6 +59,8 @@ Provides:       yast2-config-users
 Provides:       yast2-trans-inst-user
 Provides:       yast2-trans-users
 Conflicts:      autoyast2 < 3.1.92
+# older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
+Conflicts:      yast2-storage < 3.1.75
 
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0

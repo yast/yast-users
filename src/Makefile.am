@@ -26,15 +26,12 @@ client_DATA = \
   clients/users_encryption_proposal.rb \
   clients/users_finish.rb \
   clients/groups.rb \
-  clients/inst_user.rb \
-  clients/inst_auth.rb \
   clients/users_plugin_quota.rb \
   clients/users_plugin_ldap_all.rb \
   clients/users_plugin_ldap_shadowaccount.rb \
   clients/users_plugin_ldap_passwordpolicy.rb \
   clients/users.rb \
   clients/inst_root_first.rb \
-  clients/inst_root.rb \
   clients/inst_user_first.rb \
   clients/users_encryption_method.rb
 
