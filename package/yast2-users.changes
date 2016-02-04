@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
 Thu Feb  4 10:05:57 UTC 2016 - jreidinger@suse.com
 
-- drop receive system mail in installation (FATE#320448)
+- Drop the Receive System Mail checkbox from the installation
+  workflow (FATE#320448)
 - 3.1.44
 
 -------------------------------------------------------------------
