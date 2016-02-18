@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Feb 18 14:00:19 CET 2016 - schubi@suse.de
+
+- Do not crash autoinstallation if the home directory of a user is
+  directly under /. (bnc#966867)
+- 3.1.42
+
+-------------------------------------------------------------------
 Wed Nov 18 08:48:16 UTC 2015 - igonzalezsosa@suse.com
 
 - fix validation of AutoYaST profiles (bsc#954412)
