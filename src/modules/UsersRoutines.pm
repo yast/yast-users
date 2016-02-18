@@ -98,7 +98,7 @@ sub CreateHome {
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
-    if (!%{SCR->Read (".target.stat", $home_path)}) {
+    if (length($home_path) and !%{SCR->Read (".target.stat", $home_path)}) {
 	SCR->Execute (".target.mkdir", $home_path);
     }
     my %stat	= %{SCR->Read (".target.stat", $home)};
