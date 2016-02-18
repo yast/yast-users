@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
 Thu Feb 18 09:23:10 CET 2016 - schubi@suse.de
 
-- Checking empty string while generating home directory.
+- Do not crash autoinstallation if the home directory of a user is
+  directly under /.
   (bnc#966867)
 - 3.1.45
 
