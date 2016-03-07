@@ -5885,8 +5885,9 @@ sub ImportUser {
 	}
     }
 
-    if ($uid == -1) {
-	# check for existence of this user (and change it with given values)
+    if ($uid == -1 || Stage->initial()) {
+	# Check for existence of this user (and change it with given values).
+  # During 1st stage we simply match by username (bnc#965852).
 	my %existing 	= %{$self->GetUserByName ($username, "")};
 	if (%existing) {
 	
