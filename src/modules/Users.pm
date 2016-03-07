@@ -5887,7 +5887,7 @@ sub ImportUser {
 
     if ($uid == -1 || Stage->initial()) {
 	# Check for existence of this user (and change it with given values).
-  # During 1st stage we simply match by username (bnc#965852).
+	# During 1st stage we simply match by username (bnc#965852).
 	my %existing 	= %{$self->GetUserByName ($username, "")};
 	if (%existing) {
 	
@@ -5911,7 +5911,7 @@ sub ImportUser {
 		$cn eq "") {
 		$cn		= $existing{"cn"} || "";
 	    }
-	    if ($gid == -1) {
+	    if ($gid == -1 || Stage->initial()) {
 		$gid		= $existing{"gidNumber"};
 	    }
 	    %ret	= (
@@ -6001,8 +6001,9 @@ sub ImportGroup {
 	$gid		= $group{"gid"} if (!defined $gid);
 	$gid		= -1 if (!defined $gid);
     }
-    if ($gid == -1) {
-	# check for existence of this group (and change it with given values)
+    if ($gid == -1 || Stage->initial()) {
+	# Check for existence of this group (and change it with given values).
+	# During 1st stage we simply match by groupname (bnc#965852).
 	my $existing 	= $self->GetGroupByName ($groupname, "");
 	if (ref ($existing) eq "HASH" && %{$existing}) {
 	    $gid	= $existing->{"gidNumber"};
