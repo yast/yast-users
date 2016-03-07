@@ -6154,6 +6154,7 @@ sub Import {
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
 
+    # Avoid to read local users during 1st stage (bnc#965852)
     my $error_msg = (Mode->test() || Stage->initial()) ? "" : $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
