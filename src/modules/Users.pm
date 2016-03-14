@@ -5885,8 +5885,9 @@ sub ImportUser {
 	}
     }
 
-    if ($uid == -1) {
-	# check for existence of this user (and change it with given values)
+    if ($uid == -1 || Stage->initial()) {
+	# Check for existence of this user (and change it with given values).
+	# During 1st stage we simply match by username (bnc#965852).
 	my %existing 	= %{$self->GetUserByName ($username, "")};
 	if (%existing) {
 	
@@ -5910,7 +5911,7 @@ sub ImportUser {
 		$cn eq "") {
 		$cn		= $existing{"cn"} || "";
 	    }
-	    if ($gid == -1) {
+	    if ($gid == -1 || Stage->initial()) {
 		$gid		= $existing{"gidNumber"};
 	    }
 	    %ret	= (
@@ -6000,8 +6001,9 @@ sub ImportGroup {
 	$gid		= $group{"gid"} if (!defined $gid);
 	$gid		= -1 if (!defined $gid);
     }
-    if ($gid == -1) {
-	# check for existence of this group (and change it with given values)
+    if ($gid == -1 || Stage->initial()) {
+	# Check for existence of this group (and change it with given values).
+	# During 1st stage we simply match by groupname (bnc#965852).
 	my $existing 	= $self->GetGroupByName ($groupname, "");
 	if (ref ($existing) eq "HASH" && %{$existing}) {
 	    $gid	= $existing->{"gidNumber"};
@@ -6154,7 +6156,8 @@ sub Import {
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
 
-    my $error_msg = Mode->test () ? "" : $self->ReadLocal ();
+    # Avoid to read local users during 1st stage (bnc#965852)
+    my $error_msg = (Mode->test() || Stage->initial()) ? "" : $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
     }
