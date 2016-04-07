@@ -29,6 +29,8 @@
 
 module Yast
   class UsersFinishClient < Client
+    include Yast::Logger
+
     def main
       textdomain "users"
 
@@ -71,9 +73,12 @@ module Yast
 
           # During installation, some package could add a new user, so we
           # need to read them again before writing.
-          Users.SetExportAll(true)
+          Users.SetExportAll(false) # Export only previously imported users
           saved = Users.Export
-          Users.ReadLocal
+          log.info("Users to import: #{saved}")
+          # Read users and settings from the installed system
+          # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
+          Users.Read
           Users.Import(saved)
 
           # Write users
