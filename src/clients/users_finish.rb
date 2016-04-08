@@ -73,15 +73,20 @@ module Yast
 
           # During installation, some package could add a new user, so we
           # need to read them again before writing.
-          Users.SetExportAll(false) # Export only previously imported users
+
+          # 1. Export users imported in inst_autosetup (and store them)
+          Users.SetExportAll(false)
           saved = Users.Export
           log.info("Users to import: #{saved}")
-          # Read users and settings from the installed system
+
+          # 2. Read users and settings from the installed system
           # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
           Users.Read
+
+          # 3. Import users exported in step 1
           Users.Import(saved)
 
-          # Write users
+          # 4. Write users
           Users.SetWriteOnly(true)
           @progress_orig = Progress.set(false)
           @ret = Users.Write == ""
