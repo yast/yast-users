@@ -3,13 +3,13 @@
 require_relative "spec_helper"
 require "fileutils"
 require "yaml"
-require_relative "../src/clients/users_finish"
+require "users/clients/users_finish"
 
 describe Yast::UsersFinishClient do
   Yast.import "WFM"
   Yast.import "UsersPasswd"
 
-  describe "#main" do
+  describe "#run" do
     before do
       allow(Yast::WFM).to receive(:Args).with(no_args).and_return(args)
       allow(Yast::WFM).to receive(:Args) { |n| n.nil? ? args : args[n] }
@@ -19,7 +19,7 @@ describe Yast::UsersFinishClient do
       let(:args) { ["Info"] }
 
       it "returns a hash describing the client" do
-        expect(subject.main).to be_kind_of(Hash)
+        expect(subject.run).to be_kind_of(Hash)
       end
     end
 
@@ -45,21 +45,21 @@ describe Yast::UsersFinishClient do
         end
 
         it "add users specified in the profile" do
-          subject.main
+          subject.run
 
           yast_user = Yast::Users.GetUsers("uid", "local").fetch("yast")
           expect(yast_user).to_not be_nil
         end
 
         it "updates root account" do
-          subject.main
+          subject.run
 
           root_user = Yast::Users.GetUsers("uid", "system").fetch("root")
           expect(root_user["userPassword"]).to_not be_empty
         end
 
         it "preserves system accounts passwords" do
-          subject.main
+          subject.run
 
           shadow = Yast::UsersPasswd.GetShadow("system")
           passwords = shadow.values.map { |u| u["userPassword"] }
@@ -82,7 +82,7 @@ describe Yast::UsersFinishClient do
             expect(Yast::UsersSimple).to receive(:Write)
             # write users
             expect(Yast::Users).to receive(:Write)
-            subject.main
+            subject.run
           end
         end
 
@@ -94,18 +94,9 @@ describe Yast::UsersFinishClient do
             expect(Yast::UsersSimple).to receive(:Write)
             # do not write users
             expect(Yast::Users).to_not receive(:Write)
-            subject.main
+            subject.run
           end
         end
-      end
-    end
-
-    context "when action is unknown" do
-      let(:args) { ["Unknown"] }
-
-      it "logs an error" do
-        expect(Yast::Builtins).to receive(:y2error).with(/unknown/, "Unknown")
-        subject.main
       end
     end
   end
