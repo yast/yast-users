@@ -1,0 +1,10 @@
+users:
+  - username: root
+    user_password: yast.password
+    fullname: Superuser
+  - username: yast
+    user_password: suse
+    fullname: YaST team user
+    gid: 100
+    uid: 1000
+    shell: /usr/bin/zsh
