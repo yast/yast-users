@@ -6156,7 +6156,7 @@ sub Import {
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
 
-    my $error_msg = (Mode->test()) ? "" : $self->ReadLocal ();
+    my $error_msg = Mode->test() ? "" : $self->ReadLocal ();
     if ($error_msg) {
 	return 0;
     }
