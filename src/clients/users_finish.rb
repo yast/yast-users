@@ -83,7 +83,8 @@ module Yast
           # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
           Users.Read
 
-          # 3. Import users exported in step 1
+          # 3. Merge users from the system with new users from
+          #    AutoYaST profile (from step 1)
           Users.Import(saved)
 
           # 4. Write users
@@ -95,8 +96,7 @@ module Yast
           # write the root password
           UsersSimple.Write
 
-          other_users = setup_all_users
-          Users.Write if other_users
+          Users.Write if setup_all_users
         end
       else
         Builtins.y2error("unknown function: %1", @func)
