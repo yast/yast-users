@@ -74,7 +74,7 @@ describe Yast::UsersFinishClient do
           allow(subject).to receive(:setup_all_users).and_return(user_added)
         end
 
-        context "when setup_all_users" do
+        context "when a new user is added" do
           let(:user_added) { true }
 
           it "write root password and users" do
@@ -86,10 +86,10 @@ describe Yast::UsersFinishClient do
           end
         end
 
-        context "write root password" do
+        context "when no new user is added" do
           let(:user_added) { false }
 
-          it "write users" do
+          it "write root password" do
             # write root password
             expect(Yast::UsersSimple).to receive(:Write)
             # do not write users
