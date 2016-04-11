@@ -37,7 +37,7 @@ BuildRequires:  yast2-ldap >= 3.1.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
-BuildRequires:  rubygem(rspec)
+BuildRequires:  rubygem(%rb_default_ruby_abi:rspec)
 
 Requires:       cracklib
 Requires:       perl-Digest-SHA1
