@@ -2,7 +2,7 @@
 Thu Apr  7 08:49:13 UTC 2016 - igonzalezsosa@suse.com
 
 - Does not set empty passwords fields in /etc/shadow during
-  installation (bnc#973639, bnc#974220)
+  installation (CVE-2016-1601, bnc#973639, bnc#974220)
 - Set root password correctly when using a minimal profile
   (bnc#971804)
 - 3.1.47
