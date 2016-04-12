@@ -98,6 +98,29 @@ provided by yast2-users package.
 %install
 %yast_install
 
+%post
+#!/bin/bash
+#
+# Fix CVE-2016-1601
+#
+# Set password to the given value and reset mindays, maxdays and
+# warndays in /etc/shadow for a given set of users.
+# bin::16903:0:99999:7::: -> bin:*:16903::::::
+function set_password {
+  declare -a users=("${!2}")
+  regexp=$(IFS="|"; echo "${users[*]}")
+  sed /etc/shadow -i -re \
+    "s/^($regexp)::([^:]*):[^:]*:[^:]*:[^:]*:(.+)/\1:$1:\2::::\3/"
+}
+# Backup /etc/shadow
+cp -a /etc/shadow{,.YaST2save}
+
+# Set passwords
+asterisk=(bin daemon lp mail news uucp games man wwwrun ftp nobody)
+locked=(messagebus nscd openslp sshd polkitd rpc)
+set_password '*' asterisk[@]
+set_password '!' locked[@]
+
 %files
 %defattr(-,root,root)
 %dir %{yast_yncludedir}/users
