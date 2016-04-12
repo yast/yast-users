@@ -30,6 +30,7 @@ module Yast
   module UsersRoutinesInclude
     def initialize_users_routines(include_target)
       Yast.import "Mode"
+      Yast.import "Autologin"
 
       textdomain "users"
     end
