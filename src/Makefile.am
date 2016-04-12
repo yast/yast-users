@@ -35,6 +35,10 @@ client_DATA = \
   clients/inst_user_first.rb \
   clients/users_encryption_method.rb
 
+ylibclientdir = @ylibdir@/users/clients
+ylibclient_DATA = \
+  lib/users/clients/users_finish.rb
+
 yncludedir = @yncludedir@/users
 ynclude_DATA = \
   include/users/widgets.rb \
@@ -77,6 +81,6 @@ schemafiles_DATA = \
 desktop_DATA = \
   desktop/users.desktop
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA)
 
 include $(top_srcdir)/Makefile.am.common

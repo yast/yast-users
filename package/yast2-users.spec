@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.46
+Version:        3.1.47
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -37,7 +37,7 @@ BuildRequires:  yast2-ldap >= 3.1.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
-BuildRequires:  rubygem(rspec)
+BuildRequires:  rubygem(%rb_default_ruby_abi:rspec)
 
 Requires:       cracklib
 Requires:       perl-Digest-SHA1
@@ -105,6 +105,10 @@ provided by yast2-users package.
 %dir %{yast_yncludedir}/users
 %dir %{yast_moduledir}/YaPI
 %{yast_clientdir}/*.rb
+%dir %{yast_libdir}/users
+%dir %{yast_libdir}/users/clients
+%{yast_libdir}/users/*
+%{yast_libdir}/users/clients/*
 %{yast_desktopdir}/*.desktop
 %{yast_moduledir}/*.pm
 %{yast_moduledir}/UsersUI.rb
