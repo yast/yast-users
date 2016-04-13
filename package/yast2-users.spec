@@ -98,6 +98,30 @@ provided by yast2-users package.
 %install
 %yast_install
 
+%post -p /bin/bash
+# Fix CVE-2016-1601 (bnc#974220)
+#
+# This script is only applicable to SLE 12 SP1. It fixes a problem
+# with the installation process using AutoYaST.
+#
+# Set password to the given value and reset mindays, maxdays and
+# warndays in /etc/shadow for a given set of users. Users
+# are specified like 'bin|daemon|lp'.
+#
+# bin::16903:0:99999:7::: -> bin:*:16903::::::
+function set_password {
+  sed /etc/shadow -i -re \
+    "s/^($2)::([^:]*):[^:]*:[^:]*:[^:]*:(.+)/\1:$1:\2::::\3/"
+}
+# Backup /etc/shadow
+cp -a /etc/shadow{,.YaST2save}
+
+# Set passwords
+# These users are defined in the inst-sys like bin:*:16903::::::
+set_password '*' 'bin|daemon|lp|mail|news|uucp|games|man|wwwrun|ftp|nobody'
+# These users are defined in the inst-sys like messagebus:!:16903::::::
+set_password '!' 'messagebus|nscd|openslp|sshd|polkitd|rpc'
+
 %files
 %defattr(-,root,root)
 %dir %{yast_yncludedir}/users
