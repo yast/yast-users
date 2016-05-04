@@ -969,34 +969,6 @@ sub GetImportedUsers {
 }
 
 ##------------------------------------
-# Check if importing user data from the system is available:
-# if yes, go and read the data
-BEGIN { $TYPEINFO{ImportAvailable} = ["function", "boolean"]; }
-sub ImportAvailable {
-
-    return $import_available if defined $import_available;
-
-    my $self		= shift;
-    my $tmp_dir		= Directory->tmpdir()."/users";
-    my $vardir		= Directory->vardir();
-    my $import_dir	= $tmp_dir.$vardir."/imported/userdata/etc";
-
-    $import_available	= (
-	SCR->Execute (".target.mkdir", $tmp_dir) &&
-	SystemFilesCopy->CopyFilesToSystem ($tmp_dir) &&
-	FileUtils->Exists ($import_dir."/passwd") &&
-	FileUtils->Exists ($import_dir."/shadow") &&
-	$self->ReadUserData ($import_dir)
-    );
-    y2milestone ("import available: $import_available");
-
-    # remove the directory with copied data after reading it
-    SCR->Execute (".target.bash", "/bin/rm -rf $tmp_dir");
-
-    return $import_available;
-}
-
-##------------------------------------
 # load cracklib image into the inst-sys
 BEGIN { $TYPEINFO{LoadCracklib} = ["function", "boolean"]; }
 sub LoadCracklib {
