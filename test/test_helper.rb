@@ -21,6 +21,7 @@ src_path = File.expand_path("../../src", __FILE__)
 ENV["Y2DIR"] = src_path
 
 require "yast"
+require "pathname"
 require "yast/rspec"
 
 if ENV["COVERAGE"]
@@ -41,3 +42,14 @@ if ENV["COVERAGE"]
     ]
   end
 end
+
+# configure RSpec
+RSpec.configure do |config|
+  config.mock_with :rspec do |c|
+    # https://relishapp.com/rspec/rspec-mocks/v/3-0/docs/verifying-doubles/partial-doubles
+    c.verify_partial_doubles = true
+  end
+end
+
+TESTS_PATH = Pathname.new(File.dirname(__FILE__))
+FIXTURES_PATH = TESTS_PATH.join("fixtures")
