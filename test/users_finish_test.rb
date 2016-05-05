@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-require_relative "spec_helper"
+require_relative "test_helper"
 require "fileutils"
 require "yaml"
 require "users/clients/users_finish"

@@ -24,6 +24,7 @@ require "ui/installation_dialog"
 require "users/dialogs/users_to_import"
 require "users/ca_password_validator"
 require "users/local_password"
+require "users/users_database"
 
 module Yast
   # Dialog for creation of local users during first stage of installation
@@ -55,10 +56,12 @@ module Yast
       # names of imported users selected for writing
       @usernames_to_import = []
 
-      # if importing users from different partition is possible
-      @import_available = UsersSimple.ImportAvailable
+      # Check if some users database was imported from a
+      # different partition (done during pre_install)
+      users_databases = Users::UsersDatabase.all
+      @import_available = users_databases.any?
       if @import_available
-        @importable_users = UsersSimple.GetImportedUsers("local")
+        @importable_users = importable_users(users_databases)
         @importable_usernames = @importable_users.keys
 
         if @importable_usernames.empty?
@@ -387,6 +390,34 @@ module Yast
         return false
       end
       return true
+    end
+
+    # List of users from an imported users database.
+    #
+    # This method is kind of a wrapper around
+    # UserSimple.ReadUserData && UserSimple.GetImportedUsers.
+    # It receives a list of databases and tries to import users in order. If
+    # it's not possible to import users in the first database, it tries the
+    # the next and so on.
+    #
+    # Ideally this method would belong to UsersSimple... but that's Perl code.
+    #
+    # @param databases [Array<Users::UsersDatabase>]
+    # @return [Hash{String => Hash}] @see UsersSimple.GetImportedUsers
+    def importable_users(databases)
+      users = {}
+      databases.each do |database|
+        Dir.mktmpdir do |dir|
+          database.write_files(dir)
+          if UsersSimple.ReadUserData(dir)
+            # GetImportedUsers should not return nil, but better be safe
+            imported = UsersSimple.GetImportedUsers("local")
+            users = imported unless imported.nil?
+            break unless users.empty?
+          end
+        end
+      end
+      users
     end
 
     def import_users
