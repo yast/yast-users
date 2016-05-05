@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
 Thu May  5 12:32:39 UTC 2016 - igonzalezsosa@suse.com
 
-- Fix users import when an entry in /etc/shadow is missing
-  (bsc#978648)
+- Fix users import when entries for all non-system users are missing in
+  /etc/shadow (bsc#978648)
 - 3.1.48
 
 -------------------------------------------------------------------
