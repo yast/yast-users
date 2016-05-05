@@ -956,7 +956,7 @@ sub GetImportedUsers {
     if (defined $imported_users{$type} && ref($imported_users{$type}) eq "HASH")
     {
 	%ret 	= %{$imported_users{$type}};
-	next if (!defined $imported_shadow{$type});
+	return \%ret if (!defined $imported_shadow{$type});
 	# add the shadow data into each user map
 	foreach my $username (keys %ret) {
 	    next if (!defined $imported_shadow{$type}{$username});

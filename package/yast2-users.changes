@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu May  5 12:32:39 UTC 2016 - igonzalezsosa@suse.com
+
+- Fix users import when an entry in /etc/shadow is missing
+  (bsc#978648)
+- 3.1.48
+
+-------------------------------------------------------------------
 Thu Apr  7 08:49:13 UTC 2016 - igonzalezsosa@suse.com
 
 - Does not set empty passwords fields in /etc/shadow during
