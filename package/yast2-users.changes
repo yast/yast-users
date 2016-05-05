@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu May  5 13:22:29 UTC 2016 - ancor@suse.com
+
+- Make user import work even if passwd and shadow files are not
+  copied to /var/lib/YaST2 via "copy_to_system" (part of
+  fate#319624)
+- 3.1.49
+
+-------------------------------------------------------------------
 Thu May  5 12:32:39 UTC 2016 - igonzalezsosa@suse.com
 
 - Fix users import when entries for all non-system users are missing in
