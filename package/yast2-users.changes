@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon May 23 08:08:58 UTC 2016 - igonzalezsosa@suse.com
+
+- Fix detection of mounted /home partition during installation
+  (bsc#980878)
+- 3.1.50
+
+-------------------------------------------------------------------
 Thu May  5 13:22:29 UTC 2016 - ancor@suse.com
 
 - Make user import work even if passwd and shadow files are not
