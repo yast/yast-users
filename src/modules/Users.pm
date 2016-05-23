@@ -701,7 +701,7 @@ sub CheckHomeMounted {
     if ($mountpoint_in ne "") {
 	my $home_mountpoint = $home;
 	if (Stage->initial()) {
-	  $home_mountpoint = "${Installation->destdir()}${home_mountpoint}";
+          $home_mountpoint = Installation->destdir() . $home_mountpoint;
 	}
 	y2milestone("homes mount point is", $home_mountpoint);
         my $mounted	= 0;
