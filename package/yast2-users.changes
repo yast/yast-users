@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon May 23 15:36:01 UTC 2016 - igonzalezsosa@suse.com
+
+- Fix a string concatenation in Users.pm relative introduced in
+  bsc#980878.
+- 3.1.51
+
+-------------------------------------------------------------------
 Mon May 23 08:08:58 UTC 2016 - igonzalezsosa@suse.com
 
 - Fix detection of mounted /home partition during installation
