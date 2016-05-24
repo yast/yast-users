@@ -699,11 +699,11 @@ sub CheckHomeMounted {
     }
 
     if ($mountpoint_in ne "") {
-	my $home_mountpoint = $home;
-	if (Stage->initial()) {
-          $home_mountpoint = Installation->destdir() . $home_mountpoint;
-	}
-	y2milestone("homes mount point is", $home_mountpoint);
+        my $home_mountpoint = $home;
+        if (Stage->initial()) {
+            $home_mountpoint = Installation->destdir() . $home_mountpoint;
+        }
+        y2milestone("homes mount point is", $home_mountpoint);
         my $mounted	= 0;
         my $mtab	= SCR->Read (".etc.mtab");
 	if (defined $mtab && ref ($mtab) eq "ARRAY") {
