@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.51
+Version:        3.1.52
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -82,15 +82,6 @@ Group:          System/YaST
 %description
 This package provides GUI for maintenance of linux users and groups.
 
-%package devel-doc
-Requires:       yast2-users = %version
-Summary:        YaST2 - User and Group Configuration - Development Documentation
-Group:          System/YaST
-
-%description devel-doc
-This package contains development documentation for using the API
-provided by yast2-users package.
-
 %prep
 %setup -n %{name}-%{version}
 
@@ -127,9 +118,5 @@ provided by yast2-users package.
 %doc %{yast_docdir}/COPYING
 %doc %{yast_docdir}/TODO.txt
 %doc %{yast_docdir}/users.html
-
-%files devel-doc
-%doc %{yast_docdir}/autodocs
-%doc %{yast_docdir}/crack.html
 
 %changelog
