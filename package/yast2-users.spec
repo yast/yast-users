@@ -116,7 +116,6 @@ This package provides GUI for maintenance of linux users and groups.
 %{yast_plugindir}/libpy2ag_crack.la
 %dir %{yast_docdir}
 %doc %{yast_docdir}/COPYING
-%doc %{yast_docdir}/TODO.txt
 %doc %{yast_docdir}/users.html
 
 %changelog
