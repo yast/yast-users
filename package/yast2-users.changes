@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jun  1 15:44:50 UTC 2016 - cwh@suse.com
+
+- Removed devel-doc package (fate#320356)
+- 3.1.52
+
+-------------------------------------------------------------------
 Mon May 23 15:36:01 UTC 2016 - igonzalezsosa@suse.com
 
 - Fix a string concatenation in Users.pm relative introduced in
