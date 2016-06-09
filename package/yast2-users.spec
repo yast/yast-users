@@ -52,6 +52,7 @@ Obsoletes:      y2t_users
 Obsoletes:      yast2-config-users
 Obsoletes:      yast2-trans-inst-user
 Obsoletes:      yast2-trans-users
+Obsoletes:      yast2-users-devel-doc
 Provides:       y2c_users
 Provides:       y2t_inst-user
 Provides:       y2t_users
