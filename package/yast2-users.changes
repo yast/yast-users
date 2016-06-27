@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
 Mon Jun 27 09:18:59 UTC 2016 - igonzalezsosa@suse.com
 
-- Fix creation of first user account during installation
+- Fix creation of the first user account during installation
   (bsc#986542)
 - 3.1.53
 
