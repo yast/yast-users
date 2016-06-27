@@ -25,6 +25,7 @@ require "users/dialogs/users_to_import"
 require "users/ca_password_validator"
 require "users/local_password"
 require "users/users_database"
+require "tmpdir"
 
 module Yast
   # Dialog for creation of local users during first stage of installation
