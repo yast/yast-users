@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Aug 11 11:37:12 UTC 2016 - ancor@suse.com
+
+- Fixed the installation dialog for user creation so it works
+  also in YaST Firstboot (needed to fix bsc#992245)
+- 3.1.54
+
+-------------------------------------------------------------------
 Mon Jun 27 09:18:59 UTC 2016 - igonzalezsosa@suse.com
 
 - Fix creation of the first user account during installation
