@@ -59,7 +59,7 @@ module Yast
 
       # Check if some users database was imported from a
       # different partition (done during pre_install)
-      users_databases = Users::UsersDatabase.all
+      users_databases = ::Users::UsersDatabase.all
       @import_available = users_databases.any?
       if @import_available
         @importable_users = importable_users(users_databases)
@@ -478,7 +478,7 @@ module Yast
         return false
       end
 
-      passwd = Users::LocalPassword.new(username: username, plain: pw1, also_for_root: @use_pw_for_root)
+      passwd = ::Users::LocalPassword.new(username: username, plain: pw1, also_for_root: @use_pw_for_root)
       if !passwd.valid?
         message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
         if !Popup.YesNo(message)
