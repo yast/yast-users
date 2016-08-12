@@ -41,6 +41,10 @@ module Yast
     }
     private_constant :WIDGETS
 
+    # @return [Symbol] Action selected by the user. Possible values are
+    #     :new_user, :import (only possible during installation) and :skip.
+    attr_reader :action
+
     def initialize
       super
       import_yast_modules
@@ -313,8 +317,6 @@ module Yast
       widget = WIDGETS[action].first
       UI.SetFocus(Id(widget)) if widget
     end
-
-    attr_reader :action
 
     def action=(value)
       @action = value

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Aug 12 14:37:40 UTC 2016 - ancor@suse.com
+
+- The YaST client using the user creation dialog can now know
+  which action was selected by the user (needed to fix bsc#992245)
+- 3.1.55
+
+-------------------------------------------------------------------
 Thu Aug 11 11:37:12 UTC 2016 - ancor@suse.com
 
 - Fixed the installation dialog for user creation so it works
