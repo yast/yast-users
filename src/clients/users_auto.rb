@@ -42,18 +42,6 @@ Yast.import "Report"
 module Yast
   class UsersAutoClient < Client
 
-    # Checking double user entries
-    # (double username or UID)
-    # @param [Array] users to check
-    def check_users(users)
-      if users.size > users.uniq { |u| u["username"]}.size
-        Report.Error(_("Found users in profile with equal <username>."))
-      end
-      if users.size > users.uniq { |u| u["uid"]}.size
-        Report.Error(_("Found users in profile with equal <uid>."))
-      end
-    end
-
     def main
       Yast.import "UI"
       textdomain "users"
@@ -173,6 +161,21 @@ module Yast
 
       deep_copy(@ret)
     end
+
+  private
+
+    # Checking double user entries
+    # (double username or UID)
+    # @param [Array] users to check
+    def check_users(users)
+      if users.size > users.uniq { |u| u["username"]}.size
+        Report.Error(_("Found users in profile with equal <username>."))
+      end
+      if users.size > users.uniq { |u| u["uid"]}.size
+        Report.Error(_("Found users in profile with equal <uid>."))
+      end
+    end
+
   end
 end
 
