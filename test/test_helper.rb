@@ -48,6 +48,9 @@ RSpec.configure do |config|
   config.mock_with :rspec do |c|
     # https://relishapp.com/rspec/rspec-mocks/v/3-0/docs/verifying-doubles/partial-doubles
     c.verify_partial_doubles = true
+
+    config.extend Yast::I18n  # available in context/describe
+    config.include Yast::I18n # available in it/let/before/...
   end
 end
 

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Aug 30 10:37:18 CEST 2016 - schubi@suse.de
+
+- AutoYaST: Checking users entries for duplicate username/UIDs.
+  (bnc#995397)
+- 3.1.56
+
+-------------------------------------------------------------------
 Fri Aug 12 14:37:40 UTC 2016 - ancor@suse.com
 
 - The YaST client using the user creation dialog can now know
