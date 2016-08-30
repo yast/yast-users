@@ -36,8 +36,24 @@
 # This is a client for autoinstallation. It takes its arguments,
 # goes through the configuration and return the setting.
 # Does not do any changes to the configuration.
+
+Yast.import "Report"
+
 module Yast
   class UsersAutoClient < Client
+
+    # Checking double user entries
+    # (double username or UID)
+    # @param [Array] users to check
+    def check_users(users)
+      if users.size > users.uniq { |u| u["username"]}.size
+        Report.Error(_("Found users in profile with equal <usersname>."))
+      end
+      if users.size > users.uniq { |u| u["uid"]}.size
+        Report.Error(_("Found users in profile with equal <uid>."))
+      end
+    end
+
     def main
       Yast.import "UI"
       textdomain "users"
@@ -89,6 +105,7 @@ module Yast
       #    param = $["users": users];
 
       if @func == "Import"
+        check_users(@param["users"] || [])
         @ret = Users.Import(@param)
       # create a  summary
       elsif @func == "Summary"
