@@ -47,7 +47,7 @@ module Yast
     # @param [Array] users to check
     def check_users(users)
       if users.size > users.uniq { |u| u["username"]}.size
-        Report.Error(_("Found users in profile with equal <usersname>."))
+        Report.Error(_("Found users in profile with equal <username>."))
       end
       if users.size > users.uniq { |u| u["uid"]}.size
         Report.Error(_("Found users in profile with equal <uid>."))

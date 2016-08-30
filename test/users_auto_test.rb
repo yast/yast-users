@@ -31,7 +31,7 @@ describe Yast::UsersAutoClient do
         end
 
         it "report error" do
-          expect(Yast::Report).to receive(:Error).with("Found users in profile with equal <usersname>.")
+          expect(Yast::Report).to receive(:Error).with("Found users in profile with equal <username>.")
           expect(Yast::Report).to receive(:Error).with("Found users in profile with equal <uid>.")
           expect(subject.main).to eq(true)
         end
