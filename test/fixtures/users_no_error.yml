@@ -1,0 +1,29 @@
+users:
+  - username: root
+    user_password: yast.password
+    fullname: Superuser
+    encrypted: true
+  - username: yast
+    user_password: suse
+    fullname: YaST team user
+    gid: 100
+    uid: 1000
+    shell: /usr/bin/zsh
+    encrypted: true
+  - username: saprouter
+    user_password: suse
+    fullname: SAP User
+    gid: 100
+    uid: 1001
+    shell: /usr/bin/zsh
+    encrypted: true
+  - username: user_no_uid1
+    user_password: suse
+    fullname: user_no_uid1
+    shell: /usr/bin/zsh
+    encrypted: true
+  - username: user_no_uid2
+    user_password: suse
+    fullname: user_no_uid2
+    shell: /usr/bin/zsh
+    encrypted: true

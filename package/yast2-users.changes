@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep  2 15:16:37 CEST 2016 - schubi@suse.de
+
+- AutoYaST: Ignore Users without UID while checking for duplicate
+  UIDs (bnc#996823)
+- 3.1.57
+
+-------------------------------------------------------------------
 Tue Aug 30 10:37:18 CEST 2016 - schubi@suse.de
 
 - AutoYaST: Checking users entries for duplicate username/UIDs.
