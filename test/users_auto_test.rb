@@ -19,20 +19,27 @@ describe Yast::UsersAutoClient do
   describe "#AutoYaST" do
 
     context "Import" do
+      before do
+        allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func,users])
+        allow(Yast::WFM).to receive(:Args).with(0).and_return(func)
+        allow(Yast::WFM).to receive(:Args).with(1).and_return(users)
+      end
+
       let(:func) { "Import" }
 
       context "when double users have been given in the profile" do
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_error.yml")) }
-
-        before do
-          allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func,users])
-          allow(Yast::WFM).to receive(:Args).with(0).and_return(func)
-          allow(Yast::WFM).to receive(:Args).with(1).and_return(users)
-        end
-
         it "report error" do
           expect(Yast::Report).to receive(:Error).with(_("Found users in profile with equal <username>."))
           expect(Yast::Report).to receive(:Error).with(_("Found users in profile with equal <uid>."))
+          expect(subject.main).to eq(true)
+        end
+      end
+      context "when users without any UID are defined in the profile" do
+        let(:users) { YAML.load_file(FIXTURES_PATH.join("users_no_error.yml")) }
+        it "will not be checked for double UIDs" do
+          expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <username>."))
+          expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <uid>."))
           expect(subject.main).to eq(true)
         end
       end

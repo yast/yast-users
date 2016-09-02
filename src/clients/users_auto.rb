@@ -171,6 +171,8 @@ module Yast
       if users.size > users.uniq { |u| u["username"]}.size
         Report.Error(_("Found users in profile with equal <username>."))
       end
+      # Do not check users without defined UID. (bnc#996823)
+      users.reject! { |u| !u.key?("uid")}
       if users.size > users.uniq { |u| u["uid"]}.size
         Report.Error(_("Found users in profile with equal <uid>."))
       end
