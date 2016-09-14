@@ -245,6 +245,7 @@ YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersSimple");
 YaST::YCP::Import ("UsersUI");
+YaST::YCP::Import ("SSHAuthorizedKeys");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -4506,6 +4507,8 @@ sub Write {
 				$mode	= $user{"home_mode"};
 			    }
 			    UsersRoutines->ChmodHome($home, $mode);
+			    # Write authorized keys to user's home (FATE#319471)
+			    SSHAuthorizedKeys->write_keys($home);
 			}
 		    }
 		    Syslog->Log ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
@@ -5959,6 +5962,11 @@ sub ImportUser {
 	$ret{"shadowLastChange"} eq "") {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
+
+    # Import authorized keys from profile (FATE#319471)
+    if ($user->{"authorized_keys"} && $ret{"homeDirectory"}) {
+      SSHAuthorizedKeys->import_keys($ret{"homeDirectory"}, $user->{"authorized_keys"});
+    }
     return \%ret;
 }
 
@@ -6462,6 +6470,14 @@ sub ExportUser {
     }
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;
+    }
+    if ($user->{"homeDirectory"}) {
+        # Export authorized keys to profile (FATE#319471)
+        my @keys = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
+        if (@keys) {
+            $ret{"authorized_keys"} = \@keys;
+        }
+
     }
     return \%ret;
 }

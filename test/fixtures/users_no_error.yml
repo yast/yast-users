@@ -27,3 +27,8 @@ users:
     fullname: user_no_uid2
     shell: /usr/bin/zsh
     encrypted: true
+    authorized_keys:
+      - comment: dummy1@example.net
+        keytype: ssh-rsa
+        content: abc123
+        options: tunnel="0"

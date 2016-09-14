@@ -18,6 +18,7 @@
 #  you may find current contact information at www.suse.com
 
 require_relative "test_helper"
+require "tmpdir"
 
 Yast.import "SSHAuthorizedKeys"
 
@@ -108,13 +109,18 @@ describe Yast::SSHAuthorizedKeys do
   end
 
   describe "#write_keys" do
-    let(:home) { "/home/user" }
+    let(:tmpdir) { Dir.mktmpdir }
+    let(:home) { File.join(tmpdir, "/home/user") }
     let(:file) { double("file", save: true) }
+    let(:ssh_dir) { File.join(home, ".ssh") }
 
     before do
       allow(Yast::Users::SSHAuthorizedKeysFile)
         .to receive(:new).and_return(file)
+      FileUtils.mkdir_p(home)
     end
+
+    after { FileUtils.rm_rf(tmpdir) if File.exist?(tmpdir) }
 
     context "if no keys are registered for the given home" do
       it "returns false" do
@@ -127,7 +133,7 @@ describe Yast::SSHAuthorizedKeys do
       end
     end
 
-    context "if some keys are registerd for the given home" do
+    context "if some keys are registered for the given home" do
       before do
         subject.import_keys(home, ["ssh-rsa 123ABC"])
         allow(file).to receive(:keys=)
@@ -145,6 +151,35 @@ describe Yast::SSHAuthorizedKeys do
           .with(subject.keys[home])
         expect(file).to receive(:save)
         subject.write_keys(home)
+      end
+
+      it "creates the directory (and ancestors) inheriting the owner/group" do
+        allow(Yast::SCR).to receive(:Execute).and_call_original
+        expect(Yast::SCR).to receive(:Execute)
+          .with(Yast::Path.new(".target.bash_output"), /chmod -R 0700 #{tmpdir}\/home/)
+          .and_return("exit" => 0)
+
+        subject.write_keys(home)
+        expect(File).to exist(ssh_dir)
+      end
+
+      it "adjusts the permissions of the created directory" do
+        allow(Yast::SCR).to receive(:Execute).and_call_original
+        cmd = /chown -R #{Process.uid}:#{Process.gid} #{ssh_dir}/
+        expect(Yast::SCR).to receive(:Execute)
+          .with(Yast::Path.new(".target.bash_output"), cmd)
+        subject.write_keys(home)
+        expect(File).to exist(ssh_dir)
+      end
+
+      context "when ssh directory already exists" do
+        before { FileUtils.mkdir_p(ssh_dir) }
+
+        it "does not create the directory" do
+          expect(Yast::SCR).to_not receive(:Execute)
+            .with(Yast::Path.new(".target.mkdir"), anything)
+          subject.write_keys(home)
+        end
       end
     end
   end

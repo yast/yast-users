@@ -103,6 +103,7 @@ This package provides GUI for maintenance of linux users and groups.
 %{yast_libdir}/users/clients/*
 %{yast_desktopdir}/*.desktop
 %{yast_moduledir}/*.pm
+%{yast_moduledir}/SSHAuthorizedKeys.rb
 %{yast_moduledir}/UsersUI.rb
 %{yast_moduledir}/YaPI/*.pm
 %{yast_yncludedir}/users/*
