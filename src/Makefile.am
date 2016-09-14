@@ -1,6 +1,7 @@
 # Sources for users
 
 module_DATA = \
+  modules/SSHAuthorizedKeys.rb \
   modules/UsersUI.rb \
   modules/UsersRoutines.pm \
   modules/UsersPluginQuota.pm \
