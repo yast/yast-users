@@ -66,33 +66,33 @@ describe Yast::Users::SSHAuthorizedKeysFile do
   describe "#save" do
     let(:key0) { Yast::Users::SSHAuthorizedKey.new(keytype: "ssh-dsa", content: "123ABC") }
     let(:key1) { Yast::Users::SSHAuthorizedKey.new(keytype: "ssh-rsa", content: "456DEF") }
+    let(:expected_content) { "ssh-dsa 123ABC\nssh-rsa 456DEF\n" }
 
     let(:path) { "/tmp/home/user" }
     let(:dir)  { File.dirname(path) }
-    let(:dir_exists) { true }
 
     before do
       allow(Yast::FileUtils).to receive(:Exists).with(dir)
         .and_return(dir_exists)
     end
 
-    it "creates the file with the registered keys" do
-      content = "ssh-dsa 123ABC\nssh-rsa 456DEF\n"
-      expect(Yast::SCR).to receive(:Write)
-        .with(Yast::Path.new(".target.string"), path, content)
-      file.keys = [key0, key1]
-      file.save
+    context "if the directory exists" do
+      let(:dir_exists) { true }
+
+      it "creates the file with the registered keys and returns true" do
+        expect(Yast::SCR).to receive(:Write)
+          .with(Yast::Path.new(".target.string"), path, expected_content)
+        file.keys = [key0, key1]
+        file.save
+      end
     end
 
     context "if the directory does not exist" do
       let(:dir_exists) { false }
 
-      it "creates the directory" do
-        expect(Yast::SCR).to receive(:Execute)
-          .with(Yast::Path.new(".target.mkdir"), dir.to_s)
-        allow(Yast::SCR).to receive(:Write).and_return(true)
+      it "returns false" do
         file.keys = [key0, key1]
-        file.save
+        expect(file.save).to eq(false)
       end
     end
   end
