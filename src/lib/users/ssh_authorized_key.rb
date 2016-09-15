@@ -18,8 +18,8 @@
 
 module Yast
   module Users
-    # This class represents a public SSH key SSH as defined in the
-    # `authorized_keys` file.
+    # This class represents a public SSH key as defined in the `authorized_keys`
+    # file.
     #
     # Each key can be comprised of four elements:
     #
@@ -27,7 +27,7 @@ module Yast
     # * Content (mandatory): the key value itself.
     # * Options (optional):  a command to be executed, environment variables,
     #                        SSH configuration, etc.
-    # * Comment (optional):  will be ignored. Useful to identify each key.
+    # * Comment (optional):  useful to identify each key, although SSH will ignore it.
     #
     # @see man sshd(8)
     class SSHAuthorizedKey
@@ -52,17 +52,14 @@ module Yast
       #   key.comment #=> "user@example.net"
       #
       # @example Parsing a line missing optional elements
-      #   line = 'Tunnel="0" ssh-rsa 123ABC user@example.net'
+      #   line = 'ssh-rsa 123ABC'
       #   key = build_from_string(line) #=> SSHAuthorizedKey<...>
       #   key.keytype #=> "ssh-rsa"
       #   key.content #=> "123ABC"
-      #   key.options #=> "Tunnel=\"0\""
-      #   key.comment #=> "user@example.net"
       #
-      # @param line [String] String to parse.
-      # @return [SSHAuthorizedKey] Authorized key.
+      # @param line [String] String to parse
+      # @return [SSHAuthorizedKey] Authorized key
       #
-      # @private
       # @see AUTHORIZED_KEYS_REGEX
       def self.build_from_string(line)
         match = AUTHORIZED_KEYS_REGEX.match(line.strip)
@@ -91,8 +88,6 @@ module Yast
       # @option hsh [String] "options" Optional SSH options
       # @option hsh [String] "comment" Optional comment
       # @return [SSHAuthorizedKey] Authorized key
-      #
-      # @private
       def self.build_from_hash(hsh)
         # symbolize arguments
         args = Hash[hsh.map { |k, v| [k.to_sym, v] } ]

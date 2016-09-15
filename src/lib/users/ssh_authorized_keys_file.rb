@@ -38,6 +38,7 @@ module Yast
     # @see man sshd(8)
     class SSHAuthorizedKeysFile
       include Yast::Logger
+
       # @return [Pathname,String] Path to the file
       attr_reader :path
 
@@ -48,7 +49,7 @@ module Yast
         @path = path.to_s
       end
 
-      # Returns the authorized keys present in the file
+      # Return the authorized keys present in the file
       #
       # @return [Array<SSHAuthorizedKey>] Array of keys
       def keys
@@ -61,7 +62,7 @@ module Yast
         end
       end
 
-      # Set the file keys
+      # Set the authorized keys in the file
       #
       # It won't write the new keys to the file. For that, check the #save
       # method.

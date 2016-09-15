@@ -23,33 +23,29 @@ require "users/ssh_authorized_keyring"
 module Yast
   # This module add support to handle SSH authorized keys.
   #
-  # It's inteded to be a thin layer above SSHAuthorizedKey and
-  # SSHAuthorizedKeysFile to be used by yast2-users module
-  # (which is mainly written in Perl).
+  # It's inteded to be a thin layer on top of SSHAuthorizedKeyring to be used by
+  # yast2-users module (which is mainly written in Perl).
   class SSHAuthorizedKeysClass < Module
     include Yast::Logger
 
-    # Module's initialization
-    def main
-      @keyring = nil
-    end
-
-    def keyring
-      @keyring ||= Users::SSHAuthorizedKeyring.new
-    end
-
+    # Read keys from a given home directory
+    #
+    # @see Yast::Users::SSHAuthorizedKeyring#read_keys
     def read_keys(home)
       keyring.read_keys(home)
     end
 
+    # Write keys to a given home directory
+    #
+    # @see Yast::Users::SSHAuthorizedKeyring#write_keys
     def write_keys(home)
       keyring.write_keys(home)
     end
 
-    # Add an authorized key for a given home directory
+    # Add a list of authorized keys for a given home directory
     #
     # @param path [String] User's home directory
-    # @param authorized_keys [Array<Hash,String>]
+    # @param authorized_keys [Array<Hash|String>]
     # @return [Boolean] +true+ if some key was imported; +false+ otherwise.
     def import_keys(home, authorized_keys)
       imported_keys = authorized_keys.map { |k| Users::SSHAuthorizedKey.build_from(k) }
@@ -78,6 +74,15 @@ module Yast
     publish function: :read_keys, type: "boolean (string)"
     publish function: :write_keys, type: "boolean (string)"
     publish function: :export_keys, type: "list<map> (string)"
+
+  private
+
+    # Return the keyring
+    #
+    # @return [Users::SSHAuthorizedKeyring]
+    def keyring
+      @keyring ||= Users::SSHAuthorizedKeyring.new
+    end
   end
 
   SSHAuthorizedKeys = SSHAuthorizedKeysClass.new

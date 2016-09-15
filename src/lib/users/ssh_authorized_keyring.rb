@@ -21,29 +21,46 @@ require "users/ssh_authorized_keys_file"
 
 module Yast
   module Users
+    # Read, write and store SSH authorized keys.
+    #
+    # This class manages authorized keys for each home directory in the
+    # system.
     class SSHAuthorizedKeyring
       include Yast::Logger
 
+      # @return [Hash<String,Array<SSHAuthorizedKey>>] Authorized keys indexed by home directory
       attr_reader :keys
+      private :keys
 
       class HomeDoesNotExist < StandardError; end
 
+      # Constructor
       def initialize
         @keys = {}
       end
 
+      # Add/register a keys
+      #
+      # This method does not make any change to the system. For that,
+      # see #write_keys.
+      #
+      # @param home [String] Home directory where the key will be stored
+      # @return [Array<SSHAuthorizedKey>] Registered authorized keys
       def add_keys(home, new_keys)
         keys[home] = new_keys
       end
 
+      # Returns the keys for a given home directory
+      #
+      # @return [Array<SSHAuthorizedKey>] List of authorized keys
       def [](home)
         keys[home] || []
       end
 
-      # Read keys from a given home directory
+      # Read keys from a given home directory and add them to the keyring
       #
       # @param path [String] User's home directory
-      # @return [Boolean] +true+ if some key was found (and registered)
+      # @return [Boolean] +true+ if some key was found
       def read_keys(home)
         path = authorized_keys_path(home)
         return false unless FileUtils::Exists(path)
@@ -97,10 +114,10 @@ module Yast
         File.join(home, SSH_DIR)
       end
 
-      # Determine the path to the authorized keys file
+      # Determine the path to the user's authorized keys file
       #
       # @param home [String] Home directory
-      # @return [String] Path to authorized keys file in a given home directory
+      # @return [String] Path to authorized keys file
       #
       # @see SSH_DIR
       # @see AUTHORIZED_KEYS_FILE
@@ -112,7 +129,7 @@ module Yast
 
       # Find or creates the SSH directory
       #
-      # This method sets up the SSH directory (usually .ssh). Although, only 1
+      # This method sets up the SSH directory (usually .ssh). Although only 1
       # level is needed (as SSH directory lives under $HOME/.ssh), this code
       # should support changing SSH_DIR to something like `.config/ssh`.
       #
@@ -132,7 +149,7 @@ module Yast
         first_dir
       end
 
-      # Write authorized_keys file
+      # Write authorized keys file
       #
       # @param path  [String] Path to file/directory
       # @param owner [Fixnum] Owner's UID
@@ -198,7 +215,7 @@ module Yast
       # Helper method that return UID and GID from a given path
       #
       # @param path [String] Path to get the permissions from
-      # @return [Array<Integer>] UID and GID
+      # @return [Array<(Fixnum, Fixnum)>] UID and GID
       def perms_from(path)
         stat = Yast::SCR.Read(Yast::Path.new(".target.stat"), path)
         [stat["uid"], stat["gid"]]
