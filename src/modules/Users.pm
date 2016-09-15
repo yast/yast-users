@@ -6473,11 +6473,10 @@ sub ExportUser {
     }
     if ($user->{"homeDirectory"}) {
         # Export authorized keys to profile (FATE#319471)
-        my @keys = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
-        if (@keys) {
-            $ret{"authorized_keys"} = \@keys;
+        my $keys = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
+        if (@$keys) {
+            $ret{"authorized_keys"} = $keys;
         }
-
     }
     return \%ret;
 }

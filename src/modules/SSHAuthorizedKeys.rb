@@ -77,7 +77,7 @@ module Yast
     publish function: :import_keys, type: "boolean (string, list)"
     publish function: :read_keys, type: "boolean (string)"
     publish function: :write_keys, type: "boolean (string)"
-    publish function: :export_keys, type: "map (string)"
+    publish function: :export_keys, type: "list<map> (string)"
   end
 
   SSHAuthorizedKeys = SSHAuthorizedKeysClass.new
