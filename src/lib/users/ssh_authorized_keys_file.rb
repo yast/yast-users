@@ -67,11 +67,16 @@ module Yast
       # The key is validated before adding it to the keyring.
       #
       # @param key [String] String that represents the key
-      # @return [Array<String>] Authorized keys in the keyring
+      # @return [Boolean] +true+ if the key was added; +false+ otherwise
       def add_key(key)
         new_key = key.strip
-        return false unless valid_key?(new_key)
-        self.keys << new_key
+        if valid_key?(new_key)
+          self.keys << new_key
+          true
+        else
+          log.warn("The key '#{key}' does not look like a valid SSH key")
+          false
+        end
       end
 
       # Set the authorized keys in the file
