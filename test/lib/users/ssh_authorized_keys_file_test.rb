@@ -93,4 +93,26 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       end
     end
   end
+
+  describe "#add_key" do
+    let(:key) { "ssh-dsa 123ABC" }
+
+    context "when the contains keys" do
+      let(:path) { FIXTURES_PATH.join("home", "user1", ".ssh", "authorized_keys") }
+
+      it "adds the new key" do
+        file.add_key(key)
+        expect(file.keys).to include(key)
+      end
+    end
+
+    context "when the file does not contain keys" do
+      let(:path) { FIXTURES_PATH.join("home", "user2", ".ssh", "authorized_keys") }
+
+      it "adds the new key" do
+        file.add_key(key)
+        expect(file.keys).to eq([key])
+      end
+    end
+  end
 end

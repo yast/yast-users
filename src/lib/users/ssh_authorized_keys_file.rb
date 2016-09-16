@@ -66,13 +66,12 @@ module Yast
       #
       # The key is validated before adding it to the keyring.
       #
-      # @param key [String] String that represents the key.
-      # @return [Boolean] +true+ if the key was added; +false+ otherwise.
+      # @param key [String] String that represents the key
+      # @return [Array<String>] Authorized keys in the keyring
       def add_key(key)
         new_key = key.strip
         return false unless valid_key?(new_key)
-        @keys << new_key
-        true
+        self.keys << new_key
       end
 
       # Set the authorized keys in the file
