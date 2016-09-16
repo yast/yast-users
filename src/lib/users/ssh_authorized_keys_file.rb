@@ -58,7 +58,7 @@ module Yast
         @keys
       end
 
-      # https://github.com/jordansissel/ruby-sshkeyauth/blob/master/lib/ssh/key/verifier.rb#L21
+      # https://github.com/jordansissel/ruby-sshkeyauth/commit/12c9bb34399babf4040337e5695f3f453cd6745e#diff-4d8f3d488c1e25a30942c0e90f4e6ce4R14
       AUTHORIZED_KEYS_REGEX =
         /\A((?:[A-Za-z0-9-]+(?:="[^"]+")?,?)+)? *((?:ssh|ecdsa)-[^ ]+) *([^ ]+) *(.+)?\z/
 
