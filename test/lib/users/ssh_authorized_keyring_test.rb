@@ -25,17 +25,33 @@ require "tmpdir"
 describe Yast::Users::SSHAuthorizedKeyring do
   subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new }
 
+  describe "#empty?" do
+    context "when keyring is empty" do
+      it "returns true" do
+        expect(keyring.empty?).to eq(true)
+      end
+    end
+
+    context "when keyring is not empty" do
+      before { keyring.add_keys("/home/user", ["ssh-rsa 123ABC"]) }
+
+      it "returns false" do
+        expect(keyring.empty?).to eq(false)
+      end
+    end
+  end
+
   describe "#read_keys" do
     context "if some keys are present in the given home directory" do
       let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
 
       it "returns true" do
-        expect(subject.read_keys(home)).to eq(true)
+        expect(keyring.read_keys(home)).to eq(true)
       end
 
       it "registers defined keys" do
-        subject.read_keys(home)
-        expect(subject.keys).to_not be_empty
+        keyring.read_keys(home)
+        expect(keyring).to_not be_empty
       end
     end
 
@@ -43,12 +59,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
       let(:home) { FIXTURES_PATH.join("home", "user2").to_s }
 
       it "returns false" do
-        expect(subject.read_keys(home)).to eq(false)
+        expect(keyring.read_keys(home)).to eq(false)
       end
 
       it "does not register any key" do
-        subject.read_keys(home)
-        expect(subject.keys).to eq({})
+        keyring.read_keys(home)
+        expect(keyring).to be_empty
       end
     end
 
@@ -56,12 +72,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
       let(:home) { FIXTURES_PATH.join("home", "other").to_s }
 
       it "returns false" do
-        expect(subject.read_keys(home)).to eq(false)
+        expect(keyring.read_keys(home)).to eq(false)
       end
 
       it "does not register any key" do
-        subject.read_keys(home)
-        expect(subject.keys).to eq({})
+        keyring.read_keys(home)
+        expect(keyring).to be_empty
       end
     end
   end
@@ -79,12 +95,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
     context "if no keys are registered for the given home" do
       it "returns false" do
-        expect(subject.write_keys(home)).to eq(false)
+        expect(keyring.write_keys(home)).to eq(false)
       end
 
       it "does not try to write the keys" do
         expect(file).to_not receive(:save)
-        subject.write_keys(home)
+        keyring.write_keys(home)
       end
     end
 
@@ -95,11 +111,11 @@ describe Yast::Users::SSHAuthorizedKeyring do
       before do
         allow(Yast::SCR).to receive(:Execute).and_call_original
         allow(Yast::SCR).to receive(:Read).and_call_original
-        subject.add_keys(home, [key])
+        keyring.add_keys(home, [key])
       end
 
       it "writes the keys and returns true" do
-        expect(subject.write_keys(home)).to eq(true)
+        expect(keyring.write_keys(home)).to eq(true)
         expect(File).to exist(authorized_keys_path)
       end
 
@@ -116,17 +132,17 @@ describe Yast::Users::SSHAuthorizedKeyring do
           .with(Yast::Path.new(".target.bash_output"), /chown -R #{uid}:#{gid} #{authorized_keys_path}/)
           .and_return("exit" => 0)
 
-        subject.write_keys(home)
+        keyring.write_keys(home)
       end
 
       it "sets ssh directory permissions to 0700" do
-        subject.write_keys(home)
+        keyring.write_keys(home)
         mode = File.stat(ssh_dir).mode.to_s(8)
         expect(mode).to eq("40700")
       end
 
       it "sets authorized_keys permissions to 0600" do
-        subject.write_keys(home)
+        keyring.write_keys(home)
         mode = File.stat(authorized_keys_path).mode.to_s(8)
         expect(mode).to eq("100600")
       end
@@ -137,7 +153,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
         it "does not create the directory" do
           expect(Yast::SCR).to_not receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
-          subject.write_keys(home)
+          keyring.write_keys(home)
         end
       end
     end

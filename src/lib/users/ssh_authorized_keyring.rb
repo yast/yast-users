@@ -57,6 +57,13 @@ module Yast
         keys[home] || []
       end
 
+      # Determines if the keyring is empty
+      #
+      # @return [Boolean] +true+ if it's empty; +false+ otherwise
+      def empty?
+        keys.empty?
+      end
+
       # Read keys from a given home directory and add them to the keyring
       #
       # @param path [String] User's home directory
