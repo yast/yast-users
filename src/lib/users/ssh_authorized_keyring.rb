@@ -34,6 +34,8 @@ module Yast
 
       # The home directory does not exist.
       class HomeDoesNotExist < StandardError; end
+      # The user's SSH configuration directory could not be created.
+      class CouldNotCreateSSHDirectory < StandardError; end
 
       # Constructor
       def initialize
@@ -92,12 +94,8 @@ module Yast
           raise HomeDoesNotExist
         end
         owner, group = perms_from(home)
-        if create_ssh_dir(home, owner, group, SSH_DIR_PERMS)
-          write_file(home, owner, group, AUTHORIZED_KEYS_PERMS)
-        else
-          log.error("SSH directory does not exist and could not be created: giving up")
-          return false
-        end
+        raise CouldNotCreateSSHDirectory unless create_ssh_dir(home, owner, group)
+        write_file(home, owner, group)
       end
 
       private
@@ -143,15 +141,14 @@ module Yast
       # @param home  [String] Home directory where SSH directory must be created
       # @param owner [Fixnum] Owner's UID
       # @param group [Fixnum] Owner's GID
-      # @param perms [String] Permissions (in form "0700")
       # @return [String] Returns the path to the first created directory
-      def create_ssh_dir(home, owner, group, perms)
+      def create_ssh_dir(home, owner, group)
         ssh_dir = ssh_dir_path(home)
         return ssh_dir if FileUtils::Exists(ssh_dir)
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
         return false unless ret
-        set_owner_and_perms(ssh_dir, owner, group, perms)
+        set_owner_and_perms(ssh_dir, owner, group, SSH_DIR_PERMS)
       end
 
       # Write authorized keys file
@@ -160,12 +157,12 @@ module Yast
       # @param owner [Fixnum] Owner's UID
       # @param group [Fixnum] Owner's GID
       # @param perms [String] Permissions (in form "0700")
-      def write_file(home, owner, group, perms)
+      def write_file(home, owner, group)
         path = authorized_keys_path(home)
         file = SSHAuthorizedKeysFile.new(path)
         file.keys = keys[home]
         log.info "Writing #{keys[home].size} keys in #{path}"
-        file.save && set_owner_and_perms(path, owner, group, perms)
+        file.save && set_owner_and_perms(path, owner, group, AUTHORIZED_KEYS_PERMS)
       end
 
       # Set owner and permissions for a given directory/file

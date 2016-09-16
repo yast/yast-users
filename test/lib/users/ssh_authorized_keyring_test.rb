@@ -106,10 +106,14 @@ describe Yast::Users::SSHAuthorizedKeyring do
     context "if some keys are registered for the given home" do
       let(:uid) { 1001 }
       let(:gid) { 101 }
+      let(:home_dir_exists) { true }
+      let(:ssh_dir_exists) { false }
 
       before do
         allow(Yast::SCR).to receive(:Execute).and_call_original
         allow(Yast::SCR).to receive(:Read).and_call_original
+        allow(Yast::FileUtils).to receive(:Exists).with(ssh_dir).and_return(ssh_dir_exists)
+        allow(Yast::FileUtils).to receive(:Exists).with(home).and_return(home_dir_exists)
         keyring.add_keys(home, [key])
       end
 
@@ -119,8 +123,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
       end
 
       it "ssh directory and authorized_keys inherits owner/group from home" do
-        allow(Yast::FileUtils).to receive(:Exists).with(ssh_dir).and_return(false)
-        allow(Yast::FileUtils).to receive(:Exists).with(home).and_return(true)
         expect(Yast::SCR).to receive(:Read)
           .with(Yast::Path.new(".target.stat"), home)
           .and_return("uid" => uid, "gid" => gid)
@@ -146,8 +148,27 @@ describe Yast::Users::SSHAuthorizedKeyring do
         expect(mode).to eq("100600")
       end
 
+
+      context "when home directory does not exist" do
+        let(:home_dir_exists) { false }
+        it "raises a HomeDoesNotExist exception" do
+          expect { keyring.write_keys(home) }
+            .to raise_error(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
+        end
+      end
+
+      context "when ssh directory could not be created" do
+        it "raises a CouldNotCreateSSHDirectory exception" do
+          expect(Yast::SCR).to receive(:Execute)
+            .with(Yast::Path.new(".target.mkdir"), anything)
+            .and_return(false)
+          expect { keyring.write_keys(home) }
+            .to raise_error(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
+        end
+      end
+
       context "when ssh directory already exists" do
-        before { FileUtils.mkdir_p(ssh_dir) }
+        let(:ssh_dir_exists) { true }
 
         it "does not create the directory" do
           expect(Yast::SCR).to_not receive(:Execute)
