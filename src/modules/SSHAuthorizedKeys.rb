@@ -25,7 +25,7 @@ module Yast
   # It's inteded to be a thin layer on top of SSHAuthorizedKeyring to be used by
   # yast2-users module (which is mainly written in Perl).
   class SSHAuthorizedKeysClass < Module
-    include Yast::Logger
+    include Logger
 
     # Read keys from a given home directory
     #

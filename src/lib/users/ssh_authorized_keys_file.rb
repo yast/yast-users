@@ -36,7 +36,7 @@ module Yast
     #
     # @see man sshd(8)
     class SSHAuthorizedKeysFile
-      include Yast::Logger
+      include Logger
 
       # @return [Pathname,String] Path to the file
       attr_reader :path
@@ -53,7 +53,7 @@ module Yast
       # @return [Array<String>] Array of keys
       def keys
         return @keys if @keys
-        content = Yast::SCR.Read(Yast::Path.new(".target.string"), path)
+        content = SCR.Read(Path.new(".target.string"), path)
         self.keys = content.nil? ? [] : content.split("\n")
         @keys
       end
@@ -103,7 +103,7 @@ module Yast
       # @return [Boolean] +true+ if file was written; +false+ otherwise.
       def save
         content = keys.join("\n") + "\n"
-        Yast::SCR.Write(Yast::Path.new(".target.string"), path, content)
+        SCR.Write(Path.new(".target.string"), path, content)
       end
     end
   end

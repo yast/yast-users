@@ -26,7 +26,7 @@ module Yast
     # This class manages authorized keys for each home directory in the
     # system.
     class SSHAuthorizedKeyring
-      include Yast::Logger
+      include Logger
 
       # @return [Hash<String,Array<SSHAuthorizedKey>>] Authorized keys indexed by home directory
       attr_reader :keys
@@ -72,7 +72,7 @@ module Yast
       def read_keys(home)
         path = authorized_keys_path(home)
         return false unless FileUtils::Exists(path)
-        authorized_keys = Yast::Users::SSHAuthorizedKeysFile.new(path).keys
+        authorized_keys = SSHAuthorizedKeysFile.new(path).keys
         keys[home] = authorized_keys unless authorized_keys.empty?
         log.info "Read #{authorized_keys.size} keys from #{path}"
         !authorized_keys.empty?
@@ -148,7 +148,7 @@ module Yast
       def create_ssh_dir(home, owner, group, perms)
         ssh_dir = ssh_dir_path(home)
         return ssh_dir if FileUtils::Exists(ssh_dir)
-        ret = Yast::SCR.Execute(Yast::Path.new(".target.mkdir"), ssh_dir)
+        ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
         return false unless ret
         set_owner_and_perms(ssh_dir, owner, group, perms)
@@ -162,7 +162,7 @@ module Yast
       # @param perms [String] Permissions (in form "0700")
       def write_file(home, owner, group, perms)
         path = authorized_keys_path(home)
-        file = Yast::Users::SSHAuthorizedKeysFile.new(path)
+        file = SSHAuthorizedKeysFile.new(path)
         file.keys = keys[home]
         log.info "Writing #{keys[home].size} keys in #{path}"
         file.save && set_owner_and_perms(path, owner, group, perms)
@@ -184,7 +184,7 @@ module Yast
       # @param owner [Fixnum] Owner's UID
       # @param group [Fixnum] Owner's GID
       def set_owner(path, owner, group)
-        out = Yast::SCR.Execute(Yast::Path.new(".target.bash_output"),
+        out = SCR.Execute(Path.new(".target.bash_output"),
           "chown -R #{owner}:#{group} #{path}")
         out["exit"].zero?
       end
@@ -194,7 +194,7 @@ module Yast
       # @param path  [String] Home directory where SSH directory must be created
       # @param perms [String] Permissions (in form "0700")
       def set_perms(path, perms)
-        out = Yast::SCR.Execute(Yast::Path.new(".target.bash_output"),
+        out = SCR.Execute(Path.new(".target.bash_output"),
           "chmod -R #{perms} #{path}")
         log.info("Setting permissions on SSH directory: #{out.inspect}")
         out["exit"].zero?
@@ -205,7 +205,7 @@ module Yast
       # @param path [String] Path to get the permissions from
       # @return [Array<(Fixnum, Fixnum)>] UID and GID
       def perms_from(path)
-        stat = Yast::SCR.Read(Yast::Path.new(".target.stat"), path)
+        stat = SCR.Read(Path.new(".target.stat"), path)
         [stat["uid"], stat["gid"]]
       end
     end
