@@ -26,6 +26,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
   describe "#keys" do
     context "when file is empty" do
       let(:path) { FIXTURES_PATH.join("home", "user2", ".ssh", "authorized_keys") }
+
       it "returns an empty array" do
         expect(subject.keys).to eq([])
       end
@@ -36,12 +37,8 @@ describe Yast::Users::SSHAuthorizedKeysFile do
 
       it "returns the keys that are present in the file" do
         first, second = subject.keys
-        expect(first.options).to eq(
-          'environment="PATH=/usr/local/bin:$PATH",command="/srv/logon.sh $USER"')
-        expect(first.keytype).to eq("ssh-rsa")
-        expect(first.content).to match /DDY3Kcr/
-        expect(first.comment).to eq("dummy1@example.net")
-        expect(second.options).to be_nil
+        expect(first).to match(/environment=.+/)
+        expect(second).to match(/ssh-rsa/)
       end
     end
 
@@ -55,7 +52,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
   end
 
   describe "#keys=" do
-    let(:key) { Yast::Users::SSHAuthorizedKey.new(keytype: "ssh-dsa", content: "123ABC") }
+    let(:key) { "ssh-dsa 123ABC" }
 
     it "sets file keys" do
       file.keys = [key]
@@ -64,8 +61,8 @@ describe Yast::Users::SSHAuthorizedKeysFile do
   end
 
   describe "#save" do
-    let(:key0) { Yast::Users::SSHAuthorizedKey.new(keytype: "ssh-dsa", content: "123ABC") }
-    let(:key1) { Yast::Users::SSHAuthorizedKey.new(keytype: "ssh-rsa", content: "456DEF") }
+    let(:key0) { "ssh-dsa 123ABC" }
+    let(:key1) { "ssh-rsa 456DEF" }
     let(:expected_content) { "ssh-dsa 123ABC\nssh-rsa 456DEF\n" }
 
     let(:path) { "/tmp/home/user" }

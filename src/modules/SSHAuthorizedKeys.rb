@@ -17,7 +17,6 @@
 #  you may find current contact information at www.suse.com
 
 require "yast"
-require "users/ssh_authorized_key"
 require "users/ssh_authorized_keyring"
 
 module Yast
@@ -47,10 +46,8 @@ module Yast
     # @param path [String] User's home directory
     # @param authorized_keys [Array<Hash|String>]
     # @return [Boolean] +true+ if some key was imported; +false+ otherwise.
-    def import_keys(home, authorized_keys)
-      imported_keys = authorized_keys.map { |k| Users::SSHAuthorizedKey.build_from(k) }
-      imported_keys.compact!
-      !keyring.add_keys(home, imported_keys).empty?
+    def import_keys(home, keys)
+      !keyring.add_keys(home, keys).empty?
     end
 
     # Return a hash representation of the authorized keys
@@ -60,14 +57,7 @@ module Yast
     # @param [String] Home directory where the authorized keys are located
     # @return [Array<Hash>] Authorized keys for the given home
     def export_keys(home)
-      keyring[home].map do |key|
-        {
-          "options" => key.options,
-          "keytype" => key.keytype,
-          "content" => key.content,
-          "comment" => key.comment
-        }
-      end
+      keyring[home]
     end
 
     publish function: :import_keys, type: "boolean (string, list)"

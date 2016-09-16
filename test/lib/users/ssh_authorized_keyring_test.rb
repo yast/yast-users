@@ -19,7 +19,6 @@
 
 require_relative "../../test_helper"
 require "users/ssh_authorized_keyring"
-require "users/ssh_authorized_key"
 require "tmpdir"
 
 describe Yast::Users::SSHAuthorizedKeyring do
@@ -87,7 +86,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
     let(:home) { File.join(tmpdir, "/home/user") }
     let(:file) { double("file", save: true) }
     let(:ssh_dir) { File.join(home, ".ssh") }
-    let(:key) { Yast::Users::SSHAuthorizedKey.build_from("ssh-rsa 123ABC") }
+    let(:key) { "ssh-rsa 123ABC" }
     let(:authorized_keys_path) { File.join(home, ".ssh", "authorized_keys") }
 
     before { FileUtils.mkdir_p(home) }
