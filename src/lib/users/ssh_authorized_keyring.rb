@@ -32,6 +32,7 @@ module Yast
       attr_reader :keys
       private :keys
 
+      # The home directory does not exist.
       class HomeDoesNotExist < StandardError; end
 
       # Constructor
