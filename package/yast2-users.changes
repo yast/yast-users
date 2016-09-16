@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Sep 16 09:03:32 UTC 2016 - igonzalezsosa@suse.com
+
+- Add support to specify SSH authorized keys in the profile
+  (FATE#319471)
+- 3.1.58
+
+-------------------------------------------------------------------
 Fri Sep  2 15:16:37 CEST 2016 - schubi@suse.de
 
 - AutoYaST: Ignore Users without UID while checking for duplicate
