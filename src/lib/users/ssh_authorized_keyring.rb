@@ -91,13 +91,12 @@ module Yast
           raise HomeDoesNotExist
         end
         owner, group = perms_from(home)
-        top_dir = create_ssh_dir(home, owner, group, SSH_DIR_PERMS)
-        if !top_dir
+        if create_ssh_dir(home, owner, group, SSH_DIR_PERMS)
+          write_file(home, owner, group, AUTHORIZED_KEYS_PERMS)
+        else
           log.error("SSH directory does not exist and could not be created: giving up")
           return false
         end
-
-        write_file(home, owner, group, AUTHORIZED_KEYS_PERMS)
       end
 
       private
@@ -148,12 +147,10 @@ module Yast
       def create_ssh_dir(home, owner, group, perms)
         ssh_dir = ssh_dir_path(home)
         return ssh_dir if FileUtils::Exists(ssh_dir)
-        first_dir = non_existent_dir(ssh_dir)
         ret = Yast::SCR.Execute(Yast::Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
         return false unless ret
-        set_owner_and_perms(first_dir, owner, group, perms)
-        first_dir
+        set_owner_and_perms(ssh_dir, owner, group, perms)
       end
 
       # Write authorized keys file
@@ -200,23 +197,6 @@ module Yast
           "chmod -R #{perms} #{path}")
         log.info("Setting permissions on SSH directory: #{out.inspect}")
         out["exit"].zero?
-      end
-
-      # Returns the path of the first non-existent directory in a path
-      #
-      # @example Only /home/user exists
-      #   non_existent_dir("/home/user/.config/ssh") #=> "/home/user/.config"
-      # @example Full path exists
-      #   non_existent_dir("/home/user") #=> "/home/user"
-      #
-      # @param dir [String]
-      def non_existent_dir(dir)
-        next_path, current = File.split(dir)
-        if FileUtils::Exists(next_path)
-          dir
-        else
-          non_existent_dir(next_path)
-        end
       end
 
       # Helper method that return UID and GID from a given path
