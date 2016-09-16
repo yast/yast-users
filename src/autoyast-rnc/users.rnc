@@ -35,16 +35,8 @@ user_defaults =
     umask?
   }
 
-authorized_key_elements = (
-    element options { text }? &
-    element comment { text }? &
-    element keytype { text }  &
-    element content { text }
-  )
-
 authorized_key =
-  element authorized_key { authorized_key_elements | text }
-
+  element authorized_key { text }
 
 authorized_keys =
   element authorized_keys {
