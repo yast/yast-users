@@ -107,6 +107,7 @@ module Yast
       #
       # @return [Boolean] +true+ if file was written; +false+ otherwise.
       def save
+        SCR.Execute(Path.new(".target.bash"), "umask 0077 && touch #{path}")
         content = keys.join("\n") + "\n"
         SCR.Write(Path.new(".target.string"), path, content)
       end

@@ -36,6 +36,8 @@ module Yast
       class HomeDoesNotExist < StandardError; end
       # The user's SSH configuration directory could not be created.
       class CouldNotCreateSSHDirectory < StandardError; end
+      # The user's SSH configuration directory is a link (potentially insecure).
+      class SSHDirectoryIsLink < StandardError; end
 
       # Constructor
       def initialize
@@ -93,9 +95,10 @@ module Yast
           log.error("Home directory '#{home}' does not exist!")
           raise HomeDoesNotExist
         end
-        owner, group = perms_from(home)
-        raise CouldNotCreateSSHDirectory unless create_ssh_dir(home, owner, group)
-        write_file(home, owner, group)
+        user = FileUtils::GetOwnerUserID(home)
+        group = FileUtils::GetOwnerGroupID(home)
+        create_ssh_dir(home, user, group)
+        write_file(home, user, group)
       end
 
       private
@@ -139,71 +142,34 @@ module Yast
       # should support changing SSH_DIR to something like `.config/ssh`.
       #
       # @param home  [String] Home directory where SSH directory must be created
-      # @param owner [Fixnum] Owner's UID
-      # @param group [Fixnum] Owner's GID
+      # @param user  [Fixnum] Users's UID
+      # @param group [Fixnum] Group's GID
       # @return [String] Returns the path to the first created directory
-      def create_ssh_dir(home, owner, group)
+      #
+      # @raise SSHDirectoryIsLink
+      # @raise CouldNotCreateSSHDirectory
+      def create_ssh_dir(home, user, group)
         ssh_dir = ssh_dir_path(home)
+        raise SSHDirectoryIsLink if FileUtils::IsLink(ssh_dir)
         return ssh_dir if FileUtils::Exists(ssh_dir)
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
-        return false unless ret
-        set_owner_and_perms(ssh_dir, owner, group, SSH_DIR_PERMS)
+        raise CouldNotCreateSSHDirectory unless ret
+        FileUtils::Chown("#{user}:#{group}", ssh_dir, false) && FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir, false)
       end
 
       # Write authorized keys file
       #
       # @param path  [String] Path to file/directory
-      # @param owner [Fixnum] Owner's UID
-      # @param group [Fixnum] Owner's GID
+      # @param user  [Fixnum] Users's UID
+      # @param group [Fixnum] Group's GID
       # @param perms [String] Permissions (in form "0700")
       def write_file(home, owner, group)
         path = authorized_keys_path(home)
         file = SSHAuthorizedKeysFile.new(path)
         file.keys = keys[home]
         log.info "Writing #{keys[home].size} keys in #{path}"
-        file.save && set_owner_and_perms(path, owner, group, AUTHORIZED_KEYS_PERMS)
-      end
-
-      # Set owner and permissions for a given directory/file
-      #
-      # @param path  [String] Path to file/directory
-      # @param owner [Fixnum] Owner's UID
-      # @param group [Fixnum] Owner's GID
-      # @param perms [String] Permissions (in form "0700")
-      def set_owner_and_perms(path, owner, group, perms)
-        set_owner(path, owner, group) && set_perms(path, perms)
-      end
-
-      # Set owner (user and group) for a given directory/file
-      #
-      # @param path  [String] Path to file/directory
-      # @param owner [Fixnum] Owner's UID
-      # @param group [Fixnum] Owner's GID
-      def set_owner(path, owner, group)
-        out = SCR.Execute(Path.new(".target.bash_output"),
-          "chown -R #{owner}:#{group} #{path}")
-        out["exit"].zero?
-      end
-
-      # Set owner and permissions in a given directory/file
-      #
-      # @param path  [String] Home directory where SSH directory must be created
-      # @param perms [String] Permissions (in form "0700")
-      def set_perms(path, perms)
-        out = SCR.Execute(Path.new(".target.bash_output"),
-          "chmod -R #{perms} #{path}")
-        log.info("Setting permissions on SSH directory: #{out.inspect}")
-        out["exit"].zero?
-      end
-
-      # Helper method that return UID and GID from a given path
-      #
-      # @param path [String] Path to get the permissions from
-      # @return [Array<(Fixnum, Fixnum)>] UID and GID
-      def perms_from(path)
-        stat = SCR.Read(Path.new(".target.stat"), path)
-        [stat["uid"], stat["gid"]]
+        file.save && FileUtils::Chown("#{owner}:#{group}", path, false)
       end
     end
   end

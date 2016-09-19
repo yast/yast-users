@@ -122,21 +122,16 @@ describe Yast::Users::SSHAuthorizedKeyring do
         expect(File).to exist(authorized_keys_path)
       end
 
-      it "ssh directory and authorized_keys inherits owner/group from home" do
-        expect(Yast::SCR).to receive(:Read)
-          .with(Yast::Path.new(".target.stat"), home)
-          .and_return("uid" => uid, "gid" => gid)
-        expect(Yast::SCR).to receive(:Execute)
-          .with(Yast::Path.new(".target.bash_output"), /chown -R #{uid}:#{gid} #{home}/)
-          .and_return("exit" => 0)
-        expect(Yast::SCR).to receive(:Execute)
-          .with(Yast::Path.new(".target.bash_output"), /chown -R #{uid}:#{gid} #{authorized_keys_path}/)
-          .and_return("exit" => 0)
+      it "SSH directory and authorized_keys inherits owner/group from home" do
+        allow(Yast::FileUtils).to receive(:GetOwnerUserID).with(home).and_return(uid)
+        allow(Yast::FileUtils).to receive(:GetOwnerGroupID).with(home).and_return(gid)
+        expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", ssh_dir, false)
+        expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", authorized_keys_path, false)
 
         keyring.write_keys(home)
       end
 
-      it "sets ssh directory permissions to 0700" do
+      it "sets SSH directory permissions to 0700" do
         keyring.write_keys(home)
         mode = File.stat(ssh_dir).mode.to_s(8)
         expect(mode).to eq("40700")
@@ -148,7 +143,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
         expect(mode).to eq("100600")
       end
 
-
       context "when home directory does not exist" do
         let(:home_dir_exists) { false }
         it "raises a HomeDoesNotExist exception" do
@@ -157,7 +151,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
         end
       end
 
-      context "when ssh directory could not be created" do
+      context "when SSH directory could not be created" do
         it "raises a CouldNotCreateSSHDirectory exception" do
           expect(Yast::SCR).to receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
@@ -167,7 +161,16 @@ describe Yast::Users::SSHAuthorizedKeyring do
         end
       end
 
-      context "when ssh directory already exists" do
+      context "when SSH directory is a symbolic link" do
+        it "raises a SSHDirectoryIsLink" do
+          allow(Yast::FileUtils).to receive(:IsLink).with(ssh_dir)
+            .and_return(true)
+          expect { keyring.write_keys(home) }
+            .to raise_error(Yast::Users::SSHAuthorizedKeyring::SSHDirectoryIsLink)
+        end
+      end
+
+      context "when SSH directory already exists" do
         let(:ssh_dir_exists) { true }
 
         it "does not create the directory" do
