@@ -27,6 +27,12 @@ module Yast
   class SSHAuthorizedKeysClass < Module
     include Logger
 
+    attr_reader :keyring
+
+    def main
+      @keyring = Users::SSHAuthorizedKeyring.new
+    end
+
     # Read keys from a given home directory
     #
     # @see Yast::Users::SSHAuthorizedKeyring#read_keys
@@ -39,6 +45,24 @@ module Yast
     # @see Yast::Users::SSHAuthorizedKeyring#write_keys
     def write_keys(home)
       keyring.write_keys(home)
+    rescue Users::SSHAuthorizedKeyring::HomeDoesNotExist
+      Report.Error(
+        # TRANSLATORS: '%s' is a directory path
+        _(format("Home directory '%s' does not exist\n" \
+                 "so authorized keys won't be written.", home))
+      )
+    rescue Users::SSHAuthorizedKeyring::SSHDirectoryIsLink
+      Report.Error(
+        # TRANSLATORS: '%s' is a directory path
+        _(format("SSH directory under '%s' is a symbolic link.\n" \
+                 "It may cause a security issue so authorized\n" \
+                 "keys won't be written.", home))
+      )
+    rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory
+      Report.Error(
+        # TRANSLATORS: '%s' is a directory path
+        _(format("Could not create SSH directory under '%s',\nso authorized keys won't be written.", home))
+      )
     end
 
     # Add a list of authorized keys for a given home directory
@@ -64,16 +88,8 @@ module Yast
     publish function: :read_keys, type: "boolean (string)"
     publish function: :write_keys, type: "boolean (string)"
     publish function: :export_keys, type: "list<map> (string)"
-
-  private
-
-    # Return the keyring
-    #
-    # @return [Users::SSHAuthorizedKeyring]
-    def keyring
-      @keyring ||= Users::SSHAuthorizedKeyring.new
-    end
   end
 
   SSHAuthorizedKeys = SSHAuthorizedKeysClass.new
+  SSHAuthorizedKeys.main
 end
