@@ -4059,6 +4059,16 @@ sub WriteShadow {
     }
 }
 
+sub WriteAuthorizedKeys {
+    foreach my $username (keys %{$modified_users{"local"}}) {
+        my %user	= %{$modified_users{"local"}{$username}};
+        if ($user{"modified"} == "imported") {
+            # Write authorized keys to user's home (FATE#319471)
+            SSHAuthorizedKeys->write_keys($user{"homeDirectory"});
+        }
+    }
+}
+
 ##------------------------------------
 # execute USERDEL_PRECMD scripts for users which should be deleted
 sub PreDeleteUsers {
@@ -4561,6 +4571,9 @@ sub Write {
 	    }
 	}
     }
+
+    if (Mode->autoinst() || Mode->autoupgrade() || Mode->config()) { WriteAuthorizedKeys(); }
+
     if (%users_with_crypted_dir) {
         unless (Package->Install ("cryptconfig"))
         {
