@@ -20,6 +20,10 @@
 src_path = File.expand_path("../../src", __FILE__)
 ENV["Y2DIR"] = src_path
 
+# make sure we run the tests in English locale
+# (some tests check the output which is marked for translation)
+ENV["LC_ALL"] = "en_US.UTF-8"
+
 require "yast"
 require "pathname"
 require "yast/rspec"

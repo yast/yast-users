@@ -34,6 +34,16 @@ user_defaults =
     skel? &
     umask?
   }
+
+authorized_key =
+  element authorized_key { text }
+
+authorized_keys =
+  element authorized_keys {
+    LIST,
+    authorized_key*
+}
+
 expire = element expire { text }
 ud_group = element group { text }
 ud_groups = element groups { text }
@@ -55,7 +65,8 @@ user = element user {
     username? &
     u_group? &
     u_groups? &
-    password_settings?
+    password_settings? &
+    authorized_keys?
 }
 encrypted = element encrypted { BOOLEAN }
 fullname = element fullname { text }

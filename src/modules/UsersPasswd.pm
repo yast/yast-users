@@ -33,6 +33,7 @@ our %TYPEINFO;
 
 YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("SSHAuthorizedKeys");
 
 #---------------------------------------------------------------------
 #--------------------------------------------------------- definitions
@@ -299,6 +300,13 @@ sub read_group {
     return 1;
 }
 
+# Read authorized keys from user's home (FATE#319471)
+sub read_authorized_keys {
+    foreach my $user (values %{$users{"local"}}) {
+      SSHAuthorizedKeys->read_keys($user->{"homeDirectory"});
+    }
+}
+
 # actually read /etc/passwd and save into internal structure
 sub read_passwd {
 
@@ -518,6 +526,7 @@ sub Read {
     }
     if (read_shadow () && read_group ()) {
 	$ret = read_passwd ();
+	read_authorized_keys();
     }
     $initialized	= $ret;
     return $ret;

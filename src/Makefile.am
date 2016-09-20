@@ -1,6 +1,7 @@
 # Sources for users
 
 module_DATA = \
+  modules/SSHAuthorizedKeys.rb \
   modules/UsersUI.rb \
   modules/UsersRoutines.pm \
   modules/UsersPluginQuota.pm \
@@ -64,6 +65,8 @@ ylib_DATA = \
   lib/users/encryption_method.rb \
   lib/users/proposal.rb \
   lib/users/encryption_proposal.rb \
+  lib/users/ssh_authorized_keys_file.rb \
+  lib/users/ssh_authorized_keyring.rb \
   lib/users/users_database.rb
 
 scrconf_DATA = \
