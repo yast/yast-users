@@ -49,22 +49,23 @@ module Yast
       log.warn("Home directory '#{home}' does not exist")
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        _(format("Home directory '%s' does not exist\n" \
-                 "so authorized keys won't be written.", home))
+        format(_("Home directory '%s' does not exist\n" \
+                 "so authorized keys will not be written."), home)
       )
     rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory
       log.warn("SSH directory under '%s' is a symbolic link.")
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        _(format("SSH directory under '%s' is a symbolic link.\n" \
+        format(_("SSH directory under '%s' is a symbolic link.\n" \
                  "It may cause a security issue so authorized\n" \
-                 "keys won't be written.", home))
+                 "keys will not be written."), home)
       )
     rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory
       log.warn("SSH directory under '#{home}' could not be created")
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        _(format("Could not create SSH directory under '%s',\nso authorized keys won't be written.", home))
+        format(_("Could not create SSH directory under '%s',\n" \
+                 "so authorized keys will not be written."), home)
       )
     end
 

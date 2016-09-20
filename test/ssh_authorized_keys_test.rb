@@ -78,7 +78,7 @@ describe Yast::SSHAuthorizedKeys do
           .and_raise(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
         expect(Yast::Report).to receive(:Warning)
           .with("Home directory '#{home}' does not exist\n" \
-                "so authorized keys won't be written.")
+                "so authorized keys will not be written.")
         subject.write_keys(home)
       end
     end
@@ -90,7 +90,7 @@ describe Yast::SSHAuthorizedKeys do
         expect(Yast::Report).to receive(:Warning)
           .with("SSH directory under '#{home}' is a symbolic link.\n" \
                 "It may cause a security issue so authorized\n" \
-                "keys won't be written.")
+                "keys will not be written.")
         subject.write_keys(home)
       end
     end
@@ -101,7 +101,7 @@ describe Yast::SSHAuthorizedKeys do
           .and_raise(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
         expect(Yast::Report).to receive(:Warning)
           .with("Could not create SSH directory under '#{home}',\n"\
-                "so authorized keys won't be written.")
+                "so authorized keys will not be written.")
         subject.write_keys(home)
       end
     end
