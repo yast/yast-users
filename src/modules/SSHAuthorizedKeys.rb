@@ -45,27 +45,27 @@ module Yast
     # @see Yast::Users::SSHAuthorizedKeyring#write_keys
     def write_keys(home)
       keyring.write_keys(home)
-    rescue Users::SSHAuthorizedKeyring::HomeDoesNotExist
-      log.warn("Home directory '#{home}' does not exist")
+    rescue Users::SSHAuthorizedKeyring::HomeDoesNotExist => e
+      log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
         format(_("Home directory '%s' does not exist\n" \
-                 "so authorized keys will not be written."), home)
+                 "so authorized keys will not be written."), e.directory)
       )
-    rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory
-      log.warn("SSH directory under '%s' is not a directory.")
+    rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory => e
+      log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        format(_("SSH directory under '%s' is not a regular one.\n" \
-                 "It may case a security issue so authorized keys\n" \
-                 "will not be written."), home)
+        format(_("'%s' exists but it is not a directory. It may\n" \
+                 "a security issue so authorized keys will not\n" \
+                 "be written."), e.directory)
       )
-    rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory
-      log.warn("SSH directory under '#{home}' could not be created")
+    rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory => e
+      log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
         format(_("Could not create SSH directory under '%s',\n" \
-                 "so authorized keys will not be written."), home)
+                 "so authorized keys will not be written."), e.directory)
       )
     end
 

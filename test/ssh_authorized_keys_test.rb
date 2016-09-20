@@ -30,6 +30,7 @@ describe Yast::SSHAuthorizedKeys do
   let(:valid_key_spec) { double("valid_key") }
   let(:invalid_key_spec) { double("invalid_key") }
   let(:home) { "/home/user" }
+  let(:ssh_dir) { File.join(home, ".ssh") }
   let(:key) { double("key") }
   let(:keys) { [key] }
 
@@ -73,31 +74,33 @@ describe Yast::SSHAuthorizedKeys do
 
   describe "#write_keys" do
     context "when home directory does not exists" do
+      let(:exception) { Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new(home) }
+
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys)
-          .and_raise(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
+        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
-          .with(/'#{home}' does not exist/)
+          .with(/'#{exception.directory}' does not exist/)
         subject.write_keys(home)
       end
     end
 
     context "SSH directory is not a directory" do
+      let(:exception) { Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory.new(ssh_dir)}
+
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys)
-          .and_raise(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
+        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
-          .with(/'#{home}' is not a regular/)
+          .with(/'#{ssh_dir}' exists but it is not a directory/)
         subject.write_keys(home)
       end
     end
 
     context "SSH directory could not be created" do
+      let(:exception) { Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory.new(ssh_dir) }
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys)
-          .and_raise(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
+        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
-          .with(/not create.+'#{home}'/)
+          .with(/not create.+'#{ssh_dir}'/)
         subject.write_keys(home)
       end
     end
