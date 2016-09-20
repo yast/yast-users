@@ -50,8 +50,8 @@ describe Yast::SSHAuthorizedKeys do
 
     it "returns false if no key was imported" do
       allow(subject.keyring).to receive(:add_keys).with(home, keys)
-        .and_return(keys)
-      expect(subject.import_keys(home, keys)).to eq(true)
+        .and_return([])
+      expect(subject.import_keys(home, keys)).to eq(false)
     end
   end
 

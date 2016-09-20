@@ -145,14 +145,17 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
       context "when home directory does not exist" do
         let(:home_dir_exists) { false }
-        it "raises a HomeDoesNotExist exception" do
+
+        it "raises a HomeDoesNotExist exception and does not write authorized_keys" do
+          expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
           expect { keyring.write_keys(home) }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
         end
       end
 
       context "when SSH directory could not be created" do
-        it "raises a CouldNotCreateSSHDirectory exception" do
+        it "raises a CouldNotCreateSSHDirectory exception and does not write authorized_keys" do
+          expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
           expect(Yast::SCR).to receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
             .and_return(false)
@@ -162,9 +165,10 @@ describe Yast::Users::SSHAuthorizedKeyring do
       end
 
       context "when SSH directory is a symbolic link" do
-        it "raises a SSHDirectoryIsLink" do
+        it "raises a SSHDirectoryIsLink and does not write authorized_keys" do
           allow(Yast::FileUtils).to receive(:IsLink).with(ssh_dir)
             .and_return(true)
+          expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
           expect { keyring.write_keys(home) }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::SSHDirectoryIsLink)
         end
