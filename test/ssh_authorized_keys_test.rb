@@ -100,7 +100,7 @@ describe Yast::SSHAuthorizedKeys do
       it "shows an error message" do
         allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
-          .with(/not create.+'#{ssh_dir}'/)
+          .with(/not create directory '#{ssh_dir}'/)
         subject.write_keys(home)
       end
     end

@@ -19,6 +19,8 @@
 require "yast"
 require "users/ssh_authorized_keyring"
 
+Yast.import "Message"
+
 module Yast
   # This module add support to handle SSH authorized keys.
   #
@@ -63,9 +65,8 @@ module Yast
     rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory => e
       log.warn(e.message)
       Report.Warning(
-        # TRANSLATORS: '%s' is a directory path
-        format(_("Could not create SSH directory under '%s',\n" \
-                 "so authorized keys will not be written."), e.directory)
+        Message.UnableToCreateDirectory(e.directory) + "\n" +
+          _("Authorized keys will not be written.")
       )
     end
 
