@@ -33,7 +33,7 @@ describe Yast::SSHAuthorizedKeys do
   let(:key) { double("key") }
   let(:keys) { [key] }
 
-  before { subject.main }
+  before { subject.reset }
 
   describe "#import_keys" do
     it "imports keys into the keyring" do

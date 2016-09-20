@@ -30,7 +30,7 @@ module Yast
     attr_reader :keyring
 
     def main
-      @keyring = Users::SSHAuthorizedKeyring.new
+      reset
     end
 
     # Read keys from a given home directory
@@ -86,6 +86,11 @@ module Yast
     # @return [Array<Hash>] Authorized keys for the given home
     def export_keys(home)
       keyring[home]
+    end
+
+    # Initializes the module
+    def reset
+      @keyring = Users::SSHAuthorizedKeyring.new
     end
 
     publish function: :import_keys, type: "boolean (string, list)"
