@@ -41,6 +41,9 @@ module Yast
       # @return [Pathname,String] Path to the file
       attr_reader :path
 
+      # authorized_keys exists but it's not a regular file
+      class NotRegularFile < StandardError; end
+
       # Constructor
       #
       # @param path [Pathname,String] Path to the file
@@ -107,7 +110,11 @@ module Yast
       #
       # @return [Boolean] +true+ if file was written; +false+ otherwise.
       def save
-        SCR.Execute(Path.new(".target.bash"), "umask 0077 && touch #{path}")
+        if FileUtils::Exists(path)
+          raise NotRegularFile unless FileUtils::IsFile(path)
+        else
+          SCR.Execute(Path.new(".target.bash"), "umask 0077 && touch #{path}")
+        end
         content = keys.join("\n") + "\n"
         SCR.Write(Path.new(".target.string"), path, content)
       end
