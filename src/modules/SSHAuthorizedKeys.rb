@@ -52,7 +52,7 @@ module Yast
         _(format("Home directory '%s' does not exist\n" \
                  "so authorized keys won't be written.", home))
       )
-    rescue Users::SSHAuthorizedKeyring::SSHDirectoryIsLink
+    rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory
       log.warn("SSH directory under '%s' is a symbolic link.")
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path

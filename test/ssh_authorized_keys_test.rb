@@ -86,7 +86,7 @@ describe Yast::SSHAuthorizedKeys do
     context "SSH directory is a link" do
       it "shows an error message" do
         allow(subject.keyring).to receive(:write_keys)
-          .and_raise(Yast::Users::SSHAuthorizedKeyring::SSHDirectoryIsLink)
+          .and_raise(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
         expect(Yast::Report).to receive(:Warning)
           .with("SSH directory under '#{home}' is a symbolic link.\n" \
                 "It may cause a security issue so authorized\n" \

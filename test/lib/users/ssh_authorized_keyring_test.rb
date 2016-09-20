@@ -165,12 +165,14 @@ describe Yast::Users::SSHAuthorizedKeyring do
       end
 
       context "when SSH directory is a symbolic link" do
-        it "raises a SSHDirectoryIsLink and does not write authorized_keys" do
-          allow(Yast::FileUtils).to receive(:IsLink).with(ssh_dir)
-            .and_return(true)
+        let(:ssh_dir_exists) { true }
+
+        it "raises a NotRegularSSHDirectory and does not write authorized_keys" do
+          allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
+            .and_return(false)
           expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
           expect { keyring.write_keys(home) }
-            .to raise_error(Yast::Users::SSHAuthorizedKeyring::SSHDirectoryIsLink)
+            .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
         end
       end
 
@@ -178,6 +180,8 @@ describe Yast::Users::SSHAuthorizedKeyring do
         let(:ssh_dir_exists) { true }
 
         it "does not create the directory" do
+          allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
+            .and_return(true)
           expect(Yast::SCR).to_not receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
           keyring.write_keys(home)

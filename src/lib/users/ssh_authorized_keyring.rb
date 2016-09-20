@@ -37,7 +37,7 @@ module Yast
       # The user's SSH configuration directory could not be created.
       class CouldNotCreateSSHDirectory < StandardError; end
       # The user's SSH configuration directory is a link (potentially insecure).
-      class SSHDirectoryIsLink < StandardError; end
+      class NotRegularSSHDirectory < StandardError; end
 
       # Constructor
       def initialize
@@ -146,12 +146,14 @@ module Yast
       # @param group [Fixnum] Group's GID
       # @return [String] Returns the path to the first created directory
       #
-      # @raise SSHDirectoryIsLink
+      # @raise NotRegularSSHDirectory
       # @raise CouldNotCreateSSHDirectory
       def create_ssh_dir(home, user, group)
         ssh_dir = ssh_dir_path(home)
-        raise SSHDirectoryIsLink if FileUtils::IsLink(ssh_dir)
-        return ssh_dir if FileUtils::Exists(ssh_dir)
+        if FileUtils::Exists(ssh_dir)
+          raise NotRegularSSHDirectory unless FileUtils::IsDirectory(ssh_dir)
+          return ssh_dir
+        end
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
         raise CouldNotCreateSSHDirectory unless ret
