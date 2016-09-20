@@ -53,12 +53,12 @@ module Yast
                  "so authorized keys will not be written."), home)
       )
     rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory
-      log.warn("SSH directory under '%s' is a symbolic link.")
+      log.warn("SSH directory under '%s' is not a directory.")
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        format(_("SSH directory under '%s' is a symbolic link.\n" \
-                 "It may cause a security issue so authorized\n" \
-                 "keys will not be written."), home)
+        format(_("SSH directory under '%s' is not a regular one.\n" \
+                 "It may case a security issue so authorized keys\n" \
+                 "will not be written."), home)
       )
     rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory
       log.warn("SSH directory under '#{home}' could not be created")
