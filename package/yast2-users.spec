@@ -46,19 +46,7 @@ Requires:       perl-gettext
 Requires:       yast2-country
 Requires:       yast2-pam
 Requires:       yast2-security
-Obsoletes:      y2c_users
-Obsoletes:      y2t_inst-user
-Obsoletes:      y2t_users
-Obsoletes:      yast2-config-users
-Obsoletes:      yast2-trans-inst-user
-Obsoletes:      yast2-trans-users
 Obsoletes:      yast2-users-devel-doc
-Provides:       y2c_users
-Provides:       y2t_inst-user
-Provides:       y2t_users
-Provides:       yast2-config-users
-Provides:       yast2-trans-inst-user
-Provides:       yast2-trans-users
 Conflicts:      autoyast2 < 3.1.92
 # older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
 Conflicts:      yast2-storage < 3.1.75
