@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Sep 20 15:10:23 UTC 2016 - igonzalezsosa@suse.com
+
+- Prevent a potential security issue if the target authorized_keys
+  file is not a regular file (related to FATE#319471)
+- Fix authorized_keys section of AutoYaST schema
+- 3.1.59
+
+-------------------------------------------------------------------
 Fri Sep 16 09:03:32 UTC 2016 - igonzalezsosa@suse.com
 
 - Add support to specify SSH authorized keys in the profile
