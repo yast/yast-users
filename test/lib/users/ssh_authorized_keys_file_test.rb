@@ -67,10 +67,13 @@ describe Yast::Users::SSHAuthorizedKeysFile do
 
     let(:path) { "/tmp/home/user" }
     let(:dir)  { File.dirname(path) }
+    let(:file_exists) { false }
 
     before do
       allow(Yast::FileUtils).to receive(:Exists).with(dir)
         .and_return(dir_exists)
+      allow(Yast::FileUtils).to receive(:Exists).with(path)
+        .and_return(file_exists)
     end
 
     context "if the directory exists" do
@@ -81,6 +84,34 @@ describe Yast::Users::SSHAuthorizedKeysFile do
           .with(Yast::Path.new(".target.string"), path, expected_content)
         file.keys = [key0, key1]
         file.save
+      end
+
+      context "and the file exists and it is a regular one" do
+        let(:file_exists) { true }
+
+        it "updates the file with the registered keys and returns true" do
+          allow(Yast::FileUtils).to receive(:IsFile).with(path)
+            .and_return(true)
+
+          expect(Yast::SCR).to receive(:Write)
+            .with(Yast::Path.new(".target.string"), path, expected_content)
+          file.keys = [key0, key1]
+          file.save
+        end
+      end
+
+      context "and the file exists but it is not a regular one" do
+        let(:file_exists) { true }
+
+        it "raises NotRegularFile exception and does not update the file" do
+          allow(Yast::FileUtils).to receive(:IsFile).with(path)
+            .and_return(false)
+
+          expect(Yast::SCR).to_not receive(:Write)
+            .with(Yast::Path.new(".target.string"), anything)
+          file.keys = [key0, key1]
+          expect { file.save }.to raise_error(Yast::Users::SSHAuthorizedKeysFile::NotRegularFile)
+        end
       end
     end
 

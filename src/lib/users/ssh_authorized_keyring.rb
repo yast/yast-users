@@ -32,22 +32,22 @@ module Yast
       attr_reader :keys
       private :keys
 
-      # Base class to use in directory problems
-      class DirectoryError < StandardError
-        # @return [String] Directory path
-        attr_reader :directory
+      # Base class to use in file/directory problems
+      class PathError < StandardError
+        # @return [String] Path
+        attr_reader :path
 
         # Constructor
         #
-        # @param directory [String] Directory path
-        def initialize(directory)
-          @directory = directory
+        # @param path [String] Path
+        def initialize(path)
+          @path = path
           super(default_message)
         end
 
         # @return [String] Error message
         def message
-          "#{super}: #{directory}"
+          "#{super}: #{path}"
         end
 
         # Returns the default message to be used
@@ -56,26 +56,31 @@ module Yast
         #
         # @return [String] Default message
         def default_message
-          "Directory error"
+          "Path error"
         end
       end
 
       # The home directory does not exist.
-      class HomeDoesNotExist < DirectoryError
+      class HomeDoesNotExist < PathError
         # @return default_message [String] Default error message
         def default_message; "Home directory does not exist" end
       end
 
       # The user's SSH configuration directory could not be created.
-      class CouldNotCreateSSHDirectory < DirectoryError
+      class CouldNotCreateSSHDirectory < PathError
         # @return default_message [String] Default error message
         def default_message; "SSH directory could not be created" end
       end
 
       # The user's SSH configuration directory is a link (potentially insecure).
-      class NotRegularSSHDirectory < DirectoryError
+      class NotRegularSSHDirectory < PathError
         # @return default_message [String] Default error message
-        def default_message; "SSH directory is not a regular one" end
+        def default_message; "SSH directory is not a regular directory" end
+      end
+
+      class NotRegularAuthorizedKeysFile < PathError
+        # @return default_message [String] Default error message
+        def default_message; "authorized_keys is not a regular file" end
       end
 
       # Constructor
@@ -211,6 +216,8 @@ module Yast
         file.keys = keys[home]
         log.info "Writing #{keys[home].size} keys in #{path}"
         file.save && FileUtils::Chown("#{owner}:#{group}", path, false)
+      rescue SSHAuthorizedKeysFile::NotRegularFile
+        raise NotRegularAuthorizedKeysFile.new(path)
       end
     end
   end

@@ -52,20 +52,28 @@ module Yast
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
         format(_("Home directory '%s' does not exist\n" \
-                 "so authorized keys will not be written."), e.directory)
+                 "so authorized keys will not be written."), e.path)
       )
     rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory => e
       log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
-        format(_("'%s' exists but it is not a directory. It may\n" \
+        format(_("'%s' exists but it is not a directory. It might be\n" \
                  "a security issue so authorized keys will not\n" \
-                 "be written."), e.directory)
+                 "be written."), e.path)
+      )
+    rescue Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile => e
+      log.warn(e.message)
+      Report.Warning(
+        # TRANSLATORS: '%s' is a directory path
+        format(_("'%s' exists but it is not a file. It might be\n" \
+                 "a security issue so authorized keys will not\n" \
+                 "be written."), e.path)
       )
     rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory => e
       log.warn(e.message)
       Report.Warning(
-        Message.UnableToCreateDirectory(e.directory) + "\n" +
+        Message.UnableToCreateDirectory(e.path) + "\n" +
           _("Authorized keys will not be written.")
       )
     end

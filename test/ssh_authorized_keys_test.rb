@@ -31,6 +31,7 @@ describe Yast::SSHAuthorizedKeys do
   let(:invalid_key_spec) { double("invalid_key") }
   let(:home) { "/home/user" }
   let(:ssh_dir) { File.join(home, ".ssh") }
+  let(:authorized_keys_path) { File.join("ssh_dir", ".authorized_keys") }
   let(:key) { double("key") }
   let(:keys) { [key] }
 
@@ -74,18 +75,22 @@ describe Yast::SSHAuthorizedKeys do
 
   describe "#write_keys" do
     context "when home directory does not exists" do
-      let(:exception) { Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new(home) }
+      let(:exception) do
+        Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new(home)
+      end
 
       it "shows an error message" do
         allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
-          .with(/'#{exception.directory}' does not exist/)
+          .with(/'#{home}' does not exist/)
         subject.write_keys(home)
       end
     end
 
     context "SSH directory is not a directory" do
-      let(:exception) { Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory.new(ssh_dir)}
+      let(:exception) do
+        Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory.new(ssh_dir)
+      end
 
       it "shows an error message" do
         allow(subject.keyring).to receive(:write_keys).and_raise(exception)
@@ -96,11 +101,27 @@ describe Yast::SSHAuthorizedKeys do
     end
 
     context "SSH directory could not be created" do
-      let(:exception) { Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory.new(ssh_dir) }
+      let(:exception) do
+        Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory.new(ssh_dir)
+      end
+
       it "shows an error message" do
         allow(subject.keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
           .with(/not create directory '#{ssh_dir}'/)
+        subject.write_keys(home)
+      end
+    end
+
+    context "authorized_keys exists but it's not a regular file" do
+      let(:exception) do
+        Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile.new(authorized_keys_path)
+      end
+
+      it "shows an error message" do
+        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
+        expect(Yast::Report).to receive(:Warning)
+          .with(/'#{authorized_keys_path}' exists but it is not a file/)
         subject.write_keys(home)
       end
     end

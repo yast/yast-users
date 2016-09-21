@@ -112,8 +112,11 @@ describe Yast::Users::SSHAuthorizedKeyring do
       before do
         allow(Yast::SCR).to receive(:Execute).and_call_original
         allow(Yast::SCR).to receive(:Read).and_call_original
+        allow(Yast::FileUtils).to receive(:Exists).and_call_original
         allow(Yast::FileUtils).to receive(:Exists).with(ssh_dir).and_return(ssh_dir_exists)
         allow(Yast::FileUtils).to receive(:Exists).with(home).and_return(home_dir_exists)
+        allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
+          .and_return(true)
         keyring.add_keys(home, [key])
       end
 
@@ -164,7 +167,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
         end
       end
 
-      context "when SSH directory is a symbolic link" do
+      context "when SSH directory is not a regular directory" do
         let(:ssh_dir_exists) { true }
 
         it "raises a NotRegularSSHDirectory and does not write authorized_keys" do
@@ -185,6 +188,21 @@ describe Yast::Users::SSHAuthorizedKeyring do
           expect(Yast::SCR).to_not receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
           keyring.write_keys(home)
+        end
+      end
+
+      context "when authorized_keys is not a regular file" do
+        let(:ssh_dir_exists) { true }
+        let(:file) { double("file") }
+
+        it "raises a NotRegularAuthorizedKeysFile" do
+          allow(Yast::Users::SSHAuthorizedKeysFile).to receive(:new).and_return(file)
+          allow(file).to receive(:keys=)
+          allow(file).to receive(:save)
+            .and_raise(Yast::Users::SSHAuthorizedKeysFile::NotRegularFile)
+
+          expect { keyring.write_keys(home) }
+            .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
         end
       end
     end
