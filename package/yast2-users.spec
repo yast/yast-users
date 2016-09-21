@@ -33,7 +33,6 @@ BuildRequires:  update-desktop-files
 BuildRequires:  yast2
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 3.1.10
-BuildRequires:  yast2-ldap >= 3.1.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
@@ -78,6 +77,8 @@ This package provides GUI for maintenance of linux users and groups.
 %yast_build
 
 %install
+# make testsuite/modules/Ldap.rb visible
+export Y2BASE_Y2DIR=`pwd`/testsuite
 %yast_install
 
 %files
