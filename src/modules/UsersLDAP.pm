@@ -1144,7 +1144,7 @@ sub ConvertMap {
     if (!defined $data->{"uidNumber"}) {
 	@internal	= @group_internal_keys;
     }
-    foreach my $key (keys %{$data}) {
+    foreach my $key (sort keys %{$data}) {
 	my $val	= $data->{$key};
 	if (contains (\@internal, $key, 1)) {
 	    next;

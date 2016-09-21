@@ -23,9 +23,9 @@ Dump	==========================================================
 Dump	--------- user (removed 'org_user' submap):
 Dump	 $["dn":"uid=test2,ou=people,dc=suse,dc=cz", "encrypted":true, "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/csh", "modified":"edited", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "org_uid":"test2", "org_uidnumber":11111, "plugins":["UsersPluginLDAPAll"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}qqqqq", "what":"edit_user"]
 Read	.ldap.schema.at $["name":"gecos"] $["usage":1]
+Read	.ldap.schema.at $["name":"gidNumber"] $["usage":1]
 Read	.ldap.schema.at $["name":"uid"] $["usage":1]
 Read	.ldap.schema.at $["name":"uidNumber"] $["usage":1]
-Read	.ldap.schema.at $["name":"gidNumber"] $["usage":1]
 Return	$["gecos":"test", "gidNumber":"100", "loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "uid":"test2", "uidNumber":"11111", "userPassword":"{crypt}qqqqq"]
 Dump	--------- converted :
 Dump	 $["gecos":"test", "gidNumber":"100", "loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "uid":"test2", "uidNumber":"11111", "userPassword":"{crypt}qqqqq"]
