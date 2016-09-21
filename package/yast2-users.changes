@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Sep 21 13:25:22 UTC 2016 - mvidner@suse.com
+
+- Do not require yast2-ldap for build time tests (bsc#999203).
+- 3.1.60
+
+-------------------------------------------------------------------
 Tue Sep 20 15:10:23 UTC 2016 - igonzalezsosa@suse.com
 
 - Prevent a potential security issue if the target authorized_keys

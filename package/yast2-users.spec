@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.1.59
+Version:        3.1.60
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -33,7 +33,6 @@ BuildRequires:  update-desktop-files
 BuildRequires:  yast2
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 3.1.10
-BuildRequires:  yast2-ldap >= 3.1.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
@@ -46,19 +45,7 @@ Requires:       perl-gettext
 Requires:       yast2-country
 Requires:       yast2-pam
 Requires:       yast2-security
-Obsoletes:      y2c_users
-Obsoletes:      y2t_inst-user
-Obsoletes:      y2t_users
-Obsoletes:      yast2-config-users
-Obsoletes:      yast2-trans-inst-user
-Obsoletes:      yast2-trans-users
 Obsoletes:      yast2-users-devel-doc
-Provides:       y2c_users
-Provides:       y2t_inst-user
-Provides:       y2t_users
-Provides:       yast2-config-users
-Provides:       yast2-trans-inst-user
-Provides:       yast2-trans-users
 Conflicts:      autoyast2 < 3.1.92
 # older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
 Conflicts:      yast2-storage < 3.1.75
@@ -90,6 +77,8 @@ This package provides GUI for maintenance of linux users and groups.
 %yast_build
 
 %install
+# make testsuite/modules/Ldap.rb visible
+export Y2BASE_Y2DIR=`pwd`/testsuite
 %yast_install
 
 %files

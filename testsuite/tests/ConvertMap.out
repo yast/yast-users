@@ -1,24 +1,31 @@
 Dump	==========================================================
 Dump	--------- user (loginshell is changed):
 Dump	 $["dn":"uid=test2,ou=people,dc=suse,dc=cz", "encrypted":true, "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/csh", "modified":"edited", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top"], "org_uid":"test2", "org_uidnumber":11111, "org_user":$["dn":"uid=test2,ou=people,dc=suse,dc=cz", "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/bash", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}IVj2W92x/IuFs"], "plugins":["UsersPluginLDAPAll"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}IVj2W92x/IuFs", "what":"edit_user"]
+Read	.ldap.schema.at $["name":"loginShell"] $["usage":1]
 Return	$["loginShell":"/bin/csh"]
 Dump	--------- converted :
 Dump	 $["loginShell":"/bin/csh"]
 Dump	==========================================================
 Dump	--------- user (new password):
 Dump	 $["dn":"uid=test2,ou=people,dc=suse,dc=cz", "encrypted":true, "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/csh", "modified":"edited", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top"], "org_uid":"test2", "org_uidnumber":11111, "org_user":$["dn":"uid=test2,ou=people,dc=suse,dc=cz", "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/bash", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}IVj2W92x/IuFs"], "plugins":["UsersPluginLDAPAll"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"qqqqq", "what":"edit_user"]
+Read	.ldap.schema.at $["name":"userPassword"] $["usage":1]
 Return	$["loginShell":"/bin/csh", "userPassword":"{crypt}qqqqq"]
 Dump	--------- converted :
 Dump	 $["loginShell":"/bin/csh", "userPassword":"{crypt}qqqqq"]
 Dump	==========================================================
 Dump	--------- user (new object class):
 Dump	 $["dn":"uid=test2,ou=people,dc=suse,dc=cz", "encrypted":true, "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/csh", "modified":"edited", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "org_uid":"test2", "org_uidnumber":11111, "org_user":$["dn":"uid=test2,ou=people,dc=suse,dc=cz", "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/bash", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}qqqqq"], "plugins":["UsersPluginLDAPAll"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}qqqqq", "what":"edit_user"]
+Read	.ldap.schema.at $["name":"objectClass"] $["usage":1]
 Return	$["loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"]]
 Dump	--------- converted :
 Dump	 $["loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"]]
 Dump	==========================================================
 Dump	--------- user (removed 'org_user' submap):
 Dump	 $["dn":"uid=test2,ou=people,dc=suse,dc=cz", "encrypted":true, "gecos":"test", "gidNumber":100, "grouplist":$["audio":1], "groupname":"users", "loginShell":"/bin/csh", "modified":"edited", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "org_uid":"test2", "org_uidnumber":11111, "plugins":["UsersPluginLDAPAll"], "type":"ldap", "uid":"test2", "uidNumber":11111, "userPassword":"{crypt}qqqqq", "what":"edit_user"]
+Read	.ldap.schema.at $["name":"gecos"] $["usage":1]
+Read	.ldap.schema.at $["name":"gidNumber"] $["usage":1]
+Read	.ldap.schema.at $["name":"uid"] $["usage":1]
+Read	.ldap.schema.at $["name":"uidNumber"] $["usage":1]
 Return	$["gecos":"test", "gidNumber":"100", "loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "uid":"test2", "uidNumber":"11111", "userPassword":"{crypt}qqqqq"]
 Dump	--------- converted :
 Dump	 $["gecos":"test", "gidNumber":"100", "loginShell":"/bin/csh", "objectClass":["inetOrgPerson", "posixAccount", "shadowAccount", "top", "sambaSamAccount"], "uid":"test2", "uidNumber":"11111", "userPassword":"{crypt}qqqqq"]

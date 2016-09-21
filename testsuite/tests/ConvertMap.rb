@@ -21,6 +21,7 @@ module Yast
         },
         "ldap"    => {
           "schema" => {
+            "at" => { "usage" => 1 },
             "oc" => {
               "may" => [
                 "gidNumber",
