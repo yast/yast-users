@@ -35,8 +35,9 @@ user_defaults =
     umask?
   }
 
+# by default, AutoYaST exports list entries as 'listentry'
 authorized_key =
-  element authorized_key { text }
+  element authorized_key { text } | element listentry { text }
 
 authorized_keys =
   element authorized_keys {
