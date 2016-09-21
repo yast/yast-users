@@ -12,5 +12,4 @@ script:
     - make -f Makefile.cvs
     - make
     - sudo make install
-    - make check
-
+    - Y2BASE_Y2DIR=$(pwd)/testsuite make check
