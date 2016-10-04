@@ -700,17 +700,19 @@ sub CheckHomeMounted {
     }
 
     if ($mountpoint_in ne "") {
-        my $home_mountpoint = $home;
-        if (Stage->initial()) {
-            $home_mountpoint = Installation->destdir() . $home_mountpoint;
-        }
-        y2milestone("homes mount point is", $home_mountpoint);
+        my $dest_home_mountpoint = Installation->destdir() . $home;
+
+        y2milestone("home mount points are:", $dest_home_mountpoint, ",", $home);
         my $mounted	= 0;
         my $mtab	= SCR->Read (".etc.mtab");
 	if (defined $mtab && ref ($mtab) eq "ARRAY") {
 	    foreach my $line (@{$mtab}) {
 		my %line	= %{$line};
-		if ($line{"file"} eq $home_mountpoint) {
+                # While installing package "systemd" the /etc/mtab entries will be
+                # changed from e.g. /home to /mnt/home. This will be done in SLES12
+                # only and not for e.g. LEAP. So we have to check both.
+                # (bnc#995299, bnc#980878)
+		if ($line{"file"} eq $dest_home_mountpoint || $line{"file"} eq $home ) {
 		    $mounted = 1;
 		}
 	    }
