@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Tue Oct 11 12:10:21 UTC 2016 - hguo@suse.com
+Tue Oct 11 15:10:21 UTC 2016 - hguo@suse.com
 
 - Fix the invocation of authentication configuration instance
   (bsc#1000749).
