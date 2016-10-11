@@ -3,13 +3,13 @@ Tue Oct  4 13:12:40 CEST 2016 - schubi@suse.de
 
 - Checking all possible /home mount points (/mnt/home and /home).
   (bnc#995299)
-- 3.1.61
+- 3.2.3
 
 -------------------------------------------------------------------
 Wed Sep 21 13:25:22 UTC 2016 - mvidner@suse.com
 
 - Do not require yast2-ldap for build time tests (bsc#999203).
-- 3.1.60
+- 3.2.2
 
 -------------------------------------------------------------------
 Tue Sep 20 15:10:23 UTC 2016 - igonzalezsosa@suse.com
@@ -17,14 +17,14 @@ Tue Sep 20 15:10:23 UTC 2016 - igonzalezsosa@suse.com
 - Prevent a potential security issue if the target authorized_keys
   file is not a regular file (related to FATE#319471)
 - Fix authorized_keys section of AutoYaST schema
-- 3.1.59
+- 3.2.1
 
 -------------------------------------------------------------------
 Fri Sep 16 09:03:32 UTC 2016 - igonzalezsosa@suse.com
 
 - Add support to specify SSH authorized keys in the profile
   (FATE#319471)
-- 3.1.58
+- 3.2.0
 
 -------------------------------------------------------------------
 Fri Sep  2 15:16:37 CEST 2016 - schubi@suse.de
