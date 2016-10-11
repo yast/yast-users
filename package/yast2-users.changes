@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 11 14:24:52 UTC 2016 - ancor@suse.com
+
+- Corrected version numbers to correctly coordinate Leap 42.2,
+  SLE-12-SP2 maintenance updates and Tumbleweed.
+- Needed to release the fix for bsc#1000749
+
+-------------------------------------------------------------------
 Tue Oct  4 13:12:40 CEST 2016 - schubi@suse.de
 
 - Checking all possible /home mount points (/mnt/home and /home).
