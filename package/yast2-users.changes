@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 11 12:10:21 UTC 2016 - hguo@suse.com
+
+- Fix the invocation of authentication configuration instance.
+  Bump version to 3.1.62 for bsc#1000749.
+
+-------------------------------------------------------------------
 Tue Oct  4 13:12:40 CEST 2016 - schubi@suse.de
 
 - Checking all possible /home mount points (/mnt/home and /home).
