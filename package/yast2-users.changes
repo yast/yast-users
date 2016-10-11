@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 11 12:10:21 UTC 2016 - hguo@suse.com
+
+- Fix the invocation of authentication configuration instance
+  (bsc#1000749).
+- 3.2.4
+
+-------------------------------------------------------------------
 Tue Oct 11 14:24:52 UTC 2016 - ancor@suse.com
 
 - Corrected version numbers to correctly coordinate Leap 42.2,
