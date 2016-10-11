@@ -2326,12 +2326,12 @@ Continue anyway?"))
         ret = Summary.NotConfigured
       elsif client == "sssd"
         begin
-          Yast.import "AuthClient"
-        rescue NameError
+          require 'auth/authconf.rb'
+        rescue LoadError
           ret = _("<b>yast2-auth-client module not installed</b>")
         else
-          AuthClient.Read
-          ret = AuthClient.Summary
+          ::Auth::AuthConfInst.read_all
+          ret = ::Auth::AuthConfInst.summary_text
         end
       elsif client == "nis"
         WFM.CallFunction("nis_auto", ["Read"])
