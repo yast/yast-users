@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 11 12:10:21 UTC 2016 - hguo@suse.com
+
+- Fix the invocation of authentication configuration instance
+  (bsc#1000749).
+- 3.1.57.1
+
+-------------------------------------------------------------------
 Fri Sep  2 15:16:37 CEST 2016 - schubi@suse.de
 
 - AutoYaST: Ignore Users without UID while checking for duplicate
