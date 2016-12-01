@@ -1,6 +1,7 @@
 # Tests for users
 TESTS = \
-  users_finish_test.rb
+  users_finish_test.rb \
+  widgets_test.rb
 
 TEST_EXTENSIONS = .rb
 RB_LOG_COMPILER = rspec
