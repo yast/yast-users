@@ -67,7 +67,8 @@ ylib_DATA = \
   lib/users/encryption_proposal.rb \
   lib/users/ssh_authorized_keys_file.rb \
   lib/users/ssh_authorized_keyring.rb \
-  lib/users/users_database.rb
+  lib/users/users_database.rb \
+  lib/users/widgets.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \

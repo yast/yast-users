@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Dec  1 09:41:59 UTC 2016 - jreidinger@suse.com
+
+- prepare reusable widget for setting root password
+  (needed for FATE#321754)
+- 3.2.5
+
+-------------------------------------------------------------------
 Tue Oct 11 15:10:21 UTC 2016 - hguo@suse.com
 
 - Fix the invocation of authentication configuration instance
