@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
 Fri Dec  2 12:58:58 UTC 2016 - jreidinger@suse.com
 
-- set focus for first password field to keep same behavior as
-  before last change (for FATE#321754)
+- Set the focus to the first password field to keep the same
+  behavior as before the last change. (for FATE#321754)
 - 3.1.57.3
 
 -------------------------------------------------------------------
