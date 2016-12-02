@@ -60,6 +60,9 @@ module Users
     end
 
     def init
+      # focus on first password, so user can immediately write. Also does not
+      # break openQA current test
+      Yast::UI.SetFocus(Id(:pw1))
       current_password = Yast::UsersSimple.GetRootPassword
       return if !current_password || current_password.empty?
 
