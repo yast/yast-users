@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Dec  2 12:58:58 UTC 2016 - jreidinger@suse.com
+
+- Set the focus to the first password field to keep the same
+  behavior as before the last change. (for FATE#321754)
+- 3.2.6
+
+-------------------------------------------------------------------
 Thu Dec  1 09:41:59 UTC 2016 - jreidinger@suse.com
 
 - prepare reusable widget for setting root password
