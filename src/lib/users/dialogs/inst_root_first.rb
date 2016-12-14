@@ -23,6 +23,8 @@ require "users/widgets"
 require "users/ca_password_validator"
 require "users/local_password"
 
+require "ui/widgets"
+
 
 module Yast
   # This library provides a simple dialog for setting new password for the
@@ -68,7 +70,11 @@ module Yast
       VBox(
         VStretch(),
         HSquash(
-          ::Users::PasswordWidget.new
+          VBox(
+            ::Users::PasswordWidget.new,
+            VSpacing(2.4),
+            ::UI::Widgets::KeyboardLayoutTest.new
+          )
         ),
         VStretch()
       )
