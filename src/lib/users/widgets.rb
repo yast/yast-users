@@ -52,10 +52,7 @@ module Users
           Opt(:hstretch),
           # Label: get same password again for verification
           _("Con&firm Password")
-        ),
-        VSpacing(2.4),
-        # text entry label
-        InputField(Opt(:hstretch), _("&Test Keyboard Layout"))
+        )
       )
     end
 
