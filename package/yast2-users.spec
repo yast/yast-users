@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        3.2.6
+Version:        3.2.7
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -30,7 +30,7 @@ BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  perl-XML-Writer
 BuildRequires:  update-desktop-files
-BuildRequires:  yast2
+BuildRequires:  yast2 >= 3.1.210.1
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 3.1.10
 BuildRequires:  yast2-perl-bindings
@@ -56,8 +56,8 @@ Requires:       yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with orrect LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
-# UI::InstallationDialog
-Requires:       yast2 >= 3.1.167
+# UI::Widgets
+Requires:       yast2 >= 3.1.210.1
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 

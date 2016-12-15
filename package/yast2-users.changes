@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Dec 14 14:35:57 UTC 2016 - jreidinger@suse.com
+
+- Separate root password widget and keyboard layout test widget
+  (needed for FATE#321754)
+- 3.2.7
+
+-------------------------------------------------------------------
 Fri Dec  2 12:58:58 UTC 2016 - jreidinger@suse.com
 
 - Set the focus to the first password field to keep the same
