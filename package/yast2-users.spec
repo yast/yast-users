@@ -30,6 +30,7 @@ BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  perl-XML-Writer
 BuildRequires:  update-desktop-files
+# UI::Widgets
 BuildRequires:  yast2 >= 3.2.8
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 3.1.10
