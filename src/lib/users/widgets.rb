@@ -30,30 +30,49 @@ Yast.import "Report"
 Yast.import "UsersSimple"
 
 module Users
+  # The widget contains 2 password input fields
+  # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
-    def initialize
+    # If `little_space` is `false` (the default), the widget will
+    # use a vertical layout, and include a "don't forget this" label.
+    #
+    # If `little_space` is `true`, the helpful label is omitted
+    # and the password fields are laid out horizontally.
+    def initialize(little_space: false)
       textdomain "users"
+      @little_space = little_space
     end
 
     def contents
-      VBox(
-        # advise users to remember their new password
-        Left(Label(_("Do not forget what you enter here."))),
-        VSpacing(0.8),
-        Password(
-          Id(:pw1),
-          Opt(:hstretch),
-          # Label: get password for user root
-          _("&Password for root User")
-        ),
-        VSpacing(0.8),
-        Password(
-          Id(:pw2),
-          Opt(:hstretch),
-          # Label: get same password again for verification
-          _("Con&firm Password")
-        )
+      pw1 = Password(
+        Id(:pw1),
+        Opt(:hstretch),
+        # Label: get password for user root
+        _("&Password for root User")
       )
+      pw2 = Password(
+        Id(:pw2),
+        Opt(:hstretch),
+        # Label: get same password again for verification
+        _("Con&firm Password")
+      )
+
+      if @little_space
+        HBox(
+          pw1,
+          HSpacing(1),
+          pw2
+        )
+      else
+        VBox(
+          # advise users to remember their new password
+          Left(Label(_("Do not forget what you enter here."))),
+          VSpacing(0.8),
+          pw1,
+          VSpacing(0.8),
+          pw2
+        )
+      end
     end
 
     def init
