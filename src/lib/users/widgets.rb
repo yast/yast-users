@@ -38,9 +38,11 @@ module Users
     #
     # If `little_space` is `true`, the helpful label is omitted
     # and the password fields are laid out horizontally.
-    def initialize(little_space: false)
+    # @param focus [Boolean] if set, then widget set focus to first password input field
+    def initialize(little_space: false, focus: false)
       textdomain "users"
       @little_space = little_space
+      @focus = focus
     end
 
     def contents
@@ -78,7 +80,7 @@ module Users
     def init
       # focus on first password, so user can immediately write. Also does not
       # break openQA current test
-      Yast::UI.SetFocus(Id(:pw1))
+      Yast::UI.SetFocus(Id(:pw1)) if @focus
       current_password = Yast::UsersSimple.GetRootPassword
       return if !current_password || current_password.empty?
 
