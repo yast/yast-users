@@ -1,15 +1,11 @@
-language: cpp
-compiler:
-    - gcc
+sudo: required
+language: bash
+services:
+  - docker
+
 before_install:
-    # disable rvm, use system Ruby
-    - rvm reset
-    - wget https://raw.githubusercontent.com/yast/yast-devtools/master/travis-tools/travis_setup.sh
-    - sh ./travis_setup.sh -p "rake yast2-devtools yast2-testsuite yast2 yast2-perl-bindings yast2-core-dev yast2-perl-bindings yast2-security libcrack2-dev doxygen libdigest-sha1-perl" -g "rspec:3.3.0 yast-rake gettext"
+  - docker build -t yast-users-image .
 script:
-    - rake check:syntax
-    - rake check:pot
-    - make -f Makefile.cvs
-    - make
-    - sudo make install
-    - Y2BASE_Y2DIR=$(pwd)/testsuite make check
+  # the "yast-travis-cpp" script is included in the base yastdevel/cpp image
+  # see https://github.com/yast/docker-yast-cpp/blob/master/yast-travis-cpp
+  - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" yast-users-image yast-travis-cpp
