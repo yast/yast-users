@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan 20 15:28:22 UTC 2017 - mvidner@suse.com
+
+- Password widget: a compact layout, do not steal focus (FATE#322328)
+- 3.1.57.5
+
+-------------------------------------------------------------------
 Wed Dec 14 14:35:57 UTC 2016 - jreidinger@suse.com
 
 - Separate root password widget and keyboard layout test widget
