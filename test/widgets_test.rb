@@ -16,13 +16,26 @@ describe Users::PasswordWidget do
     expect(subject.contents).to be_a(Yast::Term)
   end
 
-  it "initializes password to current value" do
-    pwd = "paranoic"
-    allow(Yast::UsersSimple).to receive(:GetRootPassword).and_return(pwd)
-    expect(Yast::UI).to receive(:ChangeWidget).with(Id(:pw1), :Value, pwd)
-    expect(Yast::UI).to receive(:ChangeWidget).with(Id(:pw2), :Value, pwd)
+  context "initialization" do
+    it "initializes password to current value" do
+      pwd = "paranoic"
+      allow(Yast::UsersSimple).to receive(:GetRootPassword).and_return(pwd)
+      expect(Yast::UI).to receive(:ChangeWidget).with(Id(:pw1), :Value, pwd)
+      expect(Yast::UI).to receive(:ChangeWidget).with(Id(:pw2), :Value, pwd)
 
-    subject.init
+      subject.init
+    end
+
+    it "sets focus to first widget if focus: parameter set to object" do
+      expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
+      subject = described_class.new(focus: true)
+      subject.init
+    end
+
+    it "does not modify focus without focus: parameter" do
+      expect(Yast::UI).to_not receive(:SetFocus).with(Id(:pw1))
+      subject.init
+    end
   end
 
   context "validation" do
