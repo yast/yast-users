@@ -71,7 +71,7 @@ module Yast
         VStretch(),
         HSquash(
           VBox(
-            ::Users::PasswordWidget.new,
+            ::Users::PasswordWidget.new(focus: true),
             VSpacing(2.4),
             ::UI::Widgets::KeyboardLayoutTest.new
           )
