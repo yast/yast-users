@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 20 09:06:14 UTC 2017 - jreidinger@suse.com
+
+- do not ask again for already approved weak password (bsc#1025835)
+- 3.2.9
+
+-------------------------------------------------------------------
 Fri Jan 20 15:28:22 UTC 2017 - mvidner@suse.com
 
 - Password widget: a compact layout, do not steal focus (FATE#322328)

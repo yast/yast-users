@@ -112,12 +112,16 @@ module Users
         return false
       end
 
+      # do not ask again if already approved (bsc#1025835)
+      return true if @already_approved == password1
+
       passwd = ::Users::LocalPassword.new(username: "root", plain: password1)
       # User can confirm using "invalid" password confirming all the errors
       if !passwd.valid?
         errors = passwd.errors + [_("Really use this password?")]
         Yast::UI.SetFocus(Id(:pw1))
         return false unless Yast::Popup.YesNo(errors.join("\n\n"))
+        @already_approved = password1
       end
 
       return true
