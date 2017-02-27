@@ -689,21 +689,6 @@ after you mount correctly. Continue user configuration?"),
 ##----------------- get routines ------------------------------------------
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetMinPasswordLength} = ["function", "integer", "string"]; }
-sub GetMinPasswordLength {
-
-    my ($self, $type)		= @_;
-    return UsersSimple->GetMinPasswordLength ($type);
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{GetMaxPasswordLength} = ["function", "integer", "string"]; }
-sub GetMaxPasswordLength {
-    my ($self, $type)		= @_;
-    return UsersSimple->GetMaxPasswordLength ($type);
-}
-
-##------------------------------------
 BEGIN { $TYPEINFO{GetDefaultGrouplist} = ["function",
     ["map", "string", "integer"],
     "string"];
@@ -4706,13 +4691,6 @@ Encryption support is not installed, home directories will NOT be encrypted."))
 
 ##-------------------------------------------------------------------------
 ##----------------- check routines ----------------------------------------
-
-##------------------------------------
-# Return the part of help text about valid password characters
-BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
-sub ValidPasswordHelptext {
-    return UsersSimple->ValidPasswordHelptext ();
-}
 
 ##------------------------------------
 # check the uid of current user

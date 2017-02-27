@@ -40,6 +40,7 @@ module Yast
       Yast.import "UsersCache"
       Yast.import "UsersLDAP"
       Yast.import "UsersRoutines"
+      Yast.import "UsersSimple"
     end
 
     # Password help text.
@@ -77,12 +78,12 @@ module Yast
               "</p>"
           ),
           Ops.get_string(enc_to_string, method, method),
-          Users.GetMinPasswordLength(type),
-          Users.GetMaxPasswordLength(type)
+          UsersSimple.GetMinPasswordLength(type),
+          UsersSimple.GetMaxPasswordLength(type)
         )
       )
 
-      help_text = Ops.add(help_text, Users.ValidPasswordHelptext)
+      help_text = Ops.add(help_text, UsersSimple.ValidPasswordHelptext)
 
       #help text 4/4
       help_text = Ops.add(
