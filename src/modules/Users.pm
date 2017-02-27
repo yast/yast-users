@@ -352,25 +352,6 @@ sub SetLDAPNotRead {
     $ldap_not_read	= $_[0];
 }
 
-# OBSOLETE 
-BEGIN { $TYPEINFO{GetRootMail} = ["function", "string"]; }
-sub GetRootMail {
-    y2warning ("this function is obsolete, use GetRootAliases instead");
-    return join (",", keys %root_aliases);
-}
-
-# OBSOLETE 
-BEGIN { $TYPEINFO{SetRootMail} = ["function", "void", "string"]; }
-sub SetRootMail {
-    my $self		= shift;
-    my $root_a 		= shift;
-    y2warning ("this function is obsolete, use RemoveRootAlias/AddRootAlias instead");
-    foreach my $alias (split (/,/, $root_a)) {
-	$alias	=~ s/[ \t]//g;
-	$root_aliases{$alias}	= 1;
-    }
-}
-
 # return the map with root aliases
 BEGIN { $TYPEINFO{GetRootAliases} = ["function", ["map", "string", "integer"]];}
 sub GetRootAliases {
@@ -601,35 +582,6 @@ sub AllShells {
     return \@shells;
 }
 
-# set the list of users to be imported during installation
-BEGIN { $TYPEINFO{SetUsersForImport} = ["function", "void", ["list","any"]];}
-sub SetUsersForImport {
-    my $self		= shift;
-    my $to_import	= shift;
-    return if (! defined ($to_import) || ref ($to_import) ne "ARRAY");
-    my @u	= @$to_import;
-    $installation_import{"users"}	= \@u;
-}
-
-# return the data of users to be imported during installation
-BEGIN { $TYPEINFO{GetUsersForImport} = ["function", ["list","any"]];}
-sub GetUsersForImport {
-    my $self	= shift;
-    my @ret	= ();
-    if (defined ($installation_import{"users"}) &&
-	ref ($installation_import{"users"}) eq "ARRAY") {
-	@ret	= @{$installation_import{"users"}};
-    }
-    return \@ret;
-}
-
-# return the data of users and groups to be imported during installation
-BEGIN { $TYPEINFO{GetDataForImport} = ["function", ["map", "string", "any"]];}
-sub GetDataForImport {
-    my $self		= shift;
-    return \%installation_import;
-}
-
 BEGIN { $TYPEINFO{NotAskUppercase} = ["function", "boolean"];}
 sub NotAskUppercase {
     return $not_ask_uppercase;
@@ -658,10 +610,7 @@ sub SetAskNISServerNotDES {
     }
 }
 
-    
-    
 ##------------------------------------
-BEGIN { $TYPEINFO{CheckHomeMounted} = ["function", "void"]; }
 # Checks if the home directory is properly mounted (bug #20365)
 sub CheckHomeMounted {
 
@@ -823,10 +772,6 @@ sub GetDefaultHome {
     return $home;
 }
 
-##------------------------------------
-BEGIN { $TYPEINFO{GetDefaultShadow} = ["function",
-    [ "map", "string", "string"],
-    "string"];
 }
 sub GetDefaultShadow {
 
@@ -1684,10 +1629,6 @@ sub Read {
 
 ##------------------------------------
 # extract the "shadow" items from user's map
-BEGIN { $TYPEINFO{CreateShadowMap} = ["function",
-    ["map", "string", "any" ],
-    ["map", "string", "any" ]];
-}
 sub CreateShadowMap {
     
     my $self		= shift;
@@ -1705,7 +1646,6 @@ sub CreateShadowMap {
 
 ##------------------------------------
 # Remove user from the list of members of current group
-BEGIN { $TYPEINFO{RemoveUserFromGroup} = ["function", "boolean", "string"]; }
 sub RemoveUserFromGroup {
 
     my $self		= shift;
@@ -1735,7 +1675,6 @@ sub RemoveUserFromGroup {
 
 ##------------------------------------ 
 # Add user to the members list of current group (group_in_work)
-BEGIN { $TYPEINFO{AddUserToGroup} = ["function", "boolean", "string"]; }
 sub AddUserToGroup {
 
     my $self		= shift;
@@ -1899,7 +1838,6 @@ sub DeleteGroup {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetUserPlugins} = ["function", ["list", "string"], "string"]};
 sub GetUserPlugins {
 
     my $self	= shift;
@@ -1933,7 +1871,6 @@ sub GetUserPlugins {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{GetGroupPlugins} = ["function", ["list", "string"], "string"]};
 sub GetGroupPlugins {
 
     my $self		= shift;
@@ -1946,10 +1883,6 @@ sub GetGroupPlugins {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{DisableUser} = ["function",
-    "string",
-    ["map", "string", "any" ]];
-}
 sub DisableUser {
     
     my $self		= shift;
@@ -2024,10 +1957,6 @@ sub DisableUser {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{EnableUser} = ["function",
-    "string",
-    ["map", "string", "any" ]];
-}
 sub EnableUser {
     
     my $self		= shift;
@@ -3169,36 +3098,6 @@ sub AddUser {
 }
 
 ##------------------------------------
-# Simplified version of Add/Edit user: just take arguments and copy them
-# to current user map; doesn't do any checks or default adds
-BEGIN { $TYPEINFO{UpdateUser} = ["function",
-    "void",
-    ["map", "string", "any" ]];		# data to change in user_in_work
-}
-sub UpdateUser {
-
-    my $self	= shift;
-    my %data	= %{$_[0]};
-    foreach my $key (keys %data) {
-	$user_in_work{$key}	= $data{$key};
-    }
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{UpdateGroup} = ["function",
-    "void",
-    ["map", "string", "any" ]];		# data to change in user_in_work
-}
-sub UpdateGroup {
-
-    my $self	= shift;
-    my %data	= %{$_[0]};
-    foreach my $key (keys %data) {
-	$group_in_work{$key}	= $data{$key};
-    }
-}    
-
-##------------------------------------
 # Initializes group_in_work map with default values
 # @param data group initial data (could be an empty map)
 BEGIN { $TYPEINFO{AddGroup} = ["function",
@@ -3979,7 +3878,6 @@ sub WriteLoginDefaults {
 
 ##------------------------------------
 # Save Security settings (encryption method) if changed in Users module
-BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
 
     my $self	= shift;
@@ -4001,7 +3899,6 @@ sub WriteSecurity {
 
 
 ##------------------------------------
-BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
     my $cmd	= "/bin/cp $base_directory/group $base_directory/group.YaST2save";
@@ -4021,7 +3918,6 @@ $stdout`");
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
     my $cmd	= "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save";
     if (SCR->Execute (".target.bash", $cmd) != 0)
@@ -4040,7 +3936,6 @@ $stdout`");
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
     
     my $cmd	= "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save";
@@ -4154,7 +4049,6 @@ sub PostDeleteUsers {
 # After doing 'Write Changes Now', we must uncheck the 'modified' flags
 # of users/groups that were just written.
 # Otherwise, user previously added couldn't be deleted after such write...
-BEGIN { $TYPEINFO{UpdateUsersAfterWrite} = ["function", "void", "string"]; }
 sub UpdateUsersAfterWrite {
 
     my $self	= shift;
@@ -4178,7 +4072,6 @@ sub UpdateUsersAfterWrite {
 }
 
 # see UpdateUsersAfterWrite
-BEGIN { $TYPEINFO{UpdateGroupsAfterWrite} = ["function", "void", "string"]; }
 sub UpdateGroupsAfterWrite {
 
     my $self	= shift;
@@ -4815,30 +4708,6 @@ Encryption support is not installed, home directories will NOT be encrypted."))
 ##----------------- check routines ----------------------------------------
 
 ##------------------------------------
-BEGIN { $TYPEINFO{ValidLognameChars} = ["function", "string"]; }
-sub ValidLognameChars {
-    return UsersSimple->ValidLognameChars ();
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{ValidPasswordChars} = ["function", "string"]; }
-sub ValidPasswordChars {
-    return UsersSimple->ValidPasswordChars ();
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{ValidHomeChars} = ["function", "string"]; }
-sub ValidHomeChars {
-    return UsersSimple->ValidHomeChars ();
-}
-
-##------------------------------------
-BEGIN { $TYPEINFO{ValidPasswordMessage} = ["function", "string"]; }
-sub ValidPasswordMessage {
-    return UsersSimple->ValidPasswordMessage ();
-}
-
-##------------------------------------
 # Return the part of help text about valid password characters
 BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
 sub ValidPasswordHelptext {
@@ -5009,15 +4878,6 @@ Try another one."), $more);
 }
 
 ##------------------------------------
-# check fullname contents
-BEGIN { $TYPEINFO{CheckFullname} = ["function", "string", "string"]; }
-sub CheckFullname {
-
-    my ($self, $fullname)        = @_;
-    return UsersSimple->CheckFullname ($fullname);
-}
-
-##------------------------------------
 # check 'additional information': part of gecos field without the fullname
 BEGIN { $TYPEINFO{CheckGECOS} = ["function", "string", "string"]; }
 sub CheckGECOS {
@@ -5095,7 +4955,7 @@ sub CheckHome {
     my $type		= UsersCache->GetUserType ();
     my $first 		= substr ($home, 0, 1);
     my $filtered 	= $home;
-    my $valid_home_chars= $self->ValidHomeChars ();
+    my $valid_home_chars= UsersSimple->ValidHomeChars ();
     $filtered 		=~ s/$valid_home_chars//g;
 
     if ($filtered ne "" || $first ne "/" || $home =~ m/\/\./) {
@@ -5457,7 +5317,7 @@ sub CheckUser {
     }
 
     if ($error eq "" && $type ne "ldap") {
-	$error	= $self->CheckFullname ($user{"cn"});
+	$error	= UsersSimple->CheckFullname ($user{"cn"});
     }
 
     if ($error eq "" && $type ne "ldap") {
@@ -5735,13 +5595,12 @@ sub GetRootPassword {
 }
 
 ##-------------------------------------------------------------------------
-## -------------------------------------------- nis related routines 
+## -------------------------------------------- nis related routines
 ##------- TODO move to some 'include' file! -------------------------------
 
 
 ##------------------------------------
 # Check whether host is NIS master
-BEGIN { $TYPEINFO{ReadNISMaster} = ["function", "boolean"];}
 sub ReadNISMaster {
     if (! FileUtils->Exists ("/usr/lib/yp/yphelper")) {
         return 0;
@@ -5751,7 +5610,6 @@ sub ReadNISMaster {
 
 ##------------------------------------
 # Checks if set of NIS users is available
-BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
 sub ReadNISAvailable {
 
     my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
@@ -5802,10 +5660,6 @@ sub RemoveDiskUsersFromGroups {
 # Converts autoyast's user's map for users module usage
 # @param user map with user data provided by users_auto client
 # @return map with user data as defined in Users module
-BEGIN { $TYPEINFO{ImportUser} = ["function",
-    [ "map", "string", "any" ],
-    [ "map", "string", "any" ]];
-}
 sub ImportUser {
 
     my $self	= shift;
@@ -6402,10 +6256,6 @@ sub Import {
 # Converts user's map for autoyast usage
 # @param user map with user data as defined in Users module
 # @return map with user data in format used by autoyast
-BEGIN { $TYPEINFO{ExportUser} = ["function",
-    [ "map", "string", "any" ],
-    [ "map", "string", "any" ]];
-}
 sub ExportUser {
 
     my $self		= shift;
