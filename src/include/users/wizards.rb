@@ -42,6 +42,7 @@ module Yast
       Yast.import "Sequencer"
       Yast.import "Stage"
       Yast.import "UsersCache"
+      Yast.import "UsersDialogsFlags"
       Yast.import "Users"
       Yast.import "Wizard"
 
@@ -125,8 +126,8 @@ module Yast
       end
 
       if Stage.cont && (ret == :back || ret == :abort)
-        Users.SetStartDialog("user_add")
-        Users.SetUseNextTime(true)
+        UsersDialogsFlags.assign_start_dialog("user_add")
+        UsersDialogsFlags.assign_use_next_time(true)
         old_gui = Users.GetGUI
         Users.SetGUI(false)
         Users.Read

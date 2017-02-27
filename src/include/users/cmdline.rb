@@ -36,6 +36,7 @@ module Yast
       Yast.import "Ldap"
       Yast.import "Users"
       Yast.import "UsersCache"
+      Yast.import "UsersDialogsFlags"
       Yast.import "UsersLDAP"
       Yast.import "UsersSimple"
       Yast.import "Report"
@@ -750,7 +751,7 @@ module Yast
     end
 
     def UsersGUI
-      UsersSequence(Users.GetStartDialog) == :next
+      UsersSequence(UsersDialogsFlags.start_dialog) == :next
     end
   end
 end

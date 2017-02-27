@@ -179,10 +179,6 @@ my @pluses_passwd		= ();
 my @pluses_group		= ();
 my @pluses_shadow 		= ();
 
-# starting dialog for installation mode
-my $start_dialog		= "summary";
-my $use_next_time		= 0;
-
 # if user should be warned when using uppercase letters in login name
 my $not_ask_uppercase		= 0;
 
@@ -239,6 +235,7 @@ YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("String");
 YaST::YCP::Import ("Syslog");
 YaST::YCP::Import ("UsersCache");
+YaST::YCP::Import ("UsersDialogsFlags");
 YaST::YCP::Import ("UsersLDAP");
 YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersPlugins");
@@ -387,36 +384,6 @@ sub SetBaseDirectory {
     my $dir		= shift;
     $base_directory	= $dir if (defined $dir);
 }
-
-
-BEGIN { $TYPEINFO{GetStartDialog} = ["function", "string"]; }
-sub GetStartDialog {
-    return $start_dialog;
-}
-
-BEGIN { $TYPEINFO{StartDialog} = ["function", "boolean", "string"]; }
-sub StartDialog {
-    my $self		= shift;
-    return $start_dialog eq $_[0];
-}
-
-BEGIN { $TYPEINFO{SetStartDialog} = ["function", "void", "string"]; }
-sub SetStartDialog {
-    my $self		= shift;
-    $start_dialog	= $_[0];
-}
-
-BEGIN { $TYPEINFO{UseNextTime} = ["function", "boolean"]; }
-sub UseNextTime {
-    return $use_next_time;
-}
-
-BEGIN { $TYPEINFO{SetUseNextTime} = ["function", "void", "boolean"]; }
-sub SetUseNextTime {
-    my $self		= shift;
-    $use_next_time 	= $_[0];
-}
-
 
 BEGIN { $TYPEINFO{GetAvailableUserSets} = ["function", ["list", "string"]]; }
 sub GetAvailableUserSets {
@@ -757,7 +724,6 @@ sub GetDefaultHome {
     return $home;
 }
 
-}
 sub GetDefaultShadow {
 
     my $self	= shift;
@@ -1587,11 +1553,11 @@ sub Read {
 
     $self->ReadUsersCache ();
 
-    if (!$use_next_time) {
+    if (!UsersDialogsFlags->use_next_time ()) {
 	Autologin->Read ();
     }
 
-    if ((Stage->cont () || Stage->firstboot ()) && Autologin->available () && !$use_next_time &&
+    if ((Stage->cont () || Stage->firstboot ()) && Autologin->available () && !UsersDialogsFlags->use_next_time () &&
 	ProductFeatures->GetBooleanFeature ("globals", "enable_autologin")) {
 	Autologin->Use (YaST::YCP::Boolean (1));
     }
@@ -4673,7 +4639,7 @@ Encryption support is not installed, home directories will NOT be encrypted."))
 
     # do not show user in first dialog when all has been writen
     if (Stage->cont ()) {
-        $use_next_time	= 0;
+        UsersDialogsFlags->assign_use_next_time(0);
         undef %saved_user;
         undef %user_in_work;
     }

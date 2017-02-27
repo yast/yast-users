@@ -42,6 +42,7 @@ module Yast
       Yast.import "Stage"
       Yast.import "Users"
       Yast.import "UsersCache"
+      Yast.import "UsersDialogsFlags"
       Yast.import "Wizard"
 
       Yast.include include_target, "users/helps.rb"
@@ -101,7 +102,7 @@ module Yast
     # first dialog for single user addition
     # @return [Symbol] for wizard sequencer
     def usersInstStart
-      Users.SetStartDialog("user_add")
+      UsersDialogsFlags.assign_start_dialog("user_add")
       Users.AddUser({})
       :next
     end
