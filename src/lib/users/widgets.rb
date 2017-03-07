@@ -33,6 +33,12 @@ module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
+
+    class << self
+      attr_accessor :approved_pwd
+    end
+
+
     # If `little_space` is `false` (the default), the widget will
     # use a vertical layout, and include a "don't forget this" label.
     #
@@ -113,7 +119,7 @@ module Users
       end
 
       # do not ask again if already approved (bsc#1025835)
-      return true if @already_approved == password1
+      return true if self.class.approved_pwd == password1
 
       passwd = ::Users::LocalPassword.new(username: "root", plain: password1)
       # User can confirm using "invalid" password confirming all the errors
@@ -121,7 +127,7 @@ module Users
         errors = passwd.errors + [_("Really use this password?")]
         Yast::UI.SetFocus(Id(:pw1))
         return false unless Yast::Popup.YesNo(errors.join("\n\n"))
-        @already_approved = password1
+        self.class.approved_pwd = password1
       end
 
       return true
