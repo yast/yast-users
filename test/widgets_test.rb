@@ -84,6 +84,20 @@ describe Users::PasswordWidget do
       expect(subject.validate).to eq false
     end
 
+    it "asks for for confirmation only once for same password" do
+      stub_widget_value(:pw1, "a")
+      stub_widget_value(:pw2, "a")
+
+      allow(Yast::UsersSimple).to receive(:CheckPassword).and_return("")
+      allow(Users::LocalPassword).to receive(:new).and_return(double(valid?: false, errors: ["E"]))
+
+      expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
+      expect(Yast::Popup).to receive(:YesNo).and_return(true).once
+
+      expect(subject.validate).to eq true
+      expect(subject.validate).to eq true
+    end
+
     it "is valid otherwise" do
       stub_widget_value(:pw1, "a")
       stub_widget_value(:pw2, "a")
