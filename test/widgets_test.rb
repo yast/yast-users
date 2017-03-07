@@ -84,7 +84,7 @@ describe Users::PasswordWidget do
       expect(subject.validate).to eq false
     end
 
-    it "asks for for confirmation only once for same password" do
+    it "asks for confirmation only once for same password" do
       stub_widget_value(:pw1, "a")
       stub_widget_value(:pw2, "a")
 
