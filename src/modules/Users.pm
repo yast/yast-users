@@ -4064,7 +4064,7 @@ sub WriteShadow {
 sub WriteAuthorizedKeys {
     foreach my $username (keys %{$modified_users{"local"}}) {
         my %user	= %{$modified_users{"local"}{$username}};
-        if ($user{"modified"} == "imported") {
+        if ($user{"modified"} eq "imported") {
             # Write authorized keys to user's home (FATE#319471)
             SSHAuthorizedKeys->write_keys($user{"homeDirectory"});
         }
