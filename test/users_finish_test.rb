@@ -4,6 +4,7 @@ require_relative "test_helper"
 require "fileutils"
 require "yaml"
 require "users/clients/users_finish"
+require "security/display_manager"
 
 describe Yast::UsersFinishClient do
   Yast.import "WFM"
@@ -41,6 +42,12 @@ describe Yast::UsersFinishClient do
           # Writing users involves executing commands (cp, chmod, etc.) and those
           # calls can't be mocked (Perl code).
           allow(Yast::Users).to receive(:Write).and_return("")
+          # Users.Import relies on Yast::Security which produces weird errors in
+          # Travis CI. Since thea result of that call is irrelevant to our tests,
+          # let's mock it to avoid problems in Travis.
+          allow(::Security::DisplayManager).to receive(:current)
+          #allow(Yast::Security).to receive(:Export)
+          #  .and_return({ "PASSWD_USE_CRACKLIB"=>"yes" })
           Yast::Users.Import(users)
         end
 
