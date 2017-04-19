@@ -1287,52 +1287,67 @@ sub ReadSourcesSettings {
 BEGIN { $TYPEINFO{ReadSystemDefaults} = ["function", "void", "boolean"]; }
 sub ReadSystemDefaults {
 
-    if (Mode->test ()) { return; }
+    if (Mode->test ()) {
+	    print "MODETESTDEF\n";
+	    return; 
+    }
 
     my $self		= shift;
     my $force		= shift;
 
+    print "A\n";
     return if ($system_defaults_read && !$force);
 
+    print "A\n";
     if (! Security->GetModified ()) {
 	my $progress_orig = Progress->set (0);
 	Security->Read ();
 	Progress->set ($progress_orig);
     }
+    print "A\n";
     $security_modified 		= $security_modified || Security->GetModified ();
 
+    print "B\n";
     my %security	= %{Security->Export ()};
+    print "C\n";
     $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
     $pass_min_days	= $security{"PASS_MIN_DAYS"}	|| $pass_min_days;
     $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
+    print "A\n";
 
     # command to call before/after adding/deleting user
     $useradd_cmd 	= $security{"USERADD_CMD"};
     $userdel_precmd 	= $security{"USERDEL_PRECMD"};
     $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
+    print "A\n";
 
     # command to call after adding group
     $groupadd_cmd 	= SCR->Read (".etc.login_defs.GROUPADD_CMD") || "";
+    print "A\n";
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     UsersSimple->SetEncryptionMethod ($encryption_method);
     $group_encryption_method
 	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
 
+    print "A\n";
     UsersSimple->SetCrackLibDictPath ($security{"CRACKLIB_DICTPATH"} || "");
     UsersSimple->UseCrackLib ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
 
+    print "A\n";
     if (defined $security{"PASS_MIN_LEN"}) {
 	UsersSimple->SetMinPasswordLength ("local", $security{"PASS_MIN_LEN"});
 	UsersSimple->SetMinPasswordLength ("system", $security{"PASS_MIN_LEN"});
     }
 
+    print "A\n";
     my $login_defs	= SCR->Dir (".etc.login_defs");
     if (contains ($login_defs, "CHARACTER_CLASS")) {
 	$character_class= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
         UsersSimple->SetCharacterClass ($character_class);
     }
 
+    print "A\n";
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
 	my $len	= $max_lengths{$encryption_method};
@@ -1340,7 +1355,9 @@ sub ReadSystemDefaults {
 	UsersSimple->SetMaxPasswordLength ("system", $len);
     }
 
+    print "A\n";
     UsersCache->InitConstants (\%security);
+    print "A\n";
     $system_defaults_read	= 1;
 }
 
@@ -6129,11 +6146,14 @@ sub Import {
     my %settings	= %{$_[0]};
 
     y2debug ("importing: ", %settings);
+    print "IMPORTING\n";
 
     if (!defined $settings{"user_defaults"} || !%{$settings{"user_defaults"}}) {
+    	print "UNO\n";
         $self->ReadLoginDefaults ();
     }
     else {
+    	print "ONE\n";
         %useradd_defaults 	= %{$settings{"user_defaults"}};
         # if no_groups key is specifed, use no secondary groups
         if ($useradd_defaults{"no_groups"} || 0) {
@@ -6145,27 +6165,36 @@ sub Import {
     if (defined $settings{"login_settings"} &&
 	ref ($settings{"login_settings"}) eq "HASH")
     {
+    	print "DOS\n";
 	my $autologin	= $settings{"login_settings"};
 	my $auto_user	= $autologin->{"autologin_user"} || "";
 	if ($auto_user) {
+    		print "TWO\n";
 	    Autologin->Use (1);
 	    Autologin->user ($auto_user);
 	}
 	if (defined $autologin->{"password_less_login"}) {
+    		print "ZWEI\n";
 	    Autologin->pw_less ($autologin->{"password_less_login"});
 	}
     }
 
+   print "TRES\n";
     $self->ReadSystemDefaults(1);
+    print "TRESYMEDIO\n";
 
     # remove cache entries (#50265)
     UsersCache->ResetCache ();
+    print "TRESYTRESCUARTOS\n";
 
     my $error_msg = Mode->test() ? "" : $self->ReadLocal ();
+    print "TRESY99\n";
     if ($error_msg) {
+    print "RETURN ERROR MSG $error_msg\n";
 	return 0;
     }
 
+   print "CUEATRO\n";
     if (Mode->config ()) {
 	
 	$shadow{"local"}		= {};
@@ -6179,6 +6208,7 @@ sub Import {
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
         $groups_modified	= 1;
     }
+   print "CINCO\n";
 
     # Problem: what if UID is not provided?
     my @without_uid		= ();
@@ -6186,16 +6216,19 @@ sub Import {
     if (defined $settings{"users"} && @{$settings{"users"}} > 0) {
 
 	foreach my $imp_user (@{$settings{"users"}}) {
+   	print "DREI\n";
 	    ResetCurrentUser ();
 	    my %user		= %{$self->ImportUser ($imp_user)};
 	    my $type		= $user{"type"} || "local";
 	    my $username 	= $user{"uid"} || "";
 	    my $uid 		= $user{"uidNumber"};
 	    if (!defined $uid || $uid == -1) {
+   	print "THREE\n";
 		delete $user{"uidNumber"};
 		push @without_uid, \%user;
 	    }
 	    else {
+   	print "WHAT\n";
 		$users{$type}{$username}		= \%user;
 		if (!defined $users_by_uidnumber{$type}{$uid}) {
 		    $users_by_uidnumber{$type}{$uid} 	= {};
@@ -6206,6 +6239,7 @@ sub Import {
 	    }
 	}
 
+   	print "WHOT\n";
 	# there could be conflicts when adding new uses
 	if (!Mode->config () && @without_uid > 0) {
 	    y2milestone ("users imported: updating cache");
@@ -6226,6 +6260,7 @@ sub Import {
 	    }
 	}
     }
+    print "HWODSL\n";
 
     # group users should be "local"
     if (defined $groups{"system"}{"users"}) {
@@ -6244,6 +6279,7 @@ sub Import {
 
     my @without_gid		= ();
 
+    print "LONGEST\n";
     if (defined $settings{"groups"} && @{$settings{"groups"}} > 0) {
 
 	foreach my $imp_group (@{$settings{"groups"}}) {
@@ -6305,6 +6341,7 @@ sub Import {
 
     @available_usersets		= ( "local", "system", "custom" );
     @available_groupsets	= ( "local", "system", "custom" );
+    print "FUNCTION\n";
 
     $self->ReadAllShells ();
 
@@ -6372,6 +6409,7 @@ sub Import {
 	    }
 	}
     }
+    print "EVER\n";
 
     # initialize UsersCache: 1. system users and groups:
     UsersCache->ReadUsers ("system");
@@ -6395,6 +6433,7 @@ sub Import {
     UsersCache->SetCurrentUsers (\@user_custom_sets);
     UsersCache->SetCurrentGroups (\@group_custom_sets);
 
+    print "RETURN 1\n";
     return 1;
 }
 
