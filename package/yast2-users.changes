@@ -1,4 +1,44 @@
 -------------------------------------------------------------------
+Tue Mar  7 13:49:49 UTC 2017 - jreidinger@suse.com
+
+- do not ask again for already approved weak password second
+  attempt, so it will work also if widget is recreated(bsc#1025835)
+- 3.1.57.7
+
+-------------------------------------------------------------------
+Mon Feb 20 09:06:14 UTC 2017 - jreidinger@suse.com
+
+- do not ask again for already approved weak password (bsc#1025835)
+- 3.1.57.6
+
+-------------------------------------------------------------------
+Fri Jan 20 15:28:22 UTC 2017 - mvidner@suse.com
+
+- Password widget: a compact layout, do not steal focus (FATE#322328)
+- 3.1.57.5
+
+-------------------------------------------------------------------
+Wed Dec 14 14:35:57 UTC 2016 - jreidinger@suse.com
+
+- Separate root password widget and keyboard layout test widget
+  (needed for FATE#321754)
+- 3.1.57.4
+
+-------------------------------------------------------------------
+Fri Dec  2 12:58:58 UTC 2016 - jreidinger@suse.com
+
+- Set the focus to the first password field to keep the same
+  behavior as before the last change. (for FATE#321754)
+- 3.1.57.3
+
+-------------------------------------------------------------------
+Thu Dec  1 09:41:59 UTC 2016 - jreidinger@suse.com
+
+- prepare reusable widget for setting root password
+  (needed for FATE#321754)
+- 3.1.57.2
+
+-------------------------------------------------------------------
 Tue Oct 11 12:10:21 UTC 2016 - hguo@suse.com
 
 - Fix the invocation of authentication configuration instance

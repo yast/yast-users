@@ -64,7 +64,8 @@ ylib_DATA = \
   lib/users/encryption_method.rb \
   lib/users/proposal.rb \
   lib/users/encryption_proposal.rb \
-  lib/users/users_database.rb
+  lib/users/users_database.rb \
+  lib/users/widgets.rb
 
 scrconf_DATA = \
   scrconf/uid.scr \
