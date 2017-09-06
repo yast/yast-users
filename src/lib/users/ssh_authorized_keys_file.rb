@@ -61,10 +61,6 @@ module Yast
         @keys
       end
 
-      # https://github.com/jordansissel/ruby-sshkeyauth/commit/12c9bb34399babf4040337e5695f3f453cd6745e#diff-4d8f3d488c1e25a30942c0e90f4e6ce4R14
-      AUTHORIZED_KEYS_REGEX =
-        /\A((?:[A-Za-z0-9-]+(?:="[^"]+")?,?)+)? *((?:ssh|ecdsa)-[^ ]+) *([^ ]+) *(.+)?\z/
-
       # Validate and add a key to the keyring
       #
       # The key is validated before adding it to the keyring.
@@ -98,7 +94,10 @@ module Yast
         keys
       end
 
-      # Determines is a string qualifies like a valid keys
+      # https://github.com/puppetlabs/puppet/blob/master/lib/puppet/type/ssh_authorized_key.rb#L138
+      AUTHORIZED_KEYS_REGEX = /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/
+
+      # Determine is a string qualifies like a valid key
       #
       # @param key [String] SSH authorized keys
       # @return [Boolean] +true+ if it's valid; +false+ otherwise
