@@ -36,9 +36,10 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       let(:path) { FIXTURES_PATH.join("home", "user1", ".ssh", "authorized_keys") }
 
       it "returns the keys that are present in the file" do
-        first, second = subject.keys
+        first, second, third = subject.keys
         expect(first).to match(/environment=.+/)
         expect(second).to match(/ssh-rsa/)
+        expect(third).to match(/ssh-rsa/)
       end
     end
 
