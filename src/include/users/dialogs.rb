@@ -202,11 +202,6 @@ module Yast
       )
       mode = Ops.get_string(user, "home_mode", default_mode)
       default_crypted_size = 100
-      crypted_home_size = GetInt(Ops.get(user, "crypted_home_size"), 0)
-      org_crypted_home_size = GetInt(
-        Ops.get(user, ["org_user", "crypted_home_size"]),
-        0
-      )
       password = Ops.get_string(user, "userPassword")
       org_username = Ops.get_string(user, "org_uid", username)
       uid = GetInt(Ops.get(user, "uidNumber"), nil)
@@ -252,9 +247,6 @@ module Yast
       chown_home = Ops.get_boolean(user, "chown_home", true)
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
       do_not_edit = user_type == "nis"
-      crypted_home_enabled = UsersRoutines.CryptedHomesEnabled &&
-        (user_type == "ldap" && Ldap.file_server ||
-          user_type == "local" || user_type == "system")
 
       complex_layout = installation && Users.StartDialog("user_add")
       groups = Ops.get_map(user, "grouplist", {})
@@ -295,7 +287,6 @@ module Yast
         end
         home = Ops.get_string(user, "homeDirectory", home)
         org_home = Ops.get_string(user, "org_homeDirectory", org_home)
-        crypted_home_size = GetInt(Ops.get(user, "crypted_home_size"), 0)
         mode = Ops.get_string(user, "home_mode", default_mode)
         password = Ops.get_string(user, "userPassword", password)
         org_username = Ops.get_string(user, "org_uid", org_username)
@@ -684,33 +675,6 @@ module Yast
               Left(CheckBox(Id(:skel), _("E&mpty Home"), no_skel))
             )
           )
-        crypted_home_term = crypted_home_enabled ?
-          HBox(
-            VBox(
-              Label(""),
-              HBox(
-                HSpacing(),
-                Left(
-                  CheckBox(
-                    Id(:crypted_home),
-                    Opt(:notify),
-                    # check box label
-                    _("&Use Encrypted Home Directory"),
-                    Ops.greater_than(crypted_home_size, 0)
-                  )
-                )
-              )
-            ), # for max value, see bug 244631 :-)
-            # IntField label
-            IntField(
-              Id(:dirsize),
-              _("&Directory Size in MB"),
-              10,
-              2147483647,
-              crypted_home_size
-            )
-          ) :
-          HBox()
 
         HBox(
           HSpacing(1),
@@ -740,7 +704,7 @@ module Yast
                     )
                   ),
                   Top(
-                    VBox(HBox(home_w, browse), new_user_term, crypted_home_term)
+                    VBox(HBox(home_w, browse), new_user_term)
                   ),
                   additional_data,
                   Top(edit_shell),
@@ -1420,28 +1384,6 @@ module Yast
             UI.ChangeWidget(Id(:home), :Value, dir)
           end
         end
-        if current == :details && ret == :crypted_home
-          checked = Convert.to_boolean(
-            UI.QueryWidget(Id(:crypted_home), :Value)
-          )
-          if !checked && UserLogged(org_username)
-            # error popup
-            Report.Error(
-              _(
-                "The home directory for this user cannot be decrypted,\n" +
-                  "because the user is currently logged in.\n" +
-                  "Log the user out first."
-              )
-            )
-            UI.ChangeWidget(Id(:crypted_home), :Value, true)
-            next
-          end
-          if checked &&
-              Convert.to_integer(UI.QueryWidget(Id(:dirsize), :Value)) == 10
-            UI.ChangeWidget(Id(:dirsize), :Value, default_crypted_size)
-          end
-          UI.ChangeWidget(Id(:dirsize), :Enabled, checked)
-        end
 
         # going from Details dialog
         if current == :details && (ret == :next || tab)
@@ -1569,29 +1511,6 @@ module Yast
             end
           end
 
-          if crypted_home_enabled
-            home_size = Convert.to_integer(UI.QueryWidget(Id(:dirsize), :Value))
-            if Convert.to_boolean(UI.QueryWidget(Id(:crypted_home), :Value))
-              if home_size == 0
-                # error popup
-                Popup.Error(_("Enter the size for the home directory."))
-                focus_tab.call(current, :dirsize)
-                next
-              end
-              if !Package.Install("cryptconfig")
-                # error popup
-                Popup.Error(Message.FailedToInstallPackages + _("
-Directory cannot be encrypted."))
-                UI.ChangeWidget(Id(:crypted_home), :Value, false)
-                next
-              end
-              crypted_home_size = home_size
-            else
-              crypted_home_size = 0
-            end
-          end
-
-
           error_map = Users.CheckShellUI(new_shell, ui_map)
           if error_map != {}
             if !Popup.YesNo(Ops.get_string(error_map, "question", ""))
@@ -1660,7 +1579,6 @@ Directory cannot be encrypted."))
           Ops.set(user, "addit_data", addit_data)
           Ops.set(user, "no_skeleton", no_skel)
           Ops.set(user, "home_mode", mode)
-          Ops.set(user, "crypted_home_size", crypted_home_size)
         end
 
         if current == :passwordsettings && (ret == :next || tab)
@@ -1898,14 +1816,6 @@ Directory cannot be encrypted."))
           end
           UI.ChangeWidget(Id(:shell), :Value, shell)
 
-          if UI.WidgetExists(Id(:crypted_home))
-            UI.ChangeWidget(
-              Id(:dirsize),
-              :Enabled,
-              Convert.to_boolean(UI.QueryWidget(Id(:crypted_home), :Value))
-            )
-          end
-
           current = ret
         end
         if ret == :passwordsettings
@@ -1933,53 +1843,6 @@ Directory cannot be encrypted."))
             Report.Error(error)
             ret = :notnext
             next
-          end
-          if crypted_home_enabled && action == "edited" &&
-              Ops.get(user, "current_text_userpassword") == nil &&
-              (crypted_home_size != org_crypted_home_size ||
-                Ops.greater_than(crypted_home_size, 0) &&
-                  (org_username != username || org_home != home ||
-                    Ops.get_boolean(
-                      # only password was changed
-                      user,
-                      "encrypted",
-                      false
-                    ) == false))
-            img_file = Builtins.sformat("%1.img", home)
-            key_file = Builtins.sformat("%1.key", home)
-            # ask to take existing orphaned image by user
-            # without current directory encrypted (bnc#425745)
-            if org_crypted_home_size == 0 && FileUtils.Exists(img_file) &&
-                FileUtils.Exists(key_file) &&
-                UsersRoutines.CryptedImageOwner(img_file) == "" &&
-                UsersRoutines.CryptedImageOwner(key_file) == "" &&
-                ask_take_image.call(img_file, key_file)
-              Ops.set(user, "take_existing_image", img_file)
-            end
-
-
-            # do not ask when enabling for first time and password was already entered
-            # do not ask when taking existing image, pw not needed for that FIXME really?
-            if (Ops.get_boolean(user, "encrypted", false) == false ||
-                Ops.get(user, "text_userpassword") != nil ||
-                Ops.get_string(user, "take_existing_image", "") != "") &&
-                org_crypted_home_size == 0
-              Ops.set(
-                user,
-                "current_text_userpassword",
-                Ops.get(user, "text_userpassword") != nil ?
-                  Ops.get(user, "text_userpassword") :
-                  Ops.get_string(user, "userPassword", "")
-              )
-            else
-              old_pw = AskForOldPassword()
-              if old_pw != nil
-                Ops.set(user, "current_text_userpassword", old_pw)
-              else
-                ret = :notnext
-                next
-              end
-            end
           end
 
           # --------------------------------- save the settings

@@ -15,7 +15,6 @@ Return
 Execute	.target.bash_output "echo 'ggl' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggl"]
 Return	
 Return	true
-Read	.anyxml "/etc/security/pam_mount.conf.xml" nil
 Return	
 Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	

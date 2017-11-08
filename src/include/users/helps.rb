@@ -455,31 +455,6 @@ module Yast
         )
       end
 
-      if user_type == "system" || user_type == "local" ||
-          user_type == "ldap" && Ldap.file_server
-        if UsersRoutines.CryptedHomesEnabled
-          # help text for directory encryption
-          helptext = Ops.add(
-            helptext,
-            _(
-              "<p>To encrypt the user's home directory, enable <b>Use Encrypted Home\n" +
-                "Directory</b> and set the directory size. Encrypting a user's home directory\n" +
-                "does not provide strong security from other users. If this machine is shared\n" +
-                "among multiple users, it may be possible for a user to compromise system\n" +
-                "security by obtaining another user's key and gaining access to the encrypted data. If strong security is required, the system should not be physically shared.</p>"
-            )
-          )
-        else
-          # help text for directory encryption
-          helptext = Ops.add(
-            helptext,
-            _(
-              "<p>Home directories cannot be encrypted if a fingerprint reader device is used. To encrypt the user's home directory, disable fingerprint configuration first.</p>"
-            )
-          )
-        end
-      end
-
       if user_type == "ldap"
         helptext = Ops.add(
           helptext,
