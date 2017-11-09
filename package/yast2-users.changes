@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov  8 12:16:47 UTC 2017 - jsrain@suse.cz
+
+- Remove the support for encrypting home directory (fate#323541)
+- 4.0.0
+
+-------------------------------------------------------------------
 Tue Sep  5 14:47:25 UTC 2017 - igonzalezsosa@suse.com
 
 - Do not freeze while parsing authorized_keys (bsc#1053564)

@@ -2177,13 +2177,6 @@ sub EditUser {
 	    $user_in_work{"chown_home"}		= YaST::YCP::Boolean (1);
 	}
 
-	# check if user is using crypted directory
-	$user_in_work{"crypted_home_size"} = 0;
-	my $dir	= UsersRoutines->CryptedImagePath ($username);
-	if ($dir && FileUtils->Exists ($dir)) {
-	    $user_in_work{"crypted_home_size"}	= UsersRoutines->FileSizeInMB ($dir);
-	}
-
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
@@ -3432,37 +3425,7 @@ sub UserReallyModified {
 	    $ret = 1;
 	}
     }
-    # TODO should be caught in the previous tests?
-    if (!$ret &&
-	defined $org_user{"crypted_home_size"} &&
-	defined $user{"crypted_home_size"})
-    {
-	$ret = ($org_user{"crypted_home_size"} ne $user{"crypted_home_size"});
-    }
     return $ret;
-}
-
-# take the map of user and check if his crypted directory settings were modified
-# return boolean
-sub CryptedHomeModified {
-
-    my $self		= shift;
-    my $user		= shift;
-
-    my $username	= $user->{"uid"} || "";
-    my $org_username	= $user->{"org_user"}{"uid"} || $username;
-    my $home		= $user->{"homeDirectory"} || "";
-    my $org_home	= $user->{"org_user"}{"homeDirectory"} || $home;
-    my $home_size   	= $user->{"crypted_home_size"} || 0;
-    my $org_size 	= $user->{"org_user"}{"crypted_home_size"} || 0;
-    my $pw		= $user->{"current_text_userpassword"};
-    my $new_pw		= $user->{"text_userpassword"};
-
-    return 0 if ($home_size == 0 && $org_size == 0); # nothing to do
-    return 0 if (!defined $pw && !defined $new_pw); # no change without password provided :-(
-    return 0 if ($home eq $org_home && $username eq $org_username && $home_size == $org_size &&
-		(($pw || "") eq ($new_pw || "")));
-    return 1;
 }
 
 
@@ -4313,9 +4276,6 @@ sub Write {
     # Write LDAP users and groups
     if ($use_gui) { Progress->NextStage (); }
 
-    # this hash stores users, for which directory needs to be crypted (feature 301787)
-    my %users_with_crypted_dir          = ();
-
     if ($ldap_modified) {
 	my $error_msg	= "";
 
@@ -4335,9 +4295,6 @@ sub Write {
 	    # only remember for which users we need to call cryptconfig
 	    foreach my $username (keys %{$modified_users{"ldap"}}) {
 		my %user	= %{$modified_users{"ldap"}{$username}};
-		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
-		    $users_with_crypted_dir{$username}	= \%user;
-		}
 	    }
 	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
 	    if ($error_msg ne "") {
@@ -4492,9 +4449,6 @@ sub Write {
 		my $chown_home	= $user{"chown_home"};
 		$chown_home	= 1 if (!defined $chown_home);
 		my $skel	= $useradd_defaults{"skel"};
-		if (defined $user{"crypted_home_size"} && $self->CryptedHomeModified (\%user)) {
-		    $users_with_crypted_dir{$username}	= \%user;
-		}
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 
 		    y2usernote ("User '$username' created");
@@ -4562,9 +4516,7 @@ sub Write {
 			    UsersRoutines->CreateHome ($skel, $home);
 			}
 			# do not change root's ownership of home directories
-			if ((!defined $user{"crypted_home_size"} ||
-			    $user{"crypted_home_size"} eq 0) &&
-			    bool ($chown_home))
+			if (bool ($chown_home))
 			{
 			    UsersRoutines->ChownHome ($uid, $gid, $home);
 			}
@@ -4575,15 +4527,6 @@ sub Write {
     }
 
     if (Mode->autoinst() || Mode->autoupgrade() || Mode->config()) { WriteAuthorizedKeys(); }
-
-    if (%users_with_crypted_dir) {
-        unless (Package->Install ("cryptconfig"))
-        {
-          # error message
-          Report->Error(Message->FailedToInstallPackages () + __("
-Encryption support is not installed, home directories will NOT be encrypted."))
-        }
-    }
 
     # Write passwords
     if ($use_gui) { Progress->NextStage (); }
@@ -4718,14 +4661,6 @@ Encryption support is not installed, home directories will NOT be encrypted."))
 	    Syslog->Log ("GROUPADD_CMD command called by YaST: $command");
 	}
     }
-
-    if (!FileUtils->Exists (UsersRoutines->CryptconfigPath ())) {
-	%users_with_crypted_dir     = ();
-    }
-    foreach my $username (keys %users_with_crypted_dir) {
-	UsersRoutines->CryptHome ($users_with_crypted_dir{$username});
-    }
-    %users_with_crypted_dir	= ();
 
     # complete adding users
     if ($users_modified && @useradd_postcommands > 0) {
