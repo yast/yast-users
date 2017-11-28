@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 28 08:14:48 UTC 2017 - knut.anderssen@suse.com
+
+- AutoYaST: Write and export SSH authorized keys also for root user
+  (bsc#1066342).
+- 3.2.13
+
+-------------------------------------------------------------------
 Tue Sep  5 14:47:25 UTC 2017 - igonzalezsosa@suse.com
 
 - Do not freeze while parsing authorized_keys (bsc#1053564)
