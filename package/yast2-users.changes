@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 28 08:14:48 UTC 2017 - knut.anderssen@suse.com
+
+- AutoYaST: Write and export SSH authorized keys also for root user
+  (bsc#1066342).
+- 4.0.1
+
+-------------------------------------------------------------------
 Wed Nov  8 12:16:47 UTC 2017 - jsrain@suse.cz
 
 - Remove the support for encrypting home directory (fate#323541)
