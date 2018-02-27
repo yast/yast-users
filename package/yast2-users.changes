@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb 27 13:49:22 UTC 2018 - jreidinger@suse.com
+
+- fix generating pot files (bsc#1083015)
+- 4.0.2
+
+-------------------------------------------------------------------
 Tue Nov 28 08:14:48 UTC 2017 - knut.anderssen@suse.com
 
 - AutoYaST: Write and export SSH authorized keys also for root user
