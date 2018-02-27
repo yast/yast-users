@@ -32,6 +32,7 @@ module Yast
     attr_reader :keyring
 
     def main
+      textdomain "users"
       reset
     end
 
