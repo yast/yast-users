@@ -192,7 +192,6 @@ module Yast
       else
         cn = Ops.get_string(user, "cn", "")
       end
-      tmp_fullname = cn # for login proposing
       default_home = Users.GetDefaultHome(user_type)
       home = Ops.get_string(user, "homeDirectory", default_home)
       org_home = Ops.get_string(user, "org_homeDirectory", home)
@@ -201,7 +200,6 @@ module Yast
         Ops.subtract(777, Builtins.tointeger(String.CutZeros(Users.GetUmask)))
       )
       mode = Ops.get_string(user, "home_mode", default_mode)
-      default_crypted_size = 100
       password = Ops.get_string(user, "userPassword")
       org_username = Ops.get_string(user, "org_uid", username)
       uid = GetInt(Ops.get(user, "uidNumber"), nil)
@@ -252,7 +250,6 @@ module Yast
       groups = Ops.get_map(user, "grouplist", {})
 
       available_shells = Users.AllShells
-      grouplist = ""
       new_type = user_type
 
       all_groupnames = UsersCache.GetAllGroupnames
@@ -324,25 +321,6 @@ module Yast
         do_not_edit = user_type == "nis"
 
         nil
-      end
-
-      # helper function: show a popup if existing crypted home directory file
-      # should be used by current user
-      ask_take_image = lambda do |img_file, key_file|
-        # yes/no popup label, %1,%2 are file paths
-        Popup.YesNo(
-          Builtins.sformat(
-            _(
-              "Crypted directory image and key files\n" +
-                "'%1' and '%2'\n" +
-                "were found. Use them for current user?\n" +
-                "\n" +
-                "This means that data from this image will be used instead of current home directory."
-            ),
-            img_file,
-            key_file
-          )
-        )
       end
 
       # helper function: show a popup if existing home directory should be used
