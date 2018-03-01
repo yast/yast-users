@@ -1,3 +1,6 @@
+/coverage/
+/.yardoc/
+/doc/autodocs/
 Makefile
 Makefile.in
 aclocal.m4
