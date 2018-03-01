@@ -155,6 +155,44 @@ module Yast
       ret == :ok ? pw : nil
     end
 
+
+    # helper function: show a popup if existing home directory should be used
+    # and its ownership should be changed
+    # @param dir [String]
+    # @param chown_default [Boolean]
+    def ask_chown_home(dir, chown_default)
+      UI.OpenDialog(
+        Opt(:decorated),
+        HBox(
+          HSpacing(1),
+          VBox(
+            VSpacing(0.2),
+            Label(
+              # popup label, %1 is path to directory
+              Builtins.sformat(_("The home directory (%1) already exists.\nUse it anyway?"), dir)
+            ),
+            Left(
+              # checkbox label
+              CheckBox(Id(:chown_home), _("&Change directory owner"), chown_default)
+            ),
+            ButtonBox(
+              PushButton(Id(:yes), Opt(:default), Label.YesButton),
+              PushButton(Id(:no), Label.NoButton)
+            ),
+            VSpacing(0.2)
+          ),
+          HSpacing(1)
+        )
+      )
+      ui = UI.UserInput
+      retmap = { "retval" => ui == :yes }
+      if ui == :yes
+        Ops.set(retmap, "chown_home", UI.QueryWidget(Id(:chown_home), :Value))
+      end
+      UI.CloseDialog
+      retmap
+    end
+
     # Dialog for adding or editing a user.
     # @param [String] what "add_user" or "edit_user"
     # @return [Symbol] for wizard sequencer
@@ -322,49 +360,6 @@ module Yast
 
         nil
       end
-
-      # helper function: show a popup if existing home directory should be used
-      # and its ownership should be changed
-      ask_chown_home = lambda do |dir, chown_default|
-        UI.OpenDialog(
-          Opt(:decorated),
-          HBox(
-            HSpacing(1),
-            VBox(
-              VSpacing(0.2),
-              # popup label, %1 is path to directory
-              Label(
-                Builtins.sformat(
-                  _("The home directory (%1) already exists.\nUse it anyway?"),
-                  dir
-                )
-              ),
-              Left(
-                # checkbox label
-                CheckBox(
-                  Id(:chown_home),
-                  _("&Change directory owner"),
-                  chown_default
-                )
-              ),
-              ButtonBox(
-                PushButton(Id(:yes), Opt(:default), Label.YesButton),
-                PushButton(Id(:no), Label.NoButton)
-              ),
-              VSpacing(0.2)
-            ),
-            HSpacing(1)
-          )
-        )
-        ui = UI.UserInput
-        retmap = { "retval" => ui == :yes }
-        if ui == :yes
-          Ops.set(retmap, "chown_home", UI.QueryWidget(Id(:chown_home), :Value))
-        end
-        UI.CloseDialog
-        deep_copy(retmap)
-      end
-
 
       # generate contents for User Data Dialog
       get_edit_term = lambda do
@@ -1268,7 +1263,7 @@ module Yast
               if error_map != {}
                 if Ops.get_string(error_map, "question_id", "") == "chown" &&
                     !Builtins.haskey(error_map, "owned")
-                  ret2 = ask_chown_home.call(home, chown_home)
+                  ret2 = ask_chown_home(home, chown_home)
                   if Ops.get_boolean(ret2, "retval", false)
                     Ops.set(ui_map, "chown", home)
                     chown_home = Ops.get_boolean(ret2, "chown_home", chown_home)
@@ -1462,7 +1457,7 @@ module Yast
               if error_map != {}
                 if Ops.get_string(error_map, "question_id", "") == "chown" &&
                     !Builtins.haskey(error_map, "owned")
-                  ret2 = ask_chown_home.call(new_home, chown_home)
+                  ret2 = ask_chown_home(new_home, chown_home)
                   if Ops.get_boolean(ret2, "retval", false)
                     Ops.set(ui_map, "chown", new_home)
                     chown_home = Ops.get_boolean(ret2, "chown_home", chown_home)
