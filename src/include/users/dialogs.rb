@@ -193,6 +193,107 @@ module Yast
       retmap
     end
 
+    # @param count [Integer] number of days after 1970-01-01
+    # @param date_format [String] strftime format like "%x" (localized date)
+    # @return [String]
+    def format_days_after_epoch(count, date_format)
+      `date --date='1970-01-01 00:00:01 #{count} days' +#{date_format}`.chomp
+    end
+
+    # generate contents for Password Settings Dialog
+    # @param user [Hash]
+    # @param exp_date [String] may be MODIFIED on return corresponding to the UI
+    # @return [Term] ui_term
+    def get_password_term(user, exp_date)
+      last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
+      last_change_label = ""
+      expires = GetString(Ops.get(user, "shadowExpire"), "0")
+      expires = "0" if expires == ""
+
+      inact = GetInt(Ops.get(user, "shadowInactive"), -1)
+      max = GetInt(Ops.get(user, "shadowMax"), -1)
+      min = GetInt(Ops.get(user, "shadowMin"), -1)
+      warn = GetInt(Ops.get(user, "shadowWarning"), -1)
+
+      if last_change != "0"
+        last_change_label = format_days_after_epoch(last_change, "%x")
+      else
+        # label (date of last password change)
+        last_change_label = _("Never")
+      end
+      if expires != "0" && expires != "-1" && expires != ""
+        exp_date.replace(format_days_after_epoch(expires, "%Y-%m-%d"))
+      end
+      HBox(
+        HSpacing(3),
+        VBox(
+          VStretch(),
+          Left(Label("")),
+          HSquash(
+            VBox(
+              Left(
+                Label(
+                  # label
+                  Builtins.sformat(_("Last Password Change: %1"), last_change_label)
+                )
+              ),
+              VSpacing(0.2),
+              Left(
+                # check box label
+                CheckBox(Id(:force_pw), _("Force Password Change"), last_change == "0")
+              ),
+              VSpacing(1),
+              IntField(
+                Id("shadowWarning"),
+                # intfield label
+                _("Days &before Password Expiration to Issue Warning"),
+                -1,
+                99999,
+                warn
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowInactive"),
+                # intfield label
+                _("Days after Password Expires with Usable &Login"),
+                -1,
+                99999,
+                inact
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowMax"),
+                # intfield label
+                _("Ma&ximum Number of Days for the Same Password"),
+                -1,
+                99999,
+                max
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowMin"),
+                # intfield label
+                _("&Minimum Number of Days for the Same Password"),
+                -1,
+                99999,
+                min
+              ),
+              VSpacing(0.5),
+              InputField(
+                Id("shadowExpire"),
+                Opt(:hstretch),
+                # textentry label
+                _("Ex&piration Date"),
+                exp_date
+              )
+            )
+          ),
+          VStretch()
+        ),
+        HSpacing(3)
+      )
+    end
+
     # Dialog for adding or editing a user.
     # @param [String] what "add_user" or "edit_user"
     # @return [Symbol] for wizard sequencer
@@ -711,130 +812,6 @@ module Yast
             VSpacing(0.5)
           ),
           HSpacing(1)
-        )
-      end
-
-      # generate contents for Password Settings Dialog
-      get_password_term = lambda do
-        last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
-        last_change_label = ""
-        expires = GetString(Ops.get(user, "shadowExpire"), "0")
-        expires = "0" if expires == ""
-
-        inact = GetInt(Ops.get(user, "shadowInactive"), -1)
-        max = GetInt(Ops.get(user, "shadowMax"), -1)
-        min = GetInt(Ops.get(user, "shadowMin"), -1)
-        warn = GetInt(Ops.get(user, "shadowWarning"), -1)
-
-        if last_change != "0"
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Builtins.sformat(
-                "date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"",
-                last_change
-              )
-            )
-          )
-          # label (date of last password change)
-          last_change_label = Ops.get_locale(out, "stdout", _("Unknown"))
-        else
-          # label (date of last password change)
-          last_change_label = _("Never")
-        end
-        if expires != "0" && expires != "-1" && expires != ""
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Ops.add(
-                Builtins.sformat(
-                  "date --date='1970-01-01 00:00:01 %1 days' ",
-                  expires
-                ),
-                "+\"%Y-%m-%d\""
-              )
-            )
-          )
-          # remove \n from the end
-          exp_date = Builtins.deletechars(
-            Ops.get_string(out, "stdout", ""),
-            "\n"
-          )
-        end
-        HBox(
-          HSpacing(3),
-          VBox(
-            VStretch(),
-            Left(Label("")),
-            HSquash(
-              VBox(
-                Left(
-                  Label(
-                    Builtins.sformat(
-                      # label
-                      _("Last Password Change: %1"),
-                      last_change_label
-                    )
-                  )
-                ),
-                VSpacing(0.2),
-                Left(
-                  # check box label
-                  CheckBox(
-                    Id(:force_pw),
-                    _("Force Password Change"),
-                    last_change == "0"
-                  )
-                ),
-                VSpacing(1),
-                IntField(
-                  Id("shadowWarning"),
-                  # intfield label
-                  _("Days &before Password Expiration to Issue Warning"),
-                  -1,
-                  99999,
-                  warn
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowInactive"),
-                  # intfield label
-                  _("Days after Password Expires with Usable &Login"),
-                  -1,
-                  99999,
-                  inact
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowMax"),
-                  # intfield label
-                  _("Ma&ximum Number of Days for the Same Password"),
-                  -1,
-                  99999,
-                  max
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowMin"),
-                  # intfield label
-                  _("&Minimum Number of Days for the Same Password"),
-                  -1,
-                  99999,
-                  min
-                ),
-                VSpacing(0.5),
-                InputField(
-                  Id("shadowExpire"),
-                  Opt(:hstretch),
-                  # textentry label
-                  _("Ex&piration Date"),
-                  exp_date
-                )
-              )
-            ),
-            VStretch()
-          ),
-          HSpacing(3)
         )
       end
 
@@ -1792,7 +1769,8 @@ module Yast
           current = ret
         end
         if ret == :passwordsettings
-          UI.ReplaceWidget(:tabContents, get_password_term.call)
+          # get_password_term may modify exp_date!
+          UI.ReplaceWidget(:tabContents, get_password_term(user, exp_date))
           if GetString(Ops.get(user, "shadowLastChange"), "0") == "0"
             # forcing password change cannot be undone
             UI.ChangeWidget(Id(:force_pw), :Enabled, false)
