@@ -1616,7 +1616,7 @@ module Yast
           if new_exp_date != exp_date
             exp_date = new_exp_date
             if exp_date == ""
-              Ops.set(user, "shadowExpire", user_type == "ldap" ? "" : "0")
+              user["shadowExpire"] = ""
             else
               out = Convert.to_map(
                 SCR.Execute(
