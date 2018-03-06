@@ -1,5 +1,6 @@
 # Tests for users
 TESTS = \
+  dialogs_test.rb \
   users_finish_test.rb \
   lib/users/ca_password_validator_test.rb \
   lib/users/encryption_method_test.rb \

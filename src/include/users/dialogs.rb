@@ -184,10 +184,10 @@ module Yast
           HSpacing(1)
         )
       )
-      ui = UI.UserInput
-      retmap = { "retval" => ui == :yes }
-      if ui == :yes
-        Ops.set(retmap, "chown_home", UI.QueryWidget(Id(:chown_home), :Value))
+      answer = UI.UserInput == :yes
+      retmap = { "retval" => answer }
+      if answer
+        retmap["chown_home"] = UI.QueryWidget(Id(:chown_home), :Value)
       end
       UI.CloseDialog
       retmap
@@ -221,7 +221,7 @@ module Yast
         # label (date of last password change)
         last_change_label = _("Never")
       end
-      if expires != "0" && expires != "-1" && expires != ""
+      unless ["0", "-1", ""].include?(expires)
         exp_date.replace(format_days_after_epoch(expires, "%Y-%m-%d"))
       end
       HBox(
