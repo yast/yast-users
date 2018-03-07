@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.0.2
+Version:        4.0.3
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -87,10 +87,6 @@ export Y2BASE_Y2DIR=`pwd`/testsuite
 %dir %{yast_yncludedir}/users
 %dir %{yast_moduledir}/YaPI
 %{yast_clientdir}/*.rb
-%dir %{yast_libdir}/users
-%dir %{yast_libdir}/users/clients
-%{yast_libdir}/users/*
-%{yast_libdir}/users/clients/*
 %{yast_desktopdir}/*.desktop
 %{yast_moduledir}/*.pm
 %{yast_moduledir}/SSHAuthorizedKeys.rb

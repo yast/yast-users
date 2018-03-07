@@ -2,18 +2,25 @@
 
 require_relative "test_helper"
 require "yaml"
-require_relative "../src/clients/users_auto"
 
-describe Yast::UsersAutoClient do
+describe "Yast::UsersAutoClient" do
   Yast.import "WFM"
   Yast.import "Users"
   Yast.import "Users"
   Yast.import "Report"
 
+  subject { Yast::UsersAutoClient.new }
   let(:mode) { "autoinstallation" }
 
   before do
+    allow(Yast).to receive(:import).and_call_original
+    allow(Yast).to receive(:import).with("Ldap")
+    allow(Yast).to receive(:import).with("LdapPopup")
+
     allow(Yast::Mode).to receive(:mode).and_return(mode)
+
+    # this actually executes the client 8-O
+    require_relative "../src/clients/users_auto"
   end
 
   describe "#AutoYaST" do

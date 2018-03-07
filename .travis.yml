@@ -9,6 +9,7 @@ before_install:
   - docker run --rm -it yast-users-image rpm -qa | sort
 
 script:
-  # the "yast-travis-ruby" script is included in the base yastdevel/ruby image
-  # see https://github.com/yast/docker-yast-ruby/blob/master/yast-travis-ruby
+  # the "yast-travis-cpp" script is included in the base yastdevel/cpp image
+  # see https://github.com/yast/docker-yast-ruby/blob/master/yast-travis-cpp
   - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" yast-users-image yast-travis-cpp
+  - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e COVERAGE=1 -e CI=1 yast-users-image rake test:unit

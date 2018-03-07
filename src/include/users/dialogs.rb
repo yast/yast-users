@@ -155,6 +155,145 @@ module Yast
       ret == :ok ? pw : nil
     end
 
+
+    # helper function: show a popup if existing home directory should be used
+    # and its ownership should be changed
+    # @param dir [String]
+    # @param chown_default [Boolean]
+    def ask_chown_home(dir, chown_default)
+      UI.OpenDialog(
+        Opt(:decorated),
+        HBox(
+          HSpacing(1),
+          VBox(
+            VSpacing(0.2),
+            Label(
+              # popup label, %1 is path to directory
+              Builtins.sformat(_("The home directory (%1) already exists.\nUse it anyway?"), dir)
+            ),
+            Left(
+              # checkbox label
+              CheckBox(Id(:chown_home), _("&Change directory owner"), chown_default)
+            ),
+            ButtonBox(
+              PushButton(Id(:yes), Opt(:default), Label.YesButton),
+              PushButton(Id(:no), Label.NoButton)
+            ),
+            VSpacing(0.2)
+          ),
+          HSpacing(1)
+        )
+      )
+      answer = UI.UserInput == :yes
+      retmap = { "retval" => answer }
+      if answer
+        retmap["chown_home"] = UI.QueryWidget(Id(:chown_home), :Value)
+      end
+      UI.CloseDialog
+      retmap
+    end
+
+    # @param count [Integer] number of days after 1970-01-01
+    # @param date_format [String] strftime format like "%x" (localized date)
+    # @return [String]
+    def format_days_after_epoch(count, date_format)
+      `date --date='1970-01-01 00:00:01 #{count} days' +#{date_format}`.chomp
+    end
+
+    # generate contents for Password Settings Dialog
+    # @param user [Hash]
+    # @param exp_date [String] may be MODIFIED on return corresponding to the UI
+    # @return [Term] ui_term
+    def get_password_term(user, exp_date)
+      last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
+      last_change_label = ""
+      expires = GetString(Ops.get(user, "shadowExpire"), "0")
+      expires = "0" if expires == ""
+
+      inact = GetInt(Ops.get(user, "shadowInactive"), -1)
+      max = GetInt(Ops.get(user, "shadowMax"), -1)
+      min = GetInt(Ops.get(user, "shadowMin"), -1)
+      warn = GetInt(Ops.get(user, "shadowWarning"), -1)
+
+      if last_change != "0"
+        last_change_label = format_days_after_epoch(last_change, "%x")
+      else
+        # label (date of last password change)
+        last_change_label = _("Never")
+      end
+      unless ["0", "-1", ""].include?(expires)
+        exp_date.replace(format_days_after_epoch(expires, "%Y-%m-%d"))
+      end
+      HBox(
+        HSpacing(3),
+        VBox(
+          VStretch(),
+          Left(Label("")),
+          HSquash(
+            VBox(
+              Left(
+                Label(
+                  # label
+                  Builtins.sformat(_("Last Password Change: %1"), last_change_label)
+                )
+              ),
+              VSpacing(0.2),
+              Left(
+                # check box label
+                CheckBox(Id(:force_pw), _("Force Password Change"), last_change == "0")
+              ),
+              VSpacing(1),
+              IntField(
+                Id("shadowWarning"),
+                # intfield label
+                _("Days &before Password Expiration to Issue Warning"),
+                -1,
+                99999,
+                warn
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowInactive"),
+                # intfield label
+                _("Days after Password Expires with Usable &Login"),
+                -1,
+                99999,
+                inact
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowMax"),
+                # intfield label
+                _("Ma&ximum Number of Days for the Same Password"),
+                -1,
+                99999,
+                max
+              ),
+              VSpacing(0.5),
+              IntField(
+                Id("shadowMin"),
+                # intfield label
+                _("&Minimum Number of Days for the Same Password"),
+                -1,
+                99999,
+                min
+              ),
+              VSpacing(0.5),
+              InputField(
+                Id("shadowExpire"),
+                Opt(:hstretch),
+                # textentry label
+                _("Ex&piration Date"),
+                exp_date
+              )
+            )
+          ),
+          VStretch()
+        ),
+        HSpacing(3)
+      )
+    end
+
     # Dialog for adding or editing a user.
     # @param [String] what "add_user" or "edit_user"
     # @return [Symbol] for wizard sequencer
@@ -192,7 +331,6 @@ module Yast
       else
         cn = Ops.get_string(user, "cn", "")
       end
-      tmp_fullname = cn # for login proposing
       default_home = Users.GetDefaultHome(user_type)
       home = Ops.get_string(user, "homeDirectory", default_home)
       org_home = Ops.get_string(user, "org_homeDirectory", home)
@@ -201,7 +339,6 @@ module Yast
         Ops.subtract(777, Builtins.tointeger(String.CutZeros(Users.GetUmask)))
       )
       mode = Ops.get_string(user, "home_mode", default_mode)
-      default_crypted_size = 100
       password = Ops.get_string(user, "userPassword")
       org_username = Ops.get_string(user, "org_uid", username)
       uid = GetInt(Ops.get(user, "uidNumber"), nil)
@@ -252,7 +389,6 @@ module Yast
       groups = Ops.get_map(user, "grouplist", {})
 
       available_shells = Users.AllShells
-      grouplist = ""
       new_type = user_type
 
       all_groupnames = UsersCache.GetAllGroupnames
@@ -325,68 +461,6 @@ module Yast
 
         nil
       end
-
-      # helper function: show a popup if existing crypted home directory file
-      # should be used by current user
-      ask_take_image = lambda do |img_file, key_file|
-        # yes/no popup label, %1,%2 are file paths
-        Popup.YesNo(
-          Builtins.sformat(
-            _(
-              "Crypted directory image and key files\n" +
-                "'%1' and '%2'\n" +
-                "were found. Use them for current user?\n" +
-                "\n" +
-                "This means that data from this image will be used instead of current home directory."
-            ),
-            img_file,
-            key_file
-          )
-        )
-      end
-
-      # helper function: show a popup if existing home directory should be used
-      # and its ownership should be changed
-      ask_chown_home = lambda do |dir, chown_default|
-        UI.OpenDialog(
-          Opt(:decorated),
-          HBox(
-            HSpacing(1),
-            VBox(
-              VSpacing(0.2),
-              # popup label, %1 is path to directory
-              Label(
-                Builtins.sformat(
-                  _("The home directory (%1) already exists.\nUse it anyway?"),
-                  dir
-                )
-              ),
-              Left(
-                # checkbox label
-                CheckBox(
-                  Id(:chown_home),
-                  _("&Change directory owner"),
-                  chown_default
-                )
-              ),
-              ButtonBox(
-                PushButton(Id(:yes), Opt(:default), Label.YesButton),
-                PushButton(Id(:no), Label.NoButton)
-              ),
-              VSpacing(0.2)
-            ),
-            HSpacing(1)
-          )
-        )
-        ui = UI.UserInput
-        retmap = { "retval" => ui == :yes }
-        if ui == :yes
-          Ops.set(retmap, "chown_home", UI.QueryWidget(Id(:chown_home), :Value))
-        end
-        UI.CloseDialog
-        deep_copy(retmap)
-      end
-
 
       # generate contents for User Data Dialog
       get_edit_term = lambda do
@@ -738,130 +812,6 @@ module Yast
             VSpacing(0.5)
           ),
           HSpacing(1)
-        )
-      end
-
-      # generate contents for Password Settings Dialog
-      get_password_term = lambda do
-        last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
-        last_change_label = ""
-        expires = GetString(Ops.get(user, "shadowExpire"), "0")
-        expires = "0" if expires == ""
-
-        inact = GetInt(Ops.get(user, "shadowInactive"), -1)
-        max = GetInt(Ops.get(user, "shadowMax"), -1)
-        min = GetInt(Ops.get(user, "shadowMin"), -1)
-        warn = GetInt(Ops.get(user, "shadowWarning"), -1)
-
-        if last_change != "0"
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Builtins.sformat(
-                "date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"",
-                last_change
-              )
-            )
-          )
-          # label (date of last password change)
-          last_change_label = Ops.get_locale(out, "stdout", _("Unknown"))
-        else
-          # label (date of last password change)
-          last_change_label = _("Never")
-        end
-        if expires != "0" && expires != "-1" && expires != ""
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Ops.add(
-                Builtins.sformat(
-                  "date --date='1970-01-01 00:00:01 %1 days' ",
-                  expires
-                ),
-                "+\"%Y-%m-%d\""
-              )
-            )
-          )
-          # remove \n from the end
-          exp_date = Builtins.deletechars(
-            Ops.get_string(out, "stdout", ""),
-            "\n"
-          )
-        end
-        HBox(
-          HSpacing(3),
-          VBox(
-            VStretch(),
-            Left(Label("")),
-            HSquash(
-              VBox(
-                Left(
-                  Label(
-                    Builtins.sformat(
-                      # label
-                      _("Last Password Change: %1"),
-                      last_change_label
-                    )
-                  )
-                ),
-                VSpacing(0.2),
-                Left(
-                  # check box label
-                  CheckBox(
-                    Id(:force_pw),
-                    _("Force Password Change"),
-                    last_change == "0"
-                  )
-                ),
-                VSpacing(1),
-                IntField(
-                  Id("shadowWarning"),
-                  # intfield label
-                  _("Days &before Password Expiration to Issue Warning"),
-                  -1,
-                  99999,
-                  warn
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowInactive"),
-                  # intfield label
-                  _("Days after Password Expires with Usable &Login"),
-                  -1,
-                  99999,
-                  inact
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowMax"),
-                  # intfield label
-                  _("Ma&ximum Number of Days for the Same Password"),
-                  -1,
-                  99999,
-                  max
-                ),
-                VSpacing(0.5),
-                IntField(
-                  Id("shadowMin"),
-                  # intfield label
-                  _("&Minimum Number of Days for the Same Password"),
-                  -1,
-                  99999,
-                  min
-                ),
-                VSpacing(0.5),
-                InputField(
-                  Id("shadowExpire"),
-                  Opt(:hstretch),
-                  # textentry label
-                  _("Ex&piration Date"),
-                  exp_date
-                )
-              )
-            ),
-            VStretch()
-          ),
-          HSpacing(3)
         )
       end
 
@@ -1290,7 +1240,7 @@ module Yast
               if error_map != {}
                 if Ops.get_string(error_map, "question_id", "") == "chown" &&
                     !Builtins.haskey(error_map, "owned")
-                  ret2 = ask_chown_home.call(home, chown_home)
+                  ret2 = ask_chown_home(home, chown_home)
                   if Ops.get_boolean(ret2, "retval", false)
                     Ops.set(ui_map, "chown", home)
                     chown_home = Ops.get_boolean(ret2, "chown_home", chown_home)
@@ -1484,7 +1434,7 @@ module Yast
               if error_map != {}
                 if Ops.get_string(error_map, "question_id", "") == "chown" &&
                     !Builtins.haskey(error_map, "owned")
-                  ret2 = ask_chown_home.call(new_home, chown_home)
+                  ret2 = ask_chown_home(new_home, chown_home)
                   if Ops.get_boolean(ret2, "retval", false)
                     Ops.set(ui_map, "chown", new_home)
                     chown_home = Ops.get_boolean(ret2, "chown_home", chown_home)
@@ -1616,7 +1566,7 @@ module Yast
           if new_exp_date != exp_date
             exp_date = new_exp_date
             if exp_date == ""
-              Ops.set(user, "shadowExpire", user_type == "ldap" ? "" : "0")
+              user["shadowExpire"] = ""
             else
               out = Convert.to_map(
                 SCR.Execute(
@@ -1819,7 +1769,8 @@ module Yast
           current = ret
         end
         if ret == :passwordsettings
-          UI.ReplaceWidget(:tabContents, get_password_term.call)
+          # get_password_term may modify exp_date!
+          UI.ReplaceWidget(:tabContents, get_password_term(user, exp_date))
           if GetString(Ops.get(user, "shadowLastChange"), "0") == "0"
             # forcing password change cannot be undone
             UI.ChangeWidget(Id(:force_pw), :Enabled, false)
