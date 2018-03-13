@@ -6304,8 +6304,8 @@ sub Import {
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
 	    if (defined $pw){
 
-		$root_user{"userPassword"}	=
-		    $self->CryptPassword ($pw, "system");
+		y2milestone ("updating root password from install.inf");
+		$root_user{"userPassword"} = $pw;
 
 		$users{"system"}{"root"}		= \%root_user;
 		$shadow{"system"}{"root"} = $self->CreateShadowMap(\%root_user);
