@@ -6371,6 +6371,8 @@ sub Import {
 
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
 	    if (defined $pw){
+                # ensure that even if no user is defined, root will be written
+                $users_modified	= 1;
 
 		$root_user{"userPassword"}	=
 		    $self->CryptPassword ($pw, "system");
