@@ -6307,7 +6307,7 @@ sub Import {
                 $users_modified	= 1;
 
 		y2milestone ("updating root password from install.inf");
-		$root_user{"userPassword"} = $pw;
+		$root_user{"userPassword"} = $self->CryptPassword ($pw, "system");
 
 		$users{"system"}{"root"}		= \%root_user;
 		$shadow{"system"}{"root"} = $self->CreateShadowMap(\%root_user);
