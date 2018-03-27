@@ -6303,9 +6303,13 @@ sub Import {
 
 	    my $pw = Linuxrc->InstallInf ("RootPassword");
 	    if (defined $pw){
+                # ensure that even if no user is defined, root will be written
+                $users_modified	= 1;
 
-		$root_user{"userPassword"}	=
-		    $self->CryptPassword ($pw, "system");
+		y2milestone ("updating root password from install.inf");
+		$root_user{"userPassword"} = $self->CryptPassword ($pw, "system");
+                # mark that password is already encrypted, so it does not encrypt twice (bsc#1081958)
+		$root_user{"encrypted"} = 1;
 
 		$users{"system"}{"root"}		= \%root_user;
 		$shadow{"system"}{"root"} = $self->CreateShadowMap(\%root_user);
