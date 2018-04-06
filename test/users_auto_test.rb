@@ -17,7 +17,6 @@ describe Yast::UsersAutoClient do
   end
 
   describe "#AutoYaST" do
-
     context "Import" do
       before do
         allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func,users])
@@ -40,6 +39,25 @@ describe Yast::UsersAutoClient do
         it "will not be checked for double UIDs" do
           expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <username>."))
           expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <uid>."))
+          expect(subject.main).to eq(true)
+        end
+      end
+    end
+
+    context "#Write" do
+      let(:func) { "Write" }
+
+      before do
+        allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func])
+        allow(Yast::WFM).to receive(:Args).with(0).and_return(func)
+      end
+
+      context "when root user is not defined" do
+        before do
+          Yast::Users.Import({})
+        end
+
+        it "returns true" do
           expect(subject.main).to eq(true)
         end
       end
