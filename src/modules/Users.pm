@@ -4070,10 +4070,13 @@ sub WriteAuthorizedKeys {
         }
     }
 
-    # Write root authorized keys(bsc#1066342)
-    my %root_user = %{$modified_users{"system"}{"root"}};
-    if ($root_user{"modified"} eq "imported") {
-        SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
+    # Do not crash if 'root' is undefined (bsc#1088183)
+    if (defined($modified_users{"system"}{"root"})) {
+      # Write root authorized keys(bsc#1066342)
+      my %root_user = %{$modified_users{"system"}{"root"}};
+      if ($root_user{"modified"} eq "imported") {
+          SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
+      }
     }
 }
 
