@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr  6 13:34:48 UTC 2018 - igonzalezsosa@suse.com
+
+- Do not crash if root user is not defined (bsc#1088183).
+- 4.0.5
+
+-------------------------------------------------------------------
 Fri Mar 23 14:20:59 UTC 2018 - jreidinger@suse.com
 
 - Fix import of RootPassword if user is specified in autoyast
