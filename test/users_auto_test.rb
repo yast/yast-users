@@ -50,24 +50,5 @@ describe "Yast::UsersAutoClient" do
         end
       end
     end
-
-    context "#Write" do
-      let(:func) { "Write" }
-
-      before do
-        allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func])
-        allow(Yast::WFM).to receive(:Args).with(0).and_return(func)
-      end
-
-      context "when root user is not defined" do
-        before do
-          Yast::Users.Import({})
-        end
-
-        it "returns true" do
-          expect(subject.main).to eq(true)
-        end
-      end
-    end
   end
 end

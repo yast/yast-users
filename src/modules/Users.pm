@@ -4024,6 +4024,7 @@ sub WriteShadow {
     }
 }
 
+BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
     foreach my $username (keys %{$modified_users{"local"}}) {
         my %user	= %{$modified_users{"local"}{$username}};
@@ -4041,6 +4042,8 @@ sub WriteAuthorizedKeys {
           SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
       }
     }
+
+    return 1;
 }
 
 ##------------------------------------
