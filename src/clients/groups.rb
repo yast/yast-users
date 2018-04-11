@@ -33,6 +33,7 @@
 # $Id$
 #
 # Just a shortcut to invoke groups management
+
 module Yast
   class GroupsClient < Client
     def main
@@ -48,6 +49,7 @@ module Yast
       Yast.import "Mode"
       Yast.import "Users"
       Yast.import "UsersCache"
+      Yast.import "UsersDialogsFlags"
 
       Yast.include self, "users/wizards.rb"
       Yast.include self, "users/cmdline.rb"
@@ -82,7 +84,7 @@ module Yast
           @start_dialog,
           Mode.test
         )
-        Users.SetStartDialog(@start_dialog)
+        UsersDialogsFlags.assign_start_dialog(@start_dialog)
         @ret = UsersSequence(@start_dialog)
         Builtins.y2milestone("Users module finished with %1", @ret)
         Builtins.y2milestone("----------------------------------------")

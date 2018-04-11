@@ -134,6 +134,7 @@ YaST::YCP::Import ("Users");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersLDAP");
+YaST::YCP::Import ("UsersSimple");
 # -------------------------------------
 
 our $VERSION		= '1.0.0';
@@ -2531,8 +2532,8 @@ sub Read {
     # return password length limitation for given user ('local' by default)
     if ($args->{"password_length"} || 0) {
 	Users->ReadSystemDefaults (1);
-	$ret->{"pw_min"}	= Users->GetMinPasswordLength ($user_type);
-	$ret->{"pw_max"}	= Users->GetMaxPasswordLength ($user_type);
+	$ret->{"pw_min"}	= UsersSimple->GetMinPasswordLength ($user_type);
+	$ret->{"pw_max"}	= UsersSimple->GetMaxPasswordLength ($user_type);
     }
 
     if ($args->{"uid_limits"} || 0) {

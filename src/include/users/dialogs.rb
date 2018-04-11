@@ -46,6 +46,7 @@ module Yast
       Yast.import "String"
       Yast.import "Users"
       Yast.import "UsersCache"
+      Yast.import "UsersDialogsFlags"
       Yast.import "UsersLDAP"
       Yast.import "UsersPlugins"
       Yast.import "UsersRoutines"
@@ -299,9 +300,9 @@ module Yast
     # @return [Symbol] for wizard sequencer
     def EditUserDialog(what)
       # user has returned to the "add user dialog" during installation workflow:
-      if Users.StartDialog("user_add") && installation && Users.UseNextTime
+      if user_add_dialog? && installation && UsersDialogsFlags.use_next_time
         Users.RestoreCurrentUser
-        Users.SetUseNextTime(false)
+        UsersDialogsFlags.assign_use_next_time(false)
       end
 
       display_info = UI.GetDisplayInfo
@@ -385,7 +386,7 @@ module Yast
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
       do_not_edit = user_type == "nis"
 
-      complex_layout = installation && Users.StartDialog("user_add")
+      complex_layout = installation && user_add_dialog?
       groups = Ops.get_map(user, "grouplist", {})
 
       available_shells = Users.AllShells
@@ -1018,7 +1019,7 @@ module Yast
           username = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
 
           # empty username during installation (-> go to next module)
-          if username == "" && ret == :next && Users.StartDialog("user_add")
+          if username == "" && ret == :next && user_add_dialog?
             # The user login field is empty, this is allowed if the
             # system is part of a network with (e.g.) NIS user management.
             # yes-no popup headline
@@ -1277,7 +1278,7 @@ module Yast
             end
           end
           # --------------------------------- autologin (during installation)
-          if Users.StartDialog("user_add") && installation
+          if user_add_dialog? && installation
             if Autologin.available
               Autologin.user = Convert.to_boolean(
                 UI.QueryWidget(Id(:autologin), :Value)
@@ -1850,7 +1851,7 @@ module Yast
         # during installation, store the data of first user
         # (to show it when clicking `back from Summary dialog)
         Users.SaveCurrentUser
-        Users.SetStartDialog("users")
+        UsersDialogsFlags.assign_start_dialog("users")
       end
       ret
     end
@@ -2447,7 +2448,7 @@ module Yast
     def UserSave
       Users.CommitUser
       # adding only one user during install
-      if installation && Users.StartDialog("user_add")
+      if installation && user_add_dialog?
         return :save
       else
         return :next
@@ -2468,6 +2469,10 @@ module Yast
       end
       Users.CommitGroup
       :next
+    end
+
+    def user_add_dialog?
+      UsersDialogsFlags.start_dialog == "user_add"
     end
   end
 end

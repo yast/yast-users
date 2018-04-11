@@ -11,6 +11,7 @@ module_DATA = \
   modules/UsersLDAP.pm \
   modules/UsersSimple.pm \
   modules/UsersCache.pm \
+  modules/UsersDialogsFlags.rb \
   modules/UsersPluginLDAPAll.pm \
   modules/UsersPluginLDAPPasswordPolicy.pm \
   modules/UsersPluginKerberos.pm \
