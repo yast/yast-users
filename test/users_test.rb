@@ -9,7 +9,7 @@ describe "Users" do
 
   describe "#WriteAuthorizedKeys" do
     context "when no user is defined" do
-      it "does not crash" do
+      it "returns true" do
         expect(users.WriteAuthorizedKeys).to eq(true)
       end
     end
