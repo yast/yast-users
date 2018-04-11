@@ -6,6 +6,7 @@ TESTS = \
   lib/users/users_database_test.rb \
   dialogs_test.rb \
   ssh_authorized_keys_test.rb \
+  users_test.rb \
   users_auto_test.rb \
   users_finish_test.rb \
   widgets_test.rb
