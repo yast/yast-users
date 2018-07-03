@@ -1350,7 +1350,13 @@ sub ReadLoginDefaults {
 
     my $self		= shift;
     foreach my $key (sort keys %useradd_defaults) {
-        my $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
+        my $entry;
+        if ($key eq "umask") {
+            $entry = SCR->Read (".etc.login_defs.UMASK");
+        }
+        else {
+            $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
+        }
         # use the defaults set in this file if $entry not defined
         next if !defined $entry;
 	$entry =~ s/\"//g;
@@ -3965,13 +3971,20 @@ sub WriteLoginDefaults {
     my $ret 	= 1;
 
     foreach my $key (keys %useradd_defaults) {
-	my $value	= $useradd_defaults{$key};
-	$ret = $ret && SCR->Write (".etc.default.useradd.\"\Q$key\E\"", $value);
+        my $value = $useradd_defaults{$key};
+        unless ($key eq "umask") {
+            $ret = $ret && SCR->Write (".etc.default.useradd.\"\Q$key\E\"", $value);
+        }
     }
 
     if ($ret) {
 	SCR->Write (".etc.default.useradd", "force");
     }
+
+    if (defined($useradd_defaults{"umask"})) {
+        $ret = $ret && SCR->Write (".etc.login_defs.UMASK", $useradd_defaults{"umask"});
+    }
+
     y2milestone ("Succesfully written useradd defaults: $ret");
     y2usernote ("File '/etc/default/useradd' was modified.");
     return $ret;
