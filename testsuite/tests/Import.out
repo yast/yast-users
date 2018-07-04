@@ -7,7 +7,7 @@ Read	.etc.default.useradd."home" "/home"
 Read	.etc.default.useradd."inactive" nil
 Read	.etc.default.useradd."shell" nil
 Read	.etc.default.useradd."skel" 0
-Read	.etc.default.useradd."umask" 0
+Read	.etc.login_defs.UMASK 0
 Execute	.target.bash_output "echo 'ggg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
 Read	.target.string "/etc/shells" ""
 Return	true
