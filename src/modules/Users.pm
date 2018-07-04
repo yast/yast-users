@@ -3964,7 +3964,7 @@ sub WriteCustomSets {
 }
 
 ##------------------------------------
-# Writes settings to /etc/defaults/useradd
+# Writes useradd default settings
 sub WriteLoginDefaults {
 
     my $self	= shift;
@@ -3978,15 +3978,19 @@ sub WriteLoginDefaults {
     }
 
     if ($ret) {
-	SCR->Write (".etc.default.useradd", "force");
+        SCR->Write (".etc.default.useradd", "force");
+        y2usernote ("File '/etc/default/useradd' was modified.");
     }
 
     if (defined($useradd_defaults{"umask"})) {
         $ret = $ret && SCR->Write (".etc.login_defs.UMASK", $useradd_defaults{"umask"});
+        if ($ret) {
+            SCR->Write (".etc.login_defs", "force");
+            y2usernote ("Umask was correctly modified in /etc/login.defs.");
+        }
     }
 
     y2milestone ("Succesfully written useradd defaults: $ret");
-    y2usernote ("File '/etc/default/useradd' was modified.");
     return $ret;
 }
 
