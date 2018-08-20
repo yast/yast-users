@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Aug 20 14:10:16 CEST 2018 - schubi@suse.de
+
+- Changed licence to GPL-2.0-only.
+- Changed dir of COPYING file.
+
+-------------------------------------------------------------------
 Fri Apr  6 13:34:48 UTC 2018 - igonzalezsosa@suse.com
 
 - Do not crash if root user is not defined (bsc#1088183).
