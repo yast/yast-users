@@ -65,7 +65,7 @@ Requires:       yast2-core >= 2.21.0
 Requires:       yast2-ruby-bindings >= 1.0.0
 
 Summary:        YaST2 - User and Group Configuration
-License:        GPL-2.0
+License:        GPL-2.0-only
 Group:          System/YaST
 
 %description
@@ -103,7 +103,7 @@ export Y2BASE_Y2DIR=`pwd`/testsuite
 %{yast_plugindir}/libpy2ag_crack.so
 %{yast_plugindir}/libpy2ag_crack.la
 %dir %{yast_docdir}
-%doc %{yast_docdir}/COPYING
+%license %{yast_docdir}/COPYING
 %doc %{yast_docdir}/users.html
 
 %changelog
