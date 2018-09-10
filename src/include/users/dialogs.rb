@@ -855,7 +855,7 @@ module Yast
                 Id(:change),
                 Opt(:key_F3),
                 # pushbutton label
-                _("Add &or Remove Plug-In")
+                _("Add or &Remove Plug-In")
               ),
               # pushbutton label
               Right(PushButton(Id(:run), Opt(:key_F6), _("&Launch")))
@@ -2037,7 +2037,7 @@ module Yast
                 Id(:change),
                 Opt(:key_F3),
                 # pushbutton label
-                _("Add &or Remove Plug-In")
+                _("Add or &Remove Plug-In")
               ),
               # pushbutton label
               Right(PushButton(Id(:run), Opt(:key_F6), _("&Launch")))
