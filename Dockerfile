@@ -1,4 +1,4 @@
-FROM yastdevel/cpp:sle15
+FROM yastdevel/cpp
 RUN zypper --gpg-auto-import-keys --non-interactive in --no-recommends \
   cracklib-devel \
   perl-Digest-SHA1 \
