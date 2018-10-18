@@ -307,8 +307,8 @@ sub read_authorized_keys {
     }
 
     # Read authorized keys also from root's home (bsc#1066342)
-    my %root_user = %{$users{"system"}{"root"}};
-    SSHAuthorizedKeys->read_keys($root_user{"homeDirectory"});
+    # 'root' user may not always exist (bsc#1112119, bsc#1107456)
+    SSHAuthorizedKeys->read_keys($users{system}{root}{homeDirectory}) if $users{system}{root};
 }
 
 # actually read /etc/passwd and save into internal structure
