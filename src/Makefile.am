@@ -64,6 +64,7 @@ ylib_DATA = \
   lib/users/local_password.rb \
   lib/users/encryption_method.rb \
   lib/users/proposal.rb \
+  lib/users/public_key_loader.rb \
   lib/users/encryption_proposal.rb \
   lib/users/ssh_authorized_keys_file.rb \
   lib/users/ssh_authorized_keyring.rb \

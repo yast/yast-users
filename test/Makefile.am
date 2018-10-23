@@ -2,6 +2,7 @@
 TESTS = \
   lib/users/ca_password_validator_test.rb \
   lib/users/encryption_method_test.rb \
+  lib/users/public_key_loader_test.rb \
   lib/users/ssh_authorized_keys_file_test.rb \
   lib/users/users_database_test.rb \
   dialogs_test.rb \
