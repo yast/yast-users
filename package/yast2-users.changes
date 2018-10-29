@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Oct 29 13:06:39 UTC 2018 - snwint@suse.com
+
+- Fix import of RootPassword if user is specified in autoyast
+  profile (bsc#1081958)
+- 3.2.15.2
+
+-------------------------------------------------------------------
 Thu Oct 18 09:59:25 UTC 2018 - snwint@suse.com
 
 - read ssh keys from root user only if the user exists (bsc#1112119,
