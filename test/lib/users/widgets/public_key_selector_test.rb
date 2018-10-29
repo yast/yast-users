@@ -55,7 +55,7 @@ describe Y2Users::Widgets::PublicKeySelector do
      
     context "when the user selects a key" do
       let(:key_path) { FIXTURES_PATH.join("id_rsa.pub") }
-      let(:key_content) { File.read(key_path) }
+      let(:key_content) { File.read(key_path).strip }
 
       before do
         allow(Yast::UI).to receive(:AskForExistingFile).with(tmpdir.to_s, "*", anything)
@@ -64,7 +64,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "reads the key" do
         widget.handle(event)
-        expect(widget.value).to eq(key_content)
+        expect(widget.value.to_s).to eq(key_content)
       end
     end
 
@@ -93,10 +93,12 @@ describe Y2Users::Widgets::PublicKeySelector do
     end
 
     context "when a key was read" do
-      let(:value) { "some key" }
+      let(:value) do
+        Y2Users::SSHPublicKey.new(File.read(FIXTURES_PATH.join("id_rsa.pub")))
+      end
 
       it "imports the key" do
-        expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [value])
+        expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [value.to_s])
         widget.store
       end
     end

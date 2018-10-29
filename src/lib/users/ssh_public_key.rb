@@ -51,6 +51,13 @@ module Y2Users
       @comment ||= @raw.split(" ").last
     end
 
+    # Returns the string version of the public key
+    #
+    # @return [String]
+    def to_s
+      @raw
+    end
+
   private
 
     # Gets the fingerprint for the given OpenSSH public key
