@@ -58,11 +58,17 @@ ylibdialog_DATA = \
   lib/users/dialogs/users_to_import.rb \
   lib/users/dialogs/encryption_method.rb
 
+ywidgetdir = @ylibdir@/users/widgets
+ywidget_DATA = \
+	lib/users/widgets/disk_selector.rb \
+	lib/users/widgets/public_key_selector.rb
+
 ylibdir = @ylibdir@/users
 ylib_DATA = \
   lib/users/ca_password_validator.rb \
   lib/users/local_password.rb \
   lib/users/encryption_method.rb \
+  lib/users/leaf_blk_device.rb \
   lib/users/proposal.rb \
   lib/users/encryption_proposal.rb \
   lib/users/ssh_authorized_keys_file.rb \
