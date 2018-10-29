@@ -22,6 +22,7 @@
 require "users/widgets"
 require "users/ca_password_validator"
 require "users/local_password"
+require "users/widgets/public_key_selector"
 
 require "ui/widgets"
 
@@ -73,7 +74,9 @@ module Yast
           VBox(
             ::Users::PasswordWidget.new(focus: true),
             VSpacing(2.4),
-            ::UI::Widgets::KeyboardLayoutTest.new
+            ::UI::Widgets::KeyboardLayoutTest.new,
+            VSpacing(2.4),
+            ::Y2Users::Widgets::PublicKeySelector.new,
           )
         ),
         VStretch()
