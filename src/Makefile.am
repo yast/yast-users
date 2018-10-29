@@ -70,6 +70,7 @@ ylib_DATA = \
   lib/users/encryption_method.rb \
   lib/users/leaf_blk_device.rb \
   lib/users/proposal.rb \
+  lib/users/ssh_public_key.rb \
   lib/users/encryption_proposal.rb \
   lib/users/ssh_authorized_keys_file.rb \
   lib/users/ssh_authorized_keyring.rb \

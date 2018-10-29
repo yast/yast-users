@@ -38,6 +38,7 @@ BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
 BuildRequires:  rubygem(%rb_default_ruby_abi:rspec)
+BuildRequires:  openssh
 
 Requires:       cracklib
 Requires:       perl-Digest-SHA1
@@ -63,6 +64,7 @@ Requires:       yast2 >= 3.2.8
 Requires:       yast2-core >= 2.21.0
 
 Requires:       yast2-ruby-bindings >= 1.0.0
+Requires:       openssh
 
 Summary:        YaST2 - User and Group Configuration
 License:        GPL-2.0-only
