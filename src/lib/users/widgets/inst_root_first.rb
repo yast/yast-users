@@ -22,6 +22,8 @@
 require "cwm"
 require "users/widgets"
 require "users/widgets/public_key_selector"
+require "ui/widgets"
+require "yast2/popup"
 
 module Y2Users
   module Widgets
@@ -44,12 +46,31 @@ module Y2Users
           )
       end
 
-    private
-
-      def password_widget
-        @password_widget ||= ::Users::PasswordWidget.new(focus: true)
+      # @see CWM::AbstractWidget
+      def validate
+        return true unless password_widget.empty? && public_key_selector.empty?
+        Yast2::Popup.show(
+          _("You need to provide at least a password or a public key."), headline: :error
+        )
+        false
       end
 
+    private
+
+      # Returns a password widget
+      #
+      # @note The widget is memoized
+      #
+      # @return [Users::PasswordWidget] Password widget
+      def password_widget
+        @password_widget ||= ::Users::PasswordWidget.new(focus: true, allow_empty: true)
+      end
+
+      # Returns a public key selection widget
+      #
+      # @note The widget is memoized
+      #
+      # @return [Y2Users::Widgets::PublicKeySelector] Public key selection widget
       def public_key_selector
         @public_key_selector ||= ::Y2Users::Widgets::PublicKeySelector.new
       end
