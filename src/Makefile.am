@@ -61,6 +61,7 @@ ylibdialog_DATA = \
 ywidgetdir = @ylibdir@/users/widgets
 ywidget_DATA = \
 	lib/users/widgets/disk_selector.rb \
+	lib/users/widgets/inst_root_first.rb \
 	lib/users/widgets/public_key_selector.rb \
 	lib/users/widgets/public_keys_list.rb
 
