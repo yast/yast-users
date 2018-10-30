@@ -63,7 +63,6 @@ module Y2Users
       # @see CWM::AbstractWdiget
       def handle(event)
         remove_key(event) if event["ID"].to_s.start_with?("remove_")
-
         nil
       end
 
@@ -81,9 +80,12 @@ module Y2Users
       # @return [Yast::Term]
       def keys_list
         rows = keys.each_with_index.map do |key, i|
-          HBox(
+          VBox(
             Left(Label(key.fingerprint)),
-            Right(PushButton(Id("remove_#{i}"), Opt(:notify), "Remove"))
+            HBox(
+              Left(Label(key.comment)),
+              Right(PushButton(Id("remove_#{i}"), Opt(:notify), "Remove"))
+            )
           )
         end
         VBox(*rows)

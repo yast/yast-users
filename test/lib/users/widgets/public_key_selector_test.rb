@@ -32,8 +32,8 @@ describe Y2Users::Widgets::PublicKeySelector do
   describe "#handle" do
     let(:tmpdir) { TESTS_PATH.join("tmp") }
     let(:event) { { "ID" => :browse } }
-    let(:value) { "/dev/sr0" }
-    let(:disk_selector) { instance_double(Y2Users::Widgets::DiskSelector, value: value) }
+    let(:disk) { "/dev/sr0" }
+    let(:disk_selector) { instance_double(Y2Users::Widgets::DiskSelector, value: disk) }
     let(:mounted?) { true }
 
     before do
@@ -48,11 +48,6 @@ describe Y2Users::Widgets::PublicKeySelector do
       FileUtils.mkdir(tmpdir)
     end
 
-    # around do |example|
-    #   example.run
-    #   FileUtils.rm_r(tmpdir) if tmpdir.exist?
-    # end
-     
     context "when the user selects a key" do
       let(:key_path) { FIXTURES_PATH.join("id_rsa.pub") }
       let(:key_content) { File.read(key_path).strip }
@@ -64,7 +59,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "reads the key" do
         widget.handle(event)
-        expect(widget.value.to_s).to eq(key_content)
+        expect(widget.keys.map(&:to_s)).to eq([key_content])
       end
     end
 
@@ -73,7 +68,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "does not import any value" do
         widget.handle(event)
-        expect(widget.value).to be_nil
+        expect(widget.keys).to eq([])
       end
     end
 
@@ -89,24 +84,23 @@ describe Y2Users::Widgets::PublicKeySelector do
 
   describe "#store" do
     before do
-      allow(widget).to receive(:value).and_return(value)
+      allow(widget).to receive(:keys).and_return(keys)
     end
 
     context "when a key was read" do
-      let(:value) do
-        Y2Users::SSHPublicKey.new(File.read(FIXTURES_PATH.join("id_rsa.pub")))
-      end
+      let(:key) { Y2Users::SSHPublicKey.new(File.read(FIXTURES_PATH.join("id_rsa.pub"))) }
+      let(:keys) { [key] }
 
       it "imports the key" do
-        expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [value.to_s])
+        expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [key.to_s])
         widget.store
       end
     end
 
     context "when no key was read" do
-      let(:value) { nil }
+      let(:keys) { [] }
 
-      it "does not try to import the key" do
+      it "does not try to import any key" do
         expect(Yast::SSHAuthorizedKeys).to_not receive(:import_keys)
         widget.store
       end

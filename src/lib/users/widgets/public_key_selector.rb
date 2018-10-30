@@ -21,6 +21,7 @@
 
 require "cwm"
 require "users/widgets/disk_selector"
+require "users/widgets/public_keys_list"
 require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
@@ -56,7 +57,7 @@ module Y2Users
             HStretch(),
             PushButton(Id(:browse), "Browse..."),
           ),
-          ReplacePoint(Id(:fingerprint), Empty())
+          public_keys_list
         )
       end
 
@@ -65,13 +66,28 @@ module Y2Users
       # @see CWM::AbstractWdiget
       def handle(event)
         read_key if event["ID"] == :browse
+
         nil
       end
 
       # @see CWM::AbstractWdiget
       def store
-        Yast::SSHAuthorizedKeys.import_keys("/root", [value.to_s]) if value
+        Yast::SSHAuthorizedKeys.import_keys("/root", keys.map(&:to_s)) unless keys.empty?
         nil
+      end
+
+      # Forces this widget to listen to all events
+      #
+      # @return [Boolean]
+      def handle_all_events
+        true
+      end
+
+      # Returns the list of added keys
+      #
+      # @return [Array<SSHPublicKey>] List of public keys
+      def keys
+        public_keys_list.keys
       end
 
     private
@@ -108,9 +124,7 @@ module Y2Users
             Yast::Path.new(".target.mount"), [disk_selector.value, dir], "-o ro"
           )
           if mounted
-            new_key = read_key_from(dir)
-            self.value = new_key if new_key
-            refresh_fingerprint
+            read_key_from(dir)
           else
             report_mount_error(disk_selector.value)
           end
@@ -120,23 +134,15 @@ module Y2Users
         end
       end
 
-      # Reads a the key from the given directory
+      # Reads a key from the given directory
       #
       # @note Asks the user to select a file and tries to read it.
       def read_key_from(dir)
         path = Yast::UI.AskForExistingFile(dir, "*", _("Select a public key"))
-        SSHPublicKey.new(File.read(path)) if path && File.exist?(path)
-      end
-
-      # Refreshes the fingerprint which is shown in the UI.
-      def refresh_fingerprint
-        content =
-          if value
-            Left(Label(value.fingerprint))
-          else
-            Empty()
-          end
-        Yast::UI::ReplaceWidget(Id(:fingerprint), content)
+        return unless path && File.exist?(path)
+        public_keys_list.add(SSHPublicKey.new(File.read(path)))
+      rescue SSHPublicKey::InvalidKey
+        report_invalid_key
       end
 
       # Displays an error about the device which failed to be mounted
@@ -147,6 +153,7 @@ module Y2Users
         Yast2::Popup.show(message, headline: :error)
       end
 
+      # Displays an error about an invalid SSH key
       def report_invalid_key
         Yast2::Popup.show(_("A valid key was not found"), headline: :error)
       end
