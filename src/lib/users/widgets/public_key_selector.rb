@@ -90,6 +90,13 @@ module Y2Users
         public_keys_list.keys
       end
 
+      # Determines whether the public keys list is empty or not
+      #
+      # @return [Boolena] true if empty; false otherwise
+      def empty?
+        public_keys_list.empty?
+      end
+
     private
 
       attr_writer :value

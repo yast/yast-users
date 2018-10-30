@@ -26,12 +26,13 @@ require "users/ssh_public_key"
 require "cwm/rspec"
 
 describe Y2Users::Widgets::PublicKeysList do
-  subject(:widget) { described_class.new([key1, key2]) }
+  subject(:widget) { described_class.new(keys) }
 
   include_examples "CWM::CustomWidget"
 
-  let(:key1) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:123") }
-  let(:key2) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:456") }
+  let(:key1) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:123", comment: "") }
+  let(:key2) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:456", comment: "") }
+  let(:keys) { [key1, key2] }
 
   describe "#handle" do
     let(:event) { { "ID" => "remove_0" } }
@@ -43,7 +44,7 @@ describe Y2Users::Widgets::PublicKeysList do
   end
 
   describe "#add" do
-    let(:key3) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:456") }
+    let(:key3) { instance_double(Y2Users::SSHPublicKey, fingerprint: "SHA256:456", comment: "") }
 
     it "adds the key and updates the list" do
       expect(widget).to receive(:change_items).with([key1, key2, key3]).and_call_original
@@ -57,6 +58,24 @@ describe Y2Users::Widgets::PublicKeysList do
       expect(Yast::UI).to receive(:ReplaceWidget).with(:public_keys_list_items, Yast::Term)
       widget.change_items([key1])
       expect(widget.keys).to eq([key1])
+    end
+  end
+
+  describe "#empty?" do
+    context "when the list does not contain any key" do
+      let(:keys) { [] }
+
+      it "returns true" do
+        expect(widget).to be_empty
+      end
+    end
+
+    context "when the list contains some key" do
+      let(:keys) { [key1] }
+
+      it "returns false" do
+        expect(widget).to_not be_empty
+      end
     end
   end
 end

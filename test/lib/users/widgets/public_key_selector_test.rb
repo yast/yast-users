@@ -106,4 +106,28 @@ describe Y2Users::Widgets::PublicKeySelector do
       end
     end
   end
+
+  describe "#empty?" do
+    let(:list) { instance_double(Y2Users::Widgets::PublicKeysList, empty?: empty?) }
+
+    before do
+      allow(Y2Users::Widgets::PublicKeysList).to receive(:new).and_return(list)
+    end
+
+    context "when the keys list is empty" do
+      let(:empty?) { true }
+
+      it "returns true" do
+        expect(widget).to be_empty
+      end
+    end
+
+    context "when the keys list is not empty" do
+      let(:empty?) { false }
+
+      it "returns false" do
+        expect(widget).to_not be_empty
+      end
+    end
+  end
 end

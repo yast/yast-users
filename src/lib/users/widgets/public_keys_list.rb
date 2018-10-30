@@ -73,6 +73,13 @@ module Y2Users
         true
       end
 
+      # Determines whether the public keys list is empty or not
+      #
+      # @return [Boolena] true if empty; false otherwise
+      def empty?
+        keys.empty?
+      end
+
     private
 
       # Returns the keys list
