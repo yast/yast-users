@@ -57,6 +57,7 @@ module Y2Users
             HStretch(),
             PushButton(Id(:browse), "Browse..."),
           ),
+          VSpacing(1.5),
           public_keys_list
         )
       end

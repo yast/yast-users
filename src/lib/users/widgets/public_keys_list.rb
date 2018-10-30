@@ -87,12 +87,12 @@ module Y2Users
       # @return [Yast::Term]
       def keys_list
         rows = keys.each_with_index.map do |key, i|
-          VBox(
-            Left(Label(key.fingerprint)),
-            HBox(
+          HBox(
+            VBox(
+              Left(Label(key.fingerprint)),
               Left(Label(key.comment)),
-              Right(PushButton(Id("remove_#{i}"), Opt(:notify), "Remove"))
-            )
+            ),
+            Right(PushButton(Id("remove_#{i}"), Opt(:notify), "Remove"))
           )
         end
         VBox(*rows)
