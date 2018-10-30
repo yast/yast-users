@@ -4028,7 +4028,7 @@ BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
     foreach my $username (keys %{$modified_users{"local"}}) {
         my %user	= %{$modified_users{"local"}{$username}};
-        if ($user{"modified"} eq "imported") {
+        if ($user{"modified"} eq "imported" || $user{"modified"} eq "added") {
             # Write authorized keys to user's home (FATE#319471)
             SSHAuthorizedKeys->write_keys($user{"homeDirectory"});
         }
@@ -4038,7 +4038,7 @@ sub WriteAuthorizedKeys {
     if (defined($modified_users{"system"}{"root"})) {
       # Write root authorized keys(bsc#1066342)
       my %root_user = %{$modified_users{"system"}{"root"}};
-      if ($root_user{"modified"} eq "imported") {
+      if ($root_user{"modified"} eq "imported" || $root_user{"modified"} eq "added") {
           SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
       }
     }
@@ -4538,7 +4538,7 @@ sub Write {
 	}
     }
 
-    if (Mode->autoinst() || Mode->autoupgrade() || Mode->config()) { WriteAuthorizedKeys(); }
+    WriteAuthorizedKeys();
 
     # Write passwords
     if ($use_gui) { Progress->NextStage (); }
