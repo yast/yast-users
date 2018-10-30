@@ -114,6 +114,7 @@ YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("SystemFilesCopy");
 YaST::YCP::Import ("UsersUI");
+YaST::YCP::Import ("SSHAuthorizedKeys");
 
 # known system users (hard-written here to check user name conflicts)
 # number may mean the UID (but it don't have to be defined)
@@ -777,6 +778,8 @@ sub Write {
 	# write root password now
 	return $self->WriteRootPassword ();
     }
+
+    SSHAuthorizedKeys->write_keys("/root");
 
     return bool (1);
 }
