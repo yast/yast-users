@@ -32,11 +32,11 @@ module Y2Users
   module Widgets
     # This widget allows to select a public key from a removable device
     class PublicKeySelector < ::CWM::CustomWidget
-      # @!attribute [r]
-      #   @return [SSHPublicKey] SSH public key
-      attr_reader :value
 
-      alias_method :key, :value
+      class << self
+        attr_accessor :selected_blk_device_name
+        attr_accessor :value
+      end
 
       # Constructor
       def initialize
@@ -92,13 +92,25 @@ module Y2Users
         value.nil?
       end
 
+      # Helper method to get the current value (the selected public key)
+      #
+      # @return [SSHPublicKey] Return the
+      def value
+        self.class.value
+      end
+
     private
 
-      attr_writer :value
+      # Helper method to set the current value (the selected public key)
+      #
+      # @param [SSHPublicKey] Return the current public key
+      def value=(key)
+        self.class.value = key
+      end
 
-      # @return [String] Selected block device name
-      attr_reader :selected_blk_device_name
-
+      def selected_blk_device_name
+        self.class.selected_blk_device_name
+      end
 
       # Widget's inner content
       #
@@ -156,7 +168,7 @@ module Y2Users
 
       # Selects the current block device
       def select_blk_device
-        @selected_blk_device_name = Yast::UI.QueryWidget(Id(:blk_device), :Value)
+        self.class.selected_blk_device_name = Yast::UI.QueryWidget(Id(:blk_device), :Value)
       end
 
       # Refreshes widget content

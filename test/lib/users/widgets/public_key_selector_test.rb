@@ -34,6 +34,8 @@ describe Y2Users::Widgets::PublicKeySelector do
 
   before do
     allow(Y2Users::LeafBlkDevice).to receive(:all).and_return(blk_devices)
+    described_class.selected_blk_device_name = nil
+    described_class.value = nil
   end
 
   describe "#contents" do
@@ -94,55 +96,79 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#handle" do
-    let(:tmpdir) { TESTS_PATH.join("tmp") }
-    let(:event) { { "ID" => :browse } }
-    let(:disk) { "/dev/sr0" }
-    let(:mounted?) { true }
-
-    before do
-      allow(Dir).to receive(:mktmpdir).and_return(tmpdir.to_s)
-
-      allow(subject).to receive(:selected_blk_device_name).and_return(disk)
-      allow(Yast::UI).to receive(:QueryWidget).with(Id(:blk_device), :Value)
-        .and_return(disk)
-      allow(Yast::SCR).to receive(:Execute)
-        .with(Yast::Path.new(".target.mount"), ["/dev/sr0", tmpdir.to_s], "-o ro")
-        .and_return(mounted?)
-      allow(Yast::SCR).to receive(:Execute)
-        .with(Yast::Path.new(".target.umount"), tmpdir.to_s)
-      FileUtils.mkdir(tmpdir)
-    end
-
-    context "when the user selects a key" do
-      let(:key_path) { FIXTURES_PATH.join("id_rsa.pub") }
-      let(:key_content) { File.read(key_path).strip }
+    context "searching for a key" do
+      let(:tmpdir) { TESTS_PATH.join("tmp") }
+      let(:event) { { "ID" => :browse } }
+      let(:disk) { "/dev/sr0" }
+      let(:mounted?) { true }
 
       before do
-        allow(Yast::UI).to receive(:AskForExistingFile).with(tmpdir.to_s, "*", anything)
-          .and_return(key_path)
+        allow(Dir).to receive(:mktmpdir).and_return(tmpdir.to_s)
+
+        allow(subject).to receive(:selected_blk_device_name).and_return(disk)
+        allow(Yast::UI).to receive(:QueryWidget).with(Id(:blk_device), :Value)
+          .and_return(disk)
+        allow(Yast::SCR).to receive(:Execute)
+          .with(Yast::Path.new(".target.mount"), ["/dev/sr0", tmpdir.to_s], "-o ro")
+          .and_return(mounted?)
+        allow(Yast::SCR).to receive(:Execute)
+          .with(Yast::Path.new(".target.umount"), tmpdir.to_s)
+        FileUtils.mkdir(tmpdir)
       end
 
-      it "reads the key" do
-        widget.handle(event)
-        expect(widget.value.to_s).to eq(key_content)
+      context "when the user selects a key" do
+        let(:key_path) { FIXTURES_PATH.join("id_rsa.pub") }
+        let(:key_content) { File.read(key_path).strip }
+
+        before do
+          allow(Yast::UI).to receive(:AskForExistingFile).with(tmpdir.to_s, "*", anything)
+            .and_return(key_path)
+        end
+
+        it "reads the key" do
+          widget.handle(event)
+          expect(widget.value.to_s).to eq(key_content)
+        end
+
+        it "saves the key for later use" do
+          widget.handle(event)
+          expect(described_class.value.to_s).to eq(key_content)
+        end
+      end
+
+      context "when the user cancels the dialog" do
+        let(:key_path) { nil }
+
+        it "does not import any value" do
+          widget.handle(event)
+          expect(widget.value).to be_nil
+        end
+      end
+
+      context "when the selected device cannot be mounted" do
+        let(:mounted?) { false }
+
+        it "reports the problem" do
+          expect(Yast2::Popup).to receive(:show)
+          widget.handle(event)
+        end
+      end
+
+      it "saves the selected device for later use" do
+        expect { widget.handle(event) }.to change { described_class.selected_blk_device_name }
+          .from(nil).to("/dev/sr0")
       end
     end
 
-    context "when the user cancels the dialog" do
-      let(:key_path) { nil }
+    context "removing the key" do
+      let(:event) { { "ID" => :remove } }
 
-      it "does not import any value" do
-        widget.handle(event)
-        expect(widget.key).to be_nil
+      before do
+        described_class.value = key
       end
-    end
 
-    context "when the selected device cannot be mounted" do
-      let(:mounted?) { false }
-
-      it "reports the problem" do
-        expect(Yast2::Popup).to receive(:show)
-        widget.handle(event)
+      it "removes the current key" do
+        expect { widget.handle(event) }.to change { widget.value }.from(key).to(nil)
       end
     end
   end
@@ -170,7 +196,6 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#empty?" do
-
     before do
       allow(subject).to receive(:value).and_return(key)
     end
