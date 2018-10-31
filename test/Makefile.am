@@ -8,7 +8,6 @@ TESTS = \
   lib/users/ssh_public_key_test.rb \
   lib/users/widgets/inst_root_first_test.rb \
   lib/users/widgets/public_key_selector_test.rb \
-  lib/users/widgets/public_keys_list_test.rb \
   dialogs_test.rb \
   ssh_authorized_keys_test.rb \
   users_test.rb \

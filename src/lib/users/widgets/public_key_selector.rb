@@ -21,7 +21,6 @@
 
 require "cwm"
 require "users/leaf_blk_device"
-require "users/widgets/public_keys_list"
 require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
