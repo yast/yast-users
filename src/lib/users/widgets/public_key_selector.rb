@@ -144,8 +144,13 @@ module Y2Users
       # @return [Yast::Term]
       def blk_device_selector
         VBox(
-          Left(MinWidth(50, blk_devices_combo_box)),
-          Left(PushButton(Id(:browse), Opt(:notify), _("Browse..."))),
+          Left(
+            HBox(
+              blk_devices_combo_box,
+              PushButton(Id(:refresh), Opt(:notify), _("Refresh..."))
+            )
+          ),
+          Left(PushButton(Id(:browse), Opt(:notify), _("Browse...")))
         )
       end
 
@@ -154,7 +159,7 @@ module Y2Users
       # @return [Yast::Term]
       def public_key_content
         VBox(
-          Left(MinWidth(50, Label(value.fingerprint))),
+          Left(Label(value.fingerprint)),
           HBox(
             Left(Label(value.comment)),
             Right(PushButton(Id(:remove), Opt(:notify), _("Remove")))
@@ -171,10 +176,7 @@ module Y2Users
         options = available_blk_devices.map do |dev|
           Item(Id(dev.name), "#{dev.model} (#{dev.name})", dev.name == selected_blk_device_name)
         end
-        HBox(
-          ComboBox(Id(:blk_device), "", options),
-          PushButton(Id(:refresh), Opt(:notify), _("Refresh..."))
-        )
+        ComboBox(Id(:blk_device), Opt(:hstretch), "", options)
       end
 
       # Returns a list of devices that can be selected
