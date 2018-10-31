@@ -29,17 +29,82 @@ describe Y2Users::Widgets::PublicKeySelector do
 
   include_examples "CWM::CustomWidget"
 
+  let(:blk_devices) { [] }
+  let(:key) { Y2Users::SSHPublicKey.new(File.read(FIXTURES_PATH.join("id_rsa.pub"))) }
+
+  before do
+    allow(Y2Users::LeafBlkDevice).to receive(:all).and_return(blk_devices)
+  end
+
+  describe "#contents" do
+    let(:blk_devices) { [usb_with_fs, usb_no_fs] }
+
+    let(:usb_with_fs) do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: :vfat, removable: true
+      )
+    end
+
+    let(:usb_no_fs) do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", fstype: nil, removable: true
+      )
+    end
+
+    before do
+      allow(widget).to receive(:value).and_return(value)
+    end
+
+    context "block device selector" do
+      let(:value) { nil }
+
+      it "includes devices containing a filesystem" do
+        expect(widget.contents.to_s).to include("MyBrand 8G")
+      end
+
+      it "does not include devices which does not have a filesystem" do
+        expect(widget.contents.to_s).to_not include("MyBrand 4G")
+      end
+
+      context "when a key is selected" do
+        let(:value) { key }
+
+        it "is not displayed" do
+          expect(widget.contents.to_s).to_not include("MyBrand")
+        end
+      end
+    end
+
+    context "public key summary" do
+      let(:value) { key }
+
+      it "includes the key fingerprint and the comment" do
+        expect(widget.contents.to_s).to include(key.fingerprint)
+        expect(widget.contents.to_s).to include(key.comment)
+      end
+
+      context "when no key is selected" do
+        let(:value) { nil }
+
+        it "is not displayed" do
+          expect(widget.contents.to_s).to_not include(key.comment)
+        end
+      end
+    end
+  end
+
   describe "#handle" do
     let(:tmpdir) { TESTS_PATH.join("tmp") }
     let(:event) { { "ID" => :browse } }
     let(:disk) { "/dev/sr0" }
-    let(:disk_selector) { instance_double(Y2Users::Widgets::DiskSelector, value: disk) }
     let(:mounted?) { true }
 
     before do
       allow(Dir).to receive(:mktmpdir).and_return(tmpdir.to_s)
 
-      allow(Y2Users::Widgets::DiskSelector).to receive(:new).and_return(disk_selector)
+      allow(subject).to receive(:selected_blk_device_name).and_return(disk)
+      allow(Yast::UI).to receive(:QueryWidget).with(Id(:blk_device), :Value)
+        .and_return(disk)
       allow(Yast::SCR).to receive(:Execute)
         .with(Yast::Path.new(".target.mount"), ["/dev/sr0", tmpdir.to_s], "-o ro")
         .and_return(mounted?)
@@ -59,7 +124,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "reads the key" do
         widget.handle(event)
-        expect(widget.keys.map(&:to_s)).to eq([key_content])
+        expect(widget.value.to_s).to eq(key_content)
       end
     end
 
@@ -68,7 +133,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "does not import any value" do
         widget.handle(event)
-        expect(widget.keys).to eq([])
+        expect(widget.key).to be_nil
       end
     end
 
@@ -84,13 +149,10 @@ describe Y2Users::Widgets::PublicKeySelector do
 
   describe "#store" do
     before do
-      allow(widget).to receive(:keys).and_return(keys)
+      allow(widget).to receive(:value).and_return(key)
     end
 
     context "when a key was read" do
-      let(:key) { Y2Users::SSHPublicKey.new(File.read(FIXTURES_PATH.join("id_rsa.pub"))) }
-      let(:keys) { [key] }
-
       it "imports the key" do
         expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [key.to_s])
         widget.store
@@ -98,7 +160,7 @@ describe Y2Users::Widgets::PublicKeySelector do
     end
 
     context "when no key was read" do
-      let(:keys) { [] }
+      let(:key) { nil }
 
       it "does not try to import any key" do
         expect(Yast::SSHAuthorizedKeys).to_not receive(:import_keys)
@@ -108,22 +170,21 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#empty?" do
-    let(:list) { instance_double(Y2Users::Widgets::PublicKeysList, empty?: empty?) }
 
     before do
-      allow(Y2Users::Widgets::PublicKeysList).to receive(:new).and_return(list)
+      allow(subject).to receive(:value).and_return(key)
     end
 
-    context "when the keys list is empty" do
-      let(:empty?) { true }
+    context "when no key is selected" do
+      let(:key) { nil }
 
       it "returns true" do
         expect(widget).to be_empty
       end
     end
 
-    context "when the keys list is not empty" do
-      let(:empty?) { false }
+    context "when key is selected" do
+      let(:key) { instance_double(Y2Users::SSHPublicKey) }
 
       it "returns false" do
         expect(widget).to_not be_empty

@@ -20,7 +20,7 @@
 # find current contact information at www.suse.com.
 
 require "cwm"
-require "users/widgets/disk_selector"
+require "users/leaf_blk_device"
 require "users/widgets/public_keys_list"
 require "users/ssh_public_key"
 require "yast2/popup"
@@ -34,8 +34,10 @@ module Y2Users
     # This widget allows to select a public key from a removable device
     class PublicKeySelector < ::CWM::CustomWidget
       # @!attribute [r]
-      #   @return [String] Public key content
+      #   @return [SSHPublicKey] SSH public key
       attr_reader :value
+
+      alias_method :key, :value
 
       # Constructor
       def initialize
@@ -52,13 +54,7 @@ module Y2Users
       def contents
         VBox(
           Left(Label(label)),
-          HBox(
-            disk_selector,
-            HStretch(),
-            PushButton(Id(:browse), "Browse..."),
-          ),
-          VSpacing(1.5),
-          public_keys_list
+          ReplacePoint(Id(:inner_content), inner_content)
         )
       end
 
@@ -66,14 +62,20 @@ module Y2Users
       #
       # @see CWM::AbstractWdiget
       def handle(event)
-        read_key if event["ID"] == :browse
+        case event["ID"]
+        when :browse
+          read_key
+        when :remove
+          remove_key
+        end
+        refresh
 
         nil
       end
 
       # @see CWM::AbstractWdiget
       def store
-        Yast::SSHAuthorizedKeys.import_keys("/root", keys.map(&:to_s)) unless keys.empty?
+        Yast::SSHAuthorizedKeys.import_keys("/root", [value.to_s]) if value
         nil
       end
 
@@ -84,40 +86,83 @@ module Y2Users
         true
       end
 
-      # Returns the list of added keys
-      #
-      # @return [Array<SSHPublicKey>] List of public keys
-      def keys
-        public_keys_list.keys
-      end
-
       # Determines whether the public keys list is empty or not
       #
       # @return [Boolena] true if empty; false otherwise
       def empty?
-        public_keys_list.empty?
+        value.nil?
       end
 
     private
 
       attr_writer :value
 
-      # Returns the disk selector widget
+      # @return [String] Selected block device name
+      attr_reader :selected_blk_device_name
+
+
+      # Widget's inner content
       #
-      # @note The widget is memoized
+      # It displays the public key content or a disk selector if no key has been selected.
       #
-      # @return [DiskSelector] Disk selection widget
-      def disk_selector
-        @disk_selector ||= DiskSelector.new
+      # @return [Yast::Term]
+      def inner_content
+        VBox(empty? ? blk_device_selector : public_key_content)
       end
 
-      # Public keys list widget
+      # Disk selector
       #
-      # @note The widget is memoized
+      # This widget displays includes a list of selectable disk and a button to browse the
+      # selected one.
       #
-      # @return [PublicKeyList] Public keys list widget
-      def public_keys_list
-        @public_keys_list ||= PublicKeysList.new
+      # @return [Yast::Term]
+      def blk_device_selector
+        VBox(
+          Left(MinWidth(50, blk_devices_combo_box)),
+          Left(PushButton(Id(:browse), Opt(:notify), _("Browse..."))),
+        )
+      end
+
+      # UI which shows the public key content
+      #
+      # @return [Yast::Term]
+      def public_key_content
+        VBox(
+          Left(MinWidth(50, Label(value.fingerprint))),
+          HBox(
+            Left(Label(value.comment)),
+            Right(PushButton(Id(:remove), Opt(:notify), _("Remove")))
+          )
+        )
+      end
+
+      # Disk combo box
+      #
+      # Displays a combo box containing al selectable devices.
+      #
+      # @return [Yast::Term]
+      def blk_devices_combo_box
+        options = available_blk_devices.map do |dev|
+          Item(Id(dev.name), "#{dev.model} (#{dev.name})", dev.name == selected_blk_device_name)
+        end
+        ComboBox(Id(:blk_device), "", options)
+      end
+
+      # Returns a list of devices that can be selected
+      #
+      # @return [Array<LeafBlkDevice>] List of devices
+      def available_blk_devices
+        @available_blk_devices ||= LeafBlkDevice.all.select(&:filesystem?)
+      end
+
+      # Selects the current block device
+      def select_blk_device
+        @selected_blk_device_name = Yast::UI.QueryWidget(Id(:blk_device), :Value)
+      end
+
+      # Refreshes widget content
+      def refresh
+        Yast::UI.ReplaceWidget(Id(:inner_content), inner_content)
       end
 
       # Reads the key selected by the user
@@ -126,15 +171,16 @@ module Y2Users
       #
       # @return [String] Key content
       def read_key
+        select_blk_device
         dir = Dir.mktmpdir
         begin
           mounted = Yast::SCR.Execute(
-            Yast::Path.new(".target.mount"), [disk_selector.value, dir], "-o ro"
+            Yast::Path.new(".target.mount"), [selected_blk_device_name, dir], "-o ro"
           )
           if mounted
             read_key_from(dir)
           else
-            report_mount_error(disk_selector.value)
+            report_mount_error(selected_blk_device_name)
           end
         ensure
           Yast::SCR.Execute(Yast::Path.new(".target.umount"), dir) if mounted
@@ -148,9 +194,14 @@ module Y2Users
       def read_key_from(dir)
         path = Yast::UI.AskForExistingFile(dir, "*", _("Select a public key"))
         return unless path && File.exist?(path)
-        public_keys_list.add(SSHPublicKey.new(File.read(path)))
+        self.value = SSHPublicKey.new(File.read(path))
       rescue SSHPublicKey::InvalidKey
         report_invalid_key
+      end
+
+      # Removes the selected key
+      def remove_key
+        self.value = nil
       end
 
       # Displays an error about the device which failed to be mounted
