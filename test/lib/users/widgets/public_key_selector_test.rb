@@ -171,6 +171,16 @@ describe Y2Users::Widgets::PublicKeySelector do
         expect { widget.handle(event) }.to change { widget.value }.from(key).to(nil)
       end
     end
+
+    context "refreshing the devices list" do
+      let(:event) { { "ID" => :refresh } }
+
+      it "refreshes the devices list" do
+        widget.contents
+        widget.handle(event)
+        widget.contents
+      end
+    end
   end
 
   describe "#store" do

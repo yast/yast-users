@@ -66,8 +66,10 @@ module Y2Users
           read_key
         when :remove
           remove_key
+        when :refresh
+          reset_available_blk_devices
         end
-        refresh
+        update
 
         nil
       end
@@ -156,7 +158,10 @@ module Y2Users
         options = available_blk_devices.map do |dev|
           Item(Id(dev.name), "#{dev.model} (#{dev.name})", dev.name == selected_blk_device_name)
         end
-        ComboBox(Id(:blk_device), "", options)
+        HBox(
+          ComboBox(Id(:blk_device), "", options),
+          PushButton(Id(:refresh), Opt(:notify), _("Refresh..."))
+        )
       end
 
       # Returns a list of devices that can be selected
@@ -172,7 +177,7 @@ module Y2Users
       end
 
       # Refreshes widget content
-      def refresh
+      def update
         Yast::UI.ReplaceWidget(Id(:inner_content), inner_content)
       end
 
@@ -213,6 +218,11 @@ module Y2Users
       # Removes the selected key
       def remove_key
         self.value = nil
+      end
+
+      # Resets the devices list
+      def reset_available_blk_devices
+        @available_blk_devices = nil
       end
 
       # Displays an error about the device which failed to be mounted

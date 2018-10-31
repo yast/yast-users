@@ -37,7 +37,7 @@ module Y2Users
       #
       # @return [Array<LeafBlkDevice>] List of relevant block devices
       def all
-        @all ||= lsblk["blockdevices"].map { |h| new_from_hash(h) }
+        lsblk["blockdevices"].map { |h| new_from_hash(h) }
       end
 
       # Instantiates a new object
