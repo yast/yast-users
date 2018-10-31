@@ -64,5 +64,30 @@ describe Y2Users::LeafBlkDevice do
       end
     end
   end
+
+  describe "#transport?" do
+    subject do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: "ext4",
+        transport: transport, removable: true
+      )
+    end
+
+    context "when the device has a transport" do
+      let(:transport) { "usb" }
+
+      it "returns true" do
+        expect(subject.transport?).to eq(true)
+      end
+    end
+
+    context "when the device does not have a transport" do
+      let(:transport) { nil }
+
+      it "returns false" do
+        expect(subject.transport?).to eq(false)
+      end
+    end
+  end
 end
 

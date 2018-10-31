@@ -166,9 +166,20 @@ module Y2Users
 
       # Returns a list of devices that can be selected
       #
+      # Only the devices that meets those conditions are considered:
+      #
+      # * It has a transport (so loop devices are automatically discarded).
+      # * It has a filesystem but it is not squashfs, as it is used by the installer.
+      #
+      # The first condition should be enough. However, we want to avoid future problems if the lsblk
+      # authors decide to show some information in the 'TRAN' (transport) property for those devices
+      # that does not have one (for instance, something like 'none').
+      #
       # @return [Array<LeafBlkDevice>] List of devices
       def available_blk_devices
-        @available_blk_devices ||= LeafBlkDevice.all.select(&:filesystem?)
+        @available_blk_devices ||= LeafBlkDevice.all.select do |dev|
+          dev.filesystem? && dev.fstype != :squash && dev.transport?
+        end
       end
 
       # Selects the current block device

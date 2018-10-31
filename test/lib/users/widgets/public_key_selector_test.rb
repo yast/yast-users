@@ -39,17 +39,33 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#contents" do
-    let(:blk_devices) { [usb_with_fs, usb_no_fs] }
+    let(:blk_devices) { [usb_with_fs, usb_no_fs, squashfs, no_transport] }
 
     let(:usb_with_fs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: :vfat, removable: true
+        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", transport: :usb,
+        fstype: :vfat, removable: true
       )
     end
 
     let(:usb_no_fs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", fstype: nil, removable: true
+        name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", transport: :usb,
+        fstype: nil, removable: true
+      )
+    end
+
+    let(:squashfs) do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/some", model: "MyBrand 4G", disk: "/dev/sdc", transport: :unknown,
+        fstype: :squashfs, removable: true
+      )
+    end
+
+    let(:no_transport) do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/loop1", model: "MyBrand 8G", disk: "/dev/sdb", transport: nil,
+        fstype: :unknown, removable: true
       )
     end
 
@@ -61,11 +77,19 @@ describe Y2Users::Widgets::PublicKeySelector do
       let(:value) { nil }
 
       it "includes devices containing a filesystem" do
-        expect(widget.contents.to_s).to include("MyBrand 8G")
+        expect(widget.contents.to_s).to include("/dev/sdb1")
       end
 
       it "does not include devices which does not have a filesystem" do
-        expect(widget.contents.to_s).to_not include("MyBrand 4G")
+        expect(widget.contents.to_s).to_not include("/dev/sdc1")
+      end
+
+      it "does not include devices which has a squashfs filesystem" do
+        expect(widget.contents.to_s).to_not include("/dev/loop1")
+      end
+
+      it "does not include devices which does not have a transport" do
+        expect(widget.contents.to_s).to_not include("/dev/loop1")
       end
 
       context "when a key is selected" do

@@ -49,8 +49,8 @@ module Y2Users
         parent = find_root_device(hash)
         removable = hash["rm"] == "1"
         new(
-          name: hash["name"], disk: parent["name"], fstype: hash["fstype"],
-          model: parent["model"], removable: removable
+          name: hash["name"], disk: parent["name"], model: parent["model"],
+          transport: parent["tran"], fstype: hash["fstype"], removable: removable
         )
       end
 
@@ -86,6 +86,9 @@ module Y2Users
     # @return [String] Disk's kernel name
     attr_reader :disk
 
+    # @return [Symbol] Disk's transport (:usb, :ata, etc.)
+    attr_reader :transport
+
     # @return [Symbol] Filesystem type
     attr_reader :fstype
 
@@ -97,14 +100,16 @@ module Y2Users
     # Constructor
     #
     # @param name      [String]  Kernel name
-    # @param model     [String]  Hardware model
     # @param disk      [String]  Disk's kernel name
+    # @param model     [String]  Hardware model
+    # @param transport [symbol]  Transport
     # @param fstype    [Symbol]  Filesystem type
     # @param removable [Boolean] Indicates whether the device is mountable or not
-    def initialize(name:, model:, disk:, fstype:, removable:)
+    def initialize(name:, disk:, model:, transport: nil, fstype: nil, removable: false)
       @name = name
       @model = model
       @disk = disk
+      @transport = transport.to_sym if transport
       @fstype = fstype.to_sym if fstype
       @removable = removable
     end
@@ -114,6 +119,13 @@ module Y2Users
     # @return [Boolean]
     def filesystem?
       !!fstype
+    end
+
+    # Determines whether the device has a transport
+    #
+    # @return [Boolean]
+    def transport?
+      !!transport
     end
   end
 end
