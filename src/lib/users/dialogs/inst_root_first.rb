@@ -35,12 +35,15 @@ module Yast
       textdomain "users"
     end
 
+    # @return [String] Dialog's title
+    # @see CWM::AbstractWidget
+    def title
+      _("Authentication for the System Administrator \"root\"")
+    end
+
+    # @see CWM::Dialog
     def run
-
-      textdomain "users"
-
       return :auto unless root_password_dialog_needed?
-
       super
     end
 
