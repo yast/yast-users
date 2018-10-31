@@ -101,6 +101,19 @@ module Y2Users
         self.class.value
       end
 
+      def help
+        @help ||= _(
+          "<p>\n" \
+          "In some situations it is preferred to access to the system remotely via SSH\n" \
+          "using a public key instead of a password. This screen allows you to select\n" \
+          "one public key from an USB stick, a CD/DVD ROM or even from an existing\n" \
+          "partition.\n\n" \
+          "Take into account that the root password and the public key are not mutually\n" \
+          "exclusive: you can provide both if you want.\n" \
+          "</p>\n"
+        )
+      end
+
     private
 
       # Helper method to set the current value (the selected public key)
