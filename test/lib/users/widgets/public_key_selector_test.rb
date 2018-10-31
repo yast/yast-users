@@ -145,7 +145,7 @@ describe Y2Users::Widgets::PublicKeySelector do
         let(:key_content) { File.read(key_path).strip }
 
         before do
-          allow(Yast::UI).to receive(:AskForExistingFile).with(tmpdir.to_s, "*", anything)
+          allow(Yast::UI).to receive(:AskForExistingFile).with(tmpdir.to_s, "*.pub", anything)
             .and_return(key_path)
         end
 

@@ -232,7 +232,7 @@ module Y2Users
       #
       # @note Asks the user to select a file and tries to read it.
       def read_key_from(dir)
-        path = Yast::UI.AskForExistingFile(dir, "*", _("Select a public key"))
+        path = Yast::UI.AskForExistingFile(dir, "*.pub", _("Select a public key"))
         return unless path && File.exist?(path)
         self.value = SSHPublicKey.new(File.read(path))
       rescue SSHPublicKey::InvalidKey
