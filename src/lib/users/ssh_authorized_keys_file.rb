@@ -70,7 +70,7 @@ module Yast
       def add_key(key)
         new_key = key.strip
         if valid_key?(new_key)
-          self.keys << new_key
+          keys << new_key
           true
         else
           log.warn("The key '#{key}' does not look like a valid SSH key")

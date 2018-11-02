@@ -26,7 +26,7 @@ describe "Yast::UsersAutoClient" do
   describe "#AutoYaST" do
     context "Import" do
       before do
-        allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func,users])
+        allow(Yast::WFM).to receive(:Args).with(no_args).and_return([func, users])
         allow(Yast::WFM).to receive(:Args).with(0).and_return(func)
         allow(Yast::WFM).to receive(:Args).with(1).and_return(users)
       end

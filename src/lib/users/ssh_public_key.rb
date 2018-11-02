@@ -74,7 +74,7 @@ module Y2Users
 
     attr_reader :raw
 
-    KEY_REGEXP = /(ssh|ecdsa)-\S+ (\S+)/.freeze
+    KEY_REGEXP = /(ssh|ecdsa)-\S+ (\S+)/
 
     # Gets the fingerprint for the given OpenSSH public key
     #

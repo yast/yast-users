@@ -63,8 +63,8 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw1, "mimic_forbidden")
       stub_widget_value(:pw2, "mimic_forbidden")
 
-      expect(Yast::UsersSimple).to receive(:CheckPassword).with("mimic_forbidden", "local").
-        and_return("Invalid password")
+      expect(Yast::UsersSimple).to receive(:CheckPassword).with("mimic_forbidden", "local")
+        .and_return("Invalid password")
       expect(Yast::Report).to receive(:Error)
       expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
 

@@ -55,10 +55,10 @@ module Users
       "sha256" => N_("SHA-256"),
       # TRANSLATORS: encryption type
       "sha512" => N_("SHA-512")
-    }
+    }.freeze
     private_constant :LABELS
 
-    DEFAULT_ID = "sha512"
+    DEFAULT_ID = "sha512".freeze
     private_constant :DEFAULT_ID
 
     def initialize(id)
@@ -121,7 +121,7 @@ module Users
     #
     # @raise [NotFoundError] if the id is unknown
     def self.validate_id!(id)
-      return if LABELS.has_key?(id)
+      return if LABELS.key?(id)
       raise NotFoundError, "#{id} is not a known encryption method"
     end
   end
