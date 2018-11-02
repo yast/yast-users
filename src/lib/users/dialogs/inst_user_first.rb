@@ -31,6 +31,7 @@ module Yast
   # Dialog for creation of local users during first stage of installation
   # It stores the user(s) information in the UsersSimple module. The user(s)
   # will then be created by that module during inst_finish
+  # rubocop:disable Metrics/ClassLength
   class InstUserFirstDialog < ::UI::InstallationDialog
     # Widgets to enable/disable depending on the selected action
     # (the first one receives the initial focus if applicable)
@@ -132,6 +133,8 @@ module Yast
       self.action = :import
     end
 
+    # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/AbcSize
     def help_text
       help = _(
         "<p>\nUse one of the available options to add local users to the system.\n" \
@@ -166,7 +169,8 @@ module Yast
         "</p>\n"
       ) +
         _(
-          "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.\n" \
+          "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and "\
+          "<tt>._-</tt>.\n" \
           "Do not use uppercase letters in this entry unless you know what you are doing.\n" \
           "Usernames have stricter restrictions than passwords. You can redefine the\n" \
           "restrictions in the /etc/login.defs file. Read its man page for information.\n" \
@@ -429,14 +433,14 @@ module Yast
         u["encrypted"] = true
         u
       end
-      set_users_list(create_users)
+      self.users_list = create_users
     end
 
     def clean_users_info
-      set_users_list([])
+      self.users_list = []
     end
 
-    def set_users_list(users)
+    def users_list=(users)
       UsersSimple.SetUsers(users)
       UsersSimple.SkipRootPasswordDialog(false)
       UsersSimple.SetRootPassword("") if root_dialog_follows
@@ -479,7 +483,9 @@ module Yast
         return false
       end
 
-      passwd = ::Users::LocalPassword.new(username: username, plain: pw1, also_for_root: @use_pw_for_root)
+      passwd = ::Users::LocalPassword.new(
+        username: username, plain: pw1, also_for_root: @use_pw_for_root
+      )
       if !passwd.valid?
         message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
         return false if !Popup.YesNo(message)

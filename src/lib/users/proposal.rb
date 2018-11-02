@@ -44,7 +44,6 @@ module Users
         "enable_next" => param.fetch("has_next", false),
         "going_back"  => true
       }
-      result = :back
 
       Wizard.OpenAcceptDialog
 
@@ -105,7 +104,6 @@ module Users
       users = UsersSimple.GetUsers
       user = users.first || {}
       if users.size > 1 || !user["__imported"].nil?
-        to_import = users.map { |u| u["uid"] || "" }
         # TRANSLATORS: summary line, %d is the number of users
         prop = n_(
           "<a href=%s>%d user</a> will be imported",

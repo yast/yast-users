@@ -36,16 +36,20 @@ describe "Yast::UsersAutoClient" do
       context "when double users have been given in the profile" do
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_error.yml")) }
         it "report error" do
-          expect(Yast::Report).to receive(:Error).with(_("Found users in profile with equal <username>."))
-          expect(Yast::Report).to receive(:Error).with(_("Found users in profile with equal <uid>."))
+          expect(Yast::Report).to receive(:Error)
+            .with(_("Found users in profile with equal <username>."))
+          expect(Yast::Report).to receive(:Error)
+            .with(_("Found users in profile with equal <uid>."))
           expect(subject.main).to eq(true)
         end
       end
       context "when users without any UID are defined in the profile" do
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_no_error.yml")) }
         it "will not be checked for double UIDs" do
-          expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <username>."))
-          expect(Yast::Report).not_to receive(:Error).with(_("Found users in profile with equal <uid>."))
+          expect(Yast::Report).not_to receive(:Error)
+            .with(_("Found users in profile with equal <username>."))
+          expect(Yast::Report).not_to receive(:Error)
+            .with(_("Found users in profile with equal <uid>."))
           expect(subject.main).to eq(true)
         end
       end

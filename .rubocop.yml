@@ -26,6 +26,11 @@ Style/FormatString:
     - 'src/lib/users/encryption_proposal.rb'
     - 'src/lib/users/proposal.rb'
 
+Style/FormatString:
+  Exclude:
+    - 'src/lib/users/encryption_proposal.rb'
+    - 'src/lib/users/proposal.rb'
+
 AllCops:
   Exclude:
     - 'src/modules/**/*'

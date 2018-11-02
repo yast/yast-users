@@ -61,6 +61,16 @@ module Users
     DEFAULT_ID = "sha512".freeze
     private_constant :DEFAULT_ID
 
+    class << self
+      # Checks an id
+      #
+      # @raise [NotFoundError] if the id is unknown
+      def validate_id!(id)
+        return if LABELS.key?(id)
+        raise NotFoundError, "#{id} is not a known encryption method"
+      end
+    end
+
     def initialize(id)
       textdomain "users"
       EncryptionMethod.validate_id!(id)
@@ -113,16 +123,6 @@ module Users
     # @return [EncryptionMethod]
     def self.default
       new(DEFAULT_ID)
-    end
-
-  private
-
-    # Checks an id
-    #
-    # @raise [NotFoundError] if the id is unknown
-    def self.validate_id!(id)
-      return if LABELS.key?(id)
-      raise NotFoundError, "#{id} is not a known encryption method"
     end
   end
 end

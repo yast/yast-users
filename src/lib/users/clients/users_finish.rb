@@ -16,6 +16,7 @@
 require "installation/finish_client"
 
 module Yast
+  # This client takes care of setting up the users at the end of the installation
   class UsersFinishClient < ::Installation::FinishClient
     include Logger
 

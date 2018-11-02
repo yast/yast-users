@@ -20,6 +20,8 @@ require "yast"
 require "ui/dialog"
 
 module Yast
+  # This dialog offers a way to select which users should be imported from a previously installed
+  # system
   class UsersToImportDialog < ::UI::Dialog
     def initialize(all, initial)
       super()

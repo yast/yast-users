@@ -27,7 +27,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
   def authorized_keys_from_home(path)
     file_path = File.join(path, ".ssh", "authorized_keys")
-    File.read(file_path).lines.map(&:strip).grep /ssh-/
+    File.read(file_path).lines.map(&:strip).grep(/ssh-/)
   end
 
   describe "#empty?" do

@@ -37,6 +37,15 @@ module Users
     # @return [Array<UsersDatabase>]
     class << self
       attr_reader :all
+
+    protected
+
+      # Adds a database to #all, honoring the expected order
+      def push(database)
+        @all << database
+        @all.sort_by!(&:atime)
+        @all.reverse!
+      end
     end
 
     # Imports users data from a given root directory and stores it in .all
@@ -71,15 +80,6 @@ module Users
       shadow = File.join(dir, "shadow")
       IO.write(passwd, self.passwd)
       IO.write(shadow, self.shadow)
-    end
-
-  protected
-
-    # Adds a database to #all, honoring the expected order
-    def self.push(database)
-      @all << database
-      @all.sort_by!(&:atime)
-      @all.reverse!
     end
   end
 end
