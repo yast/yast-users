@@ -84,6 +84,7 @@ module Yast
         end
       end
 
+      # The authorized keys file is not a regular file (for instance, it might be a link)
       class NotRegularAuthorizedKeysFile < PathError
         # @return default_message [String] Default error message
         def default_message
@@ -209,7 +210,8 @@ module Yast
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
         raise CouldNotCreateSSHDirectory, ssh_dir unless ret
-        FileUtils::Chown("#{user}:#{group}", ssh_dir, false) && FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir, false)
+        FileUtils::Chown("#{user}:#{group}", ssh_dir, false) &&
+          FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir, false)
       end
 
       # Write authorized keys file

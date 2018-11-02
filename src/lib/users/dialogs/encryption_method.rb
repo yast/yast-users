@@ -22,6 +22,7 @@ require "users/encryption_method"
 Yast.import "UsersSimple"
 
 module Yast
+  # This dialog allows the user to select an encryption method for all user passwords
   class EncryptionMethodDialog < ::UI::InstallationDialog
     def initialize
       super

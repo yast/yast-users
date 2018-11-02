@@ -28,7 +28,7 @@ describe Users::LocalPassword do
     end
     allow(subject.ca_validator).to receive(:enabled?).and_return ca_enabled
   end
-  let (:ca_enabled) { true }
+  let(:ca_enabled) { true }
 
   describe "#valid?" do
     it "returns true if no errors were found" do
@@ -64,7 +64,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { true }
+        let(:ca_enabled) { true }
 
         it "returns two errors for a bad, short password" do
           subject.plain = "Bad"
@@ -88,7 +88,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { false }
+        let(:ca_enabled) { false }
 
         it "returns one error for a bad, short password" do
           subject.plain = "Bad"
@@ -122,7 +122,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { true }
+        let(:ca_enabled) { true }
 
         it "returns two errors for a bad, short password" do
           subject.plain = "Bad"
@@ -146,7 +146,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { false }
+        let(:ca_enabled) { false }
 
         it "returns one error for a bad, short password" do
           subject.plain = "Bad"
@@ -180,7 +180,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { true }
+        let(:ca_enabled) { true }
 
         it "returns one error for a bad, short password" do
           subject.plain = "Bad"
@@ -204,7 +204,7 @@ describe Users::LocalPassword do
       end
 
       context "if CA check is enabled" do
-        let (:ca_enabled) { false }
+        let(:ca_enabled) { false }
 
         it "returns one error for a bad, short password" do
           subject.plain = "Bad"

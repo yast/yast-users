@@ -29,6 +29,11 @@ Style/ZeroLengthPredicate:
 Style/MutableConstant:
   Enabled: false
 
+Style/FormatString:
+  Exclude:
+    - 'src/lib/users/encryption_proposal.rb'
+    - 'src/lib/users/proposal.rb'
+
 AllCops:
   Exclude:
     - 'src/modules/**/*'
