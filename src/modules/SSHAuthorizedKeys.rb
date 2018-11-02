@@ -81,8 +81,8 @@ module Yast
 
     # Add a list of authorized keys for a given home directory
     #
-    # @param path [String] User's home directory
-    # @param authorized_keys [Array<Hash|String>]
+    # @param home [String] User's home directory
+    # @param keys [Array<Hash|String>]
     # @return [Boolean] +true+ if some key was imported; +false+ otherwise.
     def import_keys(home, keys)
       !keyring.add_keys(home, keys).empty?
@@ -92,7 +92,7 @@ module Yast
     #
     # To be used while exporting the AutoYaST profile.
     #
-    # @param [String] Home directory where the authorized keys are located
+    # @param home [String] Home directory where the authorized keys are located
     # @return [Array<Hash>] Authorized keys for the given home
     def export_keys(home)
       keyring[home]

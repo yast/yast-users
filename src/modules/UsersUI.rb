@@ -483,7 +483,8 @@ module Yast
     end
 
     # Error messages for errors detected during reading via .passwd agent
-    # @param error number returned by passwd-agent
+    # @param errno [Integer] number returned by passwd-agent
+    # @param more [String] additional information
     # @return error message
     def GetPasswdErrorMessage(errno, more)
       last =

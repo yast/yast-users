@@ -62,7 +62,7 @@ module Yast
 
       # The home directory does not exist.
       class HomeDoesNotExist < PathError
-        # @return default_message [String] Default error message
+        # @return [String] Default error message
         def default_message
           "Home directory does not exist"
         end
@@ -70,7 +70,7 @@ module Yast
 
       # The user's SSH configuration directory could not be created.
       class CouldNotCreateSSHDirectory < PathError
-        # @return default_message [String] Default error message
+        # @return [String] Default error message
         def default_message
           "SSH directory could not be created"
         end
@@ -78,7 +78,7 @@ module Yast
 
       # The user's SSH configuration directory is a link (potentially insecure).
       class NotRegularSSHDirectory < PathError
-        # @return default_message [String] Default error message
+        # @return [String] Default error message
         def default_message
           "SSH directory is not a regular directory"
         end
@@ -86,7 +86,7 @@ module Yast
 
       # The authorized keys file is not a regular file (for instance, it might be a link)
       class NotRegularAuthorizedKeysFile < PathError
-        # @return default_message [String] Default error message
+        # @return [String] Default error message
         def default_message
           "authorized_keys is not a regular file"
         end
@@ -124,7 +124,7 @@ module Yast
 
       # Read keys from a given home directory and add them to the keyring
       #
-      # @param path [String] User's home directory
+      # @param home [String] User's home directory
       # @return [Boolean] +true+ if some key was found
       def read_keys(home)
         path = authorized_keys_path(home)
@@ -140,7 +140,7 @@ module Yast
       # If SSH_DIR does not exist in the given directory, it will be
       # created inheriting owner/group and setting permissions to SSH_DIR_PERM.
       #
-      # @param path [String] User's home directory
+      # @param home [String] User's home directory
       # @return [Boolean] +true+ if keys were written; +false+ otherwise
       def write_keys(home)
         return false if keys[home].nil?
@@ -216,10 +216,9 @@ module Yast
 
       # Write authorized keys file
       #
-      # @param path  [String] Path to file/directory
-      # @param user  [Fixnum] Users's UID
+      # @param home  [String] Path to file/directory
+      # @param owner [Fixnum] Users's UID
       # @param group [Fixnum] Group's GID
-      # @param perms [String] Permissions (in form "0700")
       def write_file(home, owner, group)
         path = authorized_keys_path(home)
         file = SSHAuthorizedKeysFile.new(path)
