@@ -34,8 +34,8 @@ module Y2Users
     class PublicKeySelector < ::CWM::CustomWidget
 
       class << self
-        attr_accessor :selected_blk_device_name
-        attr_accessor :value
+        # We want this information (the selected device name and the SSH key) to be remembered
+        attr_accessor :selected_blk_device_name, :value
       end
 
       # Constructor
@@ -87,20 +87,23 @@ module Y2Users
         true
       end
 
-      # Determines whether the public keys list is empty or not
+      # Determines whether a public key is selected or not
       #
-      # @return [Boolena] true if empty; false otherwise
+      # @return [Boolean] true if empty; false otherwise
       def empty?
         value.nil?
       end
 
       # Helper method to get the current value (the selected public key)
       #
-      # @return [SSHPublicKey] Return the
+      # @return [SSHPublicKey,nil] Return the selected public key (nor nil if no key is selected)
       def value
         self.class.value
       end
 
+      # Returns the help text regarding the use of a public key for authentication
+      #
+      # @return [String] Help text
       def help
         @help ||= _(
           "<p>\n" \
@@ -270,7 +273,9 @@ module Y2Users
 
       # Displays an error about an invalid SSH key
       def report_invalid_key
-        Yast2::Popup.show(_("A valid key was not found"), headline: :error)
+        Yast2::Popup.show(
+          _("The selected file does not contain a valid public key"), headline: :error
+        )
       end
     end
   end
