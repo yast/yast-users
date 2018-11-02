@@ -46,7 +46,7 @@ describe Y2Users::LeafBlkDevice do
 
     subject do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: fstype, removable: true
+        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: fstype
       )
     end
 
@@ -69,7 +69,7 @@ describe Y2Users::LeafBlkDevice do
     subject do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: "ext4",
-        transport: transport, removable: true
+        transport: transport
       )
     end
 

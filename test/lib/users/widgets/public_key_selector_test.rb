@@ -44,28 +44,28 @@ describe Y2Users::Widgets::PublicKeySelector do
     let(:usb_with_fs) do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", transport: :usb,
-        fstype: :vfat, removable: true
+        fstype: :vfat
       )
     end
 
     let(:usb_no_fs) do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", transport: :usb,
-        fstype: nil, removable: true
+        fstype: nil
       )
     end
 
     let(:squashfs) do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/some", model: "MyBrand 4G", disk: "/dev/sdc", transport: :unknown,
-        fstype: :squashfs, removable: true
+        fstype: :squashfs
       )
     end
 
     let(:no_transport) do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/loop1", model: "MyBrand 8G", disk: "/dev/sdb", transport: nil,
-        fstype: :unknown, removable: true
+        fstype: :unknown
       )
     end
 

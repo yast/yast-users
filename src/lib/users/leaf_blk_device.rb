@@ -47,10 +47,9 @@ module Y2Users
       # @return [LeafBlkDevice] New LeafBlkDevice instance
       def new_from_hash(hash)
         parent = find_root_device(hash)
-        removable = hash["rm"] == "1"
         new(
           name: hash["name"], disk: parent["name"], model: parent["model"],
-          transport: parent["tran"], fstype: hash["fstype"], removable: removable
+          transport: parent["tran"], fstype: hash["fstype"]
         )
       end
 
@@ -58,13 +57,11 @@ module Y2Users
 
       # Gets `lsblk` into a Hash
       #
-      # @note The output is in inverse order, as we are only interested in leaf nodes.
-      #
       # @return [Hash] Hash containing data from `lsblk`
       def lsblk
         output = Yast::Execute.locally(
           "/usr/bin/lsblk", "--inverse", "--json", "--paths",
-          "--output", "NAME,TRAN,FSTYPE,RM,MODEL", stdout: :capture
+          "--output", "NAME,TRAN,FSTYPE,MODEL", stdout: :capture
         )
         JSON.parse(output)
       end
@@ -92,11 +89,6 @@ module Y2Users
     # @return [Symbol] Filesystem type
     attr_reader :fstype
 
-    # @return [Boolean] Indicates whether the device is mountable or not
-    attr_reader :removable
-
-    alias_method :removable?, :removable
-
     # Constructor
     #
     # @param name      [String]  Kernel name
@@ -104,14 +96,12 @@ module Y2Users
     # @param model     [String]  Hardware model
     # @param transport [symbol]  Transport
     # @param fstype    [Symbol]  Filesystem type
-    # @param removable [Boolean] Indicates whether the device is mountable or not
-    def initialize(name:, disk:, model:, transport: nil, fstype: nil, removable: false)
+    def initialize(name:, disk:, model:, transport: nil, fstype: nil)
       @name = name
       @model = model
       @disk = disk
       @transport = transport.to_sym if transport
       @fstype = fstype.to_sym if fstype
-      @removable = removable
     end
 
     # Determines whether the device has a filesystem
