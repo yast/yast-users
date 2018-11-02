@@ -121,7 +121,7 @@ module Y2Users
 
       # Helper method to set the current value (the selected public key)
       #
-      # @param [SSHPublicKey] Return the current public key
+      # @param key [SSHPublicKey] Return the current public key
       def value=(key)
         self.class.value = key
       end

@@ -79,6 +79,34 @@ module Yast
       )
     end
 
+<<<<<<< HEAD
+=======
+    # Add a list of authorized keys for a given home directory
+    #
+    # @param home [String] User's home directory
+    # @param keys [Array<Hash|String>]
+    # @return [Boolean] +true+ if some key was imported; +false+ otherwise.
+    def import_keys(home, keys)
+      !keyring.add_keys(home, keys).empty?
+    end
+
+    # Return a hash representation of the authorized keys
+    #
+    # To be used while exporting the AutoYaST profile.
+    #
+    # @param home [String] Home directory where the authorized keys are located
+    # @return [Array<Hash>] Authorized keys for the given home
+    def export_keys(home)
+      keyring[home]
+    end
+
+    # Initializes the module
+    def reset
+      @keyring = Users::SSHAuthorizedKeyring.new
+    end
+
+    publish function: :import_keys, type: "boolean (string, list)"
+>>>>>>> b94d530... Fix documentation problems
     publish function: :read_keys, type: "boolean (string)"
     publish function: :write_keys, type: "boolean (string, list <string>)"
   end

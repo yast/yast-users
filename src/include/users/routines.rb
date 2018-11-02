@@ -63,7 +63,6 @@ module Yast
     # Split cn (fullname) in forename and surname.
     # @param [Symbol] what `surname or `forename
     # @param [String] cn fullname
-    # @param type user type
     # @return [String] selected part of user name
     def SplitFullName(what, cn)
       cn = "" if cn == nil
