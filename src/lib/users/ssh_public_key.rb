@@ -48,7 +48,7 @@ module Y2Users
     #
     # @return [String] Comment field
     def comment
-      @comment ||= @raw.split(" ").last
+      @comment ||= @raw.split(" ")[2]
     end
 
     # Returns the string version of the public key

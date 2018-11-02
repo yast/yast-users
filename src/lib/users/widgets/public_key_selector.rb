@@ -167,6 +167,15 @@ module Y2Users
         )
       end
 
+      # Key comment to show to the user
+      #
+      # @note When no comment is present, the widget shows 'no comment' just as ssh-keygen does.
+      #
+      # @return [String]
+      def comment_value
+        value.comment || _("no comment")
+      end
+
       # Disk combo box
       #
       # Displays a combo box containing al selectable devices.

@@ -47,5 +47,13 @@ describe Y2Users::SSHPublicKey do
     it "returns the key comment" do
       expect(key.comment).to eq("dummy1@example.net")
     end
+
+    context "when there is no comment" do
+      let(:path) { FIXTURES_PATH.join("id_rsa_no_comment.pub") }
+
+      it "it returns nil" do
+        expect(key.comment).to be_nil
+      end
+    end
   end
 end
