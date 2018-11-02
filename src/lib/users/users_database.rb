@@ -35,8 +35,8 @@ module Users
     # is the most recently accessed).
     #
     # @return [Array<UsersDatabase>]
-    def self.all
-      @all
+    class << self
+      attr_reader :all
     end
 
     # Imports users data from a given root directory and stores it in .all

@@ -33,11 +33,9 @@ module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
-
     class << self
       attr_accessor :approved_pwd
     end
-
 
     # If `little_space` is `false` (the default), the widget will
     # use a vertical layout, and include a "don't forget this" label.
@@ -154,24 +152,24 @@ module Users
         "</p>\n"
       ).dup <<
 
-      # help text, continued 2
-      _(
-        "<p>\n" \
-        "Because the root user is equipped with extensive permissions, the password\n" \
-        "for \"root\" should be chosen carefully. A combination of letters and numbers\n" \
-        "is recommended. To ensure that the password was entered correctly,\n" \
-        "reenter it in a second field.\n" \
-        "</p>\n"
-      ) <<
+        # help text, continued 2
+        _(
+          "<p>\n" \
+          "Because the root user is equipped with extensive permissions, the password\n" \
+          "for \"root\" should be chosen carefully. A combination of letters and numbers\n" \
+          "is recommended. To ensure that the password was entered correctly,\n" \
+          "reenter it in a second field.\n" \
+          "</p>\n"
+        ) <<
 
-      # help text, continued 3
-      _(
-        "<p>\n" \
-        "All the rules for user passwords apply to the \"root\" password:\n" \
-        "Distinguish between uppercase and lowercase. A password should have at\n" \
-        "least 5 characters and, as a rule, not contain any accented letters or umlauts.\n" \
-        "</p>\n"
-      )
+        # help text, continued 3
+        _(
+          "<p>\n" \
+          "All the rules for user passwords apply to the \"root\" password:\n" \
+          "Distinguish between uppercase and lowercase. A password should have at\n" \
+          "least 5 characters and, as a rule, not contain any accented letters or umlauts.\n" \
+          "</p>\n"
+        )
 
       helptext << Yast::UsersSimple.ValidPasswordHelptext
 

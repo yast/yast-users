@@ -90,4 +90,3 @@ describe Y2Users::LeafBlkDevice do
     end
   end
 end
-

@@ -25,15 +25,15 @@ describe "Yast::UsersDialogsInclude" do
     it "returns a two-key result when Yes is answered" do
       expect(Yast::UI).to receive(:UserInput).and_return :yes
       expect(Yast::UI).to receive(:QueryWidget)
-                            .with(Id(:chown_home), :Value).and_return(false)
+        .with(Id(:chown_home), :Value).and_return(false)
 
       expect(subject.ask_chown_home("/home/foo", true))
-        .to eq({"retval" => true, "chown_home" => false})
+        .to eq("retval" => true, "chown_home" => false)
     end
     it "returns a one result when No is answered" do
       expect(Yast::UI).to receive(:UserInput).and_return :no
       expect(subject.ask_chown_home("/home/foo", true))
-        .to eq({"retval" => false})
+        .to eq("retval" => false)
     end
   end
 

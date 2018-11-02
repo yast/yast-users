@@ -67,7 +67,7 @@ module Users
     def help_text
       if enabled?
         _(
-          "<p>If you intend to use this password for creating certificates,\n" +
+          "<p>If you intend to use this password for creating certificates,\n" \
           "it has to be at least %s characters long.</p>"
         ) % MIN_LENGTH
       else

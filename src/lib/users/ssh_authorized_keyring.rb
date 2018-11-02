@@ -63,24 +63,32 @@ module Yast
       # The home directory does not exist.
       class HomeDoesNotExist < PathError
         # @return default_message [String] Default error message
-        def default_message; "Home directory does not exist" end
+        def default_message
+          "Home directory does not exist"
+        end
       end
 
       # The user's SSH configuration directory could not be created.
       class CouldNotCreateSSHDirectory < PathError
         # @return default_message [String] Default error message
-        def default_message; "SSH directory could not be created" end
+        def default_message
+          "SSH directory could not be created"
+        end
       end
 
       # The user's SSH configuration directory is a link (potentially insecure).
       class NotRegularSSHDirectory < PathError
         # @return default_message [String] Default error message
-        def default_message; "SSH directory is not a regular directory" end
+        def default_message
+          "SSH directory is not a regular directory"
+        end
       end
 
       class NotRegularAuthorizedKeysFile < PathError
         # @return default_message [String] Default error message
-        def default_message; "authorized_keys is not a regular file" end
+        def default_message
+          "authorized_keys is not a regular file"
+        end
       end
 
       # Constructor
@@ -137,7 +145,7 @@ module Yast
         return false if keys[home].nil?
         if !FileUtils::Exists(home)
           log.error("Home directory '#{home}' does not exist!")
-          raise HomeDoesNotExist.new(home)
+          raise HomeDoesNotExist, home
         end
         user = FileUtils::GetOwnerUserID(home)
         group = FileUtils::GetOwnerGroupID(home)
@@ -145,7 +153,7 @@ module Yast
         write_file(home, user, group)
       end
 
-      private
+    private
 
       # @return [String] Relative path to the SSH directory inside users' home
       SSH_DIR = ".ssh".freeze
@@ -195,12 +203,12 @@ module Yast
       def create_ssh_dir(home, user, group)
         ssh_dir = ssh_dir_path(home)
         if FileUtils::Exists(ssh_dir)
-          raise NotRegularSSHDirectory.new(ssh_dir) unless FileUtils::IsDirectory(ssh_dir)
+          raise NotRegularSSHDirectory, ssh_dir unless FileUtils::IsDirectory(ssh_dir)
           return ssh_dir
         end
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
         log.info("Creating SSH directory: #{ret}")
-        raise CouldNotCreateSSHDirectory.new(ssh_dir) unless ret
+        raise CouldNotCreateSSHDirectory, ssh_dir unless ret
         FileUtils::Chown("#{user}:#{group}", ssh_dir, false) && FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir, false)
       end
 
@@ -217,7 +225,7 @@ module Yast
         log.info "Writing #{keys[home].size} keys in #{path}"
         file.save && FileUtils::Chown("#{owner}:#{group}", path, false)
       rescue SSHAuthorizedKeysFile::NotRegularFile
-        raise NotRegularAuthorizedKeysFile.new(path)
+        raise NotRegularAuthorizedKeysFile, path
       end
     end
   end

@@ -56,7 +56,7 @@ describe Users::CAPasswordValidator do
   describe "#help_text" do
     before do
       allow(subject).to(receive(:enabled?))
-        .and_return enabled
+                    .and_return enabled
     end
 
     context "if the CA check is disabled" do
@@ -81,7 +81,7 @@ describe Users::CAPasswordValidator do
   describe "#errors_for" do
     before do
       allow(subject).to(receive(:enabled?))
-        .and_return enabled
+                    .and_return enabled
     end
 
     context "if the CA check is disabled" do

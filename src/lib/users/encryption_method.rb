@@ -121,7 +121,7 @@ module Users
     #
     # @raise [NotFoundError] if the id is unknown
     def self.validate_id!(id)
-      return if LABELS.has_key?(id)
+      return if LABELS.key?(id)
       raise NotFoundError, "#{id} is not a known encryption method"
     end
   end

@@ -80,7 +80,7 @@ module Yast
     end
 
     def initial_items
-      @all.map {|u| Item(Id(u), u, @initial.include?(u)) }
+      @all.map { |u| Item(Id(u), u, @initial.include?(u)) }
     end
 
     def initially_all_checked?
