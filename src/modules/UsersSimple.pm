@@ -114,6 +114,7 @@ YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("SystemFilesCopy");
 YaST::YCP::Import ("UsersUI");
+YaST::YCP::Import ("SSHAuthorizedKeys");
 
 # known system users (hard-written here to check user name conflicts)
 # number may mean the UID (but it don't have to be defined)
@@ -364,8 +365,13 @@ sub CryptPassword {
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
 
-    my $self		= shift;
-    my $crypted		= $self->CryptPassword ($root_password, "system");
+    my $self = shift;
+    my $crypted = "!";
+
+    if ($root_password ne "") {
+      $crypted = $self->CryptPassword ($root_password, "system");
+    }
+
     return SCR->Write (".target.passwd.root", $crypted);
 }
 
@@ -773,10 +779,9 @@ BEGIN { $TYPEINFO{Write} = ["function", "boolean"];}
 sub Write {
     my $self		= shift;
 
-    if ($root_password ne "") {
-	# write root password now
-	return $self->WriteRootPassword ();
-    }
+    # write root password now
+    $self->WriteRootPassword ();
+    SSHAuthorizedKeys->write_keys("/root");
 
     return bool (1);
 }
