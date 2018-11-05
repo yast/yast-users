@@ -25,6 +25,7 @@ require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
 
+Yast.import "Label"
 Yast.import "UI"
 Yast.import "SSHAuthorizedKeys"
 
@@ -150,10 +151,10 @@ module Y2Users
           Left(
             HBox(
               blk_devices_combo_box,
-              PushButton(Id(:refresh), Opt(:notify), _("Refresh..."))
+              PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton),
             )
           ),
-          Left(PushButton(Id(:browse), Opt(:notify), _("Browse...")))
+          Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton)),
         )
       end
 
@@ -165,7 +166,7 @@ module Y2Users
           Left(Label(value.fingerprint)),
           HBox(
             Left(Label(value.comment)),
-            Right(PushButton(Id(:remove), Opt(:notify), _("Remove")))
+            Right(PushButton(Id(:remove), Opt(:notify), Yast::Label.RemoveButton))
           )
         )
       end
@@ -176,6 +177,8 @@ module Y2Users
       #
       # @return [String]
       def comment_value
+        # TRANSLATORS: the public key does not contain a comment (which  is often used as some sort
+        # of description in order to identify the key)
         value.comment || _("no comment")
       end
 
@@ -246,6 +249,8 @@ module Y2Users
       #
       # @note Asks the user to select a file and tries to read it.
       def read_key_from(dir)
+        # TRANSLATORS: title of a dialog which allows to select a file to be used
+        # as SSH public key
         path = Yast::UI.AskForExistingFile(dir, "*.pub", _("Select a public key"))
         return unless path && File.exist?(path)
         self.value = SSHPublicKey.new(File.read(path))

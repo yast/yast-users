@@ -39,6 +39,16 @@ describe Y2Users::LeafBlkDevice do
         an_object_having_attributes(name: "/dev/sr1", fstype: :iso9660)
       )
     end
+
+    context "when lsblk fails" do
+      before do
+        allow(Yast::Execute).to receive(:locally).and_return(nil)
+      end
+
+      it "returns an empty array" do
+        expect(described_class.all).to eq([])
+      end
+    end
   end
 
   describe "#filesystem?" do
