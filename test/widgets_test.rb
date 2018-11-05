@@ -116,4 +116,63 @@ describe Users::PasswordWidget do
 
     subject.store
   end
+
+  context "when the widget is allowed to be empty" do
+    subject { described_class.new(allow_empty: true) }
+
+    it "does not validate the password" do
+      stub_widget_value(:pw1, "")
+      stub_widget_value(:pw2, "")
+
+      expect(subject.validate).to eq(true)
+    end
+
+    it "does not store the value if empty" do
+      stub_widget_value(:pw1, "")
+      stub_widget_value(:pw2, "")
+
+      expect(Yast::UsersSimple).to_not receive(:SetRootPassword)
+      subject.store
+    end
+
+    it "stores the value if not empty" do
+      stub_widget_value(:pw1, "new cool password")
+      stub_widget_value(:pw2, "new cool password")
+
+      expect(Yast::UsersSimple).to receive(:SetRootPassword).with("new cool password")
+      subject.store
+    end
+  end
+
+  describe "#empty?" do
+    let(:pw1) { "" }
+    let(:pw2) { "" }
+
+    before do
+      stub_widget_value(:pw1, pw1)
+      stub_widget_value(:pw2, pw2)
+    end
+
+    context "when no password has been introduced" do
+      it "returns true" do
+        expect(subject.empty?).to eq(true)
+      end
+    end
+
+    context "when a password was introduced in the password field" do
+      let(:pw1) { "secret" }
+
+      it "returns false" do
+        expect(subject.empty?).to eq(false)
+      end
+    end
+
+    context "when a password was introduced in the confirmation field" do
+      let(:pw2) { "secret" }
+
+      it "returns false" do
+        expect(subject.empty?).to eq(false)
+      end
+    end
+  end
 end

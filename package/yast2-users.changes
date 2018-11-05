@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Nov  2 08:46:35 UTC 2018 - igonzalezsosa@suse.com
+
+- Allow the root user to use a public key for authentication
+  (fate#324690).
+- 4.0.8
+
+-------------------------------------------------------------------
 Fri Oct 19 14:03:08 UTC 2018 - snwint@suse.com
 
 - read ssh keys from root user only if the user exists (bsc#1112119,
