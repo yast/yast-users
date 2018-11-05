@@ -45,10 +45,11 @@ module Users
     # If `little_space` is `true`, the helpful label is omitted
     # and the password fields are laid out horizontally.
     # @param focus [Boolean] if set, then widget set focus to first password input field
-    def initialize(little_space: false, focus: false)
+    def initialize(little_space: false, focus: false, allow_empty: false)
       textdomain "users"
       @little_space = little_space
       @focus = focus
+      @allow_empty = allow_empty
     end
 
     def contents
@@ -97,6 +98,8 @@ module Users
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
+      return true if allow_empty? && password1.empty?
+
       if password1 != password2
         # report misspellings of the password
         Yast::Popup.Message(_("The passwords do not match.\nTry again."))
@@ -134,6 +137,7 @@ module Users
     end
 
     def store
+      return if allow_empty? && empty?
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       Yast::UsersSimple.SetRootPassword(password1)
     end
@@ -179,6 +183,24 @@ module Users
       )
 
       helptext << ::Users::CAPasswordValidator.new.help_text
+    end
+
+    # Determines whether the widget is empty or not
+    #
+    # @return [Boolean]
+    def empty?
+      pw1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
+      pw2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
+      pw1.to_s.empty? && pw2.to_s.empty?
+    end
+
+    # Determines whether is allowed to do not fill the password
+    #
+    # @note In that case, the password will not be validated or stored if it is left empty.
+    #
+    # @return [Boolean]
+    def allow_empty?
+      @allow_empty
     end
   end
 end

@@ -19,69 +19,46 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-require "users/widgets"
-require "users/ca_password_validator"
-require "users/local_password"
+require "cwm/dialog"
+require "users/widgets/inst_root_first"
 
-require "ui/widgets"
-
+Yast.import "Mode"
+Yast.import "UsersSimple"
 
 module Yast
   # This library provides a simple dialog for setting new password for the
   # system adminitrator (root) including checking quality of the password
   # itself. The new password is not stored here, just set in UsersSimple module
   # and stored later during inst_finish.
-  class InstRootFirstDialog
-    include Yast::Logger
-    include Yast::I18n
-    include Yast::UIShortcuts
-
-    def run
-      Yast.import "UI"
-      Yast.import "Mode"
-      Yast.import "UsersSimple"
-      Yast.import "CWM"
-
+  class InstRootFirstDialog < ::CWM::Dialog
+    def initialize
       textdomain "users"
+    end
 
+    # @return [String] Dialog's title
+    # @see CWM::AbstractWidget
+    def title
+      _("Authentication for the System Administrator \"root\"")
+    end
+
+    # @see CWM::Dialog
+    def run
       return :auto unless root_password_dialog_needed?
+      super
+    end
 
-      # We do not need to create a wizard dialog in installation, but it's
-      # helpful when testing all manually on a running system
-      Wizard.CreateDialog if separate_wizard_needed?
-
-      Wizard.SetTitleIcon("yast-users")
-
-      ret = CWM.show(
-        content,
-        # Title for root-password dialogue
-        caption: _("Password for the System Administrator \"root\""),
-      )
-
-      Wizard.CloseDialog if separate_wizard_needed?
-
-      ret
+    # Returns a UI widget-set for the dialog
+    def contents
+      VBox(Y2Users::Widgets::InstRootFirst.new)
     end
 
   private
 
-    # Returns a UI widget-set for the dialog
-    def content
-      VBox(
-        VStretch(),
-        HSquash(
-          VBox(
-            ::Users::PasswordWidget.new(focus: true),
-            VSpacing(2.4),
-            ::UI::Widgets::KeyboardLayoutTest.new
-          )
-        ),
-        VStretch()
-      )
-    end
-
     # Returns whether we need/ed to create new UI Wizard
-    def separate_wizard_needed?
+    #
+    # @note We do not need to create a wizard dialog in installation, but it's helpful when testing
+    #   all manually on a running system
+    def should_open_dialog?
       Mode.normal
     end
 
