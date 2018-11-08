@@ -34,43 +34,10 @@ describe Yast::SSHAuthorizedKeys do
   let(:authorized_keys_path) { File.join("ssh_dir", ".authorized_keys") }
   let(:key) { double("key") }
   let(:keys) { [key] }
+  let(:keyring) { instance_double(Yast::Users::SSHAuthorizedKeyring, add_keys: []) }
 
-  before { subject.reset }
-
-  describe "#import_keys" do
-    it "imports keys into the keyring" do
-      expect(subject.keyring).to receive(:add_keys).with(home, keys)
-        .and_return(keys)
-      subject.import_keys(home, keys)
-    end
-
-    it "returns true if some key was imported" do
-      allow(subject.keyring).to receive(:add_keys).with(home, keys)
-        .and_return(keys)
-      expect(subject.import_keys(home, keys)).to eq(true)
-    end
-
-    it "returns false if no key was imported" do
-      allow(subject.keyring).to receive(:add_keys).with(home, keys)
-        .and_return([])
-      expect(subject.import_keys(home, keys)).to eq(false)
-    end
-  end
-
-  describe "#export_keys" do
-    context "when some key was added" do
-      before { subject.import_keys(home, keys) }
-
-      it "returns an array with added keys" do
-        expect(subject.export_keys(home)).to eq(keys)
-      end
-    end
-
-    context "when no key was added" do
-      it "returns an empty array" do
-        expect(subject.export_keys(home)).to eq([])
-      end
-    end
+  before do
+    allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
   end
 
   describe "#write_keys" do
@@ -80,10 +47,10 @@ describe Yast::SSHAuthorizedKeys do
       end
 
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
+        allow(keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
           .with(/'#{home}' does not exist/)
-        subject.write_keys(home)
+        subject.write_keys(home, ["ssh-rsa ..."])
       end
     end
 
@@ -93,10 +60,10 @@ describe Yast::SSHAuthorizedKeys do
       end
 
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
+        allow(keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
           .with(/'#{ssh_dir}' exists but it is not a directory/)
-        subject.write_keys(home)
+        subject.write_keys(home, ["ssh-rsa ..."])
       end
     end
 
@@ -106,10 +73,10 @@ describe Yast::SSHAuthorizedKeys do
       end
 
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
+        allow(keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
           .with(/not create directory '#{ssh_dir}'/)
-        subject.write_keys(home)
+        subject.write_keys(home, ["ssh-rsa ..."])
       end
     end
 
@@ -119,10 +86,10 @@ describe Yast::SSHAuthorizedKeys do
       end
 
       it "shows an error message" do
-        allow(subject.keyring).to receive(:write_keys).and_raise(exception)
+        allow(keyring).to receive(:write_keys).and_raise(exception)
         expect(Yast::Report).to receive(:Warning)
           .with(/'#{authorized_keys_path}' exists but it is not a file/)
-        subject.write_keys(home)
+        subject.write_keys(home, ["ssh-rsa ..."])
       end
     end
   end

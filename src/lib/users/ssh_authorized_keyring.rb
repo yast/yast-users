@@ -23,14 +23,14 @@ module Yast
   module Users
     # Read, write and store SSH authorized keys.
     #
-    # This class manages authorized keys for each home directory in the
-    # system.
+    # This class manages authorized keys for a home directory in the system.
     class SSHAuthorizedKeyring
       include Logger
 
-      # @return [Hash<String,Array<SSHAuthorizedKey>>] Authorized keys indexed by home directory
+      # @return [Array<String>] List of authorized keys
       attr_reader :keys
-      private :keys
+      # @return [String] Home directory path
+      attr_reader :home
 
       # Base class to use in file/directory problems
       class PathError < StandardError
@@ -78,14 +78,16 @@ module Yast
         def default_message; "SSH directory is not a regular directory" end
       end
 
+      # The authorized_keys is not a regular file (potentially insecure).
       class NotRegularAuthorizedKeysFile < PathError
         # @return default_message [String] Default error message
         def default_message; "authorized_keys is not a regular file" end
       end
 
       # Constructor
-      def initialize
-        @keys = {}
+      def initialize(home)
+        @keys = []
+        @home = home
       end
 
       # Add/register a keys
@@ -93,17 +95,9 @@ module Yast
       # This method does not make any change to the system. For that,
       # see #write_keys.
       #
-      # @param home [String] Home directory where the key will be stored
-      # @return [Array<SSHAuthorizedKey>] Registered authorized keys
-      def add_keys(home, new_keys)
-        keys[home] = new_keys
-      end
-
-      # Returns the keys for a given home directory
-      #
-      # @return [Array<SSHAuthorizedKey>] List of authorized keys
-      def [](home)
-        keys[home] || []
+      # @return [Array<String>] Registered authorized keys
+      def add_keys(new_keys)
+        keys.concat(new_keys)
       end
 
       # Determines if the keyring is empty
@@ -116,14 +110,12 @@ module Yast
       # Read keys from a given home directory and add them to the keyring
       #
       # @param path [String] User's home directory
-      # @return [Boolean] +true+ if some key was found
-      def read_keys(home)
-        path = authorized_keys_path(home)
-        return false unless FileUtils::Exists(path)
-        authorized_keys = SSHAuthorizedKeysFile.new(path).keys
-        keys[home] = authorized_keys unless authorized_keys.empty?
-        log.info "Read #{authorized_keys.size} keys from #{path}"
-        !authorized_keys.empty?
+      # @return [Array<String>] List of authorized keys
+      def read_keys
+        path = authorized_keys_path
+        @keys = FileUtils::Exists(path) ? SSHAuthorizedKeysFile.new(path).keys : []
+        log.info "Read #{@keys.size} keys from #{path}"
+        @keys
       end
 
       # Write user keys to the given file
@@ -133,16 +125,17 @@ module Yast
       #
       # @param path [String] User's home directory
       # @return [Boolean] +true+ if keys were written; +false+ otherwise
-      def write_keys(home)
-        return false if keys[home].nil?
+      def write_keys
+        remove_authorized_keys_file
+        return false if keys.empty?
         if !FileUtils::Exists(home)
           log.error("Home directory '#{home}' does not exist!")
           raise HomeDoesNotExist.new(home)
         end
         user = FileUtils::GetOwnerUserID(home)
         group = FileUtils::GetOwnerGroupID(home)
-        create_ssh_dir(home, user, group)
-        write_file(home, user, group)
+        create_ssh_dir(user, group)
+        write_file(user, group)
       end
 
       private
@@ -162,8 +155,8 @@ module Yast
       # @return [String] Path to the user's SSH directory
       #
       # @see SSH_DIR
-      def ssh_dir_path(home)
-        File.join(home, SSH_DIR)
+      def ssh_dir_path
+        @ssh_dir_path ||= File.join(home, SSH_DIR)
       end
 
       # Determine the path to the user's authorized keys file
@@ -175,8 +168,8 @@ module Yast
       # @see AUTHORIZED_KEYS_FILE
       #
       # @see #ssh_dir_path
-      def authorized_keys_path(home)
-        File.join(ssh_dir_path(home), AUTHORIZED_KEYS_FILE)
+      def authorized_keys_path
+        @authorized_keys_path ||= File.join(ssh_dir_path, AUTHORIZED_KEYS_FILE)
       end
 
       # Find or creates the SSH directory
@@ -192,16 +185,16 @@ module Yast
       #
       # @raise NotRegularSSHDirectory
       # @raise CouldNotCreateSSHDirectory
-      def create_ssh_dir(home, user, group)
-        ssh_dir = ssh_dir_path(home)
-        if FileUtils::Exists(ssh_dir)
-          raise NotRegularSSHDirectory.new(ssh_dir) unless FileUtils::IsDirectory(ssh_dir)
-          return ssh_dir
+      def create_ssh_dir(user, group)
+        if FileUtils::Exists(ssh_dir_path)
+          raise NotRegularSSHDirectory.new(ssh_dir_path) unless FileUtils::IsDirectory(ssh_dir_path)
+          return ssh_dir_path
         end
-        ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir)
+        ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir_path)
         log.info("Creating SSH directory: #{ret}")
-        raise CouldNotCreateSSHDirectory.new(ssh_dir) unless ret
-        FileUtils::Chown("#{user}:#{group}", ssh_dir, false) && FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir, false)
+        raise CouldNotCreateSSHDirectory.new(ssh_dir_path) unless ret
+        FileUtils::Chown("#{user}:#{group}", ssh_dir_path, false) &&
+          FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir_path, false)
       end
 
       # Write authorized keys file
@@ -210,14 +203,19 @@ module Yast
       # @param user  [Fixnum] Users's UID
       # @param group [Fixnum] Group's GID
       # @param perms [String] Permissions (in form "0700")
-      def write_file(home, owner, group)
-        path = authorized_keys_path(home)
-        file = SSHAuthorizedKeysFile.new(path)
-        file.keys = keys[home]
-        log.info "Writing #{keys[home].size} keys in #{path}"
-        file.save && FileUtils::Chown("#{owner}:#{group}", path, false)
+      def write_file(owner, group)
+        file = SSHAuthorizedKeysFile.new(authorized_keys_path)
+        file.keys = keys
+        log.info "Writing #{keys.size} keys in #{authorized_keys_path}"
+        file.save && FileUtils::Chown("#{owner}:#{group}", authorized_keys_path, false)
       rescue SSHAuthorizedKeysFile::NotRegularFile
-        raise NotRegularAuthorizedKeysFile.new(path)
+        raise NotRegularAuthorizedKeysFile.new(authorized_keys_path)
+      end
+
+      # Remove the authorized keys file
+      def remove_authorized_keys_file
+        return unless FileUtils::Exists(authorized_keys_path)
+        SCR.Execute(Path.new(".target.remove"), authorized_keys_path)
       end
     end
   end
