@@ -163,7 +163,7 @@ module Y2Users
       # @return [Yast::Term]
       def public_key_content
         VBox(
-          Left(Label(value.fingerprint)),
+          Left(Label(value.formatted_fingerprint)),
           HBox(
             Left(Label(value.comment)),
             Right(PushButton(Id(:remove), Opt(:notify), Yast::Label.RemoveButton))

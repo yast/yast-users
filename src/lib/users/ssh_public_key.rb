@@ -19,7 +19,8 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
+require "digest"
+require "base64"
 
 module Y2Users
   # This class is a simplified representation of a OpenSSH public key.
@@ -40,15 +41,15 @@ module Y2Users
     #
     # @raise InvalidKey
     def initialize(raw)
-      @fingerprint = fingerprint_from(raw)
       @raw = raw.strip
+      @fingerprint = calculate_fingerprint
     end
 
     # Returns the key comment
     #
     # @return [String] Comment field
     def comment
-      @comment ||= @raw.split(" ")[2]
+      @comment ||= raw.split(" ")[2]
     end
 
     # Returns the string version of the public key
@@ -58,19 +59,31 @@ module Y2Users
       @raw
     end
 
+    # Fingeprint formatted in a similar way to ssh-keygen
+    #
+    # It adds the used hash and removes the trailing "=" characters (they are
+    # just padding).
+    #
+    # @see https://github.com/openssh/openssh-portable/blob/1a4a9cf80f5b92b9d1dadd0bfa8867c04d195391/sshkey.c#L955
+    def formatted_fingerprint
+      fp = fingerprint.sub(/\=+\Z/, "")
+      "SHA256:#{fp}"
+    end
+
   private
+
+    attr_reader :raw
+
+    KEY_REGEXP = /(ssh|ecdsa)-\S+ (\S+)/.freeze
 
     # Gets the fingerprint for the given OpenSSH public key
     #
     # @return [String] Key fingerprint
     # @raise InvalidKey
-    def fingerprint_from(raw)
-      output = Yast::Execute.locally!(
-        ["echo", raw], ["ssh-keygen", "-l", "-f", "/dev/stdin"], stdout: :capture
-      )
-      output.split(" ")[1].to_s
-    rescue Cheetah::ExecutionFailed
-      raise InvalidKey
+    def calculate_fingerprint
+      key = @raw[KEY_REGEXP, 2]
+      raise InvalidKey unless key
+      Digest::SHA256.base64digest(Base64.decode64(key))
     end
   end
 end

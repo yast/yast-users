@@ -105,7 +105,7 @@ describe Y2Users::Widgets::PublicKeySelector do
       let(:value) { key }
 
       it "includes the key fingerprint and the comment" do
-        expect(widget.contents.to_s).to include(key.fingerprint)
+        expect(widget.contents.to_s).to include(key.formatted_fingerprint)
         expect(widget.contents.to_s).to include(key.comment)
       end
 
