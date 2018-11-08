@@ -214,7 +214,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
     context "when a key was read" do
       it "imports the key" do
-        expect(Yast::SSHAuthorizedKeys).to receive(:import_keys).with("/root", [key.to_s])
+        expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with(key.to_s)
         widget.store
       end
     end
@@ -223,7 +223,7 @@ describe Y2Users::Widgets::PublicKeySelector do
       let(:key) { nil }
 
       it "does not try to import any key" do
-        expect(Yast::SSHAuthorizedKeys).to_not receive(:import_keys)
+        expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with("")
         widget.store
       end
     end
