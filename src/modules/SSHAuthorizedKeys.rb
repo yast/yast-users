@@ -80,7 +80,7 @@ module Yast
     end
 
     publish function: :read_keys, type: "boolean (string)"
-    publish function: :write_keys, type: "boolean (string)"
+    publish function: :write_keys, type: "boolean (string, list <string>)"
   end
 
   SSHAuthorizedKeys = SSHAuthorizedKeysClass.new
