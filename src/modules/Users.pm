@@ -4032,23 +4032,21 @@ sub WriteShadow {
     }
 }
 
+
+# Write authorized keys to users home (FATE#319471)
 BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
     foreach my $username (keys %{$modified_users{"local"}}) {
         my %user	= %{$modified_users{"local"}{$username}};
-        if ($user{"modified"} eq "imported") {
-            # Write authorized keys to user's home (FATE#319471)
-            SSHAuthorizedKeys->write_keys($user{"homeDirectory"});
-        }
+        # Write authorized keys to user's home (FATE#319471)
+        SSHAuthorizedKeys->write_keys($user{"homeDirectory"}, $user{"authorized_keys"});
     }
 
     # Do not crash if 'root' is undefined (bsc#1088183)
     if (defined($modified_users{"system"}{"root"})) {
       # Write root authorized keys(bsc#1066342)
       my %root_user = %{$modified_users{"system"}{"root"}};
-      if ($root_user{"modified"} eq "imported") {
-          SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
-      }
+      SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"}, $root_user{"authorized_keys"});
     }
 
     return 1;
@@ -4542,14 +4540,14 @@ sub Write {
 		}
 
 			# Write authorized keys to user's home (FATE#319471)
-			my $authorized_keys = $user{"authorized_keys"};
-			SSHAuthorizedKeys->import_keys($home, $authorized_keys);
-			SSHAuthorizedKeys->write_keys($home);
+      if (defined($user{"authorized_keys"})) {
+				SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
+      }
 	    }
 	}
     }
 
-    if (Mode->autoinst() || Mode->autoupgrade() || Mode->config()) { WriteAuthorizedKeys(); }
+    WriteAuthorizedKeys();
 
     # Write passwords
     if ($use_gui) { Progress->NextStage (); }
@@ -5905,8 +5903,6 @@ sub ImportUser {
 	"grouplist"	=> \%grouplist,
 	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
 	"type"		=> $type,
-  # Import authorized keys from profile (FATE#319471)
-  "authorized_keys" => $user->{"authorized_keys"},
 	"modified"	=> "imported"
 	);
     }
@@ -5937,6 +5933,14 @@ sub ImportUser {
 	$ret{"shadowLastChange"} eq "") {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
+
+  # Import authorized keys from profile (FATE#319471)
+  if (defined($user->{"authorized_keys"})) {
+    $ret{"authorized_keys"} = $user->{"authorized_keys"},
+  } else {
+    my @authorized_keys = ();
+    $ret{"authorized_keys"} = \@authorized_keys;
+  }
 
     return \%ret;
 }
