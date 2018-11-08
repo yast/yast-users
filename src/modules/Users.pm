@@ -3051,6 +3051,10 @@ sub AddUser {
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
+    if (defined($data{"authorized_keys"})) {
+      $user_in_work{"authorized_keys"} = $data{"authorized_keys"};
+    }
+
     UsersCache->SetUserType ($type);
 
     if (!defined $user_in_work{"uidNumber"}) {
@@ -3361,6 +3365,10 @@ sub UserReallyModified {
 	if (($user{"plugin_modified"} || 0) == 1) {
 	    return 1; #TODO save special plugin_modified global value?
 	}
+
+	# check the list of authorized keys
+	return 1 unless ($user{"authorized_keys"} ~~ $org_user{"authorized_keys"});
+
 	# grouplist can be ignored, it is a modification of groups
 	while ( my ($key, $value) = each %org_user) {
 	    last if $ret;
@@ -4485,8 +4493,6 @@ sub Write {
 				$mode	= $user{"home_mode"};
 			    }
 			    UsersRoutines->ChmodHome($home, $mode);
-			    # Write authorized keys to user's home (FATE#319471)
-			    SSHAuthorizedKeys->write_keys($home);
 			}
 		    }
 		    Syslog->Log ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
@@ -4534,6 +4540,11 @@ sub Write {
 			}
 		    }
 		}
+
+			# Write authorized keys to user's home (FATE#319471)
+			my $authorized_keys = $user{"authorized_keys"};
+			SSHAuthorizedKeys->import_keys($home, $authorized_keys);
+			SSHAuthorizedKeys->write_keys($home);
 	    }
 	}
     }
@@ -5894,6 +5905,8 @@ sub ImportUser {
 	"grouplist"	=> \%grouplist,
 	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
 	"type"		=> $type,
+  # Import authorized keys from profile (FATE#319471)
+  "authorized_keys" => $user->{"authorized_keys"},
 	"modified"	=> "imported"
 	);
     }
@@ -5925,10 +5938,6 @@ sub ImportUser {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
 
-    # Import authorized keys from profile (FATE#319471)
-    if ($user->{"authorized_keys"} && $ret{"homeDirectory"}) {
-      SSHAuthorizedKeys->import_keys($ret{"homeDirectory"}, $user->{"authorized_keys"});
-    }
     return \%ret;
 }
 
@@ -6437,12 +6446,8 @@ sub ExportUser {
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;
     }
-    if ($user->{"homeDirectory"}) {
-        # Export authorized keys to profile (FATE#319471)
-        my $keys = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
-        if (@$keys) {
-            $ret{"authorized_keys"} = $keys;
-        }
+    if ($user->{"homeDirectory"} && $user->{"authorized_keys"}) {
+            $ret{"authorized_keys"} = $user->{"authorized_keys"};
     }
     return \%ret;
 }

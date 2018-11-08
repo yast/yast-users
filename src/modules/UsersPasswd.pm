@@ -304,6 +304,7 @@ sub read_group {
 sub read_authorized_keys {
     foreach my $user (values %{$users{"local"}}) {
       SSHAuthorizedKeys->read_keys($user->{"homeDirectory"});
+      $user->{"authorized_keys"} = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
     }
 
     # Read authorized keys also from root's home (bsc#1066342)

@@ -26,6 +26,10 @@
 #          Jiri Suchomel <jsuchome@suse.cz>
 #
 # $Id$
+
+require "users/ssh_public_key"
+require "yast2/popup"
+
 module Yast
   module UsersDialogsInclude
     def initialize_users_dialogs(include_target)
@@ -903,6 +907,10 @@ module Yast
         )
       end
 
+      if user["type"] == "local" || user["uid"] == "root"
+        tabs << Item(Id(:authorized_keys), _("SSH Public Keys"))
+      end
+
       # Now initialize the list of plugins: we must know now if there is some available.
       # UsersPlugins will filter out plugins we cannot use for given type
       plugin_clients = UsersPlugins.Apply(
@@ -1593,6 +1601,10 @@ module Yast
           end
         end
 
+        if current == :authorized_keys
+          handle_authorized_keys_input(ret, user)
+        end
+
         # inside plugins dialog
         if current == :plugins
           plugin_client = Convert.to_string(
@@ -1776,6 +1788,11 @@ module Yast
             UI.ChangeWidget(Id(:force_pw), :Enabled, false)
           end
           Wizard.SetHelpText(EditUserPasswordDialogHelp())
+          current = ret
+        end
+        if ret == :authorized_keys
+          display_authorized_keys_tab(user)
+          Wizard.SetHelpText("Some useful help!")
           current = ret
         end
         if ret == :plugins
@@ -2468,6 +2485,106 @@ module Yast
       end
       Users.CommitGroup
       :next
+    end
+
+    # Handles authorized keys list events
+    #
+    # @param action [Symbol] Action to handle (:add_authorized_key and :remove_authorized_key)
+    # @param user   [Hash] User to update
+    def handle_authorized_keys_input(action, user)
+      case action
+      when :add_authorized_key
+        add_authorized_key(user)
+      when :remove_authorized_key
+        remove_authorized_key(user)
+      end
+    end
+
+    # Adds an authorized key to the list
+    #
+    # @note This method drives the UI and handle error conditions
+    #
+    # @param user [Hash] User to update
+    def add_authorized_key(user)
+      key = read_public_key
+      return if key.nil?
+      if user.fetch("authorized_keys", []).include?(key.to_s)
+        Yast2::Popup.show(
+          _("The selected public key is already present in the list"), headline: :error
+        )
+        return
+      end
+
+      user["authorized_keys"] ||= []
+      user["authorized_keys"] << key.to_s
+      display_authorized_keys_tab(user)
+    end
+
+    # Asks for the path and retrieves the public key
+    def read_public_key
+      path = Yast::UI.AskForExistingFile("", "*.pub", _("Select a public key"))
+      return if path.nil?
+      Y2Users::SSHPublicKey.new(File.read(path))
+    rescue Y2Users::SSHPublicKey::InvalidKey
+      Yast2::Popup.show(
+        _("The selected file does not contain a valid public key"), headline: :error
+      )
+    rescue Errno::ENOENT
+      Yast2::Popup.show(
+        _("Could not read the file containing the public key"), headline: :error
+      )
+    end
+
+    # Removes the selected key from the list
+    #
+    # @param user [Hash] User to update
+    def remove_authorized_key(user)
+      selected_row = UI.QueryWidget(Id(:authorized_keys_table), :CurrentItem)
+      user["authorized_keys"].delete_at(selected_row)
+
+      rows_qty = UI.QueryWidget(Id(:authorized_keys_table), :Items).size - 1
+      next_selected_row = selected_row == rows_qty ? selected_row - 1 : selected_row
+      display_authorized_keys_tab(user, next_selected_row)
+    end
+
+    # Displays the authorized keys tab
+    #
+    # @param user         [Hash] User to update
+    # @param selected_row [Integer] Current selected row
+    def display_authorized_keys_tab(user, selected_row = nil)
+      UI.ReplaceWidget(:tabContents, get_authorized_keys_term(user))
+      UI.SetFocus(Id(:authorized_keys_table))
+      UI.ChangeWidget(Id(:authorized_keys_table), :CurrentItem, selected_row) if selected_row
+      no_keys = user.fetch("authorized_keys", []).empty?
+      UI.ChangeWidget(Id(:remove_authorized_key), :Enabled, !no_keys)
+    end
+
+
+    # Generates content for the authorized keys tab
+    #
+    # @param user [Hash] User to get the list of authorized keys
+    def get_authorized_keys_term(user)
+      items = user.fetch("authorized_keys", []).each_with_index.map do |content, idx|
+        key = Y2Users::SSHPublicKey.new(content)
+        Item(Id(idx), key.formatted_fingerprint, key.comment)
+      end
+
+      VBox(
+        Table(
+          Id(:authorized_keys_table),
+          Opt(:notify),
+          Header(
+            _("Fingerprint"),
+            _("Comment")
+          ),
+          items
+        ),
+        HBox(
+          PushButton(Id(:add_authorized_key), _("Add...")),
+          PushButton(Id(:remove_authorized_key), Yast::Label.RemoveButton),
+          HStretch()
+        )
+      )
     end
   end
 end
