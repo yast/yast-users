@@ -3366,9 +3366,6 @@ sub UserReallyModified {
 	    return 1; #TODO save special plugin_modified global value?
 	}
 
-	# check the list of authorized keys
-	return 1 unless ($user{"authorized_keys"} ~~ $org_user{"authorized_keys"});
-
 	# grouplist can be ignored, it is a modification of groups
 	while ( my ($key, $value) = each %org_user) {
 	    last if $ret;
@@ -3389,6 +3386,16 @@ sub UserReallyModified {
 		}
 		next;
 	    }
+
+	    if (defined $user{$key} && ref ($value) eq "ARRAY") {
+		if (!same_arrays($user{$key}, $value)) {
+		    $ret = 1;
+		    y2debug ("old value: ", @{$value});
+		    y2debug ("changed to: ", @{$user{$key}});
+		}
+		next;
+	    }
+
 	    if (!defined $user{$key} ||
 		((!defined $value) && (defined $user{$key})) ||
 		((defined $value) && ($user{$key} ne $value)))
