@@ -29,10 +29,10 @@ Return
 Dump	---- check group after add:
 Dump	 
 Dump	---- user 'hh':
-Dump	 $["addit_data":"", "cn":"HaHa", "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo"]
+Dump	 $["addit_data":"", "authorized_keys":[], "cn":"HaHa", "gidNumber":"100", "grouplist":$[], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo"]
 Return	true
 Dump	---- user 'hh':
-Dump	 $["addit_data":"", "cn":"HaHa", "gidNumber":"100", "grouplist":$["testgrp":"1"], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "org_homeDirectory":"/home/hh", "org_uid":"hh", "org_uidNumber":"500", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo", "what":"group_change"]
+Dump	 $["addit_data":"", "authorized_keys":[], "cn":"HaHa", "gidNumber":"100", "grouplist":$["testgrp":"1"], "groupname":"users", "homeDirectory":"/home/hh", "loginShell":"/bin/bash", "org_homeDirectory":"/home/hh", "org_uid":"hh", "org_uidNumber":"500", "shadowExpire":"", "shadowFlag":"", "shadowInactive":"", "shadowLastChange":"13727", "shadowMax":"99999", "shadowMin":"0", "shadowWarning":"7", "type":"local", "uid":"hh", "uidNumber":"500", "userPassword":"heslo", "what":"group_change"]
 Dump	==========================================================
 Dump	local group names:
 Dump	 ["testgrp", "users"]

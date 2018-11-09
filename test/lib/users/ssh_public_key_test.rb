@@ -39,7 +39,14 @@ describe Y2Users::SSHPublicKey do
 
   describe "#fingerprint" do
     it "returns the key fingerprint" do
-      expect(subject.fingerprint).to eq("SHA256:uadPyDQj9VlFZVjK8UNp57jOnWwzGgKQJpeJEhZyV0I")
+      expect(subject.fingerprint).to eq("uadPyDQj9VlFZVjK8UNp57jOnWwzGgKQJpeJEhZyV0I=")
+    end
+  end
+
+  describe "#formatted_fingerprint" do
+    it "returns the key fingerprint using the ssh-keygen style" do
+      expect(subject.formatted_fingerprint)
+        .to eq("SHA256:uadPyDQj9VlFZVjK8UNp57jOnWwzGgKQJpeJEhZyV0I")
     end
   end
 

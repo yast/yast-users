@@ -42,6 +42,8 @@ our %TYPEINFO;
 
 my $root_password		= "";
 
+my $root_public_key = "";
+
 # only for first stage, remember if root pw dialog should be skipped
 my $skip_root_dialog		= 0;
 
@@ -329,6 +331,22 @@ sub GetRootPassword {
     return $root_password;
 }
 
+# save the root's public key
+# An empty string means that no public key is wanted.
+BEGIN { $TYPEINFO{SetRootPublicKey} = ["function", "void", "string"];}
+sub SetRootPublicKey {
+
+    my $self		= shift;
+    $root_public_key 	= $_[0];
+}
+
+# get the root's public key
+# An empty string means that no public key is wanted.
+BEGIN { $TYPEINFO{GetRootPublicKey} = ["function", "string"];}
+sub GetRootPublicKey {
+    return $root_public_key;
+}
+
 # remember if the checkbox 'Use this password for root' was checked
 BEGIN { $TYPEINFO{SkipRootPasswordDialog} = ["function", "void", "boolean"];}
 sub SkipRootPasswordDialog {
@@ -373,6 +391,17 @@ sub WriteRootPassword {
     }
 
     return SCR->Write (".target.passwd.root", $crypted);
+}
+
+# Writes the public key of the root user
+BEGIN { $TYPEINFO{WriteRootPublicKey} = ["function", "void"];}
+sub WriteRootPublicKey {
+  my $self = shift;
+
+  if ($self->GetRootPublicKey() ne "") {
+    my @keys = ($self->GetRootPublicKey());
+    SSHAuthorizedKeys->write_keys("/root", \@keys);
+  }
 }
 
 # "-" means range! -> at the begining or at the end!
@@ -781,7 +810,8 @@ sub Write {
 
     # write root password now
     $self->WriteRootPassword ();
-    SSHAuthorizedKeys->write_keys("/root");
+    # write root public key
+    $self->WriteRootPublicKey();
 
     return bool (1);
 }

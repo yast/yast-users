@@ -29,6 +29,11 @@ module Y2Users
   module Widgets
     # This class displays the initial configuration settings for the root user.
     class InstRootFirst < ::CWM::CustomWidget
+      # Constructor
+      def initialize
+        textdomain "users"
+      end
+
       # Returns a UI widget-set for the dialog
       def contents
         @contents ||=

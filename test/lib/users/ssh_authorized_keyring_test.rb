@@ -22,7 +22,13 @@ require "users/ssh_authorized_keyring"
 require "tmpdir"
 
 describe Yast::Users::SSHAuthorizedKeyring do
-  subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new }
+  subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new(home) }
+  let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
+
+  def authorized_keys_from_home(path)
+    file_path = File.join(path, ".ssh", "authorized_keys")
+    File.read(file_path).lines.map(&:strip).grep /ssh-/
+  end
 
   describe "#empty?" do
     context "when keyring is empty" do
@@ -32,7 +38,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
     end
 
     context "when keyring is not empty" do
-      before { keyring.add_keys("/home/user", ["ssh-rsa 123ABC"]) }
+      before { keyring.add_keys(["ssh-rsa 123ABC"]) }
 
       it "returns false" do
         expect(keyring.empty?).to eq(false)
@@ -42,14 +48,14 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
   describe "#read_keys" do
     context "if some keys are present in the given home directory" do
-      let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
+      let(:expected_keys) { authorized_keys_from_home(home) }
 
       it "returns true" do
-        expect(keyring.read_keys(home)).to eq(true)
+        expect(keyring.read_keys).to eq(expected_keys)
       end
 
       it "registers defined keys" do
-        keyring.read_keys(home)
+        keyring.read_keys
         expect(keyring).to_not be_empty
       end
     end
@@ -57,12 +63,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
     context "if no keys are present in the home directory" do
       let(:home) { FIXTURES_PATH.join("home", "user2").to_s }
 
-      it "returns false" do
-        expect(keyring.read_keys(home)).to eq(false)
+      it "returns an empty array" do
+        expect(keyring.read_keys).to eq([])
       end
 
       it "does not register any key" do
-        keyring.read_keys(home)
+        keyring.read_keys
         expect(keyring).to be_empty
       end
     end
@@ -70,12 +76,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
     context "if authorized keys file does not exist" do
       let(:home) { FIXTURES_PATH.join("home", "other").to_s }
 
-      it "returns false" do
-        expect(keyring.read_keys(home)).to eq(false)
+      it "returns an empty array" do
+        expect(keyring.read_keys).to eq([])
       end
 
       it "does not register any key" do
-        keyring.read_keys(home)
+        keyring.read_keys
         expect(keyring).to be_empty
       end
     end
@@ -93,13 +99,9 @@ describe Yast::Users::SSHAuthorizedKeyring do
     after { FileUtils.rm_rf(tmpdir) if File.exist?(tmpdir) }
 
     context "if no keys are registered for the given home" do
-      it "returns false" do
-        expect(keyring.write_keys(home)).to eq(false)
-      end
-
       it "does not try to write the keys" do
         expect(file).to_not receive(:save)
-        keyring.write_keys(home)
+        keyring.write_keys
       end
     end
 
@@ -117,11 +119,11 @@ describe Yast::Users::SSHAuthorizedKeyring do
         allow(Yast::FileUtils).to receive(:Exists).with(home).and_return(home_dir_exists)
         allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
           .and_return(true)
-        keyring.add_keys(home, [key])
+        keyring.add_keys([key])
       end
 
-      it "writes the keys and returns true" do
-        expect(keyring.write_keys(home)).to eq(true)
+      it "writes the keys" do
+        keyring.write_keys
         expect(File).to exist(authorized_keys_path)
       end
 
@@ -131,17 +133,17 @@ describe Yast::Users::SSHAuthorizedKeyring do
         expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", ssh_dir, false)
         expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", authorized_keys_path, false)
 
-        keyring.write_keys(home)
+        keyring.write_keys
       end
 
       it "sets SSH directory permissions to 0700" do
-        keyring.write_keys(home)
+        keyring.write_keys
         mode = File.stat(ssh_dir).mode.to_s(8)
         expect(mode).to eq("40700")
       end
 
       it "sets authorized_keys permissions to 0600" do
-        keyring.write_keys(home)
+        keyring.write_keys
         mode = File.stat(authorized_keys_path).mode.to_s(8)
         expect(mode).to eq("100600")
       end
@@ -151,7 +153,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
         it "raises a HomeDoesNotExist exception and does not write authorized_keys" do
           expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
-          expect { keyring.write_keys(home) }
+          expect { keyring.write_keys }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
         end
       end
@@ -162,7 +164,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
           expect(Yast::SCR).to receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
             .and_return(false)
-          expect { keyring.write_keys(home) }
+          expect { keyring.write_keys }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
         end
       end
@@ -174,7 +176,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
           allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
             .and_return(false)
           expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
-          expect { keyring.write_keys(home) }
+          expect { keyring.write_keys }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
         end
       end
@@ -187,7 +189,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
             .and_return(true)
           expect(Yast::SCR).to_not receive(:Execute)
             .with(Yast::Path.new(".target.mkdir"), anything)
-          keyring.write_keys(home)
+          keyring.write_keys
         end
       end
 
@@ -201,7 +203,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
           allow(file).to receive(:save)
             .and_raise(Yast::Users::SSHAuthorizedKeysFile::NotRegularFile)
 
-          expect { keyring.write_keys(home) }
+          expect { keyring.write_keys }
             .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
         end
       end

@@ -602,5 +602,15 @@ module Yast
 
       help_text
     end
+
+    # @return [String] Help text for the authorized keys dialog
+    def EditAuthorizedKeysDialogHelp
+      _(
+        "<p>\n" \
+        "List of public keys that the user can use to authenticate when logging in via SSH.\n" \
+        "You can select any public key from your computer through the <b>Add...</b> button.\n" \
+        "</p>\n"
+      )
+    end
   end
 end

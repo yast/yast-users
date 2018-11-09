@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.0.8
+Version:        4.0.9
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -38,8 +38,6 @@ BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
 BuildRequires:  rubygem(%rb_default_ruby_abi:rspec)
-# ssh-keygen
-BuildRequires:  openssh
 
 Requires:       cracklib
 Requires:       perl-Digest-SHA1
@@ -65,9 +63,6 @@ Requires:       yast2 >= 3.2.8
 Requires:       yast2-core >= 2.21.0
 
 Requires:       yast2-ruby-bindings >= 1.0.0
-
-# ssh-keygen
-Requires:       openssh
 
 Summary:        YaST2 - User and Group Configuration
 License:        GPL-2.0-only
