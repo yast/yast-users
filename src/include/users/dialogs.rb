@@ -2556,7 +2556,8 @@ module Yast
       UI.SetFocus(Id(:authorized_keys_table))
       UI.ChangeWidget(Id(:authorized_keys_table), :CurrentItem, selected_row) if selected_row
       no_keys = user.fetch("authorized_keys", []).empty?
-      UI.ChangeWidget(Id(:remove_authorized_key), :Enabled, !no_keys)
+      key_present = !user.fetch("authorized_keys", []).empty?
+      UI.ChangeWidget(Id(:remove_authorized_key), :Enabled, key_present)
     end
 
 
