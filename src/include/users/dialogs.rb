@@ -2509,8 +2509,10 @@ module Yast
       key = read_public_key
       return if key.nil?
       if user.fetch("authorized_keys", []).include?(key.to_s)
+        # TRANSLATORS: this error happens when the selected public key is a duplicated
+        # (already present in the list of public keys)
         Yast2::Popup.show(
-          _("The selected public key is already present in the list"), headline: :error
+          _("The selected public key is already present in the list."), headline: :error
         )
         return
       end
@@ -2522,14 +2524,20 @@ module Yast
 
     # Asks for the path and retrieves the public key
     def read_public_key
+      # TRANSLATORS: title of the dialog to select a public key to be used when logging
+      # via SSH
       path = Yast::UI.AskForExistingFile("", "*.pub", _("Select a public key"))
       return if path.nil?
       Y2Users::SSHPublicKey.new(File.read(path))
     rescue Y2Users::SSHPublicKey::InvalidKey
+      # TRANSLATORS: this error happens when the file selected by the user is not a valid public
+      # key
       Yast2::Popup.show(
         _("The selected file does not contain a valid public key"), headline: :error
       )
     rescue Errno::ENOENT
+      # TRANSLATORS: this error happens when the user selected a file that has just been removed
+      # (the file selector may contain outdated information)
       Yast2::Popup.show(
         _("Could not read the file containing the public key"), headline: :error
       )
@@ -2555,7 +2563,6 @@ module Yast
       UI.ReplaceWidget(:tabContents, get_authorized_keys_term(user))
       UI.SetFocus(Id(:authorized_keys_table))
       UI.ChangeWidget(Id(:authorized_keys_table), :CurrentItem, selected_row) if selected_row
-      no_keys = user.fetch("authorized_keys", []).empty?
       key_present = !user.fetch("authorized_keys", []).empty?
       UI.ChangeWidget(Id(:remove_authorized_key), :Enabled, key_present)
     end
@@ -2575,7 +2582,11 @@ module Yast
           Id(:authorized_keys_table),
           Opt(:notify),
           Header(
+            # TRANSLATORS: this fingerprint is a hash that can be used to identify a public key
+            # (and it is usually long string containing letters, numbers and other symbols)
             _("Fingerprint"),
+            # TRANSLATORS: as fingerprint is hard to remember or identify for a user, a public
+            # key can include a comment to make things easier
             _("Comment")
           ),
           items

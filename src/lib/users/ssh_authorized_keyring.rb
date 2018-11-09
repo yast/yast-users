@@ -124,10 +124,9 @@ module Yast
       # created inheriting owner/group and setting permissions to SSH_DIR_PERM.
       #
       # @param path [String] User's home directory
-      # @return [Boolean] +true+ if keys were written; +false+ otherwise
       def write_keys
         remove_authorized_keys_file
-        return false if keys.empty?
+        return if keys.empty?
         if !FileUtils::Exists(home)
           log.error("Home directory '#{home}' does not exist!")
           raise HomeDoesNotExist.new(home)

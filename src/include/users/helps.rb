@@ -608,11 +608,7 @@ module Yast
       _(
         "<p>\n" \
         "List of public keys that the user can use to authenticate when logging in via SSH.\n" \
-        "The content of those public keys will be added to the user's authorized_keys file.\n" \
-        "</p>\n" \
-        "<p>\n" \
-        "Use the <b>Add...</b> button to select a public key to be added to the list or the\n" \
-        "<b>Remove</b> button to delete a key from the list.\n" \
+        "You can select any public key from your computer through the <b>Add...</b> button.\n" \
         "</p>\n"
       )
     end
