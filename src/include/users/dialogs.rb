@@ -1792,7 +1792,7 @@ module Yast
         end
         if ret == :authorized_keys
           display_authorized_keys_tab(user)
-          Wizard.SetHelpText("Some useful help!")
+          Wizard.SetHelpText(EditAuthorizedKeysDialogHelp())
           current = ret
         end
         if ret == :plugins
