@@ -3051,6 +3051,10 @@ sub AddUser {
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
+    if (defined($data{"authorized_keys"})) {
+      $user_in_work{"authorized_keys"} = $data{"authorized_keys"};
+    }
+
     UsersCache->SetUserType ($type);
 
     if (!defined $user_in_work{"uidNumber"}) {
@@ -3361,6 +3365,7 @@ sub UserReallyModified {
 	if (($user{"plugin_modified"} || 0) == 1) {
 	    return 1; #TODO save special plugin_modified global value?
 	}
+
 	# grouplist can be ignored, it is a modification of groups
 	while ( my ($key, $value) = each %org_user) {
 	    last if $ret;
@@ -3381,6 +3386,16 @@ sub UserReallyModified {
 		}
 		next;
 	    }
+
+	    if (defined $user{$key} && ref ($value) eq "ARRAY") {
+		if (!same_arrays($user{$key}, $value)) {
+		    $ret = 1;
+		    y2debug ("old value: ", @{$value});
+		    y2debug ("changed to: ", @{$user{$key}});
+		}
+		next;
+	    }
+
 	    if (!defined $user{$key} ||
 		((!defined $value) && (defined $user{$key})) ||
 		((defined $value) && ($user{$key} ne $value)))
@@ -4024,23 +4039,21 @@ sub WriteShadow {
     }
 }
 
+
+# Write authorized keys to users home (FATE#319471)
 BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
     foreach my $username (keys %{$modified_users{"local"}}) {
         my %user	= %{$modified_users{"local"}{$username}};
-        if ($user{"modified"} eq "imported") {
-            # Write authorized keys to user's home (FATE#319471)
-            SSHAuthorizedKeys->write_keys($user{"homeDirectory"});
-        }
+        # Write authorized keys to user's home (FATE#319471)
+        SSHAuthorizedKeys->write_keys($user{"homeDirectory"}, $user{"authorized_keys"});
     }
 
     # Do not crash if 'root' is undefined (bsc#1088183)
     if (defined($modified_users{"system"}{"root"})) {
       # Write root authorized keys(bsc#1066342)
       my %root_user = %{$modified_users{"system"}{"root"}};
-      if ($root_user{"modified"} eq "imported") {
-          SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"});
-      }
+      SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"}, $root_user{"authorized_keys"});
     }
 
     return 1;
@@ -4485,8 +4498,6 @@ sub Write {
 				$mode	= $user{"home_mode"};
 			    }
 			    UsersRoutines->ChmodHome($home, $mode);
-			    # Write authorized keys to user's home (FATE#319471)
-			    SSHAuthorizedKeys->write_keys($home);
 			}
 		    }
 		    Syslog->Log ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
@@ -4534,11 +4545,16 @@ sub Write {
 			}
 		    }
 		}
+
+			# Write authorized keys to user's home (FATE#319471)
+      if (defined($user{"authorized_keys"})) {
+				SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
+      }
 	    }
 	}
     }
 
-    if (Mode->autoinst() || Mode->autoupgrade() || Mode->config()) { WriteAuthorizedKeys(); }
+    WriteAuthorizedKeys();
 
     # Write passwords
     if ($use_gui) { Progress->NextStage (); }
@@ -5925,10 +5941,14 @@ sub ImportUser {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
 
-    # Import authorized keys from profile (FATE#319471)
-    if ($user->{"authorized_keys"} && $ret{"homeDirectory"}) {
-      SSHAuthorizedKeys->import_keys($ret{"homeDirectory"}, $user->{"authorized_keys"});
-    }
+  # Import authorized keys from profile (FATE#319471)
+  if (defined($user->{"authorized_keys"})) {
+    $ret{"authorized_keys"} = $user->{"authorized_keys"},
+  } else {
+    my @authorized_keys = ();
+    $ret{"authorized_keys"} = \@authorized_keys;
+  }
+
     return \%ret;
 }
 
@@ -6437,12 +6457,8 @@ sub ExportUser {
     if (%user_shadow) {
 	$ret{"password_settings"} 	= \%user_shadow;
     }
-    if ($user->{"homeDirectory"}) {
-        # Export authorized keys to profile (FATE#319471)
-        my $keys = SSHAuthorizedKeys->export_keys($user->{"homeDirectory"});
-        if (@$keys) {
-            $ret{"authorized_keys"} = $keys;
-        }
+    if ($user->{"homeDirectory"} && $user->{"authorized_keys"}) {
+            $ret{"authorized_keys"} = $user->{"authorized_keys"};
     }
     return \%ret;
 }
