@@ -27,7 +27,7 @@ require "tmpdir"
 
 Yast.import "Label"
 Yast.import "UI"
-Yast.import "SSHAuthorizedKeys"
+Yast.import "UsersSimple"
 
 module Y2Users
   module Widgets
@@ -77,7 +77,7 @@ module Y2Users
 
       # @see CWM::AbstractWdiget
       def store
-        Yast::SSHAuthorizedKeys.import_keys("/root", [value.to_s]) if value
+        Yast::UsersSimple.SetRootPublicKey(value.to_s)
         nil
       end
 
@@ -163,7 +163,7 @@ module Y2Users
       # @return [Yast::Term]
       def public_key_content
         VBox(
-          Left(Label(value.fingerprint)),
+          Left(Label(value.formatted_fingerprint)),
           HBox(
             Left(Label(value.comment)),
             Right(PushButton(Id(:remove), Opt(:notify), Yast::Label.RemoveButton))

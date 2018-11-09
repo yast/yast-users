@@ -14,6 +14,7 @@ TESTS = \
   users_test.rb \
   users_auto_test.rb \
   users_finish_test.rb \
+  users_simple_test.rb \
   widgets_test.rb
 
 TEST_EXTENSIONS = .rb

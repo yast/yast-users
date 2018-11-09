@@ -303,12 +303,15 @@ sub read_group {
 # Read authorized keys from user's home (FATE#319471)
 sub read_authorized_keys {
     foreach my $user (values %{$users{"local"}}) {
-      SSHAuthorizedKeys->read_keys($user->{"homeDirectory"});
+      $user->{"authorized_keys"} = SSHAuthorizedKeys->read_keys($user->{"homeDirectory"});
     }
 
     # Read authorized keys also from root's home (bsc#1066342)
     # 'root' user may not always exist (bsc#1112119, bsc#1107456)
-    SSHAuthorizedKeys->read_keys($users{system}{root}{homeDirectory}) if $users{system}{root};
+    if ($users{system}{root}) {
+      $users{system}{root}{authorized_keys} = SSHAuthorizedKeys->read_keys($users{system}{root}{homeDirectory});
+    }
+
 }
 
 # actually read /etc/passwd and save into internal structure
