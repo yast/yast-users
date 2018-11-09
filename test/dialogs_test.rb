@@ -73,7 +73,7 @@ describe "Yast::UsersDialogsInclude" do
 
           it "displays an error" do
             expect(Yast2::Popup).to receive(:show)
-              .with("The selected public key is already present in the list", headline: :error)
+              .with("The selected public key is already present in the list.", headline: :error)
             subject.handle_authorized_keys_input(:add_authorized_key, user)
           end
         end

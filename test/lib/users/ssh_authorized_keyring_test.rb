@@ -99,10 +99,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
     after { FileUtils.rm_rf(tmpdir) if File.exist?(tmpdir) }
 
     context "if no keys are registered for the given home" do
-      it "returns false" do
-        expect(keyring.write_keys).to eq(false)
-      end
-
       it "does not try to write the keys" do
         expect(file).to_not receive(:save)
         keyring.write_keys
@@ -126,8 +122,8 @@ describe Yast::Users::SSHAuthorizedKeyring do
         keyring.add_keys([key])
       end
 
-      it "writes the keys and returns true" do
-        expect(keyring.write_keys).to eq(true)
+      it "writes the keys" do
+        keyring.write_keys
         expect(File).to exist(authorized_keys_path)
       end
 
