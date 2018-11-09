@@ -2592,7 +2592,8 @@ module Yast
           items
         ),
         HBox(
-          PushButton(Id(:add_authorized_key), _("Add...")),
+          # TRANSLATORS: a push button label
+          PushButton(Id(:add_authorized_key), _("&Add...")),
           PushButton(Id(:remove_authorized_key), Yast::Label.RemoveButton),
           HStretch()
         )
