@@ -62,8 +62,8 @@ module Yast
       @default_pw = "******"
     end
 
-    # Upperase letters were used in username! (see bug #26409)
-    # In these popup, ask user what to do.
+    # Uppercase letters were used in username! (see bug #26409)
+    # In these popups, ask user what to do.
     def AskForUppercasePopup(username)
       ret = :ok
 
@@ -407,7 +407,7 @@ module Yast
       # of local group list of remote user was modified
       grouplist_modified = false
 
-      # date of passwrod expiration
+      # date of password expiration
       exp_date = ""
 
       plugin_client = ""
@@ -1071,9 +1071,9 @@ module Yast
             if (cn == "" || action == "added") &&
                 # no substitution when editing: TODO bug 238282
                 (what == "edit_user" ||
-                  !# cn should not be substitued:
+                  !# cn should not be substituted:
                   Builtins.haskey(ldap_user_defaults, "cn"))
-              # if 'givenname' or 'sn' should be substitued, wait for it
+              # if 'givenname' or 'sn' should be substituted, wait for it
               # and do not create cn now:
               if !Builtins.haskey(ldap_user_defaults, "sn") &&
                   !Builtins.haskey(ldap_user_defaults, "givenName")
@@ -1324,7 +1324,7 @@ module Yast
           org_username = username if org_username == ""
         end
 
-        # indide Details dialog
+        # inside Details dialog
         if current == :details && ret == :browse
           dir = home
           if SCR.Read(path(".target.size"), home) == -1
@@ -1713,7 +1713,7 @@ module Yast
           Wizard.SetHelpText(EditUserDialogHelp(installation, user_type, what))
           UI.ReplaceWidget(:tabContents, get_edit_term.call)
 
-          # update the contets of User Data Dialog
+          # update the contents of User Data Dialog
           if do_not_edit
             UI.ChangeWidget(Id(:cn), :Enabled, false)
             UI.ChangeWidget(Id(:username), :Enabled, false)
@@ -2459,7 +2459,7 @@ module Yast
       ret
     end
 
-    # Just giving paramaters for commiting user
+    # Just giving paramaters for committing user
     # @return [Symbol] for wizard sequencer
     def UserSave
       Users.CommitUser
@@ -2502,7 +2502,7 @@ module Yast
 
     # Adds an authorized key to the list
     #
-    # @note This method drives the UI and handle error conditions
+    # @note This method drives the UI and handles error conditions
     #
     # @param user [Hash] User to update
     def add_authorized_key(user)
@@ -2583,7 +2583,7 @@ module Yast
           Opt(:notify),
           Header(
             # TRANSLATORS: this fingerprint is a hash that can be used to identify a public key
-            # (and it is usually long string containing letters, numbers and other symbols)
+            # (and it is usually a long string containing letters, numbers and other symbols)
             _("Fingerprint"),
             # TRANSLATORS: as fingerprint is hard to remember or identify for a user, a public
             # key can include a comment to make things easier
