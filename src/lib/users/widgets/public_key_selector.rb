@@ -111,7 +111,14 @@ module Y2Users
           "In some situations it is preferred to access to the system remotely via SSH\n" \
           "using a public key instead of a password. This screen allows you to select\n" \
           "one public key from an USB stick, a CD/DVD ROM or even from an existing\n" \
-          "partition.\n\n" \
+          "partition.\n" \
+          "</p>\n" \
+          "<p>\n" \
+          "If the public key is stored on a removable device, you do not need to keep\n" \
+          "the device connected during the whole installation. You can remove it right\n" \
+          "after selecting the key.\n" \
+          "</p>\n" \
+          "<p>\n" \
           "Take into account that the root password and the public key are not mutually\n" \
           "exclusive: you can provide both if you want.\n" \
           "</p>\n"
