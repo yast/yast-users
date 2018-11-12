@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Nov 12 14:34:21 UTC 2018 - igonzalezsosa@suse.com
+
+- Improve public key selector help (related to fate#324690).
+- 4.0.10
+
+-------------------------------------------------------------------
 Fri Nov  9 08:01:15 UTC 2018 - igonzalezsosa@suse.com
 
 - Add public keys handling support in an installed system
