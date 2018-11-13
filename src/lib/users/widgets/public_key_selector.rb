@@ -196,7 +196,7 @@ module Y2Users
 
       # Returns a list of devices that can be selected
       #
-      # Only the devices that meets the following conditions are considered:
+      # Only the devices that meet the following conditions are considered:
       #
       # * It has a transport (so loop devices are automatically discarded).
       # * It has a filesystem but it is not squashfs, as it is used by the installer.
