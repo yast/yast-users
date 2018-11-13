@@ -52,7 +52,7 @@ module Yast
 
         # Returns the default message to be used
         #
-        # Derived clases should implement it.
+        # Derived classes should implement it.
         #
         # @return [String] Default message
         def default_message
