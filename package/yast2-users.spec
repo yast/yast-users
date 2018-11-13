@@ -54,7 +54,7 @@ Conflicts:      yast2-storage < 3.1.75
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
 
-# this forces using yast2-ldap with orrect LDAP object names (fate#303596)
+# this forces using yast2-ldap with correct LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
 # UI::Widgets
