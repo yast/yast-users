@@ -97,7 +97,7 @@ module Y2Users
 
       # Helper method to get the current value (the selected public key)
       #
-      # @return [SSHPublicKey,nil] Return the selected public key (nor nil if no key is selected)
+      # @return [SSHPublicKey,nil] Return the selected public key (or nil if no key is selected)
       def value
         self.class.value
       end
@@ -142,7 +142,7 @@ module Y2Users
 
       # Disk selector
       #
-      # This widget displays includes a list of selectable disk and a button to browse the
+      # This widget display includes a list of selectable disks and a button to browse the
       # selected one.
       #
       # @return [Yast::Term]
@@ -184,7 +184,7 @@ module Y2Users
 
       # Disk combo box
       #
-      # Displays a combo box containing al selectable devices.
+      # Displays a combo box containing all selectable devices.
       #
       # @return [Yast::Term]
       def blk_devices_combo_box
@@ -196,14 +196,14 @@ module Y2Users
 
       # Returns a list of devices that can be selected
       #
-      # Only the devices that meets those conditions are considered:
+      # Only the devices that meets the following conditions are considered:
       #
       # * It has a transport (so loop devices are automatically discarded).
       # * It has a filesystem but it is not squashfs, as it is used by the installer.
       #
       # The first condition should be enough. However, we want to avoid future problems if the lsblk
       # authors decide to show some information in the 'TRAN' (transport) property for those devices
-      # that does not have one (for instance, something like 'none').
+      # that do not have one (for instance, something like 'none').
       #
       # @return [Array<LeafBlkDevice>] List of devices
       def available_blk_devices
