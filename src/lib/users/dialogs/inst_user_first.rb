@@ -87,6 +87,12 @@ module Yast
       init_user_attributes
     end
 
+    def run
+      # Fate #326447: Allow system role to default to no local user
+      return :auto unless enable_local_users?
+      super
+    end
+
     # UI sends events as user types the full name
     def full_name_handler
       # reenable suggestion
@@ -219,6 +225,15 @@ module Yast
       Yast.import "Progress"
       Yast.import "Report"
       Yast.import "UsersSimple"
+      Yast.import "ProductFeatures"
+    end
+
+    # Check if creating local users is enabled (default) or disabled in the
+    # control.xml file during the installation.
+    #
+    # @return Boolean
+    def enable_local_users?
+      ProductFeatures::GetBooleanFeatureWithFallback("globals", "enable_local_users", true)
     end
 
     # Initializes the instance variables used to configure a new user
