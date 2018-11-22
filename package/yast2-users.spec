@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.0.9
+Version:        4.0.10
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -57,8 +57,8 @@ Requires:       yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with correct LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
-# UI::Widgets
-Requires:       yast2 >= 3.2.8
+# ProductFeatures::GetBooleanFeatureWithFallback
+Requires:       yast2 >= 4.1.35
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 

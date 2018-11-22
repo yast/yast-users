@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 21 17:34:57 UTC 2018 - Stefan Hundhammer <shundhammer@suse.com>
+
+- Allow system role to default to no local user (Fate#326447)
+- 4.0.10
+
+-------------------------------------------------------------------
 Fri Nov  9 08:01:15 UTC 2018 - igonzalezsosa@suse.com
 
 - Add public keys handling support in an installed system
