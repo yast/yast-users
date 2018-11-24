@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Nov 26 05:47:10 UTC 2018 - Noah Davis <noahadvs@gmail.com>
+
+- Provide icon with module (boo#1109310)
+
+-------------------------------------------------------------------
 Wed Nov 21 17:34:57 UTC 2018 - Stefan Hundhammer <shundhammer@suse.com>
 
 - Allow system role to default to no local user (Fate#326447)

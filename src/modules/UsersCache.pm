@@ -749,11 +749,11 @@ sub BuildUserItem {
 	$full		= $user{"gecos"};
     }
 
-    my $iconname	= "yast-users.png";
+    my $iconname	= "yast-users.svg";
     
     if ($user{"type"} eq "system") {
 	$full		= UsersUI->SystemUserName ($full);
-	$iconname	= "yast-system-user.png"
+	$iconname	= "yast-users-system.svg"
     }
     if (ref ($full) eq "ARRAY") {
 	$full	= $full->[0];

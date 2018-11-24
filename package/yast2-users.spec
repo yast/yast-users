@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.0.10
+Version:        4.0.11
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -102,6 +102,7 @@ export Y2BASE_Y2DIR=`pwd`/testsuite
 %{yast_plugindir}/libpy2ag_crack.so.*
 %{yast_plugindir}/libpy2ag_crack.so
 %{yast_plugindir}/libpy2ag_crack.la
+%{_datadir}/icons/*
 %dir %{yast_docdir}
 %license %{yast_docdir}/COPYING
 %doc %{yast_docdir}/users.html
