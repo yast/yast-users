@@ -11,9 +11,6 @@
 @YAST2-CHECKS-TESTSUITE@
 @YAST2-CHECKS-PROGRAM@
 
-
-
-
 AC_LANG_PUSH(C++)
 yast_found_cracklib=no
 AC_CHECK_HEADER(crack.h,[yast_found_cracklib=yes])
