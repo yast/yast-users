@@ -102,7 +102,7 @@ export Y2BASE_Y2DIR=`pwd`/testsuite
 %{yast_plugindir}/libpy2ag_crack.so.*
 %{yast_plugindir}/libpy2ag_crack.so
 %{yast_plugindir}/libpy2ag_crack.la
-%{_datadir}/icons/*
+%{yast_icondir}
 %dir %{yast_docdir}
 %license %{yast_docdir}/COPYING
 %doc %{yast_docdir}/users.html

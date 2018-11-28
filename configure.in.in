@@ -11,8 +11,8 @@
 @YAST2-CHECKS-TESTSUITE@
 @YAST2-CHECKS-PROGRAM@
 
-icondir=/usr/share/icons
-AC_SUBST(icondir)
+
+
 
 AC_LANG_PUSH(C++)
 yast_found_cracklib=no
