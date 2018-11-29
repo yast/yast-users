@@ -105,11 +105,12 @@ module Users
       user = users.first || {}
       if users.size > 1 || !user["__imported"].nil?
         # TRANSLATORS: summary line, %d is the number of users
-        prop = n_(
-          "<a href=%s>%d user</a> will be imported",
-          "<a href=%s>%d users</a> will be imported",
-          users.size
-        ) % [href, users.size]
+        prop = format(
+          n_(
+            "<a href=%s>%d user</a> will be imported", "<a href=%s>%d users</a> will be imported",
+            users.size
+          ), href, users.size
+        )
       elsif user.fetch("uid", "") != ""
         # TRANSLATORS: summary line: <%1>-<%2> are HTML tags, leave untouched,
         # %3 is login name
@@ -137,8 +138,8 @@ module Users
 
     def encrypt_proposal
       # TRANSLATORS: summary line. Second %s is the name of the method
-      _("Password Encryption Method: <a href=%s>%s</a>") %
-        ["users--encryption", ::Users::EncryptionMethod.current.label]
+      format(_("Password Encryption Method: <a href=%s>%s</a>"),
+        "users--encryption", ::Users::EncryptionMethod.current.label)
     end
   end
 end

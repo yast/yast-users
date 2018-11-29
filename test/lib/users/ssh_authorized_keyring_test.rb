@@ -131,7 +131,8 @@ describe Yast::Users::SSHAuthorizedKeyring do
         allow(Yast::FileUtils).to receive(:GetOwnerUserID).with(home).and_return(uid)
         allow(Yast::FileUtils).to receive(:GetOwnerGroupID).with(home).and_return(gid)
         expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", ssh_dir, false)
-        expect(Yast::FileUtils).to receive(:Chown).with("#{uid}:#{gid}", authorized_keys_path, false)
+        expect(Yast::FileUtils).to receive(:Chown)
+          .with("#{uid}:#{gid}", authorized_keys_path, false)
 
         keyring.write_keys
       end

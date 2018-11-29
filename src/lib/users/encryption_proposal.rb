@@ -32,8 +32,8 @@ module Users
 
     def make_proposal(_attrs)
       # TRANSLATORS: summary line. Second %s is the name of the method
-      text = _("Encryption Method: <a href=%s>%s</a>") %
-        ["users--encryption", ::Users::EncryptionMethod.current.label]
+      text = format(_("Encryption Method: <a href=%s>%s</a>"),
+        "users--encryption", ::Users::EncryptionMethod.current.label)
       {
         "links"        => ["users--encryption"],
         "raw_proposal" => [text]
