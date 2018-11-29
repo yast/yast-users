@@ -21,6 +21,34 @@ require_relative "../../test_helper"
 require "users/users_database"
 
 describe Users::UsersDatabase do
+
+  describe ".all" do
+    let(:databases) { described_class.all }
+
+    before do
+      Users::UsersDatabase.all.clear
+
+      # Mock access time: files in root2 are more recent than files in root and root3
+      allow(File).to receive(:atime) do |path|
+        path =~ /root2/ ? Time.now : Time.now - 1200
+      end
+    end
+
+    before do
+      Users::UsersDatabase.import(FIXTURES_PATH.join("root"))
+      Users::UsersDatabase.import(FIXTURES_PATH.join("root2"))
+      Users::UsersDatabase.import(FIXTURES_PATH.join("root3"))
+    end
+
+    it "returns found users databases" do
+      expect(databases.size).to eq(3)
+    end
+
+    it "returns the most recent accesed first" do
+      expect(databases.first.passwd).to start_with("a_user")
+    end
+  end
+
   describe ".import" do
     it "always stores databases sorted by access time" do
       # Mock access time: files in root2 are more recent than files in root
