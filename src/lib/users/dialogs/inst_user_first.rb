@@ -437,22 +437,26 @@ module Yast
     #
     # Ideally this method would belong to UsersSimple... but that's Perl code.
     #
+    # @see UsersSimple.GetImportedUsers
+    #
     # @param databases [Array<Users::UsersDatabase>]
-    # @return [Hash{String => Hash}] @see UsersSimple.GetImportedUsers
+    #
+    # @return [Hash{String => Hash}, {}] A Hash with importable users if any; empty Hash otherwise
     def importable_users(databases)
-      users = {}
       databases.each do |database|
         Dir.mktmpdir do |dir|
           database.write_files(dir)
+
           if UsersSimple.ReadUserData(dir)
-            # GetImportedUsers should not return nil, but better be safe
-            imported = UsersSimple.GetImportedUsers("local")
-            users = imported unless imported.nil?
-            break unless users.empty?
+            imported_users = UsersSimple.GetImportedUsers("local")
+
+            # UsersSimple.GetImportedUsers should not return nil, but better be safe
+            return imported_users if imported_users && imported_users.any?
           end
         end
       end
-      users
+
+      {}
     end
 
     def import_users
