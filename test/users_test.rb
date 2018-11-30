@@ -28,8 +28,8 @@ describe "Users" do
     it "returns a hash which represents a user with the given values" do
       imported = users.ImportUser(user)
       expect(imported).to include(
-        "uid" => "root",
-        "homeDirectory" => "/root",
+        "uid"             => "root",
+        "homeDirectory"   => "/root",
         "authorized_keys" => [ssh_public_key]
       )
     end

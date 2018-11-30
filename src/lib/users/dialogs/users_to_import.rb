@@ -20,6 +20,8 @@ require "yast"
 require "ui/dialog"
 
 module Yast
+  # This dialog offers a way to select which users should be imported from a previously installed
+  # system
   class UsersToImportDialog < ::UI::Dialog
     def initialize(all, initial)
       super()
@@ -80,7 +82,7 @@ module Yast
     end
 
     def initial_items
-      @all.map {|u| Item(Id(u), u, @initial.include?(u)) }
+      @all.map { |u| Item(Id(u), u, @initial.include?(u)) }
     end
 
     def initially_all_checked?
