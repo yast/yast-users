@@ -11,6 +11,7 @@ before_install:
 script:
   # the "yast-travis-cpp" script is included in the base yastdevel/cpp image
   # see https://github.com/yast/docker-yast-ruby/blob/master/yast-travis-cpp
+  - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" yast-users-image rubocop
   - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" yast-users-image yast-travis-cpp
   - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e COVERAGE=1 -e CI=1 yast-users-image rake test:unit
   - docker run -it -e TRAVIS=1 -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e COVERAGE=1 -e CI=1 yast-users-image rake check:doc
