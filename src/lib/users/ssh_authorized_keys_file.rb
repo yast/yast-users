@@ -70,7 +70,7 @@ module Yast
       def add_key(key)
         new_key = key.strip
         if valid_key?(new_key)
-          self.keys << new_key
+          keys << new_key
           true
         else
           log.warn("The key '#{key}' does not look like a valid SSH key")
@@ -95,7 +95,8 @@ module Yast
       end
 
       # https://github.com/puppetlabs/puppet/blob/master/lib/puppet/type/ssh_authorized_key.rb#L138
-      AUTHORIZED_KEYS_REGEX = /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/
+      AUTHORIZED_KEYS_REGEX =
+        /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/
 
       # Determine is a string qualifies like a valid key
       #

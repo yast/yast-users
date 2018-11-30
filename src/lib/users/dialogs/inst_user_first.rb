@@ -31,14 +31,15 @@ module Yast
   # Dialog for creation of local users during first stage of installation
   # It stores the user(s) information in the UsersSimple module. The user(s)
   # will then be created by that module during inst_finish
+  # rubocop:disable Metrics/ClassLength
   class InstUserFirstDialog < ::UI::InstallationDialog
     # Widgets to enable/disable depending on the selected action
     # (the first one receives the initial focus if applicable)
     WIDGETS = {
       new_user: [:full_name, :username, :pw1, :pw2, :root_pw, :autologin],
-      import: [:choose_users, :import_qty_label],
-      skip: []
-    }
+      import:   [:choose_users, :import_qty_label],
+      skip:     []
+    }.freeze
     private_constant :WIDGETS
 
     # @return [Symbol] Action selected by the user. Possible values are
@@ -80,9 +81,7 @@ module Yast
       if action == :import
         @usernames_to_import = @users.map { |u| u["uid"] || "" }
       end
-      if action == :new_user
-        @user = @users.first
-      end
+      @user = @users.first if action == :new_user
       @user ||= {}
       init_user_attributes
     end
@@ -134,19 +133,22 @@ module Yast
       self.action = :import
     end
 
+    # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/AbcSize
     def help_text
       help = _(
         "<p>\nUse one of the available options to add local users to the system.\n" \
         "Local users are stored in <i>/etc/passwd</i> and <i>/etc/shadow</i>.\n</p>\n"
       ) +
         "<p>\n<b>" + _("Create new user") + "</b>\n</p>\n" +
-      _(
-        "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" \
-        "assign to this user account.\n</p>\n") +
-      _(
-        "<p>\nWhen entering a password, distinguish between uppercase and\n" \
-        "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
-      )
+        _(
+          "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" \
+          "assign to this user account.\n</p>\n"
+        ) +
+        _(
+          "<p>\nWhen entering a password, distinguish between uppercase and\n" \
+          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
+        )
 
       help += (
         # TRANSLATORS: %{min} and %{max} will be replaced by numbers
@@ -166,22 +168,23 @@ module Yast
         "repeat it exactly in a second field. Do not forget your password.\n" \
         "</p>\n"
       ) +
-      _(
-        "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and <tt>._-</tt>.\n" \
-        "Do not use uppercase letters in this entry unless you know what you are doing.\n" \
-        "Usernames have stricter restrictions than passwords. You can redefine the\n" \
-        "restrictions in the /etc/login.defs file. Read its man page for information.\n" \
-        "</p>\n"
-      ) +
-      _(
-        "<p>Check <b>Use this password for system administrator</b> if the " \
-        "same password as entered for the first user should be used for root.</p>"
-      ) +
-      _(
-        "<p>\nThe username and password created here are needed to log in " \
-        "and work with your Linux system. With <b>Automatic Login</b> enabled, " \
-        "the login procedure is skipped. This user is logged in automatically.</p>\n"
-      )
+        _(
+          "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and "\
+          "<tt>._-</tt>.\n" \
+          "Do not use uppercase letters in this entry unless you know what you are doing.\n" \
+          "Usernames have stricter restrictions than passwords. You can redefine the\n" \
+          "restrictions in the /etc/login.defs file. Read its man page for information.\n" \
+          "</p>\n"
+        ) +
+        _(
+          "<p>Check <b>Use this password for system administrator</b> if the " \
+          "same password as entered for the first user should be used for root.</p>"
+        ) +
+        _(
+          "<p>\nThe username and password created here are needed to log in " \
+          "and work with your Linux system. With <b>Automatic Login</b> enabled, " \
+          "the login procedure is skipped. This user is logged in automatically.</p>\n"
+        )
 
       if import_available?
         help += "<p>\n<b>" + _("Import User Data from a Previous Installation") + "</b>\n</p>\n"
@@ -252,9 +255,9 @@ module Yast
       @use_pw_for_root = UsersSimple.GetRootPassword == @password
       if @user == {} && !@use_pw_for_root
         if ProductFeatures.GetBooleanFeature(
-            "globals",
-            "root_password_as_first_user"
-          ) == true
+          "globals",
+          "root_password_as_first_user"
+        ) == true
           @use_pw_for_root = true
         end
         Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
@@ -361,7 +364,7 @@ module Yast
       end
       @password = pw1
 
-      return true
+      true
     end
 
     def create_new_user
@@ -392,7 +395,7 @@ module Yast
         )
         return false
       end
-      return true
+      true
     end
 
     # List of users from an imported users database.
@@ -430,14 +433,14 @@ module Yast
         u["encrypted"] = true
         u
       end
-      set_users_list(create_users)
+      self.users_list = create_users
     end
 
     def clean_users_info
-      set_users_list([])
+      self.users_list = []
     end
 
-    def set_users_list(users)
+    def users_list=(users)
       UsersSimple.SetUsers(users)
       UsersSimple.SkipRootPasswordDialog(false)
       UsersSimple.SetRootPassword("") if root_dialog_follows
@@ -463,7 +466,7 @@ module Yast
         return false
       end
 
-      return true
+      true
     end
 
     def valid_password?(username, pw1, pw2)
@@ -480,15 +483,15 @@ module Yast
         return false
       end
 
-      passwd = ::Users::LocalPassword.new(username: username, plain: pw1, also_for_root: @use_pw_for_root)
+      passwd = ::Users::LocalPassword.new(
+        username: username, plain: pw1, also_for_root: @use_pw_for_root
+      )
       if !passwd.valid?
         message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
-        if !Popup.YesNo(message)
-          return false
-        end
+        return false if !Popup.YesNo(message)
       end
 
-      return true
+      true
     end
 
     def dialog_content
@@ -596,13 +599,13 @@ module Yast
           Id(:pw1),
           Opt(:hstretch),
           Label.Password,
-          @password == nil ? "" : @password
+          @password.nil? ? "" : @password
         ),
         Password(
           Id(:pw2),
           Opt(:hstretch),
           Label.ConfirmPassword,
-          @password == nil ? "" : @password
+          @password.nil? ? "" : @password
         )
       ]
     end
@@ -624,10 +627,10 @@ module Yast
 
     def import_qty_widget
       qty = @usernames_to_import.size
-      if qty == 0
-        msg = _("No users selected")
+      msg = if qty == 0
+        _("No users selected")
       else
-        msg = n_("%d user will be imported", "%d users will be imported", qty)
+        n_("%d user will be imported", "%d users will be imported", qty)
       end
       Label(Id(:import_qty_label), msg % qty)
     end

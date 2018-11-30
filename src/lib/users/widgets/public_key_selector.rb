@@ -33,7 +33,6 @@ module Y2Users
   module Widgets
     # This widget allows to select a public key from a removable device
     class PublicKeySelector < ::CWM::CustomWidget
-
       class << self
         # We want this information (the selected device name and the SSH key) to be remembered
         attr_accessor :selected_blk_device_name, :value
@@ -129,7 +128,7 @@ module Y2Users
 
       # Helper method to set the current value (the selected public key)
       #
-      # @param [SSHPublicKey] Return the current public key
+      # @param key [SSHPublicKey] Return the current public key
       def value=(key)
         self.class.value = key
       end
@@ -158,10 +157,10 @@ module Y2Users
           Left(
             HBox(
               blk_devices_combo_box,
-              PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton),
+              PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton)
             )
           ),
-          Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton)),
+          Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton))
         )
       end
 

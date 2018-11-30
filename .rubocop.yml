@@ -1,0 +1,18 @@
+# use the shared YaST defaults
+inherit_from:
+  /usr/share/YaST2/data/devtools/data/rubocop_yast_style.yml
+
+# Don't enforce any particular name for block params
+SingleLineBlockParams:
+  Enabled: false
+
+# Enforce if/unless at the end only for really short lines
+Style/IfUnlessModifier:
+  MaxLineLength: 60
+
+AllCops:
+  Exclude:
+    - 'src/modules/**/*'
+    - 'src/include/**/*'
+    - 'testsuite/**/*'
+    - 'src/clients/*'

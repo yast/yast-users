@@ -23,7 +23,7 @@ Yast.import "UsersSimple"
 
 describe Users::EncryptionMethod do
   before do
-    allow(Yast::UsersSimple).to receive(:EncryptionMethod).and_return (current_method)
+    allow(Yast::UsersSimple).to receive(:EncryptionMethod).and_return current_method
   end
 
   subject { Users::EncryptionMethod }
