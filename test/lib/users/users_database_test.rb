@@ -27,12 +27,12 @@ describe Users::UsersDatabase do
   let(:fixture_root3) { FIXTURES_PATH.join("root3") }
 
   before do
-    Users::UsersDatabase.all.clear
+    databases.clear
 
     # Mock access time: files in root2 are more recent than files in root and root3
-    allow(File).to receive(:atime) do |path|
-      path =~ /root2/ ? Time.now : Time.now - 1200
-    end
+    allow(File).to receive(:atime).with(/root/).and_return(Time.new(2016))
+    allow(File).to receive(:atime).with(/root2/).and_return(Time.new(2017))
+    allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2018))
   end
 
   describe ".all" do
@@ -48,31 +48,34 @@ describe Users::UsersDatabase do
       expect(databases.size).to eq(3)
     end
 
+    it "returns the users databasers sorted desc atime" do
+      expect(databases[0].atime).to eq(Time.new(2018))
+      expect(databases[1].atime).to eq(Time.new(2017))
+      expect(databases[2].atime).to eq(Time.new(2016))
+    end
+
     it "returns the most recent accesed first" do
-      expect(databases.first.passwd).to start_with("a_user")
+      expect(databases.first.passwd).to start_with("b_user")
     end
   end
 
   describe ".import" do
-    let(:databases) { described_class.all }
-
     it "always stores databases sorted by access time" do
-      databases.clear
       expect(databases).to be_empty
 
-      Users::UsersDatabase.import(fixture_root)
       Users::UsersDatabase.import(fixture_root2)
+      Users::UsersDatabase.import(fixture_root)
       expect(databases.size).to eq(2)
       expect(databases.first.passwd).to start_with("a_user")
 
       databases.clear
       expect(databases).to be_empty
 
-      Users::UsersDatabase.import(fixture_root2)
       Users::UsersDatabase.import(fixture_root3)
+      Users::UsersDatabase.import(fixture_root2)
       Users::UsersDatabase.import(fixture_root)
       expect(databases.size).to eq(3)
-      expect(databases.first.passwd).to start_with("a_user")
+      expect(databases.first.passwd).to start_with("b_user")
     end
 
     it "ignores wrong root directories" do
@@ -86,30 +89,30 @@ describe Users::UsersDatabase do
   end
 
   describe "#read_files" do
-    let(:passwd_atime) { Time.now }
-    let(:read_files) { subject.read_files(fixture_root2.join("etc")) }
+    let(:passwd_atime) { Time.new(2018) }
+    let(:shadow_atime) { Time.new(2017) }
+    let(:dir) { fixture_root2.join("etc") }
 
     before do
       # Mock access time: passwd is more recent than shadow
-      allow(File).to receive(:atime) do |path|
-        path =~ /passwd$/ ? passwd_atime : passwd_atime - 1200
-      end
+      allow(File).to receive(:atime).with(/passwd$/).and_return(passwd_atime)
+      allow(File).to receive(:atime).with(/shadow$/).and_return(shadow_atime)
     end
 
     it "reads the content of the passwd file" do
-      read_files
+      subject.read_files(dir)
 
       expect(subject.passwd).to start_with("a_user")
     end
 
     it "reads the content of the shadow file" do
-      read_files
+      subject.read_files(dir)
 
       expect(subject.shadow).to start_with("a_user")
     end
 
     it "stores the most recent access time" do
-      read_files
+      subject.read_files(dir)
 
       expect(subject.atime).to eq passwd_atime
     end

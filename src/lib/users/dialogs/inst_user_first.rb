@@ -451,7 +451,7 @@ module Yast
             imported_users = UsersSimple.GetImportedUsers("local")
 
             # UsersSimple.GetImportedUsers should not return nil, but better be safe
-            return imported_users unless imported_users.nil? || imported_users.empty?
+            return imported_users if imported_users && imported_users.any?
           end
         end
       end

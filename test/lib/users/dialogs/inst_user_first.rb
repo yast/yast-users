@@ -26,14 +26,22 @@ require "users/dialogs/inst_user_first"
 describe Yast::InstUserFirstDialog do
   subject(:dialog) { described_class.new }
 
+  before do
+    Users::UsersDatabase.all.clear
+
+    # Mock access time: files in root2 are more recent than files in root3
+    allow(File).to receive(:atime).with(/root2/).and_return(Time.new(2018))
+    allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2017))
+  end
+
   describe "#choose_users_handler" do
     let(:users_to_import_dialog) { instance_double(Yast::UsersToImportDialog, run: nil) }
     let(:root2_path) { FIXTURES_PATH.join("root2") }
     let(:root3_path) { FIXTURES_PATH.join("root3") }
 
-    context "when there is another Linux installation" do
+    context "when there is a previous Linux installation" do
       before do
-        Users::UsersDatabase.import(root2_path)
+        Users::UsersDatabase.import(root3_path)
       end
 
       it "displays a dialog with importable users found" do
@@ -45,13 +53,8 @@ describe Yast::InstUserFirstDialog do
       end
     end
 
-    context "when there are multiple Linux installations" do
+    context "when there are multiple previous Linux installations" do
       before do
-        # Mock access time: files in root2 are more recent than files in root3
-        allow(File).to receive(:atime) do |path|
-          path =~ /root2/ ? Time.now : Time.now - 1200
-        end
-
         Users::UsersDatabase.import(FIXTURES_PATH.join("root2"))
         Users::UsersDatabase.import(FIXTURES_PATH.join("root3"))
       end
