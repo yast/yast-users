@@ -45,7 +45,7 @@ module Y2Users
 
       # @return [String] Widget label
       def label
-        _("Import Public Key")
+        _("Import Public SSH Key")
       end
 
       # @return [Yast::Term] Dialog content
