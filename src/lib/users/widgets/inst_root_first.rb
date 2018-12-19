@@ -42,6 +42,7 @@ module Y2Users
             HSquash(
               VBox(
                 password_widget,
+                VSpacing(0.8),
                 ::UI::Widgets::KeyboardLayoutTest.new,
                 VSpacing(2.4),
                 public_key_selector
