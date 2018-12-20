@@ -42,6 +42,7 @@ our %TYPEINFO;
 ##--------------------- global imports
 
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("String");
 
 ##--------------------------------------
 ##--------------------- global variables
@@ -105,7 +106,7 @@ sub remove_plugin_data {
 sub get_quota_enabled_filesystems {
 
     if (! @quota_enabled_filesystems) {
-	my $cmd	= "LANG=C grep quota /etc/mtab | cut -f 1 -d ' '";
+	my $cmd	= "LANG=C /usr/bin/grep quota /etc/mtab | /usr/bin/cut -f 1 -d ' '";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"stdout"}) {
 	    # each line in stdout reports quota for one filesystem
@@ -128,14 +129,14 @@ sub read_quota_info {
 
 	my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
 	if ($config->{"what"} eq "group") {
-	    $opt	= "-g ".$data->{"cn"} if defined $data->{"cn"};
+	    $opt	= "-g '".String->Quote($data->{"cn"})."'" if defined $data->{"cn"};
 	}
 	return $data if not defined $opt;
 
 	my %fsystems	= ();
 	my @quotalist	= ();
 
-	my $cmd	= "LANG=C quota $opt -pv 2>/dev/null | tail -n +3";
+	my $cmd	= "LANG=C /usr/bin/quota $opt -pv 2>/dev/null | /usr/bin/tail -n +3";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"stdout"}) {
 	    # each line in stdout reports quota for one filesystem
@@ -186,7 +187,8 @@ sub is_quota_available {
 sub has_quota {
 
     my $opt = shift;
-    my $out = SCR->Execute (".target.bash_output", "LANG=C quota $opt -v 2>/dev/null | tail -n +3");
+    # cannot escape opt here as it is caller responsibility
+    my $out = SCR->Execute (".target.bash_output", "LANG=C /usr/bin/quota $opt -v 2>/dev/null | /usr/bin/tail -n +3");
     return ($out->{"stdout"});
 }
 
@@ -401,22 +403,22 @@ sub Write {
     # do nothing for user intended for deletion
     return YaST::YCP::Boolean (1) if ($config->{"modified"} || "") eq "deleted";
 
-    my $opt	= "-u ".$data->{"uid"} if defined $data->{"uid"};
+    my $opt	= "-u '".String->Quote($data->{"uid"})"'" if defined $data->{"uid"};
     if ($config->{"what"} eq "group") {
-	$opt	= "-g ".$data->{"cn"};
+	$opt	= "-g '".String->Quote($data->{"cn"})."'";
     }
     return YaST::YCP::Boolean (1) if not $opt;
-    
+
     foreach my $qmap (@{$data->{"quota"}}) {
-	my $quota_blocks_soft	= $qmap->{"quota_blocks_soft"} || 0;    
-	my $quota_blocks_hard	= $qmap->{"quota_blocks_hard"} || 0;    
-	my $quota_inodes_soft	= $qmap->{"quota_inodes_soft"} || 0;    
-	my $quota_inodes_hard	= $qmap->{"quota_inodes_hard"} || 0;    
+	my $quota_blocks_soft	= $qmap->{"quota_blocks_soft"} || 0;
+	my $quota_blocks_hard	= $qmap->{"quota_blocks_hard"} || 0;
+	my $quota_inodes_soft	= $qmap->{"quota_inodes_soft"} || 0;
+	my $quota_inodes_hard	= $qmap->{"quota_inodes_hard"} || 0;
 	my $quota_blocks_grace	= $qmap->{"quota_blocks_grace"} || 0;
 	my $quota_inodes_grace	= $qmap->{"quota_inodes_grace"} || 0;
 	my $quota_fs		= $qmap->{"quota_fs"};
 	next if not $quota_fs;
-	my $cmd	= "setquota $opt $quota_blocks_soft $quota_blocks_hard $quota_inodes_soft $quota_inodes_hard $quota_fs";
+	my $cmd	= "/usr/sbin/setquota $opt $quota_blocks_soft $quota_blocks_hard $quota_inodes_soft $quota_inodes_hard '".String->Quote($quota_fs)."'";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"exit"} && $out->{"stderr"}) {
 	    y2error ("error calling $cmd: ", $out->{"stderr"});
@@ -427,7 +429,7 @@ sub Write {
 	    return YaST::YCP::Boolean (0);
 	}
 	if ($quota_blocks_grace > 0 || $quota_inodes_grace > 0) {
-	    $cmd	= "setquota -T $opt $quota_blocks_grace $quota_inodes_grace $quota_fs";
+	    $cmd	= "/usr/sbin/setquota -T $opt $quota_blocks_grace $quota_inodes_grace '".String->Quote($quota_fs)."'";
 	    $out	= SCR->Execute (".target.bash_output", $cmd);
 	    if ($out->{"exit"} && $out->{"stderr"}) {
 		y2error ("error calling $cmd: ", $out->{"stderr"});

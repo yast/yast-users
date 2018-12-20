@@ -86,7 +86,7 @@ sub contains {
 # provide current value for shadowlastchange attribute
 sub last_change_is_now {
 
-    my %out = %{SCR->Execute (".target.bash_output", "date +%s")};
+    my %out = %{SCR->Execute (".target.bash_output", "/usr/bin/date +%s")};
     my $seconds = $out{"stdout"} || "0";
     chomp $seconds;
     return sprintf ("%u", $seconds / (60*60*24));

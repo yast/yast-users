@@ -289,7 +289,7 @@ BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
     if (Mode->test ()) { return "0";}
 
-    my %out = %{SCR->Execute (".target.bash_output", "date +%s")};
+    my %out = %{SCR->Execute (".target.bash_output", "/usr/bin/date +%s")};
     my $seconds = $out{"stdout"} || "0";
     chomp $seconds;
     return sprintf ("%u", $seconds / (60*60*24));
@@ -3963,7 +3963,7 @@ sub WriteSecurity {
     my $self	= shift;
     my $ret = 1;
     if ($security_modified) {
-	
+
 	my %security	= (
 	    "PASSWD_ENCRYPTION"	=> $encryption_method
 	);
@@ -3982,7 +3982,7 @@ sub WriteSecurity {
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
 
-    my $cmd	= "/bin/cp $base_directory/group $base_directory/group.YaST2save";
+    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/group' '".String->Quote($base_directory)."/group.YaST2save'";
     if (SCR->Execute (".target.bash", $cmd) != 0)
     {
 	y2error ("creating backup of $base_directory/group failed");
@@ -3990,7 +3990,7 @@ sub WriteGroup {
     }
     y2usernote ("Backup created: '$cmd'");
     my $ret	= UsersPasswd->WriteGroups (\%groups);
-    $cmd	= "diff -U 1 $base_directory/group.YaST2save $base_directory/group";
+    $cmd	= "/usr/bin/diff -U 1 '".String->Quote($base_directory)."/group.YaST2save' '".String->Quote($base_directory)."/group'";
     my $out	= SCR->Execute (".target.bash_output", $cmd);
     my $stdout	= $out->{"stdout"} || "";
     y2usernote ("Comparing original and new version:
@@ -4001,7 +4001,7 @@ $stdout`");
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
-    my $cmd	= "/bin/cp $base_directory/passwd $base_directory/passwd.YaST2save";
+    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/passwd' '".String->Quote($base_directory)."/passwd.YaST2save'";
     if (SCR->Execute (".target.bash", $cmd) != 0)
     {
 	y2error ("creating backup of $base_directory/passwd failed");
@@ -4009,7 +4009,7 @@ sub WritePasswd {
     }
     y2usernote ("Backup created: '$cmd'");
     my $ret	= UsersPasswd->WriteUsers (\%users);
-    $cmd	= "diff -U 1 $base_directory/passwd.YaST2save $base_directory/passwd";
+    $cmd	= "/usr/bin/diff -U 1 '".String->Quote($base_directory)."/passwd.YaST2save' '".String->Quote($base_directory)."/passwd'";
     my $out	= SCR->Execute (".target.bash_output", $cmd);
     my $stdout	= $out->{"stdout"} || "";
     y2usernote ("Comparing original and new version:
@@ -4020,8 +4020,8 @@ $stdout`");
 ##------------------------------------
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
-    
-    my $cmd	= "/bin/cp $base_directory/shadow $base_directory/shadow.YaST2save";
+
+    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/shadow' '".String->Quote($base_directory)."/shadow.YaST2save'";
     if (SCR->Execute (".target.bash", $cmd) != 0)
     {
 	if (FileUtils->Exists ("$base_directory/shadow")) {
@@ -4064,19 +4064,19 @@ sub WriteAuthorizedKeys {
 sub PreDeleteUsers {
 
     my $ret = 1;
-    
+
     if ($userdel_precmd eq "" || !FileUtils->Exists ($userdel_precmd)) {
 	return $ret;
     }
-    
+
     foreach my $type ("system", "local") {
 	if (!defined $removed_users{$type}) {
 	    next;
 	}
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
-	    my $cmd = sprintf ("$userdel_precmd $username %i %i %s",
-		$user{"uidNumber"}, $user{"gidNumber"}, $user{"homeDirectory"});
+	    my $cmd = sprintf ("$userdel_precmd '".String->Quote($username)."' %i %i '%s'",
+		$user{"uidNumber"}, $user{"gidNumber"}, String->Quote($user{"homeDirectory"}));
 	    SCR->Execute (".target.bash", $cmd);
 	    y2usernote ("User pre-deletion script called: '$cmd'");
 	};
@@ -4120,8 +4120,8 @@ sub PostDeleteUsers {
 	    my %user = %{$removed_users{$type}{$username}};
 	    my $uid     = $user{"uidNumber"} || 0;
 	    Syslog->Log ("User deleted by YaST: name=$username, UID=$uid");
-	    my $cmd = sprintf ("$userdel_postcmd $username $uid %i %s",
-              $user{"gidNumber"} || 0, $user{"homeDirectory"} || "");
+	    my $cmd = sprintf ("$userdel_postcmd '".String->Quote($username)."' $uid %i '%s'",
+              $user{"gidNumber"} || 0, String->Quote($user{"homeDirectory"} || ""));
 	    SCR->Execute (".target.bash", $cmd);
 	    # call the "Write" function from plugins...
 	    my $args	= {
@@ -5029,9 +5029,9 @@ sub IsDirWritable {
         $tmpfile .= "0";
     }
 
-    my %out = %{SCR->Execute (".target.bash_output", "/bin/touch $tmpfile")};
+    my %out = %{SCR->Execute (".target.bash_output", "/usr/bin/touch '".String->Quote($tmpfile)."'")};
     if (defined $out{"exit"} && $out{"exit"} == 0) {
-        SCR->Execute (".target.bash", "/bin/rm $tmpfile");
+        SCR->Execute (".target.bash", "/usr/bin/rm '".String->Quote($tmpfile)."'");
         return "";
     }
     return $dir;
@@ -5340,7 +5340,7 @@ sub CheckGroupname {
         return __("No group name entered.
 Try again.");
     }
-    
+
     my $min	= UsersCache->GetMinGroupnameLength ();
     my $max	= UsersCache->GetMaxGroupnameLength ();
 
@@ -5357,10 +5357,10 @@ Try again.");
 	return sprintf (__("The group name must be between %i and %i characters in length.
 Try again."), $min, $max);
     }
-	
+
     my $filtered = $groupname;
 
-    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
+    my $grep = SCR->Execute (".target.bash_output", "/usr/bin/echo '".String->Quote($filtered)."' | /usr/bin/grep '\^".String->Quote($character_class)."\$'", { "LANG" => "C" });
 
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
@@ -5372,7 +5372,7 @@ letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter.
 Try again.");
     }
-    
+
     if ($groupname_changed && UsersCache->GroupnameExists ($groupname)) {
 	# error popup
 	return __("There is a conflict between the entered

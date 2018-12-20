@@ -27,6 +27,8 @@
 #
 # $Id$
 
+require "shellwords"
+
 require "users/ssh_public_key"
 require "yast2/popup"
 
@@ -1576,14 +1578,9 @@ module Yast
             if exp_date == ""
               user["shadowExpire"] = ""
             else
-              out = Convert.to_map(
-                SCR.Execute(
-                  path(".target.bash_output"),
-                  Ops.add(
-                    Builtins.sformat("date --date='%1 UTC' ", exp_date),
-                    "+%s"
-                  )
-                )
+              out = SCR.Execute(
+                path(".target.bash_output"),
+                "/usr/bin/date --date=#{exp_date.shellescape}%1' UTC' +%s"
               )
               seconds_s = Builtins.deletechars(
                 Ops.get_string(out, "stdout", "0"),

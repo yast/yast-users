@@ -12,11 +12,11 @@ Read	.ldap_conf.v.binddn 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $[] true
 Return	
 Return	
-Execute	.target.bash_output "echo 'ggl' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggl"]
+Execute	.target.bash_output "/usr/bin/echo 'ggl' | /usr/bin/grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggl"]
 Return	
 Return	true
 Return	
-Execute	.target.bash_output "echo 'hh' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
+Execute	.target.bash_output "/usr/bin/echo 'hh' | /usr/bin/grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"hh"]
 Return	
 Dump	---- unchanged group 'ggl':
 Dump	 $["cn":"ggl", "gidNumber":"555", "modified":"added", "org_cn":"ggl", "org_gidNumber":"555", "password":"x", "plugins":[], "type":"local", "userlist":$["hh":"1"], "what":"add_group"]

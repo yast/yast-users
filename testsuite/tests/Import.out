@@ -8,7 +8,7 @@ Read	.etc.default.useradd."inactive" nil
 Read	.etc.default.useradd."shell" nil
 Read	.etc.default.useradd."skel" 0
 Read	.etc.default.useradd."umask" 0
-Execute	.target.bash_output "echo 'ggg' | grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
+Execute	.target.bash_output "/usr/bin/echo 'ggg' | /usr/bin/grep '^[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.$-]\\?$'" $["LANG":"C"] $["stdout":"ggg"]
 Read	.target.string "/etc/shells" ""
 Return	true
 Dump	local user names:

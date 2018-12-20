@@ -59,4 +59,24 @@ describe Yast::UsersSimple do
       end
     end
   end
+
+  describe "CheckUsernameContents" do
+    it "returns empty string for valid username" do
+      expect(users.CheckUsernameContents("abc", "local")).to eq ""
+    end
+
+    it "allows '$' at the end for ldap users" do
+      expect(users.CheckUsernameContents("abc$", "ldap")).to eq ""
+    end
+
+    it "returns non-empty string for invalid username" do
+      expect(users.CheckUsernameContents("abc; touch > /tmp/hacker.was.here; echo abc", "ldap")).to_not be_empty
+    end
+  end
+
+  describe "Transliterate" do
+    it "converts utf-8 to similar ascii chars" do
+      expect(users.Transliterate("Jiří")).to eq "Jiri"
+    end
+  end
 end
