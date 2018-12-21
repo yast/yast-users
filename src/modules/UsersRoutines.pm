@@ -40,6 +40,7 @@ YaST::YCP::Import ("FileUtils");
 YaST::YCP::Import ("Pam");
 YaST::YCP::Import ("Report");
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("String");
 
 ##------------------------------------
 ##------------------- global variables
@@ -105,7 +106,7 @@ sub CreateHome {
     }
     # now copy homedir from skeleton
     else {
-	my $command	= "/bin/cp -r $skel $home";
+	my $command	= "/usr/bin/cp -r '".String->Quote($skel)."' '".String->Quote($home)."'";
 	my %out		= %{SCR->Execute (".target.bash_output", $command)};
 	if (($out{"stderr"} || "") ne "") {
 	    y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -145,7 +146,7 @@ sub ChownHome {
 	return 1;
     }
 
-    my $command = "/bin/chown -R $uid:$gid $home";
+    my $command = "/usr/bin/chown -R $uid:$gid '".String->Quote($home)."'";
     my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -176,7 +177,7 @@ sub ChmodHome {
 	return 0;
     }
 
-    my $command = "/bin/chmod $mode $home";
+    my $command = "/usr/bin/chmod $mode '".String->Quote($home)."'";
     my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -223,7 +224,7 @@ sub MoveHome {
 	return 0;
     }
 
-    my $command = "/bin/mv $org_home $home";
+    my $command = "/usr/bin/mv '".String->Quote($org_home)."' '".String->Quote($home)."'";
     my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -249,7 +250,7 @@ sub DeleteHome {
 	y2warning("home directory does not exist or is not a directory: no rm");
 	return 1;
     }
-    my $command	= "/bin/rm -rf $home";
+    my $command	= "/usr/bin/rm -rf '".String->Quote($home)."'";
     my %out	= %{SCR->Execute (".target.bash_output", $command)};
     if (($out{"stderr"} || "") ne "") {
 	y2error ("error calling $command: ", $out{"stderr"} || "");
@@ -279,7 +280,7 @@ sub DeleteCryptedHome {
     my $key_path	= $self->CryptedKeyPath ($username);
 
     if (%{SCR->Read (".target.stat", $key_path)}) {
-	my $cmd	= "/bin/rm -rf $key_path";
+	my $cmd	= "/usr/bin/rm -rf '".String->Quote($key_path)."'";
 	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if (($out->{"exit"} || 0) ne 0) {
 	    y2error ("error while removing $key_path file: ", $out->{"stderr"} || "");
@@ -288,14 +289,14 @@ sub DeleteCryptedHome {
 	y2usernote ("Encrypted directory key removed: '$cmd'");
     }
     if (%{SCR->Read (".target.stat", $img_path)}) {
-	my $cmd	= "/bin/rm -rf $img_path";
-	my $out	= SCR->Execute (".target.bash_output", "/bin/rm -rf $img_path");
+	my $cmd	= "/usr/bin/rm -rf '".String->Quote($img_path)."'";
+	my $out	= SCR->Execute (".target.bash_output", $cmd);
 	if (($out->{"exit"} || 0) ne 0) {
 	    y2error ("error while removing $img_path file: ", $out->{"stderr"} || "");
 	    $ret	= 0;
 	}
 	y2usernote ("Encrypted directory image removed: '$cmd'");
-	$cmd	= "$cryptconfig pm-disable $username";
+	$cmd	= "$cryptconfig pm-disable '".String->Quote($username)."'";
 	$out	= SCR->Execute (".target.bash_output", $cmd);
 	if ($out->{"exit"} ne 0 && $out->{"stderr"}) {
 	    y2error ("error calling $cmd: ", $out->{"stderr"});

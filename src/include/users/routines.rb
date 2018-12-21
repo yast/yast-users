@@ -25,7 +25,9 @@
 # Authors:	Johannes Buchhold <jbuch@suse.de>,
 #          Jiri Suchomel <jsuchome@suse.cz>
 #
-# $Id$
+
+require "shellwords"
+
 module Yast
   module UsersRoutinesInclude
     def initialize_users_routines(include_target)
@@ -95,14 +97,12 @@ module Yast
 
     # if the user has log on system
     def UserLogged(name)
-      out = Convert.to_map(
-        SCR.Execute(
-          path(".target.bash_output"),
-          Builtins.sformat("ps --no-headers -u %1", name)
-        )
+      out = SCR.Execute(
+        path(".target.bash_output"),
+        "/usr/bin/ps --no-headers -u #{name.shellescape}"
       )
-      proc = Ops.get_string(out, "stdout", "")
-      Builtins.size(proc) != 0 && !Mode.config
+      output = Ops.get_string(out, "stdout", "")
+      Builtins.size(output) != 0 && !Mode.config
     end
   end
 

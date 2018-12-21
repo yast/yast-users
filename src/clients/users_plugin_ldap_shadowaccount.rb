@@ -32,7 +32,9 @@
 # Authors:
 #	Jiri Suchomel <jsuchome@suse.cz>
 #
-# $Id$
+
+require "shellwords"
+
 module Yast
   class UsersPluginLdapShadowaccountClient < Client
     def main
@@ -109,8 +111,8 @@ module Yast
             SCR.Execute(
               path(".target.bash_output"),
               Builtins.sformat(
-                "date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"",
-                @last_change
+                "/usr/bin/date --date='1970-01-01 00:00:01 '%1' days' +\"%%x\"",
+                @last_change.to_s.shellescape
               )
             )
           )
@@ -121,17 +123,9 @@ module Yast
           @last_change = _("Never")
         end
         if @expires != "0" && @expires != "-1" && @expires != ""
-          @out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Ops.add(
-                Builtins.sformat(
-                  "date --date='1970-01-01 00:00:01 %1 days' ",
-                  @expires
-                ),
-                "+\"%Y-%m-%d\""
-              )
-            )
+          @out = SCR.Execute(
+            path(".target.bash_output"),
+            "/usr/bin/date --date='1970-01-01 00:00:01 '#{@expires.to_s.shellescape}' days' +\"%Y-%m-%d\""
           )
           # remove \n from the end
           @exp_date = Builtins.deletechars(
@@ -258,14 +252,9 @@ module Yast
               if @exp_date == ""
                 Ops.set(@tmp_data, "shadowExpire", "")
               else
-                @out = Convert.to_map(
-                  SCR.Execute(
-                    path(".target.bash_output"),
-                    Ops.add(
-                      Builtins.sformat("date --date='%1 UTC' ", @exp_date),
-                      "+%s"
-                    )
-                  )
+                @out = SCR.Execute(
+                  path(".target.bash_output"),
+                  "/usr/bin/date --date=#{@exp_date.to_s.shellescape}' UTC' +%s"
                 )
                 @seconds_s = Builtins.deletechars(
                   Ops.get_string(@out, "stdout", "0"),

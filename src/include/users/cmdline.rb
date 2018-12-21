@@ -390,7 +390,7 @@ module Yast
       out = Convert.to_map(
         SCR.Execute(
           path(".target.bash_output"),
-          Builtins.sformat("ps --no-headers -u %1", uid)
+          Builtins.sformat("/usr/bin/ps --no-headers -u %1", uid.to_i)
         )
       )
       if Builtins.size(Ops.get_string(out, "stdout", "")) != 0

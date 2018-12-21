@@ -16,6 +16,8 @@
 #  To contact SUSE about this file by physical or electronic mail,
 #  you may find current contact information at www.suse.com
 
+require "shellwords"
+
 Yast.import "FileUtils"
 
 module Yast
@@ -113,7 +115,7 @@ module Yast
         if FileUtils::Exists(path)
           raise NotRegularFile unless FileUtils::IsFile(path)
         else
-          SCR.Execute(Path.new(".target.bash"), "umask 0077 && touch #{path}")
+          SCR.Execute(Path.new(".target.bash"), "umask 0077 && /usr/bin/touch #{path.shellescape}")
         end
         content = keys.join("\n") + "\n"
         SCR.Write(Path.new(".target.string"), path, content)

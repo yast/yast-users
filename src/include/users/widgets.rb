@@ -24,7 +24,9 @@
 # Summary:	Widgets definitions and helper functions
 # Authors:	Jiri Suchomel <jsuchome@suse.cz>
 #
-# $Id$
+
+require "shellwords"
+
 module Yast
   module UsersWidgetsInclude
     def initialize_users_widgets(include_target)
@@ -1830,17 +1832,9 @@ Continue anyway?"))
       exp_date = ""
       if expire != "0" && expire != ""
         # 'expire' is expected to be number of days since 1970-01-01
-        out = Convert.to_map(
-          SCR.Execute(
-            path(".target.bash_output"),
-            Ops.add(
-              Builtins.sformat(
-                "date --date='1970-01-01 00:00:01 %1 days' ",
-                expire
-              ),
-              "+\"%Y-%m-%d\""
-            )
-          )
+        out = SCR.Execute(
+          path(".target.bash_output"),
+          "/usr/bin/date --date='1970-01-01 00:00:01 '#{expire.shellescape}' days' +\"%Y-%m-%d\""
         )
         exp_date = Builtins.deletechars(Ops.get_string(out, "stdout", ""), "\n")
       end
@@ -1881,14 +1875,9 @@ Continue anyway?"))
       if new_exp_date == ""
         new_expire = ""
       else
-        out = Convert.to_map(
-          SCR.Execute(
-            path(".target.bash_output"),
-            Ops.add(
-              Builtins.sformat("date --date='%1 UTC' ", new_exp_date),
-              "+%s"
-            )
-          )
+        out = SCR.Execute(
+          path(".target.bash_output"),
+          "/usr/bin/date --date=#{new_exp_date.shellescape}' UTC' +%s"
         )
         seconds_s = Builtins.deletechars(
           Ops.get_string(out, "stdout", "0"),

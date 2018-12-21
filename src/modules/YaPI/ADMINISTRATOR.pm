@@ -76,7 +76,7 @@ write the system adminstrator data. Supported keys of the argument hash are:
 
     "aliases"	=> list of mail aliases
     "password"	=> new password
-    
+
 Returns error message on error.
 
 =cut
@@ -101,7 +101,7 @@ sub Write {
 	    $ret = __("An error occurred while setting forwarding for root's mail.");
 	    return $ret;
 	}
-	my $out = SCR->Execute (".target.bash_output", "newaliases");
+	my $out = SCR->Execute (".target.bash_output", "/usr/bin/newaliases");
 	$ret = $out->{"stderr"} || "";
     }
     if ($args->{"password"}) {

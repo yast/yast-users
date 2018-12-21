@@ -114,6 +114,7 @@ YaST::YCP::Import ("Language");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("Stage");
+YaST::YCP::Import ("String");
 YaST::YCP::Import ("SystemFilesCopy");
 YaST::YCP::Import ("UsersUI");
 YaST::YCP::Import ("SSHAuthorizedKeys");
@@ -765,7 +766,7 @@ sub CheckUsernameContents {
     if ($type eq "ldap") {
 	$filtered =~ s/\$$//g;
     }
-    my $grep = SCR->Execute (".target.bash_output", "echo '$filtered' | grep '\^$character_class\$'", { "LANG" => "C" });
+    my $grep = SCR->Execute (".target.bash_output", "/usr/bin/echo '".String->Quote($filtered)."' | /usr/bin/grep '\^".String->Quote($character_class)."\$'", { "LANG" => "C" });
     my $stdout = $grep->{"stdout"} || "";
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
@@ -787,7 +788,7 @@ Try again.");
 # @return error message
 BEGIN { $TYPEINFO{CheckUsernameConflicts} = ["function", "string", "string" ]; }
 sub CheckUsernameConflicts {
-    
+
     my ($self, $username)	= @_;
 
     if (defined $system_users{$username}) {
@@ -1021,7 +1022,7 @@ sub LoadCracklib {
 # release cracklib image from the inst-sys
 BEGIN { $TYPEINFO{UnLoadCracklib} = ["function", "boolean"]; }
 sub UnLoadCracklib {
-	
+
     if (!Stage->initial () || Mode->live_installation ()) {
 	y2debug ("no extend in this stage/mode");
 	return 1;
@@ -1042,7 +1043,7 @@ sub Transliterate {
     return "" if ! $text;
     my $language	= Language->language ();
     my $out = SCR->Execute (".target.bash_output",
-	"echo '$text' | iconv -f utf-8 -t ascii//translit",
+	"/usr/bin/echo '".String->Quote($text)."' | /usr/bin/iconv -f utf-8 -t ascii//translit",
 	{ "LANG" => $language });
     my $stdout = $out->{"stdout"} || "";
     chomp($stdout);

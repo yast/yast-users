@@ -45,6 +45,7 @@ our %TYPEINFO;
 ##--------------------- global imports
 
 YaST::YCP::Import ("SCR");
+YaST::YCP::Import ("String");
 
 ##--------------------------------------
 ##--------------------- global variables
@@ -149,7 +150,7 @@ sub PluginPresent {
 	y2debug ("Kerberos plugin not present");
 	return 0;
     }
-    my $out	= SCR->Execute (".target.bash_output", '/usr/lib/mit/sbin/kadmin.local -nq "list_principals '.$data->{uid}.'*" | grep '.$data->{uid}.'*');
+    my $out	= SCR->Execute (".target.bash_output", "/usr/lib/mit/sbin/kadmin.local -nq 'list_principals ".String->Quote("".$data->{uid})."*' | /usr/bin/grep '".String->Quote("".$data->{uid})."*'");
     if ($out->{"stdout"} =~ /^$data->{uid}/ ) {
 	y2milestone ("Kerberos plugin present");
 	return 1;
