@@ -111,7 +111,7 @@ module Yast
             SCR.Execute(
               path(".target.bash_output"),
               Builtins.sformat(
-                "/usr/bin/date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"",
+                "/usr/bin/date --date='1970-01-01 00:00:01 '%1' days' +\"%%x\"",
                 @last_change.to_s.shellescape
               )
             )
@@ -125,7 +125,7 @@ module Yast
         if @expires != "0" && @expires != "-1" && @expires != ""
           @out = SCR.Execute(
             path(".target.bash_output"),
-            "/usr/bin/date --date='1970-01-01 00:00:01 %1 days' #{@expires.to_s.shellescape}+\"%Y-%m-%d\""
+            "/usr/bin/date --date='1970-01-01 00:00:01 '#{@expires.to_s.shellescape}' days' +\"%Y-%m-%d\""
           )
           # remove \n from the end
           @exp_date = Builtins.deletechars(
@@ -254,7 +254,7 @@ module Yast
               else
                 @out = SCR.Execute(
                   path(".target.bash_output"),
-                  "/usr/bin/date --date='%1 UTC' #{@exp_date.to_s.shellescape}+%s"
+                  "/usr/bin/date --date=#{@exp_date.to_s.shellescape}' UTC' +%s"
                 )
                 @seconds_s = Builtins.deletechars(
                   Ops.get_string(@out, "stdout", "0"),

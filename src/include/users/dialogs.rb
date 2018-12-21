@@ -1580,7 +1580,7 @@ module Yast
             else
               out = SCR.Execute(
                 path(".target.bash_output"),
-                "/usr/bin/date --date=#{exp_date.shellescape}%1' UTC' +%s"
+                "/usr/bin/date --date=#{exp_date.shellescape}' UTC' +%s"
               )
               seconds_s = Builtins.deletechars(
                 Ops.get_string(out, "stdout", "0"),
