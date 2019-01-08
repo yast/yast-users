@@ -1002,5 +1002,5 @@ sub SetBaseDirectory {
     $base_directory	= $dir if (defined $dir);
 }
 
-42
+1
 # EOF

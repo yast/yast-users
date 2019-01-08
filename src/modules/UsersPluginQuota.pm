@@ -443,5 +443,5 @@ sub Write {
     }
     return YaST::YCP::Boolean (1);
 }
-42
+1
 # EOF
