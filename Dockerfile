@@ -2,6 +2,7 @@ FROM yastdevel/cpp
 RUN zypper --gpg-auto-import-keys --non-interactive in --no-recommends \
   cracklib-devel \
   perl-Digest-SHA1 \
+  perl-X500-DN \
   yast2 \
   yast2-ldap \
   yast2-perl-bindings \
