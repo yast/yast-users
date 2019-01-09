@@ -1051,5 +1051,5 @@ sub Transliterate {
     return $stdout;
 }
 
-42
+1
 # EOF

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Jan  8 13:17:16 UTC 2019 - mvidner@suse.com
+
+- Fixed a syntax error in UsersPluginQuota.pm introduced
+  in the previous change (bsc#1118291).
+- 4.1.5
+
+-------------------------------------------------------------------
 Thu Dec 20 14:56:07 UTC 2018 - Josef Reidinger <jreidinger@suse.com>
 
 - always use absolute path to binaries (bsc#1118291)

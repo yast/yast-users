@@ -403,7 +403,7 @@ sub Write {
     # do nothing for user intended for deletion
     return YaST::YCP::Boolean (1) if ($config->{"modified"} || "") eq "deleted";
 
-    my $opt	= "-u '".String->Quote($data->{"uid"})"'" if defined $data->{"uid"};
+    my $opt	= "-u '".String->Quote($data->{"uid"})."'" if defined $data->{"uid"};
     if ($config->{"what"} eq "group") {
 	$opt	= "-g '".String->Quote($data->{"cn"})."'";
     }
@@ -443,5 +443,5 @@ sub Write {
     }
     return YaST::YCP::Boolean (1);
 }
-42
+1
 # EOF
