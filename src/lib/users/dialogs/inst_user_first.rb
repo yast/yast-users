@@ -250,7 +250,7 @@ module Yast
       @user = {}
       @password = nil
       @use_pw_for_root = false
-      set_users_list([])
+      self.users_list = []
     end
 
     # Initializes the instance variables used to configure a new user
