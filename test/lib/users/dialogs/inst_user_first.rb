@@ -34,6 +34,24 @@ describe Yast::InstUserFirstDialog do
     allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2017))
   end
 
+  describe "#run" do
+    context "when local users are disabled" do
+      before do
+        allow(Yast::ProductFeatures).to receive(:GetBooleanFeatureWithFallback)
+          .with("globals", "enable_local_users", true).and_return(false)
+      end
+
+      it "returns :auto" do
+        expect(dialog.run).to eq(:auto)
+      end
+
+      it "clears the users list" do
+        expect(dialog).to receive(:users_list=).with([]).and_call_original
+        dialog.run
+      end
+    end
+  end
+
   describe "#choose_users_handler" do
     let(:users_to_import_dialog) { instance_double(Yast::UsersToImportDialog, run: nil) }
     let(:root2_path) { FIXTURES_PATH.join("root2") }
