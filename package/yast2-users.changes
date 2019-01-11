@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jan 11 10:05:50 UTC 2019 - igonzalezsosa@suse.com
+
+- Fixed call to renamed method (bsc#1121473).
+- 4.1.6
+
+-------------------------------------------------------------------
 Tue Jan  8 13:17:16 UTC 2019 - mvidner@suse.com
 
 - Fixed a syntax error in UsersPluginQuota.pm introduced
