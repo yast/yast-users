@@ -83,6 +83,7 @@ sub CreateHome {
     my $self	= shift;
     my $skel	= $_[0];
     my $home	= $_[1];
+    my $btrfs	= $_[2];
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
