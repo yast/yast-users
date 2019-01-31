@@ -1,4 +1,7 @@
 require_relative "./test_helper"
+
+require "yast2/execute";
+
 Yast.import "UI"
 
 class UsersDialogsDummy < Yast::Module
@@ -14,6 +17,68 @@ describe "Yast::UsersDialogsInclude" do
     allow(Yast).to receive(:import).and_call_original
     allow(Yast).to receive(:import).with("Ldap")
     allow(Yast).to receive(:import).with("LdapPopup")
+  end
+
+  describe "#btrfs_available?" do
+    let(:local_execution) { double }
+
+    before do
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with(array_including("/usr/bin/df"), any_args)
+        .and_return(available_filesystems)
+    end
+
+    context "when there is a Btrfs filesystem" do
+      let(:available_filesystems) { "ext4\nbtrfs" }
+
+      it "returns true" do
+        expect(subject.btrfs_available?).to eq(true)
+      end
+    end
+
+    context "when there is not a Btrfs filesystem" do
+      let(:available_filesystems) { "ext4\nnfs" }
+
+      it "returns false" do
+        expect(subject.btrfs_available?).to eq(false)
+      end
+    end
+  end
+
+  describe "#btrfs_subvolume?" do
+    let(:local_execution) { double }
+    let(:subvolume_info) { "" }
+    let(:path) { "/fake/path/to/user/home" }
+
+    before do
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with("/usr/sbin/btrfs", "subvolume", "show", path)
+        .and_return(subvolume_info)
+    end
+
+    context "when path is empty" do
+      let(:path) { Pathname.new("") }
+
+      it "returns false" do
+        expect(subject.btrfs_subvolume?(path)).to eq(false)
+      end
+    end
+
+    context "when given path is a Btrfs subvolume" do
+      let(:subvolume_info) { "@/fake/path/to/user/home\n..." }
+
+      it "returns true" do
+        expect(subject.btrfs_subvolume?(path)).to eq(true)
+      end
+    end
+
+    context "when given path is not a Btrfs subvolume" do
+      it "returns false" do
+        expect(subject.btrfs_subvolume?(path)).to eq(false)
+      end
+    end
   end
 
   describe "#ask_chown_home" do

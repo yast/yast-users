@@ -27,6 +27,7 @@
 #
 # $Id$
 
+require "pathname"
 require "shellwords"
 
 require "users/ssh_public_key"
@@ -389,6 +390,7 @@ module Yast
       create_home = Ops.get_boolean(user, "create_home", true)
       chown_home = Ops.get_boolean(user, "chown_home", true)
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
+      btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", false)
       do_not_edit = user_type == "nis"
 
       complex_layout = installation && Users.StartDialog("user_add")
@@ -462,6 +464,7 @@ module Yast
 
         chown_home = Ops.get_boolean(user, "chown_home", chown_home)
         no_skel = Ops.get_boolean(user, "no_skeleton", no_skel)
+        btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", btrfs_subvolume)
         groups = Ops.get_map(user, "grouplist", {})
         do_not_edit = user_type == "nis"
 
@@ -784,7 +787,14 @@ module Yast
                     )
                   ),
                   Top(
-                    VBox(HBox(home_w, browse), new_user_term)
+                    VBox(
+                      HBox(home_w, browse),
+                      new_user_term,
+                      HBox(
+                        HSpacing(),
+                        Left(CheckBox(Id(:btrfs_subvolume), _("Btrfs subvolume"), btrfs_subvolume))
+                      ),
+                    )
                   ),
                   additional_data,
                   Top(edit_shell),
@@ -1011,6 +1021,7 @@ module Yast
         error = ""
 
         ret = Convert.to_symbol(UI.UserInput) if current != nil
+
         if (ret == :abort || ret == :cancel) && ReallyAbort() != :abort
           ret = :notnext
           next
@@ -1355,6 +1366,7 @@ module Yast
           new_home = Convert.to_string(UI.QueryWidget(Id(:home), :Value))
 
           if what == "add_user"
+            btrfs_subvolume = UI.QueryWidget(Id(:btrfs_subvolume), :Value)
             no_skel = Convert.to_boolean(UI.QueryWidget(Id(:skel), :Value))
             mode = Convert.to_string(UI.QueryWidget(Id(:mode), :Value))
           end
@@ -1539,6 +1551,7 @@ module Yast
           Ops.set(user, "addit_data", addit_data)
           Ops.set(user, "no_skeleton", no_skel)
           Ops.set(user, "home_mode", mode)
+          Ops.set(user, "btrfs_subvolume", btrfs_subvolume)
         end
 
         if current == :passwordsettings && (ret == :next || tab)
@@ -1774,6 +1787,8 @@ module Yast
             UI.ChangeWidget(Id(:mode), :InputMaxLength, 3)
           end
           UI.ChangeWidget(Id(:shell), :Value, shell)
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, what == "add_user" && btrfs_available?)
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Value, what == "edit_user" && btrfs_subvolume?(home))
 
           current = ret
         end
@@ -1867,6 +1882,30 @@ module Yast
         Users.SetStartDialog("users")
       end
       ret
+    end
+
+    # Whether there is a Btrfs filesystem present
+    #
+    # @return [Boolean] true if a Btrfs filesystem is found; false otherwise
+    def btrfs_available?
+      available_filesystems = Yast::Execute.locally!.stdout(
+        ["/usr/bin/df", "--output=fstype"],
+        ["/usr/bin/tail", "-n", "+2"],
+        ["/usr/bin/uniq"]
+      ).split("\n")
+
+      available_filesystems.include?("btrfs")
+    end
+
+    # Whether given path is a Btrfs subvolume
+    #
+    # @param [String, Pathname] path
+    #
+    # @return [Boolean] true when is a Btrfs subvolume; false otherwise
+    def btrfs_subvolume?(path)
+      return false if path.to_s.empty?
+
+      !Yast::Execute.locally!.stdout("/usr/sbin/btrfs", "subvolume", "show", path).empty?
     end
 
     # Dialog for adding/editing group

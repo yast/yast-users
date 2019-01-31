@@ -445,6 +445,16 @@ module Yast
             Ops.get_string(defaults, "skel", "")
           )
         )
+
+        helptext = Ops.add(
+          helptext,
+          # TRANSLATORS: help text for the Btrfs subvolume checkbox
+          _(
+            "<p><b>Btrfs subvolume</b> option allows to create the user home " \
+            "as a subvolume instead of a plain directory whenever " \
+            "there is a Btrfs filesystem available.</p>"
+          )
+        )
       else
         # help text for Move to new location checkbox
         helptext = Ops.add(
