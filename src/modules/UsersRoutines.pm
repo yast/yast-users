@@ -23,11 +23,11 @@
 # UsersRoutines module
 #
 
-
 package UsersRoutines;
 
 use strict;
 
+use File::Basename;
 use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
@@ -63,8 +63,22 @@ my $key2user		= undef;
 # could we use pam_mount? currntly not if fingerprint dev is in use (bnc#390810)
 my $crypted_homes_enabled	= undef;
 
+# path to btrfs
+my $btrfs = "/usr/sbin/btrfs";
+
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
+
+sub valid_btrfs {
+    my $path       = shift;
+    my $dirname    = dirname($path);
+    my $cmd        = "/usr/bin/stat -f --format %T $dirname";
+    my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+
+    chomp(%cmd_output);
+
+    return ( $cmd_output{"stdout"} eq "btrfs" );
+}
 
 ##-------------------------------------------------------------------------
 ##----------------- directory manipulation routines -----------------------
@@ -73,6 +87,7 @@ my $crypted_homes_enabled	= undef;
 # Create home directory
 # @param skeleton skeleton directory for new home
 # @param home name of new home directory
+# @param use_btrfs whether the home directory must be a btrfs subvolume
 # @return success
 BEGIN { $TYPEINFO{CreateHome} = ["function",
     "boolean",
@@ -81,9 +96,7 @@ BEGIN { $TYPEINFO{CreateHome} = ["function",
 sub CreateHome {
 
     my $self	= shift;
-    my $skel	= $_[0];
-    my $home	= $_[1];
-    my $btrfs	= $_[2];
+    my ( $skel, $home, $use_btrfs ) = @_;
 
     # create a path to new home directory, if not exists
     my $home_path = substr ($home, 0, rindex ($home, "/"));
@@ -98,24 +111,49 @@ sub CreateHome {
 	return 0;
     }
 
-    # if skeleton does not exist, do not copy it
-    if ($skel eq "" || !%{SCR->Read (".target.stat", $skel)}) {
-	if (! SCR->Execute (".target.mkdir", $home)) {
-	    y2error ("error creating $home");
-	    return 0;
-	}
+    # Create the home as btrfs subvolume
+    if ($use_btrfs) {
+        if (!valid_btrfs($home)) {
+            y2error("Error to create '$home' as btrfs subvolume in a not valid btrfs filesystem");
+
+            return 0;
+        }
+
+        my $cmd = "btrfs subvolume create $home";
+        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+        my $stderr = $cmd_out{"stderr"} || "";
+        if ($stderr)
+        {
+            y2error("Error creating '$home' as btrfs subvolume: $stderr");
+
+            return 0;
+        }
     }
-    # now copy homedir from skeleton
+    # or as a plain directory
     else {
-	my $command	= "/usr/bin/cp -r '".String->Quote($skel)."' '".String->Quote($home)."'";
-	my %out		= %{SCR->Execute (".target.bash_output", $command)};
-	if (($out{"stderr"} || "") ne "") {
-	    y2error ("error calling $command: ", $out{"stderr"} || "");
-	    return 0;
-	}
-	y2usernote ("Home directory created: '$command'.");
+        if ( !SCR->Execute( ".target.mkdir", $home ) ) {
+            y2error("Error creating $home");
+
+            return 0;
+        }
     }
-    y2milestone ("The directory $home was successfully created.");
+
+    # Now copy the skeleton
+    if ( $skel ne "" && %{ SCR->Read( ".target.stat", $skel ) } ) {
+        my $cmd = sprintf( "/usr/bin/cp -r '%s/.' '%s'", String->Quote($skel), String->Quote($home) );
+        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+        my $stderr = $cmd_out{"stderr"} || "";
+
+        if ( $stderr ne "" ) {
+            y2error( "error calling $cmd: ", $stderr );
+            return 0;
+        }
+
+        y2usernote("Home skeleton copied: '$cmd'.");
+    }
+
+    y2milestone("The directory $home was successfully created.");
+
     return 1;
 }
 
