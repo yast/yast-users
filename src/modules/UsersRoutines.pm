@@ -32,7 +32,7 @@ use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
 
- 
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -95,20 +95,22 @@ BEGIN { $TYPEINFO{CreateHome} = ["function",
 }
 sub CreateHome {
 
-    my $self	= shift;
+    my $self = shift;
     my ( $skel, $home, $use_btrfs ) = @_;
 
-    # create a path to new home directory, if not exists
-    my $home_path = substr ($home, 0, rindex ($home, "/"));
-    if (length($home_path) and !%{SCR->Read (".target.stat", $home_path)}) {
-	SCR->Execute (".target.mkdir", $home_path);
+    # Create a path to new home directory, if not exists
+    my $home_path = substr( $home, 0, rindex( $home, "/" ) );
+    if ( length($home_path) and !%{ SCR->Read( ".target.stat", $home_path ) } )
+    {
+        SCR->Execute( ".target.mkdir", $home_path );
     }
-    my %stat	= %{SCR->Read (".target.stat", $home)};
+
+    my %stat = %{ SCR->Read( ".target.stat", $home ) };
     if (%stat) {
-        if ($home ne "/var/lib/nobody") {
-	    y2error ("$home directory already exists: no mkdir");
-	}
-	return 0;
+        if ( $home ne "/var/lib/nobody" ) {
+            y2error("$home directory already exists: no mkdir");
+        }
+        return 0;
     }
 
     # Create the home as btrfs subvolume
@@ -132,7 +134,7 @@ sub CreateHome {
     # or as a plain directory
     else {
         if ( !SCR->Execute( ".target.mkdir", $home ) ) {
-            y2error("Error creating $home");
+            y2error("Error creating '$home'");
 
             return 0;
         }
@@ -140,12 +142,16 @@ sub CreateHome {
 
     # Now copy the skeleton
     if ( $skel ne "" && %{ SCR->Read( ".target.stat", $skel ) } ) {
-        my $cmd = sprintf( "/usr/bin/cp -r '%s/.' '%s'", String->Quote($skel), String->Quote($home) );
+        my $cmd = sprintf(
+            "/usr/bin/cp -r '%s/.' '%s'",
+            String->Quote($skel),
+            String->Quote($home)
+        );
         my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
         my $stderr = $cmd_out{"stderr"} || "";
 
         if ( $stderr ne "" ) {
-            y2error( "error calling $cmd: ", $stderr );
+            y2error( "Error calling $cmd: $stderr" );
             return 0;
         }
 
