@@ -80,6 +80,13 @@ sub valid_btrfs {
     return ( $cmd_output{"stdout"} eq "btrfs" );
 }
 
+sub btrfs_subvolume {
+    my $path = shift;
+    my $cmd  = "$btrfs subvolume show $path";
+
+    return ( SCR->Execute( ".target.bash", $cmd ) eq 0 );
+}
+
 ##-------------------------------------------------------------------------
 ##----------------- directory manipulation routines -----------------------
 
@@ -294,6 +301,21 @@ sub DeleteHome {
     if (!%stat || !($stat{"isdir"} || 0)) {
 	y2warning("home directory does not exist or is not a directory: no rm");
 	return 1;
+    }
+
+    if ( btrfs_subvolume($home) ) {
+        my $cmd        = sprintf("$btrfs subvolume delete -C '%s'", String->Quote($home));
+        my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+
+        if ( $cmd_output{"exit"} ne 0 ) {
+            y2error( "Error calling $cmd: ", $cmd_output{"stderr"} || "" );
+
+            return 0;
+        }
+
+        y2milestone("The btrfs subvolume '$home' was succesfully deleted");
+
+        return 1;
     }
     my $command	= "/usr/bin/rm -rf '".String->Quote($home)."'";
     my %out	= %{SCR->Execute (".target.bash_output", $command)};
