@@ -381,145 +381,116 @@ module Yast
 
 
     # Help for EditUserDetailsDialog.
-    # @param [String] user_type type of edited user (local/system/ldap/nis)
+    #
+    # @param [String] user_type type of added/edited user (local/system/ldap/nis)
     # @param [String] what what to do with a user (add_user/edit_user)
+    #
     # @return [String] help text
     def EditUserDetailsDialogHelp(user_type, what)
-      # help text 1/8
-      helptext = Ops.add(
-        Ops.add(
-          Ops.add(
-            _("<p>\nAdditional user data includes:\n</p>"),
-            # help text 2/8, %1 is number
-            Builtins.sformat(
-              _(
-                "<p>\n" +
-                  "<b>User ID (uid):</b>\n" +
-                  "Each user is known to the system by a unique number,\n" +
-                  "the user ID. For normal users, you should use\n" +
-                  "a UID larger than %1 because the smaller UIDs are used\n" +
-                  "by the system for special purposes and pseudo logins.\n" +
-                  "</p>\n"
-              ),
-              UsersCache.GetMaxUID("system")
-            )
-          ),
-          # help text 3/8
-          _(
-            "<p>\n" +
-              "If you change the UID of an existing user, the rights of the files\n" +
-              "this user owns must be changed. This is done automatically\n" +
-              "for the files in the user's home directory, but not for files \n" +
-              "located elsewhere.</p>\n"
-          )
-        ),
-        # help text 4/8
+      helptext = ""
+
+      helptext << _("<p>\nAdditional user data includes:\n</p>")
+      # TRANSLATORS: %1 is a number
+      helptext << Builtins.sformat(
         _(
-          "<p>\n" +
-            "<b>Home Directory:</b>\n" +
-            "The home directory of the user. Normally this is\n" +
-            "/home/username. \n" +
-            "To select an existing directory, click <b>Browse</b>.\n" +
-            "</p>\n"
-        )
+          "<p>\n" \
+          "<b>User ID (uid):</b>\n" \
+          "Each user is known to the system by a unique number,\n" \
+          "the user ID. For normal users, you should use\n" \
+          "a UID larger than %1 because the smaller UIDs are used\n" \
+          "by the system for special purposes and pseudo logins.\n" \
+          "</p>\n"
+        ),
+        UsersCache.GetMaxUID("system")
       )
+      helptext << _(
+        "<p>\n" \
+        "If you change the UID of an existing user, the rights of the files\n" \
+        "this user owns must be changed. This is done automatically\n" \
+        "for the files in the user's home directory, but not for files \n" \
+        "located elsewhere.</p>\n"
+      )
+      helptext << _(
+        "<p>\n" \
+        "<b>Home Directory:</b>\n" \
+        "The home directory of the user. Normally this is\n" \
+        "/home/username. \n" \
+        "To select an existing directory, click <b>Browse</b>.\n" \
+        "</p>\n"
+      )
+
       if what == "add_user"
         # help text for user's home directory mode
-        helptext = Ops.add(
-          helptext,
-          _(
-            "<p>Optionally, set the <b>Home Directory Permission Mode</b> for this user's home directory different from the default.</p>"
-          )
+        helptext << _(
+          "<p>Optionally, set the <b>Home Directory Permission Mode</b> " \
+          "for this user's home directory different from the default.</p>"
         )
 
-        defaults = Users.GetLoginDefaults
-        helptext = Ops.add(
-          helptext,
-          # alternate helptext 4.5/8; %1 is directory (e.g. '/etc/skel')
-          Builtins.sformat(
-            _(
-              "<p>To create only an empty home directory,\n" +
-                "check <b>Empty Home</b>. Otherwise, the new home directory\n" +
-                "is created from the default skeleton (%1).</p>\n"
-            ),
-            Ops.get_string(defaults, "skel", "")
-          )
+        # help text for an empty home option
+        # TRANSLATORS: %1 is a path to directory (e.g. '/etc/skel')
+        helptext << Builtins.sformat(
+          _(
+            "<p>To create only an empty home directory,\n" \
+            "check <b>Empty Home</b>. Otherwise, the new home directory\n" \
+            "is created from the default skeleton (%1).</p>\n"
+          ),
+          Users.GetLoginDefaults.fetch("skel", "")
         )
 
-        helptext = Ops.add(
-          helptext,
-          # TRANSLATORS: help text for the Btrfs subvolume checkbox
-          _(
-            "<p><b>Btrfs subvolume</b> option allows to create the user home " \
-            "as a subvolume instead of a plain directory whenever " \
-            "there is a Btrfs filesystem available.</p>"
-          )
+        # TRANSLATORS: help text for the Btrfs subvolume checkbox
+        helptext << _(
+          "<p><b>Btrfs subvolume</b> option allows to create the user home " \
+          "as a subvolume instead of a plain directory whenever " \
+          "there is a Btrfs filesystem available.</p>"
         )
       else
         # help text for Move to new location checkbox
-        helptext = Ops.add(
-          helptext,
-          _(
-            "<p>If changing the location of a user's home directory, move the contents of the current directory with <b>Move to New Location</b>, activated by default. Otherwise a new home directory is created without any of the existing data.</p>"
-          )
+        helptext << _(
+          "<p>If changing the location of a user's home directory, move the contents " \
+          "of the current directory with <b>Move to New Location</b>, activated by default. " \
+          "Otherwise a new home directory is created without any of the existing data.</p>"
         )
       end
 
       if user_type == "ldap"
-        helptext = Ops.add(
-          helptext,
-          # alternate helptext 5/8
-          _(
-            "<p>\n" +
-              "The home directory of an LDAP user can be changed only on the\n" +
-              "file server.</p>"
-          )
+        helptext << _(
+          "<p>\n" \
+          "The home directory of an LDAP user can be changed only on the\n" \
+          "file server.</p>"
         )
       elsif user_type == "system" || user_type == "local"
-        helptext = Ops.add(
-          helptext,
-          # alternate helptext 5/8
-          _(
-            "<p><b>Additional Information:</b>\n" +
-              "Some additional user data could be set here. This field may contain up to\n" +
-              "three parts, separated by commas. The standard usage is to write\n" +
-              "<i>office</i>,<i>work phone</i>,<i>home phone</i>. This information is \n" +
-              "shown when you use the <i>finger</i> command on this user.</p>\n"
-          )
+        helptext << _(
+          "<p><b>Additional Information:</b>\n" \
+          "Some additional user data could be set here. This field may contain up to\n" \
+          "three parts, separated by commas. The standard usage is to write\n" \
+          "<i>office</i>,<i>work phone</i>,<i>home phone</i>. This information is \n" \
+          "shown when you use the <i>finger</i> command on this user.</p>\n"
         )
       end
 
-      # help text 6/8
-      helptext = Ops.add(
-        Ops.add(
-          Ops.add(
-            helptext,
-            _(
-              "<p>\n" +
-                "<b>Login Shell:</b>\n" +
-                "The login shell (command interpreter) for the user.\n" +
-                "Select a shell from the list of all shells installed\n" +
-                "on your system.\n" +
-                "</p>"
-            )
-          ),
-          # help text 7/8
-          _(
-            "<p>\n" +
-              "<b>Default Group:</b>\n" +
-              "The primary group to which the user belongs. Select one group\n" +
-              "from the list of all groups existing on your system.\n" +
-              "</p>"
-          )
-        ),
-        # help text 8/8
-        _(
-          "<p>\n" +
-            "<b>Additional Groups:</b>\n" +
-            "Select additional groups in which the user should be a member.\n" +
-            "</p>\n"
-        )
+      helptext << _(
+        "<p>\n" \
+        "<b>Login Shell:</b>\n" \
+        "The login shell (command interpreter) for the user.\n" \
+        "Select a shell from the list of all shells installed\n" \
+        "on your system.\n" \
+        "</p>"
       )
+
+      helptext << _(
+        "<p>\n" \
+        "<b>Default Group:</b>\n" \
+        "The primary group to which the user belongs. Select one group\n" \
+        "from the list of all groups existing on your system.\n" \
+        "</p>"
+      )
+      helptext << _(
+        "<p>\n" \
+        "<b>Additional Groups:</b>\n" \
+        "Select additional groups in which the user should be a member.\n" \
+        "</p>\n"
+      )
+
       helptext
     end
 
