@@ -294,37 +294,39 @@ sub MoveHome {
 BEGIN { $TYPEINFO{DeleteHome} = ["function", "boolean", "string"];}
 sub DeleteHome {
 
-    my $self	= shift;
-    my $home	= $_[0];
+    my $self = shift;
+    my $home = $_[0];
+    my %stat = %{ SCR->Read( ".target.stat", $home ) };
 
-    my %stat	= %{SCR->Read (".target.stat", $home)};
-    if (!%stat || !($stat{"isdir"} || 0)) {
-	y2warning("home directory does not exist or is not a directory: no rm");
-	return 1;
-    }
-
-    if ( btrfs_subvolume($home) ) {
-        my $cmd        = sprintf("$btrfs subvolume delete -C '%s'", String->Quote($home));
-        my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
-
-        if ( $cmd_output{"exit"} ne 0 ) {
-            y2error( "Error calling $cmd: ", $cmd_output{"stderr"} || "" );
-
-            return 0;
-        }
-
-        y2milestone("The btrfs subvolume '$home' was succesfully deleted");
-
+    if ( !%stat || !( $stat{"isdir"} || 0 ) ) {
+        y2warning("home directory '$home' does not exist or is not a directory: no rm");
         return 1;
     }
-    my $command	= "/usr/bin/rm -rf '".String->Quote($home)."'";
-    my %out	= %{SCR->Execute (".target.bash_output", $command)};
-    if (($out{"stderr"} || "") ne "") {
-	y2error ("error calling $command: ", $out{"stderr"} || "");
-	return 0;
+
+    my $cmd;
+    my $type;
+
+    if ( btrfs_subvolume($home) ) {
+        $cmd  = sprintf( "$btrfs subvolume delete -C '%s'", String->Quote($home) );
+        $type = "btrfs subvolume";
     }
-    y2milestone ("The directory $home was succesfully deleted");
-    y2usernote ("Home directory removed: '$command'");
+    else {
+        $cmd  = sprintf( "/usr/bin/rm -rf '%s'", String->Quote($home) );
+        $type = "directory";
+    }
+
+    my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+    my $stderr  = $cmd_output{"stderr"} || "";
+
+    if ( $stderr ne "" ) {
+        y2error( "Error calling '$cmd': $stderr" );
+
+        return 0;
+    }
+
+    y2milestone("The $type '$home' was succesfully deleted");
+    y2usernote("Home $type removed: '$cmd'");
+
     return 1;
 }
 
