@@ -19,6 +19,37 @@ describe "Yast::UsersDialogsInclude" do
     allow(Yast).to receive(:import).with("LdapPopup")
   end
 
+  describe "#valid_btrfs_path?" do
+    let(:local_execution) { double }
+    let(:dirname) { "/home" }
+    let(:user_home) { "#{dirname}/user" }
+    let(:user_home_pathname) { double("Pathname", dirname: dirname) }
+
+    before do
+      allow(Pathname).to receive(:new).with(user_home).and_return(user_home_pathname)
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with("/usr/bin/stat", any_args, dirname)
+        .and_return(filesystem)
+    end
+
+    context "when given path is on Btrfs filesystem" do
+      let(:filesystem) { "btrfs\n" }
+
+      it "returns true" do
+        expect(subject.valid_btrfs_path?(user_home)).to eq(true)
+      end
+    end
+
+    context "when given path is not on Btrfs filesystem" do
+      let(:filesystem) { "nfs\n" }
+
+      it "returns false" do
+        expect(subject.valid_btrfs_path?(user_home)).to eq(false)
+      end
+    end
+  end
+
   describe "#btrfs_available?" do
     let(:local_execution) { double }
 

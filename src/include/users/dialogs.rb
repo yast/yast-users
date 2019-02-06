@@ -1370,6 +1370,7 @@ module Yast
             no_skel = Convert.to_boolean(UI.QueryWidget(Id(:skel), :Value))
             mode = Convert.to_string(UI.QueryWidget(Id(:mode), :Value))
           end
+
           if Ops.add(Builtins.findlastof(new_home, "/"), 1) ==
               Builtins.size(new_home)
             new_home = Builtins.substring(
@@ -1531,6 +1532,22 @@ module Yast
           if UI.WidgetExists(Id(:move_home)) &&
               UI.QueryWidget(Id(:move_home), :Value) == false
             create_home = false
+          end
+
+          # A flag to decide if the Btrfs path validation should be performed, since it is not
+          # needed when moving it to other location. The "create_home" above is not reliable because
+          # it is "true" **when moving the directory/subvolume**.
+          check_btrfs_path = !UI.QueryWidget(Id(:move_home), :Value)
+
+          # Check if is a valid path when creating a Btfs subvolume
+          if btrfs_subvolume && check_btrfs_path && !valid_btrfs_path?(new_home)
+            Report.Error(
+              _("Given path is not a valid Btrfs location.\n\n" \
+              "Choose another path for the home directory\n" \
+              "or uncheck the 'Btrfs subvolume' option.")
+            )
+            focus_tab.call(current, :home)
+            next
           end
 
           home = new_home
@@ -1882,6 +1899,18 @@ module Yast
         Users.SetStartDialog("users")
       end
       ret
+    end
+
+    # Check if given path is in a btrfs filesystem
+    #
+    # @param [String, Pathname] path
+    #
+    # @return [Boolean] true when is a path in a Btrfs filesystem; false otherwise
+    def valid_btrfs_path?(path)
+      dirname = Pathname.new(path).dirname
+      fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
+
+      fstype == "btrfs"
     end
 
     # Whether there is a Btrfs filesystem present
