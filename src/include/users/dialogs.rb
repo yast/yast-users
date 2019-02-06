@@ -1782,6 +1782,14 @@ module Yast
           UI.ReplaceWidget(:tabContents, get_details_term.call)
           Wizard.SetHelpText(EditUserDetailsDialogHelp(user_type, what))
 
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, btrfs_available?)
+
+          if what == "edit_user"
+            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
+            # Show the value for the current home directory/subvolume
+            UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+          end
+
           if do_not_edit
             UI.ChangeWidget(Id(:uid), :Enabled, false)
             UI.ChangeWidget(Id(:home), :Enabled, false)
@@ -1789,6 +1797,7 @@ module Yast
             UI.ChangeWidget(Id(:shell), :Enabled, false)
             UI.ChangeWidget(Id(:defaultgroup), :Enabled, false)
             UI.ChangeWidget(Id(:browse), :Enabled, false)
+            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
           end
           if user_type == "ldap" && !Ldap.file_server
             UI.ChangeWidget(Id(:browse), :Enabled, false)
@@ -1804,8 +1813,6 @@ module Yast
             UI.ChangeWidget(Id(:mode), :InputMaxLength, 3)
           end
           UI.ChangeWidget(Id(:shell), :Value, shell)
-          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, what == "add_user" && btrfs_available?)
-          UI.ChangeWidget(Id(:btrfs_subvolume), :Value, what == "edit_user" && btrfs_subvolume?(home))
 
           current = ret
         end
