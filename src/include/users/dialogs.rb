@@ -1339,21 +1339,9 @@ module Yast
 
         # inside Details dialog
         if current == :details && ret == :browse
-          dir = home
-          if SCR.Read(path(".target.size"), home) == -1
-            dir = Users.GetDefaultHome(new_type)
-          end
-          dir = UI.AskForExistingDirectory(dir, "")
-          if dir != nil
-            if Ops.add(Builtins.findlastof(dir, "/"), 1) == Builtins.size(dir)
-              dir = Builtins.substring(
-                dir,
-                0,
-                Ops.subtract(Builtins.size(dir), 1)
-              )
-            end
-            UI.ChangeWidget(Id(:home), :Value, dir)
-          end
+          start_dir = Dir.exists?(home) ? home : Users.GetDefaultHome(new_type)
+          selected_dir = cleanpath(UI.AskForExistingDirectory(start_dir, ""))
+          UI.ChangeWidget(Id(:home), :Value, selected_dir) unless selected_dir.empty?
         end
 
         # going from Details dialog
@@ -1363,21 +1351,13 @@ module Yast
           new_defaultgroup = Convert.to_string(
             UI.QueryWidget(Id(:defaultgroup), :Value)
           )
-          new_home = Convert.to_string(UI.QueryWidget(Id(:home), :Value))
+
+          new_home = cleanpath(UI.QueryWidget(Id(:home), :Value))
 
           if what == "add_user"
             btrfs_subvolume = UI.QueryWidget(Id(:btrfs_subvolume), :Value)
             no_skel = Convert.to_boolean(UI.QueryWidget(Id(:skel), :Value))
             mode = Convert.to_string(UI.QueryWidget(Id(:mode), :Value))
-          end
-
-          if Ops.add(Builtins.findlastof(new_home, "/"), 1) ==
-              Builtins.size(new_home)
-            new_home = Builtins.substring(
-              new_home,
-              0,
-              Ops.subtract(Builtins.size(new_home), 1)
-            )
           end
 
           if do_not_edit
@@ -1906,6 +1886,21 @@ module Yast
         Users.SetStartDialog("users")
       end
       ret
+    end
+
+    # Returns clean path
+    #
+    # Also useful to remove the trailing backslash
+    #
+    # @param [String] path
+    #
+    # @return [String] a string path representation or empty string
+    def cleanpath(path)
+      return path if path.empty?
+
+      Pathname.new(path).cleanpath.to_s
+    rescue
+      ""
     end
 
     # Check if given path is in a btrfs filesystem

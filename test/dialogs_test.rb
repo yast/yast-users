@@ -19,6 +19,34 @@ describe "Yast::UsersDialogsInclude" do
     allow(Yast).to receive(:import).with("LdapPopup")
   end
 
+  describe "#cleanpath" do
+    it "returns sanitized path" do
+      expect(subject.cleanpath("/home/user/")).to eq("/home/user")
+    end
+
+    context "when nil value is given" do
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+
+    context "when empty string is given" do
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+
+    context "when something is wrong" do
+      before do
+        allow(Pathname).to receive(:new).and_raise
+      end
+
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+  end
+
   describe "#valid_btrfs_path?" do
     let(:local_execution) { double }
     let(:dirname) { "/home" }
