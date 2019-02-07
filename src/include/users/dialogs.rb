@@ -719,28 +719,12 @@ module Yast
         end
 
         browse = VBox(
-          Label(""),
-          # button label
-          PushButton(Id(:browse), Opt(:key_F6), _("B&rowse...")),
-          action != "edited" ? Empty() : Label("")
+          VSpacing(1),
+          PushButton(Id(:browse), Opt(:key_F6), _("B&rowse..."))
         )
 
         home_w = VBox(
-          # textentry label
           InputField(Id(:home), Opt(:hstretch), _("&Home Directory"), home),
-          action != "edited" ?
-            Empty() :
-            HBox(
-              HSpacing(),
-              Left(
-                CheckBox(
-                  Id(:move_home),
-                  # check box label
-                  _("&Move to New Location"),
-                  create_home
-                )
-              )
-            )
         )
         new_user_term = action != "added" ?
           VBox() :
@@ -770,7 +754,6 @@ module Yast
                 )
               ) :
               VSpacing(0),
-            VSpacing(0.5),
             HBox(
               text_mode ? Empty() : HSpacing(1),
               HWeight(
@@ -789,6 +772,7 @@ module Yast
                   Top(
                     VBox(
                       HBox(home_w, browse),
+                      move_to_new_location_checkbox(action, create_home),
                       new_user_term,
                       HBox(
                         HSpacing(),
@@ -796,16 +780,19 @@ module Yast
                       ),
                     )
                   ),
+                  VSpacing(1),
                   additional_data,
+                  text_mode ? Empty() : HSpacing(1),
                   Top(edit_shell),
-                  Top(edit_defaultgroup),
                   VStretch()
                 )
               ),
-              text_mode ? Empty() : HSpacing(2),
+              HSpacing(2),
               HWeight(
                 2,
                 VBox(
+                  VSpacing(0.5),
+                  edit_defaultgroup,
                   VSpacing(0.5),
                   MultiSelectionBox(
                     Id(:grouplist),
@@ -825,7 +812,6 @@ module Yast
               ),
               text_mode ? Empty() : HSpacing(1)
             ),
-            VSpacing(0.5)
           ),
           HSpacing(1)
         )
@@ -1886,6 +1872,23 @@ module Yast
         Users.SetStartDialog("users")
       end
       ret
+    end
+
+    def move_to_new_location_checkbox(action, checked)
+      return Empty() if action != "edited"
+
+      HBox(
+        HSpacing(),
+        Left(
+          CheckBox(Id(:move_home), _("&Move to New Location"), checked)
+        )
+      )
+    end
+
+    def btrfs_label
+      # TRANSLATORS: label for the checkbox that allows to create the user home directory as a
+      # Btrfs subvolume
+      _("Create a Separate Btrfs Subvolume for the Home Directory")
     end
 
     # Returns clean path
