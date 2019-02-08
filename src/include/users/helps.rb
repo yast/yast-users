@@ -437,12 +437,13 @@ module Yast
           Users.GetLoginDefaults.fetch("skel", "")
         )
 
+        btrfs_option_label = _("Create as Btrfs Subvolume")
         # TRANSLATORS: help text for the Btrfs subvolume checkbox
         helptext << _(
-          "<p><b>Btrfs subvolume</b> option allows to create the user home " \
+          "<p><b>%s</b> option allows to create the user home " \
           "as a subvolume instead of a plain directory whenever " \
           "there is a Btrfs filesystem available.</p>"
-        )
+        ) % btrfs_option_label
       else
         # help text for Move to new location checkbox
         helptext << _(

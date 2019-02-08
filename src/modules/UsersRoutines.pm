@@ -69,17 +69,6 @@ my $btrfs = "/usr/sbin/btrfs";
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
 
-sub valid_btrfs {
-    my $path       = shift;
-    my $dirname    = dirname($path);
-    my $cmd        = "/usr/bin/stat -f --format %T $dirname";
-    my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
-
-    chomp(%cmd_output);
-
-    return ( $cmd_output{"stdout"} eq "btrfs" );
-}
-
 sub btrfs_subvolume {
     my $path = shift;
     my $cmd  = "$btrfs subvolume show $path";
@@ -122,12 +111,6 @@ sub CreateHome {
 
     # Create the home as btrfs subvolume
     if ($use_btrfs) {
-        if (!valid_btrfs($home)) {
-            y2error("Error to create '$home' as btrfs subvolume in a not valid btrfs filesystem");
-
-            return 0;
-        }
-
         my $cmd = "btrfs subvolume create $home";
         my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
         my $stderr = $cmd_out{"stderr"} || "";

@@ -771,12 +771,13 @@ module Yast
                   ),
                   Top(
                     VBox(
+                      VSpacing(1),
                       HBox(home_w, browse),
                       move_to_new_location_checkbox(action, create_home),
                       new_user_term,
                       HBox(
                         HSpacing(),
-                        Left(CheckBox(Id(:btrfs_subvolume), _("Btrfs subvolume"), btrfs_subvolume))
+                        Left(CheckBox(Id(:btrfs_subvolume), btrfs_label, btrfs_subvolume))
                       ),
                     )
                   ),
@@ -1508,9 +1509,11 @@ module Yast
           # Check if is a valid path when creating a Btfs subvolume
           if btrfs_subvolume && check_btrfs_path && !valid_btrfs_path?(new_home)
             Report.Error(
+              # TRANSLATORS: the error message when user try to create a Btrfs subvolume in a not
+              # valid location
               _("Given path is not a valid Btrfs location.\n\n" \
               "Choose another path for the home directory\n" \
-              "or uncheck the 'Btrfs subvolume' option.")
+              "or uncheck the '%{btrfs_option}' option.") % { btrfs_option: btrfs_label }
             )
             focus_tab.call(current, :home)
             next
@@ -1757,13 +1760,9 @@ module Yast
           end
 
           if do_not_edit
-            UI.ChangeWidget(Id(:uid), :Enabled, false)
-            UI.ChangeWidget(Id(:home), :Enabled, false)
-            UI.ChangeWidget(Id(:move_home), :Enabled, false)
-            UI.ChangeWidget(Id(:shell), :Enabled, false)
-            UI.ChangeWidget(Id(:defaultgroup), :Enabled, false)
-            UI.ChangeWidget(Id(:browse), :Enabled, false)
-            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
+            [:uid, :home, :move_home, :shell, :defaultgroup, :browse, :btrfs_subvolume].each do |widget|
+              UI.ChangeWidget(Id(widget), :Enabled, false)
+            end
           end
           if user_type == "ldap" && !Ldap.file_server
             UI.ChangeWidget(Id(:browse), :Enabled, false)
@@ -1888,7 +1887,7 @@ module Yast
     def btrfs_label
       # TRANSLATORS: label for the checkbox that allows to create the user home directory as a
       # Btrfs subvolume
-      _("Create a Separate Btrfs Subvolume for the Home Directory")
+      _("Create as Btrfs Subvolume")
     end
 
     # Returns clean path
@@ -1899,10 +1898,10 @@ module Yast
     #
     # @return [String] a string path representation or empty string
     def cleanpath(path)
-      return path if path.empty?
+      return "" if path.nil? || path.empty?
 
       Pathname.new(path).cleanpath.to_s
-    rescue
+    rescue TypeError
       ""
     end
 
@@ -1924,8 +1923,7 @@ module Yast
     def btrfs_available?
       available_filesystems = Yast::Execute.locally!.stdout(
         ["/usr/bin/df", "--output=fstype"],
-        ["/usr/bin/tail", "-n", "+2"],
-        ["/usr/bin/uniq"]
+        ["/usr/bin/tail", "-n", "+2"]
       ).split("\n")
 
       available_filesystems.include?("btrfs")
