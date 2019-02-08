@@ -3030,26 +3030,33 @@ sub AddUser {
     # ----------------------------------------------------------------
 
     # now copy the data to map of current user
-    foreach my $key (keys %data) {
-	if ($key eq "create_home" || $key eq "encrypted" ||
-	    $key eq "chown_home" ||
-	    $key eq "delete_home" || $key eq "no_skeleton" ||
-      $key eq "btrfs_subvolume" ||
-	    $key eq "disabled" || $key eq "enabled") {
-	    $user_in_work{$key}	= YaST::YCP::Boolean ($data{$key});
-	}
-	elsif ($key eq "userPassword" && (defined $data{$key}) &&
-	    # crypt password only once
-	    !bool ($data{"encrypted"}))
-	{
-	    $user_in_work{$key} = $self->CryptPassword ($data{$key}, $type);
-	    $user_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	    $user_in_work{"text_userpassword"} = $data{$key};
-	}
-	else {
-	    $user_in_work{$key}	= $data{$key};
-	}
+    foreach my $key ( keys %data ) {
+        if (   $key eq "create_home"
+            || $key eq "encrypted"
+            || $key eq "chown_home"
+            || $key eq "delete_home"
+            || $key eq "no_skeleton"
+            || $key eq "btrfs_subvolume"
+            || $key eq "disabled"
+            || $key eq "enabled" )
+        {
+            $user_in_work{$key} = YaST::YCP::Boolean( $data{$key} );
+        }
+        elsif (
+               $key eq "userPassword"
+            && ( defined $data{$key} )
+            && !bool( $data{"encrypted"} )    # crypt password only once
+          )
+        {
+            $user_in_work{$key} = $self->CryptPassword( $data{$key}, $type );
+            $user_in_work{"encrypted"}         = YaST::YCP::Boolean(1);
+            $user_in_work{"text_userpassword"} = $data{$key};
+        }
+        else {
+            $user_in_work{$key} = $data{$key};
+        }
     }
+
     $user_in_work{"type"}	= $type;
     $user_in_work{"what"}	= "add_user";
 
