@@ -27,6 +27,7 @@
 #
 # $Id$
 
+require "pathname"
 require "shellwords"
 
 require "users/ssh_public_key"
@@ -389,6 +390,7 @@ module Yast
       create_home = Ops.get_boolean(user, "create_home", true)
       chown_home = Ops.get_boolean(user, "chown_home", true)
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
+      btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", false)
       do_not_edit = user_type == "nis"
 
       complex_layout = installation && Users.StartDialog("user_add")
@@ -462,6 +464,7 @@ module Yast
 
         chown_home = Ops.get_boolean(user, "chown_home", chown_home)
         no_skel = Ops.get_boolean(user, "no_skeleton", no_skel)
+        btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", btrfs_subvolume)
         groups = Ops.get_map(user, "grouplist", {})
         do_not_edit = user_type == "nis"
 
@@ -716,28 +719,12 @@ module Yast
         end
 
         browse = VBox(
-          Label(""),
-          # button label
-          PushButton(Id(:browse), Opt(:key_F6), _("B&rowse...")),
-          action != "edited" ? Empty() : Label("")
+          VSpacing(1),
+          PushButton(Id(:browse), Opt(:key_F6), _("B&rowse..."))
         )
 
         home_w = VBox(
-          # textentry label
           InputField(Id(:home), Opt(:hstretch), _("&Home Directory"), home),
-          action != "edited" ?
-            Empty() :
-            HBox(
-              HSpacing(),
-              Left(
-                CheckBox(
-                  Id(:move_home),
-                  # check box label
-                  _("&Move to New Location"),
-                  create_home
-                )
-              )
-            )
         )
         new_user_term = action != "added" ?
           VBox() :
@@ -767,7 +754,6 @@ module Yast
                 )
               ) :
               VSpacing(0),
-            VSpacing(0.5),
             HBox(
               text_mode ? Empty() : HSpacing(1),
               HWeight(
@@ -784,18 +770,30 @@ module Yast
                     )
                   ),
                   Top(
-                    VBox(HBox(home_w, browse), new_user_term)
+                    VBox(
+                      VSpacing(1),
+                      HBox(home_w, browse),
+                      move_to_new_location_checkbox(action, create_home),
+                      new_user_term,
+                      HBox(
+                        HSpacing(),
+                        Left(CheckBox(Id(:btrfs_subvolume), btrfs_label, btrfs_subvolume))
+                      ),
+                    )
                   ),
+                  VSpacing(1),
                   additional_data,
+                  text_mode ? Empty() : HSpacing(1),
                   Top(edit_shell),
-                  Top(edit_defaultgroup),
                   VStretch()
                 )
               ),
-              text_mode ? Empty() : HSpacing(2),
+              HSpacing(2),
               HWeight(
                 2,
                 VBox(
+                  VSpacing(0.5),
+                  edit_defaultgroup,
                   VSpacing(0.5),
                   MultiSelectionBox(
                     Id(:grouplist),
@@ -815,7 +813,6 @@ module Yast
               ),
               text_mode ? Empty() : HSpacing(1)
             ),
-            VSpacing(0.5)
           ),
           HSpacing(1)
         )
@@ -1011,6 +1008,7 @@ module Yast
         error = ""
 
         ret = Convert.to_symbol(UI.UserInput) if current != nil
+
         if (ret == :abort || ret == :cancel) && ReallyAbort() != :abort
           ret = :notnext
           next
@@ -1328,21 +1326,9 @@ module Yast
 
         # inside Details dialog
         if current == :details && ret == :browse
-          dir = home
-          if SCR.Read(path(".target.size"), home) == -1
-            dir = Users.GetDefaultHome(new_type)
-          end
-          dir = UI.AskForExistingDirectory(dir, "")
-          if dir != nil
-            if Ops.add(Builtins.findlastof(dir, "/"), 1) == Builtins.size(dir)
-              dir = Builtins.substring(
-                dir,
-                0,
-                Ops.subtract(Builtins.size(dir), 1)
-              )
-            end
-            UI.ChangeWidget(Id(:home), :Value, dir)
-          end
+          start_dir = Dir.exists?(home) ? home : Users.GetDefaultHome(new_type)
+          selected_dir = cleanpath(UI.AskForExistingDirectory(start_dir, ""))
+          UI.ChangeWidget(Id(:home), :Value, selected_dir) unless selected_dir.empty?
         end
 
         # going from Details dialog
@@ -1352,19 +1338,13 @@ module Yast
           new_defaultgroup = Convert.to_string(
             UI.QueryWidget(Id(:defaultgroup), :Value)
           )
-          new_home = Convert.to_string(UI.QueryWidget(Id(:home), :Value))
+
+          new_home = cleanpath(UI.QueryWidget(Id(:home), :Value))
 
           if what == "add_user"
+            btrfs_subvolume = UI.QueryWidget(Id(:btrfs_subvolume), :Value)
             no_skel = Convert.to_boolean(UI.QueryWidget(Id(:skel), :Value))
             mode = Convert.to_string(UI.QueryWidget(Id(:mode), :Value))
-          end
-          if Ops.add(Builtins.findlastof(new_home, "/"), 1) ==
-              Builtins.size(new_home)
-            new_home = Builtins.substring(
-              new_home,
-              0,
-              Ops.subtract(Builtins.size(new_home), 1)
-            )
           end
 
           if do_not_edit
@@ -1521,6 +1501,24 @@ module Yast
             create_home = false
           end
 
+          # A flag to decide if the Btrfs path validation should be performed, since it is not
+          # needed when moving it to other location. The "create_home" above is not reliable because
+          # it is "true" **when moving the directory/subvolume**.
+          check_btrfs_path = !UI.QueryWidget(Id(:move_home), :Value)
+
+          # Check if is a valid path when creating a Btfs subvolume
+          if btrfs_subvolume && check_btrfs_path && !valid_btrfs_path?(new_home)
+            Report.Error(
+              # TRANSLATORS: the error message when user try to create a Btrfs subvolume in a not
+              # valid location
+              _("Given path is not a valid Btrfs location.\n\n" \
+              "Choose another path for the home directory\n" \
+              "or uncheck the '%{btrfs_option}' option.") % { btrfs_option: btrfs_label }
+            )
+            focus_tab.call(current, :home)
+            next
+          end
+
           home = new_home
           shell = new_shell
           uid = new_i_uid
@@ -1539,6 +1537,7 @@ module Yast
           Ops.set(user, "addit_data", addit_data)
           Ops.set(user, "no_skeleton", no_skel)
           Ops.set(user, "home_mode", mode)
+          Ops.set(user, "btrfs_subvolume", btrfs_subvolume)
         end
 
         if current == :passwordsettings && (ret == :next || tab)
@@ -1752,13 +1751,18 @@ module Yast
           UI.ReplaceWidget(:tabContents, get_details_term.call)
           Wizard.SetHelpText(EditUserDetailsDialogHelp(user_type, what))
 
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, btrfs_available?)
+
+          if what == "edit_user"
+            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
+            # Show the value for the current home directory/subvolume
+            UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+          end
+
           if do_not_edit
-            UI.ChangeWidget(Id(:uid), :Enabled, false)
-            UI.ChangeWidget(Id(:home), :Enabled, false)
-            UI.ChangeWidget(Id(:move_home), :Enabled, false)
-            UI.ChangeWidget(Id(:shell), :Enabled, false)
-            UI.ChangeWidget(Id(:defaultgroup), :Enabled, false)
-            UI.ChangeWidget(Id(:browse), :Enabled, false)
+            [:uid, :home, :move_home, :shell, :defaultgroup, :browse, :btrfs_subvolume].each do |widget|
+              UI.ChangeWidget(Id(widget), :Enabled, false)
+            end
           end
           if user_type == "ldap" && !Ldap.file_server
             UI.ChangeWidget(Id(:browse), :Enabled, false)
@@ -1867,6 +1871,73 @@ module Yast
         Users.SetStartDialog("users")
       end
       ret
+    end
+
+    def move_to_new_location_checkbox(action, checked)
+      return Empty() if action != "edited"
+
+      HBox(
+        HSpacing(),
+        Left(
+          CheckBox(Id(:move_home), _("&Move to New Location"), checked)
+        )
+      )
+    end
+
+    def btrfs_label
+      # TRANSLATORS: label for the checkbox that allows to create the user home directory as a
+      # Btrfs subvolume
+      _("Create as Btrfs Subvolume")
+    end
+
+    # Returns clean path
+    #
+    # Also useful to remove the trailing backslash
+    #
+    # @param [String] path
+    #
+    # @return [String] a string path representation or empty string
+    def cleanpath(path)
+      return "" if path.nil? || path.empty?
+
+      Pathname.new(path).cleanpath.to_s
+    rescue TypeError
+      ""
+    end
+
+    # Check if given path is in a btrfs filesystem
+    #
+    # @param [String, Pathname] path
+    #
+    # @return [Boolean] true when is a path in a Btrfs filesystem; false otherwise
+    def valid_btrfs_path?(path)
+      dirname = Pathname.new(path).dirname
+      fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
+
+      fstype == "btrfs"
+    end
+
+    # Whether there is a Btrfs filesystem present
+    #
+    # @return [Boolean] true if a Btrfs filesystem is found; false otherwise
+    def btrfs_available?
+      available_filesystems = Yast::Execute.locally!.stdout(
+        ["/usr/bin/df", "--output=fstype"],
+        ["/usr/bin/tail", "-n", "+2"]
+      ).split("\n")
+
+      available_filesystems.include?("btrfs")
+    end
+
+    # Whether given path is a Btrfs subvolume
+    #
+    # @param [String, Pathname] path
+    #
+    # @return [Boolean] true when is a Btrfs subvolume; false otherwise
+    def btrfs_subvolume?(path)
+      return false if path.to_s.empty?
+
+      !Yast::Execute.locally!.stdout("/usr/sbin/btrfs", "subvolume", "show", path).empty?
     end
 
     # Dialog for adding/editing group

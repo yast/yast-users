@@ -23,16 +23,16 @@
 # UsersRoutines module
 #
 
-
 package UsersRoutines;
 
 use strict;
 
+use File::Basename;
 use YaST::YCP qw(:LOGGING);
 
 our %TYPEINFO;
 
- 
+
 ##------------------------------------
 ##------------------- global imports
 
@@ -63,8 +63,18 @@ my $key2user		= undef;
 # could we use pam_mount? currntly not if fingerprint dev is in use (bnc#390810)
 my $crypted_homes_enabled	= undef;
 
+# path to btrfs
+my $btrfs = "/usr/sbin/btrfs";
+
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
+
+sub btrfs_subvolume {
+    my $path = shift;
+    my $cmd  = "$btrfs subvolume show $path";
+
+    return ( SCR->Execute( ".target.bash", $cmd ) eq 0 );
+}
 
 ##-------------------------------------------------------------------------
 ##----------------- directory manipulation routines -----------------------
@@ -73,6 +83,7 @@ my $crypted_homes_enabled	= undef;
 # Create home directory
 # @param skeleton skeleton directory for new home
 # @param home name of new home directory
+# @param use_btrfs whether the home directory must be a btrfs subvolume
 # @return success
 BEGIN { $TYPEINFO{CreateHome} = ["function",
     "boolean",
@@ -80,41 +91,65 @@ BEGIN { $TYPEINFO{CreateHome} = ["function",
 }
 sub CreateHome {
 
-    my $self	= shift;
-    my $skel	= $_[0];
-    my $home	= $_[1];
+    my $self = shift;
+    my ( $skel, $home, $use_btrfs ) = @_;
 
-    # create a path to new home directory, if not exists
-    my $home_path = substr ($home, 0, rindex ($home, "/"));
-    if (length($home_path) and !%{SCR->Read (".target.stat", $home_path)}) {
-	SCR->Execute (".target.mkdir", $home_path);
+    # Create a path to new home directory, if not exists
+    my $home_path = substr( $home, 0, rindex( $home, "/" ) );
+    if ( length($home_path) and !%{ SCR->Read( ".target.stat", $home_path ) } )
+    {
+        SCR->Execute( ".target.mkdir", $home_path );
     }
-    my %stat	= %{SCR->Read (".target.stat", $home)};
+
+    my %stat = %{ SCR->Read( ".target.stat", $home ) };
     if (%stat) {
-        if ($home ne "/var/lib/nobody") {
-	    y2error ("$home directory already exists: no mkdir");
-	}
-	return 0;
+        if ( $home ne "/var/lib/nobody" ) {
+            y2error("$home directory already exists: no mkdir");
+        }
+        return 0;
     }
 
-    # if skeleton does not exist, do not copy it
-    if ($skel eq "" || !%{SCR->Read (".target.stat", $skel)}) {
-	if (! SCR->Execute (".target.mkdir", $home)) {
-	    y2error ("error creating $home");
-	    return 0;
-	}
+    # Create the home as btrfs subvolume
+    if ($use_btrfs) {
+        my $cmd = "btrfs subvolume create $home";
+        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+        my $stderr = $cmd_out{"stderr"} || "";
+        if ($stderr)
+        {
+            y2error("Error creating '$home' as btrfs subvolume: $stderr");
+
+            return 0;
+        }
     }
-    # now copy homedir from skeleton
+    # or as a plain directory
     else {
-	my $command	= "/usr/bin/cp -r '".String->Quote($skel)."' '".String->Quote($home)."'";
-	my %out		= %{SCR->Execute (".target.bash_output", $command)};
-	if (($out{"stderr"} || "") ne "") {
-	    y2error ("error calling $command: ", $out{"stderr"} || "");
-	    return 0;
-	}
-	y2usernote ("Home directory created: '$command'.");
+        if ( !SCR->Execute( ".target.mkdir", $home ) ) {
+            y2error("Error creating '$home'");
+
+            return 0;
+        }
     }
-    y2milestone ("The directory $home was successfully created.");
+
+    # Now copy the skeleton
+    if ( $skel ne "" && %{ SCR->Read( ".target.stat", $skel ) } ) {
+        my $cmd = sprintf(
+            "/usr/bin/cp -r '%s/.' '%s'",
+            String->Quote($skel),
+            String->Quote($home)
+        );
+        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+        my $stderr = $cmd_out{"stderr"} || "";
+
+        if ( $stderr ne "" ) {
+            y2error( "Error calling $cmd: $stderr" );
+            return 0;
+        }
+
+        y2usernote("Home skeleton copied: '$cmd'.");
+    }
+
+    y2milestone("The directory $home was successfully created.");
+
     return 1;
 }
 
@@ -242,22 +277,39 @@ sub MoveHome {
 BEGIN { $TYPEINFO{DeleteHome} = ["function", "boolean", "string"];}
 sub DeleteHome {
 
-    my $self	= shift;
-    my $home	= $_[0];
+    my $self = shift;
+    my $home = $_[0];
+    my %stat = %{ SCR->Read( ".target.stat", $home ) };
 
-    my %stat	= %{SCR->Read (".target.stat", $home)};
-    if (!%stat || !($stat{"isdir"} || 0)) {
-	y2warning("home directory does not exist or is not a directory: no rm");
-	return 1;
+    if ( !%stat || !( $stat{"isdir"} || 0 ) ) {
+        y2warning("home directory '$home' does not exist or is not a directory: no rm");
+        return 1;
     }
-    my $command	= "/usr/bin/rm -rf '".String->Quote($home)."'";
-    my %out	= %{SCR->Execute (".target.bash_output", $command)};
-    if (($out{"stderr"} || "") ne "") {
-	y2error ("error calling $command: ", $out{"stderr"} || "");
-	return 0;
+
+    my $cmd;
+    my $type;
+
+    if ( btrfs_subvolume($home) ) {
+        $cmd  = sprintf( "$btrfs subvolume delete -C '%s'", String->Quote($home) );
+        $type = "btrfs subvolume";
     }
-    y2milestone ("The directory $home was succesfully deleted");
-    y2usernote ("Home directory removed: '$command'");
+    else {
+        $cmd  = sprintf( "/usr/bin/rm -rf '%s'", String->Quote($home) );
+        $type = "directory";
+    }
+
+    my %cmd_output = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+    my $stderr  = $cmd_output{"stderr"} || "";
+
+    if ( $stderr ne "" ) {
+        y2error( "Error calling '$cmd': $stderr" );
+
+        return 0;
+    }
+
+    y2milestone("The $type '$home' was succesfully deleted");
+    y2usernote("Home $type removed: '$cmd'");
+
     return 1;
 }
 

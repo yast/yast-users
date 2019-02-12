@@ -1,4 +1,7 @@
 require_relative "./test_helper"
+
+require "yast2/execute";
+
 Yast.import "UI"
 
 class UsersDialogsDummy < Yast::Module
@@ -14,6 +17,127 @@ describe "Yast::UsersDialogsInclude" do
     allow(Yast).to receive(:import).and_call_original
     allow(Yast).to receive(:import).with("Ldap")
     allow(Yast).to receive(:import).with("LdapPopup")
+  end
+
+  describe "#cleanpath" do
+    it "returns sanitized path" do
+      expect(subject.cleanpath("/home/user/")).to eq("/home/user")
+    end
+
+    context "when nil value is given" do
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+
+    context "when empty string is given" do
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+
+    context "when something is wrong" do
+      before do
+        allow(Pathname).to receive(:new).and_raise
+      end
+
+      it "returns empty string" do
+        expect(subject.cleanpath(nil)).to eq("")
+      end
+    end
+  end
+
+  describe "#valid_btrfs_path?" do
+    let(:local_execution) { double }
+    let(:dirname) { "/home" }
+    let(:user_home) { "#{dirname}/user" }
+    let(:user_home_pathname) { double("Pathname", dirname: dirname) }
+
+    before do
+      allow(Pathname).to receive(:new).with(user_home).and_return(user_home_pathname)
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with("/usr/bin/stat", any_args, dirname)
+        .and_return(filesystem)
+    end
+
+    context "when given path is on Btrfs filesystem" do
+      let(:filesystem) { "btrfs\n" }
+
+      it "returns true" do
+        expect(subject.valid_btrfs_path?(user_home)).to eq(true)
+      end
+    end
+
+    context "when given path is not on Btrfs filesystem" do
+      let(:filesystem) { "nfs\n" }
+
+      it "returns false" do
+        expect(subject.valid_btrfs_path?(user_home)).to eq(false)
+      end
+    end
+  end
+
+  describe "#btrfs_available?" do
+    let(:local_execution) { double }
+
+    before do
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with(array_including("/usr/bin/df"), any_args)
+        .and_return(available_filesystems)
+    end
+
+    context "when there is a Btrfs filesystem" do
+      let(:available_filesystems) { "ext4\nbtrfs" }
+
+      it "returns true" do
+        expect(subject.btrfs_available?).to eq(true)
+      end
+    end
+
+    context "when there is not a Btrfs filesystem" do
+      let(:available_filesystems) { "ext4\nnfs" }
+
+      it "returns false" do
+        expect(subject.btrfs_available?).to eq(false)
+      end
+    end
+  end
+
+  describe "#btrfs_subvolume?" do
+    let(:local_execution) { double }
+    let(:subvolume_info) { "" }
+    let(:path) { "/fake/path/to/user/home" }
+
+    before do
+      allow(Yast::Execute).to receive(:locally!).and_return(local_execution)
+      allow(local_execution).to receive(:stdout)
+        .with("/usr/sbin/btrfs", "subvolume", "show", path)
+        .and_return(subvolume_info)
+    end
+
+    context "when path is empty" do
+      let(:path) { Pathname.new("") }
+
+      it "returns false" do
+        expect(subject.btrfs_subvolume?(path)).to eq(false)
+      end
+    end
+
+    context "when given path is a Btrfs subvolume" do
+      let(:subvolume_info) { "@/fake/path/to/user/home\n..." }
+
+      it "returns true" do
+        expect(subject.btrfs_subvolume?(path)).to eq(true)
+      end
+    end
+
+    context "when given path is not a Btrfs subvolume" do
+      it "returns false" do
+        expect(subject.btrfs_subvolume?(path)).to eq(false)
+      end
+    end
   end
 
   describe "#ask_chown_home" do

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb 11 09:38:24 UTC 2019 - dgonzalez@suse.com
+
+- Allow to create the user home directory as Btrfs subvolume
+  (fate#316134).
+- 4.1.7
+
+-------------------------------------------------------------------
 Fri Jan 11 10:05:50 UTC 2019 - igonzalezsosa@suse.com
 
 - Fixed call to renamed method (bsc#1121473).
