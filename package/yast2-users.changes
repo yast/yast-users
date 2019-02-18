@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Mon Feb 18 11:22:24 CET 2019 - schubi@suse.de
+
+- Fixed console warning produced by Users.pm module.
+  (bsc#1121070)
+  Fixed typo CRACKLIB_DICT_PATH in security setting.
+- 4.1.8
+
+-------------------------------------------------------------------
 Mon Feb 11 09:38:24 UTC 2019 - dgonzalez@suse.com
 
 - Allow to create the user home directory as Btrfs subvolume

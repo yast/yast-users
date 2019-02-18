@@ -1320,8 +1320,8 @@ sub ReadSystemDefaults {
     $group_encryption_method
 	= $security{"GROUP_ENCRYPTION"} || $encryption_method;
 
-    UsersSimple->SetCrackLibDictPath ($security{"CRACKLIB_DICTPATH"} || "");
-    UsersSimple->UseCrackLib ($security{"PASSWD_USE_CRACKLIB"} eq "yes");
+    UsersSimple->SetCrackLibDictPath ($security{"CRACKLIB_DICT_PATH"} || "");
+    UsersSimple->UseCrackLib (($security{"PASSWD_USE_CRACKLIB"} || "yes") eq "yes");
 
     if (defined $security{"PASS_MIN_LEN"}) {
 	UsersSimple->SetMinPasswordLength ("local", $security{"PASS_MIN_LEN"});
