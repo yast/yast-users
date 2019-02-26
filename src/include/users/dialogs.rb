@@ -19,7 +19,7 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-# File:	include/users/wizards.ycp
+# File:	include/users/dialogs.rb
 # Package:	Configuration of users and groups
 # Summary:	Wizards definitions
 # Authors:	Johannes Buchhold <jbuch@suse.de>,
@@ -58,6 +58,7 @@ module Yast
       Yast.import "UsersRoutines"
       Yast.import "UsersSimple"
       Yast.import "Wizard"
+      Yast.import "Mode"
 
       Yast.include include_target, "users/helps.rb"
       Yast.include include_target, "users/routines.rb"
@@ -1911,6 +1912,8 @@ module Yast
     #
     # @return [Boolean] true when is a path in a Btrfs filesystem; false otherwise
     def valid_btrfs_path?(path)
+      return true if Mode.config # AutoYast configuration mode
+
       dirname = Pathname.new(path).dirname
       fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
 
@@ -1921,6 +1924,8 @@ module Yast
     #
     # @return [Boolean] true if a Btrfs filesystem is found; false otherwise
     def btrfs_available?
+      return true if Mode.config # AutoYast configuration mode
+
       available_filesystems = Yast::Execute.locally!.stdout(
         ["/usr/bin/df", "--output=fstype"],
         ["/usr/bin/tail", "-n", "+2"]

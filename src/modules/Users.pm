@@ -117,7 +117,6 @@ my %useradd_defaults		= (
     "expire"		=> "",
     "shell"		=> "",
     "skel"		=> "",
-    "btrfs_subvolume" => 0,
     "groups"		=> "",
     "umask"		=> "022"
 );
@@ -4473,31 +4472,30 @@ sub Write {
 	    }
 	    foreach my $username (keys %{$modified_users{$type}}) {
 
-		my %user	= %{$modified_users{$type}{$username}};
-		my $home 	= $user{"homeDirectory"} || "";
-    my $use_btrfs_subvolume = $user{"btrfs_subvolume"} || 0;
-		my $uid		= $user{"uidNumber"} || 0;
-		my $command 	= "";
-		my $user_mod 	= $user{"modified"} || "no";
-		my $gid 	= $user{"gidNumber"};
-		my $create_home	= $user{"create_home"};
-		my $chown_home	= $user{"chown_home"};
-		$chown_home	= 1 if (!defined $chown_home);
-		my $skel	= $useradd_defaults{"skel"};
+		my %user	        = %{$modified_users{$type}{$username}};
+		my $home 	        = $user{"homeDirectory"} || "";
+                my $use_btrfs_subvolume = $user{"btrfs_subvolume"} || 0;
+		my $uid		        = $user{"uidNumber"} || 0;
+		my $command 	        = "";
+		my $user_mod 	        = $user{"modified"} || "no";
+		my $gid 	        = $user{"gidNumber"};
+		my $create_home	        = $user{"create_home"};
+		my $chown_home	        = $user{"chown_home"};
+		$chown_home	        = 1 if (!defined $chown_home);
+		my $skel	        = $useradd_defaults{"skel"};
 
 		if ($user_mod eq "imported" || $user_mod eq "added") {
-
 		    y2usernote ("User '$username' created");
 
-		    if ($user_mod eq "imported" && FileUtils->Exists ($home)) {
+		    if ($user_mod eq "imported" && FileUtils->GetSize ($home) > 0) {
+			# Directory already exists AND is not empty
 			y2milestone ("home directory $home of user $username already exists");
 			next;
 		    }
 		    if (bool ($user{"no_skeleton"})) {
 			$skel 	= "";
 		    }
-		    if ((bool ($create_home) || $user_mod eq "imported")
-			&& !%{SCR->Read (".target.stat", $home)})
+		    if (bool ($create_home) || $user_mod eq "imported")
 		    {
 			UsersRoutines->CreateHome ($skel, $home, $use_btrfs_subvolume);
 		    }
@@ -5840,6 +5838,9 @@ sub ImportUser {
 	$pass 		= $self->CryptPassword ($pass, $type);
 	$encrypted	= YaST::YCP::Boolean (1);
     }
+
+    my $btrfs_subvolume	= $user->{"home_btrfs_subvolume"};
+
     my $home	= $self->GetDefaultHome($type).$username;
 
     if ($uid == 0) {
@@ -5889,13 +5890,14 @@ sub ImportUser {
 		$gid		= $existing{"gidNumber"};
 	    }
 	    %ret	= (
-		"userPassword"	=> $finalpw,
-		"grouplist"	=> \%grouplist,
-		"uid"		=> $username,
-		"encrypted"	=> $encrypted,
-		"cn"		=> $cn,
-		"uidNumber"	=> $existing{"uidNumber"},
-		"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || $self->GetDefaultShell ($type),
+		"userPassword"	  => $finalpw,
+		"grouplist"	  => \%grouplist,
+		"uid"	 	  => $username,
+		"encrypted"       => $encrypted,
+                "btrfs_subvolume" => $btrfs_subvolume,
+		"cn"		  => $cn,
+		"uidNumber"	  => $existing{"uidNumber"},
+		"loginShell"	  => $user->{"shell"} || $user->{"loginShell"} || $existing{"loginShell"} || $self->GetDefaultShell ($type),
 
 		"gidNumber"	=> $gid,
 		"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $existing{"homeDirectory"} || $home,
@@ -5910,18 +5912,19 @@ sub ImportUser {
 
     if (!%ret) {
 	%ret	= (
-	"uid"		=> $username,
-	"encrypted"	=> $encrypted,
-	"userPassword"	=> $pass,
-	"cn"		=> $cn,
-	"uidNumber"	=> $uid,
-	"gidNumber"	=> $gid,
-	"loginShell"	=> $user->{"shell"} || $user->{"loginShell"} || $self->GetDefaultShell ($type),
+	"uid"		  => $username,
+        "encrypted"	  => $encrypted,
+        "btrfs_subvolume" => $btrfs_subvolume,
+	"userPassword"	  => $pass,
+	"cn"		  => $cn,
+	"uidNumber"	  => $uid,
+	"gidNumber"	  => $gid,
+	"loginShell"	  => $user->{"shell"} || $user->{"loginShell"} || $self->GetDefaultShell ($type),
 
-	"grouplist"	=> \%grouplist,
-	"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $home,
-	"type"		=> $type,
-	"modified"	=> "imported"
+	"grouplist"	  => \%grouplist,
+	"homeDirectory"	  => $user->{"homeDirectory"} || $user->{"home"} || $home,
+	"type"		  => $type,
+	"modified"	  => "imported"
 	);
     }
     my %translated = (
@@ -6429,6 +6432,7 @@ sub ExportUser {
 
     # remove the keys, whose values were not changed
     my %exported_user	= %{$user};
+
     # export all when username was changed!
     if (%org_user && $user->{"uid"} eq $org_user{"uid"} &&
 	($user->{"modified"} || "") ne "imported") {
@@ -6470,6 +6474,10 @@ sub ExportUser {
     }
     if ($user->{"homeDirectory"} && $user->{"authorized_keys"}) {
             $ret{"authorized_keys"} = $user->{"authorized_keys"};
+    }
+    my $btrfs_subvolume	= bool ($exported_user{"btrfs_subvolume"});
+    if (defined $btrfs_subvolume) {
+	$ret{"home_btrfs_subvolume"} = YaST::YCP::Boolean ($btrfs_subvolume);
     }
     return \%ret;
 }
