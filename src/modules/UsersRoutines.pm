@@ -29,6 +29,7 @@ use strict;
 
 use File::Basename;
 use YaST::YCP qw(:LOGGING);
+use YaPI;
 
 our %TYPEINFO;
 
@@ -112,8 +113,23 @@ sub CreateHome {
     if (!FileUtils->Exists ($home) > 0) {
         # Create the home as btrfs subvolume
         if ($use_btrfs) {
-            my $cmd = "btrfs subvolume create $home";
+	    # checking Btrfs location of parent path
+	    $home=~m/^.+\//;
+            my $path=$&;
+            my $cmd = "/usr/sbin/stat -f --format '%T' $path";
             my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+            my $stdout = $cmd_out{"stdout"} || "";
+	    if ($stdout ne "btrfs") {
+		# TRANSLATORS: %s is a directory name
+                my $error = sprintf(
+                   __(" Cannot create home directory %s. Parent directory is not a Btrfs volume."),
+                   $home);
+                Report->Error ($error);
+		return 0
+	    }
+
+            $cmd = "$btrfs subvolume create $home";
+            %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
             my $stderr = $cmd_out{"stderr"} || "";
             if ($stderr)
             {
