@@ -116,7 +116,7 @@ sub CreateHome {
 	    # checking Btrfs location of parent path
 	    $home=~m/^.+\//;
             my $path=$&;
-            my $cmd = "/usr/sbin/stat -f --format '%T' $path";
+            my $cmd = "/usr/bin/stat -f --format '%T' $path";
             my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
             my $stdout = $cmd_out{"stdout"} || "";
 	    if ($stdout ne "btrfs") {
