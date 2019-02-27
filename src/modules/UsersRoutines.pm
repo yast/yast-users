@@ -31,6 +31,8 @@ use File::Basename;
 use YaST::YCP qw(:LOGGING);
 use YaPI;
 
+textdomain("users");
+
 our %TYPEINFO;
 
 
@@ -119,6 +121,8 @@ sub CreateHome {
             my $cmd = "/usr/bin/stat -f --format '%T' $path";
             my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
             my $stdout = $cmd_out{"stdout"} || "";
+	    chomp $stdout;
+
 	    if ($stdout ne "btrfs") {
 		# TRANSLATORS: %s is a directory name
                 my $error = sprintf(
