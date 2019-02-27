@@ -117,6 +117,7 @@ my %useradd_defaults		= (
     "expire"		=> "",
     "shell"		=> "",
     "skel"		=> "",
+    "btrfs_subvolume"   => 0,
     "groups"		=> "",
     "umask"		=> "022"
 );
