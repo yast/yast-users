@@ -1422,7 +1422,6 @@ sub WriteUsers {
 	    else {
 		if ($server && $delete_home) {
 		    UsersRoutines->DeleteHome ($home);
-		    UsersRoutines->DeleteCryptedHome ($home, $org_username);
 		}
 		y2usernote ("LDAP user '$username' was deleted.");
 	    }
