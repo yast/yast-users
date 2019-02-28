@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Feb 27 14:32:46 UTC 2019 - mvidner@suse.com
+
+- Delete remaining dead code for encrypted homes
+  (bsc#1127138, fate#323541).
+- 4.1.9
+
+-------------------------------------------------------------------
 Mon Feb 18 11:22:24 CET 2019 - schubi@suse.de
 
 - Fixed console warning produced by Users.pm module.
