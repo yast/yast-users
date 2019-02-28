@@ -1508,7 +1508,7 @@ module Yast
           check_btrfs_path = !UI.QueryWidget(Id(:move_home), :Value)
 
           # Check if is a valid path when creating a Btfs subvolume
-          if btrfs_subvolume && check_btrfs_path && !valid_btrfs_path?(new_home)
+          if perform_btrfs_validations? && !valid_btrfs_path?(new_home)
             Report.Error(
               # TRANSLATORS: the error message when user try to create a Btrfs subvolume in a not
               # valid location
@@ -1752,7 +1752,7 @@ module Yast
           UI.ReplaceWidget(:tabContents, get_details_term.call)
           Wizard.SetHelpText(EditUserDetailsDialogHelp(user_type, what))
 
-          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, btrfs_available?)
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, Mode.config || btrfs_available?)
 
           if what == "edit_user"
             UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
@@ -1918,6 +1918,18 @@ module Yast
       fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
 
       fstype == "btrfs"
+    end
+
+    # Determine if is necessary to check the home path as a valid Btrfs location
+    #
+    # @return [false] if running in AutoYaST configuration mode
+    # @return [false] if the home directory is being moved
+    # @return [Boolean] true when the btrfs_subvolume option is present and selected; false otherwise
+    def perform_btrfs_validations?
+      return false if Mode.config
+      return false if UI.QueryWidget(Id(:move_home), :Value)
+
+      UI.QueryWidget(Id(:btrfs_subvolume), :Value)
     end
 
     # Whether there is a Btrfs filesystem present
