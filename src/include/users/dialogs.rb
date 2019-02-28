@@ -1912,8 +1912,6 @@ module Yast
     #
     # @return [Boolean] true when is a path in a Btrfs filesystem; false otherwise
     def valid_btrfs_path?(path)
-      return true if Mode.config # AutoYast configuration mode
-
       dirname = Pathname.new(path).dirname
       fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
 
@@ -1936,8 +1934,6 @@ module Yast
     #
     # @return [Boolean] true if a Btrfs filesystem is found; false otherwise
     def btrfs_available?
-      return true if Mode.config # AutoYast configuration mode
-
       available_filesystems = Yast::Execute.locally!.stdout(
         ["/usr/bin/df", "--output=fstype"],
         ["/usr/bin/tail", "-n", "+2"]
