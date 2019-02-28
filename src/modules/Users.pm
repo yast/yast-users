@@ -4092,17 +4092,6 @@ sub PreDeleteUsers {
     return $ret;
 }
 
-# Remove crypted direcotries - because of 'cryptconfig pm-disable' call, this
-# must be done when user is still known to PAM...
-sub DeleteCryptedHomes {
-
-    my $ret = 1;
-    foreach my $home (keys %removed_homes) {
-	$ret = $ret && UsersRoutines->DeleteCryptedHome ($home, $removed_homes{$home});
-    };
-    return $ret;
-}
-
 ##------------------------------------
 # 1. remove home directories,
 # 2. execute USERDEL_POSTCMD scripts for deleted local/system users
@@ -4446,13 +4435,6 @@ sub Write {
 		    $modified_users{$type}{$username});
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
-	}
-	# remove the crypted directories now, so cryptconfig still knows them
-        if (!DeleteCryptedHomes ()) {
-       	    # error popup
-	    $ret = __("An error occurred while removing users.");
-	    Report->Error ($ret);
-	    return $ret;
 	}
 	# -------------------------------------- write /etc/passwd
         if ($plugin_error eq "" && !WritePasswd ()) {

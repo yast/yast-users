@@ -1143,10 +1143,6 @@ Continue anyway?"))
       no_home = false
       # check if dir exists with this owner
       stat = Convert.to_map(SCR.Read(path(".target.stat"), home))
-      crypted_img = UsersRoutines.CryptedImagePath(username)
-      if crypted_img != "" # check crypted dir image
-        stat = Convert.to_map(SCR.Read(path(".target.stat"), crypted_img))
-      end
       if type == "ldap" && !Ldap.file_server ||
           Ops.get_integer(stat, "uid", -1) != uid
         no_home = true
