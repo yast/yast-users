@@ -391,6 +391,11 @@ module Yast
       create_home = Ops.get_boolean(user, "create_home", true)
       chown_home = Ops.get_boolean(user, "chown_home", true)
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
+      if user["btrfs_subvolume"] && user["btrfs_subvolume"].is_a?(::String)
+        # Users.GetCurrentUser Perl module can also return "1" for a boolean
+        user["btrfs_subvolume"] = user["btrfs_subvolume"] == "1"
+      end
+
       btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", false)
       do_not_edit = user_type == "nis"
 
@@ -1753,11 +1758,15 @@ module Yast
           Wizard.SetHelpText(EditUserDetailsDialogHelp(user_type, what))
 
           UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, Mode.config || btrfs_available?)
-
           if what == "edit_user"
-            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
-            # Show the value for the current home directory/subvolume
-            UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+            if user["org_user"] && !Mode.config
+              # User has already been created in the installed system. So btrfs_subvolume cannot be changed
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
+              # Show the value for the current home directory/subvolume
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+            else
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Value, user["btrfs_subvolume"])
+            end
           end
 
           if do_not_edit
