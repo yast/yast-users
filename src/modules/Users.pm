@@ -4456,7 +4456,7 @@ sub Write {
 
 		my %user	        = %{$modified_users{$type}{$username}};
 		my $home 	        = $user{"homeDirectory"} || "";
-                my $use_btrfs_subvolume = $user{"btrfs_subvolume"} || 0;
+		my $use_btrfs_subvolume = $user{"btrfs_subvolume"} || 0;
 		my $uid		        = $user{"uidNumber"} || 0;
 		my $command 	        = "";
 		my $user_mod 	        = $user{"modified"} || "no";
@@ -5821,6 +5821,9 @@ sub ImportUser {
 	$encrypted	= YaST::YCP::Boolean (1);
     }
 
+    # "home_btrfs_subvolume" it the tag in the AY configuration
+    # file and is more user friendly. Internally we are using
+    # "btrfs_subvolume".
     my $btrfs_subvolume	= $user->{"home_btrfs_subvolume"};
 
     my $home	= $self->GetDefaultHome($type).$username;
@@ -6459,6 +6462,9 @@ sub ExportUser {
     }
     my $btrfs_subvolume	= bool ($exported_user{"btrfs_subvolume"});
     if (defined $btrfs_subvolume) {
+	# "home_btrfs_subvolume" it the tag in the AY configuration
+	# file and is more user friendly. Internally we are using
+	# "btrfs_subvolume".
 	$ret{"home_btrfs_subvolume"} = YaST::YCP::Boolean ($btrfs_subvolume);
     }
     return \%ret;
