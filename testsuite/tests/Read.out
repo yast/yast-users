@@ -1,5 +1,4 @@
 Dump	==========================================================
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 0
 Read	.etc.default.useradd."groups" 0

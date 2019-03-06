@@ -2,7 +2,6 @@ Dump	==========================================================
 Return	nil
 Return	nil
 Dump	============ add new group 'gg': ==========================
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -24,7 +23,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg' - done ====================
 Dump	============ add new group 'gg2' with first userlist as list ==
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -46,7 +44,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg2' - done ====================
 Dump	============ add new group 'gg3' with first userlist as map ==
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -68,7 +65,6 @@ Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custo
 Return	
 Dump	============ add new group 'gg3' - done ====================
 Dump	============ add new group 'gg4' with non existent user ==
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"
@@ -85,7 +81,6 @@ Execute	.target.bash_output "/usr/bin/echo 'gg4' | /usr/bin/grep '^[[:alpha:]_][
 Return	User hh2 does not exist.
 Dump	============ add new group 'gg4' - done ====================
 Dump	============ add new group 'root' (groupname conflict): ======
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" nil
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

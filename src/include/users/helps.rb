@@ -434,7 +434,7 @@ module Yast
             "check <b>Empty Home</b>. Otherwise, the new home directory\n" \
             "is created from the default skeleton (%1).</p>\n"
           ),
-          Users.GetLoginDefaults.fetch("skel", "")
+          (Users.GetLoginDefaults ? Users.GetLoginDefaults.fetch("skel", "") : "/home")
         )
 
         btrfs_option_label = _("Create as Btrfs Subvolume")

@@ -19,7 +19,7 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-# File:	include/users/wizards.ycp
+# File:	include/users/dialogs.rb
 # Package:	Configuration of users and groups
 # Summary:	Wizards definitions
 # Authors:	Johannes Buchhold <jbuch@suse.de>,
@@ -58,6 +58,7 @@ module Yast
       Yast.import "UsersRoutines"
       Yast.import "UsersSimple"
       Yast.import "Wizard"
+      Yast.import "Mode"
 
       Yast.include include_target, "users/helps.rb"
       Yast.include include_target, "users/routines.rb"
@@ -390,6 +391,11 @@ module Yast
       create_home = Ops.get_boolean(user, "create_home", true)
       chown_home = Ops.get_boolean(user, "chown_home", true)
       no_skel = Ops.get_boolean(user, "no_skeleton", false)
+      if user["btrfs_subvolume"] && user["btrfs_subvolume"].is_a?(::String)
+        # Users.GetCurrentUser Perl module can also return "1" for a boolean
+        user["btrfs_subvolume"] = user["btrfs_subvolume"] == "1"
+      end
+
       btrfs_subvolume = Ops.get_boolean(user, "btrfs_subvolume", false)
       do_not_edit = user_type == "nis"
 
@@ -1507,7 +1513,7 @@ module Yast
           check_btrfs_path = !UI.QueryWidget(Id(:move_home), :Value)
 
           # Check if is a valid path when creating a Btfs subvolume
-          if btrfs_subvolume && check_btrfs_path && !valid_btrfs_path?(new_home)
+          if perform_btrfs_validations? && !valid_btrfs_path?(new_home)
             Report.Error(
               # TRANSLATORS: the error message when user try to create a Btrfs subvolume in a not
               # valid location
@@ -1751,12 +1757,16 @@ module Yast
           UI.ReplaceWidget(:tabContents, get_details_term.call)
           Wizard.SetHelpText(EditUserDetailsDialogHelp(user_type, what))
 
-          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, btrfs_available?)
-
+          UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, Mode.config || btrfs_available?)
           if what == "edit_user"
-            UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
-            # Show the value for the current home directory/subvolume
-            UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+            if user["org_user"] && !Mode.config
+              # User has already been created in the installed system. So btrfs_subvolume cannot be changed
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Enabled, false)
+              # Show the value for the current home directory/subvolume
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Value, btrfs_subvolume?(org_home))
+            else
+              UI.ChangeWidget(Id(:btrfs_subvolume), :Value, user["btrfs_subvolume"])
+            end
           end
 
           if do_not_edit
@@ -1915,6 +1925,18 @@ module Yast
       fstype = Yast::Execute.locally!.stdout("/usr/bin/stat", "-f", "--format", "%T", dirname).chomp
 
       fstype == "btrfs"
+    end
+
+    # Determine if is necessary to check the home path as a valid Btrfs location
+    #
+    # @return [false] if running in AutoYaST configuration mode
+    # @return [false] if the home directory is being moved
+    # @return [Boolean] true when the btrfs_subvolume option is present and selected; false otherwise
+    def perform_btrfs_validations?
+      return false if Mode.config
+      return false if UI.QueryWidget(Id(:move_home), :Value)
+
+      UI.QueryWidget(Id(:btrfs_subvolume), :Value)
     end
 
     # Whether there is a Btrfs filesystem present

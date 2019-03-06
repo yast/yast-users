@@ -1,6 +1,5 @@
 Dump	==========================================================
 Dump	============ edit non-existing group 'gg': =====================
-Read	.etc.default.useradd."btrfs_subvolume" 0
 Read	.etc.default.useradd."expire" 0
 Read	.etc.default.useradd."group" 100
 Read	.etc.default.useradd."groups" "audio,video"

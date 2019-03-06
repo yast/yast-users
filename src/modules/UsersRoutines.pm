@@ -29,6 +29,9 @@ use strict;
 
 use File::Basename;
 use YaST::YCP qw(:LOGGING);
+use YaPI;
+
+textdomain("users");
 
 our %TYPEINFO;
 
@@ -82,32 +85,51 @@ sub CreateHome {
         SCR->Execute( ".target.mkdir", $home_path );
     }
 
-    my %stat = %{ SCR->Read( ".target.stat", $home ) };
-    if (%stat) {
+    if (FileUtils->GetSize ($home) > 0) {
+	# Home directory exists AND has files
         if ( $home ne "/var/lib/nobody" ) {
             y2error("$home directory already exists: no mkdir");
         }
         return 0;
     }
 
-    # Create the home as btrfs subvolume
-    if ($use_btrfs) {
-        my $cmd = "btrfs subvolume create $home";
-        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
-        my $stderr = $cmd_out{"stderr"} || "";
-        if ($stderr)
-        {
-            y2error("Error creating '$home' as btrfs subvolume: $stderr");
+    if (!FileUtils->Exists ($home) > 0) {
+        # Create the home as btrfs subvolume
+        if ($use_btrfs) {
+	    # checking Btrfs location of parent path
+	    $home=~m/^.+\//;
+            my $path=$&;
+            my $cmd = "/usr/bin/stat -f --format '%T' $path";
+            my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+            my $stdout = $cmd_out{"stdout"} || "";
+	    chomp $stdout;
 
-            return 0;
+	    if ($stdout ne "btrfs") {
+		# TRANSLATORS: %s is a directory name
+                my $error = sprintf(
+                   __(" Cannot create home directory %s. Parent directory is not a Btrfs volume."),
+                   $home);
+                Report->Error ($error);
+		return 0
+	    }
+
+            $cmd = "$btrfs subvolume create $home";
+            %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+            my $stderr = $cmd_out{"stderr"} || "";
+            if ($stderr)
+            {
+                y2error("Error creating '$home' as btrfs subvolume: $stderr");
+
+                return 0;
+            }
         }
-    }
-    # or as a plain directory
-    else {
-        if ( !SCR->Execute( ".target.mkdir", $home ) ) {
-            y2error("Error creating '$home'");
+        # or as a plain directory
+        else {
+            if ( !SCR->Execute( ".target.mkdir", $home ) ) {
+                y2error("Error creating '$home'");
 
-            return 0;
+                return 0;
+            }
         }
     }
 
