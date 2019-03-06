@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
 Thu Feb 28 14:30:45 CET 2019 - schubi@suse.de
 
-- Removed "btrfs_subvolume" from user default values (bns#1125779)
+- Removed "btrfs_subvolume" from user default values (bsc#1125779)
 - Added AutoYaST support for home Btrfs subvolumes.
 - 4.1.10
 
