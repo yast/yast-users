@@ -107,7 +107,7 @@ sub CreateHome {
 	    if ($stdout ne "btrfs") {
 		# TRANSLATORS: %s is a directory name
                 my $error = sprintf(
-                   __(" Cannot create home directory %s. Parent directory is not a Btrfs volume."),
+                   __(" Cannot create home directory %s.\nParent directory is not a Btrfs volume."),
                    $home);
                 Report->Error ($error);
 		return 0

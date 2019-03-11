@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar 11 16:22:01 CET 2019 - schubi@suse.de
+
+- Added tag home_btrfs_subvolume to *.rnc file (bsc#1128707)
+- Improved error message layout while creating btrfs subvolumes.
+- 4.1.11
+
+-------------------------------------------------------------------
 Thu Feb 28 14:30:45 CET 2019 - schubi@suse.de
 
 - Removed "btrfs_subvolume" from user default values (bsc#1125779)

@@ -60,6 +60,7 @@ user = element user {
     u_forename? &
     u_gid? &
     home? &
+    home_btrfs_subvolume? &
     shell? &
     uid? &
     user_password? &
@@ -75,6 +76,7 @@ u_forename = element forename { text }
 surname = element surname { text }
 u_gid = element gid { text }
 home = element home { text }
+home_btrfs_subvolume = element home_btrfs_subvolume { BOOLEAN }
 user_password = element user_password { text }
 username = element username { text }
 uid = element uid { text }
