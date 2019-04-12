@@ -254,6 +254,29 @@ YaST::YCP::Import ("SSHAuthorizedKeys");
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
 
+# Check whether the argument is a directory and is not empty.
+#
+# Return 1 (non-empty dir) or 0.
+#
+# Note: do NOT use FileUtils->GetSize() for this!
+#
+sub dir_not_empty
+{
+  my $dir = shift;
+  my $not_empty = 0;
+
+  if(opendir my $d, $dir) {
+    while(readdir $d) {
+      next if /^(\.|\.\.)$/;
+      $not_empty = 1;
+      last;
+    }
+    closedir $d;
+  }
+
+  return $not_empty;
+}
+
 sub contains {
     my ( $list, $key, $ignorecase ) = @_;
     if (!defined $list || ref ($list) ne "ARRAY" || @{$list} == 0) {
@@ -4475,16 +4498,8 @@ sub Write {
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
 
-                    # *** FIXME ***
-                    #
-                    # Using FileUtils->GetSize() to decide on an empty
-                    # directory is fundamentally WRONG.
-                    #
-                    # YaST basically uses the size value stat() returns. That
-                    # value is meaningless for directories.
-                    #
-		    if ($user_mod eq "imported" && FileUtils->GetSize ($home) > 0) {
-			# Directory already exists AND is not empty
+		    if ($user_mod eq "imported" && dir_not_empty($home)) {
+			# directory already exists AND is not empty
 			y2milestone ("home directory $home of user $username already exists and is not empty");
 			next;
 		    }
