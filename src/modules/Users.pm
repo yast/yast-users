@@ -42,6 +42,10 @@ use Digest::MD5;
 use Digest::SHA1 qw(sha1);
 use Data::Dumper;
 
+$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Terse = 1;
+$Data::Dumper::Indent = 1;
+
 our %TYPEINFO;
 
 # If YaST UI (Qt,ncurses) should be used. When this is off, some helper
@@ -4466,6 +4470,8 @@ sub Write {
 		$chown_home	        = 1 if (!defined $chown_home);
 		my $skel	        = $useradd_defaults{"skel"};
 
+		y2milestone ("User = ", Dumper(\%user));
+
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
 
@@ -5774,7 +5780,7 @@ sub ImportUser {
     if (!defined ($username)) {
 	$username	= $user->{"uid"}	|| "";
     }
-    y2debug("Username=$username");
+    y2milestone("Username=$username");
 
     my $uid		= $user->{"uidNumber"};
     if (!defined $uid) {
@@ -5947,6 +5953,13 @@ sub ImportUser {
     my @authorized_keys = ();
     $ret{"authorized_keys"} = \@authorized_keys;
   }
+
+    # AutoYaST-imported users don't go through AddUser(). This means we have
+    # to replicate some of that logic here:
+    #
+    #   - don't copy skel files for system users (bsc#1130158)
+    #
+    $ret{no_skeleton} ||= 1 if $ret{type} eq "system";
 
     return \%ret;
 }
