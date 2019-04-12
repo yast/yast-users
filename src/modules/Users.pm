@@ -4475,9 +4475,17 @@ sub Write {
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
 
+                    # *** FIXME ***
+                    #
+                    # Using FileUtils->GetSize() to decide on an empty
+                    # directory is fundamentally WRONG.
+                    #
+                    # YaST basically uses the size value stat() returns. That
+                    # value is meaningless for directories.
+                    #
 		    if ($user_mod eq "imported" && FileUtils->GetSize ($home) > 0) {
 			# Directory already exists AND is not empty
-			y2milestone ("home directory $home of user $username already exists");
+			y2milestone ("home directory $home of user $username already exists and is not empty");
 			next;
 		    }
 		    if (bool ($user{"no_skeleton"})) {
