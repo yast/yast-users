@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Apr 15 13:57:04 CEST 2019 - schubi@suse.de
+
+- AY creating user: Improved checking of already existing home
+  directories (bsc#1130158)
+- 4.1.12
+
+-------------------------------------------------------------------
 Mon Mar 11 16:22:01 CET 2019 - schubi@suse.de
 
 - Added tag home_btrfs_subvolume to *.rnc file (bsc#1128707)
