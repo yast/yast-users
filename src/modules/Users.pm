@@ -4569,8 +4569,10 @@ sub Write {
 		    SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
 		}
 
+		my $save_passwd = $user{"userPassword"};
 		$user{"userPassword"} = "*****"; # Reset before logging
 		y2milestone ("User = ", Dumper(\%user));
+		$user{"userPassword"} = $save_passwd;
 	    }
 	}
     }
