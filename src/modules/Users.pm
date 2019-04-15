@@ -4493,8 +4493,6 @@ sub Write {
 		$chown_home	        = 1 if (!defined $chown_home);
 		my $skel	        = $useradd_defaults{"skel"};
 
-		y2milestone ("User = ", Dumper(\%user));
-
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
 
@@ -4566,10 +4564,13 @@ sub Write {
 		    }
 		}
 
-			# Write authorized keys to user's home (FATE#319471)
-      if (defined($user{"authorized_keys"})) {
-				SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
-      }
+		# Write authorized keys to user's home (FATE#319471)
+		if (defined($user{"authorized_keys"})) {
+		    SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
+		}
+
+		$user{"userPassword"} = "*****"; # Reset before logging
+		y2milestone ("User = ", Dumper(\%user));
 	    }
 	}
     }
