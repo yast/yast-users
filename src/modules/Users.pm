@@ -42,6 +42,10 @@ use Digest::MD5;
 use Digest::SHA1 qw(sha1);
 use Data::Dumper;
 
+$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Terse = 1;
+$Data::Dumper::Indent = 1;
+
 our %TYPEINFO;
 
 # If YaST UI (Qt,ncurses) should be used. When this is off, some helper
@@ -249,6 +253,29 @@ YaST::YCP::Import ("SSHAuthorizedKeys");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
+
+# Check whether the argument is a directory and is not empty.
+#
+# Return 1 (non-empty dir) or 0.
+#
+# Note: do NOT use FileUtils->GetSize() for this!
+#
+sub dir_not_empty
+{
+  my $dir = shift;
+  my $not_empty = 0;
+
+  if(opendir my $d, $dir) {
+    while(readdir $d) {
+      next if /^(\.|\.\.)$/;
+      $not_empty = 1;
+      last;
+    }
+    closedir $d;
+  }
+
+  return $not_empty;
+}
 
 sub contains {
     my ( $list, $key, $ignorecase ) = @_;
@@ -4469,9 +4496,9 @@ sub Write {
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
 
-		    if ($user_mod eq "imported" && FileUtils->GetSize ($home) > 0) {
-			# Directory already exists AND is not empty
-			y2milestone ("home directory $home of user $username already exists");
+		    if ($user_mod eq "imported" && dir_not_empty($home)) {
+			# directory already exists AND is not empty
+			y2milestone ("home directory $home of user $username already exists and is not empty");
 			next;
 		    }
 		    if (bool ($user{"no_skeleton"})) {
@@ -4537,10 +4564,15 @@ sub Write {
 		    }
 		}
 
-			# Write authorized keys to user's home (FATE#319471)
-      if (defined($user{"authorized_keys"})) {
-				SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
-      }
+		# Write authorized keys to user's home (FATE#319471)
+		if (defined($user{"authorized_keys"})) {
+		    SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
+		}
+
+		my $save_passwd = $user{"userPassword"};
+		$user{"userPassword"} = "*****"; # Reset before logging
+		y2milestone ("User = ", Dumper(\%user));
+		$user{"userPassword"} = $save_passwd;
 	    }
 	}
     }
@@ -5774,7 +5806,7 @@ sub ImportUser {
     if (!defined ($username)) {
 	$username	= $user->{"uid"}	|| "";
     }
-    y2debug("Username=$username");
+    y2milestone("Username=$username");
 
     my $uid		= $user->{"uidNumber"};
     if (!defined $uid) {
@@ -5947,6 +5979,13 @@ sub ImportUser {
     my @authorized_keys = ();
     $ret{"authorized_keys"} = \@authorized_keys;
   }
+
+    # AutoYaST-imported users don't go through AddUser(). This means we have
+    # to replicate some of that logic here:
+    #
+    #   - don't copy skel files for system users (bsc#1130158)
+    #
+    $ret{no_skeleton} ||= 1 if $ret{type} eq "system";
 
     return \%ret;
 }
