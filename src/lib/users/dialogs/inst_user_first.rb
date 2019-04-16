@@ -232,6 +232,7 @@ module Yast
       Yast.import "Report"
       Yast.import "UsersSimple"
       Yast.import "ProductFeatures"
+      Yast.import "Autologin"
     end
 
     # Check if creating local users is enabled (default) or disabled in the
@@ -341,7 +342,11 @@ module Yast
 
     def refresh
       WIDGETS.values.flatten.each do |w|
-        UI.ChangeWidget(Id(w), :Enabled, WIDGETS[action].include?(w))
+        enable = WIDGETS[action].include?(w)
+        if w == :autologin && enable && !Autologin.supported?
+          enable = false
+        end
+        UI.ChangeWidget(Id(w), :Enabled, enable)
       end
     end
 
@@ -653,9 +658,20 @@ module Yast
             @use_pw_for_root
           )
         ),
-        # checkbox label
-        Left(CheckBox(Id(:autologin), _("&Automatic Login"), @autologin))
+        Left(autologin_checkbox)
       ]
+    end
+
+    def autologin_checkbox
+      # checkbox label
+      label = _("&Automatic Login")
+
+      if Autologin.supported?
+        CheckBox(Id(:autologin), label, @autologin)
+      else
+        @autologin = false
+        CheckBox(Id(:autologin), Opt(:disabled), label, false)
+      end
     end
 
     def import_qty_widget
