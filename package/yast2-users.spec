@@ -44,7 +44,10 @@ Requires:       perl-Digest-SHA1
 Requires:       perl-X500-DN
 Requires:       perl-gettext
 Requires:       yast2-country
-Requires:       yast2-pam
+
+# Autologin.supported?
+Requires:       yast2-pam >= 4.1.1
+
 Requires:       yast2-security
 Obsoletes:      yast2-users-devel-doc
 Conflicts:      autoyast2 < 3.1.92
