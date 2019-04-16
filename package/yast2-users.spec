@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.1.13
+Version:        4.2.0
 Release:        0
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -46,7 +46,7 @@ Requires:       perl-gettext
 Requires:       yast2-country
 
 # Autologin.supported?
-Requires:       yast2-pam >= 4.1.1
+Requires:       yast2-pam >= 4.2.0
 
 Requires:       yast2-security
 Obsoletes:      yast2-users-devel-doc
