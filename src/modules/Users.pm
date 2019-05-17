@@ -4483,7 +4483,7 @@ sub Write {
 
 		my %user	        = %{$modified_users{$type}{$username}};
 		my $home 	        = $user{"homeDirectory"} || "";
-		my $use_btrfs_subvolume = $user{"btrfs_subvolume"} || 0;
+		my $use_btrfs_subvolume = bool($user{"btrfs_subvolume"});
 		my $uid		        = $user{"uidNumber"} || 0;
 		my $command 	        = "";
 		my $user_mod 	        = $user{"modified"} || "no";
