@@ -22,6 +22,7 @@ X-SuSE-YaST-Keywords=user,group,authentication,login,password
 Icon=yast-users
 Exec=xdg-su -c "/sbin/yast2 users"
 
-Name=User and Group Management
-GenericName=Add, Edit, Delete Users or User Groups
+Name=YaST User and Group Management
+GenericName=User and Group Management
+Comment=Add, Edit and Delete Users or User Groups
 StartupNotify=true
