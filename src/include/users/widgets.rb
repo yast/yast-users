@@ -2095,7 +2095,7 @@ Continue anyway?"))
           return nil
         end
         Wizard.CreateDialog
-        Wizard.SetDesktopTitleAndIcon("users")
+        Wizard.SetDesktopTitleAndIcon("org.openSUSE.YaST.Users")
         ret = WriteDialog(true)
         Wizard.CloseDialog
         Builtins.y2milestone("WriteDialog returned %1", ret)

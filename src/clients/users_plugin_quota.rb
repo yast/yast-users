@@ -264,7 +264,7 @@ module Yast
         )
 
         Wizard.CreateDialog
-        Wizard.SetDesktopIcon("users")
+        Wizard.SetDesktopIcon("org.openSUSE.YaST.Users")
 
         Wizard.SetContentsButtons(
           UsersPluginQuota.Name(@config, {}),
