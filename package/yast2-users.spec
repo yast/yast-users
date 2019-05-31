@@ -12,15 +12,18 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
-# Please submit bugfixes or comments via http://bugs.opensuse.org/
+# Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
 
 Name:           yast2-users
 Version:        4.2.1
 Release:        0
+Summary:        YaST2 - User and Group Configuration
+License:        GPL-2.0-only
+Group:          System/YaST
+Url:            https://github.com/yast/yast-users
 
-BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 Source0:        %{name}-%{version}.tar.bz2
 
 BuildRequires:  cracklib-devel
@@ -49,10 +52,6 @@ Requires:       yast2-country
 Requires:       yast2-pam >= 4.2.0
 
 Requires:       yast2-security
-Obsoletes:      yast2-users-devel-doc
-Conflicts:      autoyast2 < 3.1.92
-# older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
-Conflicts:      yast2-storage < 3.1.75
 
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
@@ -66,16 +65,16 @@ Requires:       yast2 >= 4.1.35
 Requires:       yast2-core >= 2.21.0
 
 Requires:       yast2-ruby-bindings >= 1.0.0
-
-Summary:        YaST2 - User and Group Configuration
-License:        GPL-2.0-only
-Group:          System/YaST
+Obsoletes:      yast2-users-devel-doc
+Conflicts:      autoyast2 < 3.1.92
+# older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
+Conflicts:      yast2-storage < 3.1.75
 
 %description
 This package provides GUI for maintenance of linux users and groups.
 
 %prep
-%setup -n %{name}-%{version}
+%setup -q
 
 %build
 %yast_build
@@ -84,30 +83,22 @@ This package provides GUI for maintenance of linux users and groups.
 # make testsuite/modules/Ldap.rb visible
 export Y2BASE_Y2DIR=`pwd`/testsuite
 %yast_install
+%yast_metainfo
 
 %files
-%defattr(-,root,root)
-%dir %{yast_yncludedir}/users
-%dir %{yast_moduledir}/YaPI
-%{yast_clientdir}/*.rb
-%{yast_desktopdir}/*.desktop
-%{yast_moduledir}/*.pm
-%{yast_moduledir}/SSHAuthorizedKeys.rb
-%{yast_moduledir}/UsersUI.rb
-%{yast_moduledir}/YaPI/*.pm
-%{yast_yncludedir}/users/*
-%{yast_libdir}/users
-%{yast_schemadir}/autoyast/rnc/users.rnc
+%{yast_clientdir}
+%{yast_desktopdir}
+%{yast_metainfodir}
+%{yast_moduledir}
+%{yast_yncludedir}
+%{yast_libdir}
+%{yast_schemadir}
 #agents:
-%{yast_scrconfdir}/*.scr
-%{yast_agentdir}/ag_nis
-%{yast_agentdir}/ag_uid
-%{yast_plugindir}/libpy2ag_crack.so.*
-%{yast_plugindir}/libpy2ag_crack.so
-%{yast_plugindir}/libpy2ag_crack.la
+%{yast_scrconfdir}
+%{yast_agentdir}
+%{yast_plugindir}
 %{yast_icondir}
-%dir %{yast_docdir}
-%license %{yast_docdir}/COPYING
-%doc %{yast_docdir}/users.html
+%license COPYING
+%doc %{yast_docdir}
 
 %changelog
