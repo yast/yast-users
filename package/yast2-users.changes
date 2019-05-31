@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri May 31 12:42:14 UTC 2019 - Stasiek Michalski <hellcp@mailbox.org>
+
+- Add metainfo (fate#319035)
+- Revamp spec
+- Replace GenericName with Comment
+- 4.2.2
+
+-------------------------------------------------------------------
 Thu May 16 14:13:03 UTC 2019 - David Diaz <dgonzalez@suse.com>
 
 - Fix the user creation in the installed systems, obeying the
