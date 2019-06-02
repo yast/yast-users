@@ -91,7 +91,7 @@ schemafiles_DATA = \
   autoyast-rnc/users.rnc
 
 desktop_DATA = \
-  desktop/org.openSUSE.YaST.Users.desktop
+  desktop/org.opensuse.yast.Users.desktop
 
 scalabledir = @icondir@/hicolor/scalable/apps
 scalable_DATA = \

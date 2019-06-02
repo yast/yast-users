@@ -263,7 +263,7 @@ module Yast
       contents = Label(_("Initializing..."))
 
       Wizard.OpenNextBackDialog if !Stage.cont
-      Wizard.SetDesktopIcon("org.openSUSE.YaST.Users")
+      Wizard.SetDesktopIcon("org.opensuse.yast.Users")
 
       ret = Sequencer.Run(aliases, sequence)
 
@@ -287,7 +287,7 @@ module Yast
       contents = Label(_("Initializing..."))
 
       Wizard.CreateDialog
-      Wizard.SetDesktopIcon("org.openSUSE.YaST.Users")
+      Wizard.SetDesktopIcon("org.opensuse.yast.Users")
       Wizard.SetContentsButtons(
         caption,
         contents,

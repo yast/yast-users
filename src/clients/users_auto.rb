@@ -106,7 +106,7 @@ module Yast
       elsif @func == "Change"
         @start_dialog = "summary" #look to users.ycp for possible values
         Wizard.CreateDialog
-        Wizard.SetDesktopIcon("org.openSUSE.YaST.Users")
+        Wizard.SetDesktopIcon("org.opensuse.yast.Users")
         @ret = AutoSequence(@start_dialog)
         Wizard.CloseDialog
       elsif @func == "Export"
