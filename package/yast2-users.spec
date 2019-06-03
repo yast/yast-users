@@ -36,7 +36,7 @@ BuildRequires:  update-desktop-files
 # UI::Widgets
 BuildRequires:  yast2 >= 3.2.8
 BuildRequires:  yast2-core-devel
-BuildRequires:  yast2-devtools >= 3.1.10
+BuildRequires:  yast2-devtools >= 4.2.2
 BuildRequires:  yast2-perl-bindings
 BuildRequires:  yast2-security
 BuildRequires:  yast2-testsuite
