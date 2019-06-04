@@ -200,7 +200,7 @@ module Yast
         )
 
         Wizard.CreateDialog
-        Wizard.SetDesktopIcon("users")
+        Wizard.SetDesktopIcon("org.opensuse.yast.Users")
 
         # dialog caption
         Wizard.SetContentsButtons(
