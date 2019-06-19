@@ -18,7 +18,6 @@ Execute	.target.bash_output "/usr/bin/echo 'gg' | /usr/bin/grep '^[[:alpha:]_][[
 Execute	.target.bash "/usr/bin/cp '/etc/group' '/etc/group.YaST2save'" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\nusers:x:100:\n+:::\n" true
 Execute	.target.bash_output "/usr/bin/diff -U 1 '/etc/group.YaST2save' '/etc/group'" $["stdout":"gg"]
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ add new group 'gg' - done ====================
@@ -39,7 +38,6 @@ Execute	.target.bash_output "/usr/bin/echo 'gg2' | /usr/bin/grep '^[[:alpha:]_][
 Execute	.target.bash "/usr/bin/cp '/etc/group' '/etc/group.YaST2save'" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\ngg2:x:1001:hh\nusers:x:100:\n+:::\n" true
 Execute	.target.bash_output "/usr/bin/diff -U 1 '/etc/group.YaST2save' '/etc/group'" $["stdout":"gg2"]
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ add new group 'gg2' - done ====================
@@ -60,7 +58,6 @@ Execute	.target.bash_output "/usr/bin/echo 'gg3' | /usr/bin/grep '^[[:alpha:]_][
 Execute	.target.bash "/usr/bin/cp '/etc/group' '/etc/group.YaST2save'" 0
 Write	.target.string "/etc/group" "audio:x:17:ii\nnobody:x:65533:\nroot:x:0:\ngg:x:1000:\ngg2:x:1001:hh\ngg3:x:1002:hh,ii\nusers:x:100:\n+:::\n" true
 Execute	.target.bash_output "/usr/bin/diff -U 1 '/etc/group.YaST2save' '/etc/group'" $["stdout":"gg3"]
-Execute	.target.bash "/usr/sbin/nscd -i group" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Dump	============ add new group 'gg3' - done ====================

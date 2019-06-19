@@ -35,7 +35,6 @@ Read	.target.stat "/home/hh" $["isdir":true]
 Execute	.target.bash_output "/usr/bin/chown -R 501:100 '/home/hh'" $["stdout":"hh"]
 Execute	.target.bash "/usr/bin/cp '/etc/shadow' '/etc/shadow.YaST2save'" 0
 Write	.target.string "/etc/shadow" "at:!:13636:0:99999:7:::\nbin:*:13636::::::\ndaemon:*:13636::::::\nmail:*:13636::::::\nnobody:*:13636::::::\nroot:password:13636::::::\nuucp:*:13636::::::\nhh:heslo:13727:0:99999:7:::\n+::0:0:0::::\n" true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Write	.target.ycp "/var/lib/YaST2/users.ycp" $["custom_groups":["local"], "custom_users":["local"], "dont_warn_when_nisserver_notdes":false, "dont_warn_when_uppercase":false] true
 Return	
 Return	nil
@@ -63,6 +62,5 @@ Read	.target.stat "/home/hh" $[]
 Read	.target.stat "/new/home/hh" $[]
 Execute	.target.bash "/usr/bin/cp '/etc/shadow' '/etc/shadow.YaST2save'" 0
 Write	.target.string "/etc/shadow" "at:!:13636:0:99999:7:::\nbin:*:13636::::::\ndaemon:*:13636::::::\nmail:*:13636::::::\nnobody:*:13636::::::\nroot:password:13636::::::\nuucp:*:13636::::::\nhh:heslo:13727:0:99999:7:::\n+::0:0:0::::\n" true
-Execute	.target.bash "/usr/sbin/nscd -i passwd" 0
 Return	
 Dump	==========================================================

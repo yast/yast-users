@@ -4597,7 +4597,7 @@ sub Write {
     }
 
     # remove the passwd cache for nscd (bug 24748, 41648)
-    if (!$write_only && Package->Installed ("nscd")) {
+    if (!$write_only && !Mode->test() && Package->Installed ("nscd")) {
 	if ($nscd_passwd) {
 	    my $cmd	= "/usr/sbin/nscd -i passwd";
 	    SCR->Execute (".target.bash", $cmd);
