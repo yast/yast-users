@@ -4569,10 +4569,20 @@ sub Write {
 		    SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
 		}
 
-		my $save_passwd = $user{"userPassword"};
-		$user{"userPassword"} = "*****"; # Reset before logging
+                my %saved_passwords;
+
+                # hide passwords for logging
+                for my $pw (qw (userPassword text_userpassword)) {
+                    $saved_passwords{$pw} = $user{$pw};
+                    $user{$pw} = "*****";
+                }
+
 		y2milestone ("User = ", Dumper(\%user));
-		$user{"userPassword"} = $save_passwd;
+
+		# restore
+		for my $pw (keys %saved_passwords) {
+		    $user{$pw} = $saved_passwords{$pw};
+		}
 	    }
 	}
     }
