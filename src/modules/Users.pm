@@ -5959,6 +5959,14 @@ sub ImportUser {
 	$ret{"shadowLastChange"} eq "") {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
+
+    # AutoYaST-imported users don't go through AddUser(). This means we have
+    # to replicate some of that logic here:
+    #
+    #   - don't copy skel files for system users (bsc#1130158)
+    #
+    $ret{no_skeleton} ||= 1 if $ret{type} eq "system";
+
     return \%ret;
 }
 
