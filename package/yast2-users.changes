@@ -1,4 +1,3 @@
--------------------------------------------------------------------
 Mon Oct 29 13:06:39 UTC 2018 - snwint@suse.com
 
 - Fix import of RootPassword if user is specified in autoyast
