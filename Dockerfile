@@ -1,6 +1,4 @@
 FROM yastdevel/cpp:sle12-sp5
-
-
 RUN zypper --non-interactive in --force-resolution --no-recommends \
   cracklib-devel \
   perl-Digest-SHA1 \
