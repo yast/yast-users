@@ -16,6 +16,7 @@ X-SuSE-YaST-AutoInstClonable=true
 X-SuSE-YaST-AutoInstMerge=users,groups,user_defaults,login_settings
 X-SuSE-YaST-AutoInstMergeTypes=list,list,map,map
 X-SuSE-YaST-AutoInstRequires=security
+X-SuSE-YaST-AutoInstResource=users
 X-SuSE-YaST-AutoInstSchema=users.rnc
 X-SuSE-YaST-Keywords=user,group,authentication,login,password
 
