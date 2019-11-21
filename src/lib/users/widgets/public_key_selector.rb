@@ -25,6 +25,7 @@ require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
 
+Yast.import "Arch"
 Yast.import "Label"
 Yast.import "UI"
 Yast.import "UsersSimple"
@@ -153,15 +154,20 @@ module Y2Users
       #
       # @return [Yast::Term]
       def blk_device_selector
-        VBox(
-          Left(
-            HBox(
-              blk_devices_combo_box,
-              PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton)
-            )
-          ),
+        # no block devices in WSL
+        if Yast::Arch.is_wsl
           Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton))
-        )
+        else
+          VBox(
+            Left(
+              HBox(
+                blk_devices_combo_box,
+                PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton)
+              )
+            ),
+            Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton))
+          )
+        end
       end
 
       # UI which shows the public key content
@@ -234,6 +240,9 @@ module Y2Users
       #
       # @return [String] Key content
       def read_key
+        # /mnt has windows drives mounted by default
+        return read_key_from("/mnt") if Yast::Arch.is_wsl
+
         select_blk_device
         dir = Dir.mktmpdir
         begin
