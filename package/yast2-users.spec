@@ -33,8 +33,8 @@ BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  perl-XML-Writer
 BuildRequires:  update-desktop-files
-# UI::Widgets
-BuildRequires:  yast2 >= 3.2.8
+# CFA::ShadowConfig
+BuildRequires:  yast2 >= 4.2.39
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 4.2.2
 BuildRequires:  yast2-perl-bindings
@@ -59,8 +59,8 @@ Requires:       yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with correct LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
-# ProductFeatures::GetBooleanFeatureWithFallback
-Requires:       yast2 >= 4.1.35
+# CFA::ShadowConfig
+Requires:       yast2 >= 4.2.39
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 
