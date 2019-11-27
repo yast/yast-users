@@ -237,6 +237,7 @@ YaST::YCP::Import ("Popup");
 YaST::YCP::Import ("ProductFeatures");
 YaST::YCP::Import ("Progress");
 YaST::YCP::Import ("Report");
+YaST::YCP::Import ("ShadowConfig");
 YaST::YCP::Import ("Security");
 YaST::YCP::Import ("Service");
 YaST::YCP::Import ("Stage");
@@ -1339,7 +1340,7 @@ sub ReadSystemDefaults {
     $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
 
     # command to call after adding group
-    $groupadd_cmd 	= SCR->Read (".etc.login_defs.GROUPADD_CMD") || "";
+    $groupadd_cmd       = ShadowConfig->fetch("GROUPADD_CMD") || "";
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     UsersSimple->SetEncryptionMethod ($encryption_method);
@@ -1354,9 +1355,8 @@ sub ReadSystemDefaults {
 	UsersSimple->SetMinPasswordLength ("system", $security{"PASS_MIN_LEN"});
     }
 
-    my $login_defs	= SCR->Dir (".etc.login_defs");
-    if (contains ($login_defs, "CHARACTER_CLASS")) {
-	$character_class= SCR->Read (".etc.login_defs.CHARACTER_CLASS");
+    $character_class = ShadowConfig->fetch("CHARACTER_CLASS");
+    if ($character_class) {
         UsersSimple->SetCharacterClass ($character_class);
     }
 
