@@ -130,7 +130,7 @@ module Yast
     # --------------------------------- cmd-line handlers for users ------------
 
     # List users
-    # @return [Boolean] false
+    # @return [Boolean] true
     def UsersListHandler(options)
       options = deep_copy(options)
       sets = []
@@ -189,7 +189,7 @@ module Yast
           CommandLine.Print(out)
         end
       end
-      false # do not call Write...
+      true
     end
 
     # Show one user information
@@ -273,7 +273,7 @@ module Yast
         CommandLine.Print(Builtins.sformat("%1\n\t%2", key, svalue))
       end
 
-      false # do not call Write...
+      true
     end
 
     # Add user

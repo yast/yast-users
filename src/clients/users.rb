@@ -119,14 +119,16 @@ module Yast
             # help text for unknown parameter name
             "non_strict_help" => _(
               "User parameters that should be listed"
-            )
+            ),
+            "readonly"        => true
           },
           "show"   => {
-            "handler" => fun_ref(method(:UserShowHandler), "boolean (map)"),
+            "handler"  => fun_ref(method(:UserShowHandler), "boolean (map)"),
             # translators: command line help text for show action
-            "help"    => _(
+            "help"     => _(
               "Show information of selected user"
-            )
+            ),
+            "readonly" => true
           },
           "add"    => {
             "handler"         => fun_ref(
