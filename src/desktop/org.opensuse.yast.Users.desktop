@@ -19,6 +19,7 @@ X-SuSE-YaST-AutoInstRequires=security
 X-SuSE-YaST-AutoInstResource=users
 X-SuSE-YaST-AutoInstSchema=users.rnc
 X-SuSE-YaST-Keywords=user,group,authentication,login,password
+X-SuSE-YaST-WSL=true
 
 Icon=yast-users
 Exec=xdg-su -c "/sbin/yast2 users"
