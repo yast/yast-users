@@ -24,6 +24,7 @@ require "users/widgets/inst_root_first"
 
 Yast.import "Mode"
 Yast.import "UsersSimple"
+Yast.import "Popup"
 
 module Yast
   # This library provides a simple dialog for setting new password for the
@@ -50,6 +51,11 @@ module Yast
     # Returns a UI widget-set for the dialog
     def contents
       VBox(Y2Users::Widgets::InstRootFirst.new)
+    end
+
+    # Request confirmation for aborthing the dialog
+    def abort_handler
+      Yast::Popup.ConfirmAbort(:painless)
     end
 
   private

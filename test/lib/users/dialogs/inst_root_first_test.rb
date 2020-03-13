@@ -41,4 +41,11 @@ describe Yast::InstRootFirstDialog do
       end
     end
   end
+
+  describe "#abort_handler" do
+    it "requests confirmation for aborting the process" do
+      expect(Yast::Popup).to receive(:ConfirmAbort)
+      subject.abort_handler
+    end
+  end
 end
