@@ -51,14 +51,15 @@ module Users
       when "users--root"
         UsersSimple.SkipRootPasswordDialog(false) # do not skip now...
         client = "inst_root_first"
-      when "users--user"
+      when "users" || "users--user"
         args["root_dialog_follows"] = false
         client = "inst_user_first"
       when "users--encryption"
         client = "users_encryption_method"
       else
-        raise "Unknown action id: #{id}"
+        raise "Unknown action id: #{param['chosen_id']}"
       end
+
       result = WFM.CallFunction(client, [args])
 
       Wizard.CloseDialog
