@@ -2,7 +2,8 @@
 Wed May 13 14:04:35 CEST 2020 - schubi@suse.de
 
 - AY proposal: Fixed crash. Showing user settings only because the
-  UI does not fit to the AY settings (bsc#1170815)
+  UI does not fit to the AY settings. The user cannot change these
+  settings anymore (bsc#1170815).
 - 4.2.11
 
 -------------------------------------------------------------------
