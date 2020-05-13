@@ -27,15 +27,24 @@ module Users
 
     def initialize
       Yast.import "Wizard"
+      Yast.import "Mode"
       textdomain "users"
     end
 
     def make_proposal(_attrs)
-      {
-        "preformatted_proposal" => HTML.List([users_proposal, root_proposal, encrypt_proposal]),
-        "language_changed"      => false,
-        "links"                 => ["users--user", "users--root", "users--encryption"]
-      }
+      if Mode.auto
+        {
+          "preformatted_proposal" => HTML.List([users_ay]),
+          "language_changed"      => false,
+          "links"                 => []
+        }
+      else
+        {
+          "preformatted_proposal" => HTML.List([users_proposal, root_proposal, encrypt_proposal]),
+          "language_changed"      => false,
+          "links"                 => ["users--user", "users--root", "users--encryption"]
+        }
+      end
     end
 
     def ask_user(param)
@@ -69,22 +78,36 @@ module Users
     end
 
     def description
-      {
-        "id"              => "users",
-        # rich text label
-        "rich_text_title" => _("User Settings"),
-        "menu_titles"     => [
-          # menu button label
+      menu = []
+      id = ""
+
+      if !Mode.auto
+        menu = [ # menu button label
           { "id" => "users--user", "title" => _("&User") },
           # menu button label
           { "id" => "users--root", "title" => _("&Root Password") },
           # menu button label
-          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }
-        ]
+          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }]
+        id = "users"
+      end
+
+      {
+        "id"              => id,
+        # rich text label
+        "rich_text_title" => _("User Settings"),
+        "menu_titles"     => menu
       }
     end
 
   private
+
+    def users_ay
+      export = Users.Export()
+      ret = _("Number of defined users/groups:")
+      ret += "<ul>\n<li>" + format(_("Users: %d"), export["users"].count()) + "</li>\n"
+      ret += "<li>" + format(_("Groups: %d"), export["groups"].count()) + "</li></ul>"
+      ret
+    end
 
     def root_proposal
       msg = if UsersSimple.GetRootPassword != ""
