@@ -4,9 +4,14 @@ default namespace = "http://www.suse.com/1.0/yast2ns"
 namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 namespace config = "http://www.suse.com/1.0/configns"
 
+include "common.rnc"
+
 login_settings = element login_settings {
-    element autologin_user { text }? & 
-    element password_less_login { BOOLEAN }? 
+  MAP,
+  (
+    element autologin_user { STRING }? &
+    element password_less_login { BOOLEAN }?
+  )
 }
 
 groups =
@@ -15,29 +20,35 @@ groups =
     gr_group*
   }
 gr_group = element group {
+  MAP,
+  (
     encrypted? &
-    element group_password { text }? &
-    element groupname      { text }? &
-    element userlist       { text }? &
-    element gid            { text }?
+    element group_password { STRING }? &
+    element groupname      { STRING }? &
+    element userlist       { STRING }? &
+    element gid            { STRING }?
+  )
 }
 
 user_defaults =
   element user_defaults {
-    expire? & 
-    ud_group? & 
-    ud_groups? & 
-    home? & 
-    inactive? & 
-    no_groups? &
-    shell? & 
-    skel? &
-    umask?
+    MAP,
+    (
+      expire? &
+      ud_group? &
+      ud_groups? &
+      home? &
+      inactive? &
+      no_groups? &
+      shell? &
+      skel? &
+      umask?
+    )
   }
 
 # by default, AutoYaST exports list entries as 'listentry'
 authorized_key =
-  element authorized_key { text } | element listentry { text }
+  element authorized_key { STRING } | element listentry { STRING }
 
 authorized_keys =
   element authorized_keys {
@@ -45,15 +56,17 @@ authorized_keys =
     authorized_key*
 }
 
-expire = element expire { text }
-ud_group = element group { text }
-ud_groups = element groups { text }
-inactive = element inactive { text }
+expire = element expire { STRING }
+ud_group = element group { STRING }
+ud_groups = element groups { STRING }
+inactive = element inactive { STRING }
 no_groups = element no_groups { BOOLEAN }
-shell = element shell { text }
-skel = element skel { text }
-umask = element umask { text }
+shell = element shell { STRING }
+skel = element skel { STRING }
+umask = element umask { STRING }
 user = element user {
+  MAP,
+  (
     encrypted? &
     fullname? &
     surname? &
@@ -69,27 +82,31 @@ user = element user {
     u_groups? &
     password_settings? &
     authorized_keys?
+  )
 }
 encrypted = element encrypted { BOOLEAN }
-fullname = element fullname { text }
-u_forename = element forename { text }
-surname = element surname { text }
-u_gid = element gid { text }
-home = element home { text }
+fullname = element fullname { STRING }
+u_forename = element forename { STRING }
+surname = element surname { STRING }
+u_gid = element gid { STRING }
+home = element home { STRING }
 home_btrfs_subvolume = element home_btrfs_subvolume { BOOLEAN }
-user_password = element user_password { text }
-username = element username { text }
-uid = element uid { text }
-u_group = element group { text }
-u_groups = element groups { text }
+user_password = element user_password { STRING }
+username = element username { STRING }
+uid = element uid { STRING }
+u_group = element group { STRING }
+u_groups = element groups { STRING }
 
 password_settings = element password_settings {
-    element expire { text }? &
-    element flag   { text }? &
-    element inact  { text }? &
-    element max    { text }? &
-    element min    { text }? &
-    element warn   { text }?
+  MAP,
+  (
+    element expire { STRING }? &
+    element flag   { STRING }? &
+    element inact  { STRING }? &
+    element max    { STRING }? &
+    element min    { STRING }? &
+    element warn   { STRING }?
+  )
 }
 
 users =
