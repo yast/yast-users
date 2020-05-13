@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed May 13 14:04:35 CEST 2020 - schubi@suse.de
+
+- AY proposal: Fixed crash. Showing user settings only because the
+  UI does not fit to the AY settings (bsc#1170815)
+- 4.2.11
+
+-------------------------------------------------------------------
 Thu Mar 12 19:35:07 UTC 2020 - Knut Anderssen <kanderssen@suse.com>
 
 - Request confirmation for aborting in the dialog for setting the
