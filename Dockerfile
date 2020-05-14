@@ -1,4 +1,4 @@
-FROM registry.opensuse.org/yast/sle-15/sp2/containers/yast-cpp
+FROM registry.opensuse.org/yast/head/containers/yast-cpp:latest
 RUN zypper --non-interactive in --force-resolution --no-recommends \
   cracklib-devel \
   perl-Digest-SHA1 \
