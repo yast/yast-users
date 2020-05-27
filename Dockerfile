@@ -6,6 +6,5 @@ RUN zypper --non-interactive in --force-resolution --no-recommends \
   yast2 \
   yast2-ldap \
   yast2-perl-bindings \
-  yast2-security \
-  yast2-testsuite
+  yast2-security
 COPY . /usr/src/app
