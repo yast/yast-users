@@ -31,7 +31,6 @@ BuildRequires:  doxygen
 BuildRequires:  gcc-c++
 BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
-BuildRequires:  perl-XML-Writer
 BuildRequires:  update-desktop-files
 # CLI readonly
 BuildRequires:  yast2 >= 4.2.57
