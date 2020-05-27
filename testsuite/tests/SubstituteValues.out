@@ -1,2 +1,0 @@
-Dump	$["cn":"%uid", "homeDirectory":"/home/%uid", "uid":"hh"]
-Return	$["cn":"hh", "homeDirectory":"/home/hh", "uid":"hh"]
