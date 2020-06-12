@@ -79,13 +79,11 @@ ylib_DATA = \
   lib/users/widgets.rb
 
 scrconf_DATA = \
-  scrconf/uid.scr \
   scrconf/etc_default_useradd.scr \
   scrconf/nis.scr
 
 agent_SCRIPTS = \
-  servers_non_y2/ag_nis \
-  servers_non_y2/ag_uid
+  servers_non_y2/ag_nis
 
 schemafilesdir = $(schemadir)/autoyast/rnc
 schemafiles_DATA = \
