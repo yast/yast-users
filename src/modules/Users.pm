@@ -6569,6 +6569,9 @@ BEGIN { $TYPEINFO{Export} = ["function",
 sub Export {
 
     my $self		= shift;
+    my $target		= shift;
+    $target = "default" if not defined $target;
+    my $export_system = ($target ne "compact");
     my @exported_users	= ();
     # local users when modified
     if (defined $users{"local"}) {
@@ -6580,7 +6583,7 @@ sub Export {
     }
 
     # modified system users:
-    if (defined $users{"system"}) {
+    if ($export_system && defined($users{"system"})) {
 	foreach my $user (values %{$users{"system"}}) {
             if ($export_all || defined $user->{"modified"}) {
 	        push @exported_users, $self->ExportUser ($user);
@@ -6599,7 +6602,7 @@ sub Export {
     }
 
     # modified system groups:
-    if (defined $groups{"system"}) {
+    if ($export_system && defined($groups{"system"})) {
 	foreach my $group (values %{$groups{"system"}}) {
             if ($export_all || defined $group->{"modified"}) {
 	        push @exported_groups, $self->ExportGroup ($group);

@@ -117,7 +117,8 @@ module Yast
           setup_all_users
         end
 
-        @ret = Users.Export
+        target = @param.fetch("target", "default")
+        @ret = Users.Export(target)
 
         if Stage.initial
           #Setting root password in the return value. We are in the inst_sys.
