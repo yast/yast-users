@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-require_relative "../../test_helper"
+require_relative "../../../test_helper"
 require "yaml"
 require "users/clients/auto"
 Yast.import "Report"
