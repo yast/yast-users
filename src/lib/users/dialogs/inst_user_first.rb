@@ -200,8 +200,8 @@ module Yast
         help += _(
           "<p>\nA previous Linux installation with local users has been detected.\n" \
           "The information there can be used to create users in the system being installed.\n" \
-          "Use the <b>Choose Users</b> button to select some users. Their basic information will\n" \
-          "be imported.\n</p>\n"
+          "Use the <b>Choose Users</b> button to select some users. Their basic information will" \
+          "\nbe imported.\n</p>\n"
         )
       end
 

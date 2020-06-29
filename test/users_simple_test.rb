@@ -70,7 +70,8 @@ describe Yast::UsersSimple do
     end
 
     it "returns non-empty string for invalid username" do
-      expect(users.CheckUsernameContents("abc; touch > /tmp/hacker.was.here; echo abc", "ldap")).to_not be_empty
+      expect(users.CheckUsernameContents("abc; touch > /tmp/hacker.was.here; echo abc", "ldap"))
+        .to_not be_empty
     end
   end
 

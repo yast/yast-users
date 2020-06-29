@@ -30,6 +30,7 @@ Yast.import "Wizard"
 
 module Y2Users
   module Clients
+    # AutoYaST users client
     class Auto < ::Installation::AutoClient
       def initialize
         textdomain "users"
@@ -71,7 +72,11 @@ module Y2Users
           # The root password has not been written but is only available in
           # UserSimple model. We have to set it manually.
           root = ret["users"].find { |u| u["uid"] == "0" }
-          root["user_password"] = Yast::Users.CryptPassword(Yast::UsersSimple.GetRootPassword, "system") if root
+          if root
+            root["user_password"] = Yast::Users.CryptPassword(
+              Yast::UsersSimple.GetRootPassword, "system"
+            )
+          end
         end
         Yast::Users.SetExportAll(false)
         ret

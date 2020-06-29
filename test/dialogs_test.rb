@@ -1,6 +1,6 @@
 require_relative "./test_helper"
 
-require "yast2/execute";
+require "yast2/execute"
 
 Yast.import "UI"
 
