@@ -58,28 +58,7 @@ module Y2Users
       end
 
       def export(target:)
-        if Yast::Stage.initial
-          # Importing all users/groups from the UI if we are
-          # in the installation workflow
-          Yast::Users.SetExportAll(true)
-          setup_all_users
-        end
-
-        ret = Yast::Users.Export(target.to_s)
-
-        if Yast::Stage.initial
-          # Setting root password in the return value. We are in the inst_sys.
-          # The root password has not been written but is only available in
-          # UserSimple model. We have to set it manually.
-          root = ret["users"].find { |u| u["uid"] == "0" }
-          if root
-            root["user_password"] = Yast::Users.CryptPassword(
-              Yast::UsersSimple.GetRootPassword, "system"
-            )
-          end
-        end
-        Yast::Users.SetExportAll(false)
-        ret
+        Yast::Users.Export(target.to_s)
       end
 
       def read
