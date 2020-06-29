@@ -6575,24 +6575,29 @@ sub Export {
     my @exported_users	= ();
     # local users when modified
     if (defined $users{"local"}) {
-	foreach my $user (values %{$users{"local"}}) {
-	    if ($export_all || defined $user->{"modified"}) {
-		push @exported_users, $self->ExportUser ($user);
-	    }
-	}
+      foreach my $user (values %{$users{"local"}}) {
+        if ($export_all || defined $user->{"modified"}) {
+          push @exported_users, $self->ExportUser ($user);
+        }
+      }
     }
 
     # modified system users:
-    if ($export_system && defined($users{"system"})) {
-	foreach my $user (values %{$users{"system"}}) {
-            if ($export_all || defined $user->{"modified"}) {
-	        push @exported_users, $self->ExportUser ($user);
-	    }
-	}
+    if (defined($users{"system"})) {
+      if ($export_system) {
+        foreach my $user (values %{$users{"system"}}) {
+          if ($export_all || defined $user->{"modified"}) {
+            push @exported_users, $self->ExportUser ($user);
+          }
+        }
+      } else {
+        push @exported_users, $self->ExportUser($users{"system"}{"root"});
+      }
     }
 
     my @exported_groups	= ();
     # modified local system groups:
+
     if (defined $groups{"local"}) {
 	foreach my $group (values %{$groups{"local"}}) {
 	    if ($export_all || defined $group->{"modified"}) {

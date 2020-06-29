@@ -52,12 +52,13 @@ describe "Users" do
     let(:system_user) { { "username" => "messagebus", "uid" => "499" } }
 
     let(:local_group) { { "groupname" => "devops", "gid" => "1000" } }
-    let(:system_group) { { "groupname" => "users", "gid" => "100" } }
+    let(:users_group) { { "groupname" => "users", "gid" => "100" } }
+    let(:system_group) { { "groupname" => "messagebus", "gid" => "480" } }
 
     before do
       Yast::Users.Import(
         "users"          => [root_user, local_user, system_user],
-        "groups"         => [local_group, system_group],
+        "groups"         => [users_group, local_group, system_group],
         "login_settings" => { "autologin_user" => "root", "password_less_login" => true },
         "user_defaults"  => { "group" => "100", "home" => "/srv/Users" }
       )
@@ -65,7 +66,7 @@ describe "Users" do
 
     it "exports users" do
       exported = subject.Export
-      expect(exported["users"]).to include(
+      expect(exported["users"]).to contain_exactly(
         a_hash_including(root_user),
         a_hash_including(local_user),
         a_hash_including(system_user)
@@ -74,7 +75,8 @@ describe "Users" do
 
     it "exports groups" do
       exported = subject.Export
-      expect(exported["groups"]).to include(
+      expect(exported["groups"]).to contain_exactly(
+        a_hash_including(users_group),
         a_hash_including(local_group),
         a_hash_including(system_group)
       )
@@ -90,6 +92,24 @@ describe "Users" do
     it "exports user defaults" do
       exported = subject.Export
       expect(exported["user_defaults"]).to include("home" => "/srv/Users")
+    end
+
+    context "when 'compact' target is required" do
+      it "exports 'root' and local users" do
+        exported = subject.Export("compact")
+        expect(exported["users"]).to contain_exactly(
+          a_hash_including(root_user),
+          a_hash_including(local_user)
+        )
+      end
+
+      it "exports 'users' and local groups" do
+        exported = subject.Export("compact")
+        expect(exported["groups"]).to contain_exactly(
+          a_hash_including(users_group),
+          a_hash_including(local_group)
+        )
+      end
     end
   end
 end
