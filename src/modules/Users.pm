@@ -6564,7 +6564,7 @@ sub ExportGroup {
 # (For use by autoinstallation.)
 # @return map Dumped settings (later acceptable by Import ())
 BEGIN { $TYPEINFO{Export} = ["function",
-    ["map", "string", "any"]];
+    ["map", "string", "any"], "string"];
 }
 sub Export {
 
