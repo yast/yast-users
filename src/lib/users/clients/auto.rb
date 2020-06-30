@@ -71,13 +71,13 @@ module Y2Users
 
       # @note This code is not executed during autoinstallation (instead, the
       # users_finish is used). However, it is used when running ayast_setup.
+      #
+      # @return [Boolean] true if configuration was changed; false otherwise.
       def write
         Yast::Users.SetWriteOnly(true)
         progress_orig = Yast::Progress.set(false)
         ret = Yast::Users.Write == ""
         Yast::Progress.set(progress_orig)
-        # Return if configuration  was changed
-        # return boolean
         ret
       end
 
