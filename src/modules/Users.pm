@@ -6584,14 +6584,12 @@ sub Export {
 
     # modified system users:
     if (defined($users{"system"})) {
-      if ($export_system) {
-        foreach my $user (values %{$users{"system"}}) {
-          if ($export_all || defined $user->{"modified"}) {
+      foreach my $user (values %{$users{"system"}}) {
+        if ($export_all || defined $user->{"modified"}) {
+          if ($export_system || $user->{"uid"} eq "root") {
             push @exported_users, $self->ExportUser ($user);
           }
         }
-      } else {
-        push @exported_users, $self->ExportUser($users{"system"}{"root"});
       }
     }
 
