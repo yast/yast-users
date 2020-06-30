@@ -6564,32 +6564,38 @@ sub ExportGroup {
 # (For use by autoinstallation.)
 # @return map Dumped settings (later acceptable by Import ())
 BEGIN { $TYPEINFO{Export} = ["function",
-    ["map", "string", "any"]];
+    ["map", "string", "any"], "string"];
 }
 sub Export {
 
     my $self		= shift;
+    my $target		= shift;
+    $target = "default" if not defined $target;
+    my $export_system = ($target ne "compact");
     my @exported_users	= ();
     # local users when modified
     if (defined $users{"local"}) {
-	foreach my $user (values %{$users{"local"}}) {
-	    if ($export_all || defined $user->{"modified"}) {
-		push @exported_users, $self->ExportUser ($user);
-	    }
-	}
+      foreach my $user (values %{$users{"local"}}) {
+        if ($export_all || defined $user->{"modified"}) {
+          push @exported_users, $self->ExportUser ($user);
+        }
+      }
     }
 
     # modified system users:
-    if (defined $users{"system"}) {
-	foreach my $user (values %{$users{"system"}}) {
-            if ($export_all || defined $user->{"modified"}) {
-	        push @exported_users, $self->ExportUser ($user);
-	    }
-	}
+    if (defined($users{"system"})) {
+      foreach my $user (values %{$users{"system"}}) {
+        if ($export_all || defined $user->{"modified"}) {
+          if ($export_system || $user->{"uid"} eq "root") {
+            push @exported_users, $self->ExportUser ($user);
+          }
+        }
+      }
     }
 
     my @exported_groups	= ();
     # modified local system groups:
+
     if (defined $groups{"local"}) {
 	foreach my $group (values %{$groups{"local"}}) {
 	    if ($export_all || defined $group->{"modified"}) {
@@ -6599,7 +6605,7 @@ sub Export {
     }
 
     # modified system groups:
-    if (defined $groups{"system"}) {
+    if ($export_system && defined($groups{"system"})) {
 	foreach my $group (values %{$groups{"system"}}) {
             if ($export_all || defined $group->{"modified"}) {
 	        push @exported_groups, $self->ExportGroup ($group);

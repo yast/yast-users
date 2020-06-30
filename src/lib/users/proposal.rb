@@ -66,7 +66,7 @@ module Users
       when "users--encryption"
         client = "users_encryption_method"
       else
-        raise "Unknown action id: #{param['chosen_id']}"
+        raise "Unknown action id: #{param["chosen_id"]}"
       end
 
       result = WFM.CallFunction(client, [args])
@@ -87,7 +87,8 @@ module Users
           # menu button label
           { "id" => "users--root", "title" => _("&Root Password") },
           # menu button label
-          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }]
+          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }
+        ]
         id = "users"
       end
 
@@ -104,8 +105,8 @@ module Users
     def users_ay
       export = Users.Export()
       ret = _("Number of defined users/groups:")
-      ret += "<ul>\n<li>" + format(_("Users: %d"), export["users"].count()) + "</li>\n"
-      ret += "<li>" + format(_("Groups: %d"), export["groups"].count()) + "</li></ul>"
+      ret += "<ul>\n<li>" + format(_("Users: %d"), export["users"].count) + "</li>\n"
+      ret += "<li>" + format(_("Groups: %d"), export["groups"].count) + "</li></ul>"
       ret
     end
 

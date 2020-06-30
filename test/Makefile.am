@@ -6,6 +6,7 @@ TESTS = \
   lib/users/users_database_test.rb \
   lib/users/leaf_blk_device_test.rb \
   lib/users/ssh_public_key_test.rb \
+  lib/users/clients/auto_test.rb \
   lib/users/dialogs/inst_root_first_test.rb \
   lib/users/dialogs/inst_user_first_test.rb \
   lib/users/widgets/inst_root_first_test.rb \
@@ -13,7 +14,6 @@ TESTS = \
   dialogs_test.rb \
   ssh_authorized_keys_test.rb \
   users_test.rb \
-  users_auto_test.rb \
   users_finish_test.rb \
   users_simple_test.rb \
   widgets_test.rb

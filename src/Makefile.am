@@ -38,6 +38,7 @@ client_DATA = \
 
 ylibclientdir = @ylibdir@/users/clients
 ylibclient_DATA = \
+  lib/users/clients/auto.rb \
   lib/users/clients/users_finish.rb
 
 yncludedir = @yncludedir@/users
