@@ -88,7 +88,7 @@ sub kadmin_path {
     my $path = "/usr/sbin/kadmin.local";
     my $old_path = "/usr/lib/mit/sbin/kadmin.local";
 
-    return SCR->Execute (".target.stat", $path) ? $path : $old_path;
+    return -x $path ? $path : $old_path;
 }
 
 ##------------------------------------------
