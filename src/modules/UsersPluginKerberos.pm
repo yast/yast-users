@@ -79,6 +79,18 @@ sub contains {
     return 0;
 }
 
+# internal function:
+# check the path of kadmin.local binary
+#
+# Note that the lastest kbr5 package provides the kadmin.local binary at /usr/sbin,
+# but older kbr5 uses /usr/lib/mit/sbin path.
+sub kadmin_path {
+    my $path = "/usr/sbin/kadmin.local";
+    my $old_path = "/usr/lib/mit/sbin/kadmin.local";
+
+    return SCR->Execute (".target.stat", $path) ? $path : $old_path;
+}
+
 ##------------------------------------------
 ##--------------------- global API functions
 
@@ -150,7 +162,7 @@ sub PluginPresent {
 	y2debug ("Kerberos plugin not present");
 	return 0;
     }
-    my $out	= SCR->Execute (".target.bash_output", "/usr/lib/mit/sbin/kadmin.local -nq 'list_principals ".String->Quote("".$data->{uid})."*' | /usr/bin/grep '".String->Quote("".$data->{uid})."*'");
+    my $out	= SCR->Execute (".target.bash_output", "${\kadmin_path()} -nq 'list_principals ".String->Quote("".$data->{uid})."*' | /usr/bin/grep '".String->Quote("".$data->{uid})."*'");
     if ($out->{"stdout"} =~ /^$data->{uid}/ ) {
 	y2milestone ("Kerberos plugin present");
 	return 1;
@@ -240,7 +252,7 @@ BEGIN { $TYPEINFO{Write} = ["function", "boolean", "any", "any"];}
 sub Write {
 
     my ($self, $config, $data)  = @_;
-    my $command = '/usr/lib/mit/sbin/kadmin.local';
+    my $command = kadmin_path();
     my $input = "";
 
     #y2milestone(Dumper($data));
