@@ -46,8 +46,8 @@ Requires:       perl-X500-DN
 Requires:       perl-gettext
 Requires:       yast2-country
 
-# Autologin.supported?
-Requires:       yast2-pam >= 4.2.0
+# CFA::Nsswitch
+Requires:       yast2-pam >= 4.3.0
 
 Requires:       yast2-security
 
