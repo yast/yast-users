@@ -5752,13 +5752,11 @@ BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
 sub ReadNISAvailable {
 
     my $passwd_source = Nsswitch->ReadDb ("passwd");
-    if (@$passwd_source) {
-      foreach my $source (@$passwd_source) {
-        if ($source eq "nis" || $source eq "compat") {
-          return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
-        }
-      }
+
+    if ( grep ( /^nis|compat$/, @$passwd_source ) ) {
+      return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
     }
+
     return 0;
 }
 ##-------------------------------------------------------------------------
