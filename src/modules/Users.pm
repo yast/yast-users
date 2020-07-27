@@ -5753,7 +5753,7 @@ sub ReadNISAvailable {
 
     my $passwd_source = Nsswitch->ReadDb ("passwd");
 
-    if ( grep ( /^nis|compat$/, @$passwd_source ) ) {
+    if ( grep ( /^(nis|compat)$/, @$passwd_source ) ) {
       return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
     }
 
