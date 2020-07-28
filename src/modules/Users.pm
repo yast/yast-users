@@ -251,6 +251,7 @@ YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersSimple");
 YaST::YCP::Import ("UsersUI");
 YaST::YCP::Import ("SSHAuthorizedKeys");
+YaST::YCP::Import ("Nsswitch");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
@@ -5750,15 +5751,12 @@ sub ReadNISMaster {
 BEGIN { $TYPEINFO{ReadNISAvailable} = ["function", "boolean"];}
 sub ReadNISAvailable {
 
-    my $passwd_source = SCR->Read (".etc.nsswitch_conf.passwd");
-    if (defined $passwd_source) {
-	foreach my $source (split (/ /, $passwd_source)) {
+    my $passwd_source = Nsswitch->ReadDb ("passwd");
 
-	    if ($source eq "nis" || $source eq "compat") {
-		return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
-	    }
-	}
+    if ( grep ( /^(nis|compat)$/, @$passwd_source ) ) {
+      return (Package->Installed ("ypbind") && Service->Status ("ypbind") == 0);
     }
+
     return 0;
 }
 ##-------------------------------------------------------------------------
