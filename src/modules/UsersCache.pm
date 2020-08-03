@@ -29,6 +29,7 @@ use strict;
 
 use YaST::YCP qw(:LOGGING);
 use YaPI;
+use User::pwent;
 
 textdomain ("users");
 
@@ -232,9 +233,15 @@ sub CustomizedGroupsView {
 
 ##------------------------------------
 sub UIDConflicts {
+    my $id = $_[0];
 
-    my $ret = SCR->Read (".uid.uid", $_[0]);
-    return !$ret;
+    my $pw = getpwuid($id);
+    if (defined $pw) {
+        my $name = $pw->name;
+        y2debug ("$id is UID of user $name");
+        return 1;
+    }
+    return 0;
 }
  
 ##------------------------------------
@@ -273,9 +280,15 @@ sub UIDExists {
 }
 
 sub UsernameConflicts {
+    my $username = $_[0];
 
-    my $ret = SCR->Read (".uid.username", $_[0]);
-    return !$ret;
+    my $pw = getpwnam($username);
+    if (defined $pw) {
+        my $uid = $pw->uid;
+        y2debug ("$username is used with uid $uid");
+        return 1;
+    }
+    return 0;
 }
 
 ##------------------------------------
