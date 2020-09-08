@@ -68,7 +68,7 @@ Conflicts:      autoyast2 < 3.1.92
 # older storage uses removed deprecated method, see https://github.com/yast/yast-storage/pull/187
 Conflicts:      yast2-storage < 3.1.75
 
-Supplements:    autoyast(users%2Cgroups%2Cuser_defaults%2Clogin_settings)
+Supplements:    autoyast(users:groups:user_defaults:login_settings)
 
 %description
 This package provides GUI for maintenance of linux users and groups.
