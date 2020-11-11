@@ -158,6 +158,12 @@ module Y2Users
         if Yast::Arch.is_wsl
           Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton))
         else
+          browser_button_opt = if available_blk_devices.empty?
+            Opt(:notify, :disabled)
+          else
+            Opt(:notify)
+          end
+
           VBox(
             Left(
               HBox(
@@ -165,7 +171,7 @@ module Y2Users
                 PushButton(Id(:refresh), Opt(:notify), Yast::Label.RefreshButton)
               )
             ),
-            Left(PushButton(Id(:browse), Opt(:notify), Yast::Label.BrowseButton))
+            Left(PushButton(Id(:browse), browser_button_opt, Yast::Label.BrowseButton))
           )
         end
       end
