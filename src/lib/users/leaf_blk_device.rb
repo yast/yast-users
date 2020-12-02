@@ -95,7 +95,7 @@ module Y2Users
     # @param fstype    [Symbol]  Filesystem type
     def initialize(name:, disk:, model:, fstype: nil)
       @name = name
-      @model = model
+      @model = model.strip if model
       @disk = disk
       @fstype = fstype.to_sym if fstype
     end

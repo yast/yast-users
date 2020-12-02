@@ -207,7 +207,8 @@ module Y2Users
       # @return [Yast::Term]
       def blk_devices_combo_box
         options = available_blk_devices.map do |dev|
-          Item(Id(dev.name), "#{dev.model} (#{dev.name})", dev.name == selected_blk_device_name)
+          label = dev.model ? "#{dev.model.strip} (#{dev.name})" : dev.name
+          Item(Id(dev.name), label, dev.name == selected_blk_device_name)
         end
         ComboBox(Id(:blk_device), Opt(:hstretch), "", options)
       end
