@@ -49,7 +49,7 @@ module Y2Users
         parent = find_root_device(hash)
         new(
           name: hash["name"], disk: parent["name"], model: parent["model"],
-          transport: parent["tran"], fstype: hash["fstype"]
+          fstype: hash["fstype"]
         )
       end
 
@@ -61,7 +61,7 @@ module Y2Users
       def lsblk
         output = Yast::Execute.locally(
           "/usr/bin/lsblk", "--inverse", "--json", "--paths",
-          "--output", "NAME,TRAN,FSTYPE,MODEL", stdout: :capture
+          "--output", "NAME,FSTYPE,MODEL", stdout: :capture
         )
         return { "blockdevices" => [] } if output.nil?
         JSON.parse(output)
@@ -84,9 +84,6 @@ module Y2Users
     # @return [String] Disk's kernel name
     attr_reader :disk
 
-    # @return [Symbol] Disk's transport (:usb, :ata, etc.)
-    attr_reader :transport
-
     # @return [Symbol] Filesystem type
     attr_reader :fstype
 
@@ -95,13 +92,11 @@ module Y2Users
     # @param name      [String]  Kernel name
     # @param disk      [String]  Disk's kernel name
     # @param model     [String]  Hardware model
-    # @param transport [symbol]  Transport
     # @param fstype    [Symbol]  Filesystem type
-    def initialize(name:, disk:, model:, transport: nil, fstype: nil)
+    def initialize(name:, disk:, model:, fstype: nil)
       @name = name
       @model = model
       @disk = disk
-      @transport = transport.to_sym if transport
       @fstype = fstype.to_sym if fstype
     end
 
@@ -110,13 +105,6 @@ module Y2Users
     # @return [Boolean]
     def filesystem?
       !!fstype
-    end
-
-    # Determines whether the device has a transport
-    #
-    # @return [Boolean]
-    def transport?
-      !!transport
     end
   end
 end
