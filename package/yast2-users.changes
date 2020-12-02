@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Dec  2 10:41:55 UTC 2020 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
+
+- In the public key selector, do not filter devices with no
+  transport (bsc#1178509).
+- 4.2.12
+
+-------------------------------------------------------------------
 Wed May 13 14:04:35 CEST 2020 - schubi@suse.de
 
 - AY proposal: Fixed crash. Showing user settings only because the
