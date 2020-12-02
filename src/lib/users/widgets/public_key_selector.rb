@@ -207,12 +207,13 @@ module Y2Users
       # @return [Yast::Term]
       def blk_devices_combo_box
         options = available_blk_devices.map do |dev|
-          label = dev.model ? "#{dev.model.strip} (#{dev.name})" : dev.name
+          label = dev.model ? "#{dev.model} (#{dev.name})" : dev.name
           Item(Id(dev.name), label, dev.name == selected_blk_device_name)
         end
         ComboBox(Id(:blk_device), Opt(:hstretch), "", options)
       end
 
+      EXCLUDED_FSTYPES = [:squashfs, :swap].freeze
       # Returns a list of devices that can be selected
       #
       # Only the devices that meet the following conditions are considered:
@@ -227,7 +228,7 @@ module Y2Users
       # @return [Array<LeafBlkDevice>] List of devices
       def available_blk_devices
         @available_blk_devices ||= LeafBlkDevice.all.select do |dev|
-          dev.filesystem? && dev.fstype != :squashfs
+          dev.filesystem? && !EXCLUDED_FSTYPES.include?(dev.fstype)
         end
       end
 

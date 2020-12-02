@@ -39,7 +39,7 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#contents" do
-    let(:blk_devices) { [usb_with_fs, usb_no_fs, squashfs] }
+    let(:blk_devices) { [usb_with_fs, usb_no_fs, squashfs, swap] }
 
     let(:usb_with_fs) do
       Y2Users::LeafBlkDevice.new(
@@ -56,6 +56,12 @@ describe Y2Users::Widgets::PublicKeySelector do
     let(:squashfs) do
       Y2Users::LeafBlkDevice.new(
         name: "/dev/loop0", model: "MyBrand 4G", disk: "/dev/loop0", fstype: :squashfs
+      )
+    end
+
+    let(:swap) do
+      Y2Users::LeafBlkDevice.new(
+        name: "/dev/sda1", model: nil, disk: "/dev/sda", fstype: :swap
       )
     end
 
@@ -76,6 +82,10 @@ describe Y2Users::Widgets::PublicKeySelector do
 
       it "does not include devices which has a squashfs filesystem" do
         expect(widget.contents.to_s).to_not include("/dev/loop0")
+      end
+
+      it "does not include swap devices" do
+        expect(widget.contents.to_s).to_not include("/dev/sda1")
       end
 
       context "when a key is selected" do
