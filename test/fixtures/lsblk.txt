@@ -1,16 +1,17 @@
 {
    "blockdevices": [
-      {"name": "/dev/sda1", "tran": null, "fstype": "vfat", "rm": "0", "model": null,
+      {"name": "/dev/sda1", "fstype": "vfat", "model": null,
          "children": [
-            {"name": "/dev/sda", "tran": "sata", "fstype": null, "rm": "0", "model": "WDC WD10EZEX-75M"}
+            {"name": "/dev/sda", "fstype": null, "model": "WDC WD10EZEX-75M"}
          ]
       },
-      {"name": "/dev/sda2", "tran": null, "fstype": "ext4", "rm": "0", "model": null,
+      {"name": "/dev/sda2", "fstype": "ext4", "model": null,
          "children": [
-            {"name": "/dev/sda", "tran": "sata", "fstype": null, "rm": "0", "model": "WDC WD10EZEX-75M"}
+            {"name": "/dev/sda", "fstype": null, "model": "WDC WD10EZEX-75M"}
          ]
       },
-      {"name": "/dev/sr0", "tran": "sata", "fstype": null, "rm": "1", "model": "DVD-ROM DS-8DBSH"},
-      {"name": "/dev/sr1", "tran": "usb", "fstype": "iso9660", "rm": "1", "model": "File-CD Gadget  "}
+      {"name": "/dev/sr0", "fstype": null, "model": "DVD-ROM DS-8DBSH"},
+      {"name": "/dev/sr1", "fstype": "iso9660", "model": "File-CD Gadget  "},
+      {"name": "/dev/loop0", "fstype": "squashfs", "model": null}
    ]
 }
