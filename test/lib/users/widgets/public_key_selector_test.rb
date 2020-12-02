@@ -39,33 +39,23 @@ describe Y2Users::Widgets::PublicKeySelector do
   end
 
   describe "#contents" do
-    let(:blk_devices) { [usb_with_fs, usb_no_fs, squashfs, no_transport] }
+    let(:blk_devices) { [usb_with_fs, usb_no_fs, squashfs] }
 
     let(:usb_with_fs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", transport: :usb,
-        fstype: :vfat
+        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: :vfat
       )
     end
 
     let(:usb_no_fs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", transport: :usb,
-        fstype: nil
+        name: "/dev/sdc1", model: "MyBrand 4G", disk: "/dev/sdc", fstype: nil
       )
     end
 
     let(:squashfs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/some", model: "MyBrand 4G", disk: "/dev/sdc", transport: :unknown,
-        fstype: :squashfs
-      )
-    end
-
-    let(:no_transport) do
-      Y2Users::LeafBlkDevice.new(
-        name: "/dev/loop1", model: "MyBrand 8G", disk: "/dev/sdb", transport: nil,
-        fstype: :unknown
+        name: "/dev/some", model: "MyBrand 4G", disk: "/dev/sdc", fstype: :squashfs
       )
     end
 
@@ -85,10 +75,6 @@ describe Y2Users::Widgets::PublicKeySelector do
       end
 
       it "does not include devices which has a squashfs filesystem" do
-        expect(widget.contents.to_s).to_not include("/dev/loop1")
-      end
-
-      it "does not include devices which does not have a transport" do
         expect(widget.contents.to_s).to_not include("/dev/loop1")
       end
 
