@@ -36,7 +36,8 @@ describe Y2Users::LeafBlkDevice do
         an_object_having_attributes(name: "/dev/sda1", fstype: :vfat),
         an_object_having_attributes(name: "/dev/sda2", fstype: :ext4),
         an_object_having_attributes(name: "/dev/sr0", fstype: nil),
-        an_object_having_attributes(name: "/dev/sr1", fstype: :iso9660)
+        an_object_having_attributes(name: "/dev/sr1", fstype: :iso9660),
+        an_object_having_attributes(name: "/dev/loop0", fstype: :squashfs)
       )
     end
 
@@ -71,31 +72,6 @@ describe Y2Users::LeafBlkDevice do
 
       it "returns false" do
         expect(subject.filesystem?).to eq(false)
-      end
-    end
-  end
-
-  describe "#transport?" do
-    subject do
-      Y2Users::LeafBlkDevice.new(
-        name: "/dev/sdb1", model: "MyBrand 8G", disk: "/dev/sdb", fstype: "ext4",
-        transport: transport
-      )
-    end
-
-    context "when the device has a transport" do
-      let(:transport) { "usb" }
-
-      it "returns true" do
-        expect(subject.transport?).to eq(true)
-      end
-    end
-
-    context "when the device does not have a transport" do
-      let(:transport) { nil }
-
-      it "returns false" do
-        expect(subject.transport?).to eq(false)
       end
     end
   end
