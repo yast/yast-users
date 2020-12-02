@@ -55,7 +55,7 @@ describe Y2Users::Widgets::PublicKeySelector do
 
     let(:squashfs) do
       Y2Users::LeafBlkDevice.new(
-        name: "/dev/some", model: "MyBrand 4G", disk: "/dev/sdc", fstype: :squashfs
+        name: "/dev/loop0", model: "MyBrand 4G", disk: "/dev/loop0", fstype: :squashfs
       )
     end
 
@@ -75,7 +75,7 @@ describe Y2Users::Widgets::PublicKeySelector do
       end
 
       it "does not include devices which has a squashfs filesystem" do
-        expect(widget.contents.to_s).to_not include("/dev/loop1")
+        expect(widget.contents.to_s).to_not include("/dev/loop0")
       end
 
       context "when a key is selected" do

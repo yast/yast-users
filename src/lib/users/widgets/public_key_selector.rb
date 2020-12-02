@@ -226,7 +226,7 @@ module Y2Users
       # @return [Array<LeafBlkDevice>] List of devices
       def available_blk_devices
         @available_blk_devices ||= LeafBlkDevice.all.select do |dev|
-          dev.filesystem? && dev.fstype != :squash
+          dev.filesystem? && dev.fstype != :squashfs
         end
       end
 
