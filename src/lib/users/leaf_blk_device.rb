@@ -61,7 +61,7 @@ module Y2Users
       def lsblk
         output = Yast::Execute.locally(
           "/usr/bin/lsblk", "--inverse", "--json", "--paths",
-          "--output", "NAME,TRAN,FSTYPE,MODEL", stdout: :capture
+          "--output", "NAME,FSTYPE,MODEL", stdout: :capture
         )
         return { "blockdevices" => [] } if output.nil?
         JSON.parse(output)
