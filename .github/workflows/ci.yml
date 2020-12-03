@@ -7,7 +7,7 @@ on: [push, pull_request]
 jobs:
   Tests:
     runs-on: ubuntu-latest
-    container: registry.opensuse.org/yast/head/containers/yast-cpp:latest
+    container: registry.opensuse.org/yast/head/containers/yast-ruby:latest
 
     steps:
 
@@ -53,7 +53,13 @@ jobs:
 
     - name: Prepare System
       run: |
+        # build_dependencies:install is not enough as some perl deps are runtime only
         rake build_dependencies:install
+        zypper --non-interactive in --force-resolution --no-recommends \
+          cracklib-devel \
+          perl-Digest-SHA1 \
+          perl-X500-DN \
+          yast2-perl-bindings
 
     - name: Package Build
       run: yast-ci-cpp
