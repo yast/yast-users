@@ -1,7 +1,7 @@
 Known API Usage
 ---------------
 
-Goal of this document is too collect known cases of usage of Users API to be sure that that parts gets extra care.
+Goal of this document is to collect the known usage of the Users API to be sure that these parts get extra care.
 
 ## yast2-firstboot
 
