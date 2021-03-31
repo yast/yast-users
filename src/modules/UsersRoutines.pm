@@ -66,22 +66,30 @@ sub btrfs_subvolume {
 sub copy_skel {
     my ( $skel, $home ) = @_;
 
-    if ( $skel ne "" && %{ SCR->Read( ".target.stat", $skel ) } ) {
-        my $cmd = sprintf(
-            "/usr/bin/cp -r '%s/.' '%s'",
-            String->Quote($skel),
-            String->Quote($home)
-        );
-        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
-        my $stderr = $cmd_out{"stderr"} || "";
-
-        if ( $stderr ne "" ) {
-            y2error( "Error calling $cmd: $stderr" );
-            return 0;
-        }
-
-        y2usernote("Home skeleton copied: '$cmd'.");
+    if ( $skel eq "" || $home eq "" ) {
+        y2error("skel cannot be copied, wrong arguments: skel: '$skel', home: '$home'.");
+        return 0;
     }
+
+    if ( ! %{ SCR->Read( ".target.stat", $skel ) } ) {
+        y2error("skel file '$skel' does not exist.");
+        return 0;
+    }
+
+    my $cmd = sprintf(
+        "/usr/bin/cp -r '%s/.' '%s'",
+        String->Quote($skel),
+        String->Quote($home)
+    );
+    my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+    my $stderr = $cmd_out{"stderr"} || "";
+
+    if ( $stderr ne "" ) {
+        y2error( "Error calling $cmd: $stderr" );
+        return 0;
+    }
+
+    y2milestone("Home skeleton copied: '$cmd'.");
 }
 
 ##-------------------------------------------------------------------------
@@ -158,10 +166,7 @@ sub CreateHome {
         }
     }
 
-    if ($copy_usr_skel) {
-        copy_skel($usr_skel, $home);
-    }
-
+    copy_skel($usr_skel, $home) if ($copy_usr_skel);
     copy_skel($skel, $home);
 
     y2milestone("The directory $home was successfully created.");
