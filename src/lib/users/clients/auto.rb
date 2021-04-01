@@ -90,6 +90,10 @@ module Y2Users
         true
       end
 
+      def reset
+        import({})
+      end
+
     private
 
       # Checking double user entries
