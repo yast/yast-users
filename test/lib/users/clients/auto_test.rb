@@ -116,5 +116,14 @@ describe Y2Users::Clients::Auto do
         subject.run
       end
     end
+
+    context "Reset" do
+      let(:func) { "Reset" }
+
+      it "import empty profile" do
+        expect(Yast::Users).to receive(:Import).with({})
+        subject.run
+      end
+    end
   end
 end
