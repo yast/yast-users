@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Apr  1 08:22:28 UTC 2021 - Josef Reidinger <jreidinger@suse.com>
+
+- Fix missing Reset handling in auto client leading to crash in
+  autoyast UI (bsc#1184216)
+- 4.3.11
+
+-------------------------------------------------------------------
 Wed Dec  2 10:41:55 UTC 2020 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
 
 - In the public key selector, allow to choose any device that
