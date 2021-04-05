@@ -4493,6 +4493,7 @@ sub Write {
 		my $chown_home	        = $user{"chown_home"};
 		$chown_home	        = 1 if (!defined $chown_home);
 		my $skel	        = $useradd_defaults{"skel"};
+		my $copy_usr_skel	= "yes";
 
 		if ($user_mod eq "imported" || $user_mod eq "added") {
 		    y2usernote ("User '$username' created");
@@ -4503,11 +4504,12 @@ sub Write {
 			next;
 		    }
 		    if (bool ($user{"no_skeleton"})) {
-			$skel 	= "";
+			$skel = "";
+			$copy_usr_skel = "";
 		    }
 		    if (bool ($create_home) || $user_mod eq "imported")
 		    {
-			UsersRoutines->CreateHome ($skel, $home, $use_btrfs_subvolume);
+			UsersRoutines->CreateHome ($skel, $home, $use_btrfs_subvolume, $copy_usr_skel);
 		    }
 		    if ($home ne "/var/lib/nobody" && bool ($chown_home)) {
 			if (UsersRoutines->ChownHome ($uid, $gid, $home))
@@ -4555,7 +4557,7 @@ sub Write {
 			}
 			# create new home directory
 			elsif (not %{SCR->Read (".target.stat", $home)}) {
-			    UsersRoutines->CreateHome ($skel, $home);
+			    UsersRoutines->CreateHome ($skel, $home, "", $copy_usr_skel);
 			}
 			# do not change root's ownership of home directories
 			if (bool ($chown_home))

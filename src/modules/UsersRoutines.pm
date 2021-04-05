@@ -50,6 +50,9 @@ YaST::YCP::Import ("String");
 # path to btrfs
 my $btrfs = "/usr/sbin/btrfs";
 
+# path to the usr skel
+my $usr_skel = "/usr/etc/skel";
+
 ##-------------------------------------------------------------------------
 ##----------------- helper routines ---------------------------------------
 
@@ -60,23 +63,53 @@ sub btrfs_subvolume {
     return ( SCR->Execute( ".target.bash", $cmd ) eq 0 );
 }
 
+sub copy_skel {
+    my ( $skel, $home ) = @_;
+
+    if ( $skel eq "" || $home eq "" ) {
+        y2error("skel cannot be copied, wrong arguments: skel: '$skel', home: '$home'.");
+        return 0;
+    }
+
+    if ( ! %{ SCR->Read( ".target.stat", $skel ) } ) {
+        y2error("skel file '$skel' does not exist.");
+        return 0;
+    }
+
+    my $cmd = sprintf(
+        "/usr/bin/cp -r '%s/.' '%s'",
+        String->Quote($skel),
+        String->Quote($home)
+    );
+    my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
+    my $stderr = $cmd_out{"stderr"} || "";
+
+    if ( $stderr ne "" ) {
+        y2error( "Error calling $cmd: $stderr" );
+        return 0;
+    }
+
+    y2milestone("Home skeleton copied: '$cmd'.");
+}
+
 ##-------------------------------------------------------------------------
 ##----------------- directory manipulation routines -----------------------
 
 ##------------------------------------
 # Create home directory
-# @param skeleton skeleton directory for new home
+# @param skel skeleton directory for new home (typically from /etc/default/useradd config)
 # @param home name of new home directory
 # @param use_btrfs whether the home directory must be a btrfs subvolume
+# @param copy_usr_skel whether the usr skel (i.e., /usr/etc/skel) should be copied
 # @return success
 BEGIN { $TYPEINFO{CreateHome} = ["function",
     "boolean",
-    "string", "string", "string"];
+    "string", "string", "string", "string"];
 }
 sub CreateHome {
 
     my $self = shift;
-    my ( $skel, $home, $use_btrfs ) = @_;
+    my ( $skel, $home, $use_btrfs, $copy_usr_skel ) = @_;
 
     # Create a path to new home directory, if not exists
     my $home_path = substr( $home, 0, rindex( $home, "/" ) );
@@ -133,23 +166,8 @@ sub CreateHome {
         }
     }
 
-    # Now copy the skeleton
-    if ( $skel ne "" && %{ SCR->Read( ".target.stat", $skel ) } ) {
-        my $cmd = sprintf(
-            "/usr/bin/cp -r '%s/.' '%s'",
-            String->Quote($skel),
-            String->Quote($home)
-        );
-        my %cmd_out = %{ SCR->Execute( ".target.bash_output", $cmd ) };
-        my $stderr = $cmd_out{"stderr"} || "";
-
-        if ( $stderr ne "" ) {
-            y2error( "Error calling $cmd: $stderr" );
-            return 0;
-        }
-
-        y2usernote("Home skeleton copied: '$cmd'.");
-    }
+    copy_skel($usr_skel, $home) if ($copy_usr_skel);
+    copy_skel($skel, $home);
 
     y2milestone("The directory $home was successfully created.");
 

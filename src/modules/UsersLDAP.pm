@@ -1404,7 +1404,7 @@ sub WriteUsers {
 		if ($server) {
 		    if ($create_home) {
 			UsersRoutines->CreateHome (
-			    $useradd_defaults{"skel"}, $home);
+			    $useradd_defaults{"skel"}, $home, "", "yes");
 		    }
 		    if ($home ne "/var/lib/nobody" && $chown_home) {
 			if (UsersRoutines->ChownHome ($uid, $gid, $home)) {
