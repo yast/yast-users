@@ -1,4 +1,23 @@
-module Y2User
+# Copyright (c) [2021] SUSE LLC
+#
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
+#
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
+
+module Y2Users
   # Holds references to elements of user configuration like users, groups or passwords.
   # Class itself holds references to different configuration instances.
   # TODO: write example
@@ -25,8 +44,8 @@ module Y2User
         return res if res && !force_read
 
         if !reader
-          require "y2user/readers/getent"
-          reader = Readers::Getent.new
+          require "y2users/linux/reader"
+          reader = Linux::Reader.new
         end
 
         # TODO: make system config immutable, so it cannot be modified directly
@@ -50,13 +69,13 @@ module Y2User
       self.class.register(self)
     end
 
-    def clone_as(new_name)
-      result = self.class.new(new_name)
-      result.users = users.map { |u| u.clone_to(result) }
-      result.groups = users.map { |u| u.clone_to(groups) }
-      result.passwords = users.map { |u| u.clone_to(passwords) }
+    def clone_as(name)
+      configuration = self.class.new(name)
+      configuration.users = users.map { |u| u.clone_to(configuration) }
+      configuration.groups = groups.map { |g| g.clone_to(configuration) }
+      configuration.passwords = passwords.map { |p| p.clone_to(configuration) }
 
-      result
+      configuration
     end
   end
 end

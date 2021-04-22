@@ -1,6 +1,25 @@
+# Copyright (c) [2021] SUSE LLC
+#
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
+#
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
+
 require "yast2/execute"
 
-module Y2User
+module Y2Users
   # Password configuration for user including its hashed value.
   class Password
     # @return [String] login name for given password
@@ -31,7 +50,7 @@ module Y2User
     # @return [Date, nil] Date when whole account expire or nil if there are no account expiration.
     attr_reader :account_expiration
 
-    # @return[:local, :ldap, :unknown] where is user defined
+    # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
 
     # @see respective attributes for possible values
@@ -54,11 +73,11 @@ module Y2User
              :inactivity_period, :account_expiration].freeze
 
     # Clones password to different configuration object.
-    # @return [Y2User::Password] newly cloned password object
+    # @return [Y2Users::Password] newly cloned password object
     def clone_to(configuration)
-      new_config = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      new_config.delete(:name) # name is separate argument
-      self.class.new(configuration, name, new_config)
+      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
+      attrs.delete(:name) # name is separate argument
+      self.class.new(configuration, name, attrs)
     end
 
     # Compares password object if all attributes are same excluding configuration reference.
