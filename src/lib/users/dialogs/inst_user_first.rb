@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
 #
@@ -78,9 +76,7 @@ module Yast
 
       @users = UsersSimple.GetUsers
       init_action
-      if action == :import
-        @usernames_to_import = @users.map { |u| u["uid"] || "" }
-      end
+      @usernames_to_import = @users.map { |u| u["uid"] || "" } if action == :import
       @user = @users.first if action == :new_user
       @user ||= {}
       init_user_attributes
@@ -109,6 +105,7 @@ module Yast
     def choose_users_handler
       imported = UsersToImportDialog.new(@importable_usernames, @usernames_to_import).run
       return unless imported
+
       @usernames_to_import = imported
       UI.ReplaceWidget(Id(:import_qty), import_qty_widget)
     end
@@ -159,16 +156,13 @@ module Yast
           "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
         )
 
-      help += (
+      help +=
         # TRANSLATORS: %{min} and %{max} will be replaced by numbers
-        _(
-          "<p>\nThe password length should be between %{min}\n and %{max} characters.\n</p>\n"
-        ) %
-        {
+        format(
+          _("<p>\nThe password length should be between %{min}\n and %{max} characters.\n</p>\n"),
           min: UsersSimple.GetMinPasswordLength("local"),
           max: UsersSimple.GetMaxPasswordLength("local")
-        }
-      ) + UsersSimple.ValidPasswordHelptext
+        ) + UsersSimple.ValidPasswordHelptext
 
       help += ::Users::CAPasswordValidator.new.help_text
 
@@ -214,6 +208,8 @@ module Yast
 
       help
     end
+  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Metrics/AbcSize
 
   private
 
@@ -271,27 +267,23 @@ module Yast
     # Requires @user to be already set
     def init_autologin
       @autologin = UsersSimple.AutologinUsed
-      if @user.empty? && !@autologin
-        if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
-          @autologin = true
-        end
-        Builtins.y2debug("autologin default value: %1", @autologin)
-      end
+      return unless @user.empty? && !@autologin
+
+      @autologin = true if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
+      Builtins.y2debug("autologin default value: %1", @autologin)
     end
 
     # Sets the initial default value for root pw checkbox
     # Requires @user to be already set
     def init_pw_for_root
       @use_pw_for_root = UsersSimple.GetRootPassword == @password
-      if @user == {} && !@use_pw_for_root
-        if ProductFeatures.GetBooleanFeature(
-          "globals",
-          "root_password_as_first_user"
-        ) == true
-          @use_pw_for_root = true
-        end
-        Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
+      return unless @user == {} && !@use_pw_for_root
+
+      if ProductFeatures.GetBooleanFeature("globals", "root_password_as_first_user") == true
+        @use_pw_for_root = true
       end
+
+      Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
     end
 
     # Sets the initial value for the action selection
@@ -343,9 +335,7 @@ module Yast
     def refresh
       WIDGETS.values.flatten.each do |w|
         enable = WIDGETS[action].include?(w)
-        if w == :autologin && enable && !Autologin.supported?
-          enable = false
-        end
+        enable = false if w == :autologin && enable && !Autologin.supported?
         UI.ChangeWidget(Id(w), :Enabled, enable)
       end
     end
@@ -456,7 +446,7 @@ module Yast
             imported_users = UsersSimple.GetImportedUsers("local")
 
             # UsersSimple.GetImportedUsers should not return nil, but better be safe
-            return imported_users if imported_users && imported_users.any?
+            return imported_users if imported_users&.any?
           end
         end
       end
@@ -693,4 +683,5 @@ module Yast
       !!@import_available
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

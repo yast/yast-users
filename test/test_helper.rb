@@ -17,7 +17,7 @@
 #  you may find current contact information at www.suse.com
 
 # Set the paths
-src_path = File.expand_path("../../src", __FILE__)
+src_path = File.expand_path("../src", __dir__)
 ENV["Y2DIR"] = src_path
 
 # make sure we run the tests in English locale

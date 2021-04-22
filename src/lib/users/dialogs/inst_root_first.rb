@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
 #
@@ -45,6 +43,7 @@ module Yast
     # @see CWM::Dialog
     def run
       return :auto unless root_password_dialog_needed?
+
       super
     end
 

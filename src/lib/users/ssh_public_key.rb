@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -74,7 +72,7 @@ module Y2Users
 
     attr_reader :raw
 
-    KEY_REGEXP = /(ssh|ecdsa)-\S+ (\S+)/
+    KEY_REGEXP = /(ssh|ecdsa)-\S+ (\S+)/.freeze
 
     # Gets the fingerprint for the given OpenSSH public key
     #
@@ -83,6 +81,7 @@ module Y2Users
     def calculate_fingerprint
       key = @raw[KEY_REGEXP, 2]
       raise InvalidKey unless key
+
       Digest::SHA256.base64digest(Base64.decode64(key))
     end
   end

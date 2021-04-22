@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2016 SUSE LINUX GmbH, Nuernberg, Germany.
 #
@@ -131,14 +129,19 @@ module Users
         errors = passwd.errors + [_("Really use this password?")]
         Yast::UI.SetFocus(Id(:pw1))
         return false unless Yast::Popup.YesNo(errors.join("\n\n"))
+
         self.class.approved_pwd = password1
       end
 
       true
     end
+    # rubocop:enable Metrics/AbcSize
+    # rubocop:enable Metrics/CyclomaticComplexity
+    # rubocop:enable Metrics/PerceivedComplexity
 
     def store
       return if allow_empty? && empty?
+
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       Yast::UsersSimple.SetRootPassword(password1)
     end
@@ -186,6 +189,7 @@ module Users
 
       helptext << ::Users::CAPasswordValidator.new.help_text
     end
+    # rubocop:enable Metrics/MethodLength
 
     # Determines whether the widget is empty or not
     #

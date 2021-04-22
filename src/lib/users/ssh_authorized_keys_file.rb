@@ -58,6 +58,7 @@ module Yast
       # @return [Array<String>] Array of keys
       def keys
         return @keys if @keys
+
         content = SCR.Read(Path.new(".target.string"), path)
         self.keys = content.nil? ? [] : content.split("\n")
         @keys
@@ -98,7 +99,7 @@ module Yast
 
       # https://github.com/puppetlabs/puppet/blob/master/lib/puppet/type/ssh_authorized_key.rb#L138
       AUTHORIZED_KEYS_REGEX =
-        /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/
+        /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/.freeze
 
       # Determine is a string qualifies like a valid key
       #
