@@ -22,17 +22,17 @@ require "yast2/execute"
 module Y2User
   # Represents user groups on system.
   class Group
-    # @return[Y2User::Configuration] reference to configuration in which it lives
+    # @return [Y2User::Configuration] reference to configuration in which it lives
     attr_reader :configuration
 
-    # @return[String] group name
+    # @return [String] group name
     attr_reader :name
 
-    # @return[String, nil] group id  or nil if it is not yet assigned.
+    # @return [String, nil] group id  or nil if it is not yet assigned.
     attr_reader :gid
 
-    # @return[Array<String>] list of user names
-    # @note to get list of users in given group use method #groups
+    # @return [Array<String>] list of user names
+    # @note to get list of users in given group use method #users
     attr_reader :users_name
 
     # @return[:local, :ldap, :unknown] where is user defined

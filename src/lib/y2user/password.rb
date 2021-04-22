@@ -50,7 +50,7 @@ module Y2User
     # @return [Date, nil] Date when whole account expire or nil if there are no account expiration.
     attr_reader :account_expiration
 
-    # @return[:local, :ldap, :unknown] where is user defined
+    # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
 
     # @see respective attributes for possible values

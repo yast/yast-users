@@ -20,32 +20,32 @@
 require "yast2/execute"
 
 module Y2User
-  # Representing user configuration on system in contenxt of given User Configuration.
+  # Representing user configuration on system in contenxt of given User Configuration
   # @note Immutable class.
   class User
-    # @return[Y2User::Configuration] reference to configuration in which it lives
+    # @return [Y2User::Configuration] reference to configuration in which it lives
     attr_reader :configuration
 
-    # @return[String] user name
+    # @return [String] user name
     attr_reader :name
 
-    # @return[String, nil] user ID or nil if it is not yet assigned.
+    # @return [String, nil] user ID or nil if it is not yet assigned
     attr_reader :uid
 
-    # @return[String, nil] primary group ID or nil if it is not yet assigned.
+    # @return [String, nil] primary group ID or nil if it is not yet assigned
     # @note to get primary group use method #primary_group
     attr_reader :gid
 
-    # @return[String, nil] default shell or nil if it is not yet assigned.
+    # @return [String, nil] default shell or nil if it is not yet assigned
     attr_reader :shell
 
-    # @return[String, nil] home directory or nil if it is not yet assigned.
+    # @return [String, nil] home directory or nil if it is not yet assigned
     attr_reader :home
 
-    # @return [Array<String>] Fields in GECOS entry.
+    # @return [Array<String>] Fields in GECOS entry
     attr_reader :gecos
 
-    # @return[:local, :ldap, :unknown] where is user defined
+    # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
 
     # @see respective attributes for possible values
