@@ -19,10 +19,10 @@
 
 require "yast2/execute"
 
-module Y2User
+module Y2Users
   # Represents user groups on system.
   class Group
-    # @return [Y2User::Configuration] reference to configuration in which it lives
+    # @return [Y2Users::Configuration] reference to configuration in which it lives
     attr_reader :configuration
 
     # @return [String] group name
@@ -47,7 +47,7 @@ module Y2User
       @source = source
     end
 
-    # @return [Array<Y2User::User>] all users in this group, including ones that
+    # @return [Array<Y2Users::User>] all users in this group, including ones that
     # has it as primary group
     def users
       configuration.users.select { |u| u.gid == gid || users_name.include?(u.name) }
@@ -56,7 +56,7 @@ module Y2User
     ATTRS = [:name, :gid, :users_name].freeze
 
     # Clones group to different configuration object.
-    # @return [Y2User::Group] newly cloned group object
+    # @return [Y2Users::Group] newly cloned group object
     def clone_to(configuration)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument

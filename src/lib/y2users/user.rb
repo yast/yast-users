@@ -19,11 +19,11 @@
 
 require "yast2/execute"
 
-module Y2User
+module Y2Users
   # Representing user configuration on system in contenxt of given User Configuration
   # @note Immutable class.
   class User
-    # @return [Y2User::Configuration] reference to configuration in which it lives
+    # @return [Y2Users::Configuration] reference to configuration in which it lives
     attr_reader :configuration
 
     # @return [String] user name
@@ -62,18 +62,18 @@ module Y2User
       @gecos = gecos
     end
 
-    # @return [Y2User::Group, nil] primary group set to given user or
+    # @return [Y2Users::Group, nil] primary group set to given user or
     #   nil if group is not set yet
     def primary_group
       configuration.groups.find { |g| g.gid == gid }
     end
 
-    # @return [Array<Y2User::Group>] list of groups where is user included including primary group
+    # @return [Array<Y2Users::Group>] list of groups where is user included including primary group
     def groups
       configuration.groups.select { |g| g.users.include?(self) }
     end
 
-    # @return [Y2User::Password] Password configuration assigned to user
+    # @return [Y2Users::Password] Password configuration assigned to user
     def password
       configuration.passwords.find { |p| p.name == name }
     end
@@ -86,7 +86,7 @@ module Y2User
     ATTRS = [:name, :uid, :gid, :shell, :home].freeze
 
     # Clones user to different configuration object.
-    # @return [Y2User::User] newly cloned user object
+    # @return [Y2Users::User] newly cloned user object
     def clone_to(configuration)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument

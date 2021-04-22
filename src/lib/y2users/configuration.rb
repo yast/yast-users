@@ -17,7 +17,7 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-module Y2User
+module Y2Users
   # Holds references to elements of user configuration like users, groups or passwords.
   # Class itself holds references to different configuration instances.
   # TODO: write example
@@ -44,7 +44,7 @@ module Y2User
         return res if res && !force_read
 
         if !reader
-          require "y2user/readers/getent"
+          require "y2users/readers/getent"
           reader = Readers::Getent.new
         end
 

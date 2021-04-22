@@ -19,7 +19,7 @@
 
 require "yast2/execute"
 
-module Y2User
+module Y2Users
   # Password configuration for user including its hashed value.
   class Password
     # @return [String] login name for given password
@@ -73,7 +73,7 @@ module Y2User
              :inactivity_period, :account_expiration].freeze
 
     # Clones password to different configuration object.
-    # @return [Y2User::Password] newly cloned password object
+    # @return [Y2Users::Password] newly cloned password object
     def clone_to(configuration)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument

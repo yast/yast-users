@@ -20,11 +20,11 @@
 require "yast2/execute"
 require "date"
 
-require "y2user/group"
-require "y2user/user"
-require "y2user/password"
+require "y2users/group"
+require "y2users/user"
+require "y2users/password"
 
-module Y2User
+module Y2Users
   module Readers
     # Reads users configuration using getent utility.
     class Getent

@@ -20,13 +20,13 @@
 require "yast2/execute"
 require "date"
 
-require "y2user/group"
-require "y2user/user"
-require "y2user/password"
+require "y2users/group"
+require "y2users/user"
+require "y2users/password"
 
 Yast.import "UsersSimple"
 
-module Y2User
+module Y2Users
   module Readers
     # Reads users configuration using old Yast Module UsersSimple.
     class UsersSimple
