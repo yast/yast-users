@@ -100,6 +100,7 @@ module Y2Users
           values = line.chomp.split(":")
           max_age = values[SHADOW_MAPPING["maximum_age"]]
           inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
+          expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
           Password.new(
             configuration,
             values[SHADOW_MAPPING["username"]],
@@ -109,7 +110,7 @@ module Y2Users
             maximum_age:        max_age&.to_i,
             warning_period:     values[SHADOW_MAPPING["warning_period"]].to_i,
             inactivity_period:  inactivity_period&.to_i,
-            account_expiration: parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
+            account_expiration: expiration
           )
         end
       end

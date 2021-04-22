@@ -49,6 +49,8 @@ module Y2Users
     attr_reader :source
 
     # @see respective attributes for possible values
+    # @todo: avoid long list of parameters
+    # rubocop: disable Metrics/ParameterLists
     def initialize(configuration, name,
       uid: nil, gid: nil, shell: nil, home: nil, gecos: [], source: :unknown)
       # TODO: GECOS
@@ -61,6 +63,7 @@ module Y2Users
       @source = source
       @gecos = gecos
     end
+    # rubocop: enable Metrics/ParameterLists
 
     # @return [Y2Users::Group, nil] primary group set to given user or
     #   nil if group is not set yet
