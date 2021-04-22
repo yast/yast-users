@@ -6,9 +6,18 @@ inherit_from:
 SingleLineBlockParams:
   Enabled: false
 
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Metrics/BlockLength:
+  # rspec is known as DSL with big blocks
+  Exclude:
+    - test/**/*
+
 AllCops:
   Exclude:
     - 'src/modules/**/*'
     - 'src/include/**/*'
     - 'testsuite/**/*'
     - 'src/clients/*'
+    - '**/*.spec'
