@@ -69,13 +69,13 @@ module Y2User
       self.class.register(self)
     end
 
-    def clone_as(new_name)
-      result = self.class.new(new_name)
-      result.users = users.map { |u| u.clone_to(result) }
-      result.groups = users.map { |u| u.clone_to(groups) }
-      result.passwords = users.map { |u| u.clone_to(passwords) }
+    def clone_as(name)
+      configuration = self.class.new(name)
+      configuration.users = users.map { |u| u.clone_to(configuration) }
+      configuration.groups = groups.map { |g| g.clone_to(configuration) }
+      configuration.passwords = passwords.map { |p| p.clone_to(configuration) }
 
-      result
+      configuration
     end
   end
 end
