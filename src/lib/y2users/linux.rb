@@ -23,3 +23,4 @@ module Y2Users
 end
 
 require "y2users/linux/reader"
+require "y2users/linux/writer"
