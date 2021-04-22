@@ -58,9 +58,9 @@ module Y2User
     # Clones group to different configuration object.
     # @return [Y2User::Group] newly cloned group object
     def clone_to(configuration)
-      new_config = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      new_config.delete(:name) # name is separate argument
-      self.class.new(configuration, name, new_config)
+      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
+      attrs.delete(:name) # name is separate argument
+      self.class.new(configuration, name, attrs)
     end
 
     # Compares group object if all attributes are same excluding configuration reference.

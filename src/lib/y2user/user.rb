@@ -49,7 +49,8 @@ module Y2User
     attr_reader :source
 
     # @see respective attributes for possible values
-    def initialize(configuration, name, uid: nil, gid: nil, shell: nil, home: nil, gecos: [], source: :unknown)
+    def initialize(configuration, name,
+      uid: nil, gid: nil, shell: nil, home: nil, gecos: [], source: :unknown)
       # TODO: GECOS
       @configuration = configuration
       @name = name
@@ -87,9 +88,9 @@ module Y2User
     # Clones user to different configuration object.
     # @return [Y2User::User] newly cloned user object
     def clone_to(configuration)
-      new_config = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      new_config.delete(:name) # name is separate argument
-      self.class.new(configuration, name, new_config)
+      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
+      attrs.delete(:name) # name is separate argument
+      self.class.new(configuration, name, attrs)
     end
 
     # Compares user object if all attributes are same excluding configuration reference.
