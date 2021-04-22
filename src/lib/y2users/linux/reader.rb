@@ -25,9 +25,9 @@ require "y2users/user"
 require "y2users/password"
 
 module Y2Users
-  module Readers
-    # Reads users configuration using getent utility.
-    class Getent
+  module Linux
+    # Reads users configuration from the system using getent utility.
+    class Reader
       def read_to(configuration)
         configuration.users = read_users(configuration)
         configuration.groups = read_groups(configuration)

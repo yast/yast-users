@@ -17,29 +17,9 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
-require "date"
-
-require "y2users/group"
-require "y2users/user"
-require "y2users/password"
-
-Yast.import "UsersSimple"
-
 module Y2Users
-  module Readers
-    # Reads users configuration using old Yast Module UsersSimple.
-    class UsersSimple
-      def read_to(configuration)
-        users = Yast::UsersSimple.GetUsers
-        # TODO: only created users, not imported ones for now
-        users.each do |user|
-          configuration.users << User.new(configuration, user["uid"], gecos: [user["cn"]])
-          # lets just use the strongest available
-          configuration.passwords << Password.new(configuration, user["uid"],
-            value: Yast::Builtins.cryptsha512(user["userPassword"]))
-        end
-      end
-    end
-  end
+  # This module provides reader and writer for users in the old YaST UsersSimple module
+  module UsersSimple; end
 end
+
+require "y2users/users_simple/reader"
