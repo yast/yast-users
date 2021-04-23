@@ -27,7 +27,7 @@ require "y2users/linux/writer"
 describe Y2Users::Linux::Writer do
   subject(:writer) { described_class.new(configuration) }
 
-  xdescribe "#write" do
+  describe "#write" do
     let(:configuration) { Y2Users::Configuration.new(:test) }
     let(:user) { Y2Users::User.new(configuration, username, **user_attrs) }
     let(:password) { Y2Users::Password.new(configuration, username, value: pwd_value) }

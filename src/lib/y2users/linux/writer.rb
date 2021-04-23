@@ -106,15 +106,34 @@ module Y2Users
       # @return [Y2User::Configuration]
       attr_reader :configuration
 
+      # Command for creating new users
+      USERADD = "/usr/sbin/useradd".freeze
+      private_constant :USERADD
+
       def add_user(user)
-        # useradd pepe --uid X --gid Y --shell S --home-dir H --comment GECOS
-        #   --expiredate password.account_expiration
-        # if home_wanted?
-        #   --create-home
-        #   --btrfs-subvolume-home if so
-        # end
-        #
+        Yast::Execute.on_target!(USERADD, *useradd_options(user))
         # chpasswd
+      end
+
+      # Generates and returns the options expected by `useradd` for given user
+      #
+      # @param user [Y2Users::User]
+      # @return [Array<String>]
+      def useradd_options(user)
+        opts = {
+          "--uid"        => user.uid,
+          "--gid"        => user.gid,
+          "--shell"      => user.shell,
+          "--home-dir"   => user.home,
+          "--expiredate" => user.expire_date,
+          "--comment"    => user.gecos.join(",")
+        }
+
+        opts = opts.reject { |_, v| v.to_s.empty? }.flatten
+        # opts << "--create-home" if user.create_home?
+        # opts << "--btrfs-subvolume-home" if user.btrfs_subvolume_home?
+        opts << user.name
+        opts
       end
     end
   end
