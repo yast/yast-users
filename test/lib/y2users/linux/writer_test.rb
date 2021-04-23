@@ -41,7 +41,7 @@ describe Y2Users::Linux::Writer do
     let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
     let(:expiration_date) { nil }
 
-    RSpec.shared_examples "expiration date" do
+    RSpec.shared_examples "setting expiration date" do
       context "without an expiration date" do
         it "does not include the --expiredate option" do
           expect(Yast::Execute).to receive(:on_target!) do |*args|
@@ -66,9 +66,32 @@ describe Y2Users::Linux::Writer do
       end
     end
 
+    RSpec.shared_examples "setting password" do
+      context "when the user has a password" do
+        it "executes chpasswd for setting it" do
+          expect(Yast::Execute).to receive(:on_target!)
+            .with(/chpasswd/, "-e", stdin: "#{username}:#{pwd_value}", recorder: anything)
+
+          writer.write
+        end
+      end
+
+      context "when the user has not a password" do
+        let(:pwd_value) { nil }
+
+        it "does not execute chpasswd" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/chpasswd/, any_args)
+
+          writer.write
+        end
+      end
+    end
+
     before do
       configuration.users << user
       configuration.passwords << password
+
+      allow(Yast::Execute).to receive(:on_target!)
     end
 
     context "for a user with all the attributes" do
@@ -79,6 +102,9 @@ describe Y2Users::Linux::Writer do
         }
       end
 
+      include_examples "setting expiration date"
+      include_examples "setting password"
+
       it "executes useradd with all the parameters" do
         expect(Yast::Execute).to receive(:on_target!) do |*args|
           expect(args.first).to include "useradd"
@@ -88,20 +114,19 @@ describe Y2Users::Linux::Writer do
 
         writer.write
       end
-
-      include_examples "expiration date"
     end
 
     context "for a user with no optional attributes specified" do
       let(:user_attrs) { {} }
+
+      include_examples "setting expiration date"
+      include_examples "setting password"
 
       it "executes useradd with no extra arguments" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, username)
 
         writer.write
       end
-
-      include_examples "expiration date"
     end
   end
 end

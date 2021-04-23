@@ -110,9 +110,22 @@ module Y2Users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
 
+      # Command for setting a user password
+      #
+      # This command is "preferred" over
+      #   * the `passwd` command because the password at this point is already
+      #   encrypted (see Y2Users::Password#value). Additionally, this command
+      #   requires to enter the password twice, which it's not possible using
+      #   the Cheetah stdin argument.
+      #
+      #   * the `--password` useradd option because the encrypted
+      #   password is visible as part of the process name
+      CHPASSWD = "/usr/sbin/chpasswd".freeze
+      private_constant :CHPASSWD
+
       def add_user(user)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
-        # chpasswd
+        Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
       end
 
       # Generates and returns the options expected by `useradd` for given user
@@ -134,6 +147,33 @@ module Y2Users
         # opts << "--btrfs-subvolume-home" if user.btrfs_subvolume_home?
         opts << user.name
         opts
+      end
+
+      # Generates and returns the options expected by `chpasswd` for given user
+      #
+      # @param user [Y2Users::User]
+      # @return [Array<String, Hash>]
+      def chpasswd_options(user)
+        opts = ["-e"] # Y2Users::Password#value returns the encrypted password
+        opts << {
+          stdin:    [user.name, user.password&.value].join(":"),
+          recorder: cheetah_recorder
+        }
+        opts
+      end
+
+      # Custom Cheetah recorder to prevent leaking the password to the logs
+      #
+      # @return [Recorder]
+      def cheetah_recorder
+        @cheetah_recorder ||= Recorder.new(Yast::Y2Logger.instance)
+      end
+
+      # Class to prevent Yast::Execute from leaking to the logs passwords
+      # provided via stdin
+      class Recorder < Cheetah::DefaultRecorder
+        # To prevent leaking stdin, just do nothing
+        def record_stdin(_stdin); end
       end
     end
   end
