@@ -19,6 +19,7 @@
 # find current contact information at www.suse.com.
 
 require_relative "../test_helper"
+require "date"
 require "y2users/configuration"
 require "y2users/user"
 require "y2users/password"
@@ -30,9 +31,40 @@ describe Y2Users::Linux::Writer do
   describe "#write" do
     let(:configuration) { Y2Users::Configuration.new(:test) }
     let(:user) { Y2Users::User.new(configuration, username, **user_attrs) }
-    let(:password) { Y2Users::Password.new(configuration, username, value: pwd_value) }
+    let(:password) do
+      pw_options = { value: pwd_value, account_expiration: expiration_date }
+
+      Y2Users::Password.new(configuration, username, pw_options)
+    end
+
     let(:username) { "testuser" }
     let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+    let(:expiration_date) { nil }
+
+    RSpec.shared_examples "expiration date" do
+      context "without an expiration date" do
+        it "does not include the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to_not include("--expiredate")
+          end
+
+          writer.write
+        end
+      end
+
+      context "with an expiration date" do
+        let(:expiration_date) { Date.today }
+
+        it "includes the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to include("--expiredate")
+            expect(args).to include(expiration_date.to_s)
+          end
+
+          writer.write
+        end
+      end
+    end
 
     before do
       configuration.users << user
@@ -56,6 +88,8 @@ describe Y2Users::Linux::Writer do
 
         writer.write
       end
+
+      include_examples "expiration date"
     end
 
     context "for a user with no optional attributes specified" do
@@ -66,6 +100,8 @@ describe Y2Users::Linux::Writer do
 
         writer.write
       end
+
+      include_examples "expiration date"
     end
   end
 end

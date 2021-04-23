@@ -125,7 +125,7 @@ module Y2Users
           "--gid"        => user.gid,
           "--shell"      => user.shell,
           "--home-dir"   => user.home,
-          "--expiredate" => user.expire_date,
+          "--expiredate" => user.expire_date.to_s,
           "--comment"    => user.gecos.join(",")
         }
 
