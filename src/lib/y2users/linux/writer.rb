@@ -148,12 +148,25 @@ module Y2Users
           "--expiredate" => user.expire_date.to_s,
           "--comment"    => user.gecos.join(",")
         }
-
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
-        # opts << "--create-home" if user.create_home?
-        # opts << "--btrfs-subvolume-home" if user.btrfs_subvolume_home?
+
+        if user.system?
+          opts << "--system"
+        else
+          opts.concat(create_home_options(user))
+        end
+
         opts << user.name
         opts
+      end
+
+      # Options for `useradd` to create the home directory
+      #
+      # @param _user [Y2Users::User]
+      # @return [Array<String>]
+      def create_home_options(_user)
+        # TODO: "--btrfs-subvolume-home" if needed
+        ["--create-home"]
       end
 
       # Generates and returns the options expected by `chpasswd` for given user

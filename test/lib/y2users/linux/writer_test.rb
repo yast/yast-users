@@ -38,7 +38,7 @@ describe Y2Users::Linux::Writer do
     end
 
     let(:username) { "testuser" }
-    let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+    let(:pwd_value) { nil }
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
@@ -68,15 +68,21 @@ describe Y2Users::Linux::Writer do
 
     RSpec.shared_examples "setting password" do
       context "when the user has a password" do
-        it "executes chpasswd for setting it" do
-          expect(Yast::Execute).to receive(:on_target!)
-            .with(/chpasswd/, "-e", stdin: "#{username}:#{pwd_value}", recorder: anything)
+        let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+
+        # If we would have used the --password argument of useradd, the encrypted password would
+        # have been visible in the list of system processes (since it's part of the command)
+        it "executes chpasswd without leaking the password to the list of processes" do
+          expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+            leak_arg = args.find { |arg| arg.include?(pwd_value) }
+            expect(leak_arg).to be_nil
+          end
 
           writer.write
         end
       end
 
-      context "when the user has not a password" do
+      context "when the user has no password" do
         let(:pwd_value) { nil }
 
         it "does not execute chpasswd" do
@@ -94,7 +100,7 @@ describe Y2Users::Linux::Writer do
       allow(Yast::Execute).to receive(:on_target!)
     end
 
-    context "for a user with all the attributes" do
+    context "for a new regular user with all the attributes" do
       let(:user_attrs) do
         {
           uid: 1001, gid: 2001, shell: "/bin/y2shell", home: "/home/y2test",
@@ -105,25 +111,40 @@ describe Y2Users::Linux::Writer do
       include_examples "setting expiration date"
       include_examples "setting password"
 
-      it "executes useradd with all the parameters" do
-        expect(Yast::Execute).to receive(:on_target!) do |*args|
-          expect(args.first).to include "useradd"
+      it "executes useradd with all the parameters, including creation of home directory" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
           expect(args.last).to eq username
-          expect(args).to include("--uid", "--gid", "--shell", "--home-dir")
+          expect(args).to include("--uid", "--gid", "--shell", "--home-dir", "--create-home")
         end
 
         writer.write
       end
     end
 
-    context "for a user with no optional attributes specified" do
+    context "for a new regular user with no optional attributes specified" do
       let(:user_attrs) { {} }
 
       include_examples "setting expiration date"
       include_examples "setting password"
 
-      it "executes useradd with no extra arguments" do
-        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, username)
+      it "executes useradd only with the argument to create the home directory" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--create-home", username)
+
+        writer.write
+      end
+    end
+
+    context "for a new system user" do
+      let(:user_attrs) { { home: "/var/lib/y2test" } }
+
+      before { user.system = true }
+
+      it "executes useradd with the 'system' parameter and without creating a home directory" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+          expect(args.last).to eq username
+          expect(args).to_not include "--create-home"
+          expect(args).to include "--system"
+        end
 
         writer.write
       end
