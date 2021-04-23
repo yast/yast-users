@@ -81,6 +81,11 @@ module Y2Users
       configuration.passwords.find { |p| p.name == name }
     end
 
+    # @return [Date, nil] date when the account expires or nil if never
+    def expire_date
+      password&.account_expiration
+    end
+
     # @return [String] Returns full name from gecos entry or username if not specified in gecos.
     def full_name
       gecos.first || name
