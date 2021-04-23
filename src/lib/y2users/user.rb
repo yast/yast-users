@@ -23,6 +23,8 @@ module Y2Users
   # Representing user configuration on system in contenxt of given User Configuration
   # @note Immutable class.
   class User
+    Yast.import "ShadowConfig"
+
     # @return [Y2Users::Configuration] reference to configuration in which it lives
     attr_reader :configuration
 
@@ -62,6 +64,9 @@ module Y2Users
       @home = home
       @source = source
       @gecos = gecos
+
+      # See #system?
+      @system = false
     end
     # rubocop: enable Metrics/ParameterLists
 
@@ -106,6 +111,58 @@ module Y2Users
     def ==(other)
       # do not compare configuration to allow comparison between different configs
       ATTRS.all? { |a| public_send(a) == other.public_send(a) }
+    end
+
+    # Whether this is a system user
+    #
+    # This is important for several reasons:
+    #   - System users are represented as its own category in the YaST Users UI
+    #   - During creation:
+    #     - the uid is chosen in the SYS_UID_MIN-SYS_UID_MAX range (defined in /etc/login.defs)
+    #     - no aging information is added to /etc/shadow
+    #     - by default, the home directory is not created
+    #
+    # For users that still don't have an uid, it is possible to enforce whether they should be
+    # considered as a system user (and created as such in the system) via {#system=}.
+    #
+    # @return [Boolean]
+    def system?
+      uid ? system_uid? : @system
+    end
+
+    # Sets whether the current user should be considered as a system one
+    #
+    # @raise [RuntimeError] if the user already has an uid, because forcing the value only makes
+    #   sense for users for which the uid is still not known
+    #
+    # @see #system?
+    #
+    # @param value [Boolean]
+    def system=(value)
+      raise "The uid (#{uid}) is already defined" if uid
+
+      @system = value
+    end
+
+  private
+
+    # Whether the user is a system user according to its uid
+    #
+    # @return [Boolean]
+    def system_uid?
+      return false unless uid && sys_uid_max
+
+      uid.between?(sys_uid_min || 1, sys_uid_max)
+    end
+
+    # @return [Integer, nil]
+    def sys_uid_min
+      Yast::ShadowConfig.fetch(:sys_uid_min)&.to_i
+    end
+
+    # @return [Integer, nil]
+    def sys_uid_max
+      Yast::ShadowConfig.fetch(:sys_uid_max)&.to_i
     end
   end
 end
