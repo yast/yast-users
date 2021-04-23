@@ -19,6 +19,7 @@
 # find current contact information at www.suse.com.
 
 require_relative "../test_helper"
+require "date"
 require "y2users/configuration"
 require "y2users/user"
 require "y2users/password"
@@ -27,16 +28,70 @@ require "y2users/linux/writer"
 describe Y2Users::Linux::Writer do
   subject(:writer) { described_class.new(configuration) }
 
-  xdescribe "#write" do
+  describe "#write" do
     let(:configuration) { Y2Users::Configuration.new(:test) }
     let(:user) { Y2Users::User.new(configuration, username, **user_attrs) }
-    let(:password) { Y2Users::Password.new(configuration, username, value: pwd_value) }
+    let(:password) do
+      pw_options = { value: pwd_value, account_expiration: expiration_date }
+
+      Y2Users::Password.new(configuration, username, pw_options)
+    end
+
     let(:username) { "testuser" }
     let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+    let(:expiration_date) { nil }
+
+    RSpec.shared_examples "setting expiration date" do
+      context "without an expiration date" do
+        it "does not include the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to_not include("--expiredate")
+          end
+
+          writer.write
+        end
+      end
+
+      context "with an expiration date" do
+        let(:expiration_date) { Date.today }
+
+        it "includes the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to include("--expiredate")
+            expect(args).to include(expiration_date.to_s)
+          end
+
+          writer.write
+        end
+      end
+    end
+
+    RSpec.shared_examples "setting password" do
+      context "when the user has a password" do
+        it "executes chpasswd for setting it" do
+          expect(Yast::Execute).to receive(:on_target!)
+            .with(/chpasswd/, "-e", stdin: "#{username}:#{pwd_value}", recorder: anything)
+
+          writer.write
+        end
+      end
+
+      context "when the user has not a password" do
+        let(:pwd_value) { nil }
+
+        it "does not execute chpasswd" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/chpasswd/, any_args)
+
+          writer.write
+        end
+      end
+    end
 
     before do
       configuration.users << user
       configuration.passwords << password
+
+      allow(Yast::Execute).to receive(:on_target!)
     end
 
     context "for a user with all the attributes" do
@@ -46,6 +101,9 @@ describe Y2Users::Linux::Writer do
           gecos: ["First line of", "GECOS"]
         }
       end
+
+      include_examples "setting expiration date"
+      include_examples "setting password"
 
       it "executes useradd with all the parameters" do
         expect(Yast::Execute).to receive(:on_target!) do |*args|
@@ -60,6 +118,9 @@ describe Y2Users::Linux::Writer do
 
     context "for a user with no optional attributes specified" do
       let(:user_attrs) { {} }
+
+      include_examples "setting expiration date"
+      include_examples "setting password"
 
       it "executes useradd with no extra arguments" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, username)
