@@ -79,6 +79,7 @@ module Y2Users
     # TODO: other password attributes like #maximum_age, #inactivity_period, etc.
     # TODO: no authorized keys yet
     class Writer
+      include Yast::Logger
       # Constructor
       #
       # NOTE: right now we consider the system is empty, so we only receive one parameter.
@@ -126,6 +127,12 @@ module Y2Users
       def add_user(user)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
+      rescue Cheetah::ExecutionFailed => e
+        if e.message.include?(USERADD)
+          log.error("Error creating user '#{user.name}' - #{e.message}")
+        else
+          log.error("Error setting password for '#{user.name}' - #{e.message}")
+        end
       end
 
       # Generates and returns the options expected by `useradd` for given user
