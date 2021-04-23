@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -64,6 +62,7 @@ module Y2Users
           "--output", "NAME,FSTYPE,MODEL", stdout: :capture
         )
         return { "blockdevices" => [] } if output.nil?
+
         JSON.parse(output)
       end
 

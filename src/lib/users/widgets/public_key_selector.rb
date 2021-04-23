@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -276,6 +274,7 @@ module Y2Users
         # as SSH public key
         path = Yast::UI.AskForExistingFile(dir, "*.pub", _("Select a public key"))
         return unless path && File.exist?(path)
+
         self.value = SSHPublicKey.new(File.read(path))
       rescue SSHPublicKey::InvalidKey
         report_invalid_key

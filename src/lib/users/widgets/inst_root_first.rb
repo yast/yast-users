@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -55,6 +53,7 @@ module Y2Users
       # @see CWM::AbstractWidget
       def validate
         return true unless password_widget.empty? && public_key_selector.empty?
+
         Yast2::Popup.show(
           _("You need to provide at least a password or a public key."), headline: :error
         )

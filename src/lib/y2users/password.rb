@@ -28,23 +28,27 @@ module Y2Users
     # @return [String, nil] Encrypted password. It can have several specific values:
     #   - "!" or "*" is disabled login by password
     #   - "" password-less login allowed
-    #   - "!..." disabled password. After exclamation mark is old value that no longer can be used for login
+    #   - "!..." disabled password. After exclamation mark is old value that no longer can be used
+    #     for login
     #   - nil means password is not yet set
     attr_reader :value
 
-    # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change when next login force user to change it and nil for disabled aging feature
+    # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
+    #   when next login force user to change it and nil for disabled aging feature
     attr_reader :last_change
 
     # @return [Integer] Minimum number of days before next password change. 0 means no restriction.
     attr_reader :minimum_age
 
-    # @return [Integer, nil] Maximum number of days after which user is forced to change password. nil means no restriction.
+    # @return [Integer, nil] Maximum number of days after which user is forced to change password.
+    #   nil means no restriction.
     attr_reader :maximum_age
 
     # @return [Integer] Number of days before expire date happen. 0 means no warning.
     attr_reader :warning_period
 
-    # @return [Integer, nil] Number of days after expire date when old password can be still used. nil means no limit
+    # @return [Integer, nil] Number of days after expire date when old password can be still used.
+    #   nil means no limit
     attr_reader :inactivity_period
 
     # @return [Date, nil] Date when whole account expire or nil if there are no account expiration.
@@ -54,6 +58,8 @@ module Y2Users
     attr_reader :source
 
     # @see respective attributes for possible values
+    # @todo: avoid long list of parameters
+    # rubocop: disable Metrics/ParameterLists
     def initialize(configuration, name, value: nil, last_change: nil, minimum_age: nil,
       maximum_age: nil, warning_period: nil, inactivity_period: nil,
       account_expiration: nil, source: :unknown)
@@ -68,6 +74,7 @@ module Y2Users
       @account_expiration = account_expiration
       @source = source
     end
+    # rubocop: enable Metrics/ParameterLists
 
     ATTRS = [:name, :value, :last_change, :minimum_age, :maximum_age, :warning_period,
              :inactivity_period, :account_expiration].freeze

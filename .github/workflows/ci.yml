@@ -32,7 +32,7 @@ jobs:
 
   Rubocop:
     runs-on: ubuntu-latest
-    container: registry.opensuse.org/yast/head/containers/yast-cpp:latest
+    container: registry.opensuse.org/yast/head/containers/yast-ruby:latest
 
     steps:
 
