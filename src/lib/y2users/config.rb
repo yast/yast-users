@@ -21,20 +21,20 @@ module Y2Users
   # Holds references to elements of user configuration like users, groups or passwords.
   # Class itself holds references to different configuration instances.
   # TODO: write example
-  class Configuration
+  class Config
     class << self
       def get(name)
         @register ||= {}
         @register[name]
       end
 
-      def register(configuration)
+      def register(config)
         @register ||= {}
-        @register[configuration.name] = configuration
+        @register[config.name] = config
       end
 
-      def remove(configuration)
-        name = configuration.is_a?(self) ? configuration.name : configuration
+      def remove(config)
+        name = config.is_a?(self) ? config.name : config
 
         @register.delete(name)
       end
@@ -70,12 +70,12 @@ module Y2Users
     end
 
     def clone_as(name)
-      configuration = self.class.new(name)
-      configuration.users = users.map { |u| u.clone_to(configuration) }
-      configuration.groups = groups.map { |g| g.clone_to(configuration) }
-      configuration.passwords = passwords.map { |p| p.clone_to(configuration) }
+      config = self.class.new(name)
+      config.users = users.map { |u| u.clone_to(config) }
+      config.groups = groups.map { |g| g.clone_to(config) }
+      config.passwords = passwords.map { |p| p.clone_to(config) }
 
-      configuration
+      config
     end
   end
 end

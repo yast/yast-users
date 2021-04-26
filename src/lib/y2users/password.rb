@@ -60,10 +60,10 @@ module Y2Users
     # @see respective attributes for possible values
     # @todo: avoid long list of parameters
     # rubocop: disable Metrics/ParameterLists
-    def initialize(configuration, name, value: nil, last_change: nil, minimum_age: nil,
+    def initialize(config, name, value: nil, last_change: nil, minimum_age: nil,
       maximum_age: nil, warning_period: nil, inactivity_period: nil,
       account_expiration: nil, source: :unknown)
-      @configuration = configuration
+      @config = config
       @name = name
       @value = value
       @last_change = last_change
@@ -81,10 +81,10 @@ module Y2Users
 
     # Clones password to different configuration object.
     # @return [Y2Users::Password] newly cloned password object
-    def clone_to(configuration)
+    def clone_to(config)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument
-      self.class.new(configuration, name, attrs)
+      self.class.new(config, name, attrs)
     end
 
     # Compares password object if all attributes are same excluding configuration reference.

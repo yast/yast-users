@@ -27,21 +27,21 @@ module Y2Users
     class Writer
       # Constructor
       #
-      # @param configuration [Configuration]
-      def initialize(configuration)
-        @configuration = configuration
+      # @param config [Config]
+      def initialize(config)
+        @config = config
       end
 
-      # Stores all users from {#configuration} into the UsersSimple module
+      # Stores all users from {#config} into the UsersSimple module
       def write
-        users_simple = configuration.users.map { |u| to_user_simple(u) }
+        users_simple = config.users.map { |u| to_user_simple(u) }
         Yast::UsersSimple.SetUsers(users_simple)
       end
 
     private
 
-      # @return [Configuration]
-      attr_reader :configuration
+      # @return [Config]
+      attr_reader :config
 
       # Converts an {User} object into an user hash as UsersSimple module expects
       #

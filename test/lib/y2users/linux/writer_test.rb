@@ -20,21 +20,21 @@
 
 require_relative "../test_helper"
 require "date"
-require "y2users/configuration"
+require "y2users/config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/linux/writer"
 
 describe Y2Users::Linux::Writer do
-  subject(:writer) { described_class.new(configuration) }
+  subject(:writer) { described_class.new(config) }
 
   describe "#write" do
-    let(:configuration) { Y2Users::Configuration.new(:test) }
-    let(:user) { Y2Users::User.new(configuration, username, **user_attrs) }
+    let(:config) { Y2Users::Config.new(:test) }
+    let(:user) { Y2Users::User.new(config, username, **user_attrs) }
     let(:password) do
       pw_options = { value: pwd_value, account_expiration: expiration_date }
 
-      Y2Users::Password.new(configuration, username, pw_options)
+      Y2Users::Password.new(config, username, pw_options)
     end
 
     let(:username) { "testuser" }
@@ -94,8 +94,8 @@ describe Y2Users::Linux::Writer do
     end
 
     before do
-      configuration.users << user
-      configuration.passwords << password
+      config.users << user
+      config.passwords << password
 
       allow(Yast::Execute).to receive(:on_target!)
     end

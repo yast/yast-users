@@ -22,8 +22,8 @@ require "yast2/execute"
 module Y2Users
   # Represents user groups on system.
   class Group
-    # @return [Y2Users::Configuration] reference to configuration in which it lives
-    attr_reader :configuration
+    # @return [Y2Users::Config] reference to configuration in which it lives
+    attr_reader :config
 
     # @return [String] group name
     attr_reader :name
@@ -39,8 +39,8 @@ module Y2Users
     attr_reader :source
 
     # @see respective attributes for possible values
-    def initialize(configuration, name, gid: nil, users_name: [], source: :unknown)
-      @configuration = configuration
+    def initialize(config, name, gid: nil, users_name: [], source: :unknown)
+      @config = config
       @name = name
       @gid = gid
       @users_name = users_name
@@ -50,17 +50,17 @@ module Y2Users
     # @return [Array<Y2Users::User>] all users in this group, including ones that
     # has it as primary group
     def users
-      configuration.users.select { |u| u.gid == gid || users_name.include?(u.name) }
+      config.users.select { |u| u.gid == gid || users_name.include?(u.name) }
     end
 
     ATTRS = [:name, :gid, :users_name].freeze
 
     # Clones group to different configuration object.
     # @return [Y2Users::Group] newly cloned group object
-    def clone_to(configuration)
+    def clone_to(config)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument
-      self.class.new(configuration, name, attrs)
+      self.class.new(config, name, attrs)
     end
 
     # Compares group object if all attributes are same excluding configuration reference.
