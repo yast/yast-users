@@ -24,8 +24,9 @@ module Y2Users
     # Writes users and groups to the system using Yast2::Execute and standard
     # linux tools.
     #
-    # NOTE: currently it only creates new users, removing or modifying users is
-    # still not covered. No group management either.
+    # NOTE: currently it only creates new users or modifies passwords of
+    # existing ones. Removing or fully modifying users is still not covered.
+    # No group management either.
     #
     # A brief history of the differences with the Yast::Users (perl) module:
     #
@@ -90,7 +91,10 @@ module Y2Users
 
       # Performs the changes in the system
       def write
-        config.users.map { |user| add_user(user) }
+        config.users.map do |user|
+          add_user(user) if new_user?(user)
+          set_password(user)
+        end
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
         nil
@@ -126,15 +130,36 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
+      # Whether given user does not exist yet
+      #
+      # FIXME: choose a better criteria to identify a new user. An internal Y2User::User id?
+      #
+      # @param user [Y2User::User]
+      # @return [Boolean] true if there is a user with same name in @initial_config; false otherwise
+      def new_user?(user)
+        @initial_users_names ||= initial_config.users.map(&:name)
+
+        !@initial_users_names.include?(user.name)
+      end
+
+      # Executes the command for creating the user
+      #
+      # @param user [Y2User::User]
       def add_user(user)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
+      rescue Cheetah::ExecutionFailed => e
+        log.error("Error creating user '#{user.name}' - #{e.message}")
+      end
+
+      # Executes the command for setting the password of given user
+      #
+      # @param user [Y2User::User]
+      def set_password(user)
+        return unless user.password&.value
+
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
       rescue Cheetah::ExecutionFailed => e
-        if e.message.include?(USERADD)
-          log.error("Error creating user '#{user.name}' - #{e.message}")
-        else
-          log.error("Error setting password for '#{user.name}' - #{e.message}")
-        end
+        log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 
       # Generates and returns the options expected by `useradd` for given user

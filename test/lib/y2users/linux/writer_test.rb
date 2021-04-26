@@ -45,6 +45,7 @@ describe Y2Users::Linux::Writer do
     end
 
     let(:username) { "testuser" }
+    let(:user_attrs) { {} }
     let(:pwd_value) { nil }
     let(:expiration_date) { nil }
 
@@ -104,6 +105,20 @@ describe Y2Users::Linux::Writer do
       config.users << user
 
       allow(Yast::Execute).to receive(:on_target!)
+    end
+
+    context "for an existing user" do
+      before do
+        initial_config.users << user
+      end
+
+      it "does not execute useradd" do
+        expect(Yast::Execute).to_not receive(:on_target!).with(/useradd/, any_args)
+
+        writer.write
+      end
+
+      include_examples "setting password"
     end
 
     context "for a new regular user with all the attributes" do
