@@ -25,8 +25,8 @@ module Y2Users
   class User
     Yast.import "ShadowConfig"
 
-    # @return [Y2Users::Configuration] reference to configuration in which it lives
-    attr_reader :configuration
+    # @return [Y2Users::Config] reference to configuration in which it lives
+    attr_reader :config
 
     # @return [String] user name
     attr_reader :name
@@ -53,10 +53,10 @@ module Y2Users
     # @see respective attributes for possible values
     # @todo: avoid long list of parameters
     # rubocop: disable Metrics/ParameterLists
-    def initialize(configuration, name,
+    def initialize(config, name,
       uid: nil, gid: nil, shell: nil, home: nil, gecos: [], source: :unknown)
       # TODO: GECOS
-      @configuration = configuration
+      @config = config
       @name = name
       @uid = uid
       @gid = gid
@@ -73,17 +73,17 @@ module Y2Users
     # @return [Y2Users::Group, nil] primary group set to given user or
     #   nil if group is not set yet
     def primary_group
-      configuration.groups.find { |g| g.gid == gid }
+      config.groups.find { |g| g.gid == gid }
     end
 
     # @return [Array<Y2Users::Group>] list of groups where is user included including primary group
     def groups
-      configuration.groups.select { |g| g.users.include?(self) }
+      config.groups.select { |g| g.users.include?(self) }
     end
 
     # @return [Y2Users::Password] Password configuration assigned to user
     def password
-      configuration.passwords.find { |p| p.name == name }
+      config.passwords.find { |p| p.name == name }
     end
 
     # @return [Date, nil] date when the account expires or nil if never
@@ -100,10 +100,10 @@ module Y2Users
 
     # Clones user to different configuration object.
     # @return [Y2Users::User] newly cloned user object
-    def clone_to(configuration)
+    def clone_to(config)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument
-      self.class.new(configuration, name, attrs)
+      self.class.new(config, name, attrs)
     end
 
     # Compares user object if all attributes are same excluding configuration reference.

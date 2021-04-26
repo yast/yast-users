@@ -28,10 +28,10 @@ module Y2Users
   module Linux
     # Reads users configuration from the system using getent utility.
     class Reader
-      def read_to(configuration)
-        configuration.users = read_users(configuration)
-        configuration.groups = read_groups(configuration)
-        configuration.passwords = read_passwords(configuration)
+      def read_to(config)
+        config.users = read_users(config)
+        config.groups = read_groups(config)
+        config.passwords = read_passwords(config)
       end
 
     private
@@ -46,13 +46,13 @@ module Y2Users
         "shell"  => 6
       }.freeze
 
-      def read_users(configuration)
+      def read_users(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
           gecos = values[PASSWD_MAPPING["gecos"]] || ""
           User.new(
-            configuration,
+            config,
             values[PASSWD_MAPPING["name"]],
             uid:   values[PASSWD_MAPPING["uid"]],
             gid:   values[PASSWD_MAPPING["gid"]],
@@ -70,12 +70,12 @@ module Y2Users
         "users"  => 3
       }.freeze
 
-      def read_groups(configuration)
+      def read_groups(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
           Group.new(
-            configuration,
+            config,
             values[GROUP_MAPPING["name"]],
             gid:        values[GROUP_MAPPING["gid"]],
             users_name: values[GROUP_MAPPING["users"]]&.split(",") || []
@@ -94,7 +94,7 @@ module Y2Users
         "account_expiration" => 7
       }.freeze
 
-      def read_passwords(configuration)
+      def read_passwords(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
@@ -102,7 +102,7 @@ module Y2Users
           inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
           expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
           Password.new(
-            configuration,
+            config,
             values[SHADOW_MAPPING["username"]],
             value:              values[SHADOW_MAPPING["value"]],
             last_change:        parse_last_change(values[SHADOW_MAPPING["last_change"]]),

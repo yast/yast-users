@@ -86,15 +86,15 @@ module Y2Users
       #   But in the future we might need another configuration describing the initial state,
       #   so we can compare and know what changes are actually needed.
       #
-      # @param configuration [Y2User::Configuration] configuration containing the users
+      # @param config [Y2User::Config] configuration containing the users
       #   and groups that should exist in the system after writing
-      def initialize(configuration)
-        @configuration = configuration
+      def initialize(config)
+        @config = config
       end
 
       # Performs the changes in the system
       def write
-        configuration.users.map { |user| add_user(user) }
+        config.users.map { |user| add_user(user) }
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
         nil
@@ -104,8 +104,8 @@ module Y2Users
 
       # Configuration containing the users and groups that should exist in the system after writing
       #
-      # @return [Y2User::Configuration]
-      attr_reader :configuration
+      # @return [Y2User::Config]
+      attr_reader :config
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze

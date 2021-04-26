@@ -30,13 +30,13 @@ module Y2Users
   module UsersSimple
     # Class for reading users configuration from old Yast Module UsersSimple.
     class Reader
-      def read_to(configuration)
+      def read_to(config)
         users = Yast::UsersSimple.GetUsers
         # TODO: only created users, not imported ones for now
         users.each do |user|
-          configuration.users << User.new(configuration, user["uid"], gecos: [user["cn"]])
+          config.users << User.new(config, user["uid"], gecos: [user["cn"]])
           # lets just use the strongest available
-          configuration.passwords << Password.new(configuration, user["uid"],
+          config.passwords << Password.new(config, user["uid"],
             value: Yast::Builtins.cryptsha512(user["userPassword"]))
         end
       end
