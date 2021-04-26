@@ -23,7 +23,7 @@ Yast.import "UsersSimple"
 
 module Y2Users
   module UsersSimple
-    # Class for writing users config into the old UsersSimple Yast Module
+    # Class for writing users configuration into the old UsersSimple Yast Module
     class Writer
       # Constructor
       #
@@ -44,6 +44,7 @@ module Y2Users
         root = config.users.find(&:root?)
         return unless root
 
+        # TODO: save plain password instead of encrypted one.
         Yast::UsersSimple.SetRootPassword(root.password.value) unless root.password.nil?
       end
 
