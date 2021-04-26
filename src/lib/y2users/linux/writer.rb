@@ -92,7 +92,7 @@ module Y2Users
       # Performs the changes in the system
       def write
         config.users.map do |user|
-          add_user(user) if new_user?(user)
+          add_user(user)
           set_password(user)
         end
         # TODO: update the NIS database (make -C /var/yp) if needed
@@ -146,6 +146,8 @@ module Y2Users
       #
       # @param user [Y2User::User]
       def add_user(user)
+        return unless new_user?(user)
+
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
       rescue Cheetah::ExecutionFailed => e
         log.error("Error creating user '#{user.name}' - #{e.message}")
