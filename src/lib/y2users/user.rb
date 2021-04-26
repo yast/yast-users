@@ -113,6 +113,13 @@ module Y2Users
       ATTRS.all? { |a| public_send(a) == other.public_send(a) }
     end
 
+    # Whether it is the root user
+    #
+    # @return [Boolean]
+    def root?
+      name == "root"
+    end
+
     # Whether this is a system user
     #
     # This is important for several reasons:
