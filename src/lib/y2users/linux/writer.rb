@@ -70,7 +70,6 @@ module Y2Users
     # updated always, no matter whether useradd.local has been called.
     #
     #
-    #
     # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
@@ -82,14 +81,11 @@ module Y2Users
       include Yast::Logger
       # Constructor
       #
-      # NOTE: right now we consider the system is empty, so we only receive one parameter.
-      #   But in the future we might need another configuration describing the initial state,
-      #   so we can compare and know what changes are actually needed.
-      #
-      # @param config [Y2User::Config] configuration containing the users
-      #   and groups that should exist in the system after writing
-      def initialize(config)
+      # @param config [Y2User::Config] see #config
+      # @param initial_config [Y2User::Config] see #initial_config
+      def initialize(config, initial_config)
         @config = config
+        @initial_config = initial_config
       end
 
       # Performs the changes in the system
@@ -106,6 +102,12 @@ module Y2Users
       #
       # @return [Y2User::Config]
       attr_reader :config
+
+      # Initial state of the system that will be compared with {#config} to know what changes need
+      # to be performed
+      #
+      # @return [Y2User::Config]
+      attr_reader :initial_config
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze

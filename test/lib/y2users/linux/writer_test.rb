@@ -26,10 +26,12 @@ require "y2users/password"
 require "y2users/linux/writer"
 
 describe Y2Users::Linux::Writer do
-  subject(:writer) { described_class.new(config) }
+  subject(:writer) { described_class.new(config, initial_config) }
 
   describe "#write" do
-    let(:config) { Y2Users::Config.new(:test) }
+    let(:initial_config) { Y2Users::Config.new(:initial) }
+
+    let(:config) { initial_config.clone_as(:desired) }
     let(:user) do
       user = Y2Users::User.new(config, username, **user_attrs)
       user.password = password
