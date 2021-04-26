@@ -93,7 +93,7 @@ module Y2Users
       def write
         config.users.map do |user|
           add_user(user)
-          set_password(user)
+          change_password(user)
         end
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
@@ -156,7 +156,7 @@ module Y2Users
       # Executes the command for setting the password of given user
       #
       # @param user [Y2User::User]
-      def set_password(user)
+      def change_password(user)
         return unless user.password&.value
 
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
