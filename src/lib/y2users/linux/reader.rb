@@ -28,10 +28,13 @@ module Y2Users
   module Linux
     # Reads users configuration from the system using getent utility.
     class Reader
+      include Yast::Logger
+
       def read_to(config)
         config.users = read_users(config)
         config.groups = read_groups(config)
-        config.passwords = read_passwords(config)
+        # read passwords after user, as user has to exist in advance
+        read_passwords(config)
       end
 
     private
@@ -96,12 +99,12 @@ module Y2Users
 
       def read_passwords(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
-        getent.lines.map do |line|
+        getent.lines.each do |line|
           values = line.chomp.split(":")
           max_age = values[SHADOW_MAPPING["maximum_age"]]
           inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
           expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
-          Password.new(
+          pwd = Password.new(
             config,
             values[SHADOW_MAPPING["username"]],
             value:              values[SHADOW_MAPPING["value"]],
@@ -112,6 +115,14 @@ module Y2Users
             inactivity_period:  inactivity_period&.to_i,
             account_expiration: expiration
           )
+
+          user = config.users.find { |u| u.name == pwd.name }
+          if !user
+            log.warn "Found password for non existing user #{pwd.name}."
+            next
+          end
+
+          user.password = pwd
         end
       end
 

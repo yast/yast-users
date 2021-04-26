@@ -50,6 +50,9 @@ module Y2Users
     # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
 
+    # @return [Password] password configuration related to given user
+    attr_accessor :password
+
     # @see respective attributes for possible values
     # @todo: avoid long list of parameters
     # rubocop: disable Metrics/ParameterLists
@@ -81,11 +84,6 @@ module Y2Users
       config.groups.select { |g| g.users.include?(self) }
     end
 
-    # @return [Y2Users::Password] Password configuration assigned to user
-    def password
-      config.passwords.find { |p| p.name == name }
-    end
-
     # @return [Date, nil] date when the account expires or nil if never
     def expire_date
       password&.account_expiration
@@ -103,7 +101,10 @@ module Y2Users
     def clone_to(config)
       attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
       attrs.delete(:name) # name is separate argument
-      self.class.new(config, name, attrs)
+      cloned = self.class.new(config, name, attrs)
+      cloned.password = password.clone_to(config) if password
+
+      cloned
     end
 
     # Compares user object if all attributes are same excluding configuration reference.

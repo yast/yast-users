@@ -30,7 +30,12 @@ describe Y2Users::Linux::Writer do
 
   describe "#write" do
     let(:config) { Y2Users::Config.new(:test) }
-    let(:user) { Y2Users::User.new(config, username, **user_attrs) }
+    let(:user) do
+      user = Y2Users::User.new(config, username, **user_attrs)
+      user.password = password
+
+      user
+    end
     let(:password) do
       pw_options = { value: pwd_value, account_expiration: expiration_date }
 
@@ -95,7 +100,6 @@ describe Y2Users::Linux::Writer do
 
     before do
       config.users << user
-      config.passwords << password
 
       allow(Yast::Execute).to receive(:on_target!)
     end
