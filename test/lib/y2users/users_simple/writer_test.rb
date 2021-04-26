@@ -34,6 +34,52 @@ describe Y2Users::UsersSimple::Writer do
   end
 
   describe "#write" do
+    before(:each) do
+      Yast::UsersSimple.SetRootPassword("")
+    end
+
+    # Root user
+    let(:root) do
+      Y2Users::User.new(config, "root",
+        uid:   0,
+        gid:   0,
+        shell: "/bin/bash",
+        home:  "/root",
+        gecos: ["Root User"])
+    end
+
+    let(:root_password) { nil }
+
+    shared_examples "root" do
+      it "does not store the root user into the list of users" do
+        subject.write
+
+        names = Yast::UsersSimple.GetUsers.map { |u| u["uid"] }
+
+        expect(names).to_not include("root")
+      end
+
+      context "when root has no password" do
+        let(:root_password) { nil }
+
+        it "does not store a password for root" do
+          subject.write
+
+          expect(Yast::UsersSimple.GetRootPassword).to eq("")
+        end
+      end
+
+      context "when root has password" do
+        let(:root_password) { Y2Users::Password.new(config, "root", value: "S3cr3T") }
+
+        it "stores the password for root" do
+          subject.write
+
+          expect(Yast::UsersSimple.GetRootPassword).to eq("S3cr3T")
+        end
+      end
+    end
+
     context "when the users config does not contain users" do
       before do
         config.users = []
@@ -44,47 +90,66 @@ describe Y2Users::UsersSimple::Writer do
 
         expect(Yast::UsersSimple.GetUsers).to be_empty
       end
+
+      it "does not store a password for root" do
+        subject.write
+
+        expect(Yast::UsersSimple.GetRootPassword).to eq("")
+      end
+    end
+
+    context "when the users config only contains root" do
+      before do
+        config.users = [root]
+        config.passwords = [root_password].compact
+      end
+
+      it "does not store users into UsersSimple module" do
+        subject.write
+
+        expect(Yast::UsersSimple.GetUsers).to be_empty
+      end
+
+      include_examples "root"
     end
 
     context "when the users config contains users" do
       before do
-        config.users = [root, user]
-        config.passwords = [root_password, user_password]
+        config.users = [root, user1, user2]
+        config.passwords = [root_password, user1_password, user2_password].compact
       end
 
-      let(:root) { Y2Users::User.new(config, "root", **root_attrs) }
+      # User
 
-      let(:root_attrs) do
-        {
-          uid:   0,
-          gid:   0,
-          shell: "/bin/bash",
-          home:  "/root",
-          gecos: ["Root User"]
-        }
-      end
-
-      let(:root_password) { Y2Users::Password.new(config, "root", value: "S3cr3T") }
-
-      let(:user) { Y2Users::User.new(config, "test", **user_attrs) }
-
-      let(:user_attrs) do
-        {
+      let(:user1) do
+        Y2Users::User.new(config, "test1",
           uid:   uid,
           gid:   gid,
           shell: shell,
           home:  home,
-          gecos: gecos
-        }
+          gecos: gecos)
       end
 
       let(:uid) { 1000 }
       let(:gid) { 100 }
       let(:shell) { "/bin/zsh" }
-      let(:home) { "/home/test" }
-      let(:gecos) { ["Test User"] }
+      let(:home) { "/home/test1" }
+      let(:gecos) { ["Test User1"] }
 
-      let(:user_password) { Y2Users::Password.new(config, "test", value: "123456") }
+      let(:user1_password) { Y2Users::Password.new(config, "test1", value: "123456") }
+
+      # User
+
+      let(:user2) do
+        Y2Users::User.new(config, "test2",
+          uid:   1001,
+          gid:   101,
+          shell: "/bin/bash",
+          home:  "/home/test2",
+          gecos: ["Test User2"])
+      end
+
+      let(:user2_password) { Y2Users::Password.new(config, "test2", value: "654321") }
 
       it "stores all users into UsersSimple module" do
         subject.write
@@ -97,50 +162,52 @@ describe Y2Users::UsersSimple::Writer do
 
         names = Yast::UsersSimple.GetUsers.map { |u| u["uid"] }
 
-        expect(names).to contain_exactly("root", "test")
+        expect(names).to contain_exactly("test1", "test2")
       end
 
       it "stores the uid of the users" do
         subject.write
 
-        expect(user_simple("root")["uidNumber"]).to eq("0")
-        expect(user_simple("test")["uidNumber"]).to eq("1000")
+        expect(user_simple("test1")["uidNumber"]).to eq("1000")
+        expect(user_simple("test2")["uidNumber"]).to eq("1001")
       end
 
       it "stores the gid of the users" do
         subject.write
 
-        expect(user_simple("root")["gidNumber"]).to eq("0")
-        expect(user_simple("test")["gidNumber"]).to eq("100")
+        expect(user_simple("test1")["gidNumber"]).to eq("100")
+        expect(user_simple("test2")["gidNumber"]).to eq("101")
       end
 
       it "stores the shell of the users" do
         subject.write
 
-        expect(user_simple("root")["loginShell"]).to eq("/bin/bash")
-        expect(user_simple("test")["loginShell"]).to eq("/bin/zsh")
+        expect(user_simple("test1")["loginShell"]).to eq("/bin/zsh")
+        expect(user_simple("test2")["loginShell"]).to eq("/bin/bash")
       end
 
       it "stores the home directory of the users" do
         subject.write
 
-        expect(user_simple("root")["homeDirectory"]).to eq("/root")
-        expect(user_simple("test")["homeDirectory"]).to eq("/home/test")
+        expect(user_simple("test1")["homeDirectory"]).to eq("/home/test1")
+        expect(user_simple("test2")["homeDirectory"]).to eq("/home/test2")
       end
 
       it "stores the full name of the users" do
         subject.write
 
-        expect(user_simple("root")["cn"]).to eq("Root User")
-        expect(user_simple("test")["cn"]).to eq("Test User")
+        expect(user_simple("test1")["cn"]).to eq("Test User1")
+        expect(user_simple("test2")["cn"]).to eq("Test User2")
       end
 
       it "stores the password of the users" do
         subject.write
 
-        expect(user_simple("root")["userPassword"]).to eq("S3cr3T")
-        expect(user_simple("test")["userPassword"]).to eq("123456")
+        expect(user_simple("test1")["userPassword"]).to eq("123456")
+        expect(user_simple("test2")["userPassword"]).to eq("654321")
       end
+
+      include_examples "root"
 
       context "when a user has no uid" do
         let(:uid) { nil }
@@ -148,7 +215,7 @@ describe Y2Users::UsersSimple::Writer do
         it "does not store an user uid" do
           subject.write
 
-          expect(user_simple("test")["uidNumber"]).to be_nil
+          expect(user_simple("test1")["uidNumber"]).to be_nil
         end
       end
 
@@ -158,7 +225,7 @@ describe Y2Users::UsersSimple::Writer do
         it "does not store an user gid" do
           subject.write
 
-          expect(user_simple("test")["gidNumber"]).to be_nil
+          expect(user_simple("test1")["gidNumber"]).to be_nil
         end
       end
 
@@ -168,7 +235,7 @@ describe Y2Users::UsersSimple::Writer do
         it "does not store an user shell" do
           subject.write
 
-          expect(user_simple("test")["loginShell"]).to be_nil
+          expect(user_simple("test1")["loginShell"]).to be_nil
         end
       end
 
@@ -178,7 +245,7 @@ describe Y2Users::UsersSimple::Writer do
         it "does not store an user home" do
           subject.write
 
-          expect(user_simple("test")["homeDirectory"]).to be_nil
+          expect(user_simple("test1")["homeDirectory"]).to be_nil
         end
       end
 
@@ -188,17 +255,17 @@ describe Y2Users::UsersSimple::Writer do
         it "stores the user name as full name" do
           subject.write
 
-          expect(user_simple("test")["cn"]).to eq("test")
+          expect(user_simple("test1")["cn"]).to eq("test1")
         end
       end
 
       context "when a user has no password" do
-        let(:user_password) { Y2Users::Password.new(config, "test", value: nil) }
+        let(:user1_password) { nil }
 
         it "does not store an user password" do
           subject.write
 
-          expect(user_simple("test")["userPassword"]).to be_nil
+          expect(user_simple("test1")["userPassword"]).to be_nil
         end
       end
     end

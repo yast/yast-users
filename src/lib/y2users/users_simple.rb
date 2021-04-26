@@ -23,3 +23,4 @@ module Y2Users
 end
 
 require "y2users/users_simple/reader"
+require "y2users/users_simple/writer"

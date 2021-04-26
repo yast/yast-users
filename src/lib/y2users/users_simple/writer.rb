@@ -33,9 +33,19 @@ module Y2Users
       end
 
       # Stores all users from {#config} into the UsersSimple module
+      #
+      # UsersSimple module is not expected to contain the root user in its list of users. It
+      # provides separate attributes in order to store the root user info (e.g., root_password or
+      # root_public_key).
       def write
-        users_simple = config.users.map { |u| to_user_simple(u) }
+        users_simple = config.users.reject(&:root?).map { |u| to_user_simple(u) }
         Yast::UsersSimple.SetUsers(users_simple)
+
+        root = config.users.find(&:root?)
+        return unless root
+
+        # TODO: save plain password instead of encrypted one.
+        Yast::UsersSimple.SetRootPassword(root.password.value) unless root.password.nil?
       end
 
     private
@@ -57,7 +67,7 @@ module Y2Users
           cn:            user.full_name,
           # TODO: Y2Users::Password class stores an encrypted password, but UsersSimple expects
           #   plain password.
-          userPassword:  user.password.value
+          userPassword:  user.password&.value
         }
       end
     end
