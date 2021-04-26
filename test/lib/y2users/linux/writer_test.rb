@@ -50,16 +50,6 @@ describe Y2Users::Linux::Writer do
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
-      context "without an expiration date" do
-        it "does not include the --expiredate option" do
-          expect(Yast::Execute).to receive(:on_target!) do |*args|
-            expect(args).to_not include("--expiredate")
-          end
-
-          writer.write
-        end
-      end
-
       context "with an expiration date" do
         let(:expiration_date) { Date.today }
 
@@ -72,10 +62,20 @@ describe Y2Users::Linux::Writer do
           writer.write
         end
       end
+
+      context "without an expiration date" do
+        it "does not include the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to_not include("--expiredate")
+          end
+
+          writer.write
+        end
+      end
     end
 
     RSpec.shared_examples "setting password" do
-      context "when the user has a password" do
+      context "which has a password set" do
         let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
 
         # If we would have used the --password argument of useradd, the encrypted password would
@@ -90,7 +90,7 @@ describe Y2Users::Linux::Writer do
         end
       end
 
-      context "when the user has no password" do
+      context "which does not have a password set" do
         let(:pwd_value) { nil }
 
         it "does not execute chpasswd" do
