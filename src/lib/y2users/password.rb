@@ -18,20 +18,28 @@
 # find current contact information at www.suse.com.
 
 require "yast2/execute"
+require "yast2/secret_attributes"
 
 module Y2Users
   # Password configuration for user including its hashed value.
   class Password
+    include Yast2::SecretAttributes
+
     # @return [String] login name for given password
     attr_reader :name
 
+    # @!attribute value
     # @return [String, nil] Encrypted password. It can have several specific values:
     #   - "!" or "*" is disabled login by password
     #   - "" password-less login allowed
     #   - "!..." disabled password. After exclamation mark is old value that no longer can be used
     #     for login
     #   - nil means password is not yet set
-    attr_reader :value
+    secret_attr :value
+
+    # @!attribute plain_value
+    # @return [String, nil] Plain unexcrypted password. Nil means not set or only encrypted one is known
+    secret_attr :plain_value
 
     # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
     #   when next login force user to change it and nil for disabled aging feature

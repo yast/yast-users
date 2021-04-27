@@ -38,8 +38,19 @@ module Y2Users
           # lets just use the strongest available
           user.password = Password.new(config, user["uid"],
             value: Yast::Builtins.cryptsha512(user["userPassword"]))
+          user.password.plain_value = user["userPassword"]
           config.users << user
         end
+
+        # Read also root user settings
+        root_pwd_plain = Yast::UsersSimple.GetRootPassword
+        root_pwd = Password.new(config, "root",
+          value: Yast::Builtins.cryptsha512(user["userPassword"]))
+        root_pwd.plain_value = root_pwd_plain
+        root_user = User.new(config, "root")
+        root_user.password = root_pwd
+
+        config.users << root_user
       end
     end
   end

@@ -44,8 +44,7 @@ module Y2Users
         root = config.users.find(&:root?)
         return unless root
 
-        # TODO: save plain password instead of encrypted one.
-        Yast::UsersSimple.SetRootPassword(root.password.value) unless root.password.nil?
+        Yast::UsersSimple.SetRootPassword(root.password.plain_value) unless root.password.nil?
       end
 
     private
