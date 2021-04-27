@@ -24,9 +24,9 @@ module Y2Users
     # Writes users and groups to the system using Yast2::Execute and standard
     # linux tools.
     #
-    # NOTE: currently it only creates new users or modifies passwords of
-    # existing ones. Removing or fully modifying users is still not covered.
-    # No group management either.
+    # NOTE: currently it only creates new users or modifies the password value
+    # of existing ones.  Removing or fully modifying users is still not covered.
+    # No group management or passowrd configuration either.
     #
     # A brief history of the differences with the Yast::Users (perl) module:
     #
@@ -107,8 +107,8 @@ module Y2Users
       # @return [Y2User::Config]
       attr_reader :config
 
-      # Initial state of the system that will be compared with {#config} to know what changes need
-      # to be performed
+      # Initial state of the system (usually a Y2User::Config.system) that will be compared with
+      # {#config} to know what changes need to be performed.
       #
       # @return [Y2User::Config]
       attr_reader :initial_config
