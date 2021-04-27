@@ -38,7 +38,8 @@ module Y2Users
     secret_attr :value
 
     # @!attribute plain_value
-    # @return [String, nil] Plain unexcrypted password. Nil means not set or only encrypted one is known
+    # @return [String, nil] Plain unexcrypted password. Nil means not set or
+    #   only encrypted version is known
     secret_attr :plain_value
 
     # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
@@ -73,7 +74,7 @@ module Y2Users
       account_expiration: nil, source: :unknown)
       @config = config
       @name = name
-      @value = value
+      self.value = value
       @last_change = last_change
       @minimum_age = minimum_age
       @maximum_age = maximum_age

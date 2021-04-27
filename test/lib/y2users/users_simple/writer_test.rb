@@ -73,7 +73,11 @@ describe Y2Users::UsersSimple::Writer do
       end
 
       context "when root has password" do
-        let(:root_password) { Y2Users::Password.new(config, "root", value: "S3cr3T") }
+        let(:root_password) do
+          pwd = Y2Users::Password.new(config, "root")
+          pwd.plain_value = "S3cr3T"
+          pwd
+        end
 
         it "stores the password for root" do
           subject.write
