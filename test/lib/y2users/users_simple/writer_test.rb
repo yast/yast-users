@@ -40,12 +40,15 @@ describe Y2Users::UsersSimple::Writer do
 
     # Root user
     let(:root) do
-      Y2Users::User.new(config, "root",
+      user = Y2Users::User.new(config, "root",
         uid:   0,
         gid:   0,
         shell: "/bin/bash",
         home:  "/root",
         gecos: ["Root User"])
+
+      user.password = root_password
+      user
     end
 
     let(:root_password) { nil }
@@ -101,7 +104,6 @@ describe Y2Users::UsersSimple::Writer do
     context "when the users config only contains root" do
       before do
         config.users = [root]
-        config.passwords = [root_password].compact
       end
 
       it "does not store users into UsersSimple module" do
@@ -116,18 +118,20 @@ describe Y2Users::UsersSimple::Writer do
     context "when the users config contains users" do
       before do
         config.users = [root, user1, user2]
-        config.passwords = [root_password, user1_password, user2_password].compact
       end
 
       # User
 
       let(:user1) do
-        Y2Users::User.new(config, "test1",
+        user = Y2Users::User.new(config, "test1",
           uid:   uid,
           gid:   gid,
           shell: shell,
           home:  home,
           gecos: gecos)
+
+        user.password = user1_password
+        user
       end
 
       let(:uid) { 1000 }
@@ -141,12 +145,15 @@ describe Y2Users::UsersSimple::Writer do
       # User
 
       let(:user2) do
-        Y2Users::User.new(config, "test2",
+        user = Y2Users::User.new(config, "test2",
           uid:   1001,
           gid:   101,
           shell: "/bin/bash",
           home:  "/home/test2",
           gecos: ["Test User2"])
+
+        user.password = user2_password
+        user
       end
 
       let(:user2_password) { Y2Users::Password.new(config, "test2", value: "654321") }

@@ -34,10 +34,11 @@ module Y2Users
         users = Yast::UsersSimple.GetUsers
         # TODO: only created users, not imported ones for now
         users.each do |user|
-          config.users << User.new(config, user["uid"], gecos: [user["cn"]])
+          user = User.new(config, user["uid"], gecos: [user["cn"]])
           # lets just use the strongest available
-          config.passwords << Password.new(config, user["uid"],
+          user.password = Password.new(config, user["uid"],
             value: Yast::Builtins.cryptsha512(user["userPassword"]))
+          config.users << user
         end
       end
     end

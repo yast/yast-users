@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 module Y2Users
-  # Holds references to elements of user configuration like users, groups or passwords.
+  # Holds references to elements of user configuration like users or groups.
   # Class itself holds references to different configuration instances.
   # TODO: write example
   class Config
@@ -59,13 +59,11 @@ module Y2Users
     attr_reader :name
     attr_accessor :users
     attr_accessor :groups
-    attr_accessor :passwords
 
-    def initialize(name, users: [], groups: [], passwords: [])
+    def initialize(name, users: [], groups: [])
       @name = name
       @users = users
       @groups = groups
-      @passwords = passwords
       self.class.register(self)
     end
 
@@ -73,7 +71,6 @@ module Y2Users
       config = self.class.new(name)
       config.users = users.map { |u| u.clone_to(config) }
       config.groups = groups.map { |g| g.clone_to(config) }
-      config.passwords = passwords.map { |p| p.clone_to(config) }
 
       config
     end
