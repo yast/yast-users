@@ -96,6 +96,8 @@ module Y2Users
       end
 
       # Performs the changes in the system
+      #
+      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
         self.issues = Y2Issues::List.new
 
