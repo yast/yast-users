@@ -17,28 +17,18 @@
 #  you may find current contact information at www.suse.com
 
 require "yast"
-Yast.import "ProductFeatures"
+require "y2users/validation_config"
 
 module Users
   # Validator to check if a password fulfills the requirements to
   # generate CAs (see FATE#300438)
+  #
+  # NOTE: very likely this class will be merged into Y2Users::PasswordValidator
   class CAPasswordValidator
-    MIN_LENGTH = 4
-    private_constant :MIN_LENGTH
-
     include Yast::I18n
 
     def initialize
       textdomain "users"
-    end
-
-    # Returns whether YaST should check CA constraints
-    #
-    # See installation control file: globals->root_password_ca_check
-    #
-    # @return [Boolean] whether to check the constraints
-    def enabled?
-      !!Yast::ProductFeatures.GetBooleanFeature("globals", "root_password_ca_check")
     end
 
     # List of errors found for a given password
@@ -49,30 +39,25 @@ module Users
     # @return [Array<String>] errors or empty array if no errors are found or
     #       validation is disabled
     def errors_for(passwd)
-      if !enabled? || passwd.size >= MIN_LENGTH
+      if !config.check_ca? || passwd.size >= config.ca_min_password_length
         []
       else
         [
           _(
             "If you intend to create certificates,\n" \
             "the password should have at least %s characters."
-          ) % MIN_LENGTH
+          ) % config.ca_min_password_length
         ]
       end
     end
 
-    # Localized help text about CA constraints
+  private
+
+    # Configuration of the validation process
     #
-    # @return [String] html text or empty string if validation is disabled
-    def help_text
-      if enabled?
-        _(
-          "<p>If you intend to use this password for creating certificates,\n" \
-          "it has to be at least %s characters long.</p>"
-        ) % MIN_LENGTH
-      else
-        ""
-      end
+    # @return [Y2Users::ValidationConfig]
+    def config
+      @config ||= Y2Users::ValidationConfig.new
     end
   end
 end
