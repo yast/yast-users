@@ -79,7 +79,7 @@ describe Y2Users::Linux::Writer do
         # have been visible in the list of system processes (since it's part of the command)
         it "executes chpasswd without leaking the password to the list of processes" do
           expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
-            leak_arg = args.find { |arg| arg.include?(pwd_value) }
+            leak_arg = args.find { |arg| arg.include?(pwd_value.content) }
             expect(leak_arg).to be_nil
           end
 

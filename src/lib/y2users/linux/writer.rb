@@ -176,7 +176,7 @@ module Y2Users
       def chpasswd_options(user)
         opts = ["-e"] # Y2Users::Password#value returns the encrypted password
         opts << {
-          stdin:    [user.name, user.password&.value].join(":"),
+          stdin:    [user.name, user.password&.value&.content].join(":"),
           recorder: cheetah_recorder
         }
         opts
