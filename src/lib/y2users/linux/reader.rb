@@ -31,10 +31,7 @@ module Y2Users
       include Yast::Logger
 
       def read_to(config)
-        config.users = read_users(config)
-        config.groups = read_groups(config)
-        # read passwords after user, as user has to exist in advance
-        read_passwords(config)
+        config.attach(users + groups)
       end
 
     private
@@ -48,21 +45,27 @@ module Y2Users
         "home"   => 5,
         "shell"  => 6
       }.freeze
+      private_constant :PASSWD_MAPPING
 
-      def read_users(config)
+      # Returns the collection of users retrieved via getent
+      #
+      # @return [Array<User>]
+      def users
         getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
-          gecos = values[PASSWD_MAPPING["gecos"]] || ""
-          User.new(
-            config,
-            values[PASSWD_MAPPING["name"]],
+          username = values[PASSWD_MAPPING["name"]]
+          user = User.new(
+            username,
             uid:   values[PASSWD_MAPPING["uid"]],
             gid:   values[PASSWD_MAPPING["gid"]],
             shell: values[PASSWD_MAPPING["shell"]],
-            gecos: gecos.split(","),
+            gecos: values[PASSWD_MAPPING["gecos"]].to_s.split(","),
             home:  values[PASSWD_MAPPING["home"]]
           )
+
+          user.password = passwords[username]
+          user
         end
       end
 
@@ -72,16 +75,19 @@ module Y2Users
         "gid"    => 2,
         "users"  => 3
       }.freeze
+      private_constant :GROUP_MAPPING
 
-      def read_groups(config)
+      # Returns the collection of groups retrieved via getent
+      #
+      # @return [Array<Group>]
+      def groups
         getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
           Group.new(
-            config,
             values[GROUP_MAPPING["name"]],
             gid:        values[GROUP_MAPPING["gid"]],
-            users_name: values[GROUP_MAPPING["users"]]&.split(",") || []
+            users_name: values[GROUP_MAPPING["users"]].to_s.split(",")
           )
         end
       end
@@ -96,28 +102,25 @@ module Y2Users
         "inactivity_period"  => 6,
         "account_expiration" => 7
       }.freeze
+      private_constant :SHADOW_MAPPING
 
-      def read_passwords(config)
+      def passwords
+        return @passwords if @passwords
+
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
-        getent.lines.each do |line|
-          password = parse_getent_password(config, line)
-          user = config.users.find { |u| u.name == password.name }
-          if !user
-            log.warn "Found password for non existing user #{password.name}."
-            next
-          end
+        @passwords = getent.lines.each_with_object({}) do |line, collection|
+          values = line.chomp.split(":")
 
-          user.password = password
+          collection[values[SHADOW_MAPPING["username"]] = parse_getent_password(values)
         end
       end
 
-      def parse_getent_password(config, line)
-        values = line.chomp.split(":")
+      def parse_getent_password(values)
         max_age = values[SHADOW_MAPPING["maximum_age"]]
         inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
         expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
+
         Password.new(
-          config,
           values[SHADOW_MAPPING["username"]],
           value:              PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]]),
           last_change:        parse_last_change(values[SHADOW_MAPPING["last_change"]]),
