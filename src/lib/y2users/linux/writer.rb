@@ -99,16 +99,16 @@ module Y2Users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
-        @issues = Y2Issues::List.new
+        issues = Y2Issues::List.new
 
         config.users.map do |user|
-          add_user(user)
-          change_password(user)
+          add_user(user, issues)
+          change_password(user, issues)
         end
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
 
-        @issues
+        issues
       end
 
     private
@@ -123,11 +123,6 @@ module Y2Users
       #
       # @return [Y2User::Config]
       attr_reader :initial_config
-
-      # The list of issues generated while writting changes to the system. See #write
-      #
-      # @return [Y2Issues::List]
-      attr_reader :issues
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
@@ -160,8 +155,9 @@ module Y2Users
 
       # Executes the command for creating the user
       #
-      # @param user [Y2User::User]
-      def add_user(user)
+      # @param user [Y2User::User] the user to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def add_user(user, issues)
         return unless new_user?(user)
 
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
@@ -175,7 +171,8 @@ module Y2Users
       # Executes the command for setting the password of given user
       #
       # @param user [Y2User::User]
-      def change_password(user)
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def change_password(user, issues)
         return unless user.password&.value
 
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
