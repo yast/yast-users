@@ -17,7 +17,10 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
+require "yast/i18n"
 require "yast2/execute"
+require "y2issues"
 
 module Y2Users
   module Linux
@@ -79,25 +82,31 @@ module Y2Users
     # TODO: other password attributes like #maximum_age, #inactivity_period, etc.
     # TODO: no authorized keys yet
     class Writer
+      include Yast::I18n
       include Yast::Logger
       # Constructor
       #
       # @param config [Y2User::Config] see #config
       # @param initial_config [Y2User::Config] see #initial_config
       def initialize(config, initial_config)
+        textdomain "y2users"
+
         @config = config
         @initial_config = initial_config
       end
 
       # Performs the changes in the system
       def write
+        self.issues = Y2Issues::List.new
+
         config.users.map do |user|
           add_user(user)
           change_password(user)
         end
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
-        nil
+
+        issues
       end
 
     private
@@ -107,11 +116,16 @@ module Y2Users
       # @return [Y2User::Config]
       attr_reader :config
 
-      # Initial state of the system (usually a Y2User::Config.system) that will be compared with
-      # {#config} to know what changes need to be performed.
+      # Initial state of the system (usually a Y2User::Config.system in a running system) that will
+      # be compared with {#config} to know what changes need to be performed.
       #
       # @return [Y2User::Config]
       attr_reader :initial_config
+
+      # The list of issues generated while writting changes to the system
+      #
+      # @return [Y2Issues::List]
+      attr_accessor :issues
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
@@ -150,6 +164,9 @@ module Y2Users
 
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
       rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The user '%{username}' could not be created"), username: user.name)
+        )
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
@@ -161,6 +178,9 @@ module Y2Users
 
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
       rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The password for '%{username}' could not be set"), username: user.name)
+        )
         log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 

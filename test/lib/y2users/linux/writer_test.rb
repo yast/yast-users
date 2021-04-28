@@ -19,6 +19,7 @@
 # find current contact information at www.suse.com.
 
 require_relative "../test_helper"
+
 require "date"
 require "y2users/config"
 require "y2users/user"
@@ -46,7 +47,7 @@ describe Y2Users::Linux::Writer do
 
     let(:username) { "testuser" }
     let(:user_attrs) { {} }
-    let(:pwd_value) { nil }
+    let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
@@ -168,6 +169,51 @@ describe Y2Users::Linux::Writer do
         end
 
         writer.write
+      end
+    end
+
+    context "when executed with no errors" do
+      it "returns an empty issues list" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to be_empty
+      end
+    end
+
+    context "when there is any error adding users" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/useradd/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/user.*could not be created/)
+      end
+    end
+
+    context "when there is any error setting passwords" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/chpasswd/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/password.*could not be set/)
       end
     end
   end
