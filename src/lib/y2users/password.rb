@@ -58,12 +58,12 @@ module Y2Users
     attr_reader :source
 
     def self.plain(value)
-      # TODO remove nils when adapting all constructors
+      # TODO: remove nils when adapting all constructors
       new(nil, nil, value: PlainValue.new(value))
     end
 
     def self.encrypted(value)
-      # TODO remove nils when adapting all constructors
+      # TODO: remove nils when adapting all constructors
       new(nil, nil, value: EncryptedValue.new(value))
     end
 
@@ -104,6 +104,7 @@ module Y2Users
       ATTRS.all? { |a| public_send(a) == other.public_send(a) }
     end
 
+    # Represents password value. It specific type is defined as subclass and can be queried
     class Value
       include Yast2::SecretAttributes
 
@@ -122,6 +123,7 @@ module Y2Users
       end
     end
 
+    # Represents encrypted password value or its specific types like disabled of locked logging.
     class EncryptedValue < Value
       def encrypted?
         true
@@ -136,6 +138,7 @@ module Y2Users
       end
     end
 
+    # Represents plain password value
     class PlainValue < Value
       def plain?
         true

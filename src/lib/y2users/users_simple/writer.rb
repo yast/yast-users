@@ -44,7 +44,10 @@ module Y2Users
         root = config.users.find(&:root?)
         return unless root
 
-        Yast::UsersSimple.SetRootPassword(root.password.value.content) if root.password&.value&.plain?
+        value = root.password&.value
+        return unless value
+
+        Yast::UsersSimple.SetRootPassword(value.content) if value.plain?
       end
 
     private
@@ -66,7 +69,7 @@ module Y2Users
           loginShell:    user.shell,
           homeDirectory: user.home,
           cn:            user.full_name,
-          userPassword:  user.password&.value&.content
+          userPassword:  password
         }
       end
     end
