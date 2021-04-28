@@ -29,18 +29,9 @@ module Y2Users
     attr_reader :name
 
     # @!attribute value
-    # @return [String, nil] Encrypted password. It can have several specific values:
-    #   - "!" or "*" is disabled login by password
-    #   - "" password-less login allowed
-    #   - "!..." disabled password. After exclamation mark is old value that no longer can be used
-    #     for login
-    #   - nil means password is not yet set
+    # @return [Value, nil] password value. Can be any subclass of Value. nil when password is
+    #   not set at all.
     secret_attr :value
-
-    # @!attribute plain_value
-    # @return [String, nil] Plain unexcrypted password. Nil means not set or
-    #   only encrypted version is known
-    secret_attr :plain_value
 
     # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
     #   when next login force user to change it and nil for disabled aging feature
@@ -65,6 +56,16 @@ module Y2Users
 
     # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
+
+    def self.plain(value)
+      # TODO remove nils when adapting all constructors
+      new(nil, nil, value: PlainValue.new(value))
+    end
+
+    def self.encrypted(value)
+      # TODO remove nils when adapting all constructors
+      new(nil, nil, value: EncryptedValue.new(value))
+    end
 
     # @see respective attributes for possible values
     # @todo: avoid long list of parameters
@@ -101,6 +102,44 @@ module Y2Users
     def ==(other)
       # do not compare configuration to allow comparison between different configs
       ATTRS.all? { |a| public_send(a) == other.public_send(a) }
+    end
+
+    class Value
+      include Yast2::SecretAttributes
+
+      secret_attr :content
+
+      def initialize(content)
+        self.content = content
+      end
+
+      def plain?
+        false
+      end
+
+      def encrypted?
+        false
+      end
+    end
+
+    class EncryptedValue < Value
+      def encrypted?
+        true
+      end
+
+      def locked?
+        content.start_with?("!$")
+      end
+
+      def disabled?
+        ["*", "!"].include?(content)
+      end
+    end
+
+    class PlainValue < Value
+      def plain?
+        true
+      end
     end
   end
 end

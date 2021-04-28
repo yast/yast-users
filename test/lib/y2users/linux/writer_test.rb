@@ -73,7 +73,7 @@ describe Y2Users::Linux::Writer do
 
     RSpec.shared_examples "setting password" do
       context "when the user has a password" do
-        let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+        let(:pwd_value) { Y2Users::Password::EncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
 
         # If we would have used the --password argument of useradd, the encrypted password would
         # have been visible in the list of system processes (since it's part of the command)
