@@ -17,15 +17,19 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
+require "yast/i18n"
 require "yast2/execute"
+require "y2issues"
 
 module Y2Users
   module Linux
     # Writes users and groups to the system using Yast2::Execute and standard
     # linux tools.
     #
-    # NOTE: currently it only creates new users, removing or modifying users is
-    # still not covered. No group management either.
+    # NOTE: currently it only creates new users or modifies the password value
+    # of existing ones.  Removing or fully modifying users is still not covered.
+    # No group management or passowrd configuration either.
     #
     # A brief history of the differences with the Yast::Users (perl) module:
     #
@@ -70,7 +74,6 @@ module Y2Users
     # updated always, no matter whether useradd.local has been called.
     #
     #
-    #
     # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
@@ -79,25 +82,33 @@ module Y2Users
     # TODO: other password attributes like #maximum_age, #inactivity_period, etc.
     # TODO: no authorized keys yet
     class Writer
+      include Yast::I18n
       include Yast::Logger
       # Constructor
       #
-      # NOTE: right now we consider the system is empty, so we only receive one parameter.
-      #   But in the future we might need another configuration describing the initial state,
-      #   so we can compare and know what changes are actually needed.
-      #
-      # @param config [Y2User::Config] configuration containing the users
-      #   and groups that should exist in the system after writing
-      def initialize(config)
+      # @param config [Y2User::Config] see #config
+      # @param initial_config [Y2User::Config] see #initial_config
+      def initialize(config, initial_config)
+        textdomain "y2users"
+
         @config = config
+        @initial_config = initial_config
       end
 
       # Performs the changes in the system
+      #
+      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
-        config.users.map { |user| add_user(user) }
+        issues = Y2Issues::List.new
+
+        config.users.map do |user|
+          add_user(user, issues)
+          change_password(user, issues)
+        end
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
-        nil
+
+        issues
       end
 
     private
@@ -106,6 +117,12 @@ module Y2Users
       #
       # @return [Y2User::Config]
       attr_reader :config
+
+      # Initial state of the system (usually a Y2User::Config.system in a running system) that will
+      # be compared with {#config} to know what changes need to be performed.
+      #
+      # @return [Y2User::Config]
+      attr_reader :initial_config
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
@@ -124,15 +141,46 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
-      def add_user(user)
+      # Whether given user does not exist yet
+      #
+      # FIXME: choose a better criteria to identify a new user. An internal Y2User::User id?
+      #
+      # @param user [Y2User::User]
+      # @return [Boolean] true if there is a user with same name in @initial_config; false otherwise
+      def new_user?(user)
+        @initial_users_names ||= initial_config.users.map(&:name)
+
+        !@initial_users_names.include?(user.name)
+      end
+
+      # Executes the command for creating the user
+      #
+      # @param user [Y2User::User] the user to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def add_user(user, issues)
+        return unless new_user?(user)
+
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The user '%{username}' could not be created"), username: user.name)
+        )
+        log.error("Error creating user '#{user.name}' - #{e.message}")
+      end
+
+      # Executes the command for setting the password of given user
+      #
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def change_password(user, issues)
+        return unless user.password&.value
+
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
       rescue Cheetah::ExecutionFailed => e
-        if e.message.include?(USERADD)
-          log.error("Error creating user '#{user.name}' - #{e.message}")
-        else
-          log.error("Error setting password for '#{user.name}' - #{e.message}")
-        end
+        issues << Y2Issues::Issue.new(
+          format(_("The password for '%{username}' could not be set"), username: user.name)
+        )
+        log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 
       # Generates and returns the options expected by `useradd` for given user

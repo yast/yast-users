@@ -19,6 +19,7 @@
 # find current contact information at www.suse.com.
 
 require_relative "../test_helper"
+
 require "date"
 require "y2users/config"
 require "y2users/user"
@@ -26,10 +27,12 @@ require "y2users/password"
 require "y2users/linux/writer"
 
 describe Y2Users::Linux::Writer do
-  subject(:writer) { described_class.new(config) }
+  subject(:writer) { described_class.new(config, initial_config) }
 
   describe "#write" do
-    let(:config) { Y2Users::Config.new(:test) }
+    let(:initial_config) { Y2Users::Config.new(:initial) }
+
+    let(:config) { initial_config.clone_as(:desired) }
     let(:user) do
       user = Y2Users::User.new(config, username, **user_attrs)
       user.password = password
@@ -43,20 +46,11 @@ describe Y2Users::Linux::Writer do
     end
 
     let(:username) { "testuser" }
-    let(:pwd_value) { nil }
+    let(:user_attrs) { {} }
+    let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
-      context "without an expiration date" do
-        it "does not include the --expiredate option" do
-          expect(Yast::Execute).to receive(:on_target!) do |*args|
-            expect(args).to_not include("--expiredate")
-          end
-
-          writer.write
-        end
-      end
-
       context "with an expiration date" do
         let(:expiration_date) { Date.today }
 
@@ -69,10 +63,20 @@ describe Y2Users::Linux::Writer do
           writer.write
         end
       end
+
+      context "without an expiration date" do
+        it "does not include the --expiredate option" do
+          expect(Yast::Execute).to receive(:on_target!) do |*args|
+            expect(args).to_not include("--expiredate")
+          end
+
+          writer.write
+        end
+      end
     end
 
     RSpec.shared_examples "setting password" do
-      context "when the user has a password" do
+      context "which has a password set" do
         let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
 
         # If we would have used the --password argument of useradd, the encrypted password would
@@ -87,7 +91,7 @@ describe Y2Users::Linux::Writer do
         end
       end
 
-      context "when the user has no password" do
+      context "which does not have a password set" do
         let(:pwd_value) { nil }
 
         it "does not execute chpasswd" do
@@ -102,6 +106,20 @@ describe Y2Users::Linux::Writer do
       config.users << user
 
       allow(Yast::Execute).to receive(:on_target!)
+    end
+
+    context "for an existing user" do
+      before do
+        initial_config.users << user
+      end
+
+      it "does not execute useradd" do
+        expect(Yast::Execute).to_not receive(:on_target!).with(/useradd/, any_args)
+
+        writer.write
+      end
+
+      include_examples "setting password"
     end
 
     context "for a new regular user with all the attributes" do
@@ -151,6 +169,51 @@ describe Y2Users::Linux::Writer do
         end
 
         writer.write
+      end
+    end
+
+    context "when executed with no errors" do
+      it "returns an empty issues list" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to be_empty
+      end
+    end
+
+    context "when there is any error adding users" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/useradd/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/user.*could not be created/)
+      end
+    end
+
+    context "when there is any error setting passwords" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/chpasswd/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/password.*could not be set/)
       end
     end
   end
