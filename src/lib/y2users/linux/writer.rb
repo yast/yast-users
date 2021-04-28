@@ -101,7 +101,7 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
-        config.users.map do |user|
+        new_users.map do |user|
           add_user(user, issues)
           change_password(user, issues)
         end
@@ -141,16 +141,13 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
-      # Whether given user does not exist yet
+      # Returns the list of users that should be created
       #
-      # FIXME: choose a better criteria to identify a new user. An internal Y2User::User id?
+      # TODO: WIP
       #
-      # @param user [Y2User::User]
-      # @return [Boolean] true if there is a user with same name in @initial_config; false otherwise
-      def new_user?(user)
-        @initial_users_names ||= initial_config.users.map(&:name)
-
-        !@initial_users_names.include?(user.name)
+      # @return [Array<Users>]
+      def new_users
+        config.new_users_from(initial_config)
       end
 
       # Executes the command for creating the user
@@ -158,8 +155,6 @@ module Y2Users
       # @param user [Y2User::User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_user(user, issues)
-        return unless new_user?(user)
-
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
