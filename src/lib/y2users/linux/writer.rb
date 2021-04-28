@@ -99,7 +99,7 @@ module Y2Users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
-        self.issues = Y2Issues::List.new
+        @issues = Y2Issues::List.new
 
         config.users.map do |user|
           add_user(user)
@@ -108,7 +108,7 @@ module Y2Users
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
 
-        issues
+        @issues
       end
 
     private
@@ -124,10 +124,10 @@ module Y2Users
       # @return [Y2User::Config]
       attr_reader :initial_config
 
-      # The list of issues generated while writting changes to the system
+      # The list of issues generated while writting changes to the system. See #write
       #
       # @return [Y2Issues::List]
-      attr_accessor :issues
+      attr_reader :issues
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
