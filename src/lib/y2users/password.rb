@@ -23,7 +23,6 @@ require "yast2/secret_attributes"
 module Y2Users
   # Password configuration for user including its hashed value.
   class Password
-    include Yast2::SecretAttributes
 
     # @return [String] login name for given password
     attr_reader :name
