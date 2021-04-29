@@ -28,10 +28,9 @@ module Y2Users
     # @return [String] login name for given password
     attr_reader :name
 
-    # @!attribute value
     # @return [Value, nil] password value. Can be any subclass of Value. nil when password is
     #   not set at all.
-    secret_attr :value
+    attr_accessor :value
 
     # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
     #   when next login force user to change it and nil for disabled aging feature
@@ -57,14 +56,14 @@ module Y2Users
     # @return [:local, :ldap, :unknown] where is user defined
     attr_reader :source
 
-    def self.plain(value)
+    def self.create_plain(value)
       # TODO: remove nils when adapting all constructors
-      new(nil, nil, value: PlainValue.new(value))
+      new(nil, nil, value: PasswordPlainValue.new(value))
     end
 
-    def self.encrypted(value)
+    def self.create_encrypted(value)
       # TODO: remove nils when adapting all constructors
-      new(nil, nil, value: EncryptedValue.new(value))
+      new(nil, nil, value: PasswordEncryptedValue.new(value))
     end
 
     # @see respective attributes for possible values
@@ -103,46 +102,47 @@ module Y2Users
       # do not compare configuration to allow comparison between different configs
       ATTRS.all? { |a| public_send(a) == other.public_send(a) }
     end
+  end
 
-    # Represents password value. It specific type is defined as subclass and can be queried
-    class Value
-      include Yast2::SecretAttributes
+  # Represents password value. Its specific type is defined as subclass and can be queried
+  class PasswordValue
+    include Yast2::SecretAttributes
 
-      secret_attr :content
+    secret_attr :content
 
-      def initialize(content)
-        self.content = content
-      end
-
-      def plain?
-        false
-      end
-
-      def encrypted?
-        false
-      end
+    def initialize(content)
+      self.content = content
     end
 
-    # Represents encrypted password value or its specific types like disabled of locked logging.
-    class EncryptedValue < Value
-      def encrypted?
-        true
-      end
-
-      def locked?
-        content.start_with?("!$")
-      end
-
-      def disabled?
-        ["*", "!"].include?(content)
-      end
+    def plain?
+      false
     end
 
-    # Represents plain password value
-    class PlainValue < Value
-      def plain?
-        true
-      end
+    def encrypted?
+      false
+    end
+  end
+
+  # Represents encrypted password value or special values like disabled or locked password that
+  # is specified in encrypted password field.
+  class PasswordEncryptedValue < PasswordValue
+    def encrypted?
+      true
+    end
+
+    def locked?
+      content.start_with?("!$")
+    end
+
+    def disabled?
+      ["*", "!"].include?(content)
+    end
+  end
+
+  # Represents plain password value
+  class PasswordPlainValue < PasswordValue
+    def plain?
+      true
     end
   end
 end
