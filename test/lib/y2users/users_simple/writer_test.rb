@@ -74,7 +74,7 @@ describe Y2Users::UsersSimple::Writer do
 
       context "when root has password" do
         let(:root_password) do
-          Y2Users::Password.plain("S3cr3T")
+          Y2Users::Password.create_plain("S3cr3T")
         end
 
         it "stores the password for root" do

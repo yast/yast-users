@@ -47,7 +47,7 @@ describe Y2Users::Linux::Writer do
 
     let(:username) { "testuser" }
     let(:user_attrs) { {} }
-    let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+    let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
