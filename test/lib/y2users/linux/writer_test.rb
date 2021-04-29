@@ -30,9 +30,9 @@ describe Y2Users::Linux::Writer do
   subject(:writer) { described_class.new(config, initial_config) }
 
   describe "#write" do
-    let(:initial_config) { Y2Users::Config.new(:initial) }
+    let(:initial_config) { Y2Users::Config.new }
 
-    let(:config) { initial_config.clone_as(:desired) }
+    let(:config) { initial_config.clone }
     let(:user) do
       user = Y2Users::User.new(config, username, **user_attrs)
       user.password = password

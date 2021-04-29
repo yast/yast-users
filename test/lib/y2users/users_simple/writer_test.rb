@@ -27,7 +27,7 @@ require "y2users/users_simple/writer"
 describe Y2Users::UsersSimple::Writer do
   subject { described_class.new(config) }
 
-  let(:config) { Y2Users::Config.new(:test) }
+  let(:config) { Y2Users::Config.new }
 
   def user_simple(name)
     Yast::UsersSimple.GetUsers.find { |u| u["uid"] == name }

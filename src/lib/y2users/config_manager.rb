@@ -18,23 +18,31 @@
 # find current contact information at www.suse.com.
 
 module Y2Users
-  # Holds references to elements of user configuration like users or groups.
-  # TODO: write example
-  class Config
-    attr_accessor :users
-    attr_accessor :groups
+  # Holds references to different configuration instances.
+  # It is not mandatory for config to be registered here.
+  class ConfigManager
+    class << self
+      # @return [Hash<Symbol, Config> register of hold configs.
+      def configs
+        @configs ||= {}
+      end
 
-    def initialize(users: [], groups: [])
-      @users = users
-      @groups = groups
-    end
+      def system(reader: nil, force_read: false)
+        res = configs[:system]
+        return res if res && !force_read
 
-    def clone
-      config = self.class.new
-      config.users = users.map { |u| u.clone_to(config) }
-      config.groups = groups.map { |g| g.clone_to(config) }
+        if !reader
+          require "y2users/linux/reader"
+          reader = Linux::Reader.new
+        end
 
-      config
+        require "y2users/config"
+        res = Config.new
+        reader.read_to(res)
+        configs[:system] = res
+
+        res
+      end
     end
   end
 end
