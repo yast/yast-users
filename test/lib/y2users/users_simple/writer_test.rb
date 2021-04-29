@@ -73,7 +73,9 @@ describe Y2Users::UsersSimple::Writer do
       end
 
       context "when root has password" do
-        let(:root_password) { Y2Users::Password.new(config, "root", value: "S3cr3T") }
+        let(:root_password) do
+          Y2Users::Password.create_plain("S3cr3T")
+        end
 
         it "stores the password for root" do
           subject.write
@@ -140,7 +142,7 @@ describe Y2Users::UsersSimple::Writer do
       let(:home) { "/home/test1" }
       let(:gecos) { ["Test User1"] }
 
-      let(:user1_password) { Y2Users::Password.new(config, "test1", value: "123456") }
+      let(:user1_password) { Y2Users::Password.create_plain("123456") }
 
       # User
 
@@ -156,7 +158,7 @@ describe Y2Users::UsersSimple::Writer do
         user
       end
 
-      let(:user2_password) { Y2Users::Password.new(config, "test2", value: "654321") }
+      let(:user2_password) { Y2Users::Password.create_plain("654321") }
 
       it "stores all users into UsersSimple module" do
         subject.write

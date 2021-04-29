@@ -47,7 +47,7 @@ describe Y2Users::Linux::Writer do
 
     let(:username) { "testuser" }
     let(:user_attrs) { {} }
-    let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+    let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
     let(:expiration_date) { nil }
 
     RSpec.shared_examples "setting expiration date" do
@@ -77,13 +77,13 @@ describe Y2Users::Linux::Writer do
 
     RSpec.shared_examples "setting password" do
       context "which has a password set" do
-        let(:pwd_value) { "$6$3HkB4uLKri75$Qg6Pp" }
+        let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
 
         # If we would have used the --password argument of useradd, the encrypted password would
         # have been visible in the list of system processes (since it's part of the command)
         it "executes chpasswd without leaking the password to the list of processes" do
           expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
-            leak_arg = args.find { |arg| arg.include?(pwd_value) }
+            leak_arg = args.find { |arg| arg.include?(pwd_value.content) }
             expect(leak_arg).to be_nil
           end
 

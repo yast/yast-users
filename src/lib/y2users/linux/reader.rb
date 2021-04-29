@@ -119,7 +119,7 @@ module Y2Users
         Password.new(
           config,
           values[SHADOW_MAPPING["username"]],
-          value:              values[SHADOW_MAPPING["value"]],
+          value:              PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]]),
           last_change:        parse_last_change(values[SHADOW_MAPPING["last_change"]]),
           minimum_age:        values[SHADOW_MAPPING["minimum_age"]].to_i,
           maximum_age:        max_age&.to_i,
