@@ -17,70 +17,103 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
+require "y2users/config_element"
 
 module Y2Users
-  # Representing user configuration on system in contenxt of given User Configuration
-  # @note Immutable class.
+  # Class to represent an user
+  #
+  # @example
+  #   user = User.new("john")
+  #   user.uid = 1001
+  #   user.system? #=> false
+  #   user.attached? #=> false
+  #   user.id #=> nil
+  #
+  #   config = Config.new("my_config")
+  #   config.attach(user)
+  #
+  #   user.config #=> config
+  #   user.id #=> 23
+  #   user.attached? #=> true
   class User
+    include ConfigElement
+
     Yast.import "ShadowConfig"
 
-    # @return [Y2Users::Config] reference to configuration in which it lives
-    attr_reader :config
+    # User name
+    #
+    # @return [String]
+    attr_accessor :name
 
-    # @return [String] user name
-    attr_reader :name
+    # User ID
+    #
+    # @return [String, nil] nil if it is not assigned yet
+    attr_accessor :uid
 
-    # @return [String, nil] user ID or nil if it is not yet assigned
-    attr_reader :uid
+    # Primary group ID
+    #
+    # @note To get the primary group (and not only its ID), see {#primary_group}
+    #
+    # @return [String, nil] nil if it is not assigned yet
+    attr_accessor :gid
 
-    # @return [String, nil] primary group ID or nil if it is not yet assigned
-    # @note to get primary group use method #primary_group
-    attr_reader :gid
+    # Default user shell
+    #
+    # @return [String, nil] nil if it is not assigned yet
+    attr_accessor :shell
 
-    # @return [String, nil] default shell or nil if it is not yet assigned
-    attr_reader :shell
+    # Path to the home directory
+    #
+    # @return [String, nil] nil if it is not assigned yet
+    attr_accessor :home
 
-    # @return [String, nil] home directory or nil if it is not yet assigned
-    attr_reader :home
+    # Fields for the GECOS entry
+    #
+    # @return [Array<String>]
+    attr_accessor :gecos
 
-    # @return [Array<String>] Fields in GECOS entry
-    attr_reader :gecos
+    # Where the user is defined
+    #
+    # @return [:local, :ldap, :unknown]
+    attr_accessor :source
 
-    # @return [:local, :ldap, :unknown] where is user defined
-    attr_reader :source
-
-    # @return [Password] password configuration related to given user
+    # Password for the user
+    #
+    # @return [Password]
     attr_accessor :password
 
-    # @see respective attributes for possible values
-    # @todo: avoid long list of parameters
-    # rubocop: disable Metrics/ParameterLists
-    def initialize(config, name,
-      uid: nil, gid: nil, shell: nil, home: nil, gecos: [], source: :unknown)
-      # TODO: GECOS
-      @config = config
+    # Constructor
+    #
+    # @param name [String]
+    def initialize(name)
       @name = name
-      @uid = uid
-      @gid = gid
-      @shell = shell
-      @home = home
-      @source = source
-      @gecos = gecos
+      # TODO: GECOS
+      @gecos = []
+      @source = :unknown
 
       # See #system?
       @system = false
     end
-    # rubocop: enable Metrics/ParameterLists
 
-    # @return [Y2Users::Group, nil] primary group set to given user or
-    #   nil if group is not set yet
+    # Primary group for the user
+    #
+    # The user must be attached to a config in order to find its primary group.
+    #
+    # @return [Group, nil] nil if the group is not set yet
     def primary_group
+      return nil unless attached?
+
       config.groups.find { |g| g.gid == gid }
     end
 
-    # @return [Array<Y2Users::Group>] list of groups where is user included including primary group
+    # Groups where the user is included. It also contains the primary group.
+    #
+    # The user must be attached to a config in order to find its groups.
+    #
+    # @return [Array<Group>]
     def groups
+      return [] unless attached?
+
       config.groups.select { |g| g.users.include?(self) }
     end
 
@@ -89,32 +122,29 @@ module Y2Users
       password&.account_expiration
     end
 
-    # @return [String] Returns full name from gecos entry or username if not specified in gecos.
+    # User full name
+    #
+    # It is extracted from GECOS if possible. Otherwise, the user name is considered as the full
+    # name.
+    #
+    # @return [String]
     def full_name
       gecos.first || name
     end
 
-    ATTRS = [:name, :uid, :gid, :shell, :home].freeze
-
-    # Clones user to different configuration object.
-    # @return [Y2Users::User] newly cloned user object
-    def clone_to(config)
-      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      attrs.delete(:name) # name is separate argument
-      cloned = self.class.new(config, name, attrs)
-      cloned.password = password.clone_to(config) if password
-
-      cloned
-    end
-
-    # Compares user object if all attributes are same excluding configuration reference.
-    # @return [Boolean] true if it is equal
+    # Whether two users are equal
+    #
+    # Only relevant attributes are compared. For example, the config in which the user is attached
+    # and the internal user id are not considered.
+    #
+    # @return [Boolean]
     def ==(other)
-      # do not compare configuration to allow comparison between different configs
-      ATTRS.all? { |a| public_send(a) == other.public_send(a) }
+      [:name, :uid, :gid, :shell, :home, :gecos, :source, :password].all? do |a|
+        public_send(a) == other.public_send(a)
+      end
     end
 
-    # Whether it is the root user
+    # Whether the user is root
     #
     # @return [Boolean]
     def root?
@@ -123,12 +153,10 @@ module Y2Users
 
     # Whether this is a system user
     #
-    # This is important for several reasons:
-    #   - System users are represented as its own category in the YaST Users UI
-    #   - During creation:
-    #     - the uid is chosen in the SYS_UID_MIN-SYS_UID_MAX range (defined in /etc/login.defs)
-    #     - no aging information is added to /etc/shadow
-    #     - by default, the home directory is not created
+    # This is important when creating an user because several reasons:
+    #   * The uid is chosen in the SYS_UID_MIN-SYS_UID_MAX range (defined in /etc/login.defs).
+    #   * No aging information is added to /etc/shadow.
+    #   * By default, the home directory is not created.
     #
     # For users that still don't have an uid, it is possible to enforce whether they should be
     # considered as a system user (and created as such in the system) via {#system=}.
@@ -138,10 +166,10 @@ module Y2Users
       uid ? system_uid? : @system
     end
 
-    # Sets whether the current user should be considered as a system one
+    # Sets whether the user should be considered as a system one
     #
     # @raise [RuntimeError] if the user already has an uid, because forcing the value only makes
-    #   sense for users for which the uid is still not known
+    #   sense for a user which uid is still not known.
     #
     # @see #system?
     #
@@ -152,9 +180,17 @@ module Y2Users
       @system = value
     end
 
+    # @see ConfigElement#clone
+    def clone
+      cloned = super
+      cloned.password = password.clone
+
+      cloned
+    end
+
   private
 
-    # Whether the user is a system user according to its uid
+    # Whether the user uid corresponds to a system user uid
     #
     # @return [Boolean]
     def system_uid?
