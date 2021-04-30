@@ -17,57 +17,80 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
+require "y2users/config_element"
 
 module Y2Users
-  # Represents user groups on system.
+  # Class to represent user groups
+  #
+  # @example
+  #   group = Group.new("admins")
+  #   group.gid = 110
+  #   group.attached? #=> false
+  #   group.id #=> nil
+  #
+  #   config = Config.new("my_config")
+  #   config.attach(group)
+  #
+  #   group.config #=> config
+  #   group.id #=> 56
+  #   group.attached? #=> true
   class Group
-    # @return [Y2Users::Config] reference to configuration in which it lives
-    attr_reader :config
+    include ConfigElement
 
-    # @return [String] group name
-    attr_reader :name
+    # Group name
+    #
+    # @return [String]
+    attr_accessor :name
 
-    # @return [String, nil] group id  or nil if it is not yet assigned.
-    attr_reader :gid
+    # Group id
+    #
+    # @return [String, nil] nil if it is not assigned yet
+    attr_accessor :gid
 
-    # @return [Array<String>] list of user names
-    # @note to get list of users in given group use method #users
-    attr_reader :users_name
+    # Names of users that become to this group
+    #
+    # To get the list of users (and not only their names), see {#users}.
+    #
+    # @return [Array<String>]
+    attr_accessor :users_name
 
-    # @return[:local, :ldap, :unknown] where is user defined
-    attr_reader :source
+    # Where the group is defined
+    #
+    # @return[:local, :ldap, :unknown]
+    attr_accessor :source
 
-    # @see respective attributes for possible values
-    def initialize(config, name, gid: nil, users_name: [], source: :unknown)
-      @config = config
+    # Constructor
+    #
+    # @param name [String]
+    def initialize(name)
       @name = name
-      @gid = gid
-      @users_name = users_name
-      @source = source
+      @users_name = []
+      @source = :unknown
     end
 
-    # @return [Array<Y2Users::User>] all users in this group, including ones that
-    # has it as primary group
+    # Users that become to this group, including users which have this group as primary group
+    #
+    # The group must be attached to a config in order to find its users.
+    #
+    # @return [Array<User>]
     def users
+      return [] unless attached?
+
       config.users.select { |u| u.gid == gid || users_name.include?(u.name) }
     end
 
-    ATTRS = [:name, :gid, :users_name].freeze
-
-    # Clones group to different configuration object.
-    # @return [Y2Users::Group] newly cloned group object
-    def clone_to(config)
-      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      attrs.delete(:name) # name is separate argument
-      self.class.new(config, name, attrs)
-    end
-
-    # Compares group object if all attributes are same excluding configuration reference.
-    # @return [Boolean] true if it is equal
+    # Whether two groups are equal
+    #
+    # Only relevant attributes are compared. For example, the config in which the group is attached
+    # and the internal group id are not considered.
+    #
+    # @return [Boolean]
     def ==(other)
-      # do not compare configuration to allow comparison between different configs
-      ATTRS.all? { |a| public_send(a) == other.public_send(a) }
+      [:name, :gid, :users_name, :source].all? do |a|
+        public_send(a) == other.public_send(a)
+      end
     end
+
+    alias_method :eql?, :==
   end
 end
