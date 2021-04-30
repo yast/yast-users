@@ -83,8 +83,8 @@ module Y2Users
     # @return [User, Group]
     def clone
       cloned = super
-      cloned.config = nil
-      cloned.id = nil
+      cloned.assign_config(nil)
+      cloned.assign_internal_id(nil)
 
       cloned
     end
