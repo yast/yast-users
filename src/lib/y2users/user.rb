@@ -97,7 +97,7 @@ module Y2Users
 
     # Primary group for the user
     #
-    # The user must to be attached to a config in order to find its primary group.
+    # The user must be attached to a config in order to find its primary group.
     #
     # @return [Group, nil] nil if the group is not set yet
     def primary_group
@@ -108,7 +108,7 @@ module Y2Users
 
     # Groups where the user is included. It also contains the primary group.
     #
-    # The user must to be attached to a config in order to find its groups.
+    # The user must be attached to a config in order to find its groups.
     #
     # @return [Array<Group>]
     def groups

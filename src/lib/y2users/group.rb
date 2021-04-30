@@ -70,7 +70,7 @@ module Y2Users
 
     # Users that become to this group, including users which have this group as primary group
     #
-    # The group must to be attached to a config in order to find its users.
+    # The group must be attached to a config in order to find its users.
     #
     # @return [Array<User>]
     def users
