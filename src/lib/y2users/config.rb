@@ -25,13 +25,13 @@ module Y2Users
   #   user2 = User.new("peter")
   #   group = Group.new("users")
   #
-  #   config1 = Config.new("config1")
+  #   config1 = Config.new
   #   config1.users #=> []
   #   config1.attach(user1, user2, group)
   #   config1.users #=> [user1, user2]
   #   config1.groups #=> [group]
   #
-  #   config2 = config1.clone_as("config2")
+  #   config2 = config1.clone
   #   user = config2.users.first
   #   config2.detach(user)
   #   config2.users #=> [user2]
