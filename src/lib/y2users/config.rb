@@ -80,8 +80,8 @@ module Y2Users
     def initialize(name)
       @name = name
 
-      @users_manager = ElementManager.new(config)
-      @groups_manager = ElementManager.new(config)
+      @users_manager = ElementManager.new(self)
+      @groups_manager = ElementManager.new(self)
 
       self.class.register(self)
     end
@@ -135,6 +135,16 @@ module Y2Users
       config
     end
 
+    # Generates the id for the next attached user or group
+    #
+    # FIXME: This method should not be public
+    #
+    # @return [Integer]
+    def self.next_element_id
+      @last_element_id ||= 0
+      @last_element_id += 1
+    end
+
   protected
 
     # Clones a given user or group and attaches it into this config
@@ -161,16 +171,6 @@ module Y2Users
     # @return [ElementManager]
     attr_reader :groups_manager
 
-    # Generates the id for the next attached user or group
-    #
-    # @return [Integer]
-    def self.next_element_id
-      @last_element_id ||= 0
-      @last_element_id += 1
-    end
-
-    private_class_method(:next_element_id)
-
     # Attaches an user or group
     #
     # An id is assigned to the given user/group, if needed.
@@ -193,6 +193,9 @@ module Y2Users
     class ElementManager
       # @return [Array<User, Group>]
       attr_reader :elements
+
+      # @return [Config]
+      attr_reader :config
 
       # Constructor
       #
@@ -224,7 +227,7 @@ module Y2Users
         index = @elements.find_index { |e| e.is?(element) }
         @elements.delete_at(index) if index
 
-        element.assing_config(nil)
+        element.assign_config(nil)
         element.assign_internal_id(nil)
       end
     end
