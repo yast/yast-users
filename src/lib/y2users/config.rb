@@ -90,16 +90,6 @@ module Y2Users
       config
     end
 
-    # Generates the id for the next attached user or group
-    #
-    # FIXME: This method should not be public
-    #
-    # @return [Integer]
-    def self.next_element_id
-      @last_element_id ||= 0
-      @last_element_id += 1
-    end
-
   protected
 
     # Clones a given user or group and attaches it into this config
@@ -132,7 +122,7 @@ module Y2Users
     #
     # @param element [User, Group]
     def attach_element(element)
-      element.assign_internal_id(self.class.next_element_id) if element.id.nil?
+      element.assign_internal_id(ElementId.next) if element.id.nil?
 
       element.is_a?(User) ? users_manager.attach(element) : groups_manager.attach(element)
     end
@@ -184,6 +174,17 @@ module Y2Users
 
         element.assign_config(nil)
         element.assign_internal_id(nil)
+      end
+    end
+
+    # Helper class for generating elements ids
+    class ElementId
+      # Generates the next id to be used for an element
+      #
+      # @return [Integer]
+      def self.next
+        @last_element_id ||= 0
+        @last_element_id += 1
       end
     end
   end
