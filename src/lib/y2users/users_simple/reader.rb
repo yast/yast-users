@@ -33,19 +33,26 @@ module Y2Users
       def read_to(config)
         users = Yast::UsersSimple.GetUsers
         # TODO: only created users, not imported ones for now
-        users.each do |user|
-          user = User.new(config, user["uid"], gecos: [user["cn"]])
-          user.password = Password.create_plain(user["userPassword"])
-          config.users << user
+        users.each do |user_attrs|
+          user = User.new(user_attrs["uid"])
+          user.gecos = [user_attrs["cn"]]
+          user.password = Password.create_plain(user_attrs["userPassword"])
+          config.attach(user)
         end
 
         # Read also root user settings
-        root_pwd_plain = Yast::UsersSimple.GetRootPassword
-        root_pwd = Password.create_plain(root_pwd_plain)
-        root_user = User.new(config, "root")
-        root_user.password = root_pwd
+        config.attach(root_user)
+      end
 
-        config.users << root_user
+    private
+
+      def root_user
+        user = User.new("root")
+        user.gecos = ["root"]
+        user.uid = 0
+        passwd_str = Yast::UsersSimple.GetRootPassword
+        user.password = Password.create_plain(passwd_str) unless passwd_str.empty?
+        user
       end
     end
   end
