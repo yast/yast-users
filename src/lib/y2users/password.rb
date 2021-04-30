@@ -17,128 +17,142 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
 require "yast2/secret_attributes"
 
 module Y2Users
-  # Password configuration for user including its hashed value.
+  # Password configuration for an user
   class Password
-    # @return [String] login name for given password
-    attr_reader :name
-
-    # @return [Value, nil] password value. Can be any subclass of Value. nil when password is
-    #   not set at all.
+    # Password value. Can be any subclass of {PasswordValue}.
+    #
+    # @return [PasswordValue, nil] nil if password is not set
     attr_accessor :value
 
-    # @return [Date, :force_change, nil] Possible value are date of the last change, :force_change
-    #   when next login force user to change it and nil for disabled aging feature
+    # Last password change
+    #
+    # @return [Date, :force_change, nil] date of the last change or :force_change when the next
+    #   login forces the user to change the password or nil for disabled aging feature.
     attr_reader :last_change
 
-    # @return [Integer] Minimum number of days before next password change. 0 means no restriction.
+    # The minimum number of days required between password changes
+    #
+    # @return [Integer] 0 means no restriction
     attr_reader :minimum_age
 
-    # @return [Integer, nil] Maximum number of days after which user is forced to change password.
-    #   nil means no restriction.
+    # The maximum number of days the password is valid. After that, the password is forced to be
+    # changed.
+    #
+    # @return [Integer, nil] nil means no restriction
     attr_reader :maximum_age
 
-    # @return [Integer] Number of days before expire date happen. 0 means no warning.
+    # The number of days before the password is to expire that the user is warned for changing the
+    # password.
+    #
+    # @return [Integer] 0 means no warning
     attr_reader :warning_period
 
-    # @return [Integer, nil] Number of days after expire date when old password can be still used.
-    #   nil means no limit
+    # The number of days after the password expires that account is disabled
+    #
+    # @return [Integer, nil] nil means no limit
     attr_reader :inactivity_period
 
-    # @return [Date, nil] Date when whole account expire or nil if there are no account expiration.
+    # Date when whole account expires
+    #
+    # @return [Date, nil]  nil if there is no account expiration
     attr_reader :account_expiration
 
-    # @return [:local, :ldap, :unknown] where is user defined
-    attr_reader :source
-
+    # Creates a new password with a plain value
+    #
+    # @param value [String] plain password
+    # @return [Password]
     def self.create_plain(value)
-      # TODO: remove nils when adapting all constructors
-      new(nil, nil, value: PasswordPlainValue.new(value))
+      new(PasswordPlainValue.new(value))
     end
 
+    # Creates a new password with an encrypted value
+    #
+    # @param value [String] encrypted password
+    # @return [Password]
     def self.create_encrypted(value)
-      # TODO: remove nils when adapting all constructors
-      new(nil, nil, value: PasswordEncryptedValue.new(value))
+      new(PasswordEncryptedValue.new(value))
     end
 
-    # @see respective attributes for possible values
-    # @todo: avoid long list of parameters
-    # rubocop: disable Metrics/ParameterLists
-    def initialize(config, name, value: nil, last_change: nil, minimum_age: nil,
-      maximum_age: nil, warning_period: nil, inactivity_period: nil,
-      account_expiration: nil, source: :unknown)
-      @config = config
-      @name = name
-      self.value = value
-      @last_change = last_change
-      @minimum_age = minimum_age
-      @maximum_age = maximum_age
-      @warning_period = warning_period
-      @inactivity_period = inactivity_period
-      @account_expiration = account_expiration
-      @source = source
-    end
-    # rubocop: enable Metrics/ParameterLists
-
-    ATTRS = [:name, :value, :last_change, :minimum_age, :maximum_age, :warning_period,
-             :inactivity_period, :account_expiration].freeze
-
-    # Clones password to different configuration object.
-    # @return [Y2Users::Password] newly cloned password object
-    def clone_to(config)
-      attrs = ATTRS.each_with_object({}) { |a, r| r[a] = public_send(a) }
-      attrs.delete(:name) # name is separate argument
-      self.class.new(config, name, attrs)
+    # Constructor
+    #
+    # @param value [PasswordValue]
+    def initialize(value)
+      @value = value
     end
 
-    # Compares password object if all attributes are same excluding configuration reference.
-    # @return [Boolean] true if it is equal
-    def ==(other)
-      # do not compare configuration to allow comparison between different configs
-      ATTRS.all? { |a| public_send(a) == other.public_send(a) }
+    def clone
+      cloned = super
+      cloned.value = value.clone
+
+      cloned
     end
   end
 
-  # Represents password value. Its specific type is defined as subclass and can be queried
+  # Represents a password value. Its specific type is defined as subclass and can be queried.
   class PasswordValue
     include Yast2::SecretAttributes
 
     secret_attr :content
 
+    # Constructor
+    #
+    # @param content [String] password value
     def initialize(content)
       self.content = content
     end
 
+    # Whether it is a plain password
+    #
+    # @return [Boolean]
     def plain?
       false
     end
 
+    # Whether it is an encrypted password
+    #
+    # @return [Boolean]
     def encrypted?
       false
     end
+
+    def clone
+      cloned = super
+
+      secret = instance_variable_get(:@content).dup
+      cloned.instance_variable_set(:@content, secret)
+
+      cloned
+    end
   end
 
-  # Represents encrypted password value or special values like disabled or locked password that
-  # is specified in encrypted password field.
+  # Represents an encrypted password value
   class PasswordEncryptedValue < PasswordValue
+    # @see PasswordValue#encrypted?
     def encrypted?
       true
     end
 
+    # Whether the encrypted password is locked
+    #
+    # @return [Boolean]
     def locked?
       content.start_with?("!$")
     end
 
+    # Whether the encrypted password is disabled
+    #
+    # @return [Boolean]
     def disabled?
       ["*", "!"].include?(content)
     end
   end
 
-  # Represents plain password value
+  # Represents a plain password value
   class PasswordPlainValue < PasswordValue
+    # @see PasswordValue#plain?
     def plain?
       true
     end
