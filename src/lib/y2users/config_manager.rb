@@ -36,6 +36,8 @@ module Y2Users
     # @note if given id is already registered, it is overwritten
     # rubocop:disable Naming/UncommunicativeMethodParamName
     def register(config, as:)
+      raise ArgumentError, "#{as.inspect} is not Symbol" unless as.is_a?(:Symbol)
+
       @register[as] = config
     end
     # rubocop:enable Naming/UncommunicativeMethodParamName
@@ -61,7 +63,7 @@ module Y2Users
 
     # Gets system configuration.
     # @param [#read_to(config)] reader used to read system configuration.
-    #   If not specified it will decide itself to use.
+    #   If not specified it will decide itself which one to use.
     # @param [Boolean] force_read if it can get previous result of system or
     #   force re-read from system.
     # @return [Config]

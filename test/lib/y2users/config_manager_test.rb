@@ -38,7 +38,7 @@ describe Y2Users::ConfigManager do
       expect(subject.config(:test)).to be config1
     end
 
-    it "overwrite previously stored config with same id" do
+    it "overwrites previously stored config with same id" do
       config1 = Y2Users::Config.new
       subject.register(config1, as: :test)
       config2 = Y2Users::Config.new
