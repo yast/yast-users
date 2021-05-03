@@ -25,65 +25,21 @@ module Y2Users
   #   user2 = User.new("peter")
   #   group = Group.new("users")
   #
-  #   config1 = Config.new("config1")
+  #   config1 = Config.new
   #   config1.users #=> []
   #   config1.attach(user1, user2, group)
   #   config1.users #=> [user1, user2]
   #   config1.groups #=> [group]
   #
-  #   config2 = config1.clone_as("config2")
+  #   config2 = config1.clone
   #   user = config2.users.first
   #   config2.detach(user)
   #   config2.users #=> [user2]
   class Config
-    class << self
-      def get(name)
-        @register ||= {}
-        @register[name]
-      end
-
-      def register(config)
-        @register ||= {}
-        @register[config.name] = config
-      end
-
-      def remove(config)
-        name = config.is_a?(self) ? config.name : config
-
-        @register.delete(name)
-      end
-
-      def system(reader: nil, force_read: false)
-        res = get(:system)
-        return res if res && !force_read
-
-        if !reader
-          require "y2users/linux/reader"
-          reader = Linux::Reader.new
-        end
-
-        res = new(:system)
-        reader.read_to(res)
-
-        res
-      end
-    end
-
-    # Config name
-    #
-    # @return [String]
-    attr_reader :name
-
     # Constructor
-    #
-    # param name [String]
-    def initialize(name)
-      @name = name
-
+    def initialize
       @users_manager = ElementManager.new(self)
       @groups_manager = ElementManager.new(self)
-
-      self.class.register(self)
     end
 
     # Users that belong to this config
@@ -124,10 +80,9 @@ module Y2Users
     #
     # Note that the cloned users and groups keep the same id as the original users and groups.
     #
-    # @param name [String] name for the new cloned config
     # @return [Config]
-    def clone_as(name)
-      config = self.class.new(name)
+    def clone
+      config = self.class.new
 
       elements = users + groups
       elements.each { |e| config.clone_element(e) }
