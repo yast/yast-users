@@ -144,6 +144,8 @@ module Y2Users
       end
     end
 
+    alias_method :eql?, :==
+
     # Whether the user is root
     #
     # @return [Boolean]

@@ -31,34 +31,34 @@ module Y2Users
     #
     # @return [Date, :force_change, nil] date of the last change or :force_change when the next
     #   login forces the user to change the password or nil for disabled aging feature.
-    attr_reader :last_change
+    attr_accessor :last_change
 
     # The minimum number of days required between password changes
     #
     # @return [Integer] 0 means no restriction
-    attr_reader :minimum_age
+    attr_accessor :minimum_age
 
     # The maximum number of days the password is valid. After that, the password is forced to be
     # changed.
     #
     # @return [Integer, nil] nil means no restriction
-    attr_reader :maximum_age
+    attr_accessor :maximum_age
 
     # The number of days before the password is to expire that the user is warned for changing the
     # password.
     #
     # @return [Integer] 0 means no warning
-    attr_reader :warning_period
+    attr_accessor :warning_period
 
     # The number of days after the password expires that account is disabled
     #
     # @return [Integer, nil] nil means no limit
-    attr_reader :inactivity_period
+    attr_accessor :inactivity_period
 
     # Date when whole account expires
     #
     # @return [Date, nil]  nil if there is no account expiration
-    attr_reader :account_expiration
+    attr_accessor :account_expiration
 
     # Creates a new password with a plain value
     #
@@ -89,6 +89,21 @@ module Y2Users
 
       cloned
     end
+
+    # Password equality
+    #
+    # Two passwords are equal if all their attributes are equal
+    #
+    # @param other [Password]
+    # @return [Boolean]
+    def ==(other)
+      [:value, :last_change, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
+       :account_expiration].all? do |a|
+        public_send(a) == other.public_send(a)
+      end
+    end
+
+    alias_method :eql?, :==
   end
 
   # Represents a password value. Its specific type is defined as subclass and can be queried.
@@ -118,13 +133,24 @@ module Y2Users
       false
     end
 
-    def clone
-      cloned = super
+    # Password value equality
+    #
+    # Two password values are equal if their content are equal
+    #
+    # @param other [PasswordValue]
+    # @return [Boolean]
+    def ==(other)
+      content == other.content
+    end
 
-      secret = instance_variable_get(:@content).dup
-      cloned.instance_variable_set(:@content, secret)
+    alias_method :eql?, :==
+  end
 
-      cloned
+  # Represents a plain password value
+  class PasswordPlainValue < PasswordValue
+    # @see PasswordValue#plain?
+    def plain?
+      true
     end
   end
 
@@ -147,14 +173,6 @@ module Y2Users
     # @return [Boolean]
     def disabled?
       ["*", "!"].include?(content)
-    end
-  end
-
-  # Represents a plain password value
-  class PasswordPlainValue < PasswordValue
-    # @see PasswordValue#plain?
-    def plain?
-      true
     end
   end
 end
