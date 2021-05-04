@@ -44,10 +44,15 @@ module Y2Users
       return list unless password&.value&.plain?
 
       err = Yast::UsersSimple.CheckPassword(content, "local")
-      list << Y2Issues::Issue.new(err, location: LOCATION, severity: :fatal) unless err.empty?
+      if !err.empty?
+        list << Y2Issues::Issue.new(err, location: LOCATION, severity: :fatal)
+        # We already have a fatal error, no need to continue. Subsequent steps may need
+        # to load the cracklib extension.
+        return list
+      end
 
-      # TODO: This actually shows the UI with the confirmation already, so we need to
-      # change this part
+      # This may load the cracklib extension during installation, which temporarily shows
+      # an informative pop-up
       local_passwd = ::Users::LocalPassword.new(username: user.name, plain: content)
       if !local_passwd.valid?
         local_passwd.errors.each do |error|
