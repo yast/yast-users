@@ -17,6 +17,8 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
+
 module Y2Users
   # Class to represent a configuration of users and groups
   #
@@ -66,14 +68,14 @@ module Y2Users
     #
     # @param elements [Array<User, Group>]
     def attach(*elements)
-      elements.each { |e| attach_element(e) }
+      elements.flatten.each { |e| attach_element(e) }
     end
 
     # Detaches users and groups from this config
     #
     # @param elements [Array<User, Group>]
     def detach(*elements)
-      elements.each { |e| detach_element(e) }
+      elements.flatten.each { |e| detach_element(e) }
     end
 
     # Generates a new config with the very same list of users and groups
@@ -88,16 +90,6 @@ module Y2Users
       elements.each { |e| config.clone_element(e) }
 
       config
-    end
-
-    # Generates the id for the next attached user or group
-    #
-    # FIXME: This method should not be public
-    #
-    # @return [Integer]
-    def self.next_element_id
-      @last_element_id ||= 0
-      @last_element_id += 1
     end
 
   protected
@@ -132,7 +124,7 @@ module Y2Users
     #
     # @param element [User, Group]
     def attach_element(element)
-      element.assign_internal_id(self.class.next_element_id) if element.id.nil?
+      element.assign_internal_id(ElementId.next) if element.id.nil?
 
       element.is_a?(User) ? users_manager.attach(element) : groups_manager.attach(element)
     end
@@ -146,6 +138,8 @@ module Y2Users
 
     # Helper class to manage a list of users or groups
     class ElementManager
+      include Yast::Logger
+
       # @return [Array<User, Group>]
       attr_reader :elements
 
@@ -166,7 +160,7 @@ module Y2Users
       #
       # @param element [User, Group]
       def attach(element)
-        raise "Element already attached: #{element}" if element.attached?
+        raise "Element #{element} already attached to config #{config}" if element.attached?
 
         @elements << element
 
@@ -175,15 +169,34 @@ module Y2Users
 
       # Detaches the element from the config
       #
+      # @raise [RuntimeError] if the given element is not attached to the config
+      #
       # @param element [User, Group]
       def detach(element)
-        return if element.config != config
+        raise "Element #{element} is not attached to config #{config}" if element.config != config
 
         index = @elements.find_index { |e| e.is?(element) }
+
+        if index.nil?
+          log.warn("Detach element: element #{element} is assigned to the config #{config}, but " \
+            "it cannot be found.")
+        end
+
         @elements.delete_at(index) if index
 
         element.assign_config(nil)
         element.assign_internal_id(nil)
+      end
+    end
+
+    # Helper class for generating elements ids
+    class ElementId
+      # Generates the next id to be used for an element
+      #
+      # @return [Integer]
+      def self.next
+        @last_element_id ||= 0
+        @last_element_id += 1
       end
     end
   end
