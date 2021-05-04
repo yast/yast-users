@@ -160,7 +160,7 @@ module Y2Users
       #
       # @param element [User, Group]
       def attach(element)
-        raise "Element #{element} already attached to config #{self}" if element.attached?
+        raise "Element #{element} already attached to config #{config}" if element.attached?
 
         @elements << element
 
