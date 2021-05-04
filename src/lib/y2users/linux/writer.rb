@@ -101,10 +101,9 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
-        new_users.map do |user|
-          add_user(user, issues)
-          change_password(user, issues)
-        end
+        new_users.each { |u| add_user(u, issues) }
+        config.users.each { |u| change_password(u, issues) }
+
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
 
@@ -143,11 +142,11 @@ module Y2Users
 
       # Returns the list of users that should be created
       #
-      # TODO: WIP
-      #
       # @return [Array<Users>]
       def new_users
-        config.new_users_from(initial_config)
+        initial_ids = initial_config.users.map(&:id)
+
+        config.users.reject { |u| initial_ids.include?(u.id) }
       end
 
       # Executes the command for creating the user
@@ -170,7 +169,7 @@ module Y2Users
       def change_password(user, issues)
         return unless user.password&.value
 
-        Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
+        Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The password for '%{username}' could not be set"), username: user.name)

@@ -40,13 +40,12 @@ describe Y2Users::UsersSimple::Writer do
 
     # Root user
     let(:root) do
-      user = Y2Users::User.new(config, "root",
-        uid:   0,
-        gid:   0,
-        shell: "/bin/bash",
-        home:  "/root",
-        gecos: ["Root User"])
-
+      user = Y2Users::User.new("root")
+      user.uid = 0
+      user.gid = 0
+      user.shell = "/bin/bash"
+      user.home = "/root"
+      user.gecos = ["Root User"]
       user.password = root_password
       user
     end
@@ -86,10 +85,6 @@ describe Y2Users::UsersSimple::Writer do
     end
 
     context "when the users config does not contain users" do
-      before do
-        config.users = []
-      end
-
       it "does not store users into UsersSimple module" do
         subject.write
 
@@ -105,7 +100,7 @@ describe Y2Users::UsersSimple::Writer do
 
     context "when the users config only contains root" do
       before do
-        config.users = [root]
+        config.attach(root)
       end
 
       it "does not store users into UsersSimple module" do
@@ -119,19 +114,16 @@ describe Y2Users::UsersSimple::Writer do
 
     context "when the users config contains users" do
       before do
-        config.users = [root, user1, user2]
+        config.attach(root, user1, user2)
       end
 
-      # User
-
       let(:user1) do
-        user = Y2Users::User.new(config, "test1",
-          uid:   uid,
-          gid:   gid,
-          shell: shell,
-          home:  home,
-          gecos: gecos)
-
+        user = Y2Users::User.new("test1")
+        user.uid = uid
+        user.gid = gid
+        user.shell = shell
+        user.home = home
+        user.gecos = gecos
         user.password = user1_password
         user
       end
@@ -144,16 +136,13 @@ describe Y2Users::UsersSimple::Writer do
 
       let(:user1_password) { Y2Users::Password.create_plain("123456") }
 
-      # User
-
       let(:user2) do
-        user = Y2Users::User.new(config, "test2",
-          uid:   1001,
-          gid:   101,
-          shell: "/bin/bash",
-          home:  "/home/test2",
-          gecos: ["Test User2"])
-
+        user = Y2Users::User.new("test2")
+        user.uid = 1001
+        user.gid = 101
+        user.shell = "/bin/bash"
+        user.home = "/home/test2"
+        user.gecos = ["Test User2"]
         user.password = user2_password
         user
       end

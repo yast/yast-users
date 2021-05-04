@@ -17,17 +17,15 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "date"
-require "yast2/execute"
+require "yast"
 require "y2users/user"
-require "y2users/group"
 require "y2users/password"
 
 Yast.import "UsersSimple"
 
 module Y2Users
   module UsersSimple
-    # Class for reading users configuration from old {Yast::UsersSimple} module
+    # Class for reading users configuration from old Yast::UsersSimple module
     class Reader
       # Attaches users to given configuration
       #
