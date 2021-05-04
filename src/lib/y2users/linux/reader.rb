@@ -20,7 +20,7 @@
 require "yast2/execute"
 require "date"
 
-require "y2users/group"
+require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/password"
 
@@ -31,39 +31,25 @@ module Y2Users
       include Yast::Logger
 
       def read_to(config)
-        config.users = read_users(config)
-        config.groups = read_groups(config)
+        config.attach(read_users + read.groups)
         # read passwords after user, as user has to exist in advance
         read_passwords(config)
       end
 
     private
 
-      def read_users(config)
+      def read_users
         getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
         parser = Parsers::Passwd.new
 
         parser.parse(getent)
       end
 
-      GROUP_MAPPING = {
-        "name"   => 0,
-        "passwd" => 1,
-        "gid"    => 2,
-        "users"  => 3
-      }.freeze
-
       def read_groups(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
-        getent.lines.map do |line|
-          values = line.chomp.split(":")
-          Group.new(
-            config,
-            values[GROUP_MAPPING["name"]],
-            gid:        values[GROUP_MAPPING["gid"]],
-            users_name: values[GROUP_MAPPING["users"]]&.split(",") || []
-          )
-        end
+        parser = Parsers::Group.new
+
+        parser.parse(getent)
       end
 
       SHADOW_MAPPING = {

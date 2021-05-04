@@ -20,38 +20,30 @@
 require "yast2/execute"
 require "date"
 
-require "y2users/user"
+require "y2users/group"
 
 module Y2Users
   module Parsers
-    # Parses passwd style string and return users defined in it
-    class Passwd
-      # Mapping of attributes to index in passwd file
-      PASSWD_MAPPING = {
+    # Parses group style string and return groups defined in it
+    class Group
+      # Mapping of attributes to index in group file
+      GROUP_MAPPING = {
         "name"   => 0,
         "passwd" => 1,
-        "uid"    => 2,
-        "gid"    => 3,
-        "gecos"  => 4,
-        "home"   => 5,
-        "shell"  => 6
+        "gid"    => 2,
+        "users"  => 3
       }.freeze
 
-      # Parses content and returns users defined there without password value.
+      # Parses content and returns groups defined there.
       # @param content [String]
-      # @return [Array<User>]
+      # @return [Array<Group>]
       def parse(content)
         content.lines.map do |line|
           values = line.chomp.split(":")
-          gecos = values[PASSWD_MAPPING["gecos"]] || ""
-          username = values[PASSWD_MAPPING["name"]]
-          user = User.new(username)
-          user.uid =   values[PASSWD_MAPPING["uid"]]
-          user.gid =   values[PASSWD_MAPPING["gid"]]
-          user.shell = values[PASSWD_MAPPING["shell"]]
-          user.gecos = values[PASSWD_MAPPING["gecos"]].to_s.split(",")
-          user.home =  values[PASSWD_MAPPING["home"]]
-          user
+          group = Group.new(values[GROUP_MAPPING["name"]])
+          group.gid = values[GROUP_MAPPING["gid"]]
+          group.users_name = values[GROUP_MAPPING["users"]].to_s.split(",")
+          group
         end
       end
     end
