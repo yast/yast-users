@@ -44,7 +44,7 @@ module Y2Users
       #
       # TODO: only created users, not imported ones for now
       #
-      # @returns [Array<User>] the collection of users
+      # @return [Array<User>] the collection of users
       def users
         Yast::UsersSimple.GetUsers.map do |user_attrs|
           user = User.new(user_attrs["uid"])
@@ -56,7 +56,7 @@ module Y2Users
 
       # Returns the root user
       #
-      # @returns [User] the root user
+      # @return [User] the root user
       def root_user
         user = User.new("root")
         user.gecos = ["root"]
