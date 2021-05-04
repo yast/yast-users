@@ -17,9 +17,6 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
-require "date"
-
 require "y2users/group"
 
 module Y2Users

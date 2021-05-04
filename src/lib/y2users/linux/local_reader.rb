@@ -17,17 +17,19 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast2/execute"
-
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
 
 module Y2Users
   module Linux
-    # Reads users configuration from the system using getent utility.
-    class Reader
+    # Reads local users configuration from the system using /etc files.
+    class LocalReader
       include Yast::Logger
+
+      def initialize(source_dir = "/")
+        @source_dir = source_dir
+      end
 
       def read_to(config)
         config.attach(read_users + read.groups)
@@ -37,26 +39,28 @@ module Y2Users
 
     private
 
+      attr_reader :source_dir
+
       def read_users
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
+        content = File.read(File.join(source_dir,"/etc/passwd"))
         parser = Parsers::Passwd.new
 
-        parser.parse(getent)
+        parser.parse(content)
       end
 
       def read_groups(config)
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
+        content = File.read(File.join(source_dir,"/etc/group"))
         parser = Parsers::Group.new
 
-        parser.parse(getent)
+        parser.parse(content)
       end
 
 
       def read_passwords(config)
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
+        content = File.read(File.join(source_dir,"/etc/shadow"))
         parser = Parsers::Shadow.new
 
-        passwords = parser.parse(getent)
+        passwords = parser.parse(content)
         passwords.each_pair do |name, password|
           user = config.users.find { |u| u.name == name }
           if !user
