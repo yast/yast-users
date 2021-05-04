@@ -44,13 +44,12 @@ module Y2Users
         parser.parse(getent)
       end
 
-      def read_groups(config)
+      def read_groups
         getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
         parser = Parsers::Group.new
 
         parser.parse(getent)
       end
-
 
       def read_passwords(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)

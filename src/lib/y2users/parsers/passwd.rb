@@ -40,7 +40,6 @@ module Y2Users
       def parse(content)
         content.lines.map do |line|
           values = line.chomp.split(":")
-          gecos = values[PASSWD_MAPPING["gecos"]] || ""
           username = values[PASSWD_MAPPING["name"]]
           user = User.new(username)
           user.uid =   values[PASSWD_MAPPING["uid"]]

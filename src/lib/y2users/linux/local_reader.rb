@@ -42,22 +42,21 @@ module Y2Users
       attr_reader :source_dir
 
       def read_users
-        content = File.read(File.join(source_dir,"/etc/passwd"))
+        content = File.read(File.join(source_dir, "/etc/passwd"))
         parser = Parsers::Passwd.new
 
         parser.parse(content)
       end
 
-      def read_groups(config)
-        content = File.read(File.join(source_dir,"/etc/group"))
+      def read_groups
+        content = File.read(File.join(source_dir, "/etc/group"))
         parser = Parsers::Group.new
 
         parser.parse(content)
       end
 
-
       def read_passwords(config)
-        content = File.read(File.join(source_dir,"/etc/shadow"))
+        content = File.read(File.join(source_dir, "/etc/shadow"))
         parser = Parsers::Shadow.new
 
         passwords = parser.parse(content)

@@ -43,22 +43,27 @@ module Y2Users
       def parse(content)
         content.lines.each_with_object({}) do |line, res|
           values = line.chomp.split(":")
-          max_age = values[SHADOW_MAPPING["maximum_age"]]
-          inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
-          expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
-          password_value = PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]])
-          password = Password.new(password_value)
-          password.last_change = parse_last_change(values[SHADOW_MAPPING["last_change"]])
-          password.minimum_age = values[SHADOW_MAPPING["minimum_age"]].to_i
-          password.maximum_age = max_age&.to_i
-          password.warning_period = values[SHADOW_MAPPING["warning_period"]].to_i
-          password.inactivity_period = inactivity_period&.to_i
-          password.account_expiration = expiration
-          res[values[SHADOW_MAPPING["username"]]] = password
+
+          res[values[SHADOW_MAPPING["username"]]] = parse_values(values)
         end
       end
 
     private
+
+      def parse_values(values)
+        max_age = values[SHADOW_MAPPING["maximum_age"]]
+        inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
+        expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
+        password_value = PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]])
+        password = Password.new(password_value)
+        password.last_change = parse_last_change(values[SHADOW_MAPPING["last_change"]])
+        password.minimum_age = values[SHADOW_MAPPING["minimum_age"]].to_i
+        password.maximum_age = max_age&.to_i
+        password.warning_period = values[SHADOW_MAPPING["warning_period"]].to_i
+        password.inactivity_period = inactivity_period&.to_i
+        password.account_expiration = expiration
+        password
+      end
 
       def parse_last_change(value)
         return nil if !value || value.empty?
@@ -80,4 +85,3 @@ module Y2Users
     end
   end
 end
-
