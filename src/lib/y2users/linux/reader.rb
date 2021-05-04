@@ -21,7 +21,7 @@ require "yast2/execute"
 require "date"
 
 require "y2users/group"
-require "y2users/user"
+require "y2users/parsers/passwd"
 require "y2users/password"
 
 module Y2Users
@@ -39,31 +39,11 @@ module Y2Users
 
     private
 
-      PASSWD_MAPPING = {
-        "name"   => 0,
-        "passwd" => 1,
-        "uid"    => 2,
-        "gid"    => 3,
-        "gecos"  => 4,
-        "home"   => 5,
-        "shell"  => 6
-      }.freeze
-
       def read_users(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
-        getent.lines.map do |line|
-          values = line.chomp.split(":")
-          gecos = values[PASSWD_MAPPING["gecos"]] || ""
-          User.new(
-            config,
-            values[PASSWD_MAPPING["name"]],
-            uid:   values[PASSWD_MAPPING["uid"]],
-            gid:   values[PASSWD_MAPPING["gid"]],
-            shell: values[PASSWD_MAPPING["shell"]],
-            gecos: gecos.split(","),
-            home:  values[PASSWD_MAPPING["home"]]
-          )
-        end
+        parser = Parsers::Passwd.new
+
+        parser.parse(getent)
       end
 
       GROUP_MAPPING = {
