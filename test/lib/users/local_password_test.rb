@@ -26,8 +26,9 @@ describe Users::LocalPassword do
     allow(Yast::UsersSimple).to receive(:CheckPasswordUI) do |args|
       args["userPassword"].start_with?("Bad") ? ["Error"] : []
     end
-    allow(subject.ca_validator).to receive(:enabled?).and_return ca_enabled
+    allow(Y2Users::ValidationConfig).to receive(:new).and_return validation_config
   end
+  let(:validation_config) { double(check_ca?: ca_enabled, ca_min_password_length: 4) }
   let(:ca_enabled) { true }
 
   describe "#valid?" do

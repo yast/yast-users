@@ -19,73 +19,20 @@
 
 require_relative "../../test_helper"
 require "users/ca_password_validator"
+require "y2users/validation_config"
 
 describe Users::CAPasswordValidator do
-  describe "#enabled?" do
-    before do
-      allow(Yast::ProductFeatures).to receive(:GetBooleanFeature)
-        .with("globals", "root_password_ca_check")
-        .and_return(ca_check)
-    end
-
-    context "if CA password check is enabled" do
-      let(:ca_check) { true }
-
-      it "returns true" do
-        expect(subject.enabled?).to eq true
-      end
-    end
-
-    context "if ca password check is disabled" do
-      let(:ca_check) { false }
-
-      it "returns false" do
-        expect(subject.enabled?).to eq false
-      end
-    end
-
-    context "if ca password check is not set" do
-      let(:ca_check) { nil }
-
-      it "returns false" do
-        expect(subject.enabled?).to eq false
-      end
-    end
-  end
-
-  describe "#help_text" do
-    before do
-      allow(subject).to(receive(:enabled?))
-        .and_return enabled
-    end
-
-    context "if the CA check is disabled" do
-      let(:enabled) { false }
-
-      it "returns an empty string" do
-        expect(subject.help_text).to eq ""
-      end
-    end
-
-    context "if the CA check is enabled" do
-      let(:enabled) { true }
-
-      it "returns a set of html paragraphs" do
-        expect(subject.help_text).to be_a String
-        expect(subject.help_text).to start_with "<p>"
-        expect(subject.help_text).to end_with "</p>"
-      end
-    end
+  let(:config) do
+    double(Y2Users::ValidationConfig, check_ca?: check_ca, ca_min_password_length: 4)
   end
 
   describe "#errors_for" do
     before do
-      allow(subject).to(receive(:enabled?))
-        .and_return enabled
+      allow(subject).to receive(:config).and_return(config)
     end
 
     context "if the CA check is disabled" do
-      let(:enabled) { false }
+      let(:check_ca) { false }
 
       it "returns empty list for a long password" do
         expect(subject.errors_for("aL0ngPassw0rd")).to eq []
@@ -97,7 +44,7 @@ describe Users::CAPasswordValidator do
     end
 
     context "if the CA check is enabled" do
-      let(:enabled) { true }
+      let(:check_ca) { true }
 
       it "returns empty list for a long password" do
         expect(subject.errors_for("aL0ngPassw0rd")).to eq []

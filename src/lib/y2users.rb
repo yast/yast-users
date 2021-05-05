@@ -19,6 +19,7 @@
 
 require "y2users/config"
 require "y2users/config_manager"
+require "y2users/validation_config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/group"

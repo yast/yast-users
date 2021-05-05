@@ -18,6 +18,8 @@
 # find current contact information at www.suse.com.
 
 require "y2users/config_element"
+require "y2users/user_validator"
+require "y2users/password_validator"
 
 module Y2Users
   # Class to represent an user
@@ -188,6 +190,20 @@ module Y2Users
       cloned.password = password.clone
 
       cloned
+    end
+
+    # Validation errors
+    #
+    # @return [Y2Issues::List]
+    def issues
+      UserValidator.new(self).issues
+    end
+
+    # Validation errors of the current password
+    #
+    # @return [Y2Issues::List]
+    def password_issues
+      PasswordValidator.new(self).issues
     end
 
   private

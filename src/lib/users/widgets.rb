@@ -20,7 +20,7 @@
 require "yast"
 require "cwm/widget"
 
-require "users/ca_password_validator"
+require "y2users/help_texts"
 require "users/local_password"
 
 Yast.import "Popup"
@@ -34,6 +34,8 @@ module Users
     class << self
       attr_accessor :approved_pwd
     end
+
+    include Y2Users::HelpTexts
 
     # If `little_space` is `false` (the default), the widget will
     # use a vertical layout, and include a "don't forget this" label.
@@ -178,7 +180,7 @@ module Users
           "</p>\n"
         )
 
-      helptext << Yast::UsersSimple.ValidPasswordHelptext
+      helptext << valid_password_text
 
       # help text, continued 4
       helptext << _(
@@ -187,7 +189,7 @@ module Users
         "</p>"
       )
 
-      helptext << ::Users::CAPasswordValidator.new.help_text
+      helptext << ca_password_text
     end
     # rubocop:enable Metrics/MethodLength
 
