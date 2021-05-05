@@ -57,31 +57,11 @@ module Yast
       # do not open package progress wizard window
       @progress_orig = Progress.set(false)
 
-      # full info about imported users
-      @importable_users = {}
-      # user names of imported users
-      @importable_usernames = []
-      # names of imported users selected for writing
-      @usernames_to_import = []
-
-      # Check if some users database was imported from a
-      # different partition (done during pre_install)
-      users_databases = ::Users::UsersDatabase.all
-      @import_available = users_databases.any?
-      if @import_available
-        @importable_users = importable_users(users_databases)
-        @importable_usernames = @importable_users.keys
-
-        if @importable_usernames.empty?
-          Builtins.y2milestone("No users to import")
-          @import_available = false
-        end
-      end
-
       init_action
-      # Y2Users: commented until we implement importing
-      # @usernames_to_import = @users.map { |u| u["uid"] || "" } if action == :import
       init_user_attributes
+
+      # names of imported users selected for writing
+      @usernames_to_import = (action == :import) ? users.map(&:name) : []
     end
 
     def run
@@ -105,7 +85,7 @@ module Yast
     end
 
     def choose_users_handler
-      imported = UsersToImportDialog.new(@importable_usernames, @usernames_to_import).run
+      imported = UsersToImportDialog.new(importable_users.map(&:name), @usernames_to_import).run
       return unless imported
 
       @usernames_to_import = imported
@@ -181,7 +161,7 @@ module Yast
       @users_config = nil
       @password = nil
       @use_pw_for_root = false
-      self.users_list = []
+      clean_users_info
     end
 
     def init_focus
@@ -191,9 +171,10 @@ module Yast
 
     # Initializes the instance variables used to configure a new user
     def init_user_attributes
-      @username = user&.name || ""
-      @full_name = user&.full_name || ""
-      @password = user&.password&.value&.content || ""
+      new_user = (action == :new_user) ? user : nil
+      @username = new_user&.name || ""
+      @full_name = new_user&.full_name || ""
+      @password = new_user&.password&.value&.content || ""
 
       init_autologin
       init_pw_for_root
@@ -227,7 +208,7 @@ module Yast
         # New user is the default option
         GetInstArgs.going_back ? :skip : :new_user
       when 1
-        imported?(users.first) ? :import : :new_user
+        user_imported? ? :import : :new_user
       else
         :import
       end
@@ -253,9 +234,28 @@ module Yast
       Progress.set(@progress_orig)
     end
 
-    # TODO: let's simply return false for the time being
-    def imported?(_user)
-      false
+    # Whether {#user} is the result of importing a user from another system
+    #
+    # Note that imported users contain all the relevant information while non-imported users that
+    # are created during the install process doesn't even have an uid yet at this point.
+    #
+    # @return [Boolean]
+    def user_imported?
+      importable_users.include?(user)
+    end
+
+    # Users database that was imported from a different system (done during pre_install)
+    #
+    # @return [::Users::UserDatabase]
+    def importing_database
+      ::Users::UsersDatabase.all.first
+    end
+
+    # Users from a different system that can be imported into the new installation
+    #
+    # @return [Array<Y2Users::User>]
+    def importable_users
+      importing_database&.users || []
     end
 
     # Whether the password of root and the new user are equal
@@ -360,54 +360,14 @@ module Yast
       true
     end
 
-    # List of users from an imported users database.
-    #
-    # This method is kind of a wrapper around
-    # UserSimple.ReadUserData && UserSimple.GetImportedUsers.
-    # It receives a list of databases and tries to import users in order. If
-    # it's not possible to import users in the first database, it tries the
-    # the next and so on.
-    #
-    # Ideally this method would belong to UsersSimple... but that's Perl code.
-    #
-    # @see UsersSimple.GetImportedUsers
-    #
-    # @param databases [Array<Users::UsersDatabase>]
-    #
-    # @return [Hash{String => Hash}, {}] A Hash with importable users if any; empty Hash otherwise
-    def importable_users(databases)
-      databases.each do |database|
-        Dir.mktmpdir do |dir|
-          database.write_files(dir)
-
-          if UsersSimple.ReadUserData(dir)
-            imported_users = UsersSimple.GetImportedUsers("local")
-
-            # UsersSimple.GetImportedUsers should not return nil, but better be safe
-            return imported_users if imported_users&.any?
-          end
-        end
-      end
-
-      {}
-    end
-
     def import_users
-      create_users = @usernames_to_import.map do |name|
-        u = @importable_users.fetch(name, {})
-        u["__imported"] = true
-        u["encrypted"] = true
-        u
-      end
-      self.users_list = create_users
+      config = importing_database.filtered_config(@usernames_to_import)
+      clean_users_info
+      Y2Users::UsersSimple::Writer.new(config).write
     end
 
     def clean_users_info
-      self.users_list = []
-    end
-
-    def users_list=(users)
-      UsersSimple.SetUsers(users)
+      UsersSimple.SetUsers([])
       UsersSimple.SkipRootPasswordDialog(false)
       UsersSimple.SetRootPassword("") if root_dialog_follows
       UsersSimple.SetAutologinUser("")
@@ -571,7 +531,7 @@ module Yast
     end
 
     def import_available?
-      !!@import_available
+      !!importing_database
     end
 
     # User for performing password validatons
