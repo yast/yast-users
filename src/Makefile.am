@@ -64,8 +64,12 @@ ywidget_DATA = \
 	lib/users/widgets/inst_root_first.rb \
 	lib/users/widgets/public_key_selector.rb
 
-ylibdir = @ylibdir@/users
+ylibdir = @ylibdir@
 ylib_DATA = \
+  lib/y2users.rb
+
+ylib_usersdir = @ylibdir@/users
+ylib_users_DATA = \
   lib/users/ca_password_validator.rb \
   lib/users/local_password.rb \
   lib/users/encryption_method.rb \
@@ -77,6 +81,31 @@ ylib_DATA = \
   lib/users/ssh_authorized_keyring.rb \
   lib/users/users_database.rb \
   lib/users/widgets.rb
+
+ylib_y2usersdir = @ylibdir@/y2users
+ylib_y2users_DATA = \
+  lib/y2users/config_element.rb \
+  lib/y2users/config_manager.rb \
+  lib/y2users/config.rb \
+  lib/y2users/group.rb \
+  lib/y2users/help_texts.rb \
+  lib/y2users/linux.rb \
+  lib/y2users/password.rb \
+  lib/y2users/password_validator.rb \
+  lib/y2users/user.rb \
+  lib/y2users/users_simple.rb \
+  lib/y2users/user_validator.rb \
+  lib/y2users/validation_config.rb
+
+ylib_y2users_linuxdir = @ylibdir@/y2users/linux
+ylib_y2users_linux_DATA = \
+  lib/y2users/linux/reader.rb \
+  lib/y2users/linux/writer.rb
+
+ylib_y2users_userssimpledir = @ylibdir@/y2users/users_simple
+ylib_y2users_userssimple_DATA = \
+  lib/y2users/users_simple/reader.rb \
+  lib/y2users/users_simple/writer.rb
 
 scrconf_DATA = \
   scrconf/etc_default_useradd.scr \
@@ -97,6 +126,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common

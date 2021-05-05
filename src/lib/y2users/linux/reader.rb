@@ -50,6 +50,9 @@ module Y2Users
 
         parser.parse(getent)
       end
+        "inactivity_period"  => 6,
+        "account_expiration" => 7
+      }.freeze
 
       def read_passwords(config)
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)

@@ -20,8 +20,9 @@
 require "yast"
 require "ui/installation_dialog"
 require "users/dialogs/users_to_import"
-require "users/ca_password_validator"
-require "users/local_password"
+require "y2users"
+require "y2users/users_simple"
+require "y2users/help_texts"
 require "users/users_database"
 require "tmpdir"
 
@@ -74,11 +75,9 @@ module Yast
         end
       end
 
-      @users = UsersSimple.GetUsers
       init_action
-      @usernames_to_import = @users.map { |u| u["uid"] || "" } if action == :import
-      @user = @users.first if action == :new_user
-      @user ||= {}
+      # Y2Users: commented until we implement importing
+      # @usernames_to_import = @users.map { |u| u["uid"] || "" } if action == :import
       init_user_attributes
     end
 
@@ -139,77 +138,9 @@ module Yast
       self.action = :import
     end
 
-    # rubocop:disable Metrics/MethodLength
-    # rubocop:disable Metrics/AbcSize
     def help_text
-      help = _(
-        "<p>\nUse one of the available options to add local users to the system.\n" \
-        "Local users are stored in <i>/etc/passwd</i> and <i>/etc/shadow</i>.\n</p>\n"
-      ) +
-        "<p>\n<b>" + _("Create new user") + "</b>\n</p>\n" +
-        _(
-          "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" \
-          "assign to this user account.\n</p>\n"
-        ) +
-        _(
-          "<p>\nWhen entering a password, distinguish between uppercase and\n" \
-          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
-        )
-
-      help +=
-        # TRANSLATORS: %{min} and %{max} will be replaced by numbers
-        format(
-          _("<p>\nThe password length should be between %{min}\n and %{max} characters.\n</p>\n"),
-          min: UsersSimple.GetMinPasswordLength("local"),
-          max: UsersSimple.GetMaxPasswordLength("local")
-        ) + UsersSimple.ValidPasswordHelptext
-
-      help += ::Users::CAPasswordValidator.new.help_text
-
-      help += _(
-        "<p>\nTo ensure that the password was entered correctly,\n" \
-        "repeat it exactly in a second field. Do not forget your password.\n" \
-        "</p>\n"
-      ) +
-        _(
-          "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and "\
-          "<tt>._-</tt>.\n" \
-          "Do not use uppercase letters in this entry unless you know what you are doing.\n" \
-          "Usernames have stricter restrictions than passwords. You can redefine the\n" \
-          "restrictions in the /etc/login.defs file. Read its man page for information.\n" \
-          "</p>\n"
-        ) +
-        _(
-          "<p>Check <b>Use this password for system administrator</b> if the " \
-          "same password as entered for the first user should be used for root.</p>"
-        ) +
-        _(
-          "<p>\nThe username and password created here are needed to log in " \
-          "and work with your Linux system. With <b>Automatic Login</b> enabled, " \
-          "the login procedure is skipped. This user is logged in automatically.</p>\n"
-        )
-
-      if import_available?
-        help += "<p>\n<b>" + _("Import User Data from a Previous Installation") + "</b>\n</p>\n"
-        help += _(
-          "<p>\nA previous Linux installation with local users has been detected.\n" \
-          "The information there can be used to create users in the system being installed.\n" \
-          "Use the <b>Choose Users</b> button to select some users. Their basic information will" \
-          "\nbe imported.\n</p>\n"
-        )
-      end
-
-      help += "<p>\n<b>" + _("Skip User Creation") + "</b>\n</p>\n"
-      help += _(
-        "<p>\nSometimes root is the only needed local user, like in network environments\n" \
-        "with an authentication server. Select this option to proceed without creating\n" \
-        "a local user.\n</p>\n"
-      )
-
-      help
+      InstUserFirstHelp.new(import_available?).text
     end
-  # rubocop:enable Metrics/MethodLength
-  # rubocop:enable Metrics/AbcSize
 
   private
 
@@ -244,40 +175,40 @@ module Yast
     # password and make sure the password of this user will not be used as the
     # root password, but the root password dialog will be shown.
     def reset
-      @user = {}
+      @users_config = nil
       @password = nil
       @use_pw_for_root = false
       self.users_list = []
     end
 
+    def init_focus
+      widget = WIDGETS[action].first
+      UI.SetFocus(Id(widget)) if widget
+    end
+
     # Initializes the instance variables used to configure a new user
-    #
-    # Requires @user to be set in advance
     def init_user_attributes
-      @user_type = @user.fetch("type", "local")
-      @username = @user.fetch("uid", "")
-      @full_name = @user.fetch("cn", "")
-      @password = @user["userPassword"]
+      @username = user&.name || ""
+      @full_name = user&.full_name || ""
+      @password = user&.password&.value&.content || ""
 
       init_autologin
       init_pw_for_root
     end
 
     # Sets the initial default value for autologin
-    # Requires @user to be already set
     def init_autologin
       @autologin = UsersSimple.AutologinUsed
-      return unless @user.empty? && !@autologin
+      return unless user.nil? && !@autologin
 
       @autologin = true if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
       Builtins.y2debug("autologin default value: %1", @autologin)
     end
 
     # Sets the initial default value for root pw checkbox
-    # Requires @user to be already set
     def init_pw_for_root
-      @use_pw_for_root = UsersSimple.GetRootPassword == @password
-      return unless @user == {} && !@use_pw_for_root
+      @use_pw_for_root = root_password_matches?
+      return unless user.nil? && !@use_pw_for_root
 
       if ProductFeatures.GetBooleanFeature("globals", "root_password_as_first_user") == true
         @use_pw_for_root = true
@@ -287,14 +218,13 @@ module Yast
     end
 
     # Sets the initial value for the action selection
-    # Requires @users to be already set
     def init_action
-      @action = case @users.size
+      @action = case users.size
       when 0
         # New user is the default option
         GetInstArgs.going_back ? :skip : :new_user
       when 1
-        @users.first["__imported"] ? :import : :new_user
+        imported?(users.first) ? :import : :new_user
       else
         :import
       end
@@ -311,13 +241,61 @@ module Yast
     def create_dialog
       super
       refresh
-      set_focus
+      init_focus
       true
     end
 
     def close_dialog
       super
       Progress.set(@progress_orig)
+    end
+
+    # Config object holding the users and passwords to create
+    #
+    # @return [Y2Users::Config]
+    def users_config
+      return @users_config if @users_config
+
+      @users_config = Y2Users::Config.new
+      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
+      @users_config
+    end
+
+    # All users to be created
+    #
+    # @return [Array<Y2Users::User>]
+    def users
+      users_config.users.reject(&:root?)
+    end
+
+    # User to be created, useful during the :new_user action in which {#users}
+    # is known to contain only one element
+    #
+    # @return [Y2Users::User]
+    def user
+      users.first
+    end
+
+    # Root users for which is possible to define the password during the :new_user action
+    #
+    # @return [Y2Users::User]
+    def root_user
+      users_config.users.find(&:root?)
+    end
+
+    # TODO: let's simply return false for the time being
+    def imported?(_user)
+      false
+    end
+
+    # Whether the password of root and the new user are equal
+    #
+    # @return [Boolean]
+    def root_password_matches?
+      value = root_user&.password&.value
+      return false unless value&.plain?
+
+      value.content == @password
     end
 
     # Takes the first word from full name and proposes a login name which is then used
@@ -340,11 +318,6 @@ module Yast
       end
     end
 
-    def set_focus
-      widget = WIDGETS[action].first
-      UI.SetFocus(Id(widget)) if widget
-    end
-
     def action=(value)
       @action = value
       refresh
@@ -363,47 +336,42 @@ module Yast
         return false
       end
 
-      if !valid_username?(@username)
-        UI.SetFocus(Id(:username))
-        return false
-      end
-
-      # full name checks
       @full_name = UI.QueryWidget(Id(:full_name), :Value)
-      error = UsersSimple.CheckFullname(@full_name)
-      if !error.empty?
-        Report.Error(error)
-        UI.SetFocus(Id(:full_name))
-        return false
-      end
+      attach_user(@username, full_name: @full_name)
+      return false unless valid_user?
 
       # password checks
       pw1 = UI.QueryWidget(Id(:pw1), :Value)
       pw2 = UI.QueryWidget(Id(:pw2), :Value)
       @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
 
-      if !valid_password?(@username, pw1, pw2)
-        UI.SetFocus(Id(:pw1))
+      if pw1 != pw2
+        # TRANSLATORS: error popup
+        Report.Error(_("The passwords do not match.\nTry again."))
         return false
       end
-      @password = pw1
 
+      user.password = Y2Users::Password.create_plain(pw1)
+      root_user.password = Y2Users::Password.create_plain(pw1) if @use_pw_for_root
+      return false unless valid_password?
+
+      @password = pw1
       true
     end
 
-    def create_new_user
-      # save the first user data
-      user_map = {
-        "uid"          => @username,
-        "userPassword" => @password,
-        "cn"           => @full_name
-      }
-      UsersSimple.SetUsers([user_map])
-      UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
-      if root_dialog_follows || @use_pw_for_root
-        UsersSimple.SetRootPassword(@use_pw_for_root ? @password : "")
-      end
+    # Registers the new user into {#users_config}
+    def attach_user(username, full_name: nil)
+      users_config.detach(user) if user
 
+      new_user = Y2Users::User.new(username)
+      new_user.gecos = [full_name].compact
+      users_config.attach(new_user)
+    end
+
+    # Writes the new user into Yast::UserSimple at the end of the process
+    def create_new_user
+      Y2Users::UsersSimple::Writer.new(users_config).write
+      UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
       UsersSimple.SetAutologinUser(
         UI.QueryWidget(Id(:autologin), :Value) ? @username : ""
       )
@@ -475,51 +443,48 @@ module Yast
       UsersSimple.SetAutologinUser("")
     end
 
-    def valid_username?(username)
-      error = UsersSimple.CheckUsernameLength(username)
-      if !error.empty?
-        Report.Error(error)
-        return false
-      end
-
-      error = UsersSimple.CheckUsernameContents(username, "")
-      if !error.empty?
-        Report.Error(error)
-        return false
-      end
-
-      error = UsersSimple.CheckUsernameConflicts(username)
-      if !error.empty?
-        Report.Error(error)
+    # Checks whether the information entered for the user is valid, reporting the problem to
+    # the user otherwise
+    #
+    # @return [Boolean]
+    def valid_user?
+      issue = user.issues.first
+      if issue
+        Report.Error(issue.message)
+        focus_on(issue.location)
         return false
       end
 
       true
     end
 
-    def valid_password?(username, pw1, pw2)
-      if pw1 != pw2
-        # The two group password information do not match
-        # error popup
-        Report.Error(_("The passwords do not match.\nTry again."))
+    # Checks whether the entered password is acceptable, reporting fatal problems to the user and
+    # asking for confirmation for the non-fatal ones
+    #
+    # @return [Boolean]
+    def valid_password?
+      user_to_validate = @use_pw_for_root ? root_user : user
+      issues = user_to_validate.password_issues
+      return true if issues.empty?
+
+      UI.SetFocus(Id(:pw1))
+
+      fatal = issues.find(&:fatal?)
+      if fatal
+        Report.Error(fatal.message)
         return false
       end
 
-      error = UsersSimple.CheckPassword(pw1, "local")
-      if !error.empty?
-        Report.Error(error)
-        return false
-      end
+      message = issues.map(&:message).join("\n\n") + "\n\n" + _("Really use this password?")
+      Popup.YesNo(message)
+    end
 
-      passwd = ::Users::LocalPassword.new(
-        username: username, plain: pw1, also_for_root: @use_pw_for_root
-      )
-      if !passwd.valid?
-        message = passwd.errors.join("\n\n") + "\n\n" + _("Really use this password?")
-        return false if !Popup.YesNo(message)
-      end
-
-      true
+    # Sets the UI focus in the widget corresponding to the given issue location
+    #
+    # @param location [Y2Issues::Location]
+    def focus_on(location)
+      id = (location.path == "name") ? :username : :full_name
+      UI.SetFocus(Id(id))
     end
 
     def dialog_content
@@ -684,4 +649,120 @@ module Yast
     end
   end
   # rubocop:enable Metrics/ClassLength
+
+  # Helper class to generate the help text for {InstUserFirstDialog}
+  class InstUserFirstHelp
+    include Y2Users::HelpTexts
+
+    # Constructor
+    #
+    # @param import [Boolean] value for {#import?}
+    def initialize(import)
+      textdomain "users"
+
+      @import = import
+    end
+
+    # Full text to display in the help of the form
+    #
+    # @return [String] formatted and localized text
+    def text
+      intro + new_user + import_users + skip
+    end
+
+  private
+
+    # Whether the form offers the possibility of importing users from a previous installation
+    #
+    # @return [Boolean]
+    def import?
+      !!@import
+    end
+
+    # @return [String] formatted and localized text
+    def intro
+      _(
+        "<p>\nUse one of the available options to add local users to the system.\n" \
+        "Local users are stored in <i>/etc/passwd</i> and <i>/etc/shadow</i>.\n</p>\n"
+      )
+    end
+
+    # @return [String] formatted and localized text
+    def new_user
+      "<p>\n<b>" + _("Create new user") + "</b>\n</p>\n" +
+        _(
+          "<p>\nEnter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" \
+          "assign to this user account.\n</p>\n"
+        ) +
+        _(
+          "<p>\nWhen entering a password, distinguish between uppercase and\n" \
+          "lowercase. Passwords should not contain any accented characters or umlauts.\n</p>\n"
+        ) +
+        password_format +
+        _(
+          "<p>\nTo ensure that the password was entered correctly,\n" \
+          "repeat it exactly in a second field. Do not forget your password.\n" \
+          "</p>\n"
+        ) +
+        username_format +
+        _(
+          "<p>Check <b>Use this password for system administrator</b> if the " \
+          "same password as entered for the first user should be used for root.</p>"
+        ) +
+        _(
+          "<p>\nThe username and password created here are needed to log in " \
+          "and work with your Linux system. With <b>Automatic Login</b> enabled, " \
+          "the login procedure is skipped. This user is logged in automatically.</p>\n"
+        )
+    end
+
+    # @return [String] formatted and localized text
+    def import_users
+      return "" unless import?
+
+      "<p>\n<b>" + _("Import User Data from a Previous Installation") + "</b>\n</p>\n" +
+        _(
+          "<p>\nA previous Linux installation with local users has been detected.\n" \
+          "The information there can be used to create users in the system being installed.\n" \
+          "Use the <b>Choose Users</b> button to select some users. Their basic information will" \
+          "\nbe imported.\n</p>\n"
+        )
+    end
+
+    # @return [String] formatted and localized text
+    def skip
+      "<p>\n<b>" + _("Skip User Creation") + "</b>\n</p>\n" +
+        _(
+          "<p>\nSometimes root is the only needed local user, like in network environments\n" \
+          "with an authentication server. Select this option to proceed without creating\n" \
+          "a local user.\n</p>\n"
+        )
+    end
+
+    # Explanation of the format the password must follow in order to be valid
+    #
+    # @return [String] formatted and localized text
+    def password_format
+      # TRANSLATORS: %{min} and %{max} will be replaced by numbers
+      format(
+        _("<p>\nThe password length should be between %{min}\n and %{max} characters.\n</p>\n"),
+        min: validation_config.min_password_length,
+        max: validation_config.max_password_length
+      ) + valid_password_text + ca_password_text
+    end
+
+    # Explanation of the format the user name must follow in order to be valid
+    #
+    # @return [String] formatted and localized text
+    def username_format
+      _(
+        "<p>\nFor the <b>Username</b> use only letters (no accented characters), digits, and "\
+        "<tt>._-</tt>.\n" \
+        "Do not use uppercase letters in this entry unless you know what you are doing.\n" \
+        "Usernames have stricter restrictions than passwords. You can redefine the\n" \
+        "restrictions in the /etc/login.defs file. Read its man page for information.\n" \
+        "</p>\n"
+      )
+    end
+  end
 end

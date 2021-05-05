@@ -1,4 +1,5 @@
 #!/usr/bin/env rspec
+
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -30,23 +31,29 @@ describe Y2Users::Linux::Writer do
   subject(:writer) { described_class.new(config, initial_config) }
 
   describe "#write" do
-    let(:initial_config) { Y2Users::Config.new }
+    let(:initial_config) do
+      config = Y2Users::Config.new
+      config.attach(users)
+      config
+    end
 
     let(:config) { initial_config.clone }
-    let(:user) do
-      user = Y2Users::User.new(config, username, **user_attrs)
-      user.password = password
 
+    let(:users) { [] }
+
+    let(:user) do
+      user = Y2Users::User.new(username)
+      user.password = password
       user
     end
-    let(:password) do
-      pw_options = { value: pwd_value, account_expiration: expiration_date }
 
-      Y2Users::Password.new(config, username, pw_options)
+    let(:password) do
+      password = Y2Users::Password.new(pwd_value)
+      password.account_expiration = expiration_date
+      password
     end
 
     let(:username) { "testuser" }
-    let(:user_attrs) { {} }
     let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
     let(:expiration_date) { nil }
 
@@ -103,15 +110,11 @@ describe Y2Users::Linux::Writer do
     end
 
     before do
-      config.users << user
-
       allow(Yast::Execute).to receive(:on_target!)
     end
 
     context "for an existing user" do
-      before do
-        initial_config.users << user
-      end
+      let(:users) { [user] }
 
       it "does not execute useradd" do
         expect(Yast::Execute).to_not receive(:on_target!).with(/useradd/, any_args)
@@ -123,11 +126,14 @@ describe Y2Users::Linux::Writer do
     end
 
     context "for a new regular user with all the attributes" do
-      let(:user_attrs) do
-        {
-          uid: 1001, gid: 2001, shell: "/bin/y2shell", home: "/home/y2test",
-          gecos: ["First line of", "GECOS"]
-        }
+      before do
+        user.uid = 1001
+        user.gid = 2001
+        user.shell = "/bin/y2shell"
+        user.home = "/home/y2test"
+        user.gecos = ["First line of", "GECOS"]
+
+        config.attach(user)
       end
 
       include_examples "setting expiration date"
@@ -144,7 +150,9 @@ describe Y2Users::Linux::Writer do
     end
 
     context "for a new regular user with no optional attributes specified" do
-      let(:user_attrs) { {} }
+      before do
+        config.attach(user)
+      end
 
       include_examples "setting expiration date"
       include_examples "setting password"
@@ -157,9 +165,12 @@ describe Y2Users::Linux::Writer do
     end
 
     context "for a new system user" do
-      let(:user_attrs) { { home: "/var/lib/y2test" } }
+      before do
+        user.home = "/var/lib/y2test"
+        user.system = true
 
-      before { user.system = true }
+        config.attach(user)
+      end
 
       it "executes useradd with the 'system' parameter and without creating a home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -173,6 +184,10 @@ describe Y2Users::Linux::Writer do
     end
 
     context "when executed with no errors" do
+      before do
+        config.attach(user)
+      end
+
       it "returns an empty issues list" do
         result = writer.write
 
@@ -182,6 +197,10 @@ describe Y2Users::Linux::Writer do
     end
 
     context "when there is any error adding users" do
+      before do
+        config.attach(user)
+      end
+
       let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
 
       before do
@@ -203,6 +222,8 @@ describe Y2Users::Linux::Writer do
       let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
 
       before do
+        config.attach(user)
+
         allow(Yast::Execute).to receive(:on_target!)
           .with(/chpasswd/, any_args)
           .and_raise(error)

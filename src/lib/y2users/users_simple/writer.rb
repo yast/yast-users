@@ -44,10 +44,10 @@ module Y2Users
         root = config.users.find(&:root?)
         return unless root
 
-        value = root.password&.value
-        return unless value
+        root_password = root.password&.value
+        return unless root_password
 
-        Yast::UsersSimple.SetRootPassword(value.content) if value.plain?
+        Yast::UsersSimple.SetRootPassword(root_password&.content)
       end
 
     private
@@ -62,6 +62,7 @@ module Y2Users
       def to_user_simple(user)
         # TODO: users simple allows encrypted, but then it needs to specify _encrypted => true
         password = user.password&.value&.content if user.password&.value&.plain?
+
         {
           uid:           user.name,
           uidNumber:     user.uid,
