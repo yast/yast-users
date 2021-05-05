@@ -22,23 +22,10 @@
 require_relative "../test_helper"
 
 require "y2users/config"
-require "y2users/linux/reader"
+require "y2users/linux/local_reader"
 
-describe Y2Users::Linux::Reader do
-  before do
-    # mock Yast::Execute calls and provide file content from fixture
-    passwd_content = File.read(File.join(FIXTURES_PATH, "/root/etc/passwd"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "passwd", anything)
-      .and_return(passwd_content)
-
-    group_content = File.read(File.join(FIXTURES_PATH, "/root/etc/group"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "group", anything)
-      .and_return(group_content)
-
-    shadow_content = File.read(File.join(FIXTURES_PATH, "/root/etc/shadow"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "shadow", anything)
-      .and_return(shadow_content)
-  end
+describe Y2Users::Linux::LocalReader do
+  subject { described_class.new(File.join(FIXTURES_PATH, "/root/")) }
 
   describe "#read_to" do
     it "fills given config with read data" do
