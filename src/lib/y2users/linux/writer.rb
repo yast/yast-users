@@ -101,10 +101,9 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
-        config.users.map do |user|
-          add_user(user, issues)
-          change_password(user, issues)
-        end
+        new_users.each { |u| add_user(u, issues) }
+        config.users.each { |u| change_password(u, issues) }
+
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
 
@@ -141,16 +140,13 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
-      # Whether given user does not exist yet
+      # Returns the list of users that should be created
       #
-      # FIXME: choose a better criteria to identify a new user. An internal Y2User::User id?
-      #
-      # @param user [Y2User::User]
-      # @return [Boolean] true if there is a user with same name in @initial_config; false otherwise
-      def new_user?(user)
-        @initial_users_names ||= initial_config.users.map(&:name)
+      # @return [Array<Users>]
+      def new_users
+        initial_ids = initial_config.users.map(&:id)
 
-        !@initial_users_names.include?(user.name)
+        config.users.reject { |u| initial_ids.include?(u.id) }
       end
 
       # Executes the command for creating the user
@@ -158,8 +154,6 @@ module Y2Users
       # @param user [Y2User::User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_user(user, issues)
-        return unless new_user?(user)
-
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
@@ -175,7 +169,7 @@ module Y2Users
       def change_password(user, issues)
         return unless user.password&.value
 
-        Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user)) if user.password&.value
+        Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The password for '%{username}' could not be set"), username: user.name)

@@ -31,10 +31,7 @@ module Y2Users
       include Yast::Logger
 
       def read_to(config)
-        config.users = read_users(config)
-        config.groups = read_groups(config)
-        # read passwords after user, as user has to exist in advance
-        read_passwords(config)
+        config.attach(users + groups)
       end
 
     private
@@ -48,21 +45,24 @@ module Y2Users
         "home"   => 5,
         "shell"  => 6
       }.freeze
+      private_constant :PASSWD_MAPPING
 
-      def read_users(config)
+      # Returns the collection of users retrieved via getent
+      #
+      # @return [Array<User>]
+      def users
         getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
-          gecos = values[PASSWD_MAPPING["gecos"]] || ""
-          User.new(
-            config,
-            values[PASSWD_MAPPING["name"]],
-            uid:   values[PASSWD_MAPPING["uid"]],
-            gid:   values[PASSWD_MAPPING["gid"]],
-            shell: values[PASSWD_MAPPING["shell"]],
-            gecos: gecos.split(","),
-            home:  values[PASSWD_MAPPING["home"]]
-          )
+          username = values[PASSWD_MAPPING["name"]]
+          user = User.new(username)
+          user.uid =   values[PASSWD_MAPPING["uid"]]
+          user.gid =   values[PASSWD_MAPPING["gid"]]
+          user.shell = values[PASSWD_MAPPING["shell"]]
+          user.gecos = values[PASSWD_MAPPING["gecos"]].to_s.split(",")
+          user.home =  values[PASSWD_MAPPING["home"]]
+          user.password = passwords[username]
+          user
         end
       end
 
@@ -72,17 +72,19 @@ module Y2Users
         "gid"    => 2,
         "users"  => 3
       }.freeze
+      private_constant :GROUP_MAPPING
 
-      def read_groups(config)
+      # Returns the collection of groups retrieved via getent
+      #
+      # @return [Array<Group>]
+      def groups
         getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
         getent.lines.map do |line|
           values = line.chomp.split(":")
-          Group.new(
-            config,
-            values[GROUP_MAPPING["name"]],
-            gid:        values[GROUP_MAPPING["gid"]],
-            users_name: values[GROUP_MAPPING["users"]]&.split(",") || []
-          )
+          group = Group.new(values[GROUP_MAPPING["name"]])
+          group.gid = values[GROUP_MAPPING["gid"]]
+          group.users_name = values[GROUP_MAPPING["users"]].to_s.split(",")
+          group
         end
       end
 
@@ -96,37 +98,33 @@ module Y2Users
         "inactivity_period"  => 6,
         "account_expiration" => 7
       }.freeze
+      private_constant :SHADOW_MAPPING
 
-      def read_passwords(config)
+      def passwords
+        return @passwords if @passwords
+
         getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
-        getent.lines.each do |line|
-          password = parse_getent_password(config, line)
-          user = config.users.find { |u| u.name == password.name }
-          if !user
-            log.warn "Found password for non existing user #{password.name}."
-            next
-          end
+        @passwords = getent.lines.each_with_object({}) do |line, collection|
+          values = line.chomp.split(":")
 
-          user.password = password
+          collection[values[SHADOW_MAPPING["username"]]] = parse_getent_password(values)
         end
       end
 
-      def parse_getent_password(config, line)
-        values = line.chomp.split(":")
+      def parse_getent_password(values)
         max_age = values[SHADOW_MAPPING["maximum_age"]]
         inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
         expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
-        Password.new(
-          config,
-          values[SHADOW_MAPPING["username"]],
-          value:              PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]]),
-          last_change:        parse_last_change(values[SHADOW_MAPPING["last_change"]]),
-          minimum_age:        values[SHADOW_MAPPING["minimum_age"]].to_i,
-          maximum_age:        max_age&.to_i,
-          warning_period:     values[SHADOW_MAPPING["warning_period"]].to_i,
-          inactivity_period:  inactivity_period&.to_i,
-          account_expiration: expiration
-        )
+
+        password_value = PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]])
+        password = Password.new(password_value)
+        password.last_change = parse_last_change(values[SHADOW_MAPPING["last_change"]])
+        password.minimum_age = values[SHADOW_MAPPING["minimum_age"]].to_i
+        password.maximum_age = max_age&.to_i
+        password.warning_period = values[SHADOW_MAPPING["warning_period"]].to_i
+        password.inactivity_period = inactivity_period&.to_i
+        password.account_expiration = expiration
+        password
       end
 
       def parse_last_change(value)
