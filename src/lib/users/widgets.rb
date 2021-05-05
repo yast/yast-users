@@ -20,6 +20,8 @@
 require "yast"
 require "cwm/widget"
 
+require "y2users"
+require "y2users/users_simple"
 require "y2users/help_texts"
 require "users/local_password"
 
@@ -86,8 +88,7 @@ module Users
       # focus on first password, so user can immediately write. Also does not
       # break openQA current test
       Yast::UI.SetFocus(Id(:pw1)) if @focus
-      current_password = Yast::UsersSimple.GetRootPassword
-      return if !current_password || current_password.empty?
+      return if current_password.empty?
 
       Yast::UI.ChangeWidget(Id(:pw1), :Value, current_password)
       Yast::UI.ChangeWidget(Id(:pw2), :Value, current_password)
@@ -114,26 +115,14 @@ module Users
         return false
       end
 
-      error = Yast::UsersSimple.CheckPassword(password1, "local")
-
-      if error != ""
-        Yast::Report.Error(error)
-        Yast::UI.SetFocus(Id(:pw1))
-        return false
-      end
+      root_user.password = Y2Users::Password.create_plain(password1)
 
       # do not ask again if already approved (bsc#1025835)
       return true if self.class.approved_pwd == password1
 
-      passwd = ::Users::LocalPassword.new(username: "root", plain: password1)
-      # User can confirm using "invalid" password confirming all the errors
-      if !passwd.valid?
-        errors = passwd.errors + [_("Really use this password?")]
-        Yast::UI.SetFocus(Id(:pw1))
-        return false unless Yast::Popup.YesNo(errors.join("\n\n"))
+      return false unless valid_password?
 
-        self.class.approved_pwd = password1
-      end
+      self.class.approved_pwd = password1
 
       true
     end
@@ -145,7 +134,7 @@ module Users
       return if allow_empty? && empty?
 
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
-      Yast::UsersSimple.SetRootPassword(password1)
+      root_user.password = Y2Users::Password.create_plain(password1)
     end
 
     # rubocop:disable Metrics/MethodLength
@@ -193,6 +182,8 @@ module Users
     end
     # rubocop:enable Metrics/MethodLength
 
+  private
+
     # Determines whether the widget is empty or not
     #
     # @return [Boolean]
@@ -209,6 +200,52 @@ module Users
     # @return [Boolean]
     def allow_empty?
       @allow_empty
+    end
+
+    # Config object holding the users and passwords to create
+    #
+    # @return [Y2Users::Config]
+    def users_config
+      return @users_config if @users_config
+
+      @users_config = Y2Users::Config.new
+      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
+      @users_config
+    end
+
+    # Root users for which is possible to define the password during the :new_user action
+    #
+    # @return [Y2Users::User]
+    def root_user
+      @root_user ||= users_config.users.find(&:root?)
+    end
+
+    # Current password value for root_user
+    #
+    # @return [String]
+    def current_password
+      pwd = root_user&.password&.value&.content
+      pwd.to_s
+    end
+
+    # Checks whether the entered password is acceptable, reporting fatal problems to the user and
+    # asking for confirmation for the non-fatal ones
+    #
+    # @return [Boolean]
+    def valid_password?
+      issues = root_user.password_issues
+      return true if issues.empty?
+
+      Yast::UI.SetFocus(Id(:pw1))
+
+      fatal = issues.find(&:fatal?)
+      if fatal
+        Yast::Report.Error(fatal.message)
+        return false
+      end
+
+      message = issues.map(&:message).join("\n\n") + "\n\n" + _("Really use this password?")
+      Yast::Popup.YesNo(message)
     end
   end
 end
