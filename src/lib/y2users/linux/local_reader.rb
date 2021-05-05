@@ -32,7 +32,7 @@ module Y2Users
       end
 
       def read_to(config)
-        config.attach(read_users + read.groups)
+        config.attach(read_users + read_groups)
         # read passwords after user, as user has to exist in advance
         read_passwords(config)
       end

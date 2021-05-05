@@ -19,7 +19,7 @@
 
 require "date"
 
-require "y2users/user"
+require "y2users/password"
 
 module Y2Users
   module Parsers
