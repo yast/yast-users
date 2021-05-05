@@ -36,7 +36,7 @@ module Y2Users
 
       # Parses content and returns users defined there without password value.
       # @param content [String]
-      # @return [Array<User>]
+      # @return [Array<Y2Users::User>]
       def parse(content)
         content.lines.map do |line|
           values = line.chomp.split(":")

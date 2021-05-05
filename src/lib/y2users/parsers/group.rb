@@ -33,11 +33,11 @@ module Y2Users
 
       # Parses content and returns groups defined there.
       # @param content [String]
-      # @return [Array<Group>]
+      # @return [Array<Y2Users::Group>]
       def parse(content)
         content.lines.map do |line|
           values = line.chomp.split(":")
-          group = Group.new(values[GROUP_MAPPING["name"]])
+          group = Y2Users::Group.new(values[GROUP_MAPPING["name"]])
           group.gid = values[GROUP_MAPPING["gid"]]
           group.users_name = values[GROUP_MAPPING["users"]].to_s.split(",")
           group

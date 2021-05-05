@@ -39,7 +39,7 @@ module Y2Users
 
       # Parses content and returns mapping of username and password there.
       # @param content [String]
-      # @return [Hash<String, Password>]
+      # @return [Hash<String, Y2Users::Password>]
       def parse(content)
         content.lines.each_with_object({}) do |line, res|
           values = line.chomp.split(":")
