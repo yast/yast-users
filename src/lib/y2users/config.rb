@@ -92,6 +92,16 @@ module Y2Users
       config
     end
 
+    # Merges elements (users and groups) with elements from another config
+    #
+    # @note The caller config is modified.
+    #
+    # @return [Config]
+    def merge(other)
+      merger = Merger.new(self, other)
+      merger.merge
+    end
+
   protected
 
     # Clones a given user or group and attaches it into this config
@@ -197,6 +207,93 @@ module Y2Users
       def self.next
         @last_element_id ||= 0
         @last_element_id += 1
+      end
+    end
+
+    # Helper class to merge users and groups of two configs
+    class Merger
+      # Constructor
+      #
+      # @param lhs [Config] Left Hand Size config
+      # @param rhs [Config] Right Hand Size config
+      def initialize(lhs, rhs)
+        @lhs = lhs
+        @rhs = rhs
+      end
+
+      def merge
+        merge_users
+        merge_groups
+      end
+
+    private
+
+      # @return [Config] Left Hand Size config
+      attr_reader :lhs
+
+      # @return [Config] Right Hand Size config
+      attr_reader :rhs
+
+      def merge_users
+        rhs.users { |u| merge_user(u) }
+      end
+
+      def merge_groups
+        rhs.groups { |g| merge_group(g) }
+      end
+
+      def merge_user(rhs_user)
+        lhs_user = lhs.users.find { |u| u.name == rhs_user.name }
+
+        lhs_user ? merge_existing_user(lhs_user, rhs_user) : merge_new_user(rhs_user)
+      end
+
+      def merge_new_user(rhs_user)
+        user = rhs_user.clone
+
+        lhs.attach(user)
+      end
+
+      def merge_existing_user(lhs_user, rhs_user)
+        user = rhs_user.clone
+
+        user.assign_internal_id(lhs_user.id)
+
+        copy_user_values(user, lhs_user)
+
+        lhs.detach(lhs_user)
+        lhs.attach(user)
+      end
+
+      def copy_user_values(user, lhs_user)
+        nil
+      end
+
+      def merge_group(rhs_group)
+        lhs_group = lhs.groups.find { |u| u.name == rhs_group.name }
+
+        lhs_group ? merge_existing_group(lhs_group, rhs_group) : merge_new_group(rhs_group)
+      end
+
+      def merge_new_group(rhs_group)
+        group = rhs_group.clone
+
+        lhs.attach(group)
+      end
+
+      def merge_existing_group(lhs_group, rhs_group)
+        group = rhs_group.clone
+
+        group.assign_internal_id(lhs_group.id)
+
+        copy_group_values(group, lhs_group)
+
+        lhs.detach(lhs_group)
+        lhs.attach(group)
+      end
+
+      def copy_user_values(user, lhs_user)
+        nil
       end
     end
   end
