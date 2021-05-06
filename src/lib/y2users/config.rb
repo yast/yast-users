@@ -222,8 +222,9 @@ module Y2Users
       end
 
       def merge
-        merge_users
-        merge_groups
+        rhs_elements = rhs.users + rhs.groups
+
+        rhs_elements.each { |e| merge_element(e) }
       end
 
     private
@@ -234,65 +235,52 @@ module Y2Users
       # @return [Config] Right Hand Size config
       attr_reader :rhs
 
-      def merge_users
-        rhs.users { |u| merge_user(u) }
+      def merge_element(rhs_element)
+        lhs_element = find_element(lhs, rhs_element)
+
+        if lhs_element
+          merge_existing_element(lhs_element, rhs_elemet)
+        else
+          merge_new_element(rhs_element)
+        end
       end
 
-      def merge_groups
-        rhs.groups { |g| merge_group(g) }
+      def find_element(config, element)
+        elements = element.is_a?(User) ? config.users : config.groups
+
+        elements.find { |e| e.name == element.name }
       end
 
-      def merge_user(rhs_user)
-        lhs_user = lhs.users.find { |u| u.name == rhs_user.name }
+      def merge_new_element(rhs_element)
+        element = rhs_element.clone
 
-        lhs_user ? merge_existing_user(lhs_user, rhs_user) : merge_new_user(rhs_user)
+        lhs.attach(element)
       end
 
-      def merge_new_user(rhs_user)
-        user = rhs_user.clone
+      def merge_existing_element(lhs_element, rhs_element)
+        element = rhs_element.clone
 
-        lhs.attach(user)
+        element.assign_internal_id(lhs_element.id)
+
+        copy_element_values(element, lhs_element)
+
+        lhs.detach(lhs_element)
+        lhs.attach(element)
       end
 
-      def merge_existing_user(lhs_user, rhs_user)
-        user = rhs_user.clone
-
-        user.assign_internal_id(lhs_user.id)
-
-        copy_user_values(user, lhs_user)
-
-        lhs.detach(lhs_user)
-        lhs.attach(user)
+      def copy_element_values(element, lhs_element)
+        if element.is_a?(User)
+          copy_user_values(element, lhs_element)
+        else
+          copy_group_values(element, lhs_element)
+        end
       end
 
       def copy_user_values(user, lhs_user)
         nil
       end
 
-      def merge_group(rhs_group)
-        lhs_group = lhs.groups.find { |u| u.name == rhs_group.name }
-
-        lhs_group ? merge_existing_group(lhs_group, rhs_group) : merge_new_group(rhs_group)
-      end
-
-      def merge_new_group(rhs_group)
-        group = rhs_group.clone
-
-        lhs.attach(group)
-      end
-
-      def merge_existing_group(lhs_group, rhs_group)
-        group = rhs_group.clone
-
-        group.assign_internal_id(lhs_group.id)
-
-        copy_group_values(group, lhs_group)
-
-        lhs.detach(lhs_group)
-        lhs.attach(group)
-      end
-
-      def copy_user_values(user, lhs_user)
+      def copy_group_values(group, lhs_group)
         nil
       end
     end
