@@ -94,9 +94,7 @@ module Users
       Yast::UI.ChangeWidget(Id(:pw2), :Value, current_password)
     end
 
-    # rubocop:disable Metrics/AbcSize
     # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/PerceivedComplexity
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
@@ -126,9 +124,7 @@ module Users
 
       true
     end
-    # rubocop:enable Metrics/AbcSize
     # rubocop:enable Metrics/CyclomaticComplexity
-    # rubocop:enable Metrics/PerceivedComplexity
 
     def store
       return if allow_empty? && empty?
@@ -137,8 +133,7 @@ module Users
       root_user.password = Y2Users::Password.create_plain(password1)
     end
 
-    # rubocop:disable Metrics/MethodLength
-    def help
+    def help # rubocop:disable Metrics/MethodLength
       # help text ( explain what the user "root" is and does ) 1
       helptext = _(
         "<p>\n" \
@@ -180,7 +175,6 @@ module Users
 
       helptext << ca_password_text
     end
-    # rubocop:enable Metrics/MethodLength
 
   private
 
