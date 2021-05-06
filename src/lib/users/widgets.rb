@@ -20,9 +20,8 @@
 require "yast"
 require "cwm/widget"
 
-require "y2users"
-require "y2users/users_simple"
 require "y2users/help_texts"
+require "y2users/inst_users_dialog_helper"
 require "users/local_password"
 
 Yast.import "Popup"
@@ -33,6 +32,8 @@ module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
+    include Y2Users::InstUsersDialogHelper
+
     class << self
       attr_accessor :approved_pwd
     end
@@ -176,8 +177,6 @@ module Users
       helptext << ca_password_text
     end
 
-  private
-
     # Determines whether the widget is empty or not
     #
     # @return [Boolean]
@@ -186,6 +185,8 @@ module Users
       pw2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
       pw1.to_s.empty? && pw2.to_s.empty?
     end
+
+  private
 
     # Determines whether is allowed to do not fill the password
     #
@@ -196,50 +197,21 @@ module Users
       @allow_empty
     end
 
-    # Config object holding the users and passwords to create
-    #
-    # @return [Y2Users::Config]
-    def users_config
-      return @users_config if @users_config
-
-      @users_config = Y2Users::Config.new
-      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
-      @users_config
-    end
-
-    # Root users for which is possible to define the password during the :new_user action
-    #
-    # @return [Y2Users::User]
-    def root_user
-      @root_user ||= users_config.users.find(&:root?)
-    end
-
     # Current password value for root_user
     #
     # @return [String]
     def current_password
-      pwd = root_user&.password&.value&.content
+      pwd = root_user.password&.value&.content
       pwd.to_s
     end
 
-    # Checks whether the entered password is acceptable, reporting fatal problems to the user and
-    # asking for confirmation for the non-fatal ones
+    # User for performing password validatons
     #
-    # @return [Boolean]
-    def valid_password?
-      issues = root_user.password_issues
-      return true if issues.empty?
-
-      Yast::UI.SetFocus(Id(:pw1))
-
-      fatal = issues.find(&:fatal?)
-      if fatal
-        Yast::Report.Error(fatal.message)
-        return false
-      end
-
-      message = issues.map(&:message).join("\n\n") + "\n\n" + _("Really use this password?")
-      Yast::Popup.YesNo(message)
+    # @see Y2Users::InstUsersDialogHelper#user_to_validate
+    #
+    # @return [Y2Users::User] the root user
+    def user_to_validate
+      root_user
     end
   end
 end
