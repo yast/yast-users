@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/config_mergers"
 
 module Y2Users
   # Class to represent a configuration of users and groups
@@ -97,9 +98,9 @@ module Y2Users
     # @note The caller config is modified.
     #
     # @return [Config]
-    def merge(other)
-      merger = Merger.new(self, other)
-      merger.merge
+    def merge(other, merger: nil)
+      merger ||= ConfigMergers::Replace
+      merger.new(self, other).merge
     end
 
   protected
@@ -207,81 +208,6 @@ module Y2Users
       def self.next
         @last_element_id ||= 0
         @last_element_id += 1
-      end
-    end
-
-    # Helper class to merge users and groups of two configs
-    class Merger
-      # Constructor
-      #
-      # @param lhs [Config] Left Hand Size config
-      # @param rhs [Config] Right Hand Size config
-      def initialize(lhs, rhs)
-        @lhs = lhs
-        @rhs = rhs
-      end
-
-      def merge
-        rhs_elements = rhs.users + rhs.groups
-
-        rhs_elements.each { |e| merge_element(e) }
-      end
-
-    private
-
-      # @return [Config] Left Hand Size config
-      attr_reader :lhs
-
-      # @return [Config] Right Hand Size config
-      attr_reader :rhs
-
-      def merge_element(rhs_element)
-        lhs_element = find_element(lhs, rhs_element)
-
-        if lhs_element
-          merge_existing_element(lhs_element, rhs_elemet)
-        else
-          merge_new_element(rhs_element)
-        end
-      end
-
-      def find_element(config, element)
-        elements = element.is_a?(User) ? config.users : config.groups
-
-        elements.find { |e| e.name == element.name }
-      end
-
-      def merge_new_element(rhs_element)
-        element = rhs_element.clone
-
-        lhs.attach(element)
-      end
-
-      def merge_existing_element(lhs_element, rhs_element)
-        element = rhs_element.clone
-
-        element.assign_internal_id(lhs_element.id)
-
-        copy_element_values(element, lhs_element)
-
-        lhs.detach(lhs_element)
-        lhs.attach(element)
-      end
-
-      def copy_element_values(element, lhs_element)
-        if element.is_a?(User)
-          copy_user_values(element, lhs_element)
-        else
-          copy_group_values(element, lhs_element)
-        end
-      end
-
-      def copy_user_values(user, lhs_user)
-        nil
-      end
-
-      def copy_group_values(group, lhs_group)
-        nil
       end
     end
   end
