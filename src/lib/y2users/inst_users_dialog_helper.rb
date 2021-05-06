@@ -28,6 +28,14 @@ module Y2Users
     Yast.import "Popup"
     Yast.import "Report"
 
+    # Needed to be able to call textdomain below
+    extend Yast::I18n
+
+    def self.included(_mod)
+      # Needed to prevent the automatic checks (rake check:pot) from complaining
+      textdomain "users"
+    end
+
   private
 
     # Config object holding the users and passwords to create
