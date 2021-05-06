@@ -215,8 +215,9 @@ module Y2Users
     # @return [Boolean]
     def system_uid?
       return false unless uid && sys_uid_max
+      return false if uid == ""
 
-      uid.between?(sys_uid_min || 1, sys_uid_max)
+      uid.to_i.between?(sys_uid_min || 1, sys_uid_max)
     end
 
     # @return [Integer, nil]
