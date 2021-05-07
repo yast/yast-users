@@ -22,17 +22,18 @@ module Y2Users
   class ConfigMerger
     # Constructor
     #
-    # @param lhs [Config] Left Hand Size config. This config is modified.
-    # @param rhs [Config] Right Hand Size config
+    # @param lhs [Config] Left Hand Side config. This config is modified.
+    # @param rhs [Config] Right Hand Side config
     def initialize(lhs, rhs)
       @lhs = lhs
       @rhs = rhs
     end
 
-    # Merges users and groups from {lhs} config into {rhs} config
+    # Merges users and groups from {rhs} config into {lhs} config
     #
-    # Users and groups that already exist on {lhs} are updated with their {rhs} counterparts. Note
-    # that for users, their uid and gid are not updated according to the {rhs} values.
+    # Users and groups that already exist on {lhs} are updated with their {rhs} counterparts.
+    #
+    # @see merge_element
     def merge
       elements = rhs.users + rhs.groups
 
@@ -41,12 +42,12 @@ module Y2Users
 
   private
 
-    # Left Hand Size config
+    # Left Hand Side config
     #
     # @return [Config]
     attr_reader :lhs
 
-    # Right Hand Size config
+    # Right Hand Side config
     #
     # @return [Config]
     attr_reader :rhs
@@ -93,11 +94,16 @@ module Y2Users
 
     # Copies values from one element into another
     #
-    # @param from [Config] source element
-    # @param to [Config] target element
+    # @param from [User, Group] Source element
+    # @param to [User, Group] Target element. This element is modified.
     def copy_values(from, to)
       return unless from.is_a?(User)
 
+      # For an user, its uid and gid should not be updated in order to keep the current AutoYaST
+      # behavior. In general, this only affects to the AutoYaST case. In other scenarios like a
+      # regular installation, all users from {rhs} (except root) are new users, so this code is
+      # not executed for them. And, during installation, only the password can be modified for root,
+      # so this actually changes nothing for the root user.
       to.uid = from.uid
       to.gid = from.gid
     end
