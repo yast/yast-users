@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/config_merger"
 
 module Y2Users
   # Class to represent a configuration of users and groups
@@ -90,6 +91,26 @@ module Y2Users
       elements.each { |e| config.clone_element(e) }
 
       config
+    end
+
+    # Generates a new config as result of merging the users and groups of the given config into the
+    # users and groups of the current config.
+    #
+    # @param other [Config]
+    # @return [Config]
+    def merge(other)
+      clone.merge!(other)
+    end
+
+    # Modifies the current config by merging the users and groups of the given config into the users
+    # and groups of the current config
+    #
+    # @return [Config]
+    def merge!(other)
+      merger = ConfigMerger.new(self, other)
+      merger.merge
+
+      self
     end
 
   protected
