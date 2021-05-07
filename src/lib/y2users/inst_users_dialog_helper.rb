@@ -21,13 +21,13 @@ require "yast"
 require "y2users"
 require "y2users/users_simple"
 
+Yast.import "UI"
+Yast.import "Popup"
+Yast.import "Report"
+
 module Y2Users
   # Mixin for user and password validations based on Y2Users for isntallation dialogs
   module InstUsersDialogHelper
-    Yast.import "UI"
-    Yast.import "Popup"
-    Yast.import "Report"
-
     # Needed to be able to call textdomain below
     extend Yast::I18n
 
