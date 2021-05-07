@@ -32,7 +32,6 @@ module Y2Users
     extend Yast::I18n
 
     def self.included(_mod)
-      # Needed to prevent the automatic checks (rake check:pot) from complaining
       textdomain "users"
     end
 
