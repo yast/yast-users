@@ -41,7 +41,7 @@ describe Y2Users::PasswordValidator do
     context "when validating an encrypted password" do
       let(:password) { Y2Users::Password.create_encrypted("") }
 
-      it "return an empty issues list" do
+      it "returns an empty issues list" do
         expect(validator.issues).to be_empty
       end
     end

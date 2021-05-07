@@ -9,13 +9,10 @@ end
 
 describe Users::PasswordWidget do
   let(:root_user) { Y2Users::User.new("root") }
-  let(:password) { Y2Users::Password.create_plain(pwd) }
-  let(:pwd) { "s3cr3T" }
 
   before do
     allow(root_user).to receive(:root?).and_return(true)
     allow(subject).to receive(:root_user).and_return(root_user)
-    allow(Y2Users::Password).to receive(:create_plain).and_return(password)
   end
 
   it "has help text" do
@@ -27,6 +24,7 @@ describe Users::PasswordWidget do
   end
 
   context "initialization" do
+    let(:password) { Y2Users::Password.create_plain(pwd) }
     let(:pwd) { "paranoic" }
 
     before do
@@ -131,8 +129,11 @@ describe Users::PasswordWidget do
   it "stores its value" do
     stub_widget_value(:pw1, "new cool password")
 
-    expect(Y2Users::Password).to receive(:create_plain).with("new cool password")
-    expect(root_user).to receive(:password=).with(password)
+    expect(root_user).to receive(:password=) do |password|
+      expect(password).to be_a(Y2Users::Password)
+      expect(password.value.plain?).to eq true
+      expect(password.value.content).to eq "new cool password"
+    end
 
     subject.store
   end
@@ -141,17 +142,16 @@ describe Users::PasswordWidget do
     subject { described_class.new(allow_empty: true) }
 
     let(:root_user) { double(Y2Users::User) }
-    let(:password) { double(Y2Users::Password) }
 
     before do
       allow(subject).to receive(:root_user).and_return(root_user)
-      allow(Y2Users::Password).to receive(:create_plain).and_return(password)
     end
 
     it "does not validate the password" do
       stub_widget_value(:pw1, "")
       stub_widget_value(:pw2, "")
 
+      expect(root_user).to_not receive(:password_issues)
       expect(subject.validate).to eq(true)
     end
 
@@ -159,7 +159,7 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw1, "")
       stub_widget_value(:pw2, "")
 
-      expect(Y2Users::Password).to_not receive(:create_plain)
+      expect(root_user).to_not receive(:password=)
       subject.store
     end
 
@@ -167,8 +167,12 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw1, "new cool password")
       stub_widget_value(:pw2, "new cool password")
 
-      expect(Y2Users::Password).to receive(:create_plain).with("new cool password")
-      expect(root_user).to receive(:password=).with(password)
+      expect(root_user).to receive(:password=) do |password|
+        expect(password).to be_a(Y2Users::Password)
+        expect(password.value.plain?).to eq true
+        expect(password.value.content).to eq "new cool password"
+      end
+
       subject.store
     end
   end
