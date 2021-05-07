@@ -157,5 +157,13 @@ describe Y2Users::Group do
         expect(subject == other).to eq(false)
       end
     end
+
+    context "when the given object is not a group" do
+      let(:other) { "This is not a group" }
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
   end
 end

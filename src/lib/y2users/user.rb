@@ -141,6 +141,8 @@ module Y2Users
     #
     # @return [Boolean]
     def ==(other)
+      return false unless other.is_a?(self.class)
+
       [:name, :uid, :gid, :shell, :home, :gecos, :source, :password].all? do |a|
         public_send(a) == other.public_send(a)
       end

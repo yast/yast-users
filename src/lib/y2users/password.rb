@@ -97,6 +97,8 @@ module Y2Users
     # @param other [Password]
     # @return [Boolean]
     def ==(other)
+      return false unless other.is_a?(self.class)
+
       [:value, :last_change, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
        :account_expiration].all? do |a|
         public_send(a) == other.public_send(a)
@@ -140,6 +142,8 @@ module Y2Users
     # @param other [PasswordValue]
     # @return [Boolean]
     def ==(other)
+      return false unless other.is_a?(self.class)
+
       content == other.content
     end
 

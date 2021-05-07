@@ -332,6 +332,14 @@ describe Y2Users::User do
         expect(subject == other).to eq(false)
       end
     end
+
+    context "when the given object is not an user" do
+      let(:other) { "This is not an user" }
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
   end
 
   describe "#root?" do
