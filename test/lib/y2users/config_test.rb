@@ -187,6 +187,64 @@ describe Y2Users::Config do
     end
   end
 
+  describe "#clone" do
+    before do
+      subject.attach([user1, user2, group1, group2])
+    end
+
+    let(:user1) { Y2Users::User.new("test1") }
+
+    let(:user2) { Y2Users::User.new("test2") }
+
+    let(:group1) { Y2Users::Group.new("test1") }
+
+    let(:group2) { Y2Users::Group.new("test2") }
+
+    def find(config, element)
+      elements = config.users + config.groups
+
+      elements.find { |e| e == element }
+    end
+
+    it "generates a new config object" do
+      config = subject.clone
+
+      expect(config).to_not eq(subject)
+    end
+
+    it "copies all users from the current config" do
+      config = subject.clone
+
+      expect(config.users).to eq(subject.users)
+    end
+
+    it "copies all groups from the current config" do
+      config = subject.clone
+
+      expect(config.groups).to eq(subject.groups)
+    end
+
+    it "keeps the same users id" do
+      config = subject.clone
+
+      config.users.each do |user|
+        original_user = find(subject, user)
+
+        expect(user.id).to eq(original_user.id)
+      end
+    end
+
+    it "keeps the same groups id" do
+      config = subject.clone
+
+      config.groups.each do |group|
+        original_group = find(subject, group)
+
+        expect(group.id).to eq(original_group.id)
+      end
+    end
+  end
+
   describe "#merge" do
     before do
       subject.attach([user1, group1])
