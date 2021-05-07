@@ -86,6 +86,7 @@ ylib_y2usersdir = @ylibdir@/y2users
 ylib_y2users_DATA = \
   lib/y2users/config_element.rb \
   lib/y2users/config_manager.rb \
+  lib/y2users/config_merger.rb \
   lib/y2users/config.rb \
   lib/y2users/group.rb \
   lib/y2users/help_texts.rb \

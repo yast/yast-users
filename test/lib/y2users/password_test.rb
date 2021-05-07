@@ -148,6 +148,44 @@ describe Y2Users::Password do
         expect(subject == other).to eq(false)
       end
     end
+
+    context "when the given object is not a password" do
+      let(:other) { "This is not a password" }
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+  end
+end
+
+shared_examples "password value comparison" do
+  describe "#==" do
+    let(:other) { described_class.new(other_content) }
+
+    context "when the #content matches" do
+      let(:other_content) { subject.content }
+
+      it "returns true" do
+        expect(subject == other).to eq(true)
+      end
+    end
+
+    context "when the #content does not match" do
+      let(:other_content) { "other" }
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the given object is not a password value" do
+      let(:other) { "This is not a password value" }
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
   end
 end
 
@@ -166,25 +204,7 @@ describe Y2Users::PasswordPlainValue do
     end
   end
 
-  describe "#==" do
-    let(:other) { described_class.new(content) }
-
-    context "when the #content matches" do
-      let(:content) { "S3cr3T" }
-
-      it "returns true" do
-        expect(subject == other).to eq(true)
-      end
-    end
-
-    context "when the #content does not match" do
-      let(:content) { "other" }
-
-      it "returns false" do
-        expect(subject == other).to eq(false)
-      end
-    end
-  end
+  include_examples "password value comparison"
 end
 
 describe Y2Users::PasswordEncryptedValue do
@@ -247,4 +267,6 @@ describe Y2Users::PasswordEncryptedValue do
       end
     end
   end
+
+  include_examples "password value comparison"
 end
