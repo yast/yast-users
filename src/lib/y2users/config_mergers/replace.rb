@@ -32,7 +32,14 @@ module Y2Users
       end
 
       def find_element(config, element)
-        elements = element.is_a?(User) ? config.users : config.groups
+        elements = case element
+          when User
+            element.users
+          when Group
+            element.groups
+          else
+            raise "Element #{element} not valid. It must be an User or Group".
+          end
 
         elements.find { |e| e.name == element.name }
       end
