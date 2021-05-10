@@ -13,6 +13,7 @@ describe Users::PasswordWidget do
   before do
     allow(root_user).to receive(:root?).and_return(true)
     allow(subject).to receive(:root_user).and_return(root_user)
+    allow(subject).to receive(:user_to_validate).and_return(root_user)
   end
 
   it "has help text" do
