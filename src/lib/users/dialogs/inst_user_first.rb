@@ -364,8 +364,6 @@ module Yast
       config = importing_database.filtered_config(@usernames_to_import)
       clean_users_info
       Y2Users::UsersSimple::Writer.new(config).write
-      log.info "AAAAAAAAAGGGGGGGGGGG"
-      log.info UsersSimple.GetUsers().inspect
     end
 
     def clean_users_info
