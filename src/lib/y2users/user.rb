@@ -40,6 +40,11 @@ module Y2Users
   class User
     include ConfigElement
 
+    # User names that are considered system users
+    # @see #system?
+    SYSTEM_NAMES = ["nobody"].freeze
+    private_constant :SYSTEM_NAMES
+
     Yast.import "ShadowConfig"
 
     # User name
@@ -134,6 +139,13 @@ module Y2Users
       gecos.first || name
     end
 
+    # Whether the user has an uid
+    #
+    # @return [Boolean]
+    def uid?
+      !(uid.nil? || uid == "")
+    end
+
     # Whether two users are equal
     #
     # Only relevant attributes are compared. For example, the config in which the user is attached
@@ -159,17 +171,25 @@ module Y2Users
 
     # Whether this is a system user
     #
-    # This is important when creating an user because several reasons:
-    #   * The uid is chosen in the SYS_UID_MIN-SYS_UID_MAX range (defined in /etc/login.defs).
-    #   * No aging information is added to /etc/shadow.
-    #   * By default, the home directory is not created.
+    # The traditional YaST criteria is used here. Thus, this is a system user if:
+    #   * the name is "nobody"
+    #   * the uid is smaller than SYS_UID_MAX (defined in /etc/login.defs)
+    #
+    # Note the value of SYS_UID_MIN (also defined in /etc/login.defs) is irrelevant for this check.
     #
     # For users that still don't have an uid, it is possible to enforce whether they should be
     # considered as a system user (and created as such in the system) via {#system=}.
     #
+    # This is important when creating an user for several reasons:
+    #   * The uid is chosen in the SYS_UID_MIN-SYS_UID_MAX range.
+    #   * No aging information is added to /etc/shadow.
+    #   * By default, the home directory is not created.
+    #
     # @return [Boolean]
     def system?
-      uid ? system_uid? : @system
+      return true if SYSTEM_NAMES.include?(name)
+
+      uid? ? system_uid? : @system
     end
 
     # Sets whether the user should be considered as a system one
@@ -214,14 +234,9 @@ module Y2Users
     #
     # @return [Boolean]
     def system_uid?
-      return false unless uid && sys_uid_max
+      return false unless uid? && sys_uid_max
 
-      uid.between?(sys_uid_min || 1, sys_uid_max)
-    end
-
-    # @return [Integer, nil]
-    def sys_uid_min
-      Yast::ShadowConfig.fetch(:sys_uid_min)&.to_i
+      uid.to_i <= sys_uid_max
     end
 
     # @return [Integer, nil]

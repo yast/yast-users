@@ -16,6 +16,9 @@
 #  To contact SUSE about this file by physical or electronic mail,
 #  you may find current contact information at www.suse.com
 
+require "y2users"
+require "y2users/linux/local_reader"
+
 module Users
   # Class that allows to memorize the user's database (/etc/passwd and
   # associated files) of any partition.
@@ -25,8 +28,8 @@ module Users
   # It provides class methods to hold a list of databases (in case many
   # partitions with /etc/passwd are found)
   class UsersDatabase
-    attr_accessor :passwd
-    attr_accessor :shadow
+    include Yast::Logger
+
     attr_accessor :atime
 
     @all = []
@@ -53,33 +56,54 @@ module Users
     # @param root_dir [String] Path where the original "/" is mounted
     def self.import(root_dir)
       data = UsersDatabase.new
-      data.read_files(File.join(root_dir, "etc"))
-      return if data.passwd.nil? || data.passwd.empty?
+      data.read_files(root_dir)
+      if data.users.empty?
+        log.info "No users to import (#{root_dir})"
+        return
+      end
 
       push(data)
     end
 
+    # Users that can be imported from this database
+    #
+    # @return [Array<Y2Users::User>]
+    def users
+      config&.users&.reject { |u| u.system? } || []
+    end
+
+    # Y2Users config object containing only the users that correspond to the given names
+    # and nothing else
+    #
+    # @param names [Array<String>] names to filter by
+    # @return [Y2Users::Config]
+    def filtered_config(names)
+      filtered = config.clone
+
+      filtered.detach(*filtered.groups)
+      skipped = filtered.users.reject { |u| names.include?(u.name) }
+      filtered.detach(*skipped)
+
+      filtered
+    end
+
     # Populates the object with information read from a directory
     #
-    # @param dir [String] path to a directory containing passwd and shadow files
-    def read_files(dir)
+    # @param root_dir [String] Path where the original "/" is mounted
+    def read_files(root_dir)
+      dir = File.join(root_dir, "etc")
       passwd = File.join(dir, "passwd")
       shadow = File.join(dir, "shadow")
       return unless File.exist?(passwd) && File.exist?(shadow)
 
-      self.passwd = IO.read(passwd)
-      self.shadow = IO.read(shadow)
+      @config = Y2Users::Config.new
+      Y2Users::Linux::LocalReader.new(root_dir).read_to(config)
+
       self.atime = [File.atime(passwd), File.atime(shadow)].max
     end
 
-    # Writes passwd and shadow files to a directory
-    #
-    # @param dir [String] path of the target directory
-    def write_files(dir)
-      passwd = File.join(dir, "passwd")
-      shadow = File.join(dir, "shadow")
-      IO.write(passwd, self.passwd)
-      IO.write(shadow, self.shadow)
-    end
+  private
+
+    attr_reader :config
   end
 end

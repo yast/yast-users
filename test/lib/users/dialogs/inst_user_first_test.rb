@@ -27,6 +27,8 @@ describe Yast::InstUserFirstDialog do
   before do
     Users::UsersDatabase.all.clear
 
+    allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_max).and_return("499")
+
     # Mock access time: files in root2 are more recent than files in root3
     allow(File).to receive(:atime).with(/root2/).and_return(Time.new(2018))
     allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2017))
@@ -44,7 +46,7 @@ describe Yast::InstUserFirstDialog do
       end
 
       it "clears the users list" do
-        expect(dialog).to receive(:users_list=).with([]).and_call_original
+        expect(dialog).to receive(:clean_users_info).and_call_original
         dialog.run
       end
     end
