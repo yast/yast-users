@@ -1,17 +1,28 @@
-# ------------------------------------------------------------------------------
-# Copyright (c) 2016 SUSE LLC
+# Copyright (c) [2016-2021] SUSE LLC
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of version 2 of the GNU General Public License as published by the
-# Free Software Foundation.
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
 #
-# ------------------------------------------------------------------------------
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
+#
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
 
+require "yast"
 require "installation/finish_client"
+require "y2users/config"
+require "y2users/config_manager"
+require "y2users/users_simple/reader"
+require "y2users/linux/writer"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -23,8 +34,8 @@ module Yast
 
       Yast.import "Users"
       Yast.import "UsersSimple"
-      # setup_all_users()
-      Yast.include self, "users/routines.rb"
+      Yast.import "Autologin"
+      Yast.import "Report"
     end
 
     # Write users
@@ -82,12 +93,86 @@ module Yast
       Progress.set(@progress_orig)
     end
 
-    # Write root password a new users during regular installation
+    # Writes users during the installation
+    #
+    # The linux writer will proceed all the differences between the system and the target configs.
+    # The target config is created from the system one, and then it adds the users configured during
+    # the installation. As result, target and system configs should only differ on the new added
+    # users and on the password for root.
+    #
+    # All the issues detected by the writer are reported to the user.
     def write_install
-      # write the root password
-      UsersSimple.Write
-      # write new users (if any)
-      Users.Write if setup_all_users
+      # Ensures that an obsolete target is not used, see {#target_config}.
+      config_manager.unregister(:target)
+
+      configure_autologin
+
+      writer = Y2Users::Linux::Writer.new(target_config, system_config)
+      issues = writer.write
+
+      report_issues(issues) if issues.any?
+    end
+
+  private
+
+    # Configures auto-login
+    def configure_autologin
+      # resetting Autologin settings
+      Autologin.Disable
+
+      return unless UsersSimple.AutologinUsed
+
+      Autologin.user = UsersSimple.GetAutologinUser
+      Autologin.Use(true)
+    end
+
+    # System config, which contains all the current users on the system
+    #
+    # @return [Y2Users::Config]
+    def system_config
+      config_manager.system
+    end
+
+    # Target config, which extends the system config with the new users that should be created
+    # during the installation.
+    #
+    # @return [Y2Users::Config]
+    def target_config
+      target = config_manager.config(:target)
+      return target if target
+
+      target = system_config.merge(users_simple_config)
+      config_manager.register(target, as: :target)
+
+      target
+    end
+
+    # Config with users configured in the installation clients
+    #
+    # @return [Y2Users::Config]
+    def users_simple_config
+      config = Y2Users::Config.new
+
+      reader = Y2Users::UsersSimple::Reader.new
+      reader.read_to(config)
+
+      config
+    end
+
+    # Config Manager
+    #
+    # @return [Y2Users::ConfigManager]
+    def config_manager
+      Y2Users::ConfigManager.instance
+    end
+
+    # Reports issues
+    #
+    # @param issues [Array<Y2Issues::Issue>]
+    def report_issues(issues)
+      message = issues.map(&:message).join("\n\n")
+
+      Report.Error(message)
     end
   end
 end
