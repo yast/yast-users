@@ -30,6 +30,7 @@ module Y2Users
     class Reader
       # @see #{shadow_string}
       SORTED_SHADOW_ATTRS = [
+        # NOTE: bear in mind that, in UsersSimple, "uid" actually refers to the username
         "uid", "userPassword", "shadowLastChange", "shadowMin", "shadowMax",
         "shadowWarning", "shadowInactive", "shadowExpire", "shadowFlag"
       ].freeze
