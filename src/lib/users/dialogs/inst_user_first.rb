@@ -246,7 +246,7 @@ module Yast
 
     # Users database that was imported from a different system (done during pre_install)
     #
-    # @return [::Users::UserDatabase]
+    # @return [::Users::UserDatabase, nil] nil if there are no users to be imported
     def importing_database
       ::Users::UsersDatabase.all.first
     end
@@ -364,6 +364,8 @@ module Yast
       config = importing_database.filtered_config(@usernames_to_import)
       clean_users_info
       Y2Users::UsersSimple::Writer.new(config).write
+      log.info "AAAAAAAAAGGGGGGGGGGG"
+      log.info UsersSimple.GetUsers().inspect
     end
 
     def clean_users_info
