@@ -71,7 +71,7 @@ module Y2Users
         # Looks like shadow last change is not part of User.Export TODO: verify
         "shadowLastChange", "min", "max",
         "warn", "inact", "expire", "flag"
-      ]
+      ].freeze
 
       # Creates a {Password} object based on the data structure of an Users user
       #

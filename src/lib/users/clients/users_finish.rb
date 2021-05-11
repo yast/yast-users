@@ -75,14 +75,12 @@ module Yast
       # TODO: support for BTRFS home and also what about login defaults?
       Y2Users::AutoYaST::HashReader.new(saved).read_to(ay_config)
 
-
       # 2. Read users and settings from the installed system
       # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
       Users.Read
       # Here ConfigManager.system is not used to really reflect all users from rpms
       system_config = Y2Users::Config.new
       Y2Users::Linux::Reader.new.read_to(system_config)
-
 
       # 3. Merge users from the system with new users from
       #    AutoYaST profile (from step 1)
