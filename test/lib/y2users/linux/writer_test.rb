@@ -96,6 +96,30 @@ describe Y2Users::Linux::Writer do
 
           writer.write
         end
+
+        context "and the password is not encrypted" do
+          let(:pwd_value) { Y2Users::PasswordPlainValue.new("S3cr3T") }
+
+          it "executes chpasswd with a plain password" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+              expect(args).to_not include("-e")
+            end
+
+            writer.write
+          end
+        end
+
+        context "and the new password is encrypted" do
+          let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
+
+          it "executes chpasswd with an encrypted password" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+              expect(args).to include("-e")
+            end
+
+            writer.write
+          end
+        end
       end
 
       context "which does not have a password set" do
@@ -122,7 +146,44 @@ describe Y2Users::Linux::Writer do
         writer.write
       end
 
-      include_examples "setting password"
+      context "whose password was edited" do
+        before do
+          current_user = config.users.find { |u| u.id == user.id }
+          current_user.password = new_password
+        end
+
+        context "and the new password is not encrypted" do
+          let(:new_password) { Y2Users::Password.create_plain("S3cr3T") }
+
+          it "executes chpasswd with a plain password" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+              expect(args).to_not include("-e")
+            end
+
+            writer.write
+          end
+        end
+
+        context "and the new password is encrypted" do
+          let(:new_password) { Y2Users::Password.create_encrypted("$6$3HkB4uLKri7aersa") }
+
+          it "executes chpasswd with an encrypted password" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+              expect(args).to include("-e")
+            end
+
+            writer.write
+          end
+        end
+      end
+
+      context "whose password was not edited" do
+        it "does not execute chpasswd" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/chpasswd/, any_args)
+
+          writer.write
+        end
+      end
     end
 
     context "for a new regular user with all the attributes" do
