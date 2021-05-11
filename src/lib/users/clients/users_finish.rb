@@ -73,7 +73,7 @@ module Yast
       log.info("Users to import: #{saved}")
       ay_config = Y2Users::Config.new
       # TODO: support for BTRFS home and also what about login defaults?
-      Y2Users::AutoYaST::HashReader.new(saved).read_to(ay_config)
+      Y2Users::Autoyast::HashReader.new(saved).read_to(ay_config)
 
       # 2. Read users and settings from the installed system
       # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)

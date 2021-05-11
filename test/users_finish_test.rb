@@ -27,7 +27,10 @@ describe Yast::UsersFinishClient do
       let(:args) { ["Write"] }
       let(:users) { YAML.load_file(FIXTURES_PATH.join("users.yml")) }
 
-      before { allow(Yast::Mode).to receive(:autoinst).and_return(autoinst) }
+      before do
+        allow(Yast::Mode).to receive(:autoinst).and_return(autoinst)
+        allow(Yast::Execute).to receive(:on_target!).and_return("")
+      end
 
       around do |example|
         change_scr_root(FIXTURES_PATH.join("root")) { example.run }
