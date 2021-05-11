@@ -135,7 +135,7 @@ describe Yast::UsersFinishClient do
           end
         end
 
-        context "when an user is configured for auto-login" do
+        context "when a user is configured for auto-login" do
           let(:autologin) { true }
 
           let(:autologin_user) { true }

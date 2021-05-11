@@ -333,8 +333,8 @@ describe Y2Users::User do
       end
     end
 
-    context "when the given object is not an user" do
-      let(:other) { "This is not an user" }
+    context "when the given object is not a user" do
+      let(:other) { "This is not a user" }
 
       it "returns false" do
         expect(subject == other).to eq(false)
