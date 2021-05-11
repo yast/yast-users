@@ -80,11 +80,7 @@ describe Yast::UsersFinishClient do
           # Mocking to avoid to read from the system
           allow(Y2Users::ConfigManager.instance).to receive(:system).and_return(system_config)
 
-          allow(Y2Users::ConfigManager.instance).to receive(:config).with(:system)
-            .and_return(system_config)
-
-          allow(Y2Users::ConfigManager.instance).to receive(:config).with(:target)
-            .and_return(target_config)
+          allow(system_config).to receive(:merge).and_return(target_config)
 
           allow(Yast::UsersSimple).to receive(:AutologinUsed).and_return(autologin)
           allow(Yast::UsersSimple).to receive(:GetAutologinUser).and_return(autologin_user)

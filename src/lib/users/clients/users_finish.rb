@@ -95,16 +95,13 @@ module Yast
 
     # Writes users during the installation
     #
-    # The linux writer will proceed all the differences between the system and the target configs.
+    # The linux writer will process all the differences between the system and the target configs.
     # The target config is created from the system one, and then it adds the users configured during
     # the installation. As result, target and system configs should only differ on the new added
     # users and on the password for root.
     #
     # All the issues detected by the writer are reported to the user.
     def write_install
-      # Ensures that an obsolete target is not used, see {#target_config}.
-      config_manager.unregister(:target)
-
       configure_autologin
 
       writer = Y2Users::Linux::Writer.new(target_config, system_config)
@@ -130,7 +127,7 @@ module Yast
     #
     # @return [Y2Users::Config]
     def system_config
-      config_manager.system
+      @system_config ||= Y2Users::ConfigManager.instance.system(force_read: true)
     end
 
     # Target config, which extends the system config with the new users that should be created
@@ -138,35 +135,25 @@ module Yast
     #
     # @return [Y2Users::Config]
     def target_config
-      target = config_manager.config(:target)
-      return target if target
-
-      target = system_config.merge(users_simple_config)
-      config_manager.register(target, as: :target)
-
-      target
+      @target_config ||= system_config.merge(users_simple_config)
     end
 
     # Config with users configured in the installation clients
     #
     # @return [Y2Users::Config]
     def users_simple_config
-      config = Y2Users::Config.new
+      return @users_simple_config if @user_simple_config
 
+      config = Y2Users::Config.new
       reader = Y2Users::UsersSimple::Reader.new
       reader.read_to(config)
 
-      config
-    end
-
-    # Config Manager
-    #
-    # @return [Y2Users::ConfigManager]
-    def config_manager
-      Y2Users::ConfigManager.instance
+      @users_simple_config = config
     end
 
     # Reports issues
+    #
+    # TODO: This is a temporary solution. Probably, warnings should not be shown.
     #
     # @param issues [Array<Y2Issues::Issue>]
     def report_issues(issues)
