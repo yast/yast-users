@@ -109,6 +109,10 @@ ylib_y2users_userssimple_DATA = \
   lib/y2users/users_simple/reader.rb \
   lib/y2users/users_simple/writer.rb
 
+ylib_y2users_autoyastdir = @ylibdir@/y2users/autoyast
+ylib_y2users_autoyast_DATA = \
+  lib/y2users/autoyast/hash_reader.rb
+
 scrconf_DATA = \
   scrconf/etc_default_useradd.scr \
   scrconf/nis.scr
@@ -128,6 +132,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_userssimple_DATA) $(ylib_y2users_autoyast_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common
