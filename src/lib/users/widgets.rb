@@ -22,6 +22,7 @@ require "cwm/widget"
 
 require "y2users/help_texts"
 require "y2users/inst_users_dialog_helper"
+require "y2users/users_simple"
 require "users/local_password"
 
 Yast.import "Popup"
@@ -133,6 +134,7 @@ module Users
 
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       root_user.password = Y2Users::Password.create_plain(password1)
+      Y2Users::UsersSimple::Writer.new(users_config).write
     end
 
     def help # rubocop:disable Metrics/MethodLength
