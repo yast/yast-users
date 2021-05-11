@@ -12,6 +12,12 @@
 # ------------------------------------------------------------------------------
 
 require "installation/finish_client"
+# target file to run system reader on target system
+require "yast2/target_file"
+require "y2users/autoyast/hash_reader"
+require "y2users/linux/reader"
+require "y2users/linux/writer"
+require "y2users/config"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -65,14 +71,24 @@ module Yast
       Users.SetExportAll(false)
       saved = Users.Export
       log.info("Users to import: #{saved}")
+      ay_config = Y2Users::Config.new
+      # TODO: support for BTRFS home and also what about login defaults?
+      Y2Users::AutoYaST::HashReader.new(saved).read_to(ay_config)
+
 
       # 2. Read users and settings from the installed system
       # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
       Users.Read
+      # Here ConfigManager.system is not used to really reflect all users from rpms
+      system_config = Y2Users::Config.new
+      Y2Users::Linux::Reader.new.read_to(system_config)
+
 
       # 3. Merge users from the system with new users from
       #    AutoYaST profile (from step 1)
       Users.Import(saved)
+      merged_config = system_config.clone
+      merged_config.merge(ay_config)
 
       # 4. Write users
       Users.SetWriteOnly(true)
@@ -80,6 +96,9 @@ module Yast
       error = Users.Write
       log.error(error) unless error.empty?
       Progress.set(@progress_orig)
+      issues = Y2Users::Linux::Writer.new(merged_config, system_config).write
+      # TODO: report it
+      log.error(issues.inspect)
     end
 
     # Write root password a new users during regular installation
