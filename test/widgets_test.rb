@@ -140,7 +140,10 @@ describe Users::PasswordWidget do
   end
 
   describe "#store" do
+    # NOTE: testing only examples that make sense. I.e., those that happens when the widget
+    # validates successfully, required condition to dispatch the #store method.
     let(:user_simple_writer) { double(Y2Users::UsersSimple::Writer, write: true) }
+    let(:password) { "new cool password" }
 
     before do
       allow(Y2Users::UsersSimple::Writer).to receive(:new).and_return(user_simple_writer)
@@ -149,21 +152,19 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw2, password)
     end
 
-    RSpec.shared_examples "update UserSimple root password" do
-      it "writes root user password to Users::UserSimple" do
-        expect(Y2Users::UsersSimple::Writer).to receive(:new) do |users_config|
-          root_user = users_config.users.find(&:root?)
-          root_password = root_user.password
+    it "writes root user password to Users::UserSimple" do
+      expect(Y2Users::UsersSimple::Writer).to receive(:new) do |users_config|
+        root_user = users_config.users.find(&:root?)
+        root_password = root_user.password
 
-          expect(root_password).to be_a(Y2Users::Password)
-          expect(root_password.value.plain?).to eq true
-          expect(root_password.value.content).to eq(password)
-          user_simple_writer
-        end
-        expect(user_simple_writer).to receive(:write)
-
-        subject.store
+        expect(root_password).to be_a(Y2Users::Password)
+        expect(root_password.value.plain?).to eq true
+        expect(root_password.value.content).to eq(password)
+        user_simple_writer
       end
+      expect(user_simple_writer).to receive(:write)
+
+      subject.store
     end
 
     context "when the widget is allowed to be empty" do
@@ -178,28 +179,6 @@ describe Users::PasswordWidget do
 
           subject.store
         end
-      end
-
-      context "but password is not empty" do
-        let(:password) { "new cool password" }
-
-        include_examples "update UserSimple root password"
-      end
-    end
-
-    context "when the widget is not allowed to be empty" do
-      subject { described_class.new(allow_empty: false) }
-
-      context "and password is empty" do
-        let(:password) { "" }
-
-        include_examples "update UserSimple root password"
-      end
-
-      context "but password is not empty" do
-        let(:password) { "new cool password" }
-
-        include_examples "update UserSimple root password"
       end
     end
   end
