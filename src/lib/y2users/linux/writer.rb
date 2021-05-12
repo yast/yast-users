@@ -99,6 +99,7 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
+        add_groups(issues)
         add_users(issues)
         edit_users(issues)
 
@@ -173,6 +174,20 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
+      # Command for creating new users
+      GROUPADD = "/usr/sbin/groupadd".freeze
+      private_constant :GROUPADD
+
+      # Creates the new groups
+      #
+      # @param issues [Y2Issues::List]
+      def add_groups(issues)
+        # handle groups first as it does not depend on users uid, but it is vice versa
+        new_groups = (config.groups.map(&:id) - initial_config.groups.map(&:id))
+        new_groups.map! { |id| config.groups.find { |g| g.id == id } }
+        new_groups.each { |g| add_group(g, issues) }
+      end
+
       # Creates the new users
       #
       # @param issues [Y2Issues::List]
@@ -192,6 +207,23 @@ module Y2Users
           initial_user = initial_config.users.by_id(user.id)
           edit_user(user, initial_user, issues)
         end
+      end
+
+      # Executes the command for creating the group
+      #
+      # @param group [Y2User::Group] the group to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def add_group(group, issues)
+        args = [GROUPADD]
+        args << "--gid" << group.gid if group.gid
+        # TODO: system groups
+        # TODO: adapt useradd and usermod to add suplementary groups
+        Yast::Execute.on_target!(args)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The group '%{groupname}' could not be created"), groupname: group.name)
+        )
+        log.error("Error creating group '#{group.name}' - #{e.message}")
       end
 
       # Executes the command for creating the user
