@@ -101,6 +101,14 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
+        # handle groups first as it does not depend on users uid, but it is vice versa
+        new_groups = (config.map(&:id) - initial_config.map(&:id))
+        new_groups.map! { |id| config.groups.find { |g| g.id == id } }
+        new_groups.each { |g| add_group(g, issues) }
+
+        # TODO: modify group?
+
+
         users_finder.added.each { |u| add_user(u, issues) }
         users_finder.modified.each { |nu, ou| modify(nu, ou, issues) }
 
@@ -157,6 +165,28 @@ module Y2Users
         )
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
+
+      # Command for creating new users
+      GROUPADD = "/usr/sbin/useradd".freeze
+      private_constant :USERADD
+
+      # Executes the command for creating the group
+      #
+      # @param group [Y2User::Group] the group to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def add_group(group, issues)
+        args = [GROUPADD]
+        args << "--gid" << group.gid if group.gid
+        # TODO: system groups
+        # TODO: adapt useradd and usermod to add suplementary groups
+        Yast::Execute.on_target!(args)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The user '%{username}' could not be created"), username: user.name)
+        )
+        log.error("Error creating user '#{user.name}' - #{e.message}")
+      end
+
 
       USERMOD_ATTRS = [:home, :shell, :gecos]
 
