@@ -542,7 +542,7 @@ module Yast
     # @return [Y2Users::User] a root user when using same password for root; a normal user otherwise
     def user_to_validate
       username = @user_pw_for_root ? "root" : "user"
-      user = User.new(username)
+      user = Y2Users::User.new(username)
       user.password = Y2Users::Password.create_plain(@password)
       user
     end
