@@ -11,9 +11,8 @@ describe Users::PasswordWidget do
   let(:root_user) { Y2Users::User.new("root") }
 
   before do
-    allow(root_user).to receive(:root?).and_return(true)
-    allow(subject).to receive(:root_user).and_return(root_user)
-    allow(subject).to receive(:user_to_validate).and_return(root_user)
+    allow(Y2Users::User).to receive(:new).and_call_original
+    allow(Y2Users::User).to receive(:new).with("root").and_return(root_user)
   end
 
   it "has help text" do
@@ -125,18 +124,6 @@ describe Users::PasswordWidget do
 
       expect(subject.validate).to eq true
     end
-  end
-
-  it "stores its value" do
-    stub_widget_value(:pw1, "new cool password")
-
-    expect(root_user).to receive(:password=) do |password|
-      expect(password).to be_a(Y2Users::Password)
-      expect(password.value.plain?).to eq true
-      expect(password.value.content).to eq "new cool password"
-    end
-
-    subject.store
   end
 
   context "when the widget is allowed to be empty" do
