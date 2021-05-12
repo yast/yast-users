@@ -102,7 +102,7 @@ module Y2Users
         issues = Y2Issues::List.new
 
         users_finder.added.each { |u| add_user(u, issues) }
-        users_finder.password_edited.each { |u| change_password(u, issues) }
+        users_finder.modified.each { |nu, ou| modify(nu, ou, issues) }
 
         # TODO: update the NIS database (make -C /var/yp) if needed
         # TODO: remove the passwd cache for nscd (bug 24748, 41648)
@@ -156,6 +156,41 @@ module Y2Users
           format(_("The user '%{username}' could not be created"), username: user.name)
         )
         log.error("Error creating user '#{user.name}' - #{e.message}")
+      end
+
+      USERMOD_ATTRS = [:home, :shell, :gecos]
+
+      def modify(new_user, old_user, issues)
+        if new_user.password != old_user.password
+          change_password(new_user, issues)
+        end
+
+        usermod_changes = USERMOD_ATTRS.any? do |attr|
+          !new_user.public_send(attr).nil? &&
+            (new_user.public_send(attr) != old_user.public_send(attr))
+        end
+        if usermod_changes
+          usermod_modify(new_user, old_user, issues)
+        end
+      end
+
+      USERMOD = "/usr/sbin/usermod".freeze
+      private_constant :USERMOD
+      def usermod_modify(new_user, old_user, issues)
+        args = [USERMOD]
+        args << "--comment" << new_user.gecos if new_user.gecos != old_user.gecos && new_user.gecos
+        if new_user.home != old_user.home && new_user.home
+          args << "--home" << new_user.home << "--move-home"
+        end
+        args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+        args << new_user.name
+
+        Yast::Execute.on_target!(args)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("Failed to modify user '%{username}'"), username: new_user.name)
+        )
+        log.error("Error modifying '#{new_user.name}' - #{e.message}")
       end
 
       # Executes the command for setting the password of given user
@@ -255,16 +290,12 @@ module Y2Users
           ids.map { |i| find_user(target, i) }
         end
 
-        # Users from the target config whose password does not match with its counterpart from the
-        # initial config.
-        #
-        # @return [Array<User>]
-        def password_edited
+        def modified
           ids = target_ids & initial_ids
 
           pairs = ids.map { |i| [find_user(target, i), find_user(initial, i)] }
 
-          pairs.reject { |p| p.first.password == p.last.password }.map(&:first)
+          pairs.reject { |target, initial| target == initial }
         end
 
       private
