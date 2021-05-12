@@ -233,7 +233,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no uid" do
         let(:uid) { nil }
 
-        it "does not store an user uid" do
+        it "does not store a user uid" do
           subject.write
 
           expect(user_simple("test1")["uidNumber"]).to be_nil
@@ -243,7 +243,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no gid" do
         let(:gid) { nil }
 
-        it "does not store an user gid" do
+        it "does not store a user gid" do
           subject.write
 
           expect(user_simple("test1")["gidNumber"]).to be_nil
@@ -253,7 +253,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no shell" do
         let(:shell) { nil }
 
-        it "does not store an user shell" do
+        it "does not store a user shell" do
           subject.write
 
           expect(user_simple("test1")["loginShell"]).to be_nil
@@ -263,7 +263,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no home" do
         let(:home) { nil }
 
-        it "does not store an user home" do
+        it "does not store a user home" do
           subject.write
 
           expect(user_simple("test1")["homeDirectory"]).to be_nil
@@ -283,7 +283,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no password" do
         let(:user1_password) { nil }
 
-        it "does not store an user password" do
+        it "does not store a user password" do
           subject.write
 
           expect(user_simple("test1")["userPassword"]).to be_nil
