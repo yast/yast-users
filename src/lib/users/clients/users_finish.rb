@@ -117,10 +117,13 @@ module Yast
       # resetting Autologin settings
       Autologin.Disable
 
-      return unless UsersSimple.AutologinUsed
+      if UsersSimple.AutologinUsed
+        Autologin.user = UsersSimple.GetAutologinUser
+        Autologin.Use(true)
+      end
 
-      Autologin.user = UsersSimple.GetAutologinUser
-      Autologin.Use(true)
+      # The parameter received by Autologin#Write is obsolete and it has no effect.
+      Autologin.Write(nil)
     end
 
     # System config, which contains all the current users on the system
