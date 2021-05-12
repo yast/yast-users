@@ -11,6 +11,7 @@ describe Users::PasswordWidget do
   let(:root_user) { Y2Users::User.new("root") }
 
   before do
+    reset_users_simple
     allow(Y2Users::User).to receive(:new).and_call_original
     allow(Y2Users::User).to receive(:new).with("root").and_return(root_user)
   end

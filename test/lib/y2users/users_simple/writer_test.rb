@@ -36,7 +36,7 @@ describe Y2Users::UsersSimple::Writer do
 
   describe "#write" do
     before(:each) do
-      Yast::UsersSimple.SetRootPassword("")
+      reset_users_simple
     end
 
     # Root user
