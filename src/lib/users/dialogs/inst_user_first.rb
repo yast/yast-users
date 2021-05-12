@@ -321,11 +321,12 @@ module Yast
         return false
       end
 
-      user.password = Y2Users::Password.create_plain(pw1)
-      root_user.password = Y2Users::Password.create_plain(pw1) if @use_pw_for_root
+      @password = pw1
       return false unless valid_password?
 
-      @password = pw1
+      user.password = Y2Users::Password.create_plain(pw1)
+      root_user.password = Y2Users::Password.create_plain(pw1) if @use_pw_for_root
+
       true
     end
 
@@ -538,9 +539,12 @@ module Yast
     #
     # @see Y2Users::InstUsersDialogHelper#user_to_validate
     #
-    # @return [Y2Users::User] root user if using entered password for it too; the new user otherwise
+    # @return [Y2Users::User] a root user when using same password for root; a normal user otherwise
     def user_to_validate
-      @use_pw_for_root ? root_user : user
+      username = @user_pw_for_root ? "root" : "user"
+      user = User.new(username)
+      user.password = Y2Users::Password.create_plain(@password)
+      user
     end
   end
   # rubocop:enable Metrics/ClassLength
