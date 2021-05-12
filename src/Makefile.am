@@ -101,8 +101,15 @@ ylib_y2users_DATA = \
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \
+  lib/y2users/linux/local_reader.rb \
   lib/y2users/linux/reader.rb \
   lib/y2users/linux/writer.rb
+
+ylib_y2users_parsersdir = @ylibdir@/y2users/parsers
+ylib_y2users_parsers_DATA = \
+  lib/y2users/parsers/group.rb \
+  lib/y2users/parsers/passwd.rb \
+  lib/y2users/parsers/shadow.rb
 
 ylib_y2users_userssimpledir = @ylibdir@/y2users/users_simple
 ylib_y2users_userssimple_DATA = \
@@ -138,6 +145,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_userssimple_DATA) $(ylib_y2users_autoyast_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoyast_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common

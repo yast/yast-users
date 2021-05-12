@@ -333,8 +333,8 @@ describe Y2Users::User do
       end
     end
 
-    context "when the given object is not an user" do
-      let(:other) { "This is not an user" }
+    context "when the given object is not a user" do
+      let(:other) { "This is not a user" }
 
       it "returns false" do
         expect(subject == other).to eq(false)
@@ -366,8 +366,44 @@ describe Y2Users::User do
 
   describe "#system?" do
     before do
-      allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_min).and_return("100")
       allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_max).and_return("499")
+      subject.name = name
+    end
+
+    RSpec.shared_examples "system user if nobody" do
+      context "and the user name is 'nobody'" do
+        let(:name) { "nobody" }
+
+        it "returns true" do
+          expect(subject.system?).to eq(true)
+        end
+      end
+
+      context "and the user name is different from 'nobody'" do
+        let(:name) { "somebody" }
+
+        it "returns false" do
+          expect(subject.system?).to eq(false)
+        end
+      end
+    end
+
+    RSpec.shared_examples "system user anyways" do
+      context "and the user name is 'nobody'" do
+        let(:name) { "nobody" }
+
+        it "returns true" do
+          expect(subject.system?).to eq(true)
+        end
+      end
+
+      context "and the user name is different from 'nobody'" do
+        let(:name) { "somebody" }
+
+        it "returns true" do
+          expect(subject.system?).to eq(true)
+        end
+      end
     end
 
     context "when the user has uid" do
@@ -378,25 +414,13 @@ describe Y2Users::User do
       context "and the uid is bigger than the max system uid" do
         let(:uid) { 500 }
 
-        it "returns false" do
-          expect(subject.system?).to eq(false)
-        end
+        include_examples "system user if nobody"
       end
 
-      context "and the uid is less than the min system uid" do
-        let(:uid) { 99 }
-
-        it "returns false" do
-          expect(subject.system?).to eq(false)
-        end
-      end
-
-      context "and the uid is in the range of system uids" do
+      context "and the uid is smaller than the max system uid" do
         let(:uid) { 300 }
 
-        it "returns true" do
-          expect(subject.system?).to eq(true)
-        end
+        include_examples "system user anyways"
       end
     end
 
@@ -408,17 +432,13 @@ describe Y2Users::User do
       context "and the user was configured as a system user" do
         let(:is_system) { true }
 
-        it "returns true" do
-          expect(subject.system?).to eq(true)
-        end
+        include_examples "system user anyways"
       end
 
       context "and the user was not configured as a system user" do
         let(:is_system) { false }
 
-        it "returns false" do
-          expect(subject.system?).to eq(false)
-        end
+        include_examples "system user if nobody"
       end
     end
   end

@@ -60,18 +60,60 @@ module Y2Users
       # @param user [User]
       # @return [Hash]
       def to_user_simple(user)
-        # TODO: users simple allows encrypted, but then it needs to specify _encrypted => true
-        password = user.password&.value&.content if user.password&.value&.plain?
-
         {
           uid:           user.name,
           uidNumber:     user.uid,
           gidNumber:     user.gid,
           loginShell:    user.shell,
           homeDirectory: user.home,
-          cn:            user.full_name,
-          userPassword:  password
-        }
+          cn:            user.full_name
+        }.merge(user_simple_password(user.password))
+      end
+
+      # Password-related fields for a user hash in the UsersSimple format
+      #
+      # @param password [Password]
+      # @return [Hash]
+      def user_simple_password(password)
+        return {} if password.nil?
+
+        {
+          shadowMin:        password.minimum_age,
+          shadowMax:        password.maximum_age,
+          shadowWarning:    password.warning_period,
+          shadowInactive:   password.inactivity_period,
+          shadowLastChange: date_string(password.last_change),
+          shadowExpire:     date_string(password.account_expiration)
+        }.merge(password_value_attrs(password))
+      end
+
+      # @see #user_simple_password
+      #
+      # @param password [Password]
+      # @return [Hash]
+      def password_value_attrs(password)
+        return {} unless password.value
+
+        if password.value.plain?
+          { userPassword: password.value.content }
+        else
+          {
+            userPassword: password.value.content,
+            encrypted:    true
+          }
+        end
+      end
+
+      # Converts dates to the string format used by UsersSimple
+      #
+      # @param date [Date]
+      # @return [String]
+      def date_string(date)
+        return nil unless date
+
+        # UsersSimple uses the same format than the shadow file - days since 1970-01-01
+        # So we need to convert the seconds provided by "%s" to days
+        date.strftime("%s").to_i / (24 * 60 * 60)
       end
     end
   end

@@ -22,6 +22,7 @@ require "cwm/widget"
 
 require "y2users/help_texts"
 require "y2users/inst_users_dialog_helper"
+require "y2users/users_simple"
 require "users/local_password"
 
 Yast.import "Popup"
@@ -114,13 +115,14 @@ module Users
         return false
       end
 
-      root_user.password = Y2Users::Password.create_plain(password1)
-
       # do not ask again if already approved (bsc#1025835)
       return true if self.class.approved_pwd == password1
 
+      @password = password1
+
       return false unless valid_password?
 
+      root_user.password = Y2Users::Password.create_plain(password1)
       self.class.approved_pwd = password1
 
       true
@@ -132,6 +134,7 @@ module Users
 
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       root_user.password = Y2Users::Password.create_plain(password1)
+      Y2Users::UsersSimple::Writer.new(users_config).write
     end
 
     def help # rubocop:disable Metrics/MethodLength
@@ -209,9 +212,11 @@ module Users
     #
     # @see Y2Users::InstUsersDialogHelper#user_to_validate
     #
-    # @return [Y2Users::User] the root user
+    # @return [Y2Users::User] a root user
     def user_to_validate
-      root_user
+      user = Y2Users::User.new("root")
+      user.password = Y2Users::Password.create_plain(@password)
+      user
     end
   end
 end

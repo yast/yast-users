@@ -11,8 +11,9 @@ describe Users::PasswordWidget do
   let(:root_user) { Y2Users::User.new("root") }
 
   before do
-    allow(root_user).to receive(:root?).and_return(true)
-    allow(subject).to receive(:root_user).and_return(root_user)
+    reset_users_simple
+    allow(Y2Users::User).to receive(:new).and_call_original
+    allow(Y2Users::User).to receive(:new).with("root").and_return(root_user)
   end
 
   it "has help text" do
@@ -124,56 +125,61 @@ describe Users::PasswordWidget do
 
       expect(subject.validate).to eq true
     end
-  end
 
-  it "stores its value" do
-    stub_widget_value(:pw1, "new cool password")
+    context "when the widget is allowed to be empty" do
+      subject { described_class.new(allow_empty: true) }
 
-    expect(root_user).to receive(:password=) do |password|
-      expect(password).to be_a(Y2Users::Password)
-      expect(password.value.plain?).to eq true
-      expect(password.value.content).to eq "new cool password"
+      it "does not validate the password" do
+        stub_widget_value(:pw1, "")
+        stub_widget_value(:pw2, "")
+
+        expect(root_user).to_not receive(:password_issues)
+        expect(subject.validate).to eq(true)
+      end
     end
-
-    subject.store
   end
 
-  context "when the widget is allowed to be empty" do
-    subject { described_class.new(allow_empty: true) }
-
-    let(:root_user) { double(Y2Users::User) }
+  describe "#store" do
+    # NOTE: testing only examples that make sense. I.e., those that happens when the widget
+    # validates successfully, required condition to dispatch the #store method.
+    let(:user_simple_writer) { double(Y2Users::UsersSimple::Writer, write: true) }
+    let(:password) { "new cool password" }
 
     before do
-      allow(subject).to receive(:root_user).and_return(root_user)
+      allow(Y2Users::UsersSimple::Writer).to receive(:new).and_return(user_simple_writer)
+      allow(subject).to receive(:root_user).and_call_original
+      stub_widget_value(:pw1, password)
+      stub_widget_value(:pw2, password)
     end
 
-    it "does not validate the password" do
-      stub_widget_value(:pw1, "")
-      stub_widget_value(:pw2, "")
+    it "writes root user password to Users::UserSimple" do
+      expect(Y2Users::UsersSimple::Writer).to receive(:new) do |users_config|
+        root_user = users_config.users.find(&:root?)
+        root_password = root_user.password
 
-      expect(root_user).to_not receive(:password_issues)
-      expect(subject.validate).to eq(true)
-    end
-
-    it "does not store the value if empty" do
-      stub_widget_value(:pw1, "")
-      stub_widget_value(:pw2, "")
-
-      expect(root_user).to_not receive(:password=)
-      subject.store
-    end
-
-    it "stores the value if not empty" do
-      stub_widget_value(:pw1, "new cool password")
-      stub_widget_value(:pw2, "new cool password")
-
-      expect(root_user).to receive(:password=) do |password|
-        expect(password).to be_a(Y2Users::Password)
-        expect(password.value.plain?).to eq true
-        expect(password.value.content).to eq "new cool password"
+        expect(root_password).to be_a(Y2Users::Password)
+        expect(root_password.value.plain?).to eq true
+        expect(root_password.value.content).to eq(password)
+        user_simple_writer
       end
+      expect(user_simple_writer).to receive(:write)
 
       subject.store
+    end
+
+    context "when the widget is allowed to be empty" do
+      subject { described_class.new(allow_empty: true) }
+
+      context "and password is empty" do
+        let(:password) { "" }
+
+        it "does not update Users::UserSimple" do
+          expect(Y2Users::UsersSimple::Writer).to_not receive(:new)
+          expect(user_simple_writer).to_not receive(:write)
+
+          subject.store
+        end
+      end
     end
   end
 

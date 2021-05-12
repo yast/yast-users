@@ -8,6 +8,9 @@ require "users/clients/users_finish"
 describe Yast::UsersFinishClient do
   Yast.import "WFM"
   Yast.import "UsersPasswd"
+  Yast.import "UsersSimple"
+  Yast.import "Autologin"
+  Yast.import "Report"
 
   describe "#run" do
     before do
@@ -74,29 +77,100 @@ describe Yast::UsersFinishClient do
         let(:autoinst) { false }
 
         before do
-          allow(subject).to receive(:setup_all_users).and_return(user_added)
+          # Mocking to avoid to write to the system
+          allow_any_instance_of(Y2Users::Linux::Writer).to receive(:write).and_return(issues)
+
+          # Mocking to avoid to read from the system
+          allow(Y2Users::ConfigManager.instance).to receive(:system).and_return(system_config)
+
+          allow(system_config).to receive(:merge).and_return(target_config)
+
+          # Mocking to avoid to write to the system
+          allow(Yast::Autologin).to receive(:Write)
+
+          allow(Yast::UsersSimple).to receive(:AutologinUsed).and_return(autologin)
+          allow(Yast::UsersSimple).to receive(:GetAutologinUser).and_return(autologin_user)
         end
 
-        context "when a new user is added" do
-          let(:user_added) { true }
+        let(:system_config) { Y2Users::Config.new }
 
-          it "write root password and users" do
-            # write root password
-            expect(Yast::UsersSimple).to receive(:Write)
-            # write users
-            expect(Yast::Users).to receive(:Write)
+        let(:target_config) { Y2Users::Config.new }
+
+        let(:autologin) { nil }
+
+        let(:autologin_user) { nil }
+
+        let(:writer) { instance_double(Y2Users::Linux::Writer, write: issues) }
+
+        let(:issues) { [] }
+
+        it "calls the linux writer with the expected configs" do
+          expect(Y2Users::Linux::Writer).to receive(:new).with(target_config, system_config)
+            .and_return(writer)
+
+          expect(writer).to receive(:write)
+
+          subject.run
+        end
+
+        context "when the writer does not report issues" do
+          let(:issues) { [] }
+
+          it "does not report errors to the user" do
+            expect(Yast::Report).to_not receive(:Error)
+
             subject.run
           end
         end
 
-        context "when no new user is added" do
-          let(:user_added) { false }
+        context "when the writer reports issues" do
+          let(:issues) { [issue1, issue2] }
 
-          it "write root password" do
-            # write root password
-            expect(Yast::UsersSimple).to receive(:Write)
-            # do not write users
-            expect(Yast::Users).to_not receive(:Write)
+          let(:issue1) { Y2Issues::Issue.new("error 1") }
+
+          let(:issue2) { Y2Issues::Issue.new("error 2") }
+
+          it "reports all errors to the user" do
+            expect(Yast::Report).to receive(:Error).with("error 1\n\nerror 2")
+
+            subject.run
+          end
+        end
+
+        context "when a user is configured for auto-login" do
+          let(:autologin) { true }
+
+          let(:autologin_user) { true }
+
+          it "configures auto-login for that user" do
+            expect(Yast::Autologin).to receive(:Disable)
+            expect(Yast::Autologin).to receive(:user=).with(autologin_user)
+            expect(Yast::Autologin).to receive(:Use).with(true)
+
+            subject.run
+          end
+
+          it "writes the auto-login config" do
+            expect(Yast::Autologin).to receive(:Write)
+
+            subject.run
+          end
+        end
+
+        context "when no user is configured for auto-login" do
+          let(:autologin) { false }
+
+          it "configures auto-login for no user" do
+            expect(Yast::Autologin).to receive(:Disable)
+            expect(Yast::Autologin).to_not receive(:user=)
+            expect(Yast::Autologin).to_not receive(:Use)
+
+            subject.run
+          end
+
+          it "writes the auto-login config" do
+            expect(Yast::Autologin).to receive(:Write)
+
             subject.run
           end
         end

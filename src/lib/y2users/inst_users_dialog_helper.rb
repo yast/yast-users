@@ -74,7 +74,6 @@ module Y2Users
     #
     # It might be re-defined in the dialog
     #
-    # @see #valid_user?
     # @see #valid_password?
     #
     # @return [Y2Users::User]

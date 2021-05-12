@@ -23,6 +23,7 @@ require_relative "../test_helper"
 
 require "y2users"
 require "y2users/users_simple/writer"
+require "date"
 
 describe Y2Users::UsersSimple::Writer do
   subject { described_class.new(config) }
@@ -35,7 +36,7 @@ describe Y2Users::UsersSimple::Writer do
 
   describe "#write" do
     before(:each) do
-      Yast::UsersSimple.SetRootPassword("")
+      reset_users_simple
     end
 
     # Root user
@@ -147,7 +148,14 @@ describe Y2Users::UsersSimple::Writer do
         user
       end
 
-      let(:user2_password) { Y2Users::Password.create_plain("654321") }
+      let(:user2_password) do
+        passwd = Y2Users::Password.create_encrypted("$1$.QKDPc5E$SWlkjRWexrXYgc98F.")
+        passwd.last_change = Date.new(2021, 5, 7)
+        passwd.minimum_age = 0
+        passwd.maximum_age = 90
+        passwd.warning_period = 14
+        passwd
+      end
 
       it "stores all users into UsersSimple module" do
         subject.write
@@ -202,7 +210,22 @@ describe Y2Users::UsersSimple::Writer do
         subject.write
 
         expect(user_simple("test1")["userPassword"]).to eq("123456")
-        expect(user_simple("test2")["userPassword"]).to eq("654321")
+        expect(user_simple("test1")["encrypted"]).to be_falsey
+        expect(user_simple("test2")["userPassword"]).to eq("$1$.QKDPc5E$SWlkjRWexrXYgc98F.")
+        expect(user_simple("test2")["encrypted"]).to be_truthy
+      end
+
+      it "stores the dates and limits associated to the passwords of the users" do
+        subject.write
+
+        expect(user_simple("test1")["shadowLastChange"]).to be_nil
+        expect(user_simple("test1")["shadowMin"]).to be_nil
+
+        expect(user_simple("test2")["shadowLastChange"]).to eq("18754")
+        expect(user_simple("test2")["shadowMin"]).to eq("0")
+        expect(user_simple("test2")["shadowMax"]).to eq("90")
+        expect(user_simple("test2")["shadowWarning"]).to eq("14")
+        expect(user_simple("test2")["shadowExpire"]).to be_nil
       end
 
       include_examples "root"
@@ -210,7 +233,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no uid" do
         let(:uid) { nil }
 
-        it "does not store an user uid" do
+        it "does not store a user uid" do
           subject.write
 
           expect(user_simple("test1")["uidNumber"]).to be_nil
@@ -220,7 +243,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no gid" do
         let(:gid) { nil }
 
-        it "does not store an user gid" do
+        it "does not store a user gid" do
           subject.write
 
           expect(user_simple("test1")["gidNumber"]).to be_nil
@@ -230,7 +253,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no shell" do
         let(:shell) { nil }
 
-        it "does not store an user shell" do
+        it "does not store a user shell" do
           subject.write
 
           expect(user_simple("test1")["loginShell"]).to be_nil
@@ -240,7 +263,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no home" do
         let(:home) { nil }
 
-        it "does not store an user home" do
+        it "does not store a user home" do
           subject.write
 
           expect(user_simple("test1")["homeDirectory"]).to be_nil
@@ -260,7 +283,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when a user has no password" do
         let(:user1_password) { nil }
 
-        it "does not store an user password" do
+        it "does not store a user password" do
           subject.write
 
           expect(user_simple("test1")["userPassword"]).to be_nil
