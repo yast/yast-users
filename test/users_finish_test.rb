@@ -82,6 +82,9 @@ describe Yast::UsersFinishClient do
 
           allow(system_config).to receive(:merge).and_return(target_config)
 
+          # Mocking to avoid to write to the system
+          allow(Yast::Autologin).to receive(:Write)
+
           allow(Yast::UsersSimple).to receive(:AutologinUsed).and_return(autologin)
           allow(Yast::UsersSimple).to receive(:GetAutologinUser).and_return(autologin_user)
         end
@@ -137,8 +140,15 @@ describe Yast::UsersFinishClient do
           let(:autologin_user) { true }
 
           it "configures auto-login for that user" do
+            expect(Yast::Autologin).to receive(:Disable)
             expect(Yast::Autologin).to receive(:user=).with(autologin_user)
             expect(Yast::Autologin).to receive(:Use).with(true)
+
+            subject.run
+          end
+
+          it "writes the auto-login config" do
+            expect(Yast::Autologin).to receive(:Write)
 
             subject.run
           end
@@ -147,9 +157,16 @@ describe Yast::UsersFinishClient do
         context "when no user is configured for auto-login" do
           let(:autologin) { false }
 
-          it "does not configure auto-login" do
+          it "configures auto-login for no user" do
+            expect(Yast::Autologin).to receive(:Disable)
             expect(Yast::Autologin).to_not receive(:user=)
             expect(Yast::Autologin).to_not receive(:Use)
+
+            subject.run
+          end
+
+          it "writes the auto-login config" do
+            expect(Yast::Autologin).to receive(:Write)
 
             subject.run
           end
