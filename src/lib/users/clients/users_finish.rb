@@ -84,22 +84,12 @@ module Yast
       # TODO: support for BTRFS home and also what about login defaults?
       Y2Users::Autoyast::HashReader.new(saved).read_to(ay_config)
 
-      # 2. Read users and settings from the installed system
-      # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
-      Users.Read
-
       # 3. Merge users from the system with new users from
       #    AutoYaST profile (from step 1)
-      Users.Import(saved)
       merged_config = system_config.merge(ay_config)
 
       # 4. Write users
       # TODO: Write login defaults only
-      Users.SetWriteOnly(true)
-      @progress_orig = Progress.set(false)
-      error = Users.Write
-      log.error(error) unless error.empty?
-      Progress.set(@progress_orig)
       issues = Y2Users::Linux::Writer.new(merged_config, system_config).write
       log.error(issues.inspect)
       report_issues(issues) if issues.any?
