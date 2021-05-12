@@ -125,23 +125,17 @@ describe Users::PasswordWidget do
 
       expect(subject.validate).to eq true
     end
-  end
 
-  context "when the widget is allowed to be empty" do
-    subject { described_class.new(allow_empty: true) }
+    context "when the widget is allowed to be empty" do
+      subject { described_class.new(allow_empty: true) }
 
-    let(:root_user) { double(Y2Users::User) }
+      it "does not validate the password" do
+        stub_widget_value(:pw1, "")
+        stub_widget_value(:pw2, "")
 
-    before do
-      allow(subject).to receive(:root_user).and_return(root_user)
-    end
-
-    it "does not validate the password" do
-      stub_widget_value(:pw1, "")
-      stub_widget_value(:pw2, "")
-
-      expect(root_user).to_not receive(:password_issues)
-      expect(subject.validate).to eq(true)
+        expect(root_user).to_not receive(:password_issues)
+        expect(subject.validate).to eq(true)
+      end
     end
   end
 
