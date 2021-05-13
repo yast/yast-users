@@ -59,7 +59,7 @@ module Y2Users
         expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
         password_value = PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]])
         password = Password.new(password_value)
-        password.last_change = parse_last_change(values[SHADOW_MAPPING["last_change"]])
+        password.aging = parse_aging(values[SHADOW_MAPPING["last_change"]])
         password.minimum_age = values[SHADOW_MAPPING["minimum_age"]].to_i
         password.maximum_age = max_age&.to_i
         password.warning_period = values[SHADOW_MAPPING["warning_period"]].to_i
@@ -68,12 +68,10 @@ module Y2Users
         password
       end
 
-      def parse_last_change(value)
-        return nil if !value || value.empty?
+      def parse_aging(value)
+        return nil unless value
 
-        return :force_change if value == "0"
-
-        shadow_string_to_date(value)
+        PasswordAging.new(value)
       end
 
       def parse_account_expiration(value)

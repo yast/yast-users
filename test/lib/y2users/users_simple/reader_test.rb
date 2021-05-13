@@ -54,8 +54,8 @@ describe Y2Users::UsersSimple::Reader do
         expect(b_user.full_name).to eq "A test local user"
         expect(b_user.password.value.encrypted?).to eq true
         expect(b_user.password.value.content).to match(/^\$1\$.QKD/)
-        expect(b_user.password.last_change).to be_a(Date)
-        expect(b_user.password.last_change.to_s).to eq "2015-12-16"
+        expect(b_user.password.aging.last_change).to be_a(Date)
+        expect(b_user.password.aging.last_change.to_s).to eq "2015-12-16"
         expect(b_user.password.minimum_age).to eq 0
         expect(b_user.password.maximum_age).to be_nil
         expect(b_user.password.warning_period).to eq 0
@@ -64,8 +64,8 @@ describe Y2Users::UsersSimple::Reader do
         expect(c_user.uid).to eq "1001"
         expect(c_user.gecos).to eq []
         expect(c_user.password.value.encrypted?).to eq true
-        expect(c_user.password.last_change).to be_a(Date)
-        expect(c_user.password.last_change.to_s).to eq "2021-05-07"
+        expect(c_user.password.aging.last_change).to be_a(Date)
+        expect(c_user.password.aging.last_change.to_s).to eq "2021-05-07"
         expect(c_user.password.minimum_age).to eq 0
         expect(c_user.password.maximum_age).to eq 90
         expect(c_user.password.warning_period).to eq 14
@@ -105,7 +105,7 @@ describe Y2Users::UsersSimple::Reader do
         expect(user.full_name).to eq "Test User"
         expect(user.password.value.encrypted?).to eq false
         expect(user.password.value.content).to eq "secret"
-        expect(user.password.last_change).to be_nil
+        expect(user.password.aging).to be_nil
         expect(user.password.minimum_age).to eq 0
         expect(user.password.maximum_age).to be_nil
         expect(user.password.warning_period).to eq 0

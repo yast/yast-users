@@ -73,7 +73,7 @@ describe Y2Users::Password do
     subject { described_class.create_plain("S3cr3T") }
 
     before do
-      subject.last_change = Date.today
+      subject.aging = Y2Users::PasswordAging.new(Date.today)
       subject.minimum_age = 10
       subject.maximum_age = 20
       subject.warning_period = 30
@@ -91,7 +91,7 @@ describe Y2Users::Password do
 
     context "when the #last_change does not match" do
       before do
-        other.last_change = Date.today + 10
+        other.aging = Y2Users::PasswordAging.new(Date.today + 10)
       end
 
       it "returns false" do

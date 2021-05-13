@@ -85,7 +85,7 @@ module Y2Users
           shadowMax:        password.maximum_age,
           shadowWarning:    password.warning_period,
           shadowInactive:   password.inactivity_period,
-          shadowLastChange: date_string(password.last_change),
+          shadowLastChange: password.aging&.content,
           shadowExpire:     date_string(password.account_expiration)
         }.merge(password_value_attrs(password))
       end
