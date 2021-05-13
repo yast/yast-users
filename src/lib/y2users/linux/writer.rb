@@ -102,7 +102,7 @@ module Y2Users
         issues = Y2Issues::List.new
 
         # handle groups first as it does not depend on users uid, but it is vice versa
-        new_groups = (config.map(&:id) - initial_config.map(&:id))
+        new_groups = config.groups.map(&:id) - initial_config.groups.map(&:id)
         new_groups.map! { |id| config.groups.find { |g| g.id == id } }
         new_groups.each { |g| add_group(g, issues) }
 
@@ -177,8 +177,7 @@ module Y2Users
       def add_group(group, issues)
         args = [GROUPADD]
         args << "--gid" << group.gid if group.gid
-        # TODO: system groups
-        # TODO: adapt useradd and usermod to add suplementary groups
+        # TODO: system groups?
         Yast::Execute.on_target!(args)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
@@ -199,20 +198,32 @@ module Y2Users
           !new_user.public_send(attr).nil? &&
             (new_user.public_send(attr) != old_user.public_send(attr))
         end
+        # usermod also manage suplimentary groups, so compare also them
+        usermod_changes ||= different_groups?(new_user, old_user)
         if usermod_changes
           usermod_modify(new_user, old_user, issues)
         end
       end
 
+      def different_groups?(u1, u2)
+        u1.groups(with_primary: false).sort != u2.groups(with_primary: false).sort
+      end
+
+
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
       def usermod_modify(new_user, old_user, issues)
         args = [USERMOD]
-        args << "--comment" << new_user.gecos if new_user.gecos != old_user.gecos && new_user.gecos
+        if new_user.gecos != old_user.gecos && new_user.gecos
+          args << "--comment" << new_user.gecos.join(",")
+        end
         if new_user.home != old_user.home && new_user.home
           args << "--home" << new_user.home << "--move-home"
         end
         args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+        if different_groups?(new_user, old_user)
+          args << "--groups" << new_users.groups(with_primary: false).join(",")
+        end
         args << new_user.name
 
         Yast::Execute.on_target!(args)
@@ -249,7 +260,8 @@ module Y2Users
           "--shell"      => user.shell,
           "--home-dir"   => user.home,
           "--expiredate" => user.expire_date.to_s,
-          "--comment"    => user.gecos.join(",")
+          "--comment"    => user.gecos.join(","),
+          "--groups"     => user.groups(with_primary: false).join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 

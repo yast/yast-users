@@ -113,15 +113,21 @@ module Y2Users
       config.groups.find { |g| g.gid == gid }
     end
 
-    # Groups where the user is included. It also contains the primary group.
+    # Groups where the user is included. It also contains the primary group unless set otherwise.
     #
     # The user must be attached to a config in order to find its groups.
     #
+    # @param with_primary [Boolean] if primary group should be included
     # @return [Array<Group>]
-    def groups
+    def groups(with_primary: true)
       return [] unless attached?
 
-      config.groups.select { |g| g.users.include?(self) }
+      res = config.groups.select { |g| g.users.include?(self) }
+
+      primary_group_cache = primary_group
+      res.delete_if { |g| g == primary_group_cache } unless with_primary
+
+      res
     end
 
     # @return [Date, nil] date when the account expires or nil if never
