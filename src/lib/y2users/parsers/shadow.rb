@@ -20,11 +20,14 @@
 require "date"
 
 require "y2users/password"
+require "y2users/shadow_date_helper"
 
 module Y2Users
   module Parsers
     # Parses shadow style string and return passwords defined in it
     class Shadow
+      include ShadowDateHelper
+
       # Mapping of attributes to index in shadow file
       SHADOW_MAPPING = {
         "username"           => 0,
@@ -70,17 +73,13 @@ module Y2Users
 
         return :force_change if value == "0"
 
-        # last_change is days till unix start 1970, so we expand it to number of seconds
-        unix_time = value.to_i * 24 * 60 * 60
-        Date.strptime(unix_time.to_s, "%s")
+        shadow_string_to_date(value)
       end
 
       def parse_account_expiration(value)
         return nil if !value || value.empty?
 
-        # last_change is days till unix start 1970, so we expand it to number of seconds
-        unix_time = value.to_i * 24 * 60 * 60
-        Date.strptime(unix_time.to_s, "%s")
+        shadow_string_to_date(value)
       end
     end
   end
