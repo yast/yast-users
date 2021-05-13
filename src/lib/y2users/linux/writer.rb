@@ -216,8 +216,7 @@ module Y2Users
       def add_group(group, issues)
         args = [GROUPADD]
         args << "--gid" << group.gid if group.gid
-        # TODO: system groups
-        # TODO: adapt useradd and usermod to add suplementary groups
+        # TODO: system groups?
         Yast::Execute.on_target!(args)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
@@ -318,6 +317,7 @@ module Y2Users
           !new_user.public_send(attr).nil? &&
             (new_user.public_send(attr) != old_user.public_send(attr))
         end
+        usermod_changes ||= different_groups?(new_user, old_user)
 
         Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
         change_password(new_user, issues) if old_user.password != new_user.password
@@ -335,11 +335,12 @@ module Y2Users
       # @return [Array<String>]
       def useradd_options(user)
         opts = {
-          "--uid"      => user.uid,
-          "--gid"      => user.gid,
-          "--shell"    => user.shell,
-          "--home-dir" => user.home,
-          "--comment"  => user.gecos.join(",")
+          "--uid"        => user.uid,
+          "--gid"        => user.gid,
+          "--shell"      => user.shell,
+          "--home-dir"   => user.home,
+          "--comment"    => user.gecos.join(","),
+          "--groups"     => user.groups(with_primary: false).join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -365,10 +366,16 @@ module Y2Users
           args << "--home" << new_user.home << "--move-home"
         end
         args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+        if different_groups?(new_user, old_user)
+          args << "--groups" << new_users.groups(with_primary: false).join(",")
+        end
         args << new_user.name
         args
       end
 
+      def different_groups?(u1, u2)
+        u1.groups(with_primary: false).sort != u2.groups(with_primary: false).sort
+      end
       # Options for `useradd` to create the home directory
       #
       # @param _user [Y2Users::User]
