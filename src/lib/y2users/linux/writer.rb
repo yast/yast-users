@@ -108,7 +108,6 @@ module Y2Users
 
         # TODO: modify group?
 
-
         users_finder.added.each { |u| add_user(u, issues) }
         users_finder.modified.each { |nu, ou| modify(nu, ou, issues) }
 
@@ -186,13 +185,10 @@ module Y2Users
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
-
-      USERMOD_ATTRS = [:home, :shell, :gecos]
+      USERMOD_ATTRS = [:home, :shell, :gecos].freeze
 
       def modify(new_user, old_user, issues)
-        if new_user.password != old_user.password
-          change_password(new_user, issues)
-        end
+        change_password(new_user, issues) if new_user.password != old_user.password
 
         usermod_changes = USERMOD_ATTRS.any? do |attr|
           !new_user.public_send(attr).nil? &&
@@ -200,15 +196,12 @@ module Y2Users
         end
         # usermod also manage suplimentary groups, so compare also them
         usermod_changes ||= different_groups?(new_user, old_user)
-        if usermod_changes
-          usermod_modify(new_user, old_user, issues)
-        end
+        usermod_modify(new_user, old_user, issues) if usermod_changes
       end
 
-      def different_groups?(u1, u2)
-        u1.groups(with_primary: false).sort != u2.groups(with_primary: false).sort
+      def different_groups?(lhu, rhu)
+        lhu.groups(with_primary: false).sort != rhu.groups(with_primary: false).sort
       end
-
 
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
