@@ -210,7 +210,7 @@ module Y2Users
           "--home"    => new_user.home,
           "--shell"   => new_user.shell,
           "--comment" => new_user.gecos.join(","),
-          "--groups"  => new_users.groups(with_primary: false).join(",")
+          "--groups"  => new_user.groups(with_primary: false).join(",")
         }
 
         opts = opts.compact.flatten
