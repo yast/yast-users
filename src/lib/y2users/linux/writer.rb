@@ -217,7 +217,7 @@ module Y2Users
         opts << "--move-home" if opts.include?("--home")
         opts << new_user.name
 
-        Yast::Execute.on_target!(USERMOD, *args)
+        Yast::Execute.on_target!(USERMOD, *opts)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("Failed to modify user '%{username}'"), username: new_user.name)
