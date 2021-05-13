@@ -17,9 +17,13 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
+
 module Y2Users
   # Helper class to merge users and groups from one config into another config
   class ConfigMerger
+    include Yast::Logger
+
     # Constructor
     #
     # @param lhs [Config] Left Hand Side config. This config is modified.
@@ -97,15 +101,23 @@ module Y2Users
     # @param from [User, Group] Source element
     # @param to [User, Group] Target element. This element is modified.
     def copy_values(from, to)
-      return unless from.is_a?(User)
-
-      # For an user, its uid and gid should not be updated in order to keep the current AutoYaST
-      # behavior. In general, this only affects to the AutoYaST case. In other scenarios like a
-      # regular installation, all users from {rhs} (except root) are new users, so this code is
-      # not executed for them. And, during installation, only the password can be modified for root,
-      # so this actually changes nothing for the root user.
-      to.uid = from.uid
-      to.gid = from.gid
+      case from
+      when User
+        # For an user, its uid and gid should not be updated in order to keep the current AutoYaST
+        # behavior. In general, this only affects to the AutoYaST case. In other scenarios like a
+        # regular installation, all users from {rhs} (except root) are new users, so this code is
+        # not executed for them. And, during installation, only the password can be modified for root,
+        # so this actually changes nothing for the root user.
+        to.uid = from.uid
+        to.gid = from.gid
+      when Group
+        # For group it does not modify its group id as it is hard to modify it. Reason is similar as
+        # for user. Change of gid require manual steps with change of ownership of files which YaST
+        # do not want to be responsible for.
+        to.gid = from.gid
+      else
+        log.info "No specific copy for #{from.inspect}"
+      end
     end
   end
 end
