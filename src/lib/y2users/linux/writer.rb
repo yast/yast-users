@@ -176,6 +176,7 @@ module Y2Users
       def add_group(group, issues)
         args = [GROUPADD]
         args << "--gid" << group.gid if group.gid
+        args << group.name
         # TODO: system groups?
         Yast::Execute.on_target!(args)
       rescue Cheetah::ExecutionFailed => e
@@ -210,7 +211,7 @@ module Y2Users
           "--home"    => new_user.home,
           "--shell"   => new_user.shell,
           "--comment" => new_user.gecos.join(","),
-          "--groups"  => new_user.groups(with_primary: false).join(",")
+          "--groups"  => new_user.groups(with_primary: false).map(&:name).join(",")
         }
 
         opts = opts.compact.flatten
