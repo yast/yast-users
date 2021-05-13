@@ -103,20 +103,21 @@ module Y2Users
     def copy_values(from, to)
       case from
       when User
-        # For an user, its uid and gid should not be updated in order to keep the current AutoYaST
+        # For a user, its uid and gid should not be updated in order to keep the current AutoYaST
         # behavior. In general, this only affects to the AutoYaST case. In other scenarios like a
         # regular installation, all users from {rhs} (except root) are new users, so this code is
-        # not executed for them. And, during installation, only the password can be modified for root,
-        # so this actually changes nothing for the root user.
+        # not executed for them. And, during installation, only the password can be modified for
+        # root, so this actually changes nothing for the root user.
         to.uid = from.uid
         to.gid = from.gid
       when Group
-        # For group it does not modify its group id as it is hard to modify it. Reason is similar as
-        # for user. Change of gid require manual steps with change of ownership of files which YaST
-        # do not want to be responsible for.
+        # For a group, it does not modify its group id as it is hard to modify it. Reason is similar
+        # as for user. Changing the group gid requires some manual steps in which the ownership of
+        # some files has to be changed. YaST does not want to be responsible of that changes.
         to.gid = from.gid
       else
-        log.info "No specific copy for #{from.inspect}"
+        log.error "Values can only be copied for a User or Group. " \
+          "Unexpected object type: #{from.inspect}."
       end
     end
   end

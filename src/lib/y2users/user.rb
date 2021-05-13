@@ -109,6 +109,7 @@ module Y2Users
     # @return [Group, nil] nil if the group is not set yet
     def primary_group
       return nil unless attached?
+      return nil unless gid
 
       config.groups.find { |g| g.gid == gid }
     end
@@ -122,12 +123,10 @@ module Y2Users
     def groups(with_primary: true)
       return [] unless attached?
 
-      res = config.groups.select { |g| g.users.include?(self) }
+      groups = config.groups.select { |g| g.users.include?(self) }
+      groups.reject! { |g| g.gid == gid } if gid && !with_primary
 
-      primary_group_cache = primary_group
-      res.delete_if { |g| g == primary_group_cache } unless with_primary
-
-      res
+      groups
     end
 
     # @return [Date, nil] date when the account expires or nil if never

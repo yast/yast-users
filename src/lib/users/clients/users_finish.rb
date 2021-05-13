@@ -91,8 +91,10 @@ module Yast
       # 4. Write users
       # TODO: Write login defaults only
       issues = Y2Users::Linux::Writer.new(merged_config, system_config).write
+      return if issues.empty?
+
       log.error(issues.inspect)
-      report_issues(issues) if issues.any?
+      report_issues(issues)
     end
 
     # Writes users during the installation

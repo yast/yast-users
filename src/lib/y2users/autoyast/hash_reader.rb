@@ -73,7 +73,7 @@ module Y2Users
         "warn", "inact", "expire", "flag"
       ].freeze
 
-      # Creates a {Password} object based on the data structure of an Users user
+      # Creates a {Password} object based on the data structure of a user
       #
       # @param user [Hash] a user representation in the format used by Users.Export
       # @return [Password]

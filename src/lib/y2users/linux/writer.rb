@@ -165,9 +165,9 @@ module Y2Users
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
-      # Command for creating new users
-      GROUPADD = "/usr/sbin/useradd".freeze
-      private_constant :USERADD
+      # Command for creating new groups
+      GROUPADD = "/usr/sbin/groupadd".freeze
+      private_constant :GROUPADD
 
       # Executes the command for creating the group
       #
@@ -180,9 +180,9 @@ module Y2Users
         Yast::Execute.on_target!(args)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          format(_("The user '%{username}' could not be created"), username: user.name)
+          format(_("The group '%{groupname}' could not be created"), groupname: group.name)
         )
-        log.error("Error creating user '#{user.name}' - #{e.message}")
+        log.error("Error creating group '#{group.name}' - #{e.message}")
       end
 
       USERMOD_ATTRS = [:home, :shell, :gecos].freeze
@@ -196,7 +196,7 @@ module Y2Users
         end
         # usermod also manage suplimentary groups, so compare also them
         usermod_changes ||= different_groups?(new_user, old_user)
-        usermod_modify(new_user, old_user, issues) if usermod_changes
+        usermod_modify(new_user, issues) if usermod_changes
       end
 
       def different_groups?(lhu, rhu)
@@ -205,21 +205,19 @@ module Y2Users
 
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
-      def usermod_modify(new_user, old_user, issues)
-        args = [USERMOD]
-        if new_user.gecos != old_user.gecos && new_user.gecos
-          args << "--comment" << new_user.gecos.join(",")
-        end
-        if new_user.home != old_user.home && new_user.home
-          args << "--home" << new_user.home << "--move-home"
-        end
-        args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
-        if different_groups?(new_user, old_user)
-          args << "--groups" << new_users.groups(with_primary: false).join(",")
-        end
-        args << new_user.name
+      def usermod_modify(new_user, issues)
+        opts = {
+          "--home"    => new_user.home,
+          "--shell"   => new_user.shell,
+          "--comment" => new_user.gecos.join(","),
+          "--groups"  => new_users.groups(with_primary: false).join(",")
+        }
 
-        Yast::Execute.on_target!(args)
+        opts = opts.compact.flatten
+        opts << "--move-home" if opts.include?("--home")
+        opts << new_user.name
+
+        Yast::Execute.on_target!(USERMOD, *args)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("Failed to modify user '%{username}'"), username: new_user.name)

@@ -120,12 +120,6 @@ ylib_y2users_autoyastdir = @ylibdir@/y2users/autoyast
 ylib_y2users_autoyast_DATA = \
   lib/y2users/autoyast/hash_reader.rb
 
-ylib_y2users_parsersdir = @ylibdir@/y2users/parsers
-ylib_y2users_parsers_DATA = \
-  lib/y2users/parsers/group.rb \
-  lib/y2users/parsers/shadow.rb \
-  lib/y2users/parsers/passwd.rb
-
 scrconf_DATA = \
   scrconf/etc_default_useradd.scr \
   scrconf/nis.scr
