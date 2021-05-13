@@ -210,6 +210,9 @@ module Y2Users
     end
 
     # Sets the content to the value that disables password aging features
+    #
+    # @note There is not a counterpart method called 'enable'. To activate password aging,
+    #   use {#force_change} or {#last_change=}.
     def disable
       self.content = ""
     end
@@ -243,7 +246,7 @@ module Y2Users
 
     # Sets the content to the given date
     #
-    # Note this enables the password aging features and sets {#force_change?} to false
+    # @note This enables the password aging features and sets {#force_change?} to false.
     #
     # @param date [Date]
     def last_change=(date)

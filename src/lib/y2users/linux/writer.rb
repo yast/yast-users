@@ -73,13 +73,11 @@ module Y2Users
     # having removed, modified and created all users. So the database gets
     # updated always, no matter whether useradd.local has been called.
     #
-    #
     # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
 
     # TODO: no plugin support yet
-    # TODO: other password attributes like #maximum_age, #inactivity_period, etc.
     # TODO: no authorized keys yet
     class Writer
       include Yast::I18n
@@ -140,6 +138,10 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
+      # Command for configuring the attributes in /etc/shadow
+      CHAGE = "/usr/bin/chage".freeze
+      private_constant :CHAGE
+
       def users_finder
         @users_finder ||= UsersFinder.new(initial_config, config)
       end
@@ -158,19 +160,46 @@ module Y2Users
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
+      # Executes the commands for setting the password and all its associated
+      # attributes for the given user
+      #
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
+      def change_password(user, issues)
+        set_password_value(user, issues)
+        set_password_attributes(user, issues)
+      end
+
       # Executes the command for setting the password of given user
       #
       # @param user [Y2User::User]
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def change_password(user, issues)
+      def set_password_value(user, issues)
         return unless user.password&.value
 
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          format(_("The password for '%{username}' could not be set"), username: user.name)
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("The password for '%s' could not be set"), user.name)
         )
         log.error("Error setting password for '#{user.name}' - #{e.message}")
+      end
+
+      # Executes the command for setting the dates and limits in /etc/shadow
+      #
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def set_password_attributes(user, issues)
+        return unless user.password
+
+        Yast::Execute.on_target!(CHAGE, *chage_options(user))
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("Error setting the properties of the password for '%s'"), user.name)
+        )
+        log.error("Error setting password attributes for '#{user.name}' - #{e.message}")
       end
 
       # Generates and returns the options expected by `useradd` for given user
@@ -179,12 +208,11 @@ module Y2Users
       # @return [Array<String>]
       def useradd_options(user)
         opts = {
-          "--uid"        => user.uid,
-          "--gid"        => user.gid,
-          "--shell"      => user.shell,
-          "--home-dir"   => user.home,
-          "--expiredate" => user.expire_date.to_s,
-          "--comment"    => user.gecos.join(",")
+          "--uid"      => user.uid,
+          "--gid"      => user.gid,
+          "--shell"    => user.shell,
+          "--home-dir" => user.home,
+          "--comment"  => user.gecos.join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -207,7 +235,7 @@ module Y2Users
         ["--create-home"]
       end
 
-      # Generates and returns the options expected by `chpasswd` for given user
+      # Generates and returns the options expected by `chpasswd` for the given user
       #
       # @param user [Y2Users::User]
       # @return [Array<String, Hash>]
@@ -219,6 +247,40 @@ module Y2Users
           recorder: cheetah_recorder
         }
         opts
+      end
+
+      # Generates and returns the options expected by `chage` for the given user
+      #
+      # @param user [Y2Users::User]
+      # @return [Array<String>]
+      def chage_options(user)
+        passwd = user.password
+
+        opts = []
+        opts.concat(["--lastday", chage_value(passwd.aging.content)]) if passwd.aging
+
+        opts.concat(
+          [
+            "--mindays",    chage_value(passwd.minimum_age),
+            "--maxdays",    chage_value(passwd.maximum_age),
+            "--warndays",   chage_value(passwd.warning_period),
+            "--inactive",   chage_value(passwd.inactivity_period),
+            "--expiredate", chage_value(passwd.account_expiration),
+            user.name
+          ]
+        )
+
+        opts
+      end
+
+      # @see #chage_options
+      #
+      # @param value [String, Integer, Date, nil]
+      # @return [String]
+      def chage_value(value)
+        return "-1" if value.nil? || value == ""
+
+        value.to_s
       end
 
       # Custom Cheetah recorder to prevent leaking the password to the logs
