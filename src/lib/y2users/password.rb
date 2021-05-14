@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast2/secret_attributes"
+require "y2users/shadow_date_helper"
 
 module Y2Users
   # Password configuration for an user
@@ -27,11 +28,10 @@ module Y2Users
     # @return [PasswordValue, nil] nil if password is not set
     attr_accessor :value
 
-    # Last password change
+    # Aging information for the password, based on the content of the third field of a shadow file
     #
-    # @return [Date, :force_change, nil] date of the last change or :force_change when the next
-    #   login forces the user to change the password or nil for disabled aging feature.
-    attr_accessor :last_change
+    # [PasswordAging, nil] nil means information is unknown (eg. new user without a shadow entry)
+    attr_accessor :aging
 
     # The minimum number of days required between password changes
     #
@@ -99,7 +99,7 @@ module Y2Users
     def ==(other)
       return false unless other.is_a?(self.class)
 
-      [:value, :last_change, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
+      [:value, :aging, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
        :account_expiration].all? do |a|
         public_send(a) == other.public_send(a)
       end
@@ -177,6 +177,90 @@ module Y2Users
     # @return [Boolean]
     def disabled?
       ["*", "!"].include?(content)
+    end
+  end
+
+  # Represents one entry in the third field of the shadow file
+  class PasswordAging
+    include ShadowDateHelper
+
+    # Constructor
+    #
+    # @param value [String, Date] content of the field, automatically converted to the right format
+    #   if provided as a Date object
+    def initialize(value = "")
+      value = date_to_shadow_string(value) if value.is_a?(Date)
+      @content = value
+    end
+
+    # Content of the field
+    #
+    # @return [String]
+    attr_accessor :content
+
+    def to_s
+      content
+    end
+
+    # Whether password aging features are enabled
+    #
+    # @return [Boolean]
+    def enabled?
+      content != ""
+    end
+
+    # Sets the content to the value that disables password aging features
+    #
+    # @note There is not a counterpart method called 'enable'. To activate password aging,
+    #   use {#force_change} or {#last_change=}.
+    def disable
+      self.content = ""
+    end
+
+    # Whether the user must change the password in the next login
+    #
+    # @return [Boolean]
+    def force_change?
+      content == "0"
+    end
+
+    # Sets the content to the value that enforces a password change in the next login
+    def force_change
+      self.content = "0"
+    end
+
+    # Date of the latest password change, or nil if that date is irrelevant
+    #
+    # The date is irrelevant in these two scenarios:
+    #
+    #   - password aging features are disabled (see {#enabled?})
+    #   - the user is forced to change the password in the next login (see {#force_change?})
+    #
+    # @return [Date, nil]
+    def last_change
+      return nil unless enabled?
+      return nil if force_change?
+
+      shadow_string_to_date(content)
+    end
+
+    # Sets the content to the given date
+    #
+    # @note This enables the password aging features and sets {#force_change?} to false.
+    #
+    # @param date [Date]
+    def last_change=(date)
+      self.content = date_to_shadow_string(date)
+    end
+
+    # Aging equality
+    #
+    # @param other [Object]
+    # @return [Boolean]
+    def ==(other)
+      return false unless other.is_a?(self.class)
+
+      content == other.content
     end
   end
 end
