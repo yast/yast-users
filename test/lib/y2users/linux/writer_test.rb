@@ -368,5 +368,25 @@ describe Y2Users::Linux::Writer do
         expect(result.map(&:message)).to include(/password.*could not be set/)
       end
     end
+
+    context "when there is any error setting the password attributes" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        config.attach(user)
+
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/chage/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/Error setting the properties of the password/)
+      end
+    end
   end
 end

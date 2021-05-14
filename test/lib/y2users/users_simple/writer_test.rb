@@ -151,10 +151,10 @@ describe Y2Users::UsersSimple::Writer do
       let(:user2_password) do
         passwd = Y2Users::Password.create_encrypted("$1$.QKDPc5E$SWlkjRWexrXYgc98F.")
         passwd.aging = Y2Users::PasswordAging.new
-        passwd.aging.last_change = Date.new(2021, 5, 7)
+        passwd.aging.last_change = Date.new(1977, 5, 7)
         passwd.minimum_age = 0
         passwd.maximum_age = 90
-        passwd.warning_period = 14
+        passwd.account_expiration = Date.new(2021, 5, 7)
         passwd
       end
 
@@ -221,12 +221,13 @@ describe Y2Users::UsersSimple::Writer do
 
         expect(user_simple("test1")["shadowLastChange"]).to be_nil
         expect(user_simple("test1")["shadowMin"]).to be_nil
+        expect(user_simple("test1")["shadowExpire"]).to be_nil
 
-        expect(user_simple("test2")["shadowLastChange"]).to eq("18754")
+        expect(user_simple("test2")["shadowLastChange"]).to eq("2683")
         expect(user_simple("test2")["shadowMin"]).to eq("0")
         expect(user_simple("test2")["shadowMax"]).to eq("90")
-        expect(user_simple("test2")["shadowWarning"]).to eq("14")
-        expect(user_simple("test2")["shadowExpire"]).to be_nil
+        expect(user_simple("test2")["shadowWarning"]).to be_nil
+        expect(user_simple("test2")["shadowExpire"]).to eq("18754")
       end
 
       include_examples "root"
