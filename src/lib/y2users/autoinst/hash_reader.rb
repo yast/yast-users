@@ -23,7 +23,7 @@ require "y2users/group"
 require "y2users/password"
 
 module Y2Users
-  module Autoyast
+  module Autoinst
     # Reader that fills config with hash from Users.Export
     class HashReader
       include Yast::Logger

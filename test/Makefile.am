@@ -12,7 +12,7 @@ TESTS = \
   lib/y2users/linux/local_reader_test.rb \
   lib/y2users/linux/reader_test.rb \
   lib/y2users/linux/writer_test.rb \
-  lib/y2users/autoyast/hash_reader_test.rb \
+  lib/y2users/autoinst/hash_reader_test.rb \
   lib/y2users/users_simple/writer_test.rb \
   lib/users/ca_password_validator_test.rb \
   lib/users/encryption_method_test.rb \

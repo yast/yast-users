@@ -21,7 +21,7 @@ require "yast"
 require "installation/finish_client"
 # target file to run system reader on target system
 require "yast2/target_file"
-require "y2users/autoyast/hash_reader"
+require "y2users/autoinst/hash_reader"
 require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
@@ -82,7 +82,7 @@ module Yast
       log.info("Users to import: #{saved}")
       ay_config = Y2Users::Config.new
       # TODO: support for BTRFS home and also what about login defaults?
-      Y2Users::Autoyast::HashReader.new(saved).read_to(ay_config)
+      Y2Users::Autoinst::HashReader.new(saved).read_to(ay_config)
 
       # 3. Merge users from the system with new users from
       #    AutoYaST profile (from step 1)
