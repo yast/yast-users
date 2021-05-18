@@ -47,10 +47,11 @@ module Y2Users
         root = config.users.find(&:root?)
         return unless root
 
-        root_password = root.password&.value
-        return unless root_password
+        root_public_key = root.authorized_keys.first.to_s
+        Yast::UsersSimple.SetRootPublicKey(root_public_key)
 
-        Yast::UsersSimple.SetRootPassword(root_password&.content)
+        root_password = root.password&.value&.content
+        Yast::UsersSimple.SetRootPassword(root_password.to_s)
       end
 
     private

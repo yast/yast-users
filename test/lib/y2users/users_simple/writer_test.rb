@@ -48,10 +48,12 @@ describe Y2Users::UsersSimple::Writer do
       user.home = "/root"
       user.gecos = ["Root User"]
       user.password = root_password
+      user.authorized_keys = root_authorized_keys
       user
     end
 
     let(:root_password) { nil }
+    let(:root_authorized_keys) { [] }
 
     shared_examples "root" do
       it "does not store the root user into the list of users" do
@@ -65,10 +67,13 @@ describe Y2Users::UsersSimple::Writer do
       context "when root has no password" do
         let(:root_password) { nil }
 
-        it "does not store a password for root" do
-          subject.write
+        # NOTE: for Yast::UsersSimple emtpy string means no password. Thus, not
+        # having a password at this point could mean "deleting the previous
+        # one"
+        it "stores an empty string as password for root" do
+          expect(Yast::UsersSimple).to receive(:SetRootPassword).with("")
 
-          expect(Yast::UsersSimple.GetRootPassword).to eq("")
+          subject.write
         end
       end
 
@@ -81,6 +86,26 @@ describe Y2Users::UsersSimple::Writer do
           subject.write
 
           expect(Yast::UsersSimple.GetRootPassword).to eq("S3cr3T")
+        end
+      end
+
+      context "when root has no authorized keys" do
+        let(:root_authorized_keys) { [] }
+
+        it "stores an empty string (meaning no authorized key is wanted)" do
+          expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with("")
+
+          subject.write
+        end
+      end
+
+      context "when root has authorized keys" do
+        let(:root_authorized_keys) { ["ssh-rsa first-public-key", "ssh-rsa second-public-key"] }
+
+        it "stores the first one as public key for root" do
+          subject.write
+
+          expect(Yast::UsersSimple.GetRootPublicKey).to eq("ssh-rsa first-public-key")
         end
       end
     end

@@ -76,9 +76,11 @@ describe Y2Users::UsersSimple::Reader do
     context "for a set of users created with minimal information" do
       before do
         Yast::UsersSimple.SetRootPassword(root_pwd)
+        Yast::UsersSimple.SetRootPublicKey(root_authorized_key)
       end
 
       let(:root_pwd) { "secretRoot" }
+      let(:root_authorized_key) { "ssh-rsa root-authorized-key" }
 
       let(:users_simple_users) do
         [
@@ -98,6 +100,7 @@ describe Y2Users::UsersSimple::Reader do
         expect(root.name).to eq "root"
         expect(root.shell).to be_nil
         expect(root.home).to eq "/root"
+        expect(root.authorized_keys).to eq [root_authorized_key]
         expect(root.password.value.encrypted?).to eq false
         expect(root.password.value.content).to eq root_pwd
 
@@ -112,6 +115,28 @@ describe Y2Users::UsersSimple::Reader do
         expect(user.password.minimum_age).to eq 0
         expect(user.password.maximum_age).to be_nil
         expect(user.password.warning_period).to eq 0
+      end
+
+      context "without the root password" do
+        let(:root_pwd) { "" }
+
+        it "leaves it unset" do
+          config = subject.read
+          root = config.users.find(&:root?)
+
+          expect(root.password).to be_nil
+        end
+      end
+
+      context "without the root authorized key" do
+        let(:root_authorized_key) { "" }
+
+        it "leaves it unset" do
+          config = subject.read
+          root = config.users.find(&:root?)
+
+          expect(root.authorized_keys).to eq([])
+        end
       end
     end
   end
