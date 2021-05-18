@@ -175,7 +175,7 @@ module Y2Users
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_group(group, issues)
         args = [GROUPADD]
-        args << "--gid" << group.gid if group.gid && valid_gid?(group)
+        args << "--gid" << group.gid if group.gid
         args << group.name
         # TODO: system groups?
         Yast::Execute.on_target!(args)
@@ -184,13 +184,6 @@ module Y2Users
           format(_("The group '%{groupname}' could not be created"), groupname: group.name)
         )
         log.error("Error creating group '#{group.name}' - #{e.message}")
-      end
-
-      # TODO: do we really want to ignore user configuration? if we pass it, it will fail to create group
-      def valid_gid?(group)
-        same_gids = group.config.groups.select { |g| g.gid == group.gid }
-        # non colliding gid
-        same_gids.size == 1
       end
 
       USERMOD_ATTRS = [:home, :shell, :gecos].freeze
