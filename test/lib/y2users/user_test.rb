@@ -29,6 +29,12 @@ describe Y2Users::User do
 
   include_examples "config element"
 
+  describe "#authorized_keys" do
+    it "returns a collection" do
+      expect(subject.authorized_keys).to be_an(Array)
+    end
+  end
+
   describe "#primary_group" do
     before do
       group = Y2Users::Group.new("test")
@@ -326,6 +332,16 @@ describe Y2Users::User do
     context "when the #password does not match" do
       before do
         other.password.value.content = "M0r3-S3cr3T"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when #authorized_keys does not match" do
+      before do
+        other.authorized_keys = ["ssh-rsa auth-key"]
       end
 
       it "returns false" do
