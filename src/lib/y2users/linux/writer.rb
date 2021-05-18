@@ -73,7 +73,6 @@ module Y2Users
     # having removed, modified and created all users. So the database gets
     # updated always, no matter whether useradd.local has been called.
     #
-    # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
 
@@ -102,8 +101,7 @@ module Y2Users
         users_finder.added.each { |u| add_user(u, issues) }
         users_finder.password_edited.each { |u| change_password(u, issues) }
 
-        # TODO: update the NIS database (make -C /var/yp) if needed
-        # TODO: remove the passwd cache for nscd (bug 24748, 41648)
+        refresh_databases
 
         issues
       end
@@ -283,6 +281,35 @@ module Y2Users
         value.to_s
       end
 
+      # Invalidates or recreates extra databases whose information is based in the information
+      # stored in the shadow files, like NIS or nscd.
+      def refresh_databases
+        # TODO: update the NIS database (make -C /var/yp) if needed
+
+        # Remove the passwd cache for nscd (bsc#24748, bsc#41648):
+        # The nscd daemon watches for changes in the configuration files appropriate for each
+        # database (e.g., /etc/passwd for the passwd database), and flushes the cache when these are
+        # changed. But looks like that process is not perfect and is safer to enforce the refresh.
+        nscd = Nscd.new
+        nscd.invalidate_cache(:passwd) if users_changed?
+        nscd.invalidate_cache(:group) if groups_changed?
+      end
+
+      # Whether there is any change in the users on the system
+      #
+      # @return [Boolean]
+      def users_changed?
+        users_finder.added.any? || users_finder.password_edited.any?
+      end
+
+      # Whether there is any change in the groups of the system
+      #
+      # @return [Boolean]
+      def groups_changed?
+        # TODO
+        false
+      end
+
       # Custom Cheetah recorder to prevent leaking the password to the logs
       #
       # @return [Recorder]
@@ -371,6 +398,40 @@ module Y2Users
         # @return [Array<Integer>]
         def users_id(config)
           config.users.map(&:id).compact
+        end
+      end
+
+      # Inner class to manage the Name Service Caching Daemon
+      class Nscd
+        include Yast::Logger
+        Yast.import "Package"
+
+        # Command to control nscd
+        COMMAND = "/usr/sbin/nscd".freeze
+        # Package containing the Name Service Caching Daemon
+        PACKAGE = "nscd".freeze
+        private_constant :COMMAND, :PACKAGE
+
+        # Whethet nscd is available in the target system
+        def available?
+          return @available unless @available.nil?
+
+          @available = Yast::Package.Installed(PACKAGE)
+        end
+
+        # Invalidate the cache for the given nscd database
+        #
+        # @param database [#to_s] name of the database to invalidate
+        def invalidate_cache(database)
+          if !available?
+            log.info "nscd is not installed, nothing to do for #{database}"
+            return
+          end
+
+          Yast::Execute.on_target!(COMMAND, "-i", database.to_s)
+          log.info "nscd cache invalidated: #{database}"
+        rescue Cheetah::ExecutionFailed
+          log.warn "Error invalidating nscd cache: #{database}"
         end
       end
     end

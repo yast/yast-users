@@ -52,6 +52,8 @@ describe Y2Users::Linux::Writer do
     let(:username) { "testuser" }
     let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
 
+    let(:nscd_installed) { false }
+
     RSpec.shared_examples "setting password attributes" do
       context "setting some password attributes" do
         before do
@@ -203,7 +205,51 @@ describe Y2Users::Linux::Writer do
       end
     end
 
+    RSpec.shared_examples "nscd refresh" do
+      context "if nscd is installed" do
+        let(:nscd_installed) { true }
+
+        it "refreshes the nscd users database" do
+          expect(Yast::Execute).to receive(:on_target!).with(/nscd/, "-i", "passwd")
+          writer.write
+        end
+      end
+
+      context "if nscd is not installed" do
+        let(:nscd_installed) { false }
+
+        it "does not refresh the nscd users database" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/nscd/, any_args)
+
+          writer.write
+        end
+      end
+    end
+
+    RSpec.shared_examples "nscd no refresh" do
+      context "if nscd is installed" do
+        let(:nscd_installed) { true }
+
+        it "does not refresh the nscd users database" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/nscd/, any_args)
+
+          writer.write
+        end
+      end
+
+      context "if nscd is not installed" do
+        let(:nscd_installed) { false }
+
+        it "does not refresh the nscd users database" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/nscd/, any_args)
+
+          writer.write
+        end
+      end
+    end
+
     before do
+      allow(Yast::Package).to receive(:Installed).with("nscd").and_return nscd_installed
       allow(Yast::Execute).to receive(:on_target!)
     end
 
@@ -215,6 +261,8 @@ describe Y2Users::Linux::Writer do
 
         writer.write
       end
+
+      include_examples "nscd no refresh"
 
       context "whose password was edited" do
         before do
@@ -232,6 +280,8 @@ describe Y2Users::Linux::Writer do
 
             writer.write
           end
+
+          include_examples "nscd refresh"
         end
 
         context "and the new password is encrypted" do
@@ -244,6 +294,8 @@ describe Y2Users::Linux::Writer do
 
             writer.write
           end
+
+          include_examples "nscd refresh"
         end
       end
 
@@ -254,6 +306,8 @@ describe Y2Users::Linux::Writer do
           writer.write
         end
       end
+
+      include_examples "nscd no refresh"
     end
 
     context "for a new regular user with all the attributes" do
@@ -386,6 +440,29 @@ describe Y2Users::Linux::Writer do
         expect(result).to be_a(Y2Issues::List)
         expect(result).to_not be_empty
         expect(result.map(&:message)).to include(/Error setting the properties of the password/)
+      end
+    end
+
+    context "when there is any error refreshing the nscd databases" do
+      let(:nscd_installed) { true }
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        config.attach(user)
+        allow(Yast::Execute).to receive(:on_target!).with(/nscd/, any_args).and_raise(error)
+      end
+
+      it "does not register any issue about it" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to be_empty
+      end
+
+      it "logs the error as a warning" do
+        expect(subject.log).to receive(:warn).with(/invalidating nscd cache/)
+
+        writer.write
       end
     end
   end
