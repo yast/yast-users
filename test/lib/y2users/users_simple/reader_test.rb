@@ -97,6 +97,7 @@ describe Y2Users::UsersSimple::Reader do
         root = config.users.by_uid("0").first
         expect(root.name).to eq "root"
         expect(root.shell).to be_nil
+        expect(root.home).to eq "/root"
         expect(root.password.value.encrypted?).to eq false
         expect(root.password.value.content).to eq root_pwd
 
