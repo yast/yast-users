@@ -21,6 +21,7 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues"
+require "users/ssh_authorized_keyring"
 
 module Y2Users
   module Linux
@@ -186,9 +187,8 @@ module Y2Users
         edited_users.each do |user|
           initial_user = initial_config.users.by_id(user.id)
 
-          next if initial_user.password == user.password
-
-          change_password(user, issues)
+          change_password(user, issues) if initial_user.password != user.password
+          write_auth_keys(user, issues) if initial_user.authorized_keys != user.authorized_keys
         end
       end
 
@@ -199,6 +199,7 @@ module Y2Users
       def add_user(user, issues)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
         change_password(user, issues) if user.password
+        write_auth_keys(user, issues)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
@@ -214,6 +215,22 @@ module Y2Users
       def change_password(user, issues)
         set_password_value(user, issues)
         set_password_attributes(user, issues)
+      end
+
+      # Writes authorized keys for given user
+      #
+      # @see Yast::Users::SSHAuthorizedKeyring#write_keys
+      #
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
+      def write_auth_keys(user, issues)
+        Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
+      rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
+        issues << Y2Issues::Issue.new(
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("Error writing authorized keys for '%s'"), user.name)
+        )
+        log.error("Error writing authorized keys for '#{user.name}' - #{e.message}")
       end
 
       # Executes the command for setting the password of given user
