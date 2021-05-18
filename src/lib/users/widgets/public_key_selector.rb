@@ -22,16 +22,19 @@ require "users/leaf_blk_device"
 require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
+require "y2users/users_simple"
+require "y2users/inst_users_dialog_helper"
 
 Yast.import "Arch"
 Yast.import "Label"
 Yast.import "UI"
-Yast.import "UsersSimple"
 
 module Y2Users
   module Widgets
     # This widget allows to select a public key from a removable device
     class PublicKeySelector < ::CWM::CustomWidget
+      include Y2Users::InstUsersDialogHelper
+
       class << self
         # We want this information (the selected device name and the SSH key) to be remembered
         attr_accessor :selected_blk_device_name, :value
@@ -75,7 +78,8 @@ module Y2Users
 
       # @see CWM::AbstractWdiget
       def store
-        Yast::UsersSimple.SetRootPublicKey(value.to_s)
+        root_user.authorized_keys = [value.to_s]
+        Y2Users::UsersSimple::Writer.new(users_config).write
         nil
       end
 
