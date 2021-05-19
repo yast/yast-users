@@ -45,7 +45,7 @@ describe Y2Users::Password do
     end
   end
 
-  describe "#clone" do
+  describe "#copy" do
     subject { described_class.create_plain("S3cr3T") }
 
     before do
@@ -54,14 +54,14 @@ describe Y2Users::Password do
     end
 
     it "generates a new password with the same values" do
-      password = subject.clone
+      password = subject.copy
 
       expect(password).to be_a(Y2Users::Password)
       expect(password).to eq(subject)
     end
 
     it "generates a new password with an independent password value" do
-      password = subject.clone
+      password = subject.copy
 
       password.value.content = "other"
 
@@ -81,7 +81,7 @@ describe Y2Users::Password do
       subject.account_expiration = Date.today + 100
     end
 
-    let(:other) { subject.clone }
+    let(:other) { subject.copy }
 
     context "when all the attributes are equal" do
       it "returns true" do

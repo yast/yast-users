@@ -37,7 +37,7 @@ describe Y2Users::Linux::Writer do
       config
     end
 
-    let(:config) { initial_config.clone }
+    let(:config) { initial_config.copy }
 
     let(:users) { [] }
 
