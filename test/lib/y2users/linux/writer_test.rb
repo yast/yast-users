@@ -58,11 +58,30 @@ describe Y2Users::Linux::Writer do
       allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
     end
 
-    RSpec.shared_examples "writes authorized keys" do
-      it "writes authorized keys" do
-        expect(keyring).to receive(:write_keys)
+    RSpec.shared_examples "writing authorized keys" do
+      let(:home) { "/home/y2test" }
 
-        writer.write
+      before do
+        current_user = config.users.find { |u| u.id == user.id }
+        current_user.home = home
+      end
+
+      context "when home is defined" do
+        it "requests to write authorized keys" do
+          expect(keyring).to receive(:write_keys)
+
+          writer.write
+        end
+      end
+
+      context "when home is not defined" do
+        let(:home) { nil }
+
+        it "does not request to write authorized keys" do
+          expect(keyring).to_not receive(:write_keys)
+
+          writer.write
+        end
       end
     end
 
@@ -232,7 +251,7 @@ describe Y2Users::Linux::Writer do
           current_user.authorized_keys = ["ssh-rsa new-key"]
         end
 
-        include_examples "writes authorized keys"
+        include_examples "writing authorized keys"
       end
 
       context "whose password was edited" do
@@ -288,7 +307,7 @@ describe Y2Users::Linux::Writer do
 
       include_examples "setting password"
       include_examples "setting password attributes"
-      include_examples "writes authorized keys"
+      include_examples "writing authorized keys"
 
       it "executes useradd with all the parameters, including creation of home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -323,7 +342,7 @@ describe Y2Users::Linux::Writer do
         config.attach(user)
       end
 
-      include_examples "writes authorized keys"
+      include_examples "writing authorized keys"
 
       it "executes useradd with the 'system' parameter and without creating a home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -415,6 +434,7 @@ describe Y2Users::Linux::Writer do
       let(:error) { Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new user.home }
 
       before do
+        user.home = "/home/y2test"
         config.attach(user)
 
         allow(keyring).to receive(:write_keys).and_raise(error)

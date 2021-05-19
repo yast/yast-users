@@ -224,6 +224,8 @@ module Y2Users
       # @param user [Y2User::User]
       # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
       def write_auth_keys(user, issues)
+        return unless user.home
+
         Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
       rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
         issues << Y2Issues::Issue.new(
