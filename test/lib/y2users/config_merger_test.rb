@@ -118,6 +118,8 @@ describe Y2Users::ConfigMerger do
           subject.merge
 
           expect(lhs_user("test1").home).to eq("/home/test1")
+          expect(lhs_user("test1").uid).to eq(1000)
+          expect(lhs_user("test1").gid).to eq(100)
         end
 
         it "keeps the lhs user id" do
@@ -125,18 +127,6 @@ describe Y2Users::ConfigMerger do
           subject.merge
 
           expect(lhs_user("test1").id).to eq(id)
-        end
-
-        it "keeps the lhs user uid" do
-          subject.merge
-
-          expect(lhs_user("test1").uid).to eq(1100)
-        end
-
-        it "keeps the lhs user gid" do
-          subject.merge
-
-          expect(lhs_user("test1").gid).to eq(110)
         end
       end
     end
@@ -204,19 +194,10 @@ describe Y2Users::ConfigMerger do
           expect(lhs.groups.map(&:name)).to contain_exactly("test1", "test2", "test3")
         end
 
-        it "updates the lhs group with the data from the corresponding rhs group except gid" do
+        it "updates the lhs group with the data from the corresponding rhs" do
           subject.merge
 
-          expect(lhs_group("test1")).to_not eq(group1)
-          group1.gid = 110
           expect(lhs_group("test1")).to eq(group1)
-        end
-
-        it "keeps the lhs group id" do
-          id = lhs_group("test1").id
-          subject.merge
-
-          expect(lhs_group("test1").id).to eq(id)
         end
       end
     end

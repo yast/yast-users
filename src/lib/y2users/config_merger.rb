@@ -67,7 +67,6 @@ module Y2Users
 
       if current_element
         new_element.assign_internal_id(current_element.id)
-        copy_values(current_element, new_element)
         config.detach(current_element)
       end
 
@@ -94,31 +93,6 @@ module Y2Users
       end
 
       elements.find { |e| e.name == element.name }
-    end
-
-    # Copies values from one element into another
-    #
-    # @param from [User, Group] Source element
-    # @param to [User, Group] Target element. This element is modified.
-    def copy_values(from, to)
-      case from
-      when User
-        # For a user, its uid and gid should not be updated in order to keep the current AutoYaST
-        # behavior. In general, this only affects to the AutoYaST case. In other scenarios like a
-        # regular installation, all users from {rhs} (except root) are new users, so this code is
-        # not executed for them. And, during installation, only the password can be modified for
-        # root, so this actually changes nothing for the root user.
-        to.uid = from.uid
-        to.gid = from.gid
-      when Group
-        # For a group, it does not modify its group id as it is hard to modify it. Reason is similar
-        # as for user. Changing the group gid requires some manual steps in which the ownership of
-        # some files has to be changed. YaST does not want to be responsible of that changes.
-        to.gid = from.gid
-      else
-        log.error "Values can only be copied for a User or Group. " \
-          "Unexpected object type: #{from.inspect}."
-      end
     end
   end
 end
