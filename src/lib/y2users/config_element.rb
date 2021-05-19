@@ -18,8 +18,8 @@
 # find current contact information at www.suse.com.
 
 module Y2Users
-  # Methods for an element that can be attached to a {Config} (e.g., {User}, {Group}).
-  module ConfigElement
+  # Base class for an element that can be attached to a config
+  class ConfigElement
     # {Config} in which the element is attached to
     #
     # @return [Config, nil] nil if the element is not attached yet
@@ -33,11 +33,15 @@ module Y2Users
     # @return [Integer, nil] the id is assigned by the config when attaching the element
     attr_reader :id
 
+    def initialize
+      assign_internal_id(IdGenerator.next)
+    end
+
     # Assigns the internal id for this element
     #
     # @note The id of an element should not be modified. This method is exposed in the public API
-    #   only to make possible to set the id when attaching/detaching an element to/from a config,
-    #   see {Config#attach} and {Config#detach}.
+    #   only to make possible to set the id when merging an element from another config, see
+    #   {ConfigMerger}.
     #
     # @param id [Integer]
     def assign_internal_id(id)
@@ -64,10 +68,10 @@ module Y2Users
 
     # Whether this element is considered the same as other
     #
-    # Two elements are considered the same when they have the same id, independently on the rest of
-    # attributes.
+    # Two elements are considered the same when they have the same id, independently on the rest
+    # of attributes.
     #
-    # @param other [User, Group]
+    # @param other [ConfigElement]
     # @return [Boolean]
     def is?(other)
       return false unless self.class == other.class
@@ -76,17 +80,25 @@ module Y2Users
       id == other.id
     end
 
-    # Generates a new cloned element without an specific config or id.
+    # Generates a new cloned element without an specific config.
     #
-    # Note that the new cloned element is not attached to any config.
-    #
-    # @return [User, Group]
-    def clone
-      cloned = super
-      cloned.assign_config(nil)
-      cloned.assign_internal_id(nil)
+    # @return [ConfigElement]
+    def copy
+      element = clone
+      element.assign_config(nil)
 
-      cloned
+      element
+    end
+
+    # Helper class for generating elements ids
+    class IdGenerator
+      # Generates the next id to be used for an element
+      #
+      # @return [Integer]
+      def self.next
+        @last_element_id ||= 0
+        @last_element_id += 1
+      end
     end
   end
 end

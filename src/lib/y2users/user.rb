@@ -22,24 +22,21 @@ require "y2users/user_validator"
 require "y2users/password_validator"
 
 module Y2Users
-  # Class to represent an user
+  # Class to represent a user
   #
   # @example
   #   user = User.new("john")
   #   user.uid = 1001
   #   user.system? #=> false
   #   user.attached? #=> false
-  #   user.id #=> nil
+  #   user.id #=> 1
   #
   #   config = Config.new("my_config")
   #   config.attach(user)
   #
   #   user.config #=> config
-  #   user.id #=> 23
   #   user.attached? #=> true
-  class User
-    include ConfigElement
-
+  class User < ConfigElement
     # User names that are considered system users
     # @see #system?
     SYSTEM_NAMES = ["nobody"].freeze
@@ -93,6 +90,8 @@ module Y2Users
     #
     # @param name [String]
     def initialize(name)
+      super()
+
       @name = name
       # TODO: GECOS
       @gecos = []
@@ -206,12 +205,16 @@ module Y2Users
       @system = value
     end
 
-    # @see ConfigElement#clone
-    def clone
-      cloned = super
-      cloned.password = password.clone
+    # Generates a deep copy of the user
+    #
+    # @see ConfigElement#copy
+    #
+    # @return [User]
+    def copy
+      user = super
+      user.password = password.copy if password
 
-      cloned
+      user
     end
 
     # Validation errors

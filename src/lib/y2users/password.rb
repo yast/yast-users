@@ -83,11 +83,14 @@ module Y2Users
       @value = value
     end
 
-    def clone
-      cloned = super
-      cloned.value = value.clone
+    # Generates a deep copy of the password
+    #
+    # @return [Password]
+    def copy
+      password = clone
+      password.value = value.clone
 
-      cloned
+      password
     end
 
     # Password equality
