@@ -73,7 +73,6 @@ module Y2Users
     # having removed, modified and created all users. So the database gets
     # updated always, no matter whether useradd.local has been called.
     #
-    # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
 
@@ -102,8 +101,35 @@ module Y2Users
         users_finder.added.each { |u| add_user(u, issues) }
         users_finder.password_edited.each { |u| change_password(u, issues) }
 
-        # TODO: update the NIS database (make -C /var/yp) if needed
-        # TODO: remove the passwd cache for nscd (bug 24748, 41648)
+        # After modifying the users and groups in the system, previous versions of yast-users used
+        # to update the NIS database and invalidate the nscd (Name Service Caching Daemon) cache.
+        #
+        # The nscd cache cleanup was initially introduced in the context of bsc#39748 and bsc#56648.
+        # It's not longer needed for local users because:
+        #  - The nscd daemon watches for changes in the relevant files (eg. /etc/passwd)
+        #  - The current implementation relies on the tools in the shadow suite (eg. useradd), which
+        #    already flush nscd and sssd caches when needed.
+        #
+        # Updating the NIS database (make -C /var/yp) was done if the system was the master server
+        # of a NIS domain. But turns out it was likely not that useful and reliable as originally
+        # intended for several reasons.
+        #  - Detection of the NIS master server was not reliable
+        #    * Based on the "yphelper" tool that was never intended to be used by third-party tools
+        #      like YaST and that was moved from lib to libexec without YaST being adapted.
+        #    * Working only if the command "domainname" printed the right result, something that
+        #      seems to happen only if the host is configured both as a NIS server and client.
+        #    * Alternative detection mechanisms (eg. relying on the output of the "yppoll" command)
+        #      don't seem to be fully reliable either.
+        #  - Trying to rebuild the database was pointless in many scenarios. For example, it makes
+        #    no sense in (Auto)installation, since users are created before the NIS server could be
+        #    configured. The same likely applies to Firstboot.
+        #  - The NIS database is never updated by the shadow tools, to which yast2-users should
+        #    align as much as possible.
+        #  - Properly configured NIS servers are expected to have some mechanism (eg. cron job) to
+        #    update the database periodically (eg. every 15 minutes).
+        #
+        # To avoid the need of maintaining code to perform actions that doesn't have a clear benefit
+        # nowadays, YaST does not longer handle the status of nscd or NIS databases.
 
         issues
       end
