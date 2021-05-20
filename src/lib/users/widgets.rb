@@ -20,10 +20,8 @@
 require "yast"
 require "cwm/widget"
 
-require "y2users"
 require "y2users/help_texts"
 require "y2users/password_helper"
-require "y2users/users_simple"
 require "users/local_password"
 
 Yast.import "Popup"
@@ -48,15 +46,17 @@ module Users
     # If `little_space` is `true`, the helpful label is omitted
     # and the password fields are laid out horizontally.
     #
+    # @param user [Y2Users::User] the user to work with
+    # @param little_space [Boolean] whether the widget should use as little space as possible
+    #                               If set, the widget will shown the password and
+    #                               password confirmation horizally, in the same "row"
     # @param focus [Boolean] if set, then widget set focus to first password input field
-    def initialize(little_space: false, focus: false, allow_empty: false)
+    # @param allow_empty [Boolean] whether the user can left the password empty or not
+    def initialize(user, little_space: false, focus: false, allow_empty: false)
       textdomain "users"
 
-      @users_config = Y2Users::Config.new
-      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
-
-      @root_user = @users_config.users.root
-      @user_to_validate = @root_user.copy
+      @user = user
+      @user_to_validate = user.copy
 
       @little_space = little_space
       @focus = focus
@@ -140,8 +140,7 @@ module Users
     def store
       return if allow_empty? && empty?
 
-      @root_user.password = @user_to_validate.password
-      Y2Users::UsersSimple::Writer.new(@users_config).write
+      @user.password = @user_to_validate.password
     end
 
     def help # rubocop:disable Metrics/MethodLength
@@ -207,11 +206,11 @@ module Users
       @allow_empty
     end
 
-    # Current password value for root_user
+    # Current password value
     #
     # @return [String]
     def current_password
-      pwd = @root_user.password&.value&.content
+      pwd = @user.password&.value&.content
       pwd.to_s
     end
   end

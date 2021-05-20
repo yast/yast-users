@@ -17,6 +17,8 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
+require "y2users"
+require "y2users/users_simple"
 require "cwm/dialog"
 require "users/widgets/inst_root_first"
 
@@ -30,8 +32,13 @@ module Yast
   # itself. The new password is not stored here, just set in UsersSimple module
   # and stored later during inst_finish.
   class InstRootFirstDialog < ::CWM::Dialog
-    def initialize
+    # Constructor
+    #
+    # @param root_user [Y2Users::Users] object holding the root user configuration
+    def initialize(root_user)
       textdomain "users"
+
+      @root_user = root_user
     end
 
     # @return [String] Dialog's title
@@ -49,7 +56,9 @@ module Yast
 
     # Returns a UI widget-set for the dialog
     def contents
-      VBox(Y2Users::Widgets::InstRootFirst.new)
+      VBox(
+        Y2Users::Widgets::InstRootFirst.new(@root_user)
+      )
     end
 
     # Request confirmation for aborthing the dialog
@@ -60,6 +69,8 @@ module Yast
   private
 
     # Returns whether we need/ed to create new UI Wizard
+    #
+    # @see CWM::Dialog
     #
     # @note We do not need to create a wizard dialog in installation, but it's helpful when testing
     #   all manually on a running system

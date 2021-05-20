@@ -22,8 +22,6 @@ require "users/leaf_blk_device"
 require "users/ssh_public_key"
 require "yast2/popup"
 require "tmpdir"
-require "y2users"
-require "y2users/users_simple"
 
 Yast.import "Arch"
 Yast.import "Label"
@@ -39,13 +37,12 @@ module Y2Users
       end
 
       # Constructor
-      def initialize
+      #
+      # @param user [Y2Users::User] the user to work with
+      def initialize(user)
         textdomain "users"
 
-        @users_config = Y2Users::Config.new
-        Y2Users::UsersSimple::Reader.new.read_to(@users_config)
-
-        @root_user = @users_config.users.root
+        @user = user
       end
 
       # @return [String] Widget label
@@ -81,8 +78,7 @@ module Y2Users
 
       # @see CWM::AbstractWdiget
       def store
-        @root_user.authorized_keys = [value.to_s]
-        Y2Users::UsersSimple::Writer.new(@users_config).write
+        @user.authorized_keys = [value&.to_s].compact
         nil
       end
 

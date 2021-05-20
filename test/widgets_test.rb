@@ -8,13 +8,9 @@ def stub_widget_value(id, value)
 end
 
 describe Users::PasswordWidget do
-  let(:root_user) { Y2Users::User.new("root") }
+  subject { described_class.new(root_user) }
 
-  before do
-    reset_users_simple
-    allow(Y2Users::User).to receive(:new).and_call_original
-    allow(Y2Users::User).to receive(:new).with("root").and_return(root_user)
-  end
+  let(:root_user) { Y2Users::User.new("root") }
 
   it "has help text" do
     expect(subject.help).to_not be_empty
@@ -40,8 +36,8 @@ describe Users::PasswordWidget do
     end
 
     it "sets focus to first widget if focus: parameter set to object" do
+      subject = described_class.new(root_user, focus: true)
       expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
-      subject = described_class.new(focus: true)
       subject.init
     end
 
@@ -73,13 +69,8 @@ describe Users::PasswordWidget do
     end
 
     it "reports error if password does not validate" do
-      stub_widget_value(:pw1, "mimic_forbidden")
-      stub_widget_value(:pw2, "mimic_forbidden")
-
-      fatal_issue = Y2Issues::Issue.new("Invalid password", severity: :fatal)
-      issues = Y2Issues::List.new([fatal_issue])
-
-      allow(root_user).to receive(:password_issues).and_return(issues)
+      stub_widget_value(:pw1, "mimic·forbidden")
+      stub_widget_value(:pw2, "mimic·forbidden")
 
       expect(Yast::Report).to receive(:Error)
       expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
@@ -91,10 +82,6 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw1, "a")
       stub_widget_value(:pw2, "a")
 
-      warning_issue = Y2Issues::Issue.new("Not strong password")
-      issues = Y2Issues::List.new([warning_issue])
-      allow(root_user).to receive(:password_issues).and_return(issues)
-
       expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
       expect(Yast::Popup).to receive(:YesNo).and_return(false)
 
@@ -105,10 +92,6 @@ describe Users::PasswordWidget do
       stub_widget_value(:pw1, "a")
       stub_widget_value(:pw2, "a")
 
-      warning_issue = Y2Issues::Issue.new("Not strong password")
-      issues = Y2Issues::List.new([warning_issue])
-      allow(root_user).to receive(:password_issues).and_return(issues)
-
       expect(Yast::UI).to receive(:SetFocus).with(Id(:pw1))
       expect(Yast::Popup).to receive(:YesNo).and_return(true).once
 
@@ -117,23 +100,20 @@ describe Users::PasswordWidget do
     end
 
     it "is valid otherwise" do
-      stub_widget_value(:pw1, "a")
-      stub_widget_value(:pw2, "a")
-
-      issues = Y2Issues::List.new
-      allow(root_user).to receive(:password_issues).and_return(issues)
+      stub_widget_value(:pw1, "s3cr3t")
+      stub_widget_value(:pw2, "s3cr3t")
 
       expect(subject.validate).to eq true
     end
 
     context "when the widget is allowed to be empty" do
-      subject { described_class.new(allow_empty: true) }
+      subject { described_class.new(root_user, allow_empty: true) }
 
       it "does not validate the password" do
         stub_widget_value(:pw1, "")
         stub_widget_value(:pw2, "")
 
-        expect(root_user).to_not receive(:password_issues)
+        expect(Y2Users::Password).to_not receive(:create_plain)
         expect(subject.validate).to eq(true)
       end
     end
@@ -142,45 +122,18 @@ describe Users::PasswordWidget do
   describe "#store" do
     # NOTE: testing only examples that make sense. I.e., those that happens when the widget
     # validates successfully, required condition to dispatch the #store method.
-    let(:user_simple_writer) { double(Y2Users::UsersSimple::Writer, write: true) }
     let(:password) { "new cool password" }
 
     before do
-      allow(Y2Users::UsersSimple::Writer).to receive(:new).and_return(user_simple_writer)
       stub_widget_value(:pw1, password)
       stub_widget_value(:pw2, password)
     end
 
-    it "writes root user password to Users::UserSimple" do
-      expect(Y2Users::UsersSimple::Writer).to receive(:new) do |users_config|
-        root_user = users_config.users.find(&:root?)
-        root_password = root_user.password
-
-        expect(root_password).to be_a(Y2Users::Password)
-        expect(root_password.value.plain?).to eq true
-        expect(root_password.value.content).to eq(password)
-        user_simple_writer
-      end
-      expect(user_simple_writer).to receive(:write)
-
+    it "writes chosen and validated password to the root user" do
       subject.validate
       subject.store
-    end
 
-    context "when the widget is allowed to be empty" do
-      subject { described_class.new(allow_empty: true) }
-
-      context "and password is empty" do
-        let(:password) { "" }
-
-        it "does not update Users::UserSimple" do
-          expect(Y2Users::UsersSimple::Writer).to_not receive(:new)
-          expect(user_simple_writer).to_not receive(:write)
-
-          subject.validate
-          subject.store
-        end
-      end
+      expect(root_user.password).to be_a(Y2Users::Password)
     end
   end
 

@@ -23,7 +23,8 @@ require "users/dialogs/inst_root_first"
 require "cwm/rspec"
 
 describe Yast::InstRootFirstDialog do
-  subject(:dialog) { described_class.new }
+  subject(:dialog) { described_class.new(root_user) }
+  let(:root_user) { Y2Users::User.new("root") }
 
   include_examples "CWM::Dialog"
 
