@@ -168,6 +168,7 @@ module Y2Users
 
     # Collection for the given element
     #
+    # @param element [ConfigElement]
     # @return [ConfigElementCollection]
     def collection_for(element)
       element.is_a?(User) ? @users_collection : @groups_collection
@@ -175,6 +176,7 @@ module Y2Users
 
     # Whether the given element exists in its collection
     #
+    # @param element [ConfigElement]
     # @return [Boolean]
     def exist_element?(element)
       collection_for(element).include?(element.id)
