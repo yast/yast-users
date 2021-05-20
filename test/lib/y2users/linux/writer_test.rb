@@ -62,7 +62,7 @@ describe Y2Users::Linux::Writer do
       let(:home) { "/home/y2test" }
 
       before do
-        current_user = config.users.find { |u| u.id == user.id }
+        current_user = config.users.by_id(user.id)
         current_user.home = home
       end
 
@@ -247,7 +247,7 @@ describe Y2Users::Linux::Writer do
 
       context "whose authorized keys were edited" do
         before do
-          current_user = config.users.find { |u| u.id == user.id }
+          current_user = config.users.by_id(user.id)
           current_user.authorized_keys = ["ssh-rsa new-key"]
         end
 
@@ -256,7 +256,7 @@ describe Y2Users::Linux::Writer do
 
       context "whose password was edited" do
         before do
-          current_user = config.users.find { |u| u.id == user.id }
+          current_user = config.users.by_id(user.id)
           current_user.password = new_password
         end
 

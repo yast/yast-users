@@ -63,7 +63,7 @@ module Y2Users
     #
     # @return [Y2Users::User]
     def root_user
-      @root_user ||= users_config.users.find(&:root?)
+      @root_user ||= users_config.users.root
     end
 
     # The user on which to perform password validations

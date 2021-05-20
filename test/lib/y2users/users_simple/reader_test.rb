@@ -96,7 +96,8 @@ describe Y2Users::UsersSimple::Reader do
         expect(config.users.size).to eq 2
         expect(config.users.map(&:name)).to contain_exactly("root", "test")
 
-        root = config.users.by_uid("0").first
+        root = config.users.root
+        expect(root.uid).to eq "0"
         expect(root.name).to eq "root"
         expect(root.shell).to be_nil
         expect(root.home).to eq "/root"
@@ -122,7 +123,7 @@ describe Y2Users::UsersSimple::Reader do
 
         it "leaves it unset" do
           config = subject.read
-          root = config.users.find(&:root?)
+          root = config.users.root
 
           expect(root.password).to be_nil
         end
@@ -133,7 +134,7 @@ describe Y2Users::UsersSimple::Reader do
 
         it "leaves it unset" do
           config = subject.read
-          root = config.users.find(&:root?)
+          root = config.users.root
 
           expect(root.authorized_keys).to eq([])
         end
