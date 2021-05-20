@@ -22,6 +22,7 @@ require "installation/finish_client"
 # target file to run system reader on target system
 require "yast2/target_file"
 require "y2users/autoinst/hash_reader"
+require "y2users/autoinst/config_merger"
 require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
@@ -76,21 +77,23 @@ module Yast
     #
     # On the other hand, during autoupgrade no changes are performed.
     def write_autoinst
-      # 1. Export users imported in inst_autosetup (and store them)
-      Users.SetExportAll(false)
-      saved = Users.Export
-      log.info("Users to import: #{saved}")
-      ay_config = Y2Users::Config.new
+      # 1. Retrieve the configuration read from the AutoYaST profile
+      ay_config = Y2Users::ConfigManager.instance.config(:autoinst)
+
+      # 2. Merge the configuration with the system one
+      target_config = system_config.clone
+      if Yast::Stage.initial
+        # Use an specific merger in the 1st stage
+        Y2Users::Autoinst::ConfigMerger.new(target_config, ay_config).merge
+      else
+        target_config.merge(ay_config)
+      end
+
       # TODO: support for BTRFS home and also what about login defaults?
-      Y2Users::Autoinst::HashReader.new(saved).read_to(ay_config)
 
-      # 3. Merge users from the system with new users from
-      #    AutoYaST profile (from step 1)
-      merged_config = system_config.merge(ay_config)
-
-      # 4. Write users
+      # 3. Write users
       # TODO: Write login defaults only
-      issues = Y2Users::Linux::Writer.new(merged_config, system_config).write
+      issues = Y2Users::Linux::Writer.new(target_config, system_config).write
       return if issues.empty?
 
       log.error(issues.inspect)
