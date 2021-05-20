@@ -96,8 +96,7 @@ module Users
       shadow = File.join(dir, "shadow")
       return unless File.exist?(passwd) && File.exist?(shadow)
 
-      @config = Y2Users::Config.new
-      Y2Users::Linux::LocalReader.new(root_dir).read_to(config)
+      @config = Y2Users::Linux::LocalReader.new(root_dir).read
 
       self.atime = [File.atime(passwd), File.atime(shadow)].max
     end

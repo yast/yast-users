@@ -39,13 +39,9 @@ module Y2Users
 
     # Config object holding the users and passwords to create
     #
-    # @return [Y2Users::Config]
+    # @return [Config]
     def users_config
-      return @users_config if @users_config
-
-      @users_config = Y2Users::Config.new
-      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
-      @users_config
+      @users_config ||= UsersSimple::Reader.new.read
     end
 
     # All users to be created
