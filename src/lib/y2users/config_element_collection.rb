@@ -24,7 +24,7 @@ module Y2Users
   class ConfigElementCollection
     extend Forwardable
 
-    def_delegators :@elements, :each, :select, :find, :reject, :map, :any?, :size, :empty?
+    def_delegators :@elements, :each, :select, :find, :reject, :map, :any?, :size, :empty?, :first
 
     # Constructor
     #

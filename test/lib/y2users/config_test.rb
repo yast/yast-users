@@ -123,6 +123,12 @@ describe Y2Users::Config do
       expect(group1.config).to eq(subject)
     end
 
+    it "returns the config" do
+      result = subject.attach(user1, group1)
+
+      expect(result).to eq(subject)
+    end
+
     context "if a given element is already attached to the config" do
       before do
         subject.attach(user2)
@@ -185,6 +191,12 @@ describe Y2Users::Config do
       subject.detach(user2, group1)
 
       expect(user1.config).to eq(subject)
+    end
+
+    it "returns the config" do
+      result = subject.detach(user2, group1)
+
+      expect(result).to eq(subject)
     end
 
     context "if a given element is not attached yet" do

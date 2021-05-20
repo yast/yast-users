@@ -73,8 +73,11 @@ module Y2Users
     # in the config, see {#attach_element}.
     #
     # @param elements [Array<ConfigElement>]
+    # @return [self]
     def attach(*elements)
       elements.flatten.each { |e| attach_element(e) }
+
+      self
     end
 
     # Detaches users and groups from this config
@@ -82,8 +85,11 @@ module Y2Users
     # The given users and groups must be attached to this config, see {#detach_element}.
     #
     # @param elements [Array<ConfigElement>]
+    # @return [self]
     def detach(*elements)
       elements.flatten.each { |e| detach_element(e) }
+
+      self
     end
 
     # Generates a deep copy of the config
