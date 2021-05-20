@@ -107,7 +107,7 @@ shared_examples "config element collection" do
   end
 
   describe "#all" do
-    it "return the list of elements" do
+    it "returns the list of elements" do
       all = subject.all
 
       expect(all).to eq(elements)
@@ -204,7 +204,7 @@ shared_examples "config element collection" do
       expect(collection.map(&:id)).to contain_exactly(element1.id, element2.id)
     end
 
-    it "does not include elements that do not exist in the other config" do
+    it "does not include elements that do not exist in the config" do
       collection = subject.changed_from(other)
 
       expect(collection.map(&:id)).to_not include(element3.id)

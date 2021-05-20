@@ -79,7 +79,7 @@ module Y2Users
 
     # Detaches users and groups from this config
     #
-    # The given  users and groups must be attached to this config, see {#detach_element}.
+    # The given users and groups must be attached to this config, see {#detach_element}.
     #
     # @param elements [Array<ConfigElement>]
     def detach(*elements)

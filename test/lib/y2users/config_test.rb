@@ -32,7 +32,7 @@ describe Y2Users::Config do
 
     let(:users) { [] }
 
-    it "returns a immutable collection of users" do
+    it "returns an immutable collection of users" do
       users = subject.users
 
       expect(users).to be_a(Y2Users::UsersCollection)
@@ -71,7 +71,7 @@ describe Y2Users::Config do
 
     let(:groups) { [] }
 
-    it "returns a immutable collection of groups" do
+    it "returns an immutable collection of groups" do
       groups = subject.groups
 
       expect(groups).to be_a(Y2Users::GroupsCollection)
