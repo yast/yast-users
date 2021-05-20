@@ -118,6 +118,7 @@ ylib_y2users_userssimple_DATA = \
 
 ylib_y2users_autoinstdir = @ylibdir@/y2users/autoinst
 ylib_y2users_autoinst_DATA = \
+  lib/y2users/autoinst/config_merger.rb \
   lib/y2users/autoinst/hash_reader.rb
 
 scrconf_DATA = \
