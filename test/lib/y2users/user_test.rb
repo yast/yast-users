@@ -27,11 +27,33 @@ require "date"
 describe Y2Users::User do
   subject { described_class.new("test") }
 
+  before do
+    subject.authorized_keys << "ssh-rsa auth-key"
+  end
+
   include_examples "config element"
 
+  describe "#copy" do
+    before do
+      subject.assign_config(Y2Users::Config.new)
+    end
+
+    it "uses a dup of authorized keys" do
+      other = subject.copy
+
+      expect(other.authorized_keys).to eq(subject.authorized_keys)
+
+      other.authorized_keys << "ssh-rsa another-key"
+
+      expect(other.authorized_keys).to include("ssh-rsa another-key")
+      expect(subject.authorized_keys).to_not include("ssh-rsa another-key")
+    end
+  end
+
   describe "#authorized_keys" do
-    it "returns a collection" do
+    it "returns an array holding authorized keys" do
       expect(subject.authorized_keys).to be_an(Array)
+      expect(subject.authorized_keys).to contain_exactly("ssh-rsa auth-key")
     end
   end
 
@@ -341,7 +363,7 @@ describe Y2Users::User do
 
     context "when #authorized_keys does not match" do
       before do
-        other.authorized_keys = ["ssh-rsa auth-key"]
+        other.authorized_keys << "ssh-rsa other-auth-key"
       end
 
       it "returns false" do

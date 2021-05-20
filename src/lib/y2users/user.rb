@@ -215,6 +215,7 @@ module Y2Users
     def copy
       user = super
       user.password = password.copy if password
+      user.authorized_keys = authorized_keys.map(&:dup)
 
       user
     end
