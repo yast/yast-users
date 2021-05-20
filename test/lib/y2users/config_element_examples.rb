@@ -1,5 +1,3 @@
-#!/usr/bin/env rspec
-
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -23,13 +21,25 @@ require_relative "test_helper"
 require "y2users"
 
 shared_examples "config element" do
-  describe "#attached?" do
-    before do
-      subject.assign_internal_id(nil)
-      subject.assign_config(nil)
-    end
+  describe ".new" do
+    it "generates an element with a new id" do
+      id1 = described_class.new("test1").id
+      id2 = described_class.new("test2").id
+      id3 = described_class.new("test3").id
 
+      ids = [id1, id2, id3]
+
+      expect(ids).to all(be_a(Integer))
+      expect(ids.uniq.size).to eq(3)
+    end
+  end
+
+  describe "#attached?" do
     context "if the element is not attached to any config" do
+      before do
+        subject.assign_config(nil)
+      end
+
       it "returns false" do
         expect(subject.attached?).to eq(false)
       end
@@ -49,92 +59,56 @@ shared_examples "config element" do
   end
 
   describe "#is?" do
+    let(:other) { element_class.new("other") }
+
+    let(:element_class) { subject.is_a?(Y2Users::User) ? Y2Users::User : Y2Users::Group }
+
     context "if the other element has a different class" do
-      let(:other) do
-        klass = subject.is_a?(Y2Users::User) ? Y2Users::Group : Y2Users::User
-        klass.new("other")
-      end
+      let(:element_class) { subject.is_a?(Y2Users::User) ? Y2Users::Group : Y2Users::User }
 
       it "returns false" do
         expect(subject.is?(other)).to eq(false)
       end
     end
 
-    context "if the other element has the same class" do
-      let(:other) do
-        klass = subject.is_a?(Y2Users::User) ? Y2Users::User : Y2Users::Group
-        klass.new("other")
+    context "if the other element has the same id" do
+      before do
+        allow(other).to receive(:id).and_return(subject.id)
       end
 
-      context "and the element has no id" do
-        before do
-          subject.assign_internal_id(nil)
-          other.assign_internal_id(69)
-        end
+      it "returns true" do
+        expect(subject.is?(other)).to eq(true)
+      end
+    end
 
-        it "returns false" do
-          expect(subject.is?(other)).to eq(false)
-        end
+    context "if the other element has a different id" do
+      before do
+        allow(other).to receive(:id).and_return(subject.id + 1)
       end
 
-      context "and the element has id" do
-        before do
-          subject.assign_internal_id(69)
-        end
-
-        context "but the other element has no id" do
-          before do
-            other.assign_internal_id(nil)
-          end
-
-          it "returns false" do
-            expect(subject.is?(other)).to eq(false)
-          end
-        end
-
-        context "and the other element has id" do
-          before do
-            other.assign_internal_id(other_id)
-          end
-
-          context "and the other element has not the same id as the element" do
-            let(:other_id) { 19 }
-
-            it "returns false" do
-              expect(subject.is?(other)).to eq(false)
-            end
-          end
-
-          context "and the other element has the same id as the element" do
-            let(:other_id) { 69 }
-
-            it "returns true" do
-              expect(subject.is?(other)).to eq(true)
-            end
-          end
-        end
+      it "returns false" do
+        expect(subject.is?(other)).to eq(false)
       end
     end
   end
 
-  describe "#clone" do
+  describe "#copy" do
     before do
-      subject.assign_internal_id(69)
       subject.assign_config(Y2Users::Config.new)
     end
 
     it "returns an equal element" do
-      cloned = subject.clone
+      element = subject.copy
 
-      expect(cloned).to eq(subject)
+      expect(element).to eq(subject)
     end
 
     it "returns a detached element" do
-      expect(subject.clone.attached?).to eq(false)
+      expect(subject.copy.attached?).to eq(false)
     end
 
-    it "returns an element without id" do
-      expect(subject.clone.id).to be_nil
+    it "returns an element with the same id" do
+      expect(subject.copy.id).to eq(subject.id)
     end
   end
 end

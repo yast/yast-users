@@ -26,17 +26,14 @@ module Y2Users
   #   group = Group.new("admins")
   #   group.gid = 110
   #   group.attached? #=> false
-  #   group.id #=> nil
+  #   group.id #=> 1
   #
   #   config = Config.new("my_config")
   #   config.attach(group)
   #
   #   group.config #=> config
-  #   group.id #=> 56
   #   group.attached? #=> true
-  class Group
-    include ConfigElement
-
+  class Group < ConfigElement
     # Group name
     #
     # @return [String]
@@ -63,6 +60,8 @@ module Y2Users
     #
     # @param name [String]
     def initialize(name)
+      super()
+
       @name = name
       @users_name = []
       @source = :unknown

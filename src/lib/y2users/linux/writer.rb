@@ -98,8 +98,8 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
-        users_finder.added.each { |u| add_user(u, issues) }
-        users_finder.password_edited.each { |u| change_password(u, issues) }
+        add_users(issues)
+        edit_users(issues)
 
         # After modifying the users and groups in the system, previous versions of yast-users used
         # to update the NIS database and invalidate the nscd (Name Service Caching Daemon) cache.
@@ -168,8 +168,28 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
-      def users_finder
-        @users_finder ||= UsersFinder.new(initial_config, config)
+      # Creates the new users
+      #
+      # @param issues [Y2Issues::List]
+      def add_users(issues)
+        new_users = config.users.without(initial_config.users.ids)
+
+        new_users.each { |u| add_user(u, issues) }
+      end
+
+      # Applies changes for the edited users
+      #
+      # @param issues [Y2Issues::List]
+      def edit_users(issues)
+        edited_users = config.users.changed_from(initial_config.users)
+
+        edited_users.each do |user|
+          initial_user = initial_config.users.by_id(user.id)
+
+          next if initial_user.password == user.password
+
+          change_password(user, issues)
+        end
       end
 
       # Executes the command for creating the user
@@ -321,83 +341,6 @@ module Y2Users
       class Recorder < Cheetah::DefaultRecorder
         # To prevent leaking stdin, just do nothing
         def record_stdin(_stdin); end
-      end
-
-      # Helper class to find specific users
-      class UsersFinder
-        # Constructor
-        #
-        # @param initial [Config]
-        # @param target [Config]
-        def initialize(initial, target)
-          @initial = initial
-          @target = target
-        end
-
-        # Users from the target config that do not exist in the initial config
-        #
-        # @return [Array<User>]
-        def added
-          ids = target_ids - initial_ids
-
-          ids.map { |i| find_user(target, i) }
-        end
-
-        # Users from the target config whose password does not match with its counterpart from the
-        # initial config.
-        #
-        # @return [Array<User>]
-        def password_edited
-          ids = target_ids & initial_ids
-
-          pairs = ids.map { |i| [find_user(target, i), find_user(initial, i)] }
-
-          pairs.reject { |p| p.first.password == p.last.password }.map(&:first)
-        end
-
-      private
-
-        # Initial config
-        #
-        # @return [Config]
-        attr_reader :initial
-
-        # Target config
-        #
-        # @return [Config]
-        attr_reader :target
-
-        # Finds an user with the given id inside the given config
-        #
-        # @param config [Config]
-        # @param id [Integer]
-        #
-        # @return [User, nil] nil if user with the given id is not found
-        def find_user(config, id)
-          config.users.find { |u| u.id == id }
-        end
-
-        # All the users id from the initial config
-        #
-        # @return [Array<Integer>]
-        def initial_ids
-          users_id(initial)
-        end
-
-        # All the users id from the target config
-        #
-        # @return [Array<Integer>]
-        def target_ids
-          users_id(target)
-        end
-
-        # Users id from the given config
-        #
-        # @param config [Config]
-        # @return [Array<Integer>]
-        def users_id(config)
-          config.users.map(&:id).compact
-        end
       end
     end
   end

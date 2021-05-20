@@ -120,7 +120,7 @@ describe Y2Users::Group do
       subject.source = [:ldap]
     end
 
-    let(:other) { subject.clone }
+    let(:other) { subject.copy }
 
     context "when all the attributes are equal" do
       it "returns true" do

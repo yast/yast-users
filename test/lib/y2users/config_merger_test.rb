@@ -101,7 +101,7 @@ describe Y2Users::ConfigMerger do
         let(:lhs_users) { [lhs_user1, user3] }
 
         let(:lhs_user1) do
-          user = user1.clone
+          user = Y2Users::User.new("test1")
           user.uid = 1100
           user.gid = 110
           user.home = "/home/lhs_user1"
@@ -192,7 +192,7 @@ describe Y2Users::ConfigMerger do
         let(:lhs_groups) { [lhs_group1, group3] }
 
         let(:lhs_group1) do
-          group = group1.clone
+          group = Y2Users::Group.new("test1")
           group.gid = 110
           group.users_name = ["test1"]
           group

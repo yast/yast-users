@@ -17,8 +17,9 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast"
 require "y2users/config_merger"
+require "y2users/users_collection"
+require "y2users/groups_collection"
 
 module Y2Users
   # Class to represent a configuration of users and groups
@@ -29,67 +30,72 @@ module Y2Users
   #   group = Group.new("users")
   #
   #   config1 = Config.new
-  #   config1.users #=> []
+  #   config1.users #=> UsersCollection<[]>
   #   config1.attach(user1, user2, group)
-  #   config1.users #=> [user1, user2]
-  #   config1.groups #=> [group]
+  #   config1.users #=> UsersCollection<[user1, user2]>
+  #   config1.groups #=> GroupCollection<[group]>
   #
-  #   config2 = config1.clone
+  #   config2 = config1.copy
   #   user = config2.users.first
   #   config2.detach(user)
-  #   config2.users #=> [user2]
+  #   config2.users #=> UsersCollection<[user2]>
   class Config
     # Constructor
+    #
+    # @see UsersCollection
+    # @see GroupsCollection
     def initialize
-      @users_manager = ElementManager.new(self)
-      @groups_manager = ElementManager.new(self)
+      @users_collection = UsersCollection.new
+      @groups_collection = GroupsCollection.new
     end
 
-    # Users that belong to this config
+    # Collection of users that belong to this config
     #
-    # @note The list of users cannot be modified directly. Use {#attach} and {#detach} instead.
+    # The collection cannot be modified directly. Use {#attach} and {#detach} instead.
     #
-    # @return [Array<User>]
+    # @return [UsersCollection]
     def users
-      users_manager.elements.dup.freeze
+      users_collection.dup.freeze
     end
 
-    # Groups that belong to this config
+    # Collection of groups that belong to this config
     #
-    # @note The list of groups cannot be modified directly. Use {#attach} and {#detach} instead.
+    # The colletion cannot be modified directly. Use {#attach} and {#detach} instead.
     #
-    # @return [Array<Group>]
+    # @return [GroupsCollection]
     def groups
-      groups_manager.elements.dup.freeze
+      groups_collection.dup.freeze
     end
 
     # Attaches users and groups to this config
     #
-    # The given users and groups cannot be already attached to a config.
+    # The given users and groups cannot be attached to a config and their ids should not be included
+    # in the config, see {#attach_element}.
     #
-    # @param elements [Array<User, Group>]
+    # @param elements [Array<ConfigElement>]
     def attach(*elements)
       elements.flatten.each { |e| attach_element(e) }
     end
 
     # Detaches users and groups from this config
     #
-    # @param elements [Array<User, Group>]
+    # The given users and groups must be attached to this config, see {#detach_element}.
+    #
+    # @param elements [Array<ConfigElement>]
     def detach(*elements)
       elements.flatten.each { |e| detach_element(e) }
     end
 
-    # Generates a new config with the very same list of users and groups
+    # Generates a deep copy of the config
     #
-    # Note that the cloned users and groups keep the same id as the original users and groups.
+    # The copied users and groups keep the same id as the original users and groups.
     #
     # @return [Config]
-    def clone
+    def copy
+      elements = (users + groups).map(&:copy)
+
       config = self.class.new
-
-      elements = users + groups
-      elements.each { |e| config.clone_element(e) }
-
+      config.attach(elements)
       config
     end
 
@@ -99,7 +105,7 @@ module Y2Users
     # @param other [Config]
     # @return [Config]
     def merge(other)
-      clone.merge!(other)
+      copy.merge!(other)
     end
 
     # Modifies the current config by merging the users and groups of the given config into the users
@@ -113,112 +119,67 @@ module Y2Users
       self
     end
 
-  protected
-
-    # Clones a given user or group and attaches it into this config
-    #
-    # Note that the cloned element keep the same id as the source element.
-    #
-    # @param element [User, Group]
-    def clone_element(element)
-      cloned = element.clone
-      cloned.assign_internal_id(element.id)
-
-      attach(cloned)
-    end
-
   private
 
-    # Manager for users
+    # Collection of users
     #
-    # @return [ElementManager]
-    attr_reader :users_manager
+    # @return [UsersCollection]
+    attr_reader :users_collection
 
-    # Manager for groups
+    # Collection of groups
     #
-    # @return [ElementManager]
-    attr_reader :groups_manager
+    # @return [GroupsCollection]
+    attr_reader :groups_collection
 
-    # Attaches an user or group
+    # Attaches a user or group
     #
-    # An id is assigned to the given user/group, if needed.
+    # @raise [RuntimeError] if the element is already attached to a config
+    # @raise [RuntimeError] if an element with the same id already exists
     #
-    # @param element [User, Group]
+    # @param element [ConfigElement]
     def attach_element(element)
-      element.assign_internal_id(ElementId.next) if element.id.nil?
+      raise "Element #{element} is already attached to a config" if element.attached?
+      raise "Element #{element} already exists in this config" if exist_element?(element)
 
-      element.is_a?(User) ? users_manager.attach(element) : groups_manager.attach(element)
+      element.assign_config(self)
+
+      collection_for(element).add(element)
     end
 
-    # Detaches an user or group
+    # Detaches a user or group
     #
-    # @param element [User, Group]
+    # @raise [RuntimeError] if the given element is not attached to the config
+    #
+    # @param element [ConfigElement]
     def detach_element(element)
-      element.is_a?(User) ? users_manager.detach(element) : groups_manager.detach(element)
+      raise "Element #{element} is not attached to this config" if element.config != self
+
+      exist = exist_element?(element)
+
+      if !exist
+        log.warn("Detach element: element #{element} is attached to the config #{self}, but " \
+          "it cannot be found.")
+      end
+
+      collection_for(element).delete(element.id) if exist
+
+      element.assign_config(nil)
     end
 
-    # Helper class to manage a list of users or groups
-    class ElementManager
-      include Yast::Logger
-
-      # @return [Array<User, Group>]
-      attr_reader :elements
-
-      # @return [Config]
-      attr_reader :config
-
-      # Constructor
-      #
-      # @param config [Config]
-      def initialize(config)
-        @config = config
-        @elements = []
-      end
-
-      # Attaches the element to the config
-      #
-      # @raise [RuntimeError] if the element is already attached
-      #
-      # @param element [User, Group]
-      def attach(element)
-        raise "Element #{element} already attached to config #{config}" if element.attached?
-
-        @elements << element
-
-        element.assign_config(config)
-      end
-
-      # Detaches the element from the config
-      #
-      # @raise [RuntimeError] if the given element is not attached to the config
-      #
-      # @param element [User, Group]
-      def detach(element)
-        raise "Element #{element} is not attached to config #{config}" if element.config != config
-
-        index = @elements.find_index { |e| e.is?(element) }
-
-        if index.nil?
-          log.warn("Detach element: element #{element} is assigned to the config #{config}, but " \
-            "it cannot be found.")
-        end
-
-        @elements.delete_at(index) if index
-
-        element.assign_config(nil)
-        element.assign_internal_id(nil)
-      end
+    # Collection for the given element
+    #
+    # @param element [ConfigElement]
+    # @return [ConfigElementCollection]
+    def collection_for(element)
+      element.is_a?(User) ? @users_collection : @groups_collection
     end
 
-    # Helper class for generating elements ids
-    class ElementId
-      # Generates the next id to be used for an element
-      #
-      # @return [Integer]
-      def self.next
-        @last_element_id ||= 0
-        @last_element_id += 1
-      end
+    # Whether the given element exists in its collection
+    #
+    # @param element [ConfigElement]
+    # @return [Boolean]
+    def exist_element?(element)
+      collection_for(element).include?(element.id)
     end
   end
 end
