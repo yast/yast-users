@@ -90,6 +90,7 @@ ylib_y2users_DATA = \
   lib/y2users/group.rb \
   lib/y2users/help_texts.rb \
   lib/y2users/inst_users_dialog_helper.rb \
+  lib/y2users/password_helper.rb \
   lib/y2users/linux.rb \
   lib/y2users/password.rb \
   lib/y2users/password_validator.rb \

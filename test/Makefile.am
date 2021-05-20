@@ -14,6 +14,7 @@ TESTS = \
   lib/y2users/users_collection_test.rb \
   lib/y2users/groups_collection_test.rb \
   lib/y2users/config_element_examples.rb \
+  lib/y2users/password_helper_test.rb \
   lib/y2users/linux/local_reader_test.rb \
   lib/y2users/linux/reader_test.rb \
   lib/y2users/linux/writer_test.rb \
