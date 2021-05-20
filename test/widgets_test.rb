@@ -147,7 +147,6 @@ describe Users::PasswordWidget do
 
     before do
       allow(Y2Users::UsersSimple::Writer).to receive(:new).and_return(user_simple_writer)
-      allow(subject).to receive(:root_user).and_call_original
       stub_widget_value(:pw1, password)
       stub_widget_value(:pw2, password)
     end
@@ -164,6 +163,7 @@ describe Users::PasswordWidget do
       end
       expect(user_simple_writer).to receive(:write)
 
+      subject.validate
       subject.store
     end
 
@@ -177,6 +177,7 @@ describe Users::PasswordWidget do
           expect(Y2Users::UsersSimple::Writer).to_not receive(:new)
           expect(user_simple_writer).to_not receive(:write)
 
+          subject.validate
           subject.store
         end
       end

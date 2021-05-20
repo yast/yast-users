@@ -23,7 +23,7 @@ require "users/dialogs/users_to_import"
 require "y2users"
 require "y2users/users_simple"
 require "y2users/help_texts"
-require "y2users/inst_users_dialog_helper"
+require "y2users/password_helper"
 require "users/users_database"
 require "tmpdir"
 
@@ -33,7 +33,7 @@ module Yast
   # will then be created by that module during inst_finish
   # rubocop:disable Metrics/ClassLength
   class InstUserFirstDialog < ::UI::InstallationDialog
-    include Y2Users::InstUsersDialogHelper
+    include Y2Users::PasswordHelper
 
     # Widgets to enable/disable depending on the selected action
     # (the first one receives the initial focus if applicable)
@@ -183,7 +183,7 @@ module Yast
     # Sets the initial default value for autologin
     def init_autologin
       @autologin = UsersSimple.AutologinUsed
-      return unless user.nil? && !@autologin
+      return if user.attached? || @autologin
 
       @autologin = true if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
       Builtins.y2debug("autologin default value: %1", @autologin)
@@ -192,7 +192,7 @@ module Yast
     # Sets the initial default value for root pw checkbox
     def init_pw_for_root
       @use_pw_for_root = root_password_matches?
-      return unless user.nil? && !@use_pw_for_root
+      return if user.attached? || @use_pw_for_root
 
       if ProductFeatures.GetBooleanFeature("globals", "root_password_as_first_user") == true
         @use_pw_for_root = true
@@ -212,6 +212,76 @@ module Yast
       else
         :import
       end
+    end
+
+    # Config object holding the users and passwords to create
+    #
+    # @return [Y2Users::Config]
+    def users_config
+      @users_config ||= Y2Users::UsersSimple::Reader.new.read
+    end
+
+    # All users to be created
+    #
+    # @return [Array<Y2Users::User>]
+    def users
+      users_config.users.reject(&:root?)
+    end
+
+    # User to be created, useful during the :new_user action in which {#users}
+    # is known to contain only one element
+    #
+    # @return [Y2Users::User]
+    def user
+      @user ||= users.first || Y2Users::User.new("")
+    end
+
+    # Root users for which is possible to define the password during the :new_user action
+    #
+    # @return [Y2Users::User]
+    def root_user
+      @root_user ||= users_config.users.root
+    end
+
+    # Checks whether the information entered for the user is valid, reporting the problem to
+    # the user otherwise
+    #
+    # @param target_user [Y2Users::User]
+    # @return [Boolean]
+    def valid_user?(target_user)
+      issue = target_user.issues.first
+      if issue
+        Yast::Report.Error(issue.message)
+        focus_on(issue.location)
+        return false
+      end
+
+      true
+    end
+
+    # Whether chosen password if valid or not
+    #
+    # Note that validations are performed over a copy of
+    #
+    #   * {#root_user} when using the same password for root
+    #   * {#user} when not
+    #
+    # @param password [Y2Users::Password] the password to be validated
+    # @return [Boolean] true when given a valid password; false otherwise
+    def valid_password?(password)
+      target_user = @use_pw_for_root ? root_user : user
+      user_to_validate = target_user.copy
+      user_to_validate.password = password
+
+      valid_password_for?(user_to_validate)
+    end
+
+    # Sets the UI focus in the widget corresponding to the given issue location
+    #
+    # @param location [Y2Issues::Location]
+    def focus_on(location)
+      id = (location.path == "name") ? :username : :full_name
+      Yast::UI.SetFocus(Id(id))
     end
 
     def dialog_title
@@ -294,6 +364,10 @@ module Yast
     end
 
     def process_new_user_form
+      @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
+
+      target_user = user.copy
+
       # username checks
       @username = UI.QueryWidget(Id(:username), :Value)
       if @username.empty?
@@ -307,13 +381,15 @@ module Yast
       end
 
       @full_name = UI.QueryWidget(Id(:full_name), :Value)
-      attach_user(@username, full_name: @full_name)
-      return false unless valid_user?
+
+      target_user.name = @username
+      target_user.gecos = [@full_name].compact
+
+      return false unless valid_user?(target_user)
 
       # password checks
       pw1 = UI.QueryWidget(Id(:pw1), :Value)
       pw2 = UI.QueryWidget(Id(:pw2), :Value)
-      @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
 
       if pw1 != pw2
         # TRANSLATORS: error popup
@@ -321,22 +397,28 @@ module Yast
         return false
       end
 
-      @password = pw1
-      return false unless valid_password?
+      password = Y2Users::Password.create_plain(pw1)
 
-      user.password = Y2Users::Password.create_plain(pw1)
-      root_user.password = Y2Users::Password.create_plain(pw1) if @use_pw_for_root
+      return false unless valid_password?(password)
+
+      target_user.password = password
+
+      update_users_config(target_user)
 
       true
     end
 
-    # Registers the new user into {#users_config}
-    def attach_user(username, full_name: nil)
-      users_config.detach(user) if user
+    # Updates the users configuration with the given user
+    #
+    # @param target_user [Y2Users::User] the user for updating the configuration
+    def update_users_config(target_user)
+      user.name     = target_user.name
+      user.gecos    = target_user.gecos
+      user.password = target_user.password
 
-      new_user = Y2Users::User.new(username)
-      new_user.gecos = [full_name].compact
-      users_config.attach(new_user)
+      root_user.password = target_user.password if @use_pw_for_root
+
+      users_config.attach(user) unless user.attached?
     end
 
     # Writes the new user into Yast::UserSimple at the end of the process
@@ -533,18 +615,6 @@ module Yast
 
     def import_available?
       !!importing_database
-    end
-
-    # User for performing password validatons
-    #
-    # @see Y2Users::InstUsersDialogHelper#user_to_validate
-    #
-    # @return [Y2Users::User] a root user when using same password for root; a normal user otherwise
-    def user_to_validate
-      username = @user_pw_for_root ? "root" : "user"
-      user = Y2Users::User.new(username)
-      user.password = Y2Users::Password.create_plain(@password)
-      user
     end
   end
   # rubocop:enable Metrics/ClassLength

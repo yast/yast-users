@@ -20,8 +20,9 @@
 require "yast"
 require "cwm/widget"
 
+require "y2users"
 require "y2users/help_texts"
-require "y2users/inst_users_dialog_helper"
+require "y2users/password_helper"
 require "y2users/users_simple"
 require "users/local_password"
 
@@ -33,7 +34,7 @@ module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
-    include Y2Users::InstUsersDialogHelper
+    include Y2Users::PasswordHelper
 
     class << self
       attr_accessor :approved_pwd
@@ -46,9 +47,17 @@ module Users
     #
     # If `little_space` is `true`, the helpful label is omitted
     # and the password fields are laid out horizontally.
+    #
     # @param focus [Boolean] if set, then widget set focus to first password input field
     def initialize(little_space: false, focus: false, allow_empty: false)
       textdomain "users"
+
+      @users_config = Y2Users::Config.new
+      Y2Users::UsersSimple::Reader.new.read_to(@users_config)
+
+      @root_user = @users_config.users.root
+      @user_to_validate = @root_user.copy
+
       @little_space = little_space
       @focus = focus
       @allow_empty = allow_empty
@@ -118,11 +127,10 @@ module Users
       # do not ask again if already approved (bsc#1025835)
       return true if self.class.approved_pwd == password1
 
-      @password = password1
+      @user_to_validate.password = Y2Users::Password.create_plain(password1)
 
-      return false unless valid_password?
+      return false unless valid_password_for?(@user_to_validate)
 
-      root_user.password = Y2Users::Password.create_plain(password1)
       self.class.approved_pwd = password1
 
       true
@@ -132,9 +140,8 @@ module Users
     def store
       return if allow_empty? && empty?
 
-      password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
-      root_user.password = Y2Users::Password.create_plain(password1)
-      Y2Users::UsersSimple::Writer.new(users_config).write
+      @root_user.password = @user_to_validate.password
+      Y2Users::UsersSimple::Writer.new(@users_config).write
     end
 
     def help # rubocop:disable Metrics/MethodLength
@@ -204,19 +211,8 @@ module Users
     #
     # @return [String]
     def current_password
-      pwd = root_user.password&.value&.content
+      pwd = @root_user.password&.value&.content
       pwd.to_s
-    end
-
-    # User for performing password validatons
-    #
-    # @see Y2Users::InstUsersDialogHelper#user_to_validate
-    #
-    # @return [Y2Users::User] a root user
-    def user_to_validate
-      user = Y2Users::User.new("root")
-      user.password = Y2Users::Password.create_plain(@password)
-      user
     end
   end
 end
