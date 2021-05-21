@@ -37,7 +37,7 @@ module Y2Users
 
       # Adds the configuration to a given config object
       #
-      # @param [Y2Users::Config] Configuration to update
+      # @param config [Y2Users::Config] Configuration to update
       def read_to(config)
         config.attach(read_users + read_groups)
       end

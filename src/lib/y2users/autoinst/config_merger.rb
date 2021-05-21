@@ -65,8 +65,8 @@ module Y2Users
       #
       # Only non-nil from the `to` user are considered.
       #
-      # @param [User] Source user
-      # @param [User] Target user. This user is modified.
+      # @param from [User] Source user
+      # @param to [User] Target user. This user is modified.
       def merge_users(from, to)
         to.uid = from.uid
         to.gid = from.gid
@@ -82,8 +82,8 @@ module Y2Users
       #
       # Only non-nil from the `to` group are considered.
       #
-      # @param [Group] Source group
-      # @param [Group] Target group. This group is modified.
+      # @param from [Group] Source group
+      # @param to [Group] Target group. This group is modified.
       def merge_groups(from, to)
         to.gid = from.gid
 
