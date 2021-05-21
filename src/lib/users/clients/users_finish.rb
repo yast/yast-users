@@ -82,18 +82,18 @@ module Yast
 
       # 2. Merge the configuration with the system one
       target_config = system_config.clone
+
       if Yast::Stage.initial
         # Use an specific merger in the 1st stage
         Y2Users::Autoinst::ConfigMerger.new(target_config, ay_config).merge
       else
-        target_config.merge(ay_config)
+        # Use the default merging policy
+        target_config.merge!(ay_config)
       end
 
-      # TODO: support for BTRFS home and also what about login defaults?
-
-      # 3. Write users
-      # TODO: Write login defaults only
-      issues = Y2Users::Linux::Writer.new(target_config, system_config).write
+      # 3. Write users and groups
+      writer = Y2Users::Linux::Writer.new(target_config, system_config)
+      issues = writer.write
       return if issues.empty?
 
       log.error(issues.inspect)

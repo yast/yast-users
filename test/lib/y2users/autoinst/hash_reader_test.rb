@@ -49,7 +49,7 @@ describe Y2Users::Autoinst::HashReader do
 
     context "when the users list is missing" do
       let(:profile) do
-        { "groups" => [ { "groupname" => "users" } ] }
+        { "groups" => [{ "groupname" => "users" }] }
       end
 
       it "sets the user list as an empty array" do
