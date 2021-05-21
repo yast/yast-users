@@ -22,12 +22,12 @@
 require_relative "../test_helper"
 
 require "y2users/config"
-require "y2users/autoinst/hash_reader"
+require "y2users/autoinst/reader"
 
 # defines exported users
 require_relative "../../../fixtures/users_export"
 
-describe Y2Users::Autoinst::HashReader do
+describe Y2Users::Autoinst::Reader do
   subject { described_class.new(profile) }
 
   let(:profile) { USERS_EXPORT }

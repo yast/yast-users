@@ -20,7 +20,7 @@
 require "yast"
 require "installation/auto_client"
 require "y2users"
-require "y2users/autoinst/hash_reader"
+require "y2users/autoinst/reader"
 
 Yast.import "Users"
 Yast.import "UsersSimple"
@@ -44,7 +44,7 @@ module Y2Users
 
       def import(param)
         check_users(param["users"] || [])
-        reader = Y2Users::Autoinst::HashReader.new(param)
+        reader = Y2Users::Autoinst::Reader.new(param)
         config = Y2Users::Config.new
         reader.read_to(config)
         Y2Users::ConfigManager.instance.register(config, as: :autoinst)

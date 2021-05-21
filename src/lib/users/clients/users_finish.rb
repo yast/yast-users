@@ -21,7 +21,7 @@ require "yast"
 require "installation/finish_client"
 # target file to run system reader on target system
 require "yast2/target_file"
-require "y2users/autoinst/hash_reader"
+require "y2users/autoinst/reader"
 require "y2users/autoinst/config_merger"
 require "y2users/linux/reader"
 require "y2users/linux/writer"

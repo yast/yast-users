@@ -25,7 +25,7 @@ require "y2users/password"
 module Y2Users
   module Autoinst
     # This reader builds a Y2Users::Config from an AutoYaST profile hash
-    class HashReader
+    class Reader
       include Yast::Logger
 
       # @param content [Hash] Hash containing AutoYaST data
