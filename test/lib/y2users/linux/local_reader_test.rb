@@ -27,10 +27,11 @@ require "y2users/linux/local_reader"
 describe Y2Users::Linux::LocalReader do
   subject { described_class.new(File.join(FIXTURES_PATH, "/root/")) }
 
-  describe "#read_to" do
-    it "fills given config with read data" do
-      config = Y2Users::Config.new
-      subject.read_to(config)
+  describe "#read" do
+    it "generates a config with read data" do
+      config = subject.read
+
+      expect(config).to be_a(Y2Users::Config)
 
       expect(config.users.size).to eq 18
       expect(config.groups.size).to eq 37

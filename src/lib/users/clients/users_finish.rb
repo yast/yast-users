@@ -145,13 +145,7 @@ module Yast
     #
     # @return [Y2Users::Config]
     def users_simple_config
-      return @users_simple_config if @user_simple_config
-
-      config = Y2Users::Config.new
-      reader = Y2Users::UsersSimple::Reader.new
-      reader.read_to(config)
-
-      @users_simple_config = config
+      @users_simple_config ||= Y2Users::UsersSimple::Reader.new.read
     end
 
     # Reports issues

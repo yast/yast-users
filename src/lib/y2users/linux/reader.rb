@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast2/execute"
-
+require "y2users/config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
@@ -29,10 +29,18 @@ module Y2Users
     class Reader
       include Yast::Logger
 
-      def read_to(config)
-        config.attach(read_users + read_groups)
+      # Generates a new config with the users and groups from the system
+      #
+      # @return [Config]
+      def read
+        elements = read_users + read_groups
+
+        config = Config.new.attach(elements)
+
         # read passwords after user, as user has to exist in advance
         read_passwords(config)
+
+        config
       end
 
     private
@@ -57,7 +65,7 @@ module Y2Users
 
         passwords = parser.parse(getent)
         passwords.each_pair do |name, password|
-          user = config.users.find { |u| u.name == name }
+          user = config.users.by_name(name)
           if !user
             log.warn "Found password for non existing user #{password.name}."
             next
