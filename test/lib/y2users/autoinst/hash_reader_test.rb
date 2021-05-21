@@ -28,7 +28,9 @@ require "y2users/autoinst/hash_reader"
 require_relative "../../../fixtures/users_export"
 
 describe Y2Users::Autoinst::HashReader do
-  subject { described_class.new(USERS_EXPORT) }
+  subject { described_class.new(profile) }
+
+  let(:profile) { USERS_EXPORT }
 
   describe "#read_to" do
     it "fills given config with data from hash" do
@@ -43,6 +45,33 @@ describe Y2Users::Autoinst::HashReader do
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
+    end
+
+    context "when the users list is missing" do
+      let(:profile) do
+        { "groups" => [ { "groupname" => "users" } ] }
+      end
+
+      it "sets the user list as an empty array" do
+        config = Y2Users::Config.new
+        subject.read_to(config)
+
+        users_group = config.groups.first
+        expect(users_group.name).to eq("users")
+        expect(users_group.users_name).to eq([])
+      end
+    end
+
+    context "when the profile is empty" do
+      let(:profile) { {} }
+
+      it "sets the users and groups lists as empty" do
+        config = Y2Users::Config.new
+        subject.read_to(config)
+
+        expect(config.users).to be_empty
+        expect(config.groups).to be_empty
+      end
     end
   end
 end

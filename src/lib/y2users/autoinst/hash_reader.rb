@@ -24,14 +24,20 @@ require "y2users/password"
 
 module Y2Users
   module Autoinst
-    # Reader that fills config with hash from Users.Export
+    # This reader builds a Y2Users::Config from an AutoYaST profile hash
     class HashReader
       include Yast::Logger
 
+      # @param content [Hash] Hash containing AutoYaST data
+      # @option content [Hash] "users" List of users
+      # @option content [Hash] "groups" List of groups
       def initialize(content)
         @users_export = content
       end
 
+      # Adds the configuration to a given config object
+      #
+      # @param [Y2Users::Config] Configuration to update
       def read_to(config)
         config.attach(read_users + read_groups)
       end
@@ -41,7 +47,7 @@ module Y2Users
       attr_reader :users_export
 
       def read_users
-        exported_users = users_export["users"]
+        exported_users = users_export["users"] || []
         exported_users.map do |e_user|
           res = User.new(e_user["username"])
           res.gecos = [e_user["fullname"]]
@@ -55,11 +61,11 @@ module Y2Users
       end
 
       def read_groups
-        exported_groups = users_export["groups"]
+        exported_groups = users_export["groups"] || []
         exported_groups.map do |e_group|
           res = Group.new(e_group["groupname"])
           res.gid = e_group["gid"]
-          users_name = e_group["userlist"].split(",")
+          users_name = e_group["userlist"].to_s.split(",")
           res.users_name = users_name
           res.source = :local
           res
