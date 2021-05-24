@@ -249,7 +249,7 @@ module Yast
     # @param target_user [Y2Users::User]
     # @return [Boolean]
     def valid_user?(target_user)
-      issue = target_user.issues.first
+      issue = target_user.issues(skip: [:password]).first
       if issue
         Yast::Report.Error(issue.message)
         focus_on(issue.location)

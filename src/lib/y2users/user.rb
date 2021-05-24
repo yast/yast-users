@@ -222,12 +222,16 @@ module Y2Users
 
     # Validation errors
     #
+    # @see UserValidator#issues
+    #
     # @return [Y2Issues::List]
-    def issues
-      UserValidator.new(self).issues
+    def issues(*args)
+      UserValidator.new(self).issues(*args)
     end
 
     # Validation errors of the current password
+    #
+    # @see PasswordValidator#issues
     #
     # @return [Y2Issues::List]
     def password_issues
