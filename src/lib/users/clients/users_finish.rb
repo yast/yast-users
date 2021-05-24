@@ -81,7 +81,7 @@ module Yast
       ay_config = Y2Users::ConfigManager.instance.config(:autoinst)
 
       # 2. Merge the configuration with the system one
-      target_config = system_config.clone
+      target_config = system_config.copy
 
       if Yast::Stage.initial
         # Use an specific merger in the 1st stage

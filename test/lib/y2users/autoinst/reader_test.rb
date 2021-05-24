@@ -32,10 +32,9 @@ describe Y2Users::Autoinst::Reader do
 
   let(:profile) { USERS_EXPORT }
 
-  describe "#read_to" do
+  describe "#read" do
     it "fills given config with data from hash" do
-      config = Y2Users::Config.new
-      subject.read_to(config)
+      config = subject.read
 
       expect(config.users.size).to eq 29
       expect(config.groups.size).to eq 43
@@ -53,8 +52,7 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets the user list as an empty array" do
-        config = Y2Users::Config.new
-        subject.read_to(config)
+        config = subject.read
 
         users_group = config.groups.first
         expect(users_group.name).to eq("users")
@@ -66,8 +64,7 @@ describe Y2Users::Autoinst::Reader do
       let(:profile) { {} }
 
       it "sets the users and groups lists as empty" do
-        config = Y2Users::Config.new
-        subject.read_to(config)
+        config = subject.read
 
         expect(config.users).to be_empty
         expect(config.groups).to be_empty

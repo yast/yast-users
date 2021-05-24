@@ -35,11 +35,12 @@ module Y2Users
         @users_export = content
       end
 
-      # Adds the configuration to a given config object
+      # Generates a new config with the users and groups from the system
       #
-      # @param config [Y2Users::Config] Configuration to update
-      def read_to(config)
-        config.attach(read_users + read_groups)
+      # @return [Config]
+      def read
+        elements = read_users + read_groups
+        Config.new.attach(elements)
       end
 
     private

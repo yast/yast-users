@@ -5,15 +5,12 @@ require "fileutils"
 require "yaml"
 require "users/clients/users_finish"
 
-Yast.import "Users"
+Yast.import "WFM"
+Yast.import "UsersSimple"
+Yast.import "Autologin"
+Yast.import "Report"
 
 describe Yast::UsersFinishClient do
-  Yast.import "WFM"
-  Yast.import "UsersPasswd"
-  Yast.import "UsersSimple"
-  Yast.import "Autologin"
-  Yast.import "Report"
-
   describe "#run" do
     before do
       allow(Yast::WFM).to receive(:Args).with(no_args).and_return(args)

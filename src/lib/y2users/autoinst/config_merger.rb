@@ -37,7 +37,7 @@ module Y2Users
       def merge_element(config, element)
         current_element = find_element(config, element)
 
-        new_element = element.clone
+        new_element = element.copy
 
         if current_element
           new_element.assign_internal_id(current_element.id)

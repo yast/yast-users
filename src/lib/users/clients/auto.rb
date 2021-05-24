@@ -45,8 +45,7 @@ module Y2Users
       def import(param)
         check_users(param["users"] || [])
         reader = Y2Users::Autoinst::Reader.new(param)
-        config = Y2Users::Config.new
-        reader.read_to(config)
+        config = reader.read
         Y2Users::ConfigManager.instance.register(config, as: :autoinst)
 
         true
