@@ -4,6 +4,7 @@ TESTS = \
   lib/y2users/config_merger_test.rb \
   lib/y2users/config_test.rb \
   lib/y2users/user_test.rb \
+  lib/y2users/user_validator_test.rb \
   lib/y2users/group_test.rb \
   lib/y2users/password_test.rb \
   lib/y2users/password_validator_test.rb \
