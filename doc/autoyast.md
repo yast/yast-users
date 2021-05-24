@@ -1,6 +1,6 @@
 # AutoYaST Support
 
-AutoYaST behaves in a different way depending whether it is running on 1st or not.
+AutoYaST behaves in a different way depending whether it is running on 1st stage or not.
 
 ## 1st Stage
 
@@ -39,7 +39,7 @@ A few things to note in this example:
 
 ## 2nd Stage or Normal Mode
 
-* Merges users/groups with the same name and updates the profile according to the profile.
+* Merges users/groups with the same name and updates the configuration according to the profile.
 * If an element is not specified in the profile, it falls back to the default.
 
 Given the example of the previous section, the resulting user would be:
