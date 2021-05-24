@@ -1,5 +1,3 @@
-#!/usr/bin/env rspec
-
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -19,28 +17,28 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require_relative "../test_helper"
+require "date"
 
-require "y2users/config"
-require "y2users/linux/local_reader"
+module Y2Users
+  # Mixin for converting the strings used to represent dates in the shadow file
+  module ShadowDateHelper
+    # Converts a string representing the number of days since 1970-01-01 into a date
+    #
+    # @param string [String]
+    # @return [Date]
+    def shadow_string_to_date(string)
+      # We need to expand the days to seconds
+      unix_time = string.to_i * 24 * 60 * 60
+      Date.strptime(unix_time.to_s, "%s")
+    end
 
-describe Y2Users::Linux::LocalReader do
-  subject { described_class.new(File.join(FIXTURES_PATH, "/root/")) }
-
-  describe "#read" do
-    it "generates a config with read data" do
-      config = subject.read
-
-      expect(config).to be_a(Y2Users::Config)
-
-      expect(config.users.size).to eq 18
-      expect(config.groups.size).to eq 37
-
-      root_user = config.users.find { |u| u.uid == "0" }
-      expect(root_user.shell).to eq "/bin/bash"
-      expect(root_user.primary_group.name).to eq "root"
-      expect(root_user.password.value.encrypted?).to eq true
-      expect(root_user.password.value.content).to match(/^\$6\$pL/)
+    # Converts a date to a string representing the number of days since 1970-01-01
+    #
+    # @param date [Date]
+    # @return [String
+    def date_to_shadow_string(date)
+      # We need to convert the seconds provided by "%s" to days
+      date.strftime("%s").to_i / (24 * 60 * 60)
     end
   end
 end

@@ -37,7 +37,7 @@ describe Y2Users::Linux::Writer do
       config
     end
 
-    let(:config) { initial_config.clone }
+    let(:config) { initial_config.copy }
 
     let(:users) { [] }
 
@@ -47,34 +47,104 @@ describe Y2Users::Linux::Writer do
       user
     end
 
-    let(:password) do
-      password = Y2Users::Password.new(pwd_value)
-      password.account_expiration = expiration_date
-      password
-    end
+    let(:password) { Y2Users::Password.new(pwd_value) }
 
     let(:username) { "testuser" }
     let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
-    let(:expiration_date) { nil }
 
-    RSpec.shared_examples "setting expiration date" do
-      context "with an expiration date" do
-        let(:expiration_date) { Date.today }
+    RSpec.shared_examples "setting password attributes" do
+      context "setting some password attributes" do
+        before do
+          password.aging = aging
+          password.account_expiration = towel_day
+          password.minimum_age = minimum_age
+        end
 
-        it "includes the --expiredate option" do
-          expect(Yast::Execute).to receive(:on_target!) do |*args|
-            expect(args).to include("--expiredate")
-            expect(args).to include(expiration_date.to_s)
+        let(:towel_day) { Date.new(2001, 5, 25) }
+        let(:minimum_age) { 20 }
+
+        context "but not the one about password aging" do
+          let(:aging) { nil }
+
+          it "executes 'chage' to set the attributes but excluding 'lastday'" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+              options = Hash[*(args[1..-2])]
+
+              expect(options["--mindays"]).to eq minimum_age.to_s
+              expect(options["--expiredate"]).to eq "2001-05-25"
+              expect(options.keys).to_not include("--lastday")
+            end
+
+            writer.write
+          end
+        end
+
+        context "including the password last change" do
+          let(:aging) { Y2Users::PasswordAging.new(towel_day) }
+
+          it "executes 'chage' to set the attributes including 'lastday'" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+              options = Hash[*(args[1..-2])]
+
+              expect(options["--mindays"]).to eq minimum_age.to_s
+              expect(options["--expiredate"]).to eq "2001-05-25"
+              expect(options["--lastday"]).to eq "11467"
+            end
+
+            writer.write
+          end
+        end
+
+        context "including the need to change the password" do
+          let(:aging) do
+            age = Y2Users::PasswordAging.new
+            age.force_change
+            age
           end
 
-          writer.write
+          it "executes 'chage' to set the attributes including 'lastday' (to zero)" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+              options = Hash[*(args[1..-2])]
+
+              expect(options["--mindays"]).to eq minimum_age.to_s
+              expect(options["--expiredate"]).to eq "2001-05-25"
+              expect(options["--lastday"]).to eq "0"
+            end
+
+            writer.write
+          end
+        end
+
+        context "but disabling password aging" do
+          let(:aging) do
+            age = Y2Users::PasswordAging.new
+            age.disable
+            age
+          end
+
+          it "executes 'chage' to set the attributes and to reset 'lastday'" do
+            expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+              options = Hash[*(args[1..-2])]
+
+              expect(options["--mindays"]).to eq minimum_age.to_s
+              expect(options["--expiredate"]).to eq "2001-05-25"
+              expect(options["--lastday"]).to eq "-1"
+            end
+
+            writer.write
+          end
         end
       end
 
-      context "without an expiration date" do
-        it "does not include the --expiredate option" do
-          expect(Yast::Execute).to receive(:on_target!) do |*args|
-            expect(args).to_not include("--expiredate")
+      context "with default password attributes" do
+        it "executes 'chage' to clean-up all fields except 'lastday'" do
+          expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+            options = Hash[*(args[1..-2])]
+
+            expect(options.keys).to contain_exactly(
+              "--mindays", "--maxdays", "--warndays", "--inactive", "--expiredate"
+            )
+            expect(options.values).to all(eq("-1"))
           end
 
           writer.write
@@ -197,8 +267,8 @@ describe Y2Users::Linux::Writer do
         config.attach(user)
       end
 
-      include_examples "setting expiration date"
       include_examples "setting password"
+      include_examples "setting password attributes"
 
       it "executes useradd with all the parameters, including creation of home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -215,8 +285,8 @@ describe Y2Users::Linux::Writer do
         config.attach(user)
       end
 
-      include_examples "setting expiration date"
       include_examples "setting password"
+      include_examples "setting password attributes"
 
       it "executes useradd only with the argument to create the home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--create-home", username)
@@ -296,6 +366,26 @@ describe Y2Users::Linux::Writer do
         expect(result).to be_a(Y2Issues::List)
         expect(result).to_not be_empty
         expect(result.map(&:message)).to include(/password.*could not be set/)
+      end
+    end
+
+    context "when there is any error setting the password attributes" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      before do
+        config.attach(user)
+
+        allow(Yast::Execute).to receive(:on_target!)
+          .with(/chage/, any_args)
+          .and_raise(error)
+      end
+
+      it "returns an issues list containing the issue" do
+        result = writer.write
+
+        expect(result).to be_a(Y2Issues::List)
+        expect(result).to_not be_empty
+        expect(result.map(&:message)).to include(/Error setting the properties of the password/)
       end
     end
   end

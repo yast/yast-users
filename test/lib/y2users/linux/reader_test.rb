@@ -40,15 +40,16 @@ describe Y2Users::Linux::Reader do
       .and_return(shadow_content)
   end
 
-  describe "#read_to" do
-    it "fills given config with read data" do
-      config = Y2Users::Config.new
-      subject.read_to(config)
+  describe "#read" do
+    it "generates a config with read data" do
+      config = subject.read
+
+      expect(config).to be_a(Y2Users::Config)
 
       expect(config.users.size).to eq 18
       expect(config.groups.size).to eq 37
 
-      root_user = config.users.find { |u| u.uid == "0" }
+      root_user = config.users.by_uid("0").first
       expect(root_user.shell).to eq "/bin/bash"
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true

@@ -84,7 +84,6 @@ ylib_users_DATA = \
 
 ylib_y2usersdir = @ylibdir@/y2users
 ylib_y2users_DATA = \
-  lib/y2users/config_element.rb \
   lib/y2users/config_manager.rb \
   lib/y2users/config_merger.rb \
   lib/y2users/config.rb \
@@ -94,10 +93,15 @@ ylib_y2users_DATA = \
   lib/y2users/linux.rb \
   lib/y2users/password.rb \
   lib/y2users/password_validator.rb \
+  lib/y2users/shadow_date_helper.rb \
   lib/y2users/user.rb \
   lib/y2users/users_simple.rb \
   lib/y2users/user_validator.rb \
-  lib/y2users/validation_config.rb
+  lib/y2users/validation_config.rb \
+  lib/y2users/config_element.rb \
+  lib/y2users/config_element_collection.rb \
+  lib/y2users/users_collection.rb \
+  lib/y2users/groups_collection.rb
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \

@@ -39,9 +39,9 @@ module Y2Users
     #
     # @see merge_element
     def merge
-      elements = rhs.users + rhs.groups
+      collection = rhs.users + rhs.groups
 
-      elements.each { |e| merge_element(lhs, e) }
+      collection.each { |e| merge_element(lhs, e) }
     end
 
   private
@@ -59,11 +59,11 @@ module Y2Users
     # Merges an element into a config
     #
     # @param config [Config] This config is modified
-    # @param element [User, Group]
+    # @param element [ConfigElement]
     def merge_element(config, element)
       current_element = find_element(config, element)
 
-      new_element = element.clone
+      new_element = element.copy
 
       if current_element
         new_element.assign_internal_id(current_element.id)
@@ -76,14 +76,14 @@ module Y2Users
     # Finds an element into a config by its name
     #
     # @param config [Config]
-    # @param element [User, Group]
+    # @param element [ConfigElement]
     #
     # @raise [RuntimeError] if the the given element is not an {User} or {Group}.
     #
-    # @return [User, Group, nil] nil if the config does not contain an element with the same name as
-    #   the given element.
+    # @return [ConfigElement, nil] nil if the config does not contain an element with the same
+    #   name as the given element.
     def find_element(config, element)
-      elements = case element
+      collection = case element
       when User
         config.users
       when Group
@@ -92,7 +92,7 @@ module Y2Users
         raise "Element #{element} not valid. It must be an User or Group"
       end
 
-      elements.find { |e| e.name == element.name }
+      collection.find { |e| e.name == element.name }
     end
   end
 end

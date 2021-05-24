@@ -245,7 +245,7 @@ describe Y2Users::User do
       subject.password = Y2Users::Password.create_plain("S3cr3T")
     end
 
-    let(:other) { subject.clone }
+    let(:other) { subject.copy }
 
     context "when all the attributes are equal" do
       it "returns true" do

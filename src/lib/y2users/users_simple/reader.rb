@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/parsers/shadow"
@@ -36,15 +37,13 @@ module Y2Users
       ].freeze
       private_constant :SORTED_SHADOW_ATTRS
 
-      # Attaches users to given configuration
+      # Generates a new config with the users from YaST::UsersSimple module
       #
-      # @param config [Config]
-      def read_to(config)
-        # Read new users
-        config.attach(users)
+      # @return [Config]
+      def read
+        elements = [root_user] + users
 
-        # Read also root user settings
-        config.attach(root_user)
+        Config.new.attach(elements)
       end
 
     private

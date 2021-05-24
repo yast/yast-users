@@ -62,25 +62,24 @@ module Y2Users
     end
 
     # Gets system configuration.
-    # @param [#read_to(config)] reader used to read system configuration.
+    # @param [#read] reader used to read system configuration.
     #   If not specified it will decide itself which one to use.
     # @param [Boolean] force_read if it can get previous result of system or
     #   force re-read from system.
     # @return [Config]
     def system(reader: nil, force_read: false)
-      res = config(:system)
-      return res if res && !force_read
+      config = config(:system)
+      return config if config && !force_read
 
       if !reader
         require "y2users/linux/reader"
         reader = Linux::Reader.new
       end
 
-      res = Config.new
-      reader.read_to(res)
-      register(res, as: :system)
+      config = reader.read
+      register(config, as: :system)
 
-      res
+      config
     end
   end
 end

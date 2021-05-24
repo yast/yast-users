@@ -30,11 +30,22 @@ describe Y2Users::Config do
       subject.attach(users)
     end
 
+    let(:users) { [] }
+
+    it "returns an immutable collection of users" do
+      users = subject.users
+
+      expect(users).to be_a(Y2Users::UsersCollection)
+      expect { users.add(Y2Users::User.new("test")) }.to raise_error(RuntimeError)
+    end
+
     context "when there are no attached users" do
       let(:users) { [] }
 
-      it "returns an empty list" do
-        expect(subject.users).to be_empty
+      it "returns an empty collection" do
+        users = subject.users
+
+        expect(users).to be_empty
       end
     end
 
@@ -47,10 +58,8 @@ describe Y2Users::Config do
 
       let(:users) { [user1, user2, user3] }
 
-      it "returns an immutable list with all the attached users" do
-        expect(subject.users).to contain_exactly(user1, user2, user3)
-
-        expect { subject.users << Y2Users::User.new("test") }.to raise_error(RuntimeError)
+      it "returns a collection with all the attached users" do
+        expect(subject.users.all).to contain_exactly(user1, user2, user3)
       end
     end
   end
@@ -60,10 +69,19 @@ describe Y2Users::Config do
       subject.attach(groups)
     end
 
+    let(:groups) { [] }
+
+    it "returns an immutable collection of groups" do
+      groups = subject.groups
+
+      expect(groups).to be_a(Y2Users::GroupsCollection)
+      expect { groups.add(Y2Users::User.new("test")) }.to raise_error(RuntimeError)
+    end
+
     context "when there are no attached groups" do
       let(:groups) { [] }
 
-      it "returns an empty list" do
+      it "returns an empty collection" do
         expect(subject.groups).to be_empty
       end
     end
@@ -77,10 +95,8 @@ describe Y2Users::Config do
 
       let(:groups) { [group1, group2, group3] }
 
-      it "returns an immutable list with all the attached groups" do
-        expect(subject.groups).to contain_exactly(group1, group2, group3)
-
-        expect { subject.groups << Y2Users::Group.new("test2") }.to raise_error(RuntimeError)
+      it "returns a collection with all the attached groups" do
+        expect(subject.groups.all).to contain_exactly(group1, group2, group3)
       end
     end
   end
@@ -92,34 +108,54 @@ describe Y2Users::Config do
 
     let(:group1) { Y2Users::Group.new("test1") }
 
-    it "attaches the given users and groups" do
+    it "adds the given elements to the collections of users and groups" do
       subject.attach(user1, user2, group1)
 
-      expect(subject.users).to contain_exactly(user1, user2)
+      expect(subject.users.all).to contain_exactly(user1, user2)
 
-      expect(subject.groups).to contain_exactly(group1)
+      expect(subject.groups.all).to contain_exactly(group1)
     end
 
-    it "assigns an unique id to the attached elements" do
-      subject.attach(user1, user2, group1)
+    it "assigns the config to the given elements" do
+      subject.attach(user1, group1)
 
-      expect(user1.id).to_not be_nil
-      expect(user2.id).to_not be_nil
-      expect(group1.id).to_not be_nil
-
-      ids = [user1, user2, group1].map(&:id)
-
-      expect(ids).to all(be_a(Integer))
-      expect(ids.uniq.size).to eq(3)
+      expect(user1.config).to eq(subject)
+      expect(group1.config).to eq(subject)
     end
 
-    context "if a given element is already attached" do
+    it "returns the config" do
+      result = subject.attach(user1, group1)
+
+      expect(result).to eq(subject)
+    end
+
+    context "if a given element is already attached to the config" do
       before do
         subject.attach(user2)
       end
 
       it "raises an error" do
-        expect { subject.attach(user2) }.to raise_error(RuntimeError)
+        expect { subject.attach(user2) }.to raise_error(RuntimeError, /already attached/)
+      end
+    end
+
+    context "if a given element is already attached to another config" do
+      before do
+        described_class.new.attach(user2)
+      end
+
+      it "raises an error" do
+        expect { subject.attach(user2) }.to raise_error(RuntimeError, /already attached/)
+      end
+    end
+
+    context "if the given element has an id that already exists in the config" do
+      before do
+        subject.attach(user1)
+      end
+
+      it "raises an error" do
+        expect { subject.attach(user1.copy) }.to raise_error(RuntimeError, /already exists/)
       end
     end
   end
@@ -135,42 +171,39 @@ describe Y2Users::Config do
       subject.attach(user1, user2, group1)
     end
 
-    it "detaches the given users and groups" do
+    it "removes the given elements from the colletions of users and groups" do
       subject.detach(user2, group1)
 
-      expect(subject.users).to contain_exactly(user1)
+      expect(subject.users.all).to contain_exactly(user1)
 
       expect(subject.groups).to be_empty
     end
 
-    it "sets the given elements as detached" do
+    it "removes the config from the given elements" do
       subject.detach(user2, group1)
 
-      expect(user2.attached?).to eq(false)
+      expect(user2.config).to be_nil
 
-      expect(group1.attached?).to eq(false)
-    end
-
-    it "removes the id from the given elements" do
-      subject.detach(user2, group1)
-
-      expect(user2.id).to be_nil
-
-      expect(group1.id).to be_nil
+      expect(group1.config).to be_nil
     end
 
     it "does not modify the rest of elements" do
       subject.detach(user2, group1)
 
-      expect(user1.attached?).to eq(true)
-      expect(user1.id).to_not be_nil
+      expect(user1.config).to eq(subject)
+    end
+
+    it "returns the config" do
+      result = subject.detach(user2, group1)
+
+      expect(result).to eq(subject)
     end
 
     context "if a given element is not attached yet" do
       let(:user3) { Y2Users::User.new("test3")  }
 
       it "raises an error" do
-        expect { subject.detach(user3) }.to raise_error(RuntimeError)
+        expect { subject.detach(user3) }.to raise_error(RuntimeError, /not attached/)
       end
     end
 
@@ -187,7 +220,7 @@ describe Y2Users::Config do
     end
   end
 
-  describe "#clone" do
+  describe "#copy" do
     before do
       subject.attach([user1, user2, group1, group2])
     end
@@ -201,31 +234,31 @@ describe Y2Users::Config do
     let(:group2) { Y2Users::Group.new("test2") }
 
     def find(config, element)
-      elements = config.users + config.groups
+      elements = config.users.all + config.groups.all
 
       elements.find { |e| e == element }
     end
 
     it "generates a new config object" do
-      config = subject.clone
+      config = subject.copy
 
       expect(config).to_not eq(subject)
     end
 
     it "copies all users from the current config" do
-      config = subject.clone
+      config = subject.copy
 
-      expect(config.users).to eq(subject.users)
+      expect(config.users.all).to eq(subject.users.all)
     end
 
     it "copies all groups from the current config" do
-      config = subject.clone
+      config = subject.copy
 
-      expect(config.groups).to eq(subject.groups)
+      expect(config.groups.all).to eq(subject.groups.all)
     end
 
     it "keeps the same users id" do
-      config = subject.clone
+      config = subject.copy
 
       config.users.each do |user|
         original_user = find(subject, user)
@@ -235,7 +268,7 @@ describe Y2Users::Config do
     end
 
     it "keeps the same groups id" do
-      config = subject.clone
+      config = subject.copy
 
       config.groups.each do |group|
         original_group = find(subject, group)
@@ -248,7 +281,7 @@ describe Y2Users::Config do
   describe "#merge" do
     before do
       subject.attach([user1, group1])
-      other.attach([user1.clone, user2, group2])
+      other.attach([user1.copy, user2, group2])
     end
 
     let(:other) { Y2Users::Config.new }
@@ -268,13 +301,13 @@ describe Y2Users::Config do
     end
 
     it "does not mofidify the current config" do
-      users = subject.users
-      groups = subject.groups
+      users = subject.users.all
+      groups = subject.groups.all
 
       subject.merge(other)
 
-      expect(subject.users).to eq(users)
-      expect(subject.groups).to eq(groups)
+      expect(subject.users.all).to eq(users)
+      expect(subject.groups.all).to eq(groups)
     end
 
     it "merges users from the given config into the users of the current config" do
@@ -297,7 +330,7 @@ describe Y2Users::Config do
   describe "#merge!" do
     before do
       subject.attach([user1, group1])
-      other.attach([user1.clone, user2, group2])
+      other.attach([user1.copy, user2, group2])
     end
 
     let(:other) { Y2Users::Config.new }
@@ -317,13 +350,13 @@ describe Y2Users::Config do
     end
 
     it "modifies the current config object" do
-      users = subject.users
-      groups = subject.groups
+      users = subject.users.all
+      groups = subject.groups.all
 
       subject.merge!(other)
 
-      expect(subject.users).to_not eq(users)
-      expect(subject.groups).to_not eq(groups)
+      expect(subject.users.all).to_not eq(users)
+      expect(subject.groups.all).to_not eq(groups)
     end
 
     it "merges users from the given config into the users of the current config" do

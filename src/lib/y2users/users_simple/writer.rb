@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/shadow_date_helper"
 
 Yast.import "UsersSimple"
 
@@ -25,6 +26,8 @@ module Y2Users
   module UsersSimple
     # Class for writing users configuration into the old UsersSimple Yast Module
     class Writer
+      include ShadowDateHelper
+
       # Constructor
       #
       # @param config [Config]
@@ -82,7 +85,7 @@ module Y2Users
           shadowMax:        password.maximum_age,
           shadowWarning:    password.warning_period,
           shadowInactive:   password.inactivity_period,
-          shadowLastChange: date_string(password.last_change),
+          shadowLastChange: password.aging&.content,
           shadowExpire:     date_string(password.account_expiration)
         }.merge(password_value_attrs(password))
       end
@@ -111,9 +114,8 @@ module Y2Users
       def date_string(date)
         return nil unless date
 
-        # UsersSimple uses the same format than the shadow file - days since 1970-01-01
-        # So we need to convert the seconds provided by "%s" to days
-        date.strftime("%s").to_i / (24 * 60 * 60)
+        # UsersSimple uses the same format than the shadow file
+        date_to_shadow_string(date)
       end
     end
   end

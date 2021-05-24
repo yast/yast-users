@@ -73,13 +73,10 @@ module Y2Users
     # having removed, modified and created all users. So the database gets
     # updated always, no matter whether useradd.local has been called.
     #
-    #
-    # NOTE: we need to check why nscd_passwd is relevant
     # NOTE: no support for the Yast::Users option no_skeleton
     # NOTE: no support for the Yast::Users chown_home=0 option (what is good for?)
 
     # TODO: no plugin support yet
-    # TODO: other password attributes like #maximum_age, #inactivity_period, etc.
     # TODO: no authorized keys yet
     class Writer
       include Yast::I18n
@@ -101,18 +98,38 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
-        # handle groups first as it does not depend on users uid, but it is vice versa
-        new_groups = config.groups.map(&:id) - initial_config.groups.map(&:id)
-        new_groups.map! { |id| config.groups.find { |g| g.id == id } }
-        new_groups.each { |g| add_group(g, issues) }
+        add_users(issues)
+        edit_users(issues)
 
-        # TODO: modify group?
-
-        users_finder.added.each { |u| add_user(u, issues) }
-        users_finder.modified.each { |nu, ou| modify(nu, ou, issues) }
-
-        # TODO: update the NIS database (make -C /var/yp) if needed
-        # TODO: remove the passwd cache for nscd (bug 24748, 41648)
+        # After modifying the users and groups in the system, previous versions of yast-users used
+        # to update the NIS database and invalidate the nscd (Name Service Caching Daemon) cache.
+        #
+        # The nscd cache cleanup was initially introduced in the context of bsc#39748 and bsc#56648.
+        # It's not longer needed for local users because:
+        #  - The nscd daemon watches for changes in the relevant files (eg. /etc/passwd)
+        #  - The current implementation relies on the tools in the shadow suite (eg. useradd), which
+        #    already flush nscd and sssd caches when needed.
+        #
+        # Updating the NIS database (make -C /var/yp) was done if the system was the master server
+        # of a NIS domain. But turns out it was likely not that useful and reliable as originally
+        # intended for several reasons.
+        #  - Detection of the NIS master server was not reliable
+        #    * Based on the "yphelper" tool that was never intended to be used by third-party tools
+        #      like YaST and that was moved from lib to libexec without YaST being adapted.
+        #    * Working only if the command "domainname" printed the right result, something that
+        #      seems to happen only if the host is configured both as a NIS server and client.
+        #    * Alternative detection mechanisms (eg. relying on the output of the "yppoll" command)
+        #      don't seem to be fully reliable either.
+        #  - Trying to rebuild the database was pointless in many scenarios. For example, it makes
+        #    no sense in (Auto)installation, since users are created before the NIS server could be
+        #    configured. The same likely applies to Firstboot.
+        #  - The NIS database is never updated by the shadow tools, to which yast2-users should
+        #    align as much as possible.
+        #  - Properly configured NIS servers are expected to have some mechanism (eg. cron job) to
+        #    update the database periodically (eg. every 15 minutes).
+        #
+        # To avoid the need of maintaining code to perform actions that doesn't have a clear benefit
+        # nowadays, YaST does not longer handle the status of nscd or NIS databases.
 
         issues
       end
@@ -147,8 +164,32 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
-      def users_finder
-        @users_finder ||= UsersFinder.new(initial_config, config)
+      # Command for configuring the attributes in /etc/shadow
+      CHAGE = "/usr/bin/chage".freeze
+      private_constant :CHAGE
+
+      # Creates the new users
+      #
+      # @param issues [Y2Issues::List]
+      def add_users(issues)
+        new_users = config.users.without(initial_config.users.ids)
+
+        new_users.each { |u| add_user(u, issues) }
+      end
+
+      # Applies changes for the edited users
+      #
+      # @param issues [Y2Issues::List]
+      def edit_users(issues)
+        edited_users = config.users.changed_from(initial_config.users)
+
+        edited_users.each do |user|
+          initial_user = initial_config.users.by_id(user.id)
+
+          next if initial_user.password == user.password
+
+          change_password(user, issues)
+        end
       end
 
       # Executes the command for creating the user
@@ -165,80 +206,46 @@ module Y2Users
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
-      # Command for creating new groups
-      GROUPADD = "/usr/sbin/groupadd".freeze
-      private_constant :GROUPADD
-
-      # Executes the command for creating the group
+      # Executes the commands for setting the password and all its associated
+      # attributes for the given user
       #
-      # @param group [Y2User::Group] the group to be created on the system
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def add_group(group, issues)
-        args = [GROUPADD]
-        args << "--gid" << group.gid if group.gid
-        args << group.name
-        # TODO: system groups?
-        Yast::Execute.on_target!(args)
-      rescue Cheetah::ExecutionFailed => e
-        issues << Y2Issues::Issue.new(
-          format(_("The group '%{groupname}' could not be created"), groupname: group.name)
-        )
-        log.error("Error creating group '#{group.name}' - #{e.message}")
-      end
-
-      USERMOD_ATTRS = [:home, :shell, :gecos].freeze
-
-      def modify(new_user, old_user, issues)
-        change_password(new_user, issues) if new_user.password != old_user.password
-
-        usermod_changes = USERMOD_ATTRS.any? do |attr|
-          !new_user.public_send(attr).nil? &&
-            (new_user.public_send(attr) != old_user.public_send(attr))
-        end
-        # usermod also manage suplimentary groups, so compare also them
-        usermod_changes ||= different_groups?(new_user, old_user)
-        usermod_modify(new_user, issues) if usermod_changes
-      end
-
-      def different_groups?(lhu, rhu)
-        lhu.groups(with_primary: false).sort != rhu.groups(with_primary: false).sort
-      end
-
-      USERMOD = "/usr/sbin/usermod".freeze
-      private_constant :USERMOD
-      def usermod_modify(new_user, issues)
-        opts = {
-          "--home"    => new_user.home,
-          "--shell"   => new_user.shell,
-          "--comment" => new_user.gecos.join(","),
-          "--groups"  => new_user.groups(with_primary: false).map(&:name).join(",")
-        }
-
-        opts = opts.compact.flatten
-        opts << "--move-home" if opts.include?("--home")
-        opts << new_user.name
-
-        Yast::Execute.on_target!(USERMOD, *opts)
-      rescue Cheetah::ExecutionFailed => e
-        issues << Y2Issues::Issue.new(
-          format(_("Failed to modify user '%{username}'"), username: new_user.name)
-        )
-        log.error("Error modifying '#{new_user.name}' - #{e.message}")
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
+      def change_password(user, issues)
+        set_password_value(user, issues)
+        set_password_attributes(user, issues)
       end
 
       # Executes the command for setting the password of given user
       #
       # @param user [Y2User::User]
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def change_password(user, issues)
+      def set_password_value(user, issues)
         return unless user.password&.value
 
         Yast::Execute.on_target!(CHPASSWD, *chpasswd_options(user))
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          format(_("The password for '%{username}' could not be set"), username: user.name)
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("The password for '%s' could not be set"), user.name)
         )
         log.error("Error setting password for '#{user.name}' - #{e.message}")
+      end
+
+      # Executes the command for setting the dates and limits in /etc/shadow
+      #
+      # @param user [Y2User::User]
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def set_password_attributes(user, issues)
+        return unless user.password
+
+        Yast::Execute.on_target!(CHAGE, *chage_options(user))
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("Error setting the properties of the password for '%s'"), user.name)
+        )
+        log.error("Error setting password attributes for '#{user.name}' - #{e.message}")
       end
 
       # Generates and returns the options expected by `useradd` for given user
@@ -247,13 +254,11 @@ module Y2Users
       # @return [Array<String>]
       def useradd_options(user)
         opts = {
-          "--uid"        => user.uid,
-          "--gid"        => user.gid,
-          "--shell"      => user.shell,
-          "--home-dir"   => user.home,
-          "--expiredate" => user.expire_date.to_s,
-          "--comment"    => user.gecos.join(","),
-          "--groups"     => user.groups(with_primary: false).map(&:name).join(",")
+          "--uid"      => user.uid,
+          "--gid"      => user.gid,
+          "--shell"    => user.shell,
+          "--home-dir" => user.home,
+          "--comment"  => user.gecos.join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -276,7 +281,7 @@ module Y2Users
         ["--create-home"]
       end
 
-      # Generates and returns the options expected by `chpasswd` for given user
+      # Generates and returns the options expected by `chpasswd` for the given user
       #
       # @param user [Y2Users::User]
       # @return [Array<String, Hash>]
@@ -288,6 +293,40 @@ module Y2Users
           recorder: cheetah_recorder
         }
         opts
+      end
+
+      # Generates and returns the options expected by `chage` for the given user
+      #
+      # @param user [Y2Users::User]
+      # @return [Array<String>]
+      def chage_options(user)
+        passwd = user.password
+
+        opts = []
+        opts.concat(["--lastday", chage_value(passwd.aging.content)]) if passwd.aging
+
+        opts.concat(
+          [
+            "--mindays",    chage_value(passwd.minimum_age),
+            "--maxdays",    chage_value(passwd.maximum_age),
+            "--warndays",   chage_value(passwd.warning_period),
+            "--inactive",   chage_value(passwd.inactivity_period),
+            "--expiredate", chage_value(passwd.account_expiration),
+            user.name
+          ]
+        )
+
+        opts
+      end
+
+      # @see #chage_options
+      #
+      # @param value [String, Integer, Date, nil]
+      # @return [String]
+      def chage_value(value)
+        return "-1" if value.nil? || value == ""
+
+        value.to_s
       end
 
       # Custom Cheetah recorder to prevent leaking the password to the logs
@@ -302,79 +341,6 @@ module Y2Users
       class Recorder < Cheetah::DefaultRecorder
         # To prevent leaking stdin, just do nothing
         def record_stdin(_stdin); end
-      end
-
-      # Helper class to find specific users
-      class UsersFinder
-        # Constructor
-        #
-        # @param initial [Config]
-        # @param target [Config]
-        def initialize(initial, target)
-          @initial = initial
-          @target = target
-        end
-
-        # Users from the target config that do not exist in the initial config
-        #
-        # @return [Array<User>]
-        def added
-          ids = target_ids - initial_ids
-
-          ids.map { |i| find_user(target, i) }
-        end
-
-        def modified
-          ids = target_ids & initial_ids
-
-          pairs = ids.map { |i| [find_user(target, i), find_user(initial, i)] }
-
-          pairs.reject { |target, initial| target == initial }
-        end
-
-      private
-
-        # Initial config
-        #
-        # @return [Config]
-        attr_reader :initial
-
-        # Target config
-        #
-        # @return [Config]
-        attr_reader :target
-
-        # Finds an user with the given id inside the given config
-        #
-        # @param config [Config]
-        # @param id [Integer]
-        #
-        # @return [User, nil] nil if user with the given id is not found
-        def find_user(config, id)
-          config.users.find { |u| u.id == id }
-        end
-
-        # All the users id from the initial config
-        #
-        # @return [Array<Integer>]
-        def initial_ids
-          users_id(initial)
-        end
-
-        # All the users id from the target config
-        #
-        # @return [Array<Integer>]
-        def target_ids
-          users_id(target)
-        end
-
-        # Users id from the given config
-        #
-        # @param config [Config]
-        # @return [Array<Integer>]
-        def users_id(config)
-          config.users.map(&:id).compact
-        end
       end
     end
   end

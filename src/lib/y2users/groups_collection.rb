@@ -1,5 +1,3 @@
-#!/usr/bin/env rspec
-
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -19,28 +17,34 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require_relative "../test_helper"
+require "y2users/config_element_collection"
 
-require "y2users/config"
-require "y2users/linux/local_reader"
+module Y2Users
+  # Collection of groups
+  class GroupsCollection < ConfigElementCollection
+    # Constructor
+    #
+    # @param groups [Array<Group>]
+    def initialize(groups = [])
+      super
+    end
 
-describe Y2Users::Linux::LocalReader do
-  subject { described_class.new(File.join(FIXTURES_PATH, "/root/")) }
+    # Generates a new collection with the groups whose gid is the given gid
+    #
+    # @param value [Integer]
+    # @return [GroupsCollection]
+    def by_gid(value)
+      groups = select { |g| g.gid == value }
 
-  describe "#read" do
-    it "generates a config with read data" do
-      config = subject.read
+      self.class.new(groups)
+    end
 
-      expect(config).to be_a(Y2Users::Config)
-
-      expect(config.users.size).to eq 18
-      expect(config.groups.size).to eq 37
-
-      root_user = config.users.find { |u| u.uid == "0" }
-      expect(root_user.shell).to eq "/bin/bash"
-      expect(root_user.primary_group.name).to eq "root"
-      expect(root_user.password.value.encrypted?).to eq true
-      expect(root_user.password.value.content).to match(/^\$6\$pL/)
+    # Group with the given name
+    #
+    # @param value [String]
+    # @return [Group, nil] nil if the collection does not include a group with the given name
+    def by_name(value)
+      find { |g| g.name == value }
     end
   end
 end
