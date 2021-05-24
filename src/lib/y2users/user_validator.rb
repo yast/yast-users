@@ -60,7 +60,7 @@ module Y2Users
 
       return list unless user.password
 
-      user.password.issues.map do |issue|
+      user.password_issues.map do |issue|
         list << issue
       end
 
