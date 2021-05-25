@@ -19,10 +19,13 @@
 
 require "yast2/secret_attributes"
 require "y2users/shadow_date_helper"
+require "yast2/equatable"
 
 module Y2Users
   # Password configuration for an user
   class Password
+    include Yast2::Equatable
+
     # Password value. Can be any subclass of {PasswordValue}.
     #
     # @return [PasswordValue, nil] nil if password is not set
@@ -60,6 +63,10 @@ module Y2Users
     # @return [Date, nil]  nil if there is no account expiration
     attr_accessor :account_expiration
 
+    # Two passwords are equal if all their attributes are equal
+    eql_attr :value, :aging, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
+      :account_expiration
+
     # Creates a new password with a plain value
     #
     # @param value [String] plain password
@@ -92,30 +99,17 @@ module Y2Users
 
       password
     end
-
-    # Password equality
-    #
-    # Two passwords are equal if all their attributes are equal
-    #
-    # @param other [Password]
-    # @return [Boolean]
-    def ==(other)
-      return false unless other.is_a?(self.class)
-
-      [:value, :aging, :minimum_age, :maximum_age, :warning_period, :inactivity_period,
-       :account_expiration].all? do |a|
-        public_send(a) == other.public_send(a)
-      end
-    end
-
-    alias_method :eql?, :==
   end
 
   # Represents a password value. Its specific type is defined as subclass and can be queried.
   class PasswordValue
     include Yast2::SecretAttributes
+    include Yast2::Equatable
 
     secret_attr :content
+
+    # Two password values are equal if their content are equal
+    eql_attr :content
 
     # Constructor
     #
@@ -137,20 +131,6 @@ module Y2Users
     def encrypted?
       false
     end
-
-    # Password value equality
-    #
-    # Two password values are equal if their content are equal
-    #
-    # @param other [PasswordValue]
-    # @return [Boolean]
-    def ==(other)
-      return false unless other.is_a?(self.class)
-
-      content == other.content
-    end
-
-    alias_method :eql?, :==
   end
 
   # Represents a plain password value
@@ -186,6 +166,9 @@ module Y2Users
   # Represents one entry in the third field of the shadow file
   class PasswordAging
     include ShadowDateHelper
+    include Yast2::Equatable
+
+    eql_attr :content
 
     # Constructor
     #
@@ -254,16 +237,6 @@ module Y2Users
     # @param date [Date]
     def last_change=(date)
       self.content = date_to_shadow_string(date)
-    end
-
-    # Aging equality
-    #
-    # @param other [Object]
-    # @return [Boolean]
-    def ==(other)
-      return false unless other.is_a?(self.class)
-
-      content == other.content
     end
   end
 end

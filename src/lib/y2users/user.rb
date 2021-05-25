@@ -20,6 +20,7 @@
 require "y2users/config_element"
 require "y2users/user_validator"
 require "y2users/password_validator"
+require "yast2/equatable"
 
 module Y2Users
   # Class to represent a user
@@ -37,6 +38,8 @@ module Y2Users
   #   user.config #=> config
   #   user.attached? #=> true
   class User < ConfigElement
+    include Yast2::Equatable
+
     # User names that are considered system users
     # @see #system?
     SYSTEM_NAMES = ["nobody"].freeze
@@ -85,6 +88,8 @@ module Y2Users
     #
     # @return [Password]
     attr_accessor :password
+
+    eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password
 
     # Constructor
     #
@@ -144,22 +149,6 @@ module Y2Users
     def uid?
       !(uid.nil? || uid == "")
     end
-
-    # Whether two users are equal
-    #
-    # Only relevant attributes are compared. For example, the config in which the user is attached
-    # and the internal user id are not considered.
-    #
-    # @return [Boolean]
-    def ==(other)
-      return false unless other.is_a?(self.class)
-
-      [:name, :uid, :gid, :shell, :home, :gecos, :source, :password].all? do |a|
-        public_send(a) == other.public_send(a)
-      end
-    end
-
-    alias_method :eql?, :==
 
     # Whether the user is root
     #
