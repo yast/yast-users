@@ -19,10 +19,15 @@
 
 require "yast"
 require "installation/finish_client"
+# target file to run system reader on target system
+require "yast2/target_file"
+require "y2users/autoinst/reader"
+require "y2users/autoinst/config_merger"
+require "y2users/linux/reader"
+require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
 require "y2users/users_simple/reader"
-require "y2users/linux/writer"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -72,25 +77,27 @@ module Yast
     #
     # On the other hand, during autoupgrade no changes are performed.
     def write_autoinst
-      # 1. Export users imported in inst_autosetup (and store them)
-      Users.SetExportAll(false)
-      saved = Users.Export
-      log.info("Users to import: #{saved}")
+      # 1. Retrieve the configuration read from the AutoYaST profile
+      ay_config = Y2Users::ConfigManager.instance.config(:autoinst)
 
-      # 2. Read users and settings from the installed system
-      # (bsc#965852, bsc#973639, bsc#974220 and bsc#971804)
-      Users.Read
+      # 2. Merge the configuration with the system one
+      target_config = system_config.copy
 
-      # 3. Merge users from the system with new users from
-      #    AutoYaST profile (from step 1)
-      Users.Import(saved)
+      if Yast::Stage.initial
+        # Use an specific merger in the 1st stage
+        Y2Users::Autoinst::ConfigMerger.new(target_config, ay_config).merge
+      else
+        # Use the default merging policy
+        target_config.merge!(ay_config)
+      end
 
-      # 4. Write users
-      Users.SetWriteOnly(true)
-      @progress_orig = Progress.set(false)
-      error = Users.Write
-      log.error(error) unless error.empty?
-      Progress.set(@progress_orig)
+      # 3. Write users and groups
+      writer = Y2Users::Linux::Writer.new(target_config, system_config)
+      issues = writer.write
+      return if issues.empty?
+
+      log.error(issues.inspect)
+      report_issues(issues)
     end
 
     # Writes users during the installation

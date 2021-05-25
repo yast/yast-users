@@ -5,13 +5,12 @@ require "fileutils"
 require "yaml"
 require "users/clients/users_finish"
 
-describe Yast::UsersFinishClient do
-  Yast.import "WFM"
-  Yast.import "UsersPasswd"
-  Yast.import "UsersSimple"
-  Yast.import "Autologin"
-  Yast.import "Report"
+Yast.import "WFM"
+Yast.import "UsersSimple"
+Yast.import "Autologin"
+Yast.import "Report"
 
+describe Yast::UsersFinishClient do
   describe "#run" do
     before do
       allow(Yast::WFM).to receive(:Args).with(no_args).and_return(args)
@@ -30,7 +29,10 @@ describe Yast::UsersFinishClient do
       let(:args) { ["Write"] }
       let(:users) { YAML.load_file(FIXTURES_PATH.join("users.yml")) }
 
-      before { allow(Yast::Mode).to receive(:autoinst).and_return(autoinst) }
+      before do
+        allow(Yast::Mode).to receive(:autoinst).and_return(autoinst)
+        allow(Yast::Execute).to receive(:on_target!).and_return("")
+      end
 
       around do |example|
         change_scr_root(FIXTURES_PATH.join("root")) { example.run }
@@ -39,34 +41,71 @@ describe Yast::UsersFinishClient do
 
       context "in autoinst mode" do
         let(:autoinst) { true }
+        let(:initial_stage) { true }
+
+        let(:ay_config) do
+          Y2Users::Config.new.tap { |c| c.attach(ay_root) }
+        end
+
+        let(:ay_root) do
+          Y2Users::User.new("root").tap do |user|
+            user.uid = "1"
+            user.gecos = ["Superuser"]
+          end
+        end
+
+        let(:system_config) do
+          Y2Users::Config.new.tap { |c| c.attach(system_root) }
+        end
+
+        let(:system_root) do
+          Y2Users::User.new("root").tap do |user|
+            user.uid = "0"
+            user.shell = "/bin/bash"
+          end
+        end
+
+        let(:writer) { instance_double(Y2Users::Linux::Writer, write: []) }
 
         before do
-          # Writing users involves executing commands (cp, chmod, etc.) and those
-          # calls can't be mocked (Perl code).
-          allow(Yast::Users).to receive(:Write).and_return("")
-          Yast::Users.Import(users)
+          allow(Yast::Stage).to receive(:initial).and_return(initial_stage)
+          allow(Y2Users::ConfigManager.instance).to receive(:config)
+            .with(:autoinst).and_return(ay_config)
+          allow(Y2Users::ConfigManager.instance).to receive(:system)
+            .with(force_read: true).and_return(system_config)
         end
 
-        it "add users specified in the profile" do
-          subject.run
-
-          yast_user = Yast::Users.GetUsers("uid", "local").fetch("yast")
-          expect(yast_user).to_not be_nil
+        context "during the 1st stage" do
+          it "merges system and AutoYaST configuration keeping the original uids/gids" do
+            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
+              root = target.users.first
+              expect(root.uid).to eq("0")
+              expect(root.gecos).to eq(["Superuser"])
+              expect(root.shell).to eq("/bin/bash")
+              expect(sys).to eq(system_config)
+              writer
+            end
+            expect(writer).to receive(:write).and_return([])
+            subject.run
+          end
         end
 
-        it "updates root account" do
-          subject.run
+        context "on an installed system" do
+          let(:initial_stage) { false }
 
-          root_user = Yast::Users.GetUsers("uid", "system").fetch("root")
-          expect(root_user["userPassword"]).to_not be_empty
-        end
-
-        it "preserves system accounts passwords" do
-          subject.run
-
-          shadow = Yast::UsersPasswd.GetShadow("system")
-          passwords = shadow.values.map { |u| u["userPassword"] }
-          expect(passwords).to all(satisfy { |v| !v.empty? })
+          it "merges system and AutoYaST configuration updating the uids/gids" do
+            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
+              root = target.users.first
+              expect(root.uid).to eq("1")
+              expect(root.gecos).to eq(["Superuser"])
+              # TODO: should we use the default value?
+              # expect(root.shell).to eq("/bin/bash")
+              expect(sys).to eq(system_config)
+              writer
+            end
+            expect(writer).to receive(:write).and_return([])
+            subject.run
+          end
         end
       end
 

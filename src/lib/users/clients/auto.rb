@@ -19,6 +19,8 @@
 
 require "yast"
 require "installation/auto_client"
+require "y2users"
+require "y2users/autoinst/reader"
 
 Yast.import "Users"
 Yast.import "UsersSimple"
@@ -42,7 +44,11 @@ module Y2Users
 
       def import(param)
         check_users(param["users"] || [])
-        Yast::Users.Import(param)
+        reader = Y2Users::Autoinst::Reader.new(param)
+        config = reader.read
+        Y2Users::ConfigManager.instance.register(config, as: :autoinst)
+
+        true
       end
 
       def summary
@@ -91,7 +97,7 @@ module Y2Users
       end
 
       def reset
-        import({})
+        Y2Users::ConfigManager.instance.unregister(:autoinst)
       end
 
     private

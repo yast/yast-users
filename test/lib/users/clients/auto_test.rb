@@ -119,10 +119,16 @@ describe Y2Users::Clients::Auto do
 
     context "Reset" do
       let(:func) { "Reset" }
+      let(:config) { Y2Users::Config.new }
 
-      it "import empty profile" do
-        expect(Yast::Users).to receive(:Import).with({})
-        subject.run
+      before do
+        Y2Users::ConfigManager.instance.register(config, as: :autoinst)
+      end
+
+      it "removes the configuration object" do
+        expect { subject.run }
+          .to change { Y2Users::ConfigManager.instance.config(:autoinst) }
+          .from(config).to(nil)
       end
     end
   end

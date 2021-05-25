@@ -19,10 +19,11 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require_relative "test_helper"
+require_relative "../test_helper"
 require "y2users"
+require "y2users/autoinst/config_merger"
 
-describe Y2Users::ConfigMerger do
+describe Y2Users::Autoinst::ConfigMerger do
   subject { described_class.new(lhs, rhs) }
 
   let(:lhs) { Y2Users::Config.new }
@@ -40,7 +41,7 @@ describe Y2Users::ConfigMerger do
     let(:lhs_groups) { [] }
 
     def lhs_user(name)
-      lhs.users.find { |u| u.name == name }
+      lhs.users.by_name(name)
     end
 
     def lhs_group(name)
@@ -64,7 +65,6 @@ describe Y2Users::ConfigMerger do
         user = Y2Users::User.new("test2")
         user.uid = 1001
         user.gid = 101
-        user.home = "/home/test1"
         user
       end
 
@@ -101,7 +101,7 @@ describe Y2Users::ConfigMerger do
         let(:lhs_users) { [lhs_user1, user3] }
 
         let(:lhs_user1) do
-          user = Y2Users::User.new("test1")
+          user = user1.clone
           user.uid = 1100
           user.gid = 110
           user.home = "/home/lhs_user1"
@@ -118,8 +118,8 @@ describe Y2Users::ConfigMerger do
           subject.merge
 
           expect(lhs_user("test1").home).to eq("/home/test1")
-          expect(lhs_user("test1").uid).to eq(1000)
-          expect(lhs_user("test1").gid).to eq(100)
+          expect(lhs_user("test1").uid).to eq(1100)
+          expect(lhs_user("test1").gid).to eq(110)
         end
 
         it "keeps the lhs user id" do
@@ -127,6 +127,35 @@ describe Y2Users::ConfigMerger do
           subject.merge
 
           expect(lhs_user("test1").id).to eq(id)
+        end
+
+        it "keeps the lhs user uid" do
+          subject.merge
+
+          expect(lhs_user("test1").uid).to eq(1100)
+        end
+
+        it "keeps the lhs user gid" do
+          subject.merge
+
+          expect(lhs_user("test1").gid).to eq(110)
+        end
+
+        context "and rhs is missing some attribute" do
+          let(:rhs_users) { [rhs_user1] }
+
+          let(:rhs_user1) do
+            user = Y2Users::User.new("test1")
+            user.uid = 1003
+            user.gid = 103
+            user
+          end
+
+          it "uses the lhs value for the attribute" do
+            subject.merge
+
+            expect(lhs_user("test1").home).to eq("/home/lhs_user1")
+          end
         end
       end
     end
@@ -182,7 +211,7 @@ describe Y2Users::ConfigMerger do
         let(:lhs_groups) { [lhs_group1, group3] }
 
         let(:lhs_group1) do
-          group = Y2Users::Group.new("test1")
+          group = group1.clone
           group.gid = 110
           group.users_name = ["test1"]
           group
@@ -194,10 +223,19 @@ describe Y2Users::ConfigMerger do
           expect(lhs.groups.map(&:name)).to contain_exactly("test1", "test2", "test3")
         end
 
-        it "updates the lhs group with the data from the corresponding rhs" do
+        it "updates the lhs group with the data from the corresponding rhs group except gid" do
           subject.merge
 
+          expect(lhs_group("test1")).to_not eq(group1)
+          group1.gid = 110
           expect(lhs_group("test1")).to eq(group1)
+        end
+
+        it "keeps the lhs group id" do
+          id = lhs_group("test1").id
+          subject.merge
+
+          expect(lhs_group("test1").id).to eq(id)
         end
       end
     end
