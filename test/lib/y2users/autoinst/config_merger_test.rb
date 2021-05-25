@@ -1,3 +1,5 @@
+#!/usr/bin/env rspec
+
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -39,7 +41,7 @@ describe Y2Users::Autoinst::ConfigMerger do
     let(:lhs_groups) { [] }
 
     def lhs_user(name)
-      lhs.users.find { |u| u.name == name }
+      lhs.users.by_name(name)
     end
 
     def lhs_group(name)
