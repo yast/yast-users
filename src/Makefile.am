@@ -95,6 +95,7 @@ ylib_y2users_DATA = \
   lib/y2users/password_validator.rb \
   lib/y2users/shadow_date.rb \
   lib/y2users/user.rb \
+  lib/y2users/useradd_config.rb \
   lib/y2users/users_simple.rb \
   lib/y2users/user_validator.rb \
   lib/y2users/validation_config.rb \
