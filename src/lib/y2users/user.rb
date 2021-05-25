@@ -89,6 +89,8 @@ module Y2Users
     # @return [Password]
     attr_accessor :password
 
+    # Only relevant attributes are compared. For example, the config in which the user is attached
+    # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password
 
     # Constructor
