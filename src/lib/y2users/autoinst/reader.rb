@@ -21,6 +21,8 @@ require "y2users/parsers/shadow"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
+require "y2users/autoinst_profile/users_section"
+require "y2users/autoinst_profile/groups_section"
 
 module Y2Users
   module Autoinst
@@ -32,7 +34,12 @@ module Y2Users
       # @option content [Hash] "users" List of users
       # @option content [Hash] "groups" List of groups
       def initialize(content)
-        @users_export = content
+        @users_section = Y2Users::AutoinstProfile::UsersSection.new_from_hashes(
+          content["users"] || []
+        )
+        @groups_section = Y2Users::AutoinstProfile::GroupsSection.new_from_hashes(
+          content["groups"] || []
+        )
       end
 
       # Generates a new config with the users and groups from the system
@@ -45,28 +52,27 @@ module Y2Users
 
     private
 
-      attr_reader :users_export
+      attr_reader :users_section, :groups_section
 
       def read_users
-        exported_users = users_export["users"] || []
-        exported_users.map do |e_user|
-          res = User.new(e_user["username"])
-          res.gecos = [e_user["fullname"]]
-          res.gid = e_user["gid"]
-          res.home = e_user["home"]
-          res.shell = e_user["shell"]
-          res.uid = e_user["uid"]
+        users_section.entries.map do |e_user|
+          res = User.new(e_user.username)
+          res.gecos = [e_user.fullname]
+          # TODO: handle forename/lastname
+          res.gid = e_user.gid
+          res.home = e_user.home
+          res.shell = e_user.shell
+          res.uid = e_user.uid
           res.password = create_password(e_user)
           res
         end
       end
 
       def read_groups
-        exported_groups = users_export["groups"] || []
-        exported_groups.map do |e_group|
-          res = Group.new(e_group["groupname"])
-          res.gid = e_group["gid"]
-          users_name = e_group["userlist"].to_s.split(",")
+        groups_section.entries.map do |e_group|
+          res = Group.new(e_group.groupname)
+          res.gid = e_group.gid
+          users_name = e_group.userlist.to_s.split(",")
           res.users_name = users_name
           res.source = :local
           res
@@ -76,8 +82,7 @@ module Y2Users
       # shadow attrs without password and username which is done manually
       SORTED_SHADOW_ATTRS = [
         # Looks like shadow last change is not part of User.Export TODO: verify
-        "shadowLastChange", "min", "max",
-        "warn", "inact", "expire", "flag"
+        "last_change", "min", "max", "warn", "inact", "expire", "flag"
       ].freeze
 
       # Creates a {Password} object based on the data structure of a user
@@ -89,7 +94,7 @@ module Y2Users
         content = shadow_string(user)
 
         password = parser.parse(content).values.first
-        password.value = PasswordPlainValue.new(user["user_password"]) unless user["encrypted"]
+        password.value = PasswordPlainValue.new(user.user_password) unless user.encrypted
         password
       end
 
@@ -98,12 +103,13 @@ module Y2Users
       # @param user [Hash] a user representation in the format used by UsersSimple
       # @return [String]
       def shadow_string(user)
-        pwd_settings = user["password_settings"] || {}
-        other_attrs = SORTED_SHADOW_ATTRS.map do |attr|
-          pwd_settings[attr] || ""
+        other_attrs = if user.password_settings
+          SORTED_SHADOW_ATTRS.map { |a| user.password_settings.send(a) || "" }
+        else
+          []
         end
 
-        [user["username"], user["user_password"], *other_attrs].join(":")
+        [user.username, user.user_password, *other_attrs].join(":")
       end
     end
   end
