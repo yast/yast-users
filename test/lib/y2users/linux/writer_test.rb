@@ -170,15 +170,8 @@ describe Y2Users::Linux::Writer do
       end
 
       context "with default password attributes" do
-        it "executes 'chage' to clean-up all fields except 'lastday'" do
-          expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
-            options = Hash[*(args[1..-2])]
-
-            expect(options.keys).to contain_exactly(
-              "--mindays", "--maxdays", "--warndays", "--inactive", "--expiredate"
-            )
-            expect(options.values).to all(eq("-1"))
-          end
+        it "does not execute 'chage'" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/chage/)
 
           writer.write
         end
@@ -288,6 +281,12 @@ describe Y2Users::Linux::Writer do
       context "whose password was not edited" do
         it "does not execute chpasswd" do
           expect(Yast::Execute).to_not receive(:on_target!).with(/chpasswd/, any_args)
+
+          writer.write
+        end
+
+        it "does not execute chage" do
+          expect(Yast::Execute).to_not receive(:on_target!).with(/chage/, any_args)
 
           writer.write
         end
@@ -412,8 +411,14 @@ describe Y2Users::Linux::Writer do
 
     context "when there is any error setting the password attributes" do
       let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+      let(:aging) do
+        age = Y2Users::PasswordAging.new
+        age.force_change
+        age
+      end
 
       before do
+        user.password.aging = aging
         config.attach(user)
 
         allow(Yast::Execute).to receive(:on_target!)
