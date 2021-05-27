@@ -125,6 +125,16 @@ ylib_y2users_autoinst_DATA = \
   lib/y2users/autoinst/config_merger.rb \
   lib/y2users/autoinst/reader.rb
 
+ylib_y2users_autoinst_profiledir = @ylibdir@/y2users/autoinst_profile
+ylib_y2users_autoinst_profile_DATA = \
+  lib/y2users/autoinst_profile/group_section.rb \
+  lib/y2users/autoinst_profile/groups_section.rb \
+  lib/y2users/autoinst_profile/login_settings_section.rb \
+  lib/y2users/autoinst_profile/password_settings_section.rb \
+  lib/y2users/autoinst_profile/user_defaults_section.rb \
+  lib/y2users/autoinst_profile/user_section.rb \
+  lib/y2users/autoinst_profile/users_section.rb
+
 scrconf_DATA = \
   scrconf/etc_default_useradd.scr \
   scrconf/nis.scr
@@ -144,6 +154,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_autoinst_profile_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common
