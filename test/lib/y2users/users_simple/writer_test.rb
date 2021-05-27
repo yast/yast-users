@@ -67,7 +67,7 @@ describe Y2Users::UsersSimple::Writer do
       context "when root has no password" do
         let(:root_password) { nil }
 
-        # NOTE: for Yast::UsersSimple emtpy string means no password. Thus, not
+        # NOTE: for Yast::UsersSimple empty string means no password. Thus, not
         # having a password at this point could mean "deleting the previous
         # one"
         it "stores an empty string as password for root" do

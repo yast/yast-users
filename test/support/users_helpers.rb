@@ -30,6 +30,14 @@ module Yast
         UsersSimple.SetRootPassword("")
         UsersSimple.SetAutologinUser("")
       end
+
+      # Reads authorized keys from given path
+      #
+      # @param path [String] the path for reading authorized keys
+      def authorized_keys_from(path)
+        file_path = File.join(path, ".ssh", "authorized_keys")
+        File.read(file_path).lines.map(&:strip).grep(/ssh-/)
+      end
     end
   end
 end

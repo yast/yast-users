@@ -224,6 +224,7 @@ module Y2Users
     #
     # @see UserValidator#issues
     #
+    # @param args [Array] additional arguments for {UserValidator#issues}
     # @return [Y2Issues::List]
     def issues(*args)
       UserValidator.new(self).issues(*args)

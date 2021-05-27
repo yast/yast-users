@@ -18,7 +18,6 @@
 # find current contact information at www.suse.com.
 
 require "y2users/user"
-require "users/ssh_authorized_keyring"
 
 module Y2Users
   module Parsers
@@ -48,7 +47,6 @@ module Y2Users
           user.shell = values[PASSWD_MAPPING["shell"]]
           user.gecos = values[PASSWD_MAPPING["gecos"]].to_s.split(",")
           user.home =  values[PASSWD_MAPPING["home"]]
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
           user
         end
       end

@@ -26,7 +26,10 @@ Yast.import "Popup"
 Yast.import "Report"
 
 module Y2Users
-  # Mixin to hold shared helper methods related to the user password
+  # Mixin for holding helper methods related to the user password.
+  #
+  # To be used by UI components like widgets and dialogs since methods might take care of querying
+  # an input value, reporting an error to the user, setting the focus, etc.
   module PasswordHelper
     # Needed to be able to call textdomain below
     extend Yast::I18n

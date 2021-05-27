@@ -25,11 +25,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
   subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new(home) }
   let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
 
-  def authorized_keys_from_home(path)
-    file_path = File.join(path, ".ssh", "authorized_keys")
-    File.read(file_path).lines.map(&:strip).grep(/ssh-/)
-  end
-
   describe "#empty?" do
     context "when keyring is empty" do
       it "returns true" do
@@ -48,7 +43,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
   describe "#read_keys" do
     context "if some keys are present in the given home directory" do
-      let(:expected_keys) { authorized_keys_from_home(home) }
+      let(:expected_keys) { authorized_keys_from(home) }
 
       it "returns true" do
         expect(keyring.read_keys).to eq(expected_keys)
