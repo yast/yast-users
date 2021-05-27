@@ -32,8 +32,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  update-desktop-files
-# Yast2::SecretAttributes
-BuildRequires:  yast2 >= 4.4.2
+# Yast2::Equatable
+BuildRequires:  yast2 >= 4.4.5
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 4.2.2
 BuildRequires:  yast2-perl-bindings

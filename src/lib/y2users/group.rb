@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "y2users/config_element"
+require "yast2/equatable"
 
 module Y2Users
   # Class to represent user groups
@@ -34,6 +35,8 @@ module Y2Users
   #   group.config #=> config
   #   group.attached? #=> true
   class Group < ConfigElement
+    include Yast2::Equatable
+
     # Group name
     #
     # @return [String]
@@ -56,6 +59,10 @@ module Y2Users
     # @return[:local, :ldap, :unknown]
     attr_accessor :source
 
+    # Only relevant attributes are compared. For example, the config in which the group is attached
+    # and the internal group id are not considered.
+    eql_attr :name, :gid, :users_name, :source
+
     # Constructor
     #
     # @param name [String]
@@ -77,21 +84,5 @@ module Y2Users
 
       config.users.select { |u| u.gid == gid || users_name.include?(u.name) }
     end
-
-    # Whether two groups are equal
-    #
-    # Only relevant attributes are compared. For example, the config in which the group is attached
-    # and the internal group id are not considered.
-    #
-    # @return [Boolean]
-    def ==(other)
-      return false unless other.is_a?(self.class)
-
-      [:name, :gid, :users_name, :source].all? do |a|
-        public_send(a) == other.public_send(a)
-      end
-    end
-
-    alias_method :eql?, :==
   end
 end
