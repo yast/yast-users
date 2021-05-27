@@ -55,7 +55,7 @@ describe Y2Users::AutoinstProfile::UserSection do
       expect(section.password_settings.warn).to eq(60)
     end
 
-    context "when password settings" do
+    context "when password settings are missing" do
       it "sets password settings to nil" do
         section = described_class.new_from_hashes({})
         expect(section.password_settings).to be_nil
