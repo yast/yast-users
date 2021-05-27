@@ -93,8 +93,11 @@ module Yast
       end
 
       # Constructor
-      def initialize(home)
-        @keys = []
+      #
+      # @param home [String] path to the user home where keys will be written
+      # @param keys [Array<String>] List of authorized keys, empty by default
+      def initialize(home, keys = [])
+        @keys = keys
         @home = home
       end
 

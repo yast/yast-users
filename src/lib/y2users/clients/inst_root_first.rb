@@ -18,25 +18,40 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users"
+require "y2users/users_simple"
+require "users/dialogs/inst_root_first"
 
 Yast.import "UsersSimple"
 
-module Yast
-  module RSpec
-    module UsersHelpers
-      # Resets Yast::UsersSimple to an initial state
-      def reset_users_simple
-        UsersSimple.SetUsers([])
-        UsersSimple.SetRootPassword("")
-        UsersSimple.SetAutologinUser("")
+module Y2Users
+  # YaST "clients" are the CLI entry points
+  module Clients
+    # A client for displaying and managing the root user configuration
+    class InstRootFirst
+      # Runs the client
+      def run
+        result = Yast::InstRootFirstDialog.new(root_user).run
+
+        Y2Users::UsersSimple::Writer.new(users_config).write if result == :next
+
+        result
       end
 
-      # Reads authorized keys from given path
+    private
+
+      # Config object holding the users and passwords
       #
-      # @param path [String] the path for reading authorized keys
-      def authorized_keys_from(path)
-        file_path = File.join(path, ".ssh", "authorized_keys")
-        File.read(file_path).lines.map(&:strip).grep(/ssh-/)
+      # @return [Y2Users::Config]
+      def users_config
+        @users_config ||= Y2Users::UsersSimple::Reader.new.read
+      end
+
+      # The root user
+      #
+      # @return [Y2Users::User]
+      def root_user
+        users_config.users.root
       end
     end
   end

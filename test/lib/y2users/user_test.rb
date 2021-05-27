@@ -27,7 +27,35 @@ require "date"
 describe Y2Users::User do
   subject { described_class.new("test") }
 
+  before do
+    subject.authorized_keys << "ssh-rsa auth-key"
+  end
+
   include_examples "config element"
+
+  describe "#copy" do
+    before do
+      subject.assign_config(Y2Users::Config.new)
+    end
+
+    it "uses a dup of authorized keys" do
+      other = subject.copy
+
+      expect(other.authorized_keys).to eq(subject.authorized_keys)
+
+      other.authorized_keys << "ssh-rsa another-key"
+
+      expect(other.authorized_keys).to include("ssh-rsa another-key")
+      expect(subject.authorized_keys).to_not include("ssh-rsa another-key")
+    end
+  end
+
+  describe "#authorized_keys" do
+    it "returns an array holding authorized keys" do
+      expect(subject.authorized_keys).to be_an(Array)
+      expect(subject.authorized_keys).to contain_exactly("ssh-rsa auth-key")
+    end
+  end
 
   describe "#primary_group" do
     before do
@@ -333,6 +361,16 @@ describe Y2Users::User do
       end
     end
 
+    context "when #authorized_keys does not match" do
+      before do
+        other.authorized_keys << "ssh-rsa other-auth-key"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
     context "when the given object is not a user" do
       let(:other) { "This is not a user" }
 
@@ -474,6 +512,48 @@ describe Y2Users::User do
           expect(subject.system?).to eq(false)
         end
       end
+    end
+  end
+
+  describe "#issues" do
+    let(:user_validator) { instance_double(Y2Users::UserValidator, issues: Y2Issues::List.new) }
+
+    before do
+      allow(Y2Users::UserValidator).to receive(:new).and_return(user_validator)
+    end
+
+    it "creates a new UserValidator instance" do
+      expect(Y2Users::UserValidator).to receive(:new).with(subject)
+
+      subject.issues
+    end
+
+    it "executes user validations with given args" do
+      expect(user_validator).to receive(:issues).with(skip: [:password])
+
+      subject.issues(skip: [:password])
+    end
+  end
+
+  describe "#password_issues" do
+    let(:password_validator) do
+      instance_double(Y2Users::PasswordValidator, issues: Y2Issues::List.new)
+    end
+
+    before do
+      allow(Y2Users::PasswordValidator).to receive(:new).and_return(password_validator)
+    end
+
+    it "creates a new PasswordValidator instance" do
+      expect(Y2Users::PasswordValidator).to receive(:new).with(subject)
+
+      subject.password_issues
+    end
+
+    it "executes password validations" do
+      expect(password_validator).to receive(:issues)
+
+      subject.password_issues
     end
   end
 end

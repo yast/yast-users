@@ -89,9 +89,14 @@ module Y2Users
     # @return [Password]
     attr_accessor :password
 
+    # Authorized keys
+    #
+    # @return [Array<String>]
+    attr_accessor :authorized_keys
+
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
-    eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password
+    eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys
 
     # Constructor
     #
@@ -102,6 +107,7 @@ module Y2Users
       @name = name
       # TODO: GECOS
       @gecos = []
+      @authorized_keys = []
       @source = :unknown
 
       # See #system?
@@ -209,18 +215,24 @@ module Y2Users
     def copy
       user = super
       user.password = password.copy if password
+      user.authorized_keys = authorized_keys.map(&:dup)
 
       user
     end
 
     # Validation errors
     #
+    # @see UserValidator#issues
+    #
+    # @param args [Array] additional arguments for {UserValidator#issues}
     # @return [Y2Issues::List]
-    def issues
-      UserValidator.new(self).issues
+    def issues(*args)
+      UserValidator.new(self).issues(*args)
     end
 
     # Validation errors of the current password
+    #
+    # @see PasswordValidator#issues
     #
     # @return [Y2Issues::List]
     def password_issues

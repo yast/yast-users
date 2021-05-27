@@ -23,7 +23,9 @@ require "users/widgets/inst_root_first"
 require "cwm/rspec"
 
 describe Y2Users::Widgets::InstRootFirst do
-  subject(:widget) { described_class.new }
+  subject(:widget) { described_class.new(root_user) }
+
+  let(:root_user) { Y2Users::User.new("root") }
 
   include_examples "CWM::CustomWidget"
 

@@ -22,6 +22,7 @@ require "y2users/config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
+require "users/ssh_authorized_keyring"
 
 module Y2Users
   module Linux
@@ -39,6 +40,9 @@ module Y2Users
 
         # read passwords after user, as user has to exist in advance
         read_passwords(config)
+
+        # read authorized keys
+        read_authorized_keys(config)
 
         config
       end
@@ -72,6 +76,14 @@ module Y2Users
           end
 
           user.password = password
+        end
+      end
+
+      def read_authorized_keys(config)
+        config.users.each do |user|
+          next unless user.home
+
+          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
         end
       end
     end

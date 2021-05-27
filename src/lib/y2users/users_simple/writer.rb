@@ -44,13 +44,14 @@ module Y2Users
         users_simple = config.users.reject(&:root?).map { |u| to_user_simple(u) }
         Yast::UsersSimple.SetUsers(users_simple)
 
-        root = config.users.find(&:root?)
+        root = config.users.root
         return unless root
 
-        root_password = root.password&.value
-        return unless root_password
+        root_public_key = root.authorized_keys.first.to_s
+        Yast::UsersSimple.SetRootPublicKey(root_public_key)
 
-        Yast::UsersSimple.SetRootPassword(root_password&.content)
+        root_password = root.password&.value&.content
+        Yast::UsersSimple.SetRootPassword(root_password.to_s)
       end
 
     private

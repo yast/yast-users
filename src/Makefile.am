@@ -89,7 +89,7 @@ ylib_y2users_DATA = \
   lib/y2users/config.rb \
   lib/y2users/group.rb \
   lib/y2users/help_texts.rb \
-  lib/y2users/inst_users_dialog_helper.rb \
+  lib/y2users/password_helper.rb \
   lib/y2users/linux.rb \
   lib/y2users/password.rb \
   lib/y2users/password_validator.rb \
@@ -102,6 +102,10 @@ ylib_y2users_DATA = \
   lib/y2users/config_element_collection.rb \
   lib/y2users/users_collection.rb \
   lib/y2users/groups_collection.rb
+
+ylib_y2users_clientsdir = @ylibdir@/y2users/clients
+ylib_y2users_clients_DATA = \
+  lib/y2users/clients/inst_root_first.rb
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \
@@ -154,6 +158,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_autoinst_profile_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_clients_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_autoinst_profile_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common

@@ -39,29 +39,36 @@ module Y2Users
       @user = user
     end
 
+    # Returns a list of issues found while checking the user validity
+    #
+    # @param skip [Array<Symbol>] list of user attributes that should not be checked
     # @return [Y2Issues::List]
-    def issues
+    def issues(skip: [])
       list = Y2Issues::List.new
 
-      err = Yast::UsersSimple.CheckUsernameLength(user.name)
-      add_fatal_issue(list, err, NAME_LOC)
+      if !skip.include?(:name)
+        err = Yast::UsersSimple.CheckUsernameLength(user.name)
+        add_fatal_issue(list, err, NAME_LOC)
 
-      err = Yast::UsersSimple.CheckUsernameContents(user.name, "")
-      add_fatal_issue(list, err, NAME_LOC)
+        err = Yast::UsersSimple.CheckUsernameContents(user.name, "")
+        add_fatal_issue(list, err, NAME_LOC)
 
-      # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
-      # the initial user during installation, it simply checks against a hard-coded list of
-      # system user names that are expected to exist in a system right after installation.
-      err = Yast::UsersSimple.CheckUsernameConflicts(user.name)
-      add_fatal_issue(list, err, NAME_LOC)
+        # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
+        # the initial user during installation, it simply checks against a hard-coded list of
+        # system user names that are expected to exist in a system right after installation.
+        err = Yast::UsersSimple.CheckUsernameConflicts(user.name)
+        add_fatal_issue(list, err, NAME_LOC)
+      end
 
-      err = Yast::UsersSimple.CheckFullname(user.full_name)
-      add_fatal_issue(list, err, FULL_NAME_LOC)
+      if !skip.include?(:full_name)
+        err = Yast::UsersSimple.CheckFullname(user.full_name)
+        add_fatal_issue(list, err, FULL_NAME_LOC)
+      end
 
-      return list unless user.password
-
-      user.password.issues.map do |issue|
-        list << issue
+      if !skip.include?(:password) && user.password
+        user.password_issues.map do |issue|
+          list << issue
+        end
       end
 
       list

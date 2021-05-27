@@ -80,8 +80,14 @@ module Y2Users
         user = User.new("root")
         user.gecos = ["root"]
         user.uid = "0"
+        user.home = "/root"
+
         passwd_str = Yast::UsersSimple.GetRootPassword
         user.password = Password.create_plain(passwd_str) unless passwd_str.empty?
+
+        authorized_key = Yast::UsersSimple.GetRootPublicKey
+        user.authorized_keys = [authorized_key] unless authorized_key.empty?
+
         user
       end
 
