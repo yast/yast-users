@@ -19,6 +19,13 @@ TESTS = \
   lib/y2users/linux/writer_test.rb \
   lib/y2users/autoinst/config_merger_test.rb \
   lib/y2users/autoinst/reader_test.rb \
+  lib/y2users/autoinst_profile/group_section_test.rb \
+  lib/y2users/autoinst_profile/groups_section_test.rb \
+  lib/y2users/autoinst_profile/login_settings_section_test.rb \
+  lib/y2users/autoinst_profile/password_settings_section_test.rb \
+  lib/y2users/autoinst_profile/user_defaults_section_test.rb \
+  lib/y2users/autoinst_profile/user_section_test.rb \
+  lib/y2users/autoinst_profile/users_section_test.rb \
   lib/y2users/users_simple/writer_test.rb \
   lib/users/ca_password_validator_test.rb \
   lib/users/encryption_method_test.rb \
