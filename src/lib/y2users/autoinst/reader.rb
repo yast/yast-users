@@ -104,7 +104,7 @@ module Y2Users
       # @return [String]
       def shadow_string(user)
         other_attrs = if user.password_settings
-          SORTED_SHADOW_ATTRS.map { |a| user.password_settings.send(a) || "" }
+          SORTED_SHADOW_ATTRS.map { |a| user.password_settings.send(a) }
         else
           []
         end
