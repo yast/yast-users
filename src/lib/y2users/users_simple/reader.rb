@@ -115,7 +115,7 @@ module Y2Users
       # Initializes a new password with the correct value type
       #
       # @param value [String]
-      # @param encypted [Boolean]
+      # @param encrypted [Boolean]
       #
       # @return [Password]
       def new_password(value, encrypted)

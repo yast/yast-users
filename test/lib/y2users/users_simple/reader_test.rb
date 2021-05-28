@@ -122,6 +122,28 @@ describe Y2Users::UsersSimple::Reader do
         expect(user.password.warning_period).to be_nil
         expect(user.password.account_expiration).to be_nil
       end
+
+      context "without the root password" do
+        let(:root_pwd) { "" }
+
+        it "leaves it unset" do
+          config = subject.read
+          root = config.users.root
+
+          expect(root.password).to be_nil
+        end
+      end
+
+      context "without the root authorized key" do
+        let(:root_authorized_key) { "" }
+
+        it "leaves it unset" do
+          config = subject.read
+          root = config.users.root
+
+          expect(root.authorized_keys).to eq([])
+        end
+      end
     end
 
     context "for a specific user" do
@@ -308,28 +330,6 @@ describe Y2Users::UsersSimple::Reader do
 
           expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
           expect(user.password.account_expiration.content).to eq("12345")
-        end
-      end
-
-      context "without the root password" do
-        let(:root_pwd) { "" }
-
-        it "leaves it unset" do
-          config = subject.read
-          root = config.users.root
-
-          expect(root.password).to be_nil
-        end
-      end
-
-      context "without the root authorized key" do
-        let(:root_authorized_key) { "" }
-
-        it "leaves it unset" do
-          config = subject.read
-          root = config.users.root
-
-          expect(root.authorized_keys).to eq([])
         end
       end
     end
