@@ -20,25 +20,42 @@
 require "date"
 
 module Y2Users
-  # Mixin for converting the strings used to represent dates in the shadow file
-  module ShadowDateHelper
-    # Converts a string representing the number of days since 1970-01-01 into a date
+  # Class that represents a date which is expressed as the number of days since 1970-01-01.
+  class ShadowDate
+    # Constructor
     #
-    # @param string [String]
+    # @param date [String, Date] date in the shadow format (numeric string) or as Date object
+    def initialize(date)
+      date = to_shadow_format(date) if date.is_a?(Date)
+
+      @content = date
+    end
+
+    # String representing the date in the shadow format (number of days since 1970-01-01)
+    #
+    # @return [String]
+    def to_s
+      @content
+    end
+
+    # Converts the number of days into a date
+    #
     # @return [Date]
-    def shadow_string_to_date(string)
+    def to_date
       # We need to expand the days to seconds
-      unix_time = string.to_i * 24 * 60 * 60
+      unix_time = @content.to_i * 24 * 60 * 60
       Date.strptime(unix_time.to_s, "%s")
     end
 
-    # Converts a date to a string representing the number of days since 1970-01-01
+  private
+
+    # Converts the given date to a string representing the number of days since 1970-01-01
     #
     # @param date [Date]
-    # @return [String
-    def date_to_shadow_string(date)
+    # @return [String]
+    def to_shadow_format(date)
       # We need to convert the seconds provided by "%s" to days
-      date.strftime("%s").to_i / (24 * 60 * 60)
+      (date.strftime("%s").to_i / (24 * 60 * 60)).to_s
     end
   end
 end
