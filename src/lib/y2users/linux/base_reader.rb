@@ -38,10 +38,7 @@ module Y2Users
 
         config = Config.new.attach(elements)
 
-        # read passwords after user, as user has to exist in advance
         read_passwords(config)
-
-        # read authorized keys
         read_authorized_keys(config)
 
         config
