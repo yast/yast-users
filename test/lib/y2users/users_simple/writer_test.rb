@@ -42,8 +42,8 @@ describe Y2Users::UsersSimple::Writer do
     # Root user
     let(:root) do
       user = Y2Users::User.new("root")
-      user.uid = 0
-      user.gid = 0
+      user.uid = "0"
+      user.gid = "0"
       user.shell = "/bin/bash"
       user.home = "/root"
       user.gecos = ["Root User"]
@@ -154,8 +154,8 @@ describe Y2Users::UsersSimple::Writer do
         user
       end
 
-      let(:uid) { 1000 }
-      let(:gid) { 100 }
+      let(:uid) { "1000" }
+      let(:gid) { "100" }
       let(:shell) { "/bin/zsh" }
       let(:home) { "/home/test1" }
       let(:gecos) { ["Test User1"] }
@@ -164,8 +164,8 @@ describe Y2Users::UsersSimple::Writer do
 
       let(:user2) do
         user = Y2Users::User.new("test2")
-        user.uid = 1001
-        user.gid = 101
+        user.uid = "1001"
+        user.gid = "101"
         user.shell = "/bin/bash"
         user.home = "/home/test2"
         user.gecos = ["Test User2"]
@@ -175,11 +175,10 @@ describe Y2Users::UsersSimple::Writer do
 
       let(:user2_password) do
         passwd = Y2Users::Password.create_encrypted("$1$.QKDPc5E$SWlkjRWexrXYgc98F.")
-        passwd.aging = Y2Users::PasswordAging.new
-        passwd.aging.last_change = Date.new(1977, 5, 7)
-        passwd.minimum_age = 0
-        passwd.maximum_age = 90
-        passwd.account_expiration = Date.new(2021, 5, 7)
+        passwd.aging = Y2Users::PasswordAging.new(Date.new(1977, 5, 7))
+        passwd.minimum_age = "0"
+        passwd.maximum_age = "90"
+        passwd.account_expiration = Y2Users::AccountExpiration.new(Date.new(2021, 5, 7))
         passwd
       end
 
