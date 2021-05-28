@@ -143,7 +143,7 @@ module Y2Users
 
     # @return [Date, nil] date when the account expires or nil if never
     def expire_date
-      password&.account_expiration
+      password&.account_expiration&.date
     end
 
     # User full name
