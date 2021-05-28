@@ -42,6 +42,8 @@ describe Y2Users::Linux::BaseReader do
       allow(subject).to receive(:load_users).and_return(passwd_content)
       allow(subject).to receive(:load_groups).and_return(group_content)
       allow(subject).to receive(:load_passwords).and_return(shadow_content)
+
+      allow(subject.log).to receive(:warn)
     end
 
     it "generates a config with read data" do
@@ -60,6 +62,14 @@ describe Y2Users::Linux::BaseReader do
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$pL/)
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
+    end
+
+    it "logs warning if password found for not existing user" do
+      shadow_content << "fakeuser:$6$fakepassword.:16899::::::\n"
+
+      expect(subject.log).to receive(:warn).with(/Found password for.*fakeuser./)
+
+      subject.read
     end
   end
 end

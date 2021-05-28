@@ -86,7 +86,7 @@ module Y2Users
         passwords.each_pair do |name, password|
           user = config.users.by_name(name)
           if !user
-            log.warn "Found password for non existing user #{password.name}."
+            log.warn "Found password for non existing user #{name}."
             next
           end
 
