@@ -9,6 +9,7 @@ TESTS = \
   lib/y2users/password_test.rb \
   lib/y2users/password_validator_test.rb \
   lib/y2users/validation_config_test.rb \
+  lib/y2users/shadow_date_test.rb \
   lib/y2users/help_texts_test.rb \
   lib/y2users/config_element_examples.rb \
   lib/y2users/config_element_collection_examples.rb \
