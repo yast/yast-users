@@ -291,6 +291,9 @@ module Y2Users
     end
 
     # Disables the account expiration
+    #
+    # @note There is not a counterpart method called 'enable'. To activate the account expiration,
+    #   use {#date=} to assign an expiration date.
     def disable
       @content = ""
     end
