@@ -227,12 +227,12 @@ describe Y2Users::User do
       end
 
       context "and the password has expiration" do
-        let(:expiration) { today }
+        let(:expiration) { Y2Users::AccountExpiration.new(date) }
 
-        let(:today) { Date.today }
+        let(:date) { Date.new(2021, 1, 2) }
 
         it "returns the password expiration" do
-          expect(subject.expire_date).to eq(today)
+          expect(subject.expire_date).to eq(date)
         end
       end
     end

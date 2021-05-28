@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast2/secret_attributes"
-require "y2users/shadow_date_helper"
+require "y2users/shadow_date"
 require "yast2/equatable"
 
 module Y2Users
@@ -36,31 +36,40 @@ module Y2Users
     # [PasswordAging, nil] nil means information is unknown (eg. new user without a shadow entry)
     attr_accessor :aging
 
-    # The minimum number of days required between password changes
+    # String representation of the minimum number of days required between password changes
     #
-    # @return [Integer] 0 means no restriction
+    # The "" and "0" values mean no restriction.
+    #
+    # @return [String, nil] nil if unknown
     attr_accessor :minimum_age
 
-    # The maximum number of days the password is valid. After that, the password is forced to be
-    # changed.
+    # String representation of the maximum number of days the password is valid. After that, the
+    # password is forced to be changed.
     #
-    # @return [Integer, nil] nil means no restriction
+    # The "" value means no restriction.
+    #
+    # @return [String, nil] nil if unknown
     attr_accessor :maximum_age
 
-    # The number of days before the password is to expire that the user is warned for changing the
-    # password.
+    # String representation of the number of days before the password is to expire that the user is
+    # warned for changing the password.
     #
-    # @return [Integer] 0 means no warning
+    # The "" and "0" values mean no warning.
+    #
+    # @return [String, nil] nil if unknown
     attr_accessor :warning_period
 
-    # The number of days after the password expires that account is disabled
+    # String representation of the number of days after the password expires that account is
+    # disabled.
     #
-    # @return [Integer, nil] nil means no limit
+    # The "" value means no inactivity period.
+    #
+    # @return [String, nil] nil if unknown
     attr_accessor :inactivity_period
 
-    # Date when whole account expires
+    # Information about the account expiration, based on the content of the shadow file
     #
-    # @return [Date, nil]  nil if there is no account expiration
+    # @return [AccountExpiration, nil] nil if unknown
     attr_accessor :account_expiration
 
     # Two passwords are equal if all their attributes are equal
@@ -96,20 +105,71 @@ module Y2Users
     def copy
       password = clone
       password.value = value.clone
+      password.aging = aging.clone
+      password.account_expiration = account_expiration.clone
 
       password
     end
   end
 
-  # Represents a password value. Its specific type is defined as subclass and can be queried.
-  class PasswordValue
-    include Yast2::SecretAttributes
+  # Class to represent a field in the shadow file
+  class ShadowField
     include Yast2::Equatable
 
-    secret_attr :content
+    # Content of the field
+    #
+    # @return [String]
+    attr_reader :content
 
-    # Two password values are equal if their content are equal
     eql_attr :content
+
+    # Constructor
+    #
+    # @param value [String]
+    def initialize(value = "")
+      @content = value
+    end
+
+    def to_s
+      content
+    end
+  end
+
+  # Class to represent a field in the shadow file, which can allocate a date
+  class ShadowDateField < ShadowField
+    # Constructor
+    #
+    # @param value [String, Date]
+    def initialize(value = "")
+      @content = value.is_a?(Date) ? to_shadow(value) : super
+    end
+
+  private
+
+    # Converts a date to the shadow format
+    #
+    # @see ShadowDate
+    #
+    # @return [String]
+    def to_shadow(date)
+      ShadowDate.new(date).to_s
+    end
+
+    # Converts the content to a Date object
+    #
+    # @see ShadowDate
+    #
+    # @return [Date]
+    def to_date
+      ShadowDate.new(content).to_date
+    end
+  end
+
+  # Represents a password value. Its specific type is defined as subclass and can be queried.
+  class PasswordValue < ShadowField
+    include Yast2::SecretAttributes
+
+    secret_attr :content
 
     # Constructor
     #
@@ -163,44 +223,21 @@ module Y2Users
     end
   end
 
-  # Represents one entry in the third field of the shadow file
-  class PasswordAging
-    include ShadowDateHelper
-    include Yast2::Equatable
-
-    eql_attr :content
-
-    # Constructor
-    #
-    # @param value [String, Date] content of the field, automatically converted to the right format
-    #   if provided as a Date object
-    def initialize(value = "")
-      value = date_to_shadow_string(value) if value.is_a?(Date)
-      @content = value
-    end
-
-    # Content of the field
-    #
-    # @return [String]
-    attr_accessor :content
-
-    def to_s
-      content
-    end
-
-    # Whether password aging features are enabled
+  # Represents the last password change field of the shadow file
+  class PasswordAging < ShadowDateField
+    # Whether the password aging feature is enabled
     #
     # @return [Boolean]
     def enabled?
-      content != ""
+      !content.empty?
     end
 
-    # Sets the content to the value that disables password aging features
+    # Disables the password aging feature
     #
     # @note There is not a counterpart method called 'enable'. To activate password aging,
     #   use {#force_change} or {#last_change=}.
     def disable
-      self.content = ""
+      @content = ""
     end
 
     # Whether the user must change the password in the next login
@@ -212,7 +249,7 @@ module Y2Users
 
     # Sets the content to the value that enforces a password change in the next login
     def force_change
-      self.content = "0"
+      @content = "0"
     end
 
     # Date of the latest password change, or nil if that date is irrelevant
@@ -222,21 +259,63 @@ module Y2Users
     #   - password aging features are disabled (see {#enabled?})
     #   - the user is forced to change the password in the next login (see {#force_change?})
     #
+    # @see ShadowDateField#to_date
+    #
     # @return [Date, nil]
     def last_change
       return nil unless enabled?
       return nil if force_change?
 
-      shadow_string_to_date(content)
+      to_date
     end
 
     # Sets the content to the given date
     #
     # @note This enables the password aging features and sets {#force_change?} to false.
     #
+    # @see ShadowDateField#to_shadow
+    #
     # @param date [Date]
     def last_change=(date)
-      self.content = date_to_shadow_string(date)
+      @content = to_shadow(date)
+    end
+  end
+
+  # Represents the account expiration field of the shadow file
+  class AccountExpiration < ShadowDateField
+    # Whether the account has an expiration date
+    #
+    # @return [Boolean]
+    def expire?
+      !content.empty?
+    end
+
+    # Disables the account expiration
+    #
+    # @note There is not a counterpart method called 'enable'. To activate the account expiration,
+    #   use {#date=} to assign an expiration date.
+    def disable
+      @content = ""
+    end
+
+    # Expiration date
+    #
+    # @see ShadowDateField#to_date
+    #
+    # @return [Date, nil] nil if the account does not expire
+    def date
+      return nil unless expire?
+
+      to_date
+    end
+
+    # Sets an expiration date
+    #
+    # @see ShadowDateField#to_shadow
+    #
+    # @param [Date] date
+    def date=(date)
+      @content = to_shadow(date)
     end
   end
 end

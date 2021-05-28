@@ -20,8 +20,8 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
-
 require "y2users/password"
+require "y2users/shadow_date"
 require "date"
 
 describe Y2Users::Password do
@@ -49,8 +49,8 @@ describe Y2Users::Password do
     subject { described_class.create_plain("S3cr3T") }
 
     before do
-      subject.minimum_age = 10
-      subject.inactivity_period = 20
+      subject.minimum_age = "10"
+      subject.inactivity_period = "20"
     end
 
     it "generates a new password with the same values" do
@@ -67,72 +67,42 @@ describe Y2Users::Password do
 
       expect(password.value.content).to_not eq(subject.value.content)
     end
+
+    it "generates a new password with an independent aging value" do
+      subject.aging = Y2Users::PasswordAging.new(Date.new(2021, 1, 2))
+
+      password = subject.copy
+      password.aging.last_change = Date.new(2021, 1, 10)
+
+      expect(password.aging).to_not eq(subject.aging)
+    end
+
+    it "generates a new password with an independent account expiration value" do
+      subject.account_expiration = Y2Users::AccountExpiration.new(Date.new(2021, 1, 2))
+
+      password = subject.copy
+      password.account_expiration.date = Date.new(2021, 1, 10)
+
+      expect(password.account_expiration).to_not eq(subject.account_expiration)
+    end
   end
 
   describe "#==" do
     subject { described_class.create_plain("S3cr3T") }
 
     before do
-      subject.aging = Y2Users::PasswordAging.new(Date.today)
-      subject.minimum_age = 10
-      subject.maximum_age = 20
-      subject.warning_period = 30
-      subject.inactivity_period = 40
-      subject.account_expiration = Date.today + 100
+      subject.aging = Y2Users::PasswordAging.new(Date.new(2021, 1, 2))
+      subject.minimum_age = "10"
+      subject.maximum_age = "20"
+      subject.warning_period = "30"
+      subject.inactivity_period = "40"
+      subject.account_expiration = Y2Users::AccountExpiration.new(Date.new(2021, 1, 2))
     end
 
     let(:other) { subject.copy }
 
-    context "when all the attributes are equal" do
-      it "returns true" do
-        expect(subject == other).to eq(true)
-      end
-    end
-
-    context "when the #last_change does not match" do
-      before do
-        other.aging = Y2Users::PasswordAging.new(Date.today + 10)
-      end
-
-      it "returns false" do
-        expect(subject == other).to eq(false)
-      end
-    end
-
-    context "when the #minimum_age does not match" do
-      before do
-        other.minimum_age = 11
-      end
-
-      it "returns false" do
-        expect(subject == other).to eq(false)
-      end
-    end
-
-    context "when the #maximum_age does not match" do
-      before do
-        other.maximum_age = 21
-      end
-
-      it "returns false" do
-        expect(subject == other).to eq(false)
-      end
-    end
-
-    context "when the #warning_period does not match" do
-      before do
-        other.warning_period = 31
-      end
-
-      it "returns false" do
-        expect(subject == other).to eq(false)
-      end
-    end
-
-    context "when the #inactivity_period does not match" do
-      before do
-        other.inactivity_period = 41
-      end
+    context "when the given object is not a password" do
+      let(:other) { "This is not a password" }
 
       it "returns false" do
         expect(subject == other).to eq(false)
@@ -149,11 +119,69 @@ describe Y2Users::Password do
       end
     end
 
-    context "when the given object is not a password" do
-      let(:other) { "This is not a password" }
+    context "when the #aging does not match" do
+      before do
+        other.aging.last_change = Date.new(2021, 1, 10)
+      end
 
       it "returns false" do
         expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the #minimum_age does not match" do
+      before do
+        other.minimum_age = "11"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the #maximum_age does not match" do
+      before do
+        other.maximum_age = "21"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the #warning_period does not match" do
+      before do
+        other.warning_period = "31"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the #inactivity_period does not match" do
+      before do
+        other.inactivity_period = "41"
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when the #account_expiration does not match" do
+      before do
+        other.account_expiration.date = Date.new(2021, 1, 10)
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when all the attributes are equal" do
+      it "returns true" do
+        expect(subject == other).to eq(true)
       end
     end
   end
@@ -269,4 +297,251 @@ describe Y2Users::PasswordEncryptedValue do
   end
 
   include_examples "password value comparison"
+end
+
+describe Y2Users::PasswordAging do
+  subject { described_class.new(value) }
+
+  describe ".new" do
+    context "when an empty string is given" do
+      let(:value) { "" }
+
+      it "creates a disabled aging" do
+        expect(subject.enabled?).to eq(false)
+      end
+    end
+
+    context "when the '0' string is given" do
+      let(:value) { "0" }
+
+      it "creates an aging which forces to chage the password" do
+        expect(subject.force_change?).to eq(true)
+      end
+    end
+
+    context "when a shadow date is given" do
+      let(:value) { "1234" }
+
+      let(:shadow_date) { Y2Users::ShadowDate.new(value) }
+
+      it "creates an aging with a date equivalent to the given shadow date" do
+        expect(subject.last_change).to eq(shadow_date.to_date)
+      end
+    end
+
+    context "when a date object is given" do
+      let(:value) { Date.new(2021, 1, 2) }
+
+      it "creates an aging with the given date" do
+        expect(subject.last_change).to eq(value)
+      end
+    end
+  end
+
+  describe "#enabled?" do
+    context "when the content is empty" do
+      let(:value) { "" }
+
+      it "returns false" do
+        expect(subject.enabled?).to eq(false)
+      end
+    end
+
+    context "when the content is not empty" do
+      let(:value) { "1111" }
+
+      it "returns true" do
+        expect(subject.enabled?).to eq(true)
+      end
+    end
+  end
+
+  describe "#disable" do
+    context "when the aging is already disabled" do
+      let(:value) { "" }
+
+      it "keeps it as disabled" do
+        subject.disable
+
+        expect(subject.enabled?).to eq(false)
+      end
+    end
+
+    context "when the aging is enabled" do
+      let(:value) { "1111" }
+
+      it "sets it as disabled" do
+        expect { subject.disable }.to change { subject.enabled? }.from(true).to(false)
+      end
+    end
+  end
+
+  describe "#force_change?" do
+    context "when the content is 0" do
+      let(:value) { "0" }
+
+      it "returns true" do
+        expect(subject.force_change?).to eq(true)
+      end
+    end
+
+    context "when the content is not 0" do
+      let(:value) { "1111" }
+
+      it "returns false" do
+        expect(subject.force_change?).to eq(false)
+      end
+    end
+  end
+
+  describe "#force_change" do
+    context "when the aging is already set to force the password change" do
+      let(:value) { "0" }
+
+      it "keeps it set to force the password change" do
+        subject.force_change
+
+        expect(subject.force_change?).to eq(true)
+      end
+    end
+
+    context "when the aging is not set to force the password change" do
+      let(:value) { "1111" }
+
+      it "sets it to force the password change" do
+        expect { subject.force_change }.to change { subject.force_change? }.from(false).to(true)
+      end
+    end
+  end
+
+  describe "#last_change" do
+    let(:value) { "1234" }
+
+    it "returns the date of the last change" do
+      date = Y2Users::ShadowDate.new(value).to_date
+
+      expect(subject.last_change).to eq(date)
+    end
+
+    context "when the aging is disabled" do
+      before do
+        subject.disable
+      end
+
+      it "returns nil" do
+        expect(subject.last_change).to be_nil
+      end
+    end
+
+    context "when the aging is set to force the password change" do
+      before do
+        subject.force_change
+      end
+
+      it "returns nil" do
+        expect(subject.last_change).to be_nil
+      end
+    end
+  end
+
+  describe "#last_change=" do
+    let(:value) { "" }
+
+    it "sets the given date as the last password change" do
+      shadow_date = Y2Users::ShadowDate.new(Date.new(2021, 1, 2))
+
+      subject.last_change = shadow_date.to_date
+
+      expect(subject.last_change).to eq(shadow_date.to_date)
+      expect(subject.to_s).to eq(shadow_date.to_s)
+    end
+  end
+end
+
+describe Y2Users::AccountExpiration do
+  subject { described_class.new(value) }
+
+  describe ".new" do
+    context "when an empty string is given" do
+      let(:value) { "" }
+
+      it "creates an account expiration without expiration date" do
+        expect(subject.date).to be_nil
+      end
+    end
+
+    context "when a shadow date is given" do
+      let(:value) { "1234" }
+
+      let(:shadow_date) { Y2Users::ShadowDate.new(value) }
+
+      it "creates an account expiration with a date equivalent to the given shadow date" do
+        expect(subject.date).to eq(shadow_date.to_date)
+      end
+    end
+
+    context "when a date object is given" do
+      let(:value) { Date.new(2021, 1, 2) }
+
+      it "creates an account expiration with the given date" do
+        expect(subject.date).to eq(value)
+      end
+    end
+  end
+
+  describe "#expire?" do
+    context "when there is no expiration date" do
+      let(:value) { "" }
+
+      it "returns false" do
+        expect(subject.expire?).to eq(false)
+      end
+    end
+
+    context "when there is an expiration date" do
+      let(:value) { "1111" }
+
+      it "returns true" do
+        expect(subject.expire?).to eq(true)
+      end
+    end
+  end
+
+  describe "#disable" do
+    context "when there is no expiration date" do
+      let(:value) { "" }
+
+      it "keeps it without expiration date" do
+        subject.disable
+
+        expect(subject.expire?).to eq(false)
+      end
+    end
+
+    context "when there is an expiration date" do
+      let(:value) { "1111" }
+
+      it "removes the expiration date" do
+        expect { subject.disable }.to change { subject.expire? }.from(true).to(false)
+      end
+    end
+  end
+
+  describe "#date" do
+    context "when there is no expiration date" do
+      let(:value) { "" }
+
+      it "returns nil" do
+        expect(subject.date).to be_nil
+      end
+    end
+
+    context "when there is an expiration date" do
+      let(:value) { Date.new(2021, 1, 2) }
+
+      it "returns the date" do
+        expect(subject.date).to eq(value)
+      end
+    end
+  end
 end

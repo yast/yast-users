@@ -64,6 +64,8 @@ describe Y2Users::Linux::Reader do
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$pL/)
+      expect(root_user.password.aging.content).to eq("16899")
+      expect(root_user.password.account_expiration.content).to eq("")
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
     end
   end

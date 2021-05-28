@@ -258,7 +258,11 @@ module Y2Users
       def set_password_attributes(user, issues)
         return unless user.password
 
-        Yast::Execute.on_target!(CHAGE, *chage_options(user))
+        options = chage_options(user)
+
+        return if options.empty?
+
+        Yast::Execute.on_target!(CHAGE, *options, user.name)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
@@ -321,31 +325,29 @@ module Y2Users
       def chage_options(user)
         passwd = user.password
 
-        opts = []
-        opts.concat(["--lastday", chage_value(passwd.aging.content)]) if passwd.aging
+        opts = {
+          "--mindays"    => chage_value(passwd.minimum_age),
+          "--maxdays"    => chage_value(passwd.maximum_age),
+          "--warndays"   => chage_value(passwd.warning_period),
+          "--inactive"   => chage_value(passwd.inactivity_period),
+          "--expiredate" => chage_value(passwd.account_expiration),
+          "--lastday"    => chage_value(passwd.aging)
+        }
 
-        opts.concat(
-          [
-            "--mindays",    chage_value(passwd.minimum_age),
-            "--maxdays",    chage_value(passwd.maximum_age),
-            "--warndays",   chage_value(passwd.warning_period),
-            "--inactive",   chage_value(passwd.inactivity_period),
-            "--expiredate", chage_value(passwd.account_expiration),
-            user.name
-          ]
-        )
-
-        opts
+        opts.reject { |_, v| v.nil? }.flatten
       end
 
+      # Returns the right value for a given chage option value
+      #
       # @see #chage_options
       #
       # @param value [String, Integer, Date, nil]
       # @return [String]
       def chage_value(value)
-        return "-1" if value.nil? || value == ""
+        return if value.nil?
 
-        value.to_s
+        result = value.to_s
+        result.empty? ? "-1" : result
       end
 
       # Custom Cheetah recorder to prevent leaking the password to the logs

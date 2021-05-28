@@ -18,16 +18,12 @@
 # find current contact information at www.suse.com.
 
 require "date"
-
 require "y2users/password"
-require "y2users/shadow_date_helper"
 
 module Y2Users
   module Parsers
     # Parses shadow style string and return passwords defined in it
     class Shadow
-      include ShadowDateHelper
-
       # Mapping of attributes to index in shadow file
       SHADOW_MAPPING = {
         "username"           => 0,
@@ -40,44 +36,38 @@ module Y2Users
         "account_expiration" => 7
       }.freeze
 
-      # Parses content and returns mapping of username and password there.
+      # Parses the given string representing the content of a shadow file and returns a mapping of
+      # username and password
+      #
       # @param content [String]
-      # @return [Hash<String, Y2Users::Password>]
+      # @return [Hash<String, Password>]
       def parse(content)
         content.lines.each_with_object({}) do |line, res|
-          values = line.chomp.split(":")
+          # If the limit parameter (second parameter) of String#split is omitted, then the trailing
+          # null fields are suppressed. If the limit is negative, then there is no limit to the
+          # number of fields returned, and trailing null fields are not suppressed.
+          values = line.chomp.split(":", -1)
 
-          res[values[SHADOW_MAPPING["username"]]] = parse_values(values)
+          res[values[SHADOW_MAPPING["username"]]] = create_password(values)
         end
       end
 
     private
 
-      def parse_values(values)
-        max_age = values[SHADOW_MAPPING["maximum_age"]]
-        inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
-        expiration = parse_account_expiration(values[SHADOW_MAPPING["account_expiration"]])
-        password_value = PasswordEncryptedValue.new(values[SHADOW_MAPPING["value"]])
-        password = Password.new(password_value)
-        password.aging = parse_aging(values[SHADOW_MAPPING["last_change"]])
-        password.minimum_age = values[SHADOW_MAPPING["minimum_age"]].to_i
-        password.maximum_age = max_age&.to_i
-        password.warning_period = values[SHADOW_MAPPING["warning_period"]].to_i
-        password.inactivity_period = inactivity_period&.to_i
-        password.account_expiration = expiration
-        password
-      end
-
-      def parse_aging(value)
-        return nil unless value
-
-        PasswordAging.new(value)
-      end
-
-      def parse_account_expiration(value)
-        return nil if !value || value.empty?
-
-        shadow_string_to_date(value)
+      # Creates a password from the values of a shadow line
+      #
+      # @param values [Array<String>]
+      # @return [Password]
+      def create_password(values)
+        Password.create_encrypted(values[SHADOW_MAPPING["value"]]).tap do |password|
+          password.aging = PasswordAging.new(values[SHADOW_MAPPING["last_change"]])
+          password.minimum_age = values[SHADOW_MAPPING["minimum_age"]]
+          password.maximum_age = values[SHADOW_MAPPING["maximum_age"]]
+          password.warning_period = values[SHADOW_MAPPING["warning_period"]]
+          password.inactivity_period = values[SHADOW_MAPPING["inactivity_period"]]
+          password.account_expiration =
+            AccountExpiration.new(values[SHADOW_MAPPING["account_expiration"]])
+        end
       end
     end
   end
