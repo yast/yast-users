@@ -22,6 +22,7 @@ require "y2users/config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
+require "y2users/linux/useradd_config_reader"
 require "users/ssh_authorized_keyring"
 
 module Y2Users
@@ -40,6 +41,7 @@ module Y2Users
 
         read_passwords(config)
         read_authorized_keys(config)
+        read_useradd_config(config)
 
         config
       end
@@ -105,6 +107,13 @@ module Y2Users
 
           user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
         end
+      end
+
+      # Reads the configuration for useradd
+      #
+      # @param config [Config]
+      def read_useradd_config(config)
+        config.useradd_config = UseraddConfigReader.new.read
       end
     end
   end

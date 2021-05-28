@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues"
 require "users/ssh_authorized_keyring"
+require "y2users/linux/useradd_config_writer"
 
 module Y2Users
   module Linux
@@ -100,6 +101,8 @@ module Y2Users
         issues = Y2Issues::List.new
 
         add_groups(issues)
+        # Configure useradd after creating the groups, to make sure the default group exists already
+        write_useradd_config(issues)
         add_users(issues)
         edit_users(issues)
 
@@ -148,6 +151,13 @@ module Y2Users
       #
       # @return [Y2User::Config]
       attr_reader :initial_config
+
+      # Writes the useradd configuration to the system
+      #
+      # @param issues [Y2Issues::List]
+      def write_useradd_config(issues)
+        UseraddConfigWriter.new(config, initial_config).write(issues)
+      end
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze

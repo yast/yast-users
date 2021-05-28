@@ -43,6 +43,12 @@ describe Y2Users::Linux::Reader do
     shadow_content = File.read(File.join(FIXTURES_PATH, "/root/etc/shadow"))
     allow(Yast::Execute).to receive(:on_target!).with(/getent/, "shadow", anything)
       .and_return(shadow_content)
+
+    useradd_content = File.read(File.join(FIXTURES_PATH, "/root/etc/default/useradd"))
+    allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
+      .and_return(useradd_content)
+
+    allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("024")
   end
 
   describe "#read" do
@@ -67,6 +73,13 @@ describe Y2Users::Linux::Reader do
       expect(root_user.password.aging.content).to eq("16899")
       expect(root_user.password.account_expiration.content).to eq("")
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
+
+      useradd = config.useradd_config
+      expect(useradd.group).to eq "100"
+      expect(useradd.expiration).to eq ""
+      expect(useradd.inactivity_period).to eq(-1)
+      expect(useradd.create_mail_spool).to eq true
+      expect(useradd.umask).to eq "024"
     end
   end
 end
