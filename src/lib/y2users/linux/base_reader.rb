@@ -17,6 +17,7 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "abstract_method"
 require "y2users/config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
@@ -57,14 +58,9 @@ module Y2Users
         parser.parse(load_users)
       end
 
-      # Loads users from the system
-      #
-      # To be implemented by the subclasses
-      #
-      # @return [String]
-      def load_users
-        raise NotImplementedError
-      end
+      # @!method load_users
+      #   @return [String] loaded users from the system
+      abstract_method :load_users
 
       # Parses the content retrieved by {#load_groups} and returns a collection of groups
       #
@@ -75,14 +71,9 @@ module Y2Users
         parser.parse(load_groups)
       end
 
-      # Loads groups from the system
-      #
-      # To be implemented by the subclasses
-      #
-      # @return [String]
-      def load_groups
-        raise NotImplementedError
-      end
+      # @!method load_groups
+      #   @return [String] loaded groups from the system
+      abstract_method :load_groups
 
       # Parses the content retrieved by {#load_passwords} and sets user passwords
       #
@@ -103,14 +94,9 @@ module Y2Users
         end
       end
 
-      # Loads user passwords from the system
-      #
-      # To be implemented by the subclasses
-      #
-      # @return [String]
-      def load_passwords
-        raise NotImplementedError
-      end
+      # @!method load_passwords
+      #   @return [String] loaded passwords from the system
+      abstract_method :load_passwords
 
       # Reads users authorized keys
       #
