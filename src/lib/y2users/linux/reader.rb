@@ -18,73 +18,46 @@
 # find current contact information at www.suse.com.
 
 require "yast2/execute"
-require "y2users/config"
-require "y2users/parsers/group"
-require "y2users/parsers/passwd"
-require "y2users/parsers/shadow"
-require "users/ssh_authorized_keyring"
+require "y2users/linux/base_reader"
 
 module Y2Users
   module Linux
-    # Reads users configuration from the system using getent utility.
-    class Reader
-      include Yast::Logger
+    # Reads users configuration from the system using `getent` command.
+    class Reader < BaseReader
+    private # rubocop:disable Layout/IndentationWidth
 
-      # Generates a new config with the users and groups from the system
+      # Loads entries from `passwd` database
       #
-      # @return [Config]
-      def read
-        elements = read_users + read_groups
-
-        config = Config.new.attach(elements)
-
-        # read passwords after user, as user has to exist in advance
-        read_passwords(config)
-
-        # read authorized keys
-        read_authorized_keys(config)
-
-        config
+      # @see #getent
+      # @return [String]
+      def load_users
+        getent("passwd")
       end
 
-    private
-
-      def read_users
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "passwd", stdout: :capture)
-        parser = Parsers::Passwd.new
-
-        parser.parse(getent)
+      # Loads entries from `group` database
+      #
+      # @see #getent
+      # @return [String]
+      def load_groups
+        getent("group")
       end
 
-      def read_groups
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "group", stdout: :capture)
-        parser = Parsers::Group.new
-
-        parser.parse(getent)
+      # Loads entries from `shadow` database
+      #
+      # @see #getent
+      # @return [String]
+      def load_passwords
+        getent("shadow")
       end
 
-      def read_passwords(config)
-        getent = Yast::Execute.on_target!("/usr/bin/getent", "shadow", stdout: :capture)
-        parser = Parsers::Shadow.new
-
-        passwords = parser.parse(getent)
-        passwords.each_pair do |name, password|
-          user = config.users.by_name(name)
-          if !user
-            log.warn "Found password for non existing user #{password.name}."
-            next
-          end
-
-          user.password = password
-        end
-      end
-
-      def read_authorized_keys(config)
-        config.users.each do |user|
-          next unless user.home
-
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
-        end
+      # Executes the `getent` command for getting entries for given Name Service Switch database
+      #
+      # @see https://www.man7.org/linux/man-pages/man1/getent.1.html
+      #
+      # @param database [String] a database supported by the Name Service Switch libraries
+      # @return [String] the getent command output
+      def getent(database)
+        Yast::Execute.on_target!("/usr/bin/getent", database, stdout: :capture)
       end
     end
   end

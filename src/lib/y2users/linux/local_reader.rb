@@ -17,79 +17,54 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "y2users/config"
-require "y2users/parsers/group"
-require "y2users/parsers/passwd"
-require "y2users/parsers/shadow"
-require "users/ssh_authorized_keyring"
+require "y2users/linux/base_reader"
 
 module Y2Users
   module Linux
     # Reads local users configuration from the system using /etc files.
-    class LocalReader
-      include Yast::Logger
-
+    class LocalReader < BaseReader
+      # Constructor
+      #
+      # @param source_dir [String, Pathname] path of source directory for reading files
       def initialize(source_dir = "/")
         @source_dir = source_dir
       end
 
-      # Generates a new config with the users and groups from the /etc files
-      #
-      # @return [Config]
-      def read
-        elements = read_users + read_groups
-
-        config = Config.new.attach(elements)
-
-        # read passwords after user, as user has to exist in advance
-        read_passwords(config)
-
-        # read authorized keys
-        read_authorized_keys(config)
-
-        config
-      end
-
     private
 
+      # Source directory for reading files content
+      #
+      # @see #load_file
+      # @return [String, Pathname]
       attr_reader :source_dir
 
-      def read_users
-        content = File.read(File.join(source_dir, "/etc/passwd"))
-        parser = Parsers::Passwd.new
-
-        parser.parse(content)
+      # Loads the content of /etc/passwd file
+      #
+      # @return [String]
+      def load_users
+        load_file("/etc/passwd")
       end
 
-      def read_groups
-        content = File.read(File.join(source_dir, "/etc/group"))
-        parser = Parsers::Group.new
-
-        parser.parse(content)
+      # Loads the content of /etc/group file
+      #
+      # @return [String]
+      def load_groups
+        load_file("/etc/group")
       end
 
-      def read_passwords(config)
-        content = File.read(File.join(source_dir, "/etc/shadow"))
-        parser = Parsers::Shadow.new
-
-        passwords = parser.parse(content)
-        passwords.each_pair do |name, password|
-          user = config.users.by_name(name)
-          if !user
-            log.warn "Found password for non existing user #{password.name}."
-            next
-          end
-
-          user.password = password
-        end
+      # Loads the content of /etc/shadow file
+      #
+      # @return [String]
+      def load_passwords
+        load_file("/etc/shadow")
       end
 
-      def read_authorized_keys(config)
-        config.users.each do |user|
-          next unless user.home
-
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
-        end
+      # Loads the content of given file path within the {#source_dir}
+      #
+      # @param path [String, Pathname] the path to the file to be read
+      # @return [String] the content of the read file
+      def load_file(path)
+        File.read(File.join(source_dir, path))
       end
     end
   end
