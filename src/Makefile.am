@@ -109,6 +109,7 @@ ylib_y2users_clients_DATA = \
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \
+  lib/y2users/linux/base_reader.rb \
   lib/y2users/linux/local_reader.rb \
   lib/y2users/linux/reader.rb \
   lib/y2users/linux/writer.rb
