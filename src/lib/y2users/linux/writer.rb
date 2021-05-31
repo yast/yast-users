@@ -190,11 +190,7 @@ module Y2Users
 
         edited_users.each do |user|
           initial_user = initial_config.users.by_id(user.id)
-
-
-          modify(user, initial_user, issues)
-          change_password(user, issues) if initial_user.password != user.password
-          write_auth_keys(user, issues) if initial_user.authorized_keys != user.authorized_keys
+          edit_user(user, initial_user, issues)
         end
       end
 
@@ -277,45 +273,28 @@ module Y2Users
         log.error("Error setting password attributes for '#{user.name}' - #{e.message}")
       end
 
-
       # Attributes to modify using `usermod`
-      USERMOD_ATTRS = [:home, :shell, :gecos]
+      USERMOD_ATTRS = [:home, :shell, :gecos].freeze
 
-      # Modifies the user
+      # Edits the user
       #
       # @param new_user [Y2Users::User] User containing the updated information
       # @param old_user [Y2Users::User] Original user
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def modify(new_user, old_user, issues)
+      def edit_user(new_user, old_user, issues)
         usermod_changes = USERMOD_ATTRS.any? do |attr|
           !new_user.public_send(attr).nil? &&
             (new_user.public_send(attr) != old_user.public_send(attr))
         end
-        if usermod_changes
-          usermod_modify(new_user, old_user, issues)
-        end
-      end
 
-      # Command to modity the user
-      #
-      # @param new_user [Y2Users::User] User containing the updated information
-      # @param old_user [Y2Users::User] Original user
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def usermod_modify(new_user, old_user, issues)
-        args = [USERMOD]
-        args << "--comment" << new_user.gecos if new_user.gecos != old_user.gecos && new_user.gecos
-        if new_user.home != old_user.home && new_user.home
-          args << "--home" << new_user.home << "--move-home"
-        end
-        args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
-        args << new_user.name
-
-        Yast::Execute.on_target!(args)
+        Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
+        change_password(new_user, issues) if old_user.password != new_user.password
+        write_auth_keys(new_user, issues) if old_user.authorized_keys != new_user.authorized_keys
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          format(_("Failed to modify user '%{username}'"), username: new_user.name)
+          format(_("The user '%{username}' could not be modified"), username: new_user.name)
         )
-        log.error("Error modifying '#{new_user.name}' - #{e.message}")
+        log.error("Error modifying user '#{new_user.name}' - #{e.message}")
       end
 
       # Generates and returns the options expected by `useradd` for given user
@@ -340,6 +319,22 @@ module Y2Users
 
         opts << user.name
         opts
+      end
+
+      # Command to modity the user
+      #
+      # @param new_user [Y2Users::User] User containing the updated information
+      # @param old_user [Y2Users::User] Original user
+      # @return [Array<String>] usermod options
+      def usermod_options(new_user, old_user)
+        args = []
+        args << "--comment" << new_user.gecos if new_user.gecos != old_user.gecos && new_user.gecos
+        if new_user.home != old_user.home && new_user.home
+          args << "--home" << new_user.home << "--move-home"
+        end
+        args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+        args << new_user.name
+        args
       end
 
       # Options for `useradd` to create the home directory
