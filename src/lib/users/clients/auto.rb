@@ -24,6 +24,7 @@ require "y2users/autoinst/reader"
 
 Yast.import "Users"
 Yast.import "UsersSimple"
+Yast.import "Linuxrc"
 Yast.import "Mode"
 Yast.import "Progress"
 Yast.import "Report"
@@ -46,6 +47,7 @@ module Y2Users
         check_users(param["users"] || [])
         reader = Y2Users::Autoinst::Reader.new(param)
         config = reader.read
+        read_linuxrc_root_pwd(config)
         Y2Users::ConfigManager.instance.register(config, as: :autoinst)
 
         true
@@ -115,6 +117,21 @@ module Y2Users
         report = check_users.size > check_users.uniq { |u| u["uid"] }.size
 
         Yast::Report.Error(_("Found users in profile with equal <uid>.")) if report
+      end
+
+      def read_linuxrc_root_pwd(config)
+        root_user = config.users.root
+        # use param only if profile do not already contain it
+        return if root_user&.password
+
+        # root user not defined
+        if !root_user
+          root_user = Y2Users::User.new("root")
+          root_user.uid = "0"
+          config.users.add(root_user)
+        end
+
+        root_user.password = Y2Users::Password.create_plain(Yast::Linuxrc.InstallInf("RootPassword"))
       end
     end
   end
