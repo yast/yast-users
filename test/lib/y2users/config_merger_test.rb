@@ -198,6 +198,7 @@ describe Y2Users::ConfigMerger do
           subject.merge
 
           expect(lhs_group("test1")).to eq(group1)
+          expect(lhs_group("test1").users_name).to eq(["test1", "test2"])
         end
       end
     end

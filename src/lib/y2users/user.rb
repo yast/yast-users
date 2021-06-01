@@ -96,7 +96,8 @@ module Y2Users
 
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
-    eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys
+    eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
+      :secondary_groups_name
 
     # Constructor
     #
@@ -135,10 +136,17 @@ module Y2Users
     def groups(with_primary: true)
       return [] unless attached?
 
-      groups = config.groups.select { |g| g.users.include?(self) }
+      groups = config.groups.select { |g| g.users.map(&:name).include?(name) }
       groups.reject! { |g| g.gid == gid } if gid && !with_primary
 
       groups
+    end
+
+    # Secondary group names where the user is included
+    #
+    # @return [Array<String>]
+    def secondary_groups_name
+      groups(with_primary: false).map(&:name).sort
     end
 
     # @return [Date, nil] date when the account expires or nil if never
