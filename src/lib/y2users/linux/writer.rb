@@ -305,7 +305,7 @@ module Y2Users
       end
 
       # Attributes to modify using `usermod`
-      USERMOD_ATTRS = [:home, :shell, :gecos].freeze
+      USERMOD_ATTRS = [:gid, :home, :shell, :gecos].freeze
 
       # Edits the user
       #
@@ -362,6 +362,7 @@ module Y2Users
       # rubocop:disable Metrics/CyclomaticComplexity
       def usermod_options(new_user, old_user)
         args = []
+        args << "--gid" << new_user.gid if new_user.gid != old_user.gid && new_user.gid
         args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
         if new_user.home != old_user.home && new_user.home
           args << "--home" << new_user.home << "--move-home"

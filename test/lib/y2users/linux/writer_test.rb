@@ -249,6 +249,21 @@ describe Y2Users::Linux::Writer do
         writer.write
       end
 
+      context "whose gid was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.gid = "1000"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--gid", "1000", user.name
+          )
+
+          writer.write
+        end
+      end
+
       context "whose home was changed" do
         before do
           current_user = config.users.by_id(user.id)
