@@ -238,6 +238,66 @@ describe Y2Users::Linux::Writer do
         writer.write
       end
 
+      context "whose home was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.home = "/home/new"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--home", "/home/new", "--move-home", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "whose shell was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.shell = "/usr/bin/fish"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--shell", "/usr/bin/fish", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "whose gecos was changed" do
+        let(:gecos) { ["Jane", "Doe"] }
+
+        before do
+          user.gecos = ["Admin"]
+          current_user = config.users.by_id(user.id)
+          current_user.gecos = gecos
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--comment", "Jane,Doe", user.name
+          )
+
+          writer.write
+        end
+
+        context "and the new value is empty" do
+          let(:gecos) { [] }
+
+          it "executes usermod with the new values" do
+            expect(Yast::Execute).to receive(:on_target!).with(
+              /usermod/, "--comment", "", user.name
+            )
+
+            writer.write
+          end
+        end
+      end
+
       context "whose authorized keys were edited" do
         before do
           current_user = config.users.by_id(user.id)
