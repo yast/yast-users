@@ -328,7 +328,7 @@ module Y2Users
       # @return [Array<String>] usermod options
       def usermod_options(new_user, old_user)
         args = []
-        args << "--comment" << new_user.gecos if new_user.gecos != old_user.gecos && new_user.gecos
+        args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
         if new_user.home != old_user.home && new_user.home
           args << "--home" << new_user.home << "--move-home"
         end
