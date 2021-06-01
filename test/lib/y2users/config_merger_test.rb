@@ -194,10 +194,11 @@ describe Y2Users::ConfigMerger do
           expect(lhs.groups.map(&:name)).to contain_exactly("test1", "test2", "test3")
         end
 
-        it "updates the lhs group with the data from the corresponding rhs group except gid" do
+        it "updates the lhs group with the data from the corresponding rhs" do
           subject.merge
 
           expect(lhs_group("test1").gid).to eq(100)
+          expect(lhs_group("test1").users_name).to eq(["test1"])
         end
       end
     end
