@@ -298,6 +298,22 @@ describe Y2Users::Linux::Writer do
         end
       end
 
+      context "when modifying a user attribute fails" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.home = "/home/new"
+          allow(Yast::Execute).to receive(:on_target!)
+            .with(/usermod/, any_args)
+            .and_raise(Cheetah::ExecutionFailed.new("", "", "", ""))
+        end
+
+        it "returns an issue" do
+          expect(writer.log).to receive(:error).with(/Error modifying user '#{user.name}'/)
+          issues = writer.write
+          expect(issues.first.message).to match("The user '#{user.name}' could not be modified")
+        end
+      end
+
       context "whose authorized keys were edited" do
         before do
           current_user = config.users.by_id(user.id)
