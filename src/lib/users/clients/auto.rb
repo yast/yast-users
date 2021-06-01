@@ -128,7 +128,7 @@ module Y2Users
         if !root_user
           root_user = Y2Users::User.new("root")
           root_user.uid = "0"
-          config.users.add(root_user)
+          config.attach(root_user)
         end
 
         root_user.password = Y2Users::Password.create_plain(Yast::Linuxrc.InstallInf("RootPassword"))
