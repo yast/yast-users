@@ -197,8 +197,8 @@ describe Y2Users::ConfigMerger do
         it "updates the lhs group with the data from the corresponding rhs" do
           subject.merge
 
-          expect(lhs_group("test1").gid).to eq(100)
-          expect(lhs_group("test1").users_name).to eq(["test1"])
+          expect(lhs_group("test1")).to eq(group1)
+          expect(lhs_group("test1").users_name).to eq(["test1", "test2"])
         end
       end
     end
