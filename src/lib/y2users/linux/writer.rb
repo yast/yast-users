@@ -214,10 +214,10 @@ module Y2Users
       # @param group [Y2User::Group] the group to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_group(group, issues)
-        args = [GROUPADD]
+        args = []
         args << "--gid" << group.gid if group.gid
         # TODO: system groups?
-        Yast::Execute.on_target!(args)
+        Yast::Execute.on_target!(GROUPADD, *args)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The group '%{groupname}' could not be created"), groupname: group.name)
@@ -335,12 +335,12 @@ module Y2Users
       # @return [Array<String>]
       def useradd_options(user)
         opts = {
-          "--uid"        => user.uid,
-          "--gid"        => user.gid,
-          "--shell"      => user.shell,
-          "--home-dir"   => user.home,
-          "--comment"    => user.gecos.join(","),
-          "--groups"     => user.groups(with_primary: false).join(",")
+          "--uid"      => user.uid,
+          "--gid"      => user.gid,
+          "--shell"    => user.shell,
+          "--home-dir" => user.home,
+          "--comment"  => user.gecos.join(","),
+          "--groups"   => user.secondary_groups_name.join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -359,6 +359,7 @@ module Y2Users
       # @param new_user [Y2Users::User] User containing the updated information
       # @param old_user [Y2Users::User] Original user
       # @return [Array<String>] usermod options
+      # rubocop:disable Metrics/CyclomaticComplexity
       def usermod_options(new_user, old_user)
         args = []
         args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
@@ -367,15 +368,17 @@ module Y2Users
         end
         args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
         if different_groups?(new_user, old_user)
-          args << "--groups" << new_users.groups(with_primary: false).join(",")
+          args << "--groups" << new_user.secondary_groups_name.join(",")
         end
         args << new_user.name
         args
       end
+      # rubocop:enable Metrics/CyclomaticComplexity
 
-      def different_groups?(u1, u2)
-        u1.groups(with_primary: false).sort != u2.groups(with_primary: false).sort
+      def different_groups?(user1, user2)
+        user1.groups(with_primary: false).sort != user2.groups(with_primary: false).sort
       end
+
       # Options for `useradd` to create the home directory
       #
       # @param _user [Y2Users::User]

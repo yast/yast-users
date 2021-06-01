@@ -197,9 +197,7 @@ describe Y2Users::ConfigMerger do
         it "updates the lhs group with the data from the corresponding rhs group except gid" do
           subject.merge
 
-          expect(lhs_group("test1")).to_not eq(group1)
-          group1.gid = 110
-          expect(lhs_group("test1")).to eq(group1)
+          expect(lhs_group("test1").gid).to eq(100)
         end
       end
     end
