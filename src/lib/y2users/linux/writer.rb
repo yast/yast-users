@@ -360,6 +360,8 @@ module Y2Users
       # @param old_user [Y2Users::User] Original user
       # @return [Array<String>] usermod options
       # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/PerceivedComplexity
       def usermod_options(new_user, old_user)
         args = []
         args << "--gid" << new_user.gid if new_user.gid != old_user.gid && new_user.gid
@@ -375,6 +377,8 @@ module Y2Users
         args
       end
       # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/PerceivedComplexity
 
       def different_groups?(user1, user2)
         user1.groups(with_primary: false).sort != user2.groups(with_primary: false).sort
