@@ -40,6 +40,11 @@ module Y2Users
   #   config2.detach(user)
   #   config2.users #=> UsersCollection<[user2]>
   class Config
+    # Login configuration, see {LoginConfig}
+    #
+    # @return [LoginConfig]
+    attr_accessor :login
+
     # Constructor
     #
     # @see UsersCollection
@@ -47,6 +52,7 @@ module Y2Users
     def initialize
       @users_collection = UsersCollection.new
       @groups_collection = GroupsCollection.new
+      @login = nil
     end
 
     # Collection of users that belong to this config
@@ -65,6 +71,13 @@ module Y2Users
     # @return [GroupsCollection]
     def groups
       groups_collection.dup.freeze
+    end
+
+    # Whether the login is configured
+    #
+    # @return [Boolean]
+    def login?
+      !login.nil?
     end
 
     # Attaches users and groups to this config
@@ -100,10 +113,11 @@ module Y2Users
     def copy
       elements = (users + groups).map(&:copy)
 
-      config = self.class.new
-      config.attach(elements)
-      config.useradd = useradd.dup
-      config
+      self.class.new.tap do |config|
+        config.attach(elements)
+        login&.copy_to(config)
+        config.useradd = useradd.dup
+      end
     end
 
     # Generates a new config as result of merging the users and groups of the given config into the
@@ -176,6 +190,9 @@ module Y2Users
       collection_for(element).delete(element.id) if exist
 
       element.assign_config(nil)
+
+      # Clean up the autologin user if the detached user was set for autologin
+      login.autologin_user = nil if login? && login.autologin_user&.is?(element)
     end
 
     # Collection for the given element
