@@ -3,6 +3,7 @@ TESTS = \
   lib/y2users/config_manager_test.rb \
   lib/y2users/config_merger_test.rb \
   lib/y2users/config_test.rb \
+  lib/y2users/login_config_test.rb \
   lib/y2users/user_test.rb \
   lib/y2users/user_validator_test.rb \
   lib/y2users/group_test.rb \
