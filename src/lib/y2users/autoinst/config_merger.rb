@@ -22,9 +22,10 @@ require "y2users"
 
 module Y2Users
   module Autoinst
-    # Helper class to merge users and groups from one config into another config
+    # Class to merge users and groups from one config into another config according to the AutoYaST
+    # merging logic.
     #
-    # When updating a current user/gruop:
+    # When updating a current user/group:
     #
     # * It keeps the original uid/gid.
     # * If a property is not defined in the imported user, it falls back to the

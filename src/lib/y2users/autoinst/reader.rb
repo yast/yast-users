@@ -21,8 +21,10 @@ require "y2users/parsers/shadow"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
+require "y2users/login_config"
 require "y2users/autoinst_profile/users_section"
 require "y2users/autoinst_profile/groups_section"
+require "y2users/autoinst_profile/login_settings_section"
 
 module Y2Users
   module Autoinst
@@ -40,19 +42,62 @@ module Y2Users
         @groups_section = Y2Users::AutoinstProfile::GroupsSection.new_from_hashes(
           content["groups"] || []
         )
+
+        return unless content["login_settings"]
+
+        @login_settings_section = Y2Users::AutoinstProfile::LoginSettingsSection.new_from_hashes(
+          content["login_settings"]
+        )
       end
 
-      # Generates a new config with the users and groups from the system
+      # Generates a new config with the information from the AutoYaST profile
       #
       # @return [Config]
       def read
-        elements = read_users + read_groups
-        Config.new.attach(elements)
+        Config.new.tap do |config|
+          read_elements(config)
+          read_login(config)
+        end
       end
 
     private
 
-      attr_reader :users_section, :groups_section
+      # Profile section describing the users
+      #
+      # @return [AutoinstProfile::UsersSection]
+      attr_reader :users_section
+
+      # Profile section describing the groups
+      #
+      # @return [AutoinstProfile::GroupsSection]
+      attr_reader :groups_section
+
+      # Profile section describing the login settings
+      #
+      # @return [AutoinstProfile::LoginSettingsSections]
+      attr_reader :login_settings_section
+
+      # Reads users and groups from the AutoYaST profile
+      #
+      # @param config [Config]
+      def read_elements(config)
+        elements = read_users + read_groups
+
+        config.attach(elements)
+      end
+
+      # Reads the login settings from the AutoYaST profile
+      #
+      # @param config [Config]
+      def read_login(config)
+        return unless login_settings_section
+
+        login = LoginConfig.new
+        login.autologin_user = config.users.by_name(login_settings_section.autologin_user)
+        login.passwordless = login_settings_section.password_less_login || false
+
+        config.login = login
+      end
 
       def read_users
         users_section.entries.map do |e_user|

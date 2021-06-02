@@ -44,6 +44,8 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
+
+      expect(config.login?).to eq(false)
     end
 
     context "when the users list is missing" do
@@ -60,6 +62,51 @@ describe Y2Users::Autoinst::Reader do
       end
     end
 
+    context "when there is a login_settings section" do
+      let(:profile) do
+        {
+          "users"          => [users],
+          "login_settings" => { "autologin_user" => "test", "password_less_login" => true }
+        }
+      end
+
+      let(:users) { { "username" => "test" } }
+
+      it "sets the login config according to the profile section" do
+        config = subject.read
+
+        expect(config.login?).to eq(true)
+        expect(config.login.autologin_user.name).to eq("test")
+        expect(config.login.passwordless?).to eq(true)
+      end
+
+      context "and the autologin user does not belong to the config" do
+        let(:users) { { "username" => "other" } }
+
+        it "does not set the autologin user" do
+          config = subject.read
+
+          expect(config.login?).to eq(true)
+          expect(config.login.autologin?).to eq(false)
+          expect(config.login.passwordless?).to eq(true)
+        end
+      end
+    end
+
+    context "when the login_settings section is missing" do
+      let(:profile) do
+        {
+          "users" => [{ "username" => "test" }]
+        }
+      end
+
+      it "does not set the login config" do
+        config = subject.read
+
+        expect(config.login?).to eq(false)
+      end
+    end
+
     context "when the profile is empty" do
       let(:profile) { {} }
 
@@ -68,6 +115,12 @@ describe Y2Users::Autoinst::Reader do
 
         expect(config.users).to be_empty
         expect(config.groups).to be_empty
+      end
+
+      it "does not set the login config" do
+        config = subject.read
+
+        expect(config.login?).to eq(false)
       end
     end
 
