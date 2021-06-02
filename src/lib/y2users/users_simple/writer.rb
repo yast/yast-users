@@ -23,7 +23,7 @@ Yast.import "UsersSimple"
 
 module Y2Users
   module UsersSimple
-    # Class for writing users configuration into the old UsersSimple Yast Module
+    # Class for writing a configuration into the old UsersSimple Yast Module
     class Writer
       # Constructor
       #
@@ -32,7 +32,7 @@ module Y2Users
         @config = config
       end
 
-      # Stores all users from {#config} into the UsersSimple module
+      # Stores the information from {#config} into the UsersSimple module
       #
       # UsersSimple module is not expected to contain the root user in its list of users. It
       # provides separate attributes in order to store the root user info (e.g., root_password or
@@ -41,14 +41,14 @@ module Y2Users
         users_simple = config.users.reject(&:root?).map { |u| to_user_simple(u) }
         Yast::UsersSimple.SetUsers(users_simple)
 
-        root = config.users.root
-        return unless root
-
-        root_public_key = root.authorized_keys.first.to_s
+        root_public_key = config.users.root&.authorized_keys&.first.to_s
         Yast::UsersSimple.SetRootPublicKey(root_public_key)
 
-        root_password = root.password&.value&.content
-        Yast::UsersSimple.SetRootPassword(root_password.to_s)
+        root_password = config.users.root&.password&.value&.content.to_s
+        Yast::UsersSimple.SetRootPassword(root_password)
+
+        autologin_user = config.login&.autologin_user&.name.to_s
+        Yast::UsersSimple.SetAutologinUser(autologin_user)
       end
 
     private

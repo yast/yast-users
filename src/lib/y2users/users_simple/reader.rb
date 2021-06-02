@@ -21,23 +21,44 @@ require "yast"
 require "y2users/config"
 require "y2users/user"
 require "y2users/password"
+require "y2users/login_config"
 
 Yast.import "UsersSimple"
 
 module Y2Users
   module UsersSimple
-    # Class for reading users configuration from old Yast::UsersSimple module
+    # Class for reading the configuration from old Yast::UsersSimple module
     class Reader
-      # Generates a new config with the users from YaST::UsersSimple module
+      # Generates a new config with the information from YaST::UsersSimple module
       #
       # @return [Config]
       def read
-        elements = [root_user] + users
-
-        Config.new.attach(elements)
+        Config.new.tap do |config|
+          read_elements(config)
+          read_login(config)
+        end
       end
 
     private
+
+      # Reads the users and groups
+      #
+      # @param config [Config]
+      def read_elements(config)
+        elements = [root_user] + users
+
+        config.attach(elements)
+      end
+
+      # Reads the login information
+      #
+      # @param config [Config]
+      def read_login(config)
+        login = LoginConfig.new
+        login.autologin_user = config.users.by_name(Yast::UsersSimple.GetAutologinUser)
+
+        config.login = login
+      end
 
       # Returns the list of users
       #
@@ -99,7 +120,9 @@ module Y2Users
       # @param user [Hash] a user representation in the format used by UsersSimple
       # @return [Password]
       def create_password(user)
-        new_password(user["userPassword"], user["encrypted"]).tap do |password|
+        create_method = user["encrypted"] ? :create_encrypted : :create_plain
+
+        Password.send(create_method, user["userPassword"]).tap do |password|
           last_change = user["shadowLastChange"]
           expiration = user["shadowExpire"]
 
@@ -110,16 +133,6 @@ module Y2Users
           password.inactivity_period = user["shadowInactive"]
           password.account_expiration = AccountExpiration.new(expiration) if expiration
         end
-      end
-
-      # Initializes a new password with the correct value type
-      #
-      # @param value [String]
-      # @param encrypted [Boolean]
-      #
-      # @return [Password]
-      def new_password(value, encrypted)
-        encrypted ? Password.create_encrypted(value) : Password.create_plain(value)
       end
     end
   end

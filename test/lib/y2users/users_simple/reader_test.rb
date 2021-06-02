@@ -76,6 +76,9 @@ describe Y2Users::UsersSimple::Reader do
         expect(c_user.password.warning_period).to eq "14"
         expect(c_user.password.inactivity_period).to eq ""
         expect(c_user.password.account_expiration.content).to eq ""
+
+        expect(config.login.autologin?).to eq(false)
+        expect(config.login.passwordless?).to eq(false)
       end
     end
 
@@ -121,6 +124,9 @@ describe Y2Users::UsersSimple::Reader do
         expect(user.password.maximum_age).to be_nil
         expect(user.password.warning_period).to be_nil
         expect(user.password.account_expiration).to be_nil
+
+        expect(config.login.autologin?).to eq(false)
+        expect(config.login.passwordless?).to eq(false)
       end
 
       context "without the root password" do
@@ -142,6 +148,69 @@ describe Y2Users::UsersSimple::Reader do
           root = config.users.root
 
           expect(root.authorized_keys).to eq([])
+        end
+      end
+    end
+
+    context "when autologin is not used" do
+      before do
+        Yast::UsersSimple.SetAutologinUser("")
+      end
+
+      let(:users_simple_users) { [] }
+
+      it "sets the login config without an autologin user" do
+        config = subject.read
+
+        expect(config.login.autologin?).to eq(false)
+      end
+
+      it "sets the login config without passwordless option" do
+        config = subject.read
+
+        expect(config.login.passwordless?).to eq(false)
+      end
+    end
+
+    context "when autologin is used" do
+      before do
+        Yast::UsersSimple.SetAutologinUser(user)
+      end
+
+      let(:users_simple_users) do
+        [{ "uid" => "test", "cn" => "Test User", "userPassword" => "secret" }]
+      end
+
+      context "and the autologin user does not belong to the config" do
+        let(:user) { "other" }
+
+        it "sets the login config without an autologin user" do
+          config = subject.read
+
+          expect(config.login.autologin?).to eq(false)
+        end
+
+        it "sets the login config without passwordless option" do
+          config = subject.read
+
+          expect(config.login.passwordless?).to eq(false)
+        end
+      end
+
+      context "and the autologin user belongs to the config" do
+        let(:user) { "test" }
+
+        it "sets the login config with the proper autologin user" do
+          config = subject.read
+
+          expect(config.login.autologin?).to eq(true)
+          expect(config.login.autologin_user.name).to eq(user)
+        end
+
+        it "sets the login config without passwordless option" do
+          config = subject.read
+
+          expect(config.login.passwordless?).to eq(false)
         end
       end
     end
