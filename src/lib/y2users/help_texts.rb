@@ -46,6 +46,8 @@ module Y2Users
     #
     # @return [String] formatted and localized text
     def valid_password_text
+      # NOTE: to avoid dependencies, this help text is a duplicate of
+      #   Yast::UsersSimple.ValidPasswordHelpText. Please, keep them in sync.
       _(
         "<p>\n" \
         "For the password, use only characters that can be found on an English keyboard\n" \
