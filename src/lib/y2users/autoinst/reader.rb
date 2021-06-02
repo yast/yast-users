@@ -79,37 +79,25 @@ module Y2Users
         end
       end
 
-      # shadow attrs without password and username which is done manually
-      SORTED_SHADOW_ATTRS = [
-        # Looks like shadow last change is not part of User.Export TODO: verify
-        "last_change", "min", "max", "warn", "inact", "expire", "flag"
-      ].freeze
-
       # Creates a {Password} object based on the data structure of a user
       #
       # @param user [Hash] a user representation in the format used by Users.Export
-      # @return [Password]
+      # @return [Password,nil]
       def create_password(user)
-        parser = Parsers::Shadow.new
-        content = shadow_string(user)
+        return nil unless user.user_password
 
-        password = parser.parse(content).values.first
-        password.value = PasswordPlainValue.new(user.user_password) unless user.encrypted
+        create_meth = user.encrypted ? :create_encrypted : :create_plain
+        password = Password.send(create_meth, user.user_password)
+        password_settings = user.password_settings
+        return password unless password_settings
+
+        password.aging = PasswordAging.new(password_settings.last_change)
+        password.minimum_age = password_settings.min
+        password.maximum_age = password_settings.max
+        password.warning_period = password_settings.warn
+        password.inactivity_period = password_settings.inact
+        password.account_expiration = AccountExpiration.new(password_settings.expire)
         password
-      end
-
-      # Entry in /etc/shadow describing the password of the given user
-      #
-      # @param user [Hash] a user representation in the format used by UsersSimple
-      # @return [String]
-      def shadow_string(user)
-        other_attrs = if user.password_settings
-          SORTED_SHADOW_ATTRS.map { |a| user.password_settings.send(a) }
-        else
-          []
-        end
-
-        [user.username, user.user_password, *other_attrs].join(":")
       end
     end
   end
