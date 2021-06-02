@@ -122,7 +122,7 @@ module Y2Users
       def create_password(user)
         create_method = user["encrypted"] ? :create_encrypted : :create_plain
 
-        Password.send(create_method, user["userPassword"]).tap do |password|
+        Password.public_send(create_method, user["userPassword"]).tap do |password|
           last_change = user["shadowLastChange"]
           expiration = user["shadowExpire"]
 
