@@ -131,7 +131,11 @@ module Y2Users
           config.attach(root_user)
         end
 
-        root_user.password = Y2Users::Password.create_plain(Yast::Linuxrc.InstallInf("RootPassword"))
+        root_user.password = Y2Users::Password.create_plain(
+          Yast::Linuxrc.InstallInf("RootPassword")
+        )
+
+        root_user
       end
     end
   end
