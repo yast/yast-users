@@ -446,7 +446,8 @@ sub ValidPasswordMessage {
 # Return the part of help text about valid password characters
 BEGIN { $TYPEINFO{ValidPasswordHelptext} = ["function", "string"]; }
 sub ValidPasswordHelptext {
-    # help text (default part shown in more places)
+    # NOTE: To avoid dependencies, this help text has been duplicated at
+    #   Y2Users::HelpTexts#valid_password_text. Please, keep them in sync.
     return __("<p>
 For the password, use only characters that can be found on an English keyboard
 layout.  In cases of system error, it may be necessary to log in without a
