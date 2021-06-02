@@ -52,10 +52,6 @@ module Y2Users
   # The "groups", "no_groups" and "skel" attributes from the profile may still be honored by
   # AutoYaST when creating users by any other mechanism other than UseraddConfig.
   class UseraddConfig
-    # @see .writable_attributes
-    WRITABLE_ATTRIBUTES = [:group, :home, :umask, :expiration, :inactivity_period, :shell].freeze
-    private_constant :WRITABLE_ATTRIBUTES
-
     class << self
       # Names of the attributes that can be persisted to the configuration of the system and thus
       # can be used to really modify the default useradd behavior
@@ -64,20 +60,22 @@ module Y2Users
       #
       # @return [Array<Symbol>]
       def writable_attributes
-        WRITABLE_ATTRIBUTES.dup
+        @writable_attributes.dup
       end
 
     private
 
-      # Internal class method to automatically define the setters for all writable attributes
-      def define_setters
-        WRITABLE_ATTRIBUTES.each do |attr|
-          attr_writer attr
-        end
+      # Internal class method to define the setter for a writable attribute
+      # @param [String] name of the attribute
+      # @!macro [attach] attr_setter
+      #   @!attribute [w] $1
+      def attr_setter(name)
+        @writable_attributes ||= []
+        @writable_attributes << name.to_sym
+
+        attr_writer name
       end
     end
-
-    define_setters
 
     # Constructor
     #
@@ -103,6 +101,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :group
+    attr_setter :group
 
     # This value is used as prefix to calculate the home directory for a new user, if no home
     # directory has been specified
@@ -113,6 +112,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :home
+    attr_setter :home
 
     # The file mode mask used to create new home directories, if HOME_MODE is not specified in
     # login.defs
@@ -129,6 +129,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :umask
+    attr_setter :umask
 
     # Password expiration date to use when creating a user, if none was set
     #
@@ -139,6 +140,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :expiration
+    attr_setter :expiration
 
     # Inactivity period to set when creating a user, if none was set
     #
@@ -148,6 +150,7 @@ module Y2Users
     #
     # @return [Integer, nil]
     attr_reader :inactivity_period
+    attr_setter :inactivity_period
 
     # Login shell to set for a newly created user, if none was specified
     #
@@ -155,6 +158,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :shell
+    attr_setter :shell
 
     # Skeleton directory from which the files will be copied when creating a home directory for
     # a new user
