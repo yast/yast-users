@@ -26,7 +26,6 @@ module Y2Users
   # moving stuff to the Y2Users namespace
   module HelpTexts
     include Yast::I18n
-    Yast.import "UsersSimple"
 
     # Needed to be able to call textdomain below
     extend Yast::I18n
@@ -47,7 +46,13 @@ module Y2Users
     #
     # @return [String] formatted and localized text
     def valid_password_text
-      Yast::UsersSimple.ValidPasswordHelptext
+      _(
+        "<p>\n" \
+        "For the password, use only characters that can be found on an English keyboard\n" \
+        "layout.  In cases of system error, it may be necessary to log in without a\n" \
+        "localized keyboard layout.\n" \
+        "</p>"
+      )
     end
 
     # Text about the CA constraints, if applicable
