@@ -34,7 +34,7 @@ module Y2Users
       # @param config [Config] see #config
       # @param initial_config [Config] see #initial_config
       def initialize(config, initial_config)
-        textdomain "y2users"
+        textdomain "users"
 
         @config = config
         @initial_config = initial_config

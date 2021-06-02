@@ -70,11 +70,15 @@ module Y2Users
       # @see #read_useradd
       def useradd_value(values, attr)
         value = values[USERADD_ATTRS[attr]]
-        return value unless [:inactivity_period, :create_mail_spool].include?(attr)
 
-        return value.to_i if attr == :inactivity_period
-
-        value == "yes"
+        case attr
+        when :inactivity_period
+          value.to_i
+        when :create_mail_spool
+          value == "yes"
+        else
+          value
+        end
       end
 
       # Values from login.defs
