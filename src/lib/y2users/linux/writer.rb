@@ -99,6 +99,7 @@ module Y2Users
       def write
         issues = Y2Issues::List.new
 
+        add_groups(issues)
         add_users(issues)
         edit_users(issues)
 
@@ -152,6 +153,10 @@ module Y2Users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
 
+      # Command for modifying users
+      USERMOD = "/usr/sbin/usermod".freeze
+      private_constant :USERMOD
+
       # Command for setting a user password
       #
       # This command is "preferred" over
@@ -168,6 +173,20 @@ module Y2Users
       # Command for configuring the attributes in /etc/shadow
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
+
+      # Command for creating new users
+      GROUPADD = "/usr/sbin/groupadd".freeze
+      private_constant :GROUPADD
+
+      # Creates the new groups
+      #
+      # @param issues [Y2Issues::List]
+      def add_groups(issues)
+        # handle groups first as it does not depend on users uid, but it is vice versa
+        new_groups = (config.groups.map(&:id) - initial_config.groups.map(&:id))
+        new_groups.map! { |id| config.groups.find { |g| g.id == id } }
+        new_groups.each { |g| add_group(g, issues) }
+      end
 
       # Creates the new users
       #
@@ -186,10 +205,24 @@ module Y2Users
 
         edited_users.each do |user|
           initial_user = initial_config.users.by_id(user.id)
-
-          change_password(user, issues) if initial_user.password != user.password
-          write_auth_keys(user, issues) if initial_user.authorized_keys != user.authorized_keys
+          edit_user(user, initial_user, issues)
         end
+      end
+
+      # Executes the command for creating the group
+      #
+      # @param group [Y2User::Group] the group to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def add_group(group, issues)
+        args = []
+        args << "--gid" << group.gid if group.gid
+        # TODO: system groups?
+        Yast::Execute.on_target!(GROUPADD, *args)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The group '%{groupname}' could not be created"), groupname: group.name)
+        )
+        log.error("Error creating group '#{group.name}' - #{e.message}")
       end
 
       # Executes the command for creating the user
@@ -271,6 +304,31 @@ module Y2Users
         log.error("Error setting password attributes for '#{user.name}' - #{e.message}")
       end
 
+      # Attributes to modify using `usermod`
+      USERMOD_ATTRS = [:gid, :home, :shell, :gecos].freeze
+
+      # Edits the user
+      #
+      # @param new_user [Y2Users::User] User containing the updated information
+      # @param old_user [Y2Users::User] Original user
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def edit_user(new_user, old_user, issues)
+        usermod_changes = USERMOD_ATTRS.any? do |attr|
+          !new_user.public_send(attr).nil? &&
+            (new_user.public_send(attr) != old_user.public_send(attr))
+        end
+        usermod_changes ||= different_groups?(new_user, old_user)
+
+        Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
+        change_password(new_user, issues) if old_user.password != new_user.password
+        write_auth_keys(new_user, issues) if old_user.authorized_keys != new_user.authorized_keys
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("The user '%{username}' could not be modified"), username: new_user.name)
+        )
+        log.error("Error modifying user '#{new_user.name}' - #{e.message}")
+      end
+
       # Generates and returns the options expected by `useradd` for given user
       #
       # @param user [Y2Users::User]
@@ -281,7 +339,8 @@ module Y2Users
           "--gid"      => user.gid,
           "--shell"    => user.shell,
           "--home-dir" => user.home,
-          "--comment"  => user.gecos.join(",")
+          "--comment"  => user.gecos.join(","),
+          "--groups"   => user.secondary_groups_name.join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -293,6 +352,36 @@ module Y2Users
 
         opts << user.name
         opts
+      end
+
+      # Command to modity the user
+      #
+      # @param new_user [Y2Users::User] User containing the updated information
+      # @param old_user [Y2Users::User] Original user
+      # @return [Array<String>] usermod options
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/PerceivedComplexity
+      def usermod_options(new_user, old_user)
+        args = []
+        args << "--gid" << new_user.gid if new_user.gid != old_user.gid && new_user.gid
+        args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
+        if new_user.home != old_user.home && new_user.home
+          args << "--home" << new_user.home << "--move-home"
+        end
+        args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+        if different_groups?(new_user, old_user)
+          args << "--groups" << new_user.secondary_groups_name.join(",")
+        end
+        args << new_user.name
+        args
+      end
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/PerceivedComplexity
+
+      def different_groups?(user1, user2)
+        user1.groups(with_primary: false).sort != user2.groups(with_primary: false).sort
       end
 
       # Options for `useradd` to create the home directory

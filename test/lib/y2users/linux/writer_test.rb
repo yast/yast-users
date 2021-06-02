@@ -24,6 +24,7 @@ require_relative "../test_helper"
 require "date"
 require "y2users/config"
 require "y2users/user"
+require "y2users/group"
 require "y2users/password"
 require "y2users/linux/writer"
 
@@ -34,6 +35,7 @@ describe Y2Users::Linux::Writer do
     let(:initial_config) do
       config = Y2Users::Config.new
       config.attach(users)
+      config.attach(groups)
       config
     end
 
@@ -45,6 +47,15 @@ describe Y2Users::Linux::Writer do
       user = Y2Users::User.new(username)
       user.password = password
       user
+    end
+
+    let(:groups) { [] }
+
+    let(:group) do
+      Y2Users::Group.new("users").tap do |group|
+        group.gid = "100"
+        group.users_name = [user.name]
+      end
     end
 
     let(:password) { Y2Users::Password.new(pwd_value) }
@@ -238,6 +249,119 @@ describe Y2Users::Linux::Writer do
         writer.write
       end
 
+      context "whose gid was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.gid = "1000"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--gid", "1000", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "whose home was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.home = "/home/new"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--home", "/home/new", "--move-home", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "whose shell was changed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.shell = "/usr/bin/fish"
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--shell", "/usr/bin/fish", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "whose gecos was changed" do
+        let(:gecos) { ["Jane", "Doe"] }
+
+        before do
+          user.gecos = ["Admin"]
+          current_user = config.users.by_id(user.id)
+          current_user.gecos = gecos
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--comment", "Jane,Doe", user.name
+          )
+
+          writer.write
+        end
+
+        context "and the new value is empty" do
+          let(:gecos) { [] }
+
+          it "executes usermod with the new values" do
+            expect(Yast::Execute).to receive(:on_target!).with(
+              /usermod/, "--comment", "", user.name
+            )
+
+            writer.write
+          end
+        end
+      end
+
+      context "whose groups were changed" do
+        let(:wheel_group) do
+          Y2Users::Group.new("wheel").tap do |group|
+            group.users_name = user.name
+          end
+        end
+        let(:users) { [user] }
+
+        before do
+          config.attach(wheel_group)
+          allow(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args)
+        end
+
+        it "executes usermod with the new values" do
+          expect(Yast::Execute).to receive(:on_target!).with(
+            /usermod/, "--groups", "wheel", user.name
+          )
+
+          writer.write
+        end
+      end
+
+      context "when modifying a user attribute fails" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.home = "/home/new"
+          allow(Yast::Execute).to receive(:on_target!)
+            .with(/usermod/, any_args)
+            .and_raise(Cheetah::ExecutionFailed.new("", "", "", ""))
+        end
+
+        it "returns an issue" do
+          expect(writer.log).to receive(:error).with(/Error modifying user '#{user.name}'/)
+          issues = writer.write
+          expect(issues.first.message).to match("The user '#{user.name}' could not be modified")
+        end
+      end
+
       context "whose authorized keys were edited" do
         before do
           current_user = config.users.by_id(user.id)
@@ -302,6 +426,7 @@ describe Y2Users::Linux::Writer do
         user.gecos = ["First line of", "GECOS"]
 
         config.attach(user)
+        config.attach(group)
       end
 
       include_examples "setting password"
@@ -311,7 +436,9 @@ describe Y2Users::Linux::Writer do
       it "executes useradd with all the parameters, including creation of home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
           expect(args.last).to eq username
-          expect(args).to include("--uid", "--gid", "--shell", "--home-dir", "--create-home")
+          expect(args).to include(
+            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups"
+          )
         end
 
         writer.write
@@ -451,6 +578,31 @@ describe Y2Users::Linux::Writer do
         expect(result).to be_a(Y2Issues::List)
         expect(result).to_not be_empty
         expect(result.map(&:message)).to include(/Error writing authorized keys/)
+      end
+    end
+
+    context "for a new group" do
+      before do
+        config.attach(group)
+      end
+
+      it "executes groupadd" do
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100")
+        writer.write
+      end
+
+      context "when creating the groupadd fails" do
+        before do
+          allow(Yast::Execute).to receive(:on_target!)
+            .with(/groupadd/, any_args)
+            .and_raise(Cheetah::ExecutionFailed.new("", "", "", ""))
+        end
+
+        it "returns an issue" do
+          expect(writer.log).to receive(:error).with(/Error creating group '#{group.name}'/)
+          issues = writer.write
+          expect(issues.first.message).to match("The group '#{group.name}' could not be created")
+        end
       end
     end
   end
