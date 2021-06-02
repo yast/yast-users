@@ -85,8 +85,8 @@ module Y2Users
       include Yast::Logger
       # Constructor
       #
-      # @param config [Y2User::Config] see #config
-      # @param initial_config [Y2User::Config] see #initial_config
+      # @param config [Config] see #config
+      # @param initial_config [Config] see #initial_config
       def initialize(config, initial_config)
         textdomain "users"
 
@@ -143,13 +143,13 @@ module Y2Users
 
       # Configuration containing the users and groups that should exist in the system after writing
       #
-      # @return [Y2User::Config]
+      # @return [Config]
       attr_reader :config
 
-      # Initial state of the system (usually a Y2User::Config.system in a running system) that will
+      # Initial state of the system (usually a Y2Users::Config.system in a running system) that will
       # be compared with {#config} to know what changes need to be performed.
       #
-      # @return [Y2User::Config]
+      # @return [Config]
       attr_reader :initial_config
 
       # Writes the useradd configuration to the system
@@ -221,7 +221,7 @@ module Y2Users
 
       # Executes the command for creating the group
       #
-      # @param group [Y2User::Group] the group to be created on the system
+      # @param group [Group] the group to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_group(group, issues)
         args = []
@@ -237,7 +237,7 @@ module Y2Users
 
       # Executes the command for creating the user
       #
-      # @param user [Y2User::User] the user to be created on the system
+      # @param user [User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_user(user, issues)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
@@ -253,7 +253,7 @@ module Y2Users
       # Executes the commands for setting the password and all its associated
       # attributes for the given user
       #
-      # @param user [Y2User::User]
+      # @param user [User]
       # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
       def change_password(user, issues)
         set_password_value(user, issues)
@@ -264,7 +264,7 @@ module Y2Users
       #
       # @see Yast::Users::SSHAuthorizedKeyring#write_keys
       #
-      # @param user [Y2User::User]
+      # @param user [User]
       # @param issues [Y2Issues::List] a collection for adding issues if something goes wrong
       def write_auth_keys(user, issues)
         return unless user.home
@@ -280,7 +280,7 @@ module Y2Users
 
       # Executes the command for setting the password of given user
       #
-      # @param user [Y2User::User]
+      # @param user [User]
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def set_password_value(user, issues)
         return unless user.password&.value
@@ -296,7 +296,7 @@ module Y2Users
 
       # Executes the command for setting the dates and limits in /etc/shadow
       #
-      # @param user [Y2User::User]
+      # @param user [User]
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def set_password_attributes(user, issues)
         return unless user.password
@@ -319,8 +319,8 @@ module Y2Users
 
       # Edits the user
       #
-      # @param new_user [Y2Users::User] User containing the updated information
-      # @param old_user [Y2Users::User] Original user
+      # @param new_user [User] User containing the updated information
+      # @param old_user [User] Original user
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def edit_user(new_user, old_user, issues)
         usermod_changes = USERMOD_ATTRS.any? do |attr|
@@ -341,7 +341,7 @@ module Y2Users
 
       # Generates and returns the options expected by `useradd` for given user
       #
-      # @param user [Y2Users::User]
+      # @param user [User]
       # @return [Array<String>]
       def useradd_options(user)
         opts = {
@@ -366,8 +366,8 @@ module Y2Users
 
       # Command to modity the user
       #
-      # @param new_user [Y2Users::User] User containing the updated information
-      # @param old_user [Y2Users::User] Original user
+      # @param new_user [User] User containing the updated information
+      # @param old_user [User] Original user
       # @return [Array<String>] usermod options
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/AbcSize
@@ -396,7 +396,7 @@ module Y2Users
 
       # Options for `useradd` to create the home directory
       #
-      # @param _user [Y2Users::User]
+      # @param _user [User]
       # @return [Array<String>]
       def create_home_options(_user)
         # TODO: "--btrfs-subvolume-home" if needed
@@ -405,7 +405,7 @@ module Y2Users
 
       # Generates and returns the options expected by `chpasswd` for the given user
       #
-      # @param user [Y2Users::User]
+      # @param user [User]
       # @return [Array<String, Hash>]
       def chpasswd_options(user)
         opts = []
@@ -419,7 +419,7 @@ module Y2Users
 
       # Generates and returns the options expected by `chage` for the given user
       #
-      # @param user [Y2Users::User]
+      # @param user [User]
       # @return [Array<String>]
       def chage_options(user)
         passwd = user.password

@@ -31,8 +31,8 @@ module Y2Users
 
       # Constructor
       #
-      # @param config [Y2User::Config] see #config
-      # @param initial_config [Y2User::Config] see #initial_config
+      # @param config [Config] see #config
+      # @param initial_config [Config] see #initial_config
       def initialize(config, initial_config)
         textdomain "y2users"
 
@@ -52,25 +52,25 @@ module Y2Users
 
       # General configuration object containing the useradd configuration to apply to the system
       #
-      # @return [Y2User::Config]
+      # @return [Config]
       attr_reader :config
 
-      # Initial state of the system (usually a Y2User::Config.system in a running system) that will
+      # Initial state of the system (usually a Y2Users::Config.system in a running system) that will
       # be compared with {#config} to know what changes need to be performed.
       #
-      # @return [Y2User::Config]
+      # @return [Config]
       attr_reader :initial_config
 
       # Object containing the useradd configuration
       #
-      # @return [Y2User::UseraddConfig]
+      # @return [UseraddConfig]
       def useradd_config
         config&.useradd_config
       end
 
       # Object containing the useradd configuration fron the initial state
       #
-      # @return [Y2User::UseraddConfig]
+      # @return [UseraddConfig]
       def initial_useradd_config
         initial_config&.useradd_config
       end
