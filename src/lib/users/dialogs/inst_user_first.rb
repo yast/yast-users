@@ -1,21 +1,21 @@
-# ------------------------------------------------------------------------------
-# Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
+# Copyright (c) [2016-2021] SUSE LLC
 #
+# All Rights Reserved.
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of version 2 of the GNU General Public License as published by the
-# Free Software Foundation.
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, contact Novell, Inc.
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
 #
-# To contact Novell about this file by physical or electronic mail, you may find
-# current contact information at www.novell.com.
-# ------------------------------------------------------------------------------
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
 
 require "yast"
 require "ui/installation_dialog"
@@ -182,7 +182,10 @@ module Yast
 
     # Sets the initial default value for autologin
     def init_autologin
-      @autologin = UsersSimple.AutologinUsed
+      @autologin = users_config.login? ? users_config.login.autologin? : false
+      # The autologin value from the control file is used only when opening the dialog for first
+      # time (i.e., when the user is not attached yet). Note that in general (e.g., when going back
+      # during the installation), the user is already attached to a config, see {#user}.
       return if user.attached? || @autologin
 
       @autologin = true if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
@@ -403,31 +406,33 @@ module Yast
 
       target_user.password = password
 
+      @autologin = UI.QueryWidget(Id(:autologin), :Value)
+
       update_users_config(target_user)
 
       true
     end
 
-    # Updates the users configuration with the given user
+    # Updates the config according to the form values
     #
     # @param target_user [Y2Users::User] the user for updating the configuration
     def update_users_config(target_user)
       user.name     = target_user.name
       user.gecos    = target_user.gecos
       user.password = target_user.password
+      users_config.attach(user) unless user.attached?
 
       root_user.password = target_user.password if @use_pw_for_root
 
-      users_config.attach(user) unless user.attached?
+      autologin_user = @autologin ? user : nil
+      users_config.login ||= Y2Users::Login.new
+      users_config.login.autologin_user = autologin_user
     end
 
     # Writes the new user into Yast::UserSimple at the end of the process
     def create_new_user
       Y2Users::UsersSimple::Writer.new(users_config).write
       UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
-      UsersSimple.SetAutologinUser(
-        UI.QueryWidget(Id(:autologin), :Value) ? @username : ""
-      )
     end
 
     def process_import_form
@@ -450,10 +455,16 @@ module Yast
     end
 
     def clean_users_info
-      UsersSimple.SetUsers([])
       UsersSimple.SkipRootPasswordDialog(false)
-      UsersSimple.SetRootPassword("") if root_dialog_follows
-      UsersSimple.SetAutologinUser("")
+
+      # Writes an empty config, containing only the root user if needed
+      config = Y2Users::Config.new
+      config.attach(root_user.copy) unless root_dialog_follows
+
+      Y2Users::UsersSimple::Writer.new(config).write
+
+      # Invalidates previous config
+      @users_config = nil
     end
 
     def dialog_content
