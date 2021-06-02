@@ -113,7 +113,7 @@ module Y2Users
       #
       # @param config [Config]
       def read_useradd_config(config)
-        config.useradd_config = UseraddConfigReader.new.read
+        config.useradd = UseraddConfigReader.new.read
       end
     end
   end

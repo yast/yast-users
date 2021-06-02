@@ -65,14 +65,14 @@ module Y2Users
       #
       # @return [UseraddConfig]
       def useradd_config
-        config&.useradd_config
+        config&.useradd
       end
 
       # Object containing the useradd configuration fron the initial state
       #
       # @return [UseraddConfig]
       def initial_useradd_config
-        initial_config&.useradd_config
+        initial_config&.useradd
       end
 
       # Value for the given attribute in the target useradd configuration

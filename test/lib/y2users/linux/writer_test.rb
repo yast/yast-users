@@ -71,7 +71,7 @@ describe Y2Users::Linux::Writer do
     end
 
     before do
-      initial_config.useradd_config = initial_useradd
+      initial_config.useradd = initial_useradd
 
       allow(Yast::Execute).to receive(:on_target!)
       allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
@@ -629,7 +629,7 @@ describe Y2Users::Linux::Writer do
         expect(Yast::ShadowConfig).to receive(:set).with(:umask, "321")
         expect(Yast::ShadowConfig).to receive(:write)
 
-        config.useradd_config.umask = "321"
+        config.useradd.umask = "321"
         writer.write
       end
     end
@@ -642,8 +642,8 @@ describe Y2Users::Linux::Writer do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--expiredate", "")
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--base-dir", "/users")
 
-        config.useradd_config.group = "users"
-        config.useradd_config.expiration = ""
+        config.useradd.group = "users"
+        config.useradd.expiration = ""
         writer.write
       end
 
@@ -651,7 +651,7 @@ describe Y2Users::Linux::Writer do
         allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--gid", "users")
           .and_raise(error)
 
-        config.useradd_config.group = "users"
+        config.useradd.group = "users"
         result = writer.write
         expect(result.first.message).to match(/went wrong writing.*--gid/)
       end

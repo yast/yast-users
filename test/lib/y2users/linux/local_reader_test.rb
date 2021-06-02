@@ -62,7 +62,7 @@ describe Y2Users::Linux::LocalReader do
       expect(root_user.password.value.content).to match(/^\$6\$pL/)
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
 
-      useradd = config.useradd_config
+      useradd = config.useradd
       expect(useradd.group).to eq "100"
       expect(useradd.expiration).to eq ""
       expect(useradd.inactivity_period).to eq(-1)

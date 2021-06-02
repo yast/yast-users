@@ -74,7 +74,7 @@ describe Y2Users::Linux::Reader do
       expect(root_user.password.account_expiration.content).to eq("")
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
 
-      useradd = config.useradd_config
+      useradd = config.useradd
       expect(useradd.group).to eq "100"
       expect(useradd.expiration).to eq ""
       expect(useradd.inactivity_period).to eq(-1)

@@ -102,7 +102,7 @@ module Y2Users
 
       config = self.class.new
       config.attach(elements)
-      config.useradd_config = useradd_config.dup
+      config.useradd = useradd.dup
       config
     end
 
@@ -129,7 +129,7 @@ module Y2Users
     # Useradd configuration to be applied to the system before creating the users
     #
     # @return [UseraddConfig, nil] nil if the configuration is unknown
-    attr_accessor :useradd_config
+    attr_accessor :useradd
 
   private
 
