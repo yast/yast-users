@@ -70,5 +70,40 @@ describe Y2Users::Autoinst::Reader do
         expect(config.groups).to be_empty
       end
     end
+
+    context "when the password is not encrypted" do
+      let(:user_profile) do
+        { "username" => "root", "user_password" => "secret" }
+      end
+
+      let(:profile) do
+        { "users" => [user_profile] }
+      end
+
+      it "sets the passsword as unencrypted" do
+        config = subject.read
+
+        user = config.users.first
+        password = user.password
+        expect(password.value).to_not be_encrypted
+      end
+    end
+
+    context "when the password is not given" do
+      let(:user_profile) do
+        { "username" => "root" }
+      end
+
+      let(:profile) do
+        { "users" => [user_profile] }
+      end
+
+      it "sets a nil password" do
+        config = subject.read
+
+        user = config.users.first
+        expect(user.password).to be_nil
+      end
+    end
   end
 end
