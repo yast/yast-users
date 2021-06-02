@@ -121,7 +121,7 @@ module Y2Users
 
       def read_linuxrc_root_pwd(config)
         root_user = config.users.root
-        # use param only if profile do not already contain it
+        # use param only if profile does not contain it yet.
         return if root_user&.password
 
         # root user not defined
