@@ -1,3 +1,5 @@
+#!/usr/bin/env rspec
+
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -17,10 +19,17 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "y2users/config"
-require "y2users/config_manager"
-require "y2users/validation_config"
-require "y2users/useradd_config"
-require "y2users/user"
-require "y2users/password"
-require "y2users/group"
+require_relative "test_helper"
+require "y2users"
+
+describe Y2Users::UseraddConfig do
+  describe ".writable_attributes" do
+    it "returns an array of symbols" do
+      expect(described_class.writable_attributes).to all be_a(Symbol)
+    end
+
+    it "does not include :skel or :usrskel" do
+      expect(described_class.writable_attributes).to_not include(:skel, :usrskel)
+    end
+  end
+end

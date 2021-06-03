@@ -25,11 +25,20 @@ require "y2users/config"
 require "y2users/linux/local_reader"
 
 describe Y2Users::Linux::LocalReader do
-  subject { described_class.new(File.join(FIXTURES_PATH, "/root/")) }
+  subject { described_class.new(root_dir) }
+  let(:root_dir) { File.join(FIXTURES_PATH, "/root/") }
 
   around do |example|
     # Let's use test/fixtures/home as src root for reading authorized keys from there
     change_scr_root(FIXTURES_PATH.join("home")) { example.run }
+  end
+
+  before do
+    useradd_content = File.read(File.join(root_dir, "etc/default/useradd"))
+    allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
+      .and_return(useradd_content)
+
+    allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("044")
   end
 
   describe "#read" do
@@ -52,6 +61,13 @@ describe Y2Users::Linux::LocalReader do
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$pL/)
       expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
+
+      useradd = config.useradd
+      expect(useradd.group).to eq "100"
+      expect(useradd.expiration).to eq ""
+      expect(useradd.inactivity_period).to eq(-1)
+      expect(useradd.create_mail_spool).to eq true
+      expect(useradd.umask).to eq "044"
     end
   end
 end

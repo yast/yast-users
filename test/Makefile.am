@@ -13,6 +13,7 @@ TESTS = \
   lib/y2users/help_texts_test.rb \
   lib/y2users/config_element_examples.rb \
   lib/y2users/config_element_collection_examples.rb \
+  lib/y2users/useradd_config_test.rb \
   lib/y2users/users_collection_test.rb \
   lib/y2users/groups_collection_test.rb \
   lib/y2users/config_element_examples.rb \

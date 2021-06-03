@@ -27,6 +27,7 @@ describe Yast::InstUserFirstDialog do
   before do
     Users::UsersDatabase.all.clear
 
+    allow(Yast::ShadowConfig).to receive(:fetch)
     allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_max).and_return("499")
 
     # Mock access time: files in root2 are more recent than files in root3

@@ -26,6 +26,7 @@ require "y2users/config"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
+require "y2users/useradd_config"
 require "y2users/linux/writer"
 
 describe Y2Users::Linux::Writer do
@@ -64,7 +65,14 @@ describe Y2Users::Linux::Writer do
     let(:pwd_value) { Y2Users::PasswordEncryptedValue.new("$6$3HkB4uLKri75$Qg6Pp") }
     let(:keyring) { instance_double(Yast::Users::SSHAuthorizedKeyring, write_keys: true) }
 
+    let(:initial_useradd) { Y2Users::UseraddConfig.new(initial_useradd_attrs) }
+    let(:initial_useradd_attrs) do
+      { group: "150", home: "/users", umask: "123", skel: "/etc/skeleton" }
+    end
+
     before do
+      initial_config.useradd = initial_useradd
+
       allow(Yast::Execute).to receive(:on_target!)
       allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
     end
@@ -603,6 +611,49 @@ describe Y2Users::Linux::Writer do
           issues = writer.write
           expect(issues.first.message).to match("The group '#{group.name}' could not be created")
         end
+      end
+    end
+
+    context "when the useradd configuration has not changed" do
+      it "does not alter the useradd configuration" do
+        expect(Yast::Execute).to_not receive(:on_target!).with(/useradd/, any_args)
+        expect(Yast::ShadowConfig).to_not receive(:set)
+        expect(Yast::ShadowConfig).to_not receive(:write)
+
+        writer.write
+      end
+    end
+
+    context "when the umask for useradd has changed" do
+      it "writes the change to login.defs" do
+        expect(Yast::ShadowConfig).to receive(:set).with(:umask, "321")
+        expect(Yast::ShadowConfig).to receive(:write)
+
+        config.useradd.umask = "321"
+        writer.write
+      end
+    end
+
+    context "when some useradd configuration parameters have changed" do
+      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+
+      it "writes all the known parameters to the useradd configuration" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--gid", "users")
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--expiredate", "")
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--base-dir", "/users")
+
+        config.useradd.group = "users"
+        config.useradd.expiration = ""
+        writer.write
+      end
+
+      it "reports an issue if writing some parameter fails" do
+        allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", "--gid", "users")
+          .and_raise(error)
+
+        config.useradd.group = "users"
+        result = writer.write
+        expect(result.first.message).to match(/went wrong writing.*--gid/)
       end
     end
   end
