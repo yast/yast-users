@@ -102,7 +102,8 @@ ylib_y2users_DATA = \
   lib/y2users/config_element.rb \
   lib/y2users/config_element_collection.rb \
   lib/y2users/users_collection.rb \
-  lib/y2users/groups_collection.rb
+  lib/y2users/groups_collection.rb \
+  lib/y2users/read_result.rb
 
 ylib_y2users_clientsdir = @ylibdir@/y2users/clients
 ylib_y2users_clients_DATA = \
