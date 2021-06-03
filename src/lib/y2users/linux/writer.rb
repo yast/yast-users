@@ -101,7 +101,9 @@ module Y2Users
         issues = Y2Issues::List.new
 
         add_groups(issues)
-        # Configure useradd after creating the groups, to make sure the default group exists already
+        # Useradd must be configured before creating the users (for obvious reasons) but after
+        # creating the groups (in order to set a group as the default one for useradd, that group
+        # must already exist in the system)
         write_useradd_config(issues)
         add_users(issues)
         edit_users(issues)
