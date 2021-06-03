@@ -23,6 +23,7 @@ require "y2users/group"
 require "y2users/password"
 require "y2users/autoinst_profile/users_section"
 require "y2users/autoinst_profile/groups_section"
+require "y2users/read_result"
 
 module Y2Users
   module Autoinst
@@ -44,38 +45,43 @@ module Y2Users
 
       # Generates a new config with the users and groups from the system
       #
-      # @return [Config]
+      # @return [Y2Users::ReadResult] Configuration and issues that were found
       def read
-        elements = read_users + read_groups
-        Config.new.attach(elements)
+        issues = Y2Issues::List.new
+        elements = read_users(issues) + read_groups(issues)
+        Y2Users::ReadResult.new(Config.new.attach(elements), issues)
       end
 
     private
 
       attr_reader :users_section, :groups_section
 
-      def read_users
-        users_section.entries.map do |e_user|
-          res = User.new(e_user.username)
-          res.gecos = [e_user.fullname]
+      def read_users(issues)
+        users_section.users.each_with_object([]) do |user_section, users|
+          next unless valid_user?(user_section, issues)
+
+          res = User.new(user_section.username)
+          res.gecos = [user_section.fullname]
           # TODO: handle forename/lastname
-          res.gid = e_user.gid
-          res.home = e_user.home
-          res.shell = e_user.shell
-          res.uid = e_user.uid
-          res.password = create_password(e_user)
-          res
+          res.gid = user_section.gid
+          res.home = user_section.home
+          res.shell = user_section.shell
+          res.uid = user_section.uid
+          res.password = create_password(user_section)
+          users << res
         end
       end
 
-      def read_groups
-        groups_section.entries.map do |e_group|
-          res = Group.new(e_group.groupname)
-          res.gid = e_group.gid
-          users_name = e_group.userlist.to_s.split(",")
+      def read_groups(issues)
+        groups_section.groups.each_with_object([]) do |group_section, groups|
+          next unless valid_group?(group_section, issues)
+
+          res = Group.new(group_section.groupname)
+          res.gid = group_section.gid
+          users_name = group_section.userlist.to_s.split(",")
           res.users_name = users_name
           res.source = :local
-          res
+          groups << res
         end
       end
 
@@ -98,6 +104,41 @@ module Y2Users
         password.inactivity_period = password_settings.inact
         password.account_expiration = AccountExpiration.new(password_settings.expire)
         password
+      end
+
+      # Validates the user and adds the problems found to the given issues list
+      #
+      # @param user_section [Y2Users::AutoinstProfile::UserSection] User section from the profile
+      # @param issues [Y2Issues::List] Add issues list
+      # @return [Boolean] true if the user is valid; false otherwise.
+      def valid_user?(user_section, issues)
+        return true if user_section.username && !user_section.username.empty?
+
+        issues << invalid_value_issue(user_section, :username)
+        false
+      end
+
+      # Validates the group and adds the problems found to the given issues list
+      #
+      # @param group_section [Y2Users::AutoinstProfile::GroupSection] User section from the profile
+      # @param issues [Y2Issues::List] Add issues list
+      # @return [Boolean] true if the group is valid; false otherwise.
+      def valid_group?(group_section, issues)
+        return true if group_section.groupname && !group_section.groupname.empty?
+
+        issues << invalid_value_issue(group_section, :groupname)
+        false
+      end
+
+      # Helper method that returns an InvalidValue issue for the given section and attribute
+      #
+      # @param section [Installation::AutoinstProfile::SectionWithAttributes]
+      # @param attr [Symbol]
+      # @return [Y2Issues::InvalidValue]
+      def invalid_value_issue(section, attr)
+        Y2Issues::InvalidValue.new(
+          section.send(attr), location: "autoyast:#{section.section_path}:#{attr}"
+        )
       end
     end
   end

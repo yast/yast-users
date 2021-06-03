@@ -3,6 +3,9 @@
 require_relative "../../../test_helper"
 require "yaml"
 require "users/clients/auto"
+require "y2users/autoinst/reader"
+require "y2issues"
+
 Yast.import "Report"
 
 # defines exported users
@@ -78,6 +81,27 @@ describe Y2Users::Clients::Auto do
             expect(root_user.password.value.encrypted?).to eq false
             expect(root_user.password.value.content).to eq "test"
           end
+        end
+      end
+
+      context "when some issue is registered" do
+        let(:users) { { "users" => [] } }
+        let(:reader) { Y2Users::Autoinst::Reader.new(users) }
+        let(:issues) { Y2Issues::List.new }
+
+        let(:result) do
+          Y2Users::ReadResult.new(Y2Users::Config.new, issues)
+        end
+
+        before do
+          allow(Y2Users::Autoinst::Reader).to receive(:new).and_return(reader)
+          allow(reader).to receive(:read).and_return(result)
+          issues << Y2Issues::InvalidValue.new("dummy", location: nil)
+        end
+
+        it "reports the issues" do
+          expect(Y2Issues).to receive(:report).with(issues)
+          subject.run
         end
       end
     end

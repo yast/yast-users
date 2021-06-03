@@ -21,6 +21,7 @@ require "yast"
 require "installation/auto_client"
 require "y2users"
 require "y2users/autoinst/reader"
+require "y2issues"
 
 Yast.import "Users"
 Yast.import "UsersSimple"
@@ -46,9 +47,10 @@ module Y2Users
       def import(param)
         check_users(param["users"] || [])
         reader = Y2Users::Autoinst::Reader.new(param)
-        config = reader.read
-        read_linuxrc_root_pwd(config)
-        Y2Users::ConfigManager.instance.register(config, as: :autoinst)
+        result = reader.read
+        read_linuxrc_root_pwd(result.config)
+        Y2Issues.report(result.issues) if result.issues?
+        Y2Users::ConfigManager.instance.register(result.config, as: :autoinst)
 
         true
       end

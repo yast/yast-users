@@ -21,7 +21,7 @@
 
 require_relative "../../../test_helper"
 require "y2users/autoinst_profile/user_section"
-require "y2users/autoinst_profile/groups_section"
+require "y2users/autoinst_profile/users_section"
 
 describe Y2Users::AutoinstProfile::UserSection do
   describe "#new_from_hashes" do

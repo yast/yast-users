@@ -34,8 +34,9 @@ describe Y2Users::Autoinst::Reader do
 
   describe "#read" do
     it "fills given config with data from hash" do
-      config = subject.read
+      result = subject.read
 
+      config = result.config
       expect(config.users.size).to eq 29
       expect(config.groups.size).to eq 43
 
@@ -52,11 +53,48 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets the user list as an empty array" do
-        config = subject.read
+        result = subject.read
 
+        config = result.config
         users_group = config.groups.first
         expect(users_group.name).to eq("users")
         expect(users_group.users_name).to eq([])
+      end
+    end
+
+    context "when a user has no username" do
+      let(:profile) do
+        {
+          "users" => [
+            { "username" => "root", "user_password" => "secret" },
+            { "user_password" => "secret" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:users,1:username")
+      end
+    end
+
+    context "when a user has an empty username" do
+      let(:profile) do
+        {
+          "users" => [
+            { "username" => "", "user_password" => "secret" },
+            { "username" => "root", "user_password" => "secret" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:users,0:username")
       end
     end
 
@@ -64,7 +102,8 @@ describe Y2Users::Autoinst::Reader do
       let(:profile) { {} }
 
       it "sets the users and groups lists as empty" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         expect(config.users).to be_empty
         expect(config.groups).to be_empty
@@ -81,7 +120,8 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets the passsword as unencrypted" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         user = config.users.first
         password = user.password
@@ -99,10 +139,47 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets a nil password" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         user = config.users.first
         expect(user.password).to be_nil
+      end
+    end
+
+    context "when a group has no groupname" do
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "root" },
+            { "gid" => "100" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:groups,1:groupname")
+      end
+    end
+
+    context "when a group has an empty groupname" do
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "" },
+            { "groupname" => "root", "gid" => "100" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:groups,0:groupname")
       end
     end
   end
