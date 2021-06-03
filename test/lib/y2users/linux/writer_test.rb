@@ -104,6 +104,35 @@ describe Y2Users::Linux::Writer do
       end
     end
 
+    RSpec.shared_examples "using the skel" do
+      context "when a specific skel directory is defined" do
+        let(:skel) { "/etc/special_skel" }
+
+        before do
+          config.users.by_id(user.id).skel = skel
+        end
+
+        it "executes useradd with the right --skel argument" do
+          expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+            expect(args.last).to eq user.name
+            expect(args).to include("--skel", skel)
+          end
+
+          writer.write
+        end
+      end
+
+      context "when no special skel is defined" do
+        it "executes useradd with no --skel argument" do
+          expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+            expect(args).to_not include("--skel")
+          end
+
+          writer.write
+        end
+      end
+    end
+
     RSpec.shared_examples "setting password attributes" do
       context "setting some password attributes" do
         before do
@@ -440,6 +469,7 @@ describe Y2Users::Linux::Writer do
       include_examples "setting password"
       include_examples "setting password attributes"
       include_examples "writing authorized keys"
+      include_examples "using the skel"
 
       it "executes useradd with all the parameters, including creation of home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -460,6 +490,7 @@ describe Y2Users::Linux::Writer do
 
       include_examples "setting password"
       include_examples "setting password attributes"
+      include_examples "using the skel"
 
       it "executes useradd only with the argument to create the home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--create-home", username)
@@ -482,6 +513,7 @@ describe Y2Users::Linux::Writer do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
           expect(args.last).to eq username
           expect(args).to_not include "--create-home"
+          expect(args).to_not include "--skel"
           expect(args).to include "--system"
         end
 

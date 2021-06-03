@@ -262,11 +262,13 @@ module Y2Users
 
       # Options for `useradd` to create the home directory
       #
-      # @param _user [User]
+      # @param user [User]
       # @return [Array<String>]
-      def create_home_options(_user)
+      def create_home_options(user)
         # TODO: "--btrfs-subvolume-home" if needed
-        ["--create-home"]
+        opts = ["--create-home"]
+        opts.concat(["--skel", user.skel]) if user.skel && !user.skel.empty?
+        opts
       end
 
       # Generates and returns the options expected by `chpasswd` for the given user

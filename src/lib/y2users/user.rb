@@ -94,10 +94,16 @@ module Y2Users
     # @return [Array<String>]
     attr_accessor :authorized_keys
 
+    # Skeleton directory to be used, instead of the default, when creating the user in the system
+    #
+    # @return [String, nil] nil if irrelevant (eg. the object corresponds to a user that already
+    #   exists) or if the user should be created with the default skeleton
+    attr_accessor :skel
+
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
-      :secondary_groups_name
+      :secondary_groups_name, :skel
 
     # Constructor
     #
