@@ -5,6 +5,9 @@ require "yaml"
 require "users/clients/auto"
 Yast.import "Report"
 
+# defines exported users
+require_relative "../../../fixtures/users_export"
+
 describe Y2Users::Clients::Auto do
   let(:mode) { "autoinstallation" }
   let(:args) { [func] }
@@ -43,6 +46,38 @@ describe Y2Users::Clients::Auto do
           expect(Yast::Report).not_to receive(:Error)
             .with(_("Found users in profile with equal <uid>."))
           expect(subject.run).to eq(true)
+        end
+      end
+
+      context "when root password linuxrc attribute is set" do
+        before do
+          allow(Yast::Linuxrc).to receive(:InstallInf).with("RootPassword").and_return("test")
+        end
+
+        context "when profile contain root password" do
+          let(:users) { USERS_EXPORT }
+
+          it "keeps root password from profile" do
+            allow(Yast::Report).to receive(:Error) # fixture contain dup uids
+            expect(subject.run).to eq(true)
+
+            config = Y2Users::ConfigManager.instance.config(:autoinst)
+            root_user = config.users.root
+            expect(root_user.password.value.encrypted?).to eq true
+            expect(root_user.password.value.content).to match(/^\$6\$AS/)
+          end
+        end
+
+        context "when profile does not contain root password" do
+          let(:users) { {} }
+
+          it "sets root password to linuxrc value" do
+            expect(subject.run).to eq(true)
+            config = Y2Users::ConfigManager.instance.config(:autoinst)
+            root_user = config.users.root
+            expect(root_user.password.value.encrypted?).to eq false
+            expect(root_user.password.value.content).to eq "test"
+          end
         end
       end
     end

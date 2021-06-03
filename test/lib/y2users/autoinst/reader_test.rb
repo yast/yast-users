@@ -39,7 +39,7 @@ describe Y2Users::Autoinst::Reader do
       expect(config.users.size).to eq 29
       expect(config.groups.size).to eq 43
 
-      root_user = config.users.find { |u| u.uid == "0" }
+      root_user = config.users.root
       expect(root_user.shell).to eq "/bin/bash"
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
