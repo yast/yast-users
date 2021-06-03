@@ -112,6 +112,8 @@ ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \
   lib/y2users/linux/useradd_config_reader.rb \
   lib/y2users/linux/useradd_config_writer.rb \
+  lib/y2users/linux/users_writer.rb \
+  lib/y2users/linux/groups_writer.rb \
   lib/y2users/linux/base_reader.rb \
   lib/y2users/linux/local_reader.rb \
   lib/y2users/linux/reader.rb \
