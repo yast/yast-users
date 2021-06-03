@@ -88,6 +88,7 @@ describe Y2Users::Clients::Auto do
         let(:users) { { "users" => [] } }
         let(:reader) { Y2Users::Autoinst::Reader.new(users) }
         let(:issues) { Y2Issues::List.new }
+        let(:continue?) { :yes }
 
         let(:result) do
           Y2Users::ReadResult.new(Y2Users::Config.new, issues)
@@ -97,11 +98,28 @@ describe Y2Users::Clients::Auto do
           allow(Y2Users::Autoinst::Reader).to receive(:new).and_return(reader)
           allow(reader).to receive(:read).and_return(result)
           issues << Y2Issues::InvalidValue.new("dummy", location: nil)
+          allow(Y2Issues).to receive(:report).and_return(continue?)
         end
 
         it "reports the issues" do
           expect(Y2Issues).to receive(:report).with(issues)
           subject.run
+        end
+
+        context "and the user wants to continue" do
+          let(:continue?) { :yes }
+
+          it "returns true" do
+            expect(subject.run).to eq(true)
+          end
+        end
+
+        context "and the user does not want to continue" do
+          let(:continue?) { :no }
+
+          it "returns false" do
+            expect(subject.run).to eq(false)
+          end
         end
       end
     end

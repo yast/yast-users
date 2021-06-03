@@ -49,7 +49,11 @@ module Y2Users
         reader = Y2Users::Autoinst::Reader.new(param)
         result = reader.read
         read_linuxrc_root_pwd(result.config)
-        Y2Issues.report(result.issues) if result.issues?
+
+        if result.issues?
+          return false unless Y2Issues.report(result.issues) == :yes
+        end
+
         Y2Users::ConfigManager.instance.register(result.config, as: :autoinst)
 
         true
