@@ -373,7 +373,7 @@ describe Y2Users::Linux::Writer do
         end
 
         it "returns an issue" do
-          expect(writer.log).to receive(:error).with(/Error modifying user '#{user.name}'/)
+          expect(Yast).to receive(:y2_logger).with(any_args, /Error modifying user '#{user.name}'/)
           issues = writer.write
           expect(issues.first.message).to match("The user '#{user.name}' could not be modified")
         end
@@ -649,7 +649,7 @@ describe Y2Users::Linux::Writer do
         end
 
         it "returns an issue" do
-          expect(writer.log).to receive(:error).with(/Error creating group '#{group.name}'/)
+          expect(Yast).to receive(:y2_logger).with(any_args, /Error creating group '#{group.name}'/)
           issues = writer.write
           expect(issues.first.message).to match("The group '#{group.name}' could not be created")
         end
