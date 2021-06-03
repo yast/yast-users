@@ -24,6 +24,7 @@ module Y2Users
   # Internal class to validate the attributes of a {User} object.
   # This is not part of the stable API.
   class UserValidator
+    include Yast::I18n
     Yast.import "UsersSimple"
 
     # Issue location describing the User#name attribute
@@ -36,6 +37,7 @@ module Y2Users
     #
     # @param user [Y2Users::User] see {#user}
     def initialize(user)
+      textdomain "users"
       @user = user
     end
 
@@ -47,7 +49,7 @@ module Y2Users
       list = Y2Issues::List.new
 
       if !skip.include?(:name)
-        err = Yast::UsersSimple.CheckUsernameLength(user.name)
+        err = check_length
         add_fatal_issue(list, err, NAME_LOC)
 
         err = Yast::UsersSimple.CheckUsernameContents(user.name, "")
@@ -89,6 +91,18 @@ module Y2Users
       return if error.empty?
 
       list << Y2Issues::Issue.new(error, location: location, severity: :fatal)
+    end
+
+    MIN_LENGTH = 2
+    # reason: see for example man utmp, UT_NAMESIZE
+    MAX_LENGTH = 32
+    def check_length
+      return _("No username entered.\nTry again.") if user.name.nil? || user.name.empty?
+
+      return "" if (MIN_LENGTH..MAX_LENGTH).include?(user.name.size)
+
+      format(_("The username must be between %i and %i characters in length.\n" \
+        "Try again."), MIN_LENGTH, MAX_LENGTH)
     end
   end
 end
