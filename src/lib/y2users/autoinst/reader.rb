@@ -126,7 +126,8 @@ module Y2Users
 
       # Creates a {Password} object based on the data structure of a user
       #
-      # @param user [Hash] a user representation in the format used by Users.Export
+      # @param user [AutoinstProfile::UsersSection] a user representation in the format used by
+      #   Users.Export
       # @return [Password,nil]
       def create_password(user)
         return nil unless user.user_password
@@ -136,12 +137,15 @@ module Y2Users
         password_settings = user.password_settings
         return password unless password_settings
 
-        password.aging = PasswordAging.new(password_settings.last_change)
+        last_change = password_settings.last_change
+        expire = password_settings.expire
+
+        password.aging = PasswordAging.new(last_change) if last_change
         password.minimum_age = password_settings.min
         password.maximum_age = password_settings.max
         password.warning_period = password_settings.warn
         password.inactivity_period = password_settings.inact
-        password.account_expiration = AccountExpiration.new(password_settings.expire)
+        password.account_expiration = AccountExpiration.new(expire) if expire
         password
       end
     end

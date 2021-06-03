@@ -44,8 +44,88 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
+      expect(root_user.password.aging).to be_nil
+      expect(root_user.password.account_expiration).to be_nil
 
       expect(config.login?).to eq(false)
+    end
+
+    context "for a specific user" do
+      let(:profile) do
+        {
+          "users"                 => [
+            {
+              "username"          => "test",
+              "user_password"     => "S3cr3T",
+              "password_settings" => password_settings
+            }
+          ]
+        }
+      end
+
+      context "which has no info about the last password change" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without aging info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.aging).to be_nil
+        end
+      end
+
+      context "which has an empty value for the last password change" do
+        let(:password_settings) { { "last_change" => "" } }
+
+        it "sets a password to the user with an empty aging value" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.aging).to be_a(Y2Users::PasswordAging)
+          expect(user.password.aging.content).to eq("")
+        end
+      end
+
+      context "which has a value for the last password change" do
+        let(:password_settings) { { "last_change" => "12345" } }
+
+        it "sets a password to the user with the given aging value" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.aging).to be_a(Y2Users::PasswordAging)
+          expect(user.password.aging.content).to eq("12345")
+        end
+      end
+
+      context "which has no info about the account expiration" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without account expiration info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.account_expiration).to be_nil
+        end
+      end
+
+      context "which has an empty value for the account expiration" do
+        let(:password_settings) { { "expire" => "" } }
+
+        it "sets a password to the user with an empty account expiration value" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
+          expect(user.password.account_expiration.content).to eq("")
+        end
+      end
+
+      context "which has a value for the account expiration" do
+        let(:password_settings) { { "expire" => "12345" } }
+
+        it "sets a password to the user with the given account expiration value" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
+          expect(user.password.account_expiration.content).to eq("12345")
+        end
+      end
     end
 
     context "when the users list is missing" do

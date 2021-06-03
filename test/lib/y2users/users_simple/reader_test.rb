@@ -380,7 +380,7 @@ describe Y2Users::UsersSimple::Reader do
         end
       end
 
-      context "which has an empty value for the last password change" do
+      context "which has an empty value for the account expiration" do
         let(:user) { { "uid" => "test", "shadowExpire" => "" } }
 
         it "sets a password to the user with an empty account expiration value" do
@@ -391,7 +391,7 @@ describe Y2Users::UsersSimple::Reader do
         end
       end
 
-      context "which has a value for the last password change" do
+      context "which has a value for the account expiration" do
         let(:user) { { "uid" => "test", "shadowExpire" => "12345" } }
 
         it "sets a password to the user with the given account expiration value" do
