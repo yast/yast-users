@@ -21,6 +21,7 @@
 
 require_relative "../../../test_helper"
 require "y2users/autoinst_profile/user_section"
+require "y2users/autoinst_profile/groups_section"
 
 describe Y2Users::AutoinstProfile::UserSection do
   describe "#new_from_hashes" do
@@ -60,6 +61,20 @@ describe Y2Users::AutoinstProfile::UserSection do
         section = described_class.new_from_hashes({})
         expect(section.password_settings).to be_nil
       end
+    end
+  end
+
+  describe "#section_path" do
+    let(:users_section) do
+      Y2Users::AutoinstProfile::UsersSection.new_from_hashes(
+        [{ "username" => "root" }]
+      )
+    end
+
+    subject(:section) { users_section.users.first }
+
+    it "returns 'users,index'" do
+      expect(section.section_path.to_s).to eq("users,0")
     end
   end
 end

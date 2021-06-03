@@ -52,6 +52,20 @@ module Y2Users
       end
 
       define_attr_accessors
+
+      # Returns the section path
+      #
+      # The <group> section is an special case of a collection, so
+      # we need to redefine the #section_path method completely.
+      #
+      # @return [Installation::AutoinstProfile::ElementPath] Section path or
+      #   nil if the parent is not set
+      def section_path
+        return nil unless parent
+
+        idx = parent.groups.index(self)
+        parent.section_path.join(idx)
+      end
     end
   end
 end

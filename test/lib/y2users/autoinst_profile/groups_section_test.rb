@@ -29,7 +29,7 @@ describe Y2Users::AutoinstProfile::GroupsSection do
         [{ "groupname" => "wheel" }, { "groupname" => "users" }]
       )
 
-      expect(section.entries).to contain_exactly(
+      expect(section.groups).to contain_exactly(
         an_object_having_attributes("groupname" => "wheel"),
         an_object_having_attributes("groupname" => "users")
       )
