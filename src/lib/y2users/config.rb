@@ -42,7 +42,9 @@ module Y2Users
   class Config
     # Login configuration, see {LoginConfig}
     #
-    # @return [LoginConfig]
+    # @see login?
+    #
+    # @return [LoginConfig, nil] nil if not defined (unknown)
     attr_accessor :login
 
     # Constructor
@@ -73,7 +75,7 @@ module Y2Users
       groups_collection.dup.freeze
     end
 
-    # Whether the login is configured
+    # Whether the login config is defined
     #
     # @return [Boolean]
     def login?
