@@ -17,6 +17,7 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "date"
 require "y2users/parsers/shadow"
 require "y2users/user"
 require "y2users/group"
@@ -137,8 +138,8 @@ module Y2Users
         password_settings = user.password_settings
         return password unless password_settings
 
-        last_change = password_settings.last_change
-        expire = password_settings.expire
+        last_change = shadow_date_field_value(password_settings.last_change)
+        expire = shadow_date_field_value(password_settings.expire)
 
         password.aging = PasswordAging.new(last_change) if last_change
         password.minimum_age = password_settings.min
@@ -147,6 +148,14 @@ module Y2Users
         password.inactivity_period = password_settings.inact
         password.account_expiration = AccountExpiration.new(expire) if expire
         password
+      end
+
+      # Generates the correct value for a shadow field that can represent a date
+      #
+      # @param [String, nil]
+      # @return [Date, String, nil]
+      def shadow_date_field_value(value)
+        value.to_s.empty? ? value : Date.parse(value)
       end
     end
   end

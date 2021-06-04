@@ -45,7 +45,7 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.password.value.encrypted?).to eq true
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
       expect(root_user.password.aging).to be_nil
-      expect(root_user.password.account_expiration).to be_nil
+      expect(root_user.password.account_expiration.expire?).to eq(false)
 
       expect(config.login?).to eq(false)
     end
@@ -53,7 +53,7 @@ describe Y2Users::Autoinst::Reader do
     context "for a specific user" do
       let(:profile) do
         {
-          "users"                 => [
+          "users" => [
             {
               "username"          => "test",
               "user_password"     => "S3cr3T",
@@ -85,13 +85,135 @@ describe Y2Users::Autoinst::Reader do
       end
 
       context "which has a value for the last password change" do
-        let(:password_settings) { { "last_change" => "12345" } }
+        let(:password_settings) { { "last_change" => "2010-12-31" } }
+
+        let(:shadow_date) { Y2Users::ShadowDate.new(Date.new(2010, 12, 31)) }
 
         it "sets a password to the user with the given aging value" do
           user = subject.read.users.by_name("test")
 
           expect(user.password.aging).to be_a(Y2Users::PasswordAging)
-          expect(user.password.aging.content).to eq("12345")
+          expect(user.password.aging.content).to eq(shadow_date.to_s)
+        end
+      end
+
+      context "which has no info about the minimum password age" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without minimum age info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.minimum_age).to be_nil
+        end
+      end
+
+      context "which has an empty value for the minimum password age" do
+        let(:password_settings) { { "min" => "" } }
+
+        it "sets a password to the user with an empty minimun age" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.minimum_age).to eq("")
+        end
+      end
+
+      context "which has a value for the minimum password age" do
+        let(:password_settings) { { "min" => "9999" } }
+
+        it "sets a password to the user with the given minimum age" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.minimum_age).to eq("9999")
+        end
+      end
+
+      context "which has no info about the maximum password age" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without maximum age info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.maximum_age).to be_nil
+        end
+      end
+
+      context "which has an empty value for the maximum password age" do
+        let(:password_settings) { { "max" => "" } }
+
+        it "sets a password to the user with an empty maximum age" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.maximum_age).to eq("")
+        end
+      end
+
+      context "which has a value for the maximum password age" do
+        let(:password_settings) { { "max" => "9999" } }
+
+        it "sets a password to the user with the given maximum age" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.maximum_age).to eq("9999")
+        end
+      end
+
+      context "which has no info about the password warning period" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without warning period info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.warning_period).to be_nil
+        end
+      end
+
+      context "which has an empty value for the password warning period" do
+        let(:password_settings) { { "warn" => "" } }
+
+        it "sets a password to the user with an empty warning period" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.warning_period).to eq("")
+        end
+      end
+
+      context "which has a value for the password warning period" do
+        let(:password_settings) { { "warn" => "9999" } }
+
+        it "sets a password to the user with the given warning period" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.warning_period).to eq("9999")
+        end
+      end
+
+      context "which has no info about the password inactivity period" do
+        let(:password_settings) { {} }
+
+        it "sets a password to the user without inactivity period info" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.inactivity_period).to be_nil
+        end
+      end
+
+      context "which has an empty value for the password inactivity period" do
+        let(:password_settings) { { "inact" => "" } }
+
+        it "sets a password to the user with an empty inactivity period" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.inactivity_period).to eq("")
+        end
+      end
+
+      context "which has a value for the password inactivity period" do
+        let(:password_settings) { { "inact" => "9999" } }
+
+        it "sets a password to the user with the given inactivity period" do
+          user = subject.read.users.by_name("test")
+
+          expect(user.password.inactivity_period).to eq("9999")
         end
       end
 
@@ -117,13 +239,15 @@ describe Y2Users::Autoinst::Reader do
       end
 
       context "which has a value for the account expiration" do
-        let(:password_settings) { { "expire" => "12345" } }
+        let(:password_settings) { { "expire" => "2010-12-31" } }
+
+        let(:shadow_date) { Y2Users::ShadowDate.new(Date.new(2010, 12, 31)) }
 
         it "sets a password to the user with the given account expiration value" do
           user = subject.read.users.by_name("test")
 
           expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
-          expect(user.password.account_expiration.content).to eq("12345")
+          expect(user.password.account_expiration.content).to eq(shadow_date.to_s)
         end
       end
     end
