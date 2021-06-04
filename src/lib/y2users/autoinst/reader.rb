@@ -58,7 +58,7 @@ module Y2Users
 
       def read_users(issues)
         users_section.users.each_with_object([]) do |user_section, users|
-          next unless valid_user?(user_section, issues)
+          next unless check_user(user_section, issues)
 
           res = User.new(user_section.username)
           res.gecos = [user_section.fullname]
@@ -74,7 +74,7 @@ module Y2Users
 
       def read_groups(issues)
         groups_section.groups.each_with_object([]) do |group_section, groups|
-          next unless valid_group?(group_section, issues)
+          next unless check_group(group_section, issues)
 
           res = Group.new(group_section.groupname)
           res.gid = group_section.gid
@@ -111,7 +111,7 @@ module Y2Users
       # @param user_section [Y2Users::AutoinstProfile::UserSection] User section from the profile
       # @param issues [Y2Issues::List] Issues list
       # @return [Boolean] true if the user is valid; false otherwise.
-      def valid_user?(user_section, issues)
+      def check_user(user_section, issues)
         return true if user_section.username && !user_section.username.empty?
 
         issues << invalid_value_issue(user_section, :username)
@@ -123,7 +123,7 @@ module Y2Users
       # @param group_section [Y2Users::AutoinstProfile::GroupSection] User section from the profile
       # @param issues [Y2Issues::List] Issues list
       # @return [Boolean] true if the group is valid; false otherwise.
-      def valid_group?(group_section, issues)
+      def check_group(group_section, issues)
         return true if group_section.groupname && !group_section.groupname.empty?
 
         issues << invalid_value_issue(group_section, :groupname)
