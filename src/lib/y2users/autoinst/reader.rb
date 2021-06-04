@@ -109,7 +109,7 @@ module Y2Users
       # Validates the user and adds the problems found to the given issues list
       #
       # @param user_section [Y2Users::AutoinstProfile::UserSection] User section from the profile
-      # @param issues [Y2Issues::List] Add issues list
+      # @param issues [Y2Issues::List] Issues list
       # @return [Boolean] true if the user is valid; false otherwise.
       def valid_user?(user_section, issues)
         return true if user_section.username && !user_section.username.empty?
@@ -121,7 +121,7 @@ module Y2Users
       # Validates the group and adds the problems found to the given issues list
       #
       # @param group_section [Y2Users::AutoinstProfile::GroupSection] User section from the profile
-      # @param issues [Y2Issues::List] Add issues list
+      # @param issues [Y2Issues::List] Issues list
       # @return [Boolean] true if the group is valid; false otherwise.
       def valid_group?(group_section, issues)
         return true if group_section.groupname && !group_section.groupname.empty?

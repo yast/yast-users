@@ -28,7 +28,7 @@ module Y2Users
     # Represents a reading operation result
     #
     # @param config [Config] Read configuration
-    # @param issues [Errors::List] Errors list
+    # @param issues [Y2Issues::List] Errors list
     def initialize(config, issues = Y2Issues::List.new)
       @config = config
       @issues = issues
