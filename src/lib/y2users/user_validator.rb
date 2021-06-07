@@ -52,7 +52,7 @@ module Y2Users
         err = check_length
         add_fatal_issue(list, err, NAME_LOC)
 
-        err = Yast::UsersSimple.CheckUsernameContents(user.name, "")
+        err = check_characters
         add_fatal_issue(list, err, NAME_LOC)
 
         # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
@@ -103,6 +103,20 @@ module Y2Users
 
       format(_("The username must be between %i and %i characters in length.\n" \
         "Try again."), MIN_LENGTH, MAX_LENGTH)
+    end
+
+    # Regexp for allowed characters.
+    # NOTE: this is based on default in login.defs, maybe read it on running system?
+    # rubocop:disable Metrics/LineLength regexp is just copy
+    CHAR_REGEXP = /\a[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_][ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-]*[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.$-]?\Z/.freeze
+    # rubocop:enable Metrics/LineLength
+    def check_characters
+      return "" if user.name =~ CHAR_REGEXP
+
+      _("The username may contain only\n" \
+        "letters, digits, \"-\", \".\", and \"_\"\n" \
+        "and must begin with a letter or \"_\".\n" \
+        "Try again.")
     end
   end
 end
