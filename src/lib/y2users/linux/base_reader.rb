@@ -17,36 +17,47 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
 require "abstract_method"
 require "y2users/config"
+require "y2users/login_config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
 require "y2users/linux/useradd_config_reader"
 require "users/ssh_authorized_keyring"
 
+Yast.import "Autologin"
+
 module Y2Users
   module Linux
-    # Base class for reading users configuration from the system
+    # Base class for reading the system configuration
     class BaseReader
       include Yast::Logger
 
-      # Generates a new config with the users and groups from the read content
+      # Generates a new config with the information from the system
       #
       # @return [Config]
       def read
-        elements = read_users + read_groups
-
-        config = Config.new.attach(elements)
-
-        read_passwords(config)
-        read_authorized_keys(config)
-        read_useradd_config(config)
-
-        config
+        Config.new.tap do |config|
+          read_elements(config)
+          read_passwords(config)
+          read_authorized_keys(config)
+          read_useradd_config(config)
+          read_login(config)
+        end
       end
 
     private
+
+      # Reads the users and groups
+      #
+      # @param config [Config]
+      def read_elements(config)
+        elements = read_users + read_groups
+
+        config.attach(elements)
+      end
 
       # Parses the content retrieved by {#load_users} and returns a collection of users
       #
@@ -114,6 +125,21 @@ module Y2Users
       # @param config [Config]
       def read_useradd_config(config)
         config.useradd = UseraddConfigReader.new.read
+      end
+
+      # Reads the login information
+      #
+      # @param config [Config]
+      def read_login(config)
+        Yast::Autologin.Read
+
+        return unless Yast::Autologin.used
+
+        login = LoginConfig.new
+        login.autologin_user = config.users.by_name(Yast::Autologin.user)
+        login.passwordless = Yast::Autologin.pw_less
+
+        config.login = login
       end
     end
   end

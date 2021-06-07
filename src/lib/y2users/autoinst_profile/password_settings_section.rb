@@ -49,18 +49,19 @@ module Y2Users
     #   @return [String,nil] Number of days before password expiration to notify the user
     #
     # @!attribute last_change
-    #   @todo How does it work? Which is the format? It is not documented.
+    #   @todo How does it work? Which is the format? It is not documented. For now, it is assumed
+    #     that it uses a string representing a date (YYYY-MM-DD) like the expire attribute.
     #   @return [String,nil]
     class PasswordSettingsSection < ::Installation::AutoinstProfile::SectionWithAttributes
       def self.attributes
         [
-          { name: :expire },
-          { name: :flag },
-          { name: :inact },
-          { name: :last_change },
-          { name: :max },
-          { name: :min },
-          { name: :warn }
+          { name: :expire, allow_blank: true },
+          { name: :flag, allow_blank: true },
+          { name: :inact, allow_blank: true },
+          { name: :last_change, allow_blank: true },
+          { name: :max, allow_blank: true },
+          { name: :min, allow_blank: true },
+          { name: :warn, allow_blank: true }
         ]
       end
 

@@ -202,5 +202,63 @@ describe Y2Users::ConfigMerger do
         end
       end
     end
+
+    context "when rhs config contains login config" do
+      before do
+        rhs.login = Y2Users::LoginConfig.new
+        rhs.login.passwordless = true
+      end
+
+      context "and lhs does not contain login config" do
+        it "copies the rhs login config into lhs" do
+          subject.merge
+
+          expect(lhs.login).to be_a(Y2Users::LoginConfig)
+          expect(lhs.login.passwordless?).to eq(true)
+        end
+      end
+
+      context "and lhs contains login config" do
+        before do
+          lhs.login = Y2Users::LoginConfig.new
+        end
+
+        it "replaces the lhs login cofing with a copy of the rhs login config" do
+          login_config = lhs.login
+
+          subject.merge
+
+          expect(lhs.login).to_not eq(login_config)
+          expect(lhs.login).to be_a(Y2Users::LoginConfig)
+          expect(lhs.login.passwordless?).to eq(true)
+        end
+      end
+    end
+
+    context "when rhs does not contain login config" do
+      context "and lhs does not contain login config" do
+        it "keeps lhs without login config" do
+          subject.merge
+
+          expect(lhs.login?).to eq(false)
+        end
+      end
+
+      context "and lhs contains login config" do
+        before do
+          lhs.login = Y2Users::LoginConfig.new
+          lhs.login.passwordless = true
+        end
+
+        it "does not modify the lhs login config" do
+          login_config = lhs.login
+
+          subject.merge
+
+          expect(lhs.login).to eq(login_config)
+          expect(lhs.login.passwordless?).to eq(true)
+        end
+      end
+    end
   end
 end

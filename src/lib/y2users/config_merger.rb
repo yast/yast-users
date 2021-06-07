@@ -33,15 +33,14 @@ module Y2Users
       @rhs = rhs
     end
 
-    # Merges users and groups from {rhs} config into {lhs} config
+    # Merges information from {rhs} config into {lhs} config
     #
-    # Users and groups that already exist on {lhs} are updated with their {rhs} counterparts.
-    #
-    # @see merge_element
+    # @see merge_elements
+    # @see merge_login
     def merge
-      collection = rhs.users + rhs.groups
+      merge_elements
 
-      collection.each { |e| merge_element(lhs, e) }
+      merge_login
     end
 
   private
@@ -55,6 +54,24 @@ module Y2Users
     #
     # @return [Config]
     attr_reader :rhs
+
+    # Merges users and groups
+    #
+    # Users and groups that already exist on lhs are replaced with their rhs counterparts.
+    def merge_elements
+      collection = rhs.users + rhs.groups
+
+      collection.each { |e| merge_element(lhs, e) }
+    end
+
+    # Copies rhs login config to lhs
+    #
+    # If rhs login config is unknown, then lhs one is kept.
+    def merge_login
+      return unless rhs.login?
+
+      rhs.login.copy_to(lhs)
+    end
 
     # Merges an element into a config
     #

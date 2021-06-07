@@ -24,6 +24,8 @@ require "y2issues"
 require "users/ssh_authorized_keyring"
 require "y2users/linux/useradd_config_writer"
 
+Yast.import "Autologin"
+
 module Y2Users
   module Linux
     # Writes users and groups to the system using Yast2::Execute and standard
@@ -107,6 +109,7 @@ module Y2Users
         write_useradd_config(issues)
         add_users(issues)
         edit_users(issues)
+        edit_login(issues)
 
         # After modifying the users and groups in the system, previous versions of yast-users used
         # to update the NIS database and invalidate the nscd (Name Service Caching Daemon) cache.
@@ -235,6 +238,21 @@ module Y2Users
           format(_("The group '%{groupname}' could not be created"), groupname: group.name)
         )
         log.error("Error creating group '#{group.name}' - #{e.message}")
+      end
+
+      # Applies changes for the login settings
+      def edit_login(_issues)
+        return unless config.login?
+
+        # resetting Autologin settings
+        Yast::Autologin.Disable
+
+        Yast::Autologin.user = config.login.autologin_user&.name.to_s
+        Yast::Autologin.pw_less = config.login.passwordless?
+        Yast::Autologin.Use(true)
+
+        # The parameter received by Autologin#Write is obsolete and it has no effect.
+        Yast::Autologin.Write(nil)
       end
 
       # Executes the command for creating the user
@@ -392,8 +410,22 @@ module Y2Users
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/PerceivedComplexity
 
+      # Whether the users have different groups
+      #
+      # @param user1 [User]
+      # @param user2 [User]
+      #
+      # @return [Boolean]
       def different_groups?(user1, user2)
-        user1.groups(with_primary: false).sort != user2.groups(with_primary: false).sort
+        sorted_groups(user1) != sorted_groups(user2)
+      end
+
+      # Groups of a user, sorted by id
+      #
+      # @param user [User]
+      # @return [Array<Group>]
+      def sorted_groups(user)
+        user.groups(with_primary: false).sort_by(&:id)
       end
 
       # Options for `useradd` to create the home directory

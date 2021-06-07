@@ -80,6 +80,25 @@ describe Y2Users::Linux::Reader do
       expect(useradd.inactivity_period).to eq(-1)
       expect(useradd.create_mail_spool).to eq true
       expect(useradd.umask).to eq "024"
+
+      expect(config.login?).to eq(false)
+    end
+
+    context "when there are login settings" do
+      before do
+        allow(Yast::Autologin).to receive(:Read)
+        allow(Yast::Autologin).to receive(:used).and_return(true)
+        allow(Yast::Autologin).to receive(:user).and_return("games")
+        allow(Yast::Autologin).to receive(:pw_less).and_return(true)
+      end
+
+      it "generates the login config" do
+        config = subject.read
+
+        expect(config.login?).to eq(true)
+        expect(config.login.autologin_user.name).to eq("games")
+        expect(config.login.passwordless?).to eq(true)
+      end
     end
   end
 end
