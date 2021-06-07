@@ -152,7 +152,7 @@ module Y2Users
 
       # Generates the correct value for a shadow field that can represent a date
       #
-      # @param [String, nil]
+      # @param value [String, nil]
       # @return [Date, String, nil]
       def shadow_date_field_value(value)
         value.to_s.empty? ? value : Date.parse(value)
