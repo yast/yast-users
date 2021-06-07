@@ -105,11 +105,11 @@ module Y2Users
         "Try again."), MIN_LENGTH, MAX_LENGTH)
     end
 
+    LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".freeze
+    NUMBERS = "0123456789".freeze
     # Regexp for allowed characters.
     # NOTE: this is based on default in login.defs, maybe read it on running system?
-    # rubocop:disable Metrics/LineLength regexp is just copy
-    CHAR_REGEXP = /\a[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_][ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-]*[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.$-]?\Z/.freeze
-    # rubocop:enable Metrics/LineLength
+    CHAR_REGEXP = /\a[#{LETTERS}_][#{LETTERS}#{NUMBERS}_.-]*[#{LETTERS}#{NUMBERS}_.$-]?\Z/.freeze
     def check_characters
       return "" if user.name =~ CHAR_REGEXP
 
@@ -195,7 +195,7 @@ module Y2Users
       "uuidd",
       "suse-ncc",
       "messagebus",
-      "nx",
+      "nx"
     ].freeze
     def check_username_conflict
       return "" unless KNOWN_USERS.include?(user.name)
