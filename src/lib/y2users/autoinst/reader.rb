@@ -57,9 +57,9 @@ module Y2Users
       # @return [Y2Users::ReadResult] Configuration and issues that were found
       def read
         issues = Y2Issues::List.new
-        config = Config.new.tap do |config|
-          read_elements(config, issues)
-          read_login(config)
+        config = Config.new.tap do |cfg|
+          read_elements(cfg, issues)
+          read_login(cfg)
         end
         Y2Users::ReadResult.new(config, issues)
       end
