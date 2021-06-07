@@ -48,7 +48,6 @@ describe Y2Users::PasswordValidator do
 
     context "when validating a plain password" do
       before do
-        allow(Yast::UsersSimple).to receive(:CheckPassword).and_return(fatal_issues)
         allow(::Users::LocalPassword).to receive(:new).and_return(local_password_validator)
       end
 
@@ -66,7 +65,7 @@ describe Y2Users::PasswordValidator do
       end
 
       context "when there are fatal issues" do
-        let(:fatal_issues) { "Yast::UsersSimple password validations failed" }
+        let(:password_content) { "sčš3cr3T" }
         let(:warning_issues) { ["too short!"] }
 
         it "contains a fatal issue" do

@@ -68,6 +68,20 @@ module Y2Users
     # @return [Y2Users::User] user containing the password to validate
     attr_reader :user
 
+    LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".freeze
+    NUMBERS = "0123456789".freeze
+    # TODO: find source for this info beside bsc#175706
+    PASSWORD_REGEXP = /[^-#{NUMBERS}#{LETTERS}!@#\:!\$%^&*() ,;:._+\/|?{}=\['\"`~<>\]\\]/.freeze
+    def check_password
+      return _("No password entered.\nTry again.") if !content || content.empty?
+
+      return "" if content =~ PASSWORD_REGEXP
+
+      _("The password may only contain the following characters:\n" \
+        "0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\.\n" \
+        "Try again.")
+    end
+
     # @return [Y2Users::Password] password to validate
     def password
       user.password
