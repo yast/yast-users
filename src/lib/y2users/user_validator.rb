@@ -58,12 +58,12 @@ module Y2Users
         # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
         # the initial user during installation, it simply checks against a hard-coded list of
         # system user names that are expected to exist in a system right after installation.
-        err = Yast::UsersSimple.CheckUsernameConflicts(user.name)
+        err = check_username_conflict
         add_fatal_issue(list, err, NAME_LOC)
       end
 
       if !skip.include?(:full_name)
-        err = Yast::UsersSimple.CheckFullname(user.full_name)
+        err = check_full_name
         add_fatal_issue(list, err, FULL_NAME_LOC)
       end
 
@@ -109,7 +109,7 @@ module Y2Users
     NUMBERS = "0123456789".freeze
     # Regexp for allowed characters.
     # NOTE: this is based on default in login.defs, maybe read it on running system?
-    CHAR_REGEXP = /\a[#{LETTERS}_][#{LETTERS}#{NUMBERS}_.-]*[#{LETTERS}#{NUMBERS}_.$-]?\Z/.freeze
+    CHAR_REGEXP = /\A[#{LETTERS}_][#{LETTERS}#{NUMBERS}_.-]*[#{LETTERS}#{NUMBERS}_.$-]?\z/.freeze
     def check_characters
       return "" if user.name =~ CHAR_REGEXP
 
@@ -203,6 +203,16 @@ module Y2Users
       _("There is a conflict between the entered\n" \
         "username and an existing username.\n" \
         "Try another one.")
+    end
+
+    def check_full_name
+      return "" unless user.full_name
+
+      return "" if user.full_name !~ /[:,]/
+
+      _("The user's full name cannot contain\n" \
+        "\":\" or \",\" characters.\n" \
+        "Try again.")
     end
   end
 end
