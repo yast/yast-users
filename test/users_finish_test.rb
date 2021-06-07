@@ -120,21 +120,11 @@ describe Yast::UsersFinishClient do
           allow(Y2Users::ConfigManager.instance).to receive(:system).and_return(system_config)
 
           allow(system_config).to receive(:merge).and_return(target_config)
-
-          # Mocking to avoid to write to the system
-          allow(Yast::Autologin).to receive(:Write)
-
-          allow(Yast::UsersSimple).to receive(:AutologinUsed).and_return(autologin)
-          allow(Yast::UsersSimple).to receive(:GetAutologinUser).and_return(autologin_user)
         end
 
         let(:system_config) { Y2Users::Config.new }
 
         let(:target_config) { Y2Users::Config.new }
-
-        let(:autologin) { nil }
-
-        let(:autologin_user) { nil }
 
         let(:writer) { instance_double(Y2Users::Linux::Writer, write: issues) }
 
@@ -168,44 +158,6 @@ describe Yast::UsersFinishClient do
 
           it "reports all errors to the user" do
             expect(Yast::Report).to receive(:Error).with("error 1\n\nerror 2")
-
-            subject.run
-          end
-        end
-
-        context "when a user is configured for auto-login" do
-          let(:autologin) { true }
-
-          let(:autologin_user) { true }
-
-          it "configures auto-login for that user" do
-            expect(Yast::Autologin).to receive(:Disable)
-            expect(Yast::Autologin).to receive(:user=).with(autologin_user)
-            expect(Yast::Autologin).to receive(:Use).with(true)
-
-            subject.run
-          end
-
-          it "writes the auto-login config" do
-            expect(Yast::Autologin).to receive(:Write)
-
-            subject.run
-          end
-        end
-
-        context "when no user is configured for auto-login" do
-          let(:autologin) { false }
-
-          it "configures auto-login for no user" do
-            expect(Yast::Autologin).to receive(:Disable)
-            expect(Yast::Autologin).to_not receive(:user=)
-            expect(Yast::Autologin).to_not receive(:Use)
-
-            subject.run
-          end
-
-          it "writes the auto-login config" do
-            expect(Yast::Autologin).to receive(:Write)
 
             subject.run
           end

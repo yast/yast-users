@@ -39,7 +39,6 @@ module Yast
 
       Yast.import "Users"
       Yast.import "UsersSimple"
-      Yast.import "Autologin"
       Yast.import "Report"
     end
 
@@ -109,8 +108,6 @@ module Yast
     #
     # All the issues detected by the writer are reported to the user.
     def write_install
-      configure_autologin
-
       writer = Y2Users::Linux::Writer.new(target_config, system_config)
       issues = writer.write
 
@@ -118,20 +115,6 @@ module Yast
     end
 
   private
-
-    # Configures auto-login
-    def configure_autologin
-      # resetting Autologin settings
-      Autologin.Disable
-
-      if UsersSimple.AutologinUsed
-        Autologin.user = UsersSimple.GetAutologinUser
-        Autologin.Use(true)
-      end
-
-      # The parameter received by Autologin#Write is obsolete and it has no effect.
-      Autologin.Write(nil)
-    end
 
     # System config, which contains all the current users on the system
     #

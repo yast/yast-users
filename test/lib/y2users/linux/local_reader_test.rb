@@ -68,6 +68,8 @@ describe Y2Users::Linux::LocalReader do
       expect(useradd.inactivity_period).to eq(-1)
       expect(useradd.create_mail_spool).to eq true
       expect(useradd.umask).to eq "044"
+
+      expect(config.login?).to eq(false)
     end
   end
 end

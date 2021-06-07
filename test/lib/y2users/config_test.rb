@@ -101,6 +101,24 @@ describe Y2Users::Config do
     end
   end
 
+  describe "#login?" do
+    context "when there is no login config" do
+      it "returns false" do
+        expect(subject.login?).to eq(false)
+      end
+    end
+
+    context "when there is login config" do
+      before do
+        subject.login = Y2Users::LoginConfig.new
+      end
+
+      it "returns true" do
+        expect(subject.login?).to eq(true)
+      end
+    end
+  end
+
   describe "#attach" do
     let(:user1) { Y2Users::User.new("test1") }
 
@@ -199,6 +217,32 @@ describe Y2Users::Config do
       expect(result).to eq(subject)
     end
 
+    context "if the given element is used for autologin" do
+      before do
+        subject.login = Y2Users::LoginConfig.new
+        subject.login.autologin_user = user1
+      end
+
+      it "removes the autologin user from the login config" do
+        subject.detach(user1)
+
+        expect(subject.login.autologin?).to eq(false)
+      end
+    end
+
+    context "if the given element is not used for autologin" do
+      before do
+        subject.login = Y2Users::LoginConfig.new
+        subject.login.autologin_user = user1
+      end
+
+      it "does not remove the autologin user from the login config" do
+        subject.detach(user2)
+
+        expect(subject.login.autologin_user).to eq(user1)
+      end
+    end
+
     context "if a given element is not attached yet" do
       let(:user3) { Y2Users::User.new("test3")  }
 
@@ -223,6 +267,10 @@ describe Y2Users::Config do
   describe "#copy" do
     before do
       subject.attach([user1, user2, group1, group2])
+
+      subject.login = Y2Users::LoginConfig.new
+      subject.login.passwordless = true
+      subject.login.autologin_user = user1
     end
 
     let(:user1) { Y2Users::User.new("test1") }
@@ -276,12 +324,23 @@ describe Y2Users::Config do
         expect(group.id).to eq(original_group.id)
       end
     end
+
+    it "copies the login config" do
+      config = subject.copy
+
+      expect(config.login).to be_a(Y2Users::LoginConfig)
+      expect(config.login.passwordless?).to eq(true)
+      expect(config.login.autologin_user.name).to eq("test1")
+    end
   end
 
   describe "#merge" do
     before do
       subject.attach([user1, group1])
+
       other.attach([user1.copy, user2, group2])
+      other.login = Y2Users::LoginConfig.new
+      other.login.passwordless = true
     end
 
     let(:other) { Y2Users::Config.new }
@@ -325,12 +384,22 @@ describe Y2Users::Config do
 
       expect(names).to contain_exactly("test1", "test2")
     end
+
+    it "copies the login config from the given config into the new config" do
+      config = subject.merge(other)
+
+      expect(config.login).to be_a(Y2Users::LoginConfig)
+      expect(config.login.passwordless?).to eq(true)
+    end
   end
 
   describe "#merge!" do
     before do
       subject.attach([user1, group1])
+
       other.attach([user1.copy, user2, group2])
+      other.login = Y2Users::LoginConfig.new
+      other.login.passwordless = true
     end
 
     let(:other) { Y2Users::Config.new }
@@ -373,6 +442,13 @@ describe Y2Users::Config do
       names = subject.groups.map(&:name)
 
       expect(names).to contain_exactly("test1", "test2")
+    end
+
+    it "copies the login config from the given config into the current config" do
+      subject.merge!(other)
+
+      expect(subject.login).to be_a(Y2Users::LoginConfig)
+      expect(subject.login.passwordless?).to eq(true)
     end
   end
 end

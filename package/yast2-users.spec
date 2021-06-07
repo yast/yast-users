@@ -32,8 +32,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  update-desktop-files
-# Support for umask in Yast::ShadowConfig
-BuildRequires:  yast2 >= 4.4.6
+# SectionWithAttributes allows blank
+BuildRequires:  yast2 >= 4.4.9
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 4.2.2
 BuildRequires:  yast2-perl-bindings

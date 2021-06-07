@@ -139,7 +139,8 @@ module Y2Users
   class ShadowDateField < ShadowField
     # Constructor
     #
-    # @param value [String, Date]
+    # @param value [String, Date] when given as String, it should be a numberic string representing
+    #   the number of days since Jan 1, 1970.
     def initialize(value = "")
       @content = value.is_a?(Date) ? to_shadow(value) : super
     end

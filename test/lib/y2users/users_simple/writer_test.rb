@@ -71,13 +71,13 @@ describe Y2Users::UsersSimple::Writer do
         # having a password at this point could mean "deleting the previous
         # one"
         it "stores an empty string as password for root" do
-          expect(Yast::UsersSimple).to receive(:SetRootPassword).with("")
-
           subject.write
+
+          expect(Yast::UsersSimple.GetRootPassword).to eq("")
         end
       end
 
-      context "when root has password" do
+      context "when root has a password" do
         let(:root_password) do
           Y2Users::Password.create_plain("S3cr3T")
         end
@@ -93,9 +93,9 @@ describe Y2Users::UsersSimple::Writer do
         let(:root_authorized_keys) { [] }
 
         it "stores an empty string (meaning no authorized key is wanted)" do
-          expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with("")
-
           subject.write
+
+          expect(Yast::UsersSimple.GetRootPublicKey).to eq("")
         end
       end
 
@@ -110,6 +110,11 @@ describe Y2Users::UsersSimple::Writer do
       end
     end
 
+    before do
+      Yast::UsersSimple.SetRootPassword("initial-password")
+      Yast::UsersSimple.SetRootPublicKey("initial-public-key")
+    end
+
     context "when the users config does not contain users" do
       it "does not store users into UsersSimple module" do
         subject.write
@@ -117,10 +122,16 @@ describe Y2Users::UsersSimple::Writer do
         expect(Yast::UsersSimple.GetUsers).to be_empty
       end
 
-      it "does not store a password for root" do
+      it "stores an empty string as password for root" do
         subject.write
 
         expect(Yast::UsersSimple.GetRootPassword).to eq("")
+      end
+
+      it "stores an empty string as authorized key for root" do
+        subject.write
+
+        expect(Yast::UsersSimple.GetRootPublicKey).to eq("")
       end
     end
 
@@ -313,6 +324,49 @@ describe Y2Users::UsersSimple::Writer do
           subject.write
 
           expect(user_simple("test1")["userPassword"]).to be_nil
+        end
+      end
+    end
+
+    context "when the config does not contain login settings" do
+      before do
+        config.login = nil
+
+        Yast::UsersSimple.SetAutologinUser("test")
+      end
+
+      it "stores an empty username as autologin user" do
+        subject.write
+
+        expect(Yast::UsersSimple.GetAutologinUser).to eq("")
+      end
+    end
+
+    context "when the config contains login settings" do
+      before do
+        config.login = Y2Users::LoginConfig.new
+        config.login.autologin_user = user
+
+        Yast::UsersSimple.SetAutologinUser("test")
+      end
+
+      context "and the login settings has no autologin user" do
+        let(:user) { nil }
+
+        it "stores an empty username as autologin user" do
+          subject.write
+
+          expect(Yast::UsersSimple.GetAutologinUser).to eq("")
+        end
+      end
+
+      context "and the login settings has an autologin user" do
+        let(:user) { Y2Users::User.new("other") }
+
+        it "stores the username as autologin user" do
+          subject.write
+
+          expect(Yast::UsersSimple.GetAutologinUser).to eq("other")
         end
       end
     end

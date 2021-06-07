@@ -27,6 +27,7 @@ require "y2users/user"
 require "y2users/group"
 require "y2users/password"
 require "y2users/useradd_config"
+require "y2users/login_config"
 require "y2users/linux/writer"
 
 describe Y2Users::Linux::Writer do
@@ -75,6 +76,7 @@ describe Y2Users::Linux::Writer do
 
       allow(Yast::Execute).to receive(:on_target!)
       allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
+      allow(Yast::Autologin).to receive(:Write)
     end
 
     RSpec.shared_examples "writing authorized keys" do
@@ -338,16 +340,23 @@ describe Y2Users::Linux::Writer do
             group.users_name = user.name
           end
         end
+
+        let(:other_group) do
+          Y2Users::Group.new("other").tap do |group|
+            group.users_name = user.name
+          end
+        end
+
         let(:users) { [user] }
 
         before do
-          config.attach(wheel_group)
+          config.attach(wheel_group, other_group)
           allow(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args)
         end
 
         it "executes usermod with the new values" do
           expect(Yast::Execute).to receive(:on_target!).with(
-            /usermod/, "--groups", "wheel", user.name
+            /usermod/, "--groups", "other,wheel", user.name
           )
 
           writer.write
@@ -484,6 +493,39 @@ describe Y2Users::Linux::Writer do
           expect(args).to_not include "--create-home"
           expect(args).to include "--system"
         end
+
+        writer.write
+      end
+    end
+
+    context "when there are no login settings" do
+      before do
+        config.login = nil
+      end
+
+      it "does not write auto-login config" do
+        expect(Yast::Autologin).to_not receive(:Write)
+
+        writer.write
+      end
+    end
+
+    context "when there are login settings" do
+      before do
+        config.login = Y2Users::LoginConfig.new
+        config.login.autologin_user = Y2Users::User.new("test")
+        config.login.passwordless = true
+      end
+
+      it "configures auto-login according to the settings" do
+        writer.write
+
+        expect(Yast::Autologin.user).to eq("test")
+        expect(Yast::Autologin.pw_less).to eq(true)
+      end
+
+      it "writes auto-login config" do
+        expect(Yast::Autologin).to receive(:Write)
 
         writer.write
       end
