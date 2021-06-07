@@ -340,16 +340,23 @@ describe Y2Users::Linux::Writer do
             group.users_name = user.name
           end
         end
+
+        let(:other_group) do
+          Y2Users::Group.new("other").tap do |group|
+            group.users_name = user.name
+          end
+        end
+
         let(:users) { [user] }
 
         before do
-          config.attach(wheel_group)
+          config.attach(wheel_group, other_group)
           allow(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args)
         end
 
         it "executes usermod with the new values" do
           expect(Yast::Execute).to receive(:on_target!).with(
-            /usermod/, "--groups", "wheel", user.name
+            /usermod/, "--groups", "other,wheel", user.name
           )
 
           writer.write

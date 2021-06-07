@@ -410,8 +410,22 @@ module Y2Users
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/PerceivedComplexity
 
+      # Whether the users have different groups
+      #
+      # @param user1 [User]
+      # @param user2 [User]
+      #
+      # @return [Boolean]
       def different_groups?(user1, user2)
-        user1.groups(with_primary: false).sort != user2.groups(with_primary: false).sort
+        sorted_groups(user1) != sorted_groups(user2)
+      end
+
+      # Groups of a user, sorted by id
+      #
+      # @param user [User]
+      # @return [Array<Group>]
+      def sorted_groups(user)
+        user.groups(with_primary: false).sort_by(&:id)
       end
 
       # Options for `useradd` to create the home directory
