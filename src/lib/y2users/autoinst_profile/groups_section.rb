@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "installation/autoinst_profile/section_with_attributes"
+require "installation/autoinst_profile/element_path"
 require "y2users/autoinst_profile/group_section"
 
 module Y2Users
@@ -25,7 +26,7 @@ module Y2Users
     # Thin object oriented layer on top of the <groups> section of the
     # AutoYaST profile.
     class GroupsSection < ::Installation::AutoinstProfile::SectionWithAttributes
-      attr_accessor :entries
+      attr_accessor :groups
 
       class << self
         # Returns the list of group sections
@@ -33,13 +34,14 @@ module Y2Users
         # @param hashes [Array<Hash>] Array of hashes from the profile
         # @return [Array<GroupSection>] List of group sections
         def new_from_hashes(hashes)
-          entries = hashes.map { |e| GroupSection.new_from_hashes(e) }
-          new(entries)
+          section = new
+          section.groups = hashes.map { |e| GroupSection.new_from_hashes(e, section) }
+          section
         end
       end
 
-      def initialize(entries = [])
-        @entries = entries
+      def initialize(groups = [])
+        @groups = groups
       end
 
       # Returns the parent section

@@ -115,6 +115,20 @@ module Y2Users
 
         @password_settings = PasswordSettingsSection.new_from_hashes(hash["password_settings"])
       end
+
+      # Returns the section path
+      #
+      # The <user> section is an special case of a collection, so
+      # we need to redefine the #section_path method completely.
+      #
+      # @return [Installation::AutoinstProfile::ElementPath] Section path or
+      #   nil if the parent is not set
+      def section_path
+        return nil unless parent
+
+        idx = parent.users.index(self)
+        parent.section_path.join(idx)
+      end
     end
   end
 end

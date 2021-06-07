@@ -34,8 +34,9 @@ describe Y2Users::Autoinst::Reader do
 
   describe "#read" do
     it "fills given config with data from hash" do
-      config = subject.read
+      result = subject.read
 
+      config = result.config
       expect(config.users.size).to eq 29
       expect(config.groups.size).to eq 43
 
@@ -67,7 +68,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without aging info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.aging).to be_nil
         end
@@ -77,7 +79,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "last_change" => "" } }
 
         it "sets a password to the user with an empty aging value" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.aging).to be_a(Y2Users::PasswordAging)
           expect(user.password.aging.content).to eq("")
@@ -90,7 +93,8 @@ describe Y2Users::Autoinst::Reader do
         let(:shadow_date) { Y2Users::ShadowDate.new(Date.new(2010, 12, 31)) }
 
         it "sets a password to the user with the given aging value" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.aging).to be_a(Y2Users::PasswordAging)
           expect(user.password.aging.content).to eq(shadow_date.to_s)
@@ -101,7 +105,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without minimum age info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.minimum_age).to be_nil
         end
@@ -111,7 +116,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "min" => "" } }
 
         it "sets a password to the user with an empty minimun age" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.minimum_age).to eq("")
         end
@@ -121,7 +127,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "min" => "9999" } }
 
         it "sets a password to the user with the given minimum age" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.minimum_age).to eq("9999")
         end
@@ -131,7 +138,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without maximum age info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.maximum_age).to be_nil
         end
@@ -141,7 +149,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "max" => "" } }
 
         it "sets a password to the user with an empty maximum age" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.maximum_age).to eq("")
         end
@@ -151,7 +160,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "max" => "9999" } }
 
         it "sets a password to the user with the given maximum age" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.maximum_age).to eq("9999")
         end
@@ -161,7 +171,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without warning period info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.warning_period).to be_nil
         end
@@ -171,7 +182,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "warn" => "" } }
 
         it "sets a password to the user with an empty warning period" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.warning_period).to eq("")
         end
@@ -181,7 +193,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "warn" => "9999" } }
 
         it "sets a password to the user with the given warning period" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.warning_period).to eq("9999")
         end
@@ -191,7 +204,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without inactivity period info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.inactivity_period).to be_nil
         end
@@ -201,7 +215,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "inact" => "" } }
 
         it "sets a password to the user with an empty inactivity period" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.inactivity_period).to eq("")
         end
@@ -211,7 +226,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "inact" => "9999" } }
 
         it "sets a password to the user with the given inactivity period" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.inactivity_period).to eq("9999")
         end
@@ -221,7 +237,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { {} }
 
         it "sets a password to the user without account expiration info" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.account_expiration).to be_nil
         end
@@ -231,7 +248,8 @@ describe Y2Users::Autoinst::Reader do
         let(:password_settings) { { "expire" => "" } }
 
         it "sets a password to the user with an empty account expiration value" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
           expect(user.password.account_expiration.content).to eq("")
@@ -244,7 +262,8 @@ describe Y2Users::Autoinst::Reader do
         let(:shadow_date) { Y2Users::ShadowDate.new(Date.new(2010, 12, 31)) }
 
         it "sets a password to the user with the given account expiration value" do
-          user = subject.read.users.by_name("test")
+          config = subject.read.config
+          user = config.users.by_name("test")
 
           expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
           expect(user.password.account_expiration.content).to eq(shadow_date.to_s)
@@ -258,11 +277,47 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets the user list as an empty array" do
-        config = subject.read
+        config = subject.read.config
 
         users_group = config.groups.first
         expect(users_group.name).to eq("users")
         expect(users_group.users_name).to eq([])
+      end
+    end
+
+    context "when a user has no username" do
+      let(:profile) do
+        {
+          "users" => [
+            { "username" => "root", "user_password" => "secret" },
+            { "user_password" => "secret" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:users,1:username")
+      end
+    end
+
+    context "when a user has an empty username" do
+      let(:profile) do
+        {
+          "users" => [
+            { "username" => "", "user_password" => "secret" },
+            { "username" => "root", "user_password" => "secret" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:users,0:username")
       end
     end
 
@@ -277,7 +332,7 @@ describe Y2Users::Autoinst::Reader do
       let(:users) { { "username" => "test" } }
 
       it "sets the login config according to the profile section" do
-        config = subject.read
+        config = subject.read.config
 
         expect(config.login?).to eq(true)
         expect(config.login.autologin_user.name).to eq("test")
@@ -288,7 +343,7 @@ describe Y2Users::Autoinst::Reader do
         let(:users) { { "username" => "other" } }
 
         it "does not set the autologin user" do
-          config = subject.read
+          config = subject.read.config
 
           expect(config.login?).to eq(true)
           expect(config.login.autologin?).to eq(false)
@@ -305,7 +360,7 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "does not set the login config" do
-        config = subject.read
+        config = subject.read.config
 
         expect(config.login?).to eq(false)
       end
@@ -315,14 +370,16 @@ describe Y2Users::Autoinst::Reader do
       let(:profile) { {} }
 
       it "sets the users and groups lists as empty" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         expect(config.users).to be_empty
         expect(config.groups).to be_empty
       end
 
       it "does not set the login config" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         expect(config.login?).to eq(false)
       end
@@ -338,7 +395,8 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets the passsword as unencrypted" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         user = config.users.first
         password = user.password
@@ -356,10 +414,47 @@ describe Y2Users::Autoinst::Reader do
       end
 
       it "sets a nil password" do
-        config = subject.read
+        result = subject.read
+        config = result.config
 
         user = config.users.first
         expect(user.password).to be_nil
+      end
+    end
+
+    context "when a group has no groupname" do
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "root" },
+            { "gid" => "100" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:groups,1:groupname")
+      end
+    end
+
+    context "when a group has an empty groupname" do
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "" },
+            { "groupname" => "root", "gid" => "100" }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::InvalidValue)
+        expect(issue.location.to_s).to eq("autoyast:groups,0:groupname")
       end
     end
   end

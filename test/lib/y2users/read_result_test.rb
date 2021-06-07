@@ -1,5 +1,3 @@
-#!/usr/bin/env rspec
-#
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -19,20 +17,30 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require_relative "../../../test_helper"
-require "y2users/autoinst_profile/groups_section"
+require_relative "test_helper"
+require "y2issues"
 
-describe Y2Users::AutoinstProfile::GroupsSection do
-  describe ".new_from_hashes" do
-    it "returns an object containing given values" do
-      section = described_class.new_from_hashes(
-        [{ "groupname" => "wheel" }, { "groupname" => "users" }]
-      )
+describe Y2Users::ReadResult do
+  subject(:result) { Y2Users::ReadResult.new(config, issues) }
 
-      expect(section.groups).to contain_exactly(
-        an_object_having_attributes("groupname" => "wheel"),
-        an_object_having_attributes("groupname" => "users")
-      )
+  let(:config) { Y2Users::Config.new }
+  let(:issues) { Y2Issues::List.new }
+
+  describe "#issues?" do
+    context "when some issue is registered" do
+      before do
+        issues << Y2Issues::InvalidValue.new("dummy", location: nil)
+      end
+
+      it "returns true" do
+        expect(result.issues?).to eq(true)
+      end
+    end
+
+    context "when no issues are registered" do
+      it "returns false" do
+        expect(result.issues?).to eq(false)
+      end
     end
   end
 end

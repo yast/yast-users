@@ -1,5 +1,3 @@
-#!/usr/bin/env rspec
-#
 # Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
@@ -19,20 +17,28 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require_relative "../../../test_helper"
-require "y2users/autoinst_profile/groups_section"
+require "yast"
+require "y2issues"
 
-describe Y2Users::AutoinstProfile::GroupsSection do
-  describe ".new_from_hashes" do
-    it "returns an object containing given values" do
-      section = described_class.new_from_hashes(
-        [{ "groupname" => "wheel" }, { "groupname" => "users" }]
-      )
+module Y2Users
+  # Class to represent the result of reading the configuration
+  class ReadResult
+    attr_reader :config, :issues
 
-      expect(section.groups).to contain_exactly(
-        an_object_having_attributes("groupname" => "wheel"),
-        an_object_having_attributes("groupname" => "users")
-      )
+    # Represents a reading operation result
+    #
+    # @param config [Config] Read configuration
+    # @param issues [Y2Issues::List] Errors list
+    def initialize(config, issues = Y2Issues::List.new)
+      @config = config
+      @issues = issues
+    end
+
+    # Determines whether there is some issue
+    #
+    # @return [Boolean]
+    def issues?
+      issues.any?
     end
   end
 end

@@ -25,7 +25,7 @@ module Y2Users
     # Thin object oriented layer on top of the <users> section of the
     # AutoYaST profile.
     class UsersSection < ::Installation::AutoinstProfile::SectionWithAttributes
-      attr_accessor :entries
+      attr_accessor :users
 
       class << self
         # Returns the list of user sections
@@ -33,13 +33,14 @@ module Y2Users
         # @param hashes [Array<Hash>] Array of hashes from the profile
         # @return [Array<GroupSection>] List of user sections
         def new_from_hashes(hashes)
-          entries = hashes.map { |e| UserSection.new_from_hashes(e) }
-          new(entries)
+          section = new
+          section.users = hashes.map { |e| UserSection.new_from_hashes(e, section) }
+          section
         end
       end
 
-      def initialize(entries = [])
-        @entries = entries
+      def initialize(users = [])
+        @users = users
       end
 
       # Returns the parent section

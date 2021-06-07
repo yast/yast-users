@@ -29,7 +29,7 @@ describe Y2Users::AutoinstProfile::UsersSection do
         [{ "username" => "suse" }, { "username" => "root" }]
       )
 
-      expect(section.entries).to contain_exactly(
+      expect(section.users).to contain_exactly(
         an_object_having_attributes("username" => "suse"),
         an_object_having_attributes("username" => "root")
       )

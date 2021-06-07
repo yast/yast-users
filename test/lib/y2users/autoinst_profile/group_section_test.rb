@@ -21,6 +21,7 @@
 
 require_relative "../../../test_helper"
 require "y2users/autoinst_profile/group_section"
+require "y2users/autoinst_profile/groups_section"
 
 describe Y2Users::AutoinstProfile::GroupSection do
   describe ".new_from_hashes" do
@@ -38,6 +39,20 @@ describe Y2Users::AutoinstProfile::GroupSection do
       expect(section.group_password).to eq("secret")
       expect(section.encrypted).to eq(false)
       expect(section.userlist).to eq("jane,john")
+    end
+  end
+
+  describe "#section_path" do
+    let(:groups_section) do
+      Y2Users::AutoinstProfile::GroupsSection.new_from_hashes(
+        [{ "groupname" => "root" }]
+      )
+    end
+
+    subject(:section) { groups_section.groups.first }
+
+    it "returns 'groups,index'" do
+      expect(section.section_path.to_s).to eq("groups,0")
     end
   end
 end
