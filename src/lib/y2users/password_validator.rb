@@ -74,10 +74,13 @@ module Y2Users
     # TODO: find source for this info beside bsc#175706
     PASSWORD_REGEXP = /\A[-#{NUMBERS}#{LETTERS}!@#\:!\$%^&*() ,;:._+\/|?{}=\['\"`~<>\]\\]+\z/.freeze
     def check_password
+      # note duplicite string as in UsersSimple. Keep them in sync.
       return _("No password entered.\nTry again.") if !content || content.empty?
 
       return "" if content =~ PASSWORD_REGEXP
 
+      # note duplicite string as in UsersSimple. Keep them in sync. Be aware of different
+      # escaping in perl
       _("The password may only contain the following characters:\n" \
         "0-9, a-z, A-Z, and any of \"`~!@#$%^&* ,.;:._-+/|?='{[(<>)]}\\\".\n" \
         "Try again.")
