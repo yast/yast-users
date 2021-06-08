@@ -25,7 +25,7 @@ module Y2Users
   # Internal class to validate the attributes of a {Password} object.
   # This is not part of the stable API.
   class PasswordValidator
-    Yast.import "UsersSimple"
+    include Yast::I18n
 
     LOCATION = "field:password.content".freeze
     private_constant :LOCATION
@@ -34,6 +34,7 @@ module Y2Users
     #
     # @param user [Y2Users::User] see {#user}
     def initialize(user)
+      textdomain "users"
       @user = user
     end
 
@@ -43,7 +44,7 @@ module Y2Users
 
       return list unless password&.value&.plain?
 
-      err = Yast::UsersSimple.CheckPassword(content, "local")
+      err = check_password
       if !err.empty?
         list << Y2Issues::Issue.new(err, location: LOCATION, severity: :fatal)
         # We already have a fatal error, no need to continue. Subsequent steps may need
@@ -71,7 +72,7 @@ module Y2Users
     LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".freeze
     NUMBERS = "0123456789".freeze
     # TODO: find source for this info beside bsc#175706
-    PASSWORD_REGEXP = /[^-#{NUMBERS}#{LETTERS}!@#\:!\$%^&*() ,;:._+\/|?{}=\['\"`~<>\]\\]/.freeze
+    PASSWORD_REGEXP = /\A[-#{NUMBERS}#{LETTERS}!@#\:!\$%^&*() ,;:._+\/|?{}=\['\"`~<>\]\\]+\z/.freeze
     def check_password
       return _("No password entered.\nTry again.") if !content || content.empty?
 

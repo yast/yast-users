@@ -25,7 +25,6 @@ module Y2Users
   # This is not part of the stable API.
   class UserValidator
     include Yast::I18n
-    Yast.import "UsersSimple"
 
     # Issue location describing the User#name attribute
     NAME_LOC = "field:name".freeze
