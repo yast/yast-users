@@ -527,7 +527,9 @@ sub CheckFullname {
     my ($self, $fullname)        = @_;
 
     if (defined $fullname && $fullname =~ m/[:,]/) {
-	# error popup
+	# TRANSLATORS: take care to preserve the ASCII characters
+        #  : (U+003A COLON)  , (U+002C COMMA),
+        #  not replacing them with your native script variants
         return __("The user's full name cannot contain
 \":\" or \",\" characters.
 Try again.");
@@ -772,7 +774,9 @@ sub CheckUsernameContents {
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
 	y2warning ("username $username doesn't match to $character_class");
-	# error popup
+	# TRANSLATORS: take care to preserve the ASCII characters
+        #  - (U+002D HYPHEN-MINUS)  . (U+002E FULL STOP) _ (U+005F UNDERSCORE),
+        #  not replacing them with your native script variants
 	return __("The username may contain only
 letters, digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
