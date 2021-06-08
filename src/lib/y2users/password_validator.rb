@@ -79,7 +79,7 @@ module Y2Users
       return "" if content =~ PASSWORD_REGEXP
 
       _("The password may only contain the following characters:\n" \
-        "0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\.\n" \
+        "0-9, a-z, A-Z, and any of \"`~!@#$%^&* ,.;:._-+/|?='{[(<>)]}\\\".\n" \
         "Try again.")
     end
 
