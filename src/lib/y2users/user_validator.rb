@@ -116,7 +116,7 @@ module Y2Users
 
       # note duplicite string as in UsersSimple. Keep them in sync.
       _("The username may contain only\n" \
-        "letters, digits, \"-\", \".\", and \"_\"\n" \
+        "Latin letters and digits, \"-\", \".\", and \"_\"\n" \
         "and must begin with a letter or \"_\".\n" \
         "Try again.")
     end

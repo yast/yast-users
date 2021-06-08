@@ -778,7 +778,7 @@ sub CheckUsernameContents {
         #  - (U+002D HYPHEN-MINUS)  . (U+002E FULL STOP) _ (U+005F UNDERSCORE),
         #  not replacing them with your native script variants
 	return __("The username may contain only
-letters, digits, \"-\", \".\", and \"_\"
+Latin letters and digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
 Try again.");
     }
