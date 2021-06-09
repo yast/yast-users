@@ -411,7 +411,7 @@ my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ
 
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`~<>]|]";# the ']' is or-ed...
 
-# TRANSLATORS: Keep symbols as it is as it is ASCII variants of symbols, not UTF-8 ones.
+# TRANSLATORS: Keep symbols in its ASCII variants that can be preset on default us keyboard layout
 my $valid_password_message = __("The password may only contain the following characters:
 0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
 Basically it is available keys on default keyboard layout to prevent
