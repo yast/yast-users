@@ -119,7 +119,7 @@ module Y2Users
       self.class.new.tap do |config|
         config.attach(elements)
         login&.copy_to(config)
-        config.useradd = useradd.dup
+        config.user_defaults = user_defaults&.copy
       end
     end
 
@@ -145,8 +145,20 @@ module Y2Users
 
     # Useradd configuration to be applied to the system before creating the users
     #
-    # @return [UseraddConfig, nil] nil if the configuration is unknown
-    attr_accessor :useradd
+    # @see #user_defaults
+    #
+    # @return [UserDefaults, nil] nil if the configuration is unknown
+    def useradd
+      user_defaults&.useradd
+    end
+
+    # Default values to be used for several attributes when creating new users
+    #
+    # This includes values coming from the useradd configuration and also some extra ones
+    # that are YaST specific.
+    #
+    # @return [UserDefaults, nil] nil if the default values are unknown
+    attr_accessor :user_defaults
 
   private
 

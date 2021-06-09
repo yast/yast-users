@@ -23,6 +23,7 @@ require_relative "../test_helper"
 
 require "date"
 require "y2users/config"
+require "y2users/user_defaults"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
@@ -72,7 +73,7 @@ describe Y2Users::Linux::Writer do
     end
 
     before do
-      initial_config.useradd = initial_useradd
+      initial_config.user_defaults = Y2Users::UserDefaults.new(initial_useradd)
 
       allow(Yast::Execute).to receive(:on_target!)
       allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)

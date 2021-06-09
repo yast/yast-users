@@ -49,6 +49,14 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.password.account_expiration.expire?).to eq(false)
 
       expect(config.login?).to eq(false)
+
+      user_defaults = config.user_defaults
+      expect(user_defaults.expiration).to eq nil
+      expect(user_defaults.inactivity_period).to eq(-1)
+      expect(user_defaults.group).to eq "100"
+      expect(user_defaults.umask).to eq "022"
+      expect(user_defaults.skel).to eq "/etc/skel"
+      expect(user_defaults.secondary_groups).to eq []
     end
 
     context "for a specific user" do
@@ -383,6 +391,20 @@ describe Y2Users::Autoinst::Reader do
 
         expect(config.login?).to eq(false)
       end
+
+      it "creates an empty set of user defaults" do
+        config = subject.read.config
+        user_defaults = config.user_defaults
+
+        expect(user_defaults.group).to be_nil
+        expect(user_defaults.home).to be_nil
+        expect(user_defaults.umask).to be_nil
+        expect(user_defaults.expiration).to be_nil
+        expect(user_defaults.inactivity_period).to be_nil
+        expect(user_defaults.umask).to be_nil
+        expect(user_defaults.skel).to be_nil
+        expect(user_defaults.secondary_groups).to eq []
+      end
     end
 
     context "when the password is not encrypted" do
@@ -455,6 +477,50 @@ describe Y2Users::Autoinst::Reader do
         issue = result.issues.first
         expect(issue).to be_a(Y2Issues::InvalidValue)
         expect(issue.location.to_s).to eq("autoyast:groups,0:groupname")
+      end
+    end
+
+    context "when user_defaults specifies a skel directory" do
+      before do
+        profile["user_defaults"]["skel"] = skel
+      end
+
+      let(:skel) { "/etc/newskel" }
+
+      it "does not write that skel to the useradd configuration" do
+        useradd = subject.read.config.useradd
+        expect(useradd.skel).to be_nil
+      end
+
+      it "assigns that skel to the user defaults" do
+        user_defaults = subject.read.config.user_defaults
+        expect(user_defaults.skel).to eq skel
+      end
+    end
+
+    context "when user_defaults specifies a list of secondary groups" do
+      before do
+        profile["user_defaults"]["groups"] = groups
+      end
+
+      let(:groups) { "users,newgroup" }
+
+      context "and no_groups is not set" do
+        before { profile["user_defaults"]["no_groups"] = false }
+
+        it "stores the list of secondary groups" do
+          user_defaults = subject.read.config.user_defaults
+          expect(user_defaults.secondary_groups).to contain_exactly("users", "newgroup")
+        end
+      end
+
+      context "but no_groups is set" do
+        before { profile["user_defaults"]["no_groups"] = true }
+
+        it "sets the list of secondary groups to an empty array" do
+          user_defaults = subject.read.config.user_defaults
+          expect(user_defaults.secondary_groups).to eq []
+        end
       end
     end
   end

@@ -23,10 +23,13 @@ require "y2users/user"
 require "y2users/group"
 require "y2users/password"
 require "y2users/login_config"
+require "y2users/user_defaults"
+require "y2users/useradd_config"
 require "y2users/read_result"
 require "y2users/autoinst_profile/users_section"
 require "y2users/autoinst_profile/groups_section"
 require "y2users/autoinst_profile/login_settings_section"
+require "y2users/autoinst_profile/user_defaults_section"
 
 module Y2Users
   module Autoinst
@@ -44,7 +47,9 @@ module Y2Users
         @groups_section = Y2Users::AutoinstProfile::GroupsSection.new_from_hashes(
           content["groups"] || []
         )
-
+        @user_defaults_section = Y2Users::AutoinstProfile::UserDefaultsSection.new_from_hashes(
+          content["user_defaults"] || {}
+        )
         return unless content["login_settings"]
 
         @login_settings_section = Y2Users::AutoinstProfile::LoginSettingsSection.new_from_hashes(
@@ -60,6 +65,7 @@ module Y2Users
         config = Config.new.tap do |cfg|
           read_elements(cfg, issues)
           read_login(cfg)
+          read_user_defaults(cfg)
         end
         Y2Users::ReadResult.new(config, issues)
       end
@@ -80,6 +86,11 @@ module Y2Users
       #
       # @return [AutoinstProfile::LoginSettingsSections]
       attr_reader :login_settings_section
+
+      # Profile section describing the default configuration for new users
+      #
+      # @return [AutoinstProfile::UserDefaultsSections]
+      attr_reader :user_defaults_section
 
       # Reads users and groups from the AutoYaST profile
       #
@@ -199,6 +210,35 @@ module Y2Users
       # @return [Date, String, nil]
       def shadow_date_field_value(value)
         value.to_s.empty? ? value : Date.parse(value)
+      end
+
+      # Creates a {UserDefaults} object based on the information in the profile
+      #
+      # @param config [Config]
+      def read_user_defaults(config)
+        useradd = UseraddConfig.new(
+          group:             user_defaults_section.group,
+          home:              user_defaults_section.home,
+          expiration:        user_defaults_section.expire,
+          inactivity_period: user_defaults_section.inactive,
+          shell:             user_defaults_section.shell,
+          umask:             user_defaults_section.umask
+        )
+        config.user_defaults = UserDefaults.new(useradd)
+        config.user_defaults.skel = user_defaults_section.skel
+        config.user_defaults.secondary_groups = read_secondary_groups
+      end
+
+      # @see #read_user_defaults
+      def read_secondary_groups
+        # The AutoYaST key "no_groups" was introduced as a way to specify an explicit empty list of
+        # groups. That was needed back then because useradd used to provide its own list of default
+        # secondary groups that was used as fallback for an empty "groups" entry. See details at
+        # bsc#789635. Nowadays it makes no difference to use "no_groups" or an empty "groups".
+        groups = user_defaults_section.groups
+        return [] if groups.nil? || user_defaults_section.no_groups
+
+        groups.split(",")
       end
     end
   end

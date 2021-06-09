@@ -21,6 +21,7 @@ require "yast"
 require "abstract_method"
 require "y2users/config"
 require "y2users/login_config"
+require "y2users/user_defaults"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
@@ -124,7 +125,8 @@ module Y2Users
       #
       # @param config [Config]
       def read_useradd_config(config)
-        config.useradd = UseraddConfigReader.new.read
+        useradd = UseraddConfigReader.new.read
+        config.user_defaults = UserDefaults.new(useradd)
       end
 
       # Reads the login information
