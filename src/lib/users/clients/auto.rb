@@ -79,6 +79,7 @@ module Y2Users
         Yast::Users.SetExportAll(true)
         progress_orig = Yast::Progress.set(false)
         ret = Yast::Users.Read == ""
+        Y2Users::ConfigManager.instance.system(force_read: true)
         Yast::Progress.set(progress_orig)
         ret
       end
