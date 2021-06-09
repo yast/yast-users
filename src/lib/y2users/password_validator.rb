@@ -71,7 +71,8 @@ module Y2Users
 
     LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".freeze
     NUMBERS = "0123456789".freeze
-    # TODO: find source for this info beside bsc#175706
+    # This regexp is allowed characters. It is what can be easily press on default keyboard layout
+    # to prevent issues with emergency login from console.
     PASSWORD_REGEXP = /\A[-#{NUMBERS}#{LETTERS}!@#\:!\$%^&*() ,;:._+\/|?{}=\['\"`~<>\]\\]+\z/.freeze
     def check_password
       # note duplicite string as in UsersSimple. Keep them in sync.
@@ -83,6 +84,8 @@ module Y2Users
       # escaping in perl
       _("The password may only contain the following characters:\n" \
         "0-9, a-z, A-Z, and any of \"`~!@#$%^&* ,.;:._-+/|?='{[(<>)]}\\\".\n" \
+        "Basically it is available keys on default keyboard layout to prevent\n" \
+        "problems when emergency login from console is needed.\n" \
         "Try again.")
     end
 
