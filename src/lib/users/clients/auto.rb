@@ -81,8 +81,7 @@ module Y2Users
         ret = Yast::Users.Read == ""
 
         system = Y2Users::ConfigManager.instance.system(force_read: true)
-        # shortcut for setting target?
-        Y2Users::ConfigManager.instance.register(system.copy, as: :target)
+        Y2Users::ConfigManager.instance.target = system.copy
 
         Yast::Progress.set(progress_orig)
         ret
