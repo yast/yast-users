@@ -81,5 +81,19 @@ module Y2Users
 
       config
     end
+
+    # Gets target modification used to store configuration before it is applied
+    # @return [Config,nil] returns nil if no target is yet initialized
+    def target
+      config(:target)
+    end
+
+    # Sets target modification used to store configuration before it is applied
+    # @param [Config] Note that config should not be frozen as it is expected to be modified
+    # @note in various scenarious target does not need to be exact target state, but just
+    # interstate that is then merged with real system state
+    def target=(config)
+      register(config, as: :target)
+    end
   end
 end
