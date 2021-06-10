@@ -137,42 +137,4 @@ module Yast
       end
     end
   end
-
-  # setup ALL users (included root user, autologin, root aliases,...)
-  # Return: true if there has been added a user
-  def setup_all_users
-    ret = false
-
-    # disable UI (progress)
-    old_gui = Users.GetGUI
-    Users.SetGUI(false)
-
-    # Users.Read has to be called in order to initialize the user hash
-    # in the Users module. This is needed for establishing
-    # the system users (espl. the root user). (bnc#893725)
-    Users.Read
-    Users.ResetCurrentUser
-    # resetting Autologin settings
-    Autologin.Disable
-
-    users = UsersSimple.GetUsers
-
-    if !users.empty?
-
-      Builtins.y2milestone("There are #{users.size} users to import")
-      create_users(users)
-
-      if UsersSimple.AutologinUsed
-        Autologin.user = UsersSimple.GetAutologinUser
-        Autologin.Use(true)
-      end
-
-      root_alias = UsersSimple.GetRootAlias
-      Users.AddRootAlias(root_alias) unless root_alias.empty?
-      ret = true
-    end
-    Users.SetGUI(old_gui)
-    ret
-  end
-
 end
