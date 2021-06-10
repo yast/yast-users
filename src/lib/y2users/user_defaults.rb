@@ -111,5 +111,12 @@ module Y2Users
       defaults.skel = @skel
       defaults
     end
+
+    # Whether the skel directory is different from the one in the useradd configuration
+    #
+    # @return [Boolean]
+    def forced_skel?
+      !@skel.nil?
+    end
   end
 end

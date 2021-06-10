@@ -235,6 +235,49 @@ describe Y2Users::ConfigMerger do
       end
     end
 
+    context "when rhs config contains user defaults" do
+      let(:rhs_useradd) { Y2Users::UseraddConfig.new(rhs_useradd_attrs) }
+      let(:rhs_useradd_attrs) do
+        { group: "150", home: "/users", umask: "123", skel: "/etc/skeleton" }
+      end
+
+      before do
+        rhs.user_defaults = Y2Users::UserDefaults.new(rhs_useradd)
+        rhs.user_defaults.skel = "/overwritten/skel"
+      end
+
+      context "and lhs does not contain user defaults" do
+        it "copies the rhs user defaults into lhs" do
+          subject.merge
+
+          expect(lhs.user_defaults).to be_a(Y2Users::UserDefaults)
+          expect(lhs.user_defaults.group).to eq "150"
+          expect(lhs.user_defaults.home).to eq "/users"
+        end
+      end
+
+      context "and lhs contains user defaults" do
+        let(:lhs_useradd) { Y2Users::UseraddConfig.new(lhs_useradd_attrs) }
+        let(:lhs_useradd_attrs) do
+          { group: "100", home: "/home", umask: "022", shell: "/shell", skel: "/etc/skel" }
+        end
+
+        before do
+          lhs.user_defaults = Y2Users::UserDefaults.new(lhs_useradd)
+        end
+
+        it "replaces the lhs user default values with the rhs ones" do
+          subject.merge
+
+          expect(lhs.user_defaults.group).to eq "150"
+          expect(lhs.user_defaults.umask).to eq "123"
+          expect(lhs.user_defaults.shell).to eq "/shell"
+          expect(lhs.user_defaults.skel).to eq "/overwritten/skel"
+          expect(lhs.useradd.skel).to eq "/etc/skel"
+        end
+      end
+    end
+
     context "when rhs does not contain login config" do
       context "and lhs does not contain login config" do
         it "keeps lhs without login config" do
