@@ -89,7 +89,7 @@ module Y2Users
     end
 
     # Sets target modification used to store configuration before it is applied
-    # @param [Config] Note that config should not be frozen as it is expected to be modified
+    # @param [Config] config Note that config should not be frozen as it is expected to be modified
     # @note in various scenarious target does not need to be exact target state, but just
     # interstate that is then merged with real system state
     def target=(config)
