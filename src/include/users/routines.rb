@@ -105,36 +105,4 @@ module Yast
       Builtins.size(output) != 0 && !Mode.config
     end
   end
-
-  # create users from a list
-  def create_users(users)
-    users.each do |user|
-      # check if default group exists
-      if user.has_key?("gidNumber")
-        g = Users.GetGroup(GetInt(Ops.get(user, "gidNumber"), -1), "")
-        if g.empty?
-          g = Users.GetGroupByName(user["groupname"]),
-          if g.empty?
-            user = Builtins.remove(user, "gidNumber")
-          else
-            user["gidNumber"] = g["gidNumber"]
-          end
-        end
-      end
-
-      error = Users.AddUser(user)
-
-      if error.empty?
-        # empty hash means the user added by Users.AddUser call before
-        error = Users.CheckUser({})
-      end
-
-      if error.empty?
-        Users.CommitUser
-      else
-        Builtins.y2error("error while adding user: #{error}")
-        Users.ResetCurrentUser
-      end
-    end
-  end
 end
