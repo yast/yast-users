@@ -74,6 +74,7 @@ module Y2Users
       def add_group(group, issues)
         args = []
         args << "--gid" << group.gid if group.gid
+        args << group.name
         # TODO: system groups?
         Yast::Execute.on_target!(GROUPADD, *args)
       rescue Cheetah::ExecutionFailed => e

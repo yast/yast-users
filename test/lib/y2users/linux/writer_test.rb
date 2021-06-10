@@ -637,7 +637,7 @@ describe Y2Users::Linux::Writer do
       end
 
       it "executes groupadd" do
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100")
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100", "users")
         writer.write
       end
 
