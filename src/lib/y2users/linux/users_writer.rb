@@ -76,6 +76,13 @@ module Y2Users
       # @return [Config]
       attr_reader :initial_config
 
+      # Default values to use during user creation
+      #
+      # @return [UserDefaults]
+      def defaults
+        config.user_defaults
+      end
+
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
@@ -216,7 +223,7 @@ module Y2Users
           "--shell"    => user.shell,
           "--home-dir" => user.home,
           "--comment"  => user.gecos.join(","),
-          "--groups"   => user.secondary_groups_name.join(",")
+          "--groups"   => useradd_groups(user).join(",")
         }
         opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
@@ -228,6 +235,16 @@ module Y2Users
 
         opts << user.name
         opts
+      end
+
+      # Name of the secondary groups for useradd
+      #
+      # @return [Array<String>]
+      def useradd_groups(user)
+        names = user.secondary_groups_name
+        return names unless names.empty?
+
+        defaults.secondary_groups
       end
 
       # Command to modify the user
@@ -280,7 +297,9 @@ module Y2Users
       # @return [Array<String>]
       def create_home_options(_user)
         # TODO: "--btrfs-subvolume-home" if needed
-        ["--create-home"]
+        opts = ["--create-home"]
+        opts.concat(["--skel", defaults.skel]) if defaults.forced_skel?
+        opts
       end
 
       # Generates and returns the options expected by `chpasswd` for the given user
