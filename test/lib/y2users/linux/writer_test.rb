@@ -365,6 +365,8 @@ describe Y2Users::Linux::Writer do
 
       context "when modifying a user attribute fails" do
         before do
+          allow(Yast).to receive(:y2_logger)
+
           current_user = config.users.by_id(user.id)
           current_user.home = "/home/new"
           allow(Yast::Execute).to receive(:on_target!)
@@ -643,6 +645,8 @@ describe Y2Users::Linux::Writer do
 
       context "when creating the groupadd fails" do
         before do
+          allow(Yast).to receive(:y2_logger)
+
           allow(Yast::Execute).to receive(:on_target!)
             .with(/groupadd/, any_args)
             .and_raise(Cheetah::ExecutionFailed.new("", "", "", ""))
