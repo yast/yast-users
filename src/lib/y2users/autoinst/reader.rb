@@ -84,12 +84,12 @@ module Y2Users
 
       # Profile section describing the login settings
       #
-      # @return [AutoinstProfile::LoginSettingsSections]
+      # @return [AutoinstProfile::LoginSettingsSection]
       attr_reader :login_settings_section
 
       # Profile section describing the default configuration for new users
       #
-      # @return [AutoinstProfile::UserDefaultsSections]
+      # @return [AutoinstProfile::UserDefaultsSection]
       attr_reader :user_defaults_section
 
       # Reads users and groups from the AutoYaST profile

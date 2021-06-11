@@ -147,7 +147,7 @@ module Y2Users
     #
     # @see #user_defaults
     #
-    # @return [UserDefaults, nil] nil if the configuration is unknown
+    # @return [UseraddConfig, nil] nil if the configuration is unknown
     def useradd
       user_defaults&.useradd
     end
