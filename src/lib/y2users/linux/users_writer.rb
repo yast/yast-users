@@ -30,6 +30,7 @@ module Y2Users
     class UsersWriter
       include Yast::I18n
       include Yast::Logger
+      Yast.import "Mode"
 
       # Constructor
       #
@@ -241,10 +242,26 @@ module Y2Users
       #
       # @return [Array<String>]
       def useradd_groups(user)
-        names = user.secondary_groups_name
-        return names unless names.empty?
+        return user.secondary_groups_name unless default_secondary_groups?
 
-        defaults.secondary_groups
+        # Filter-out non-existing groups
+        groups = config.groups.select { |g| defaults.secondary_groups.include?(g.name) }
+        groups.map(&:name)
+      end
+
+      # Whether the default list of secondary groups should be used when creating a user
+      #
+      # @see #useradd_groups
+      #
+      # @return [Boolean]
+      def default_secondary_groups?
+        # The default list of secondary groups was removed from the useradd configuration a long
+        # time ago. It's only honored by AutoYaST for backwards compatibility, since there is
+        # still a "groups" attribute in the <user_defaults> section.
+        #
+        # Moreover, since there is no way to specify a list of secondary groups for a given user
+        # in the AutoYaST profile, the default list is used for all users.
+        Yast::Mode.auto
       end
 
       # Command to modify the user
