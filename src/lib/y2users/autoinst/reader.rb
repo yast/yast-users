@@ -22,15 +22,21 @@ require "y2users/parsers/shadow"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
+require "y2users/useradd_config"
 require "y2users/login_config"
 require "y2users/read_result"
 require "y2users/autoinst_profile/users_section"
 require "y2users/autoinst_profile/groups_section"
 require "y2users/autoinst_profile/login_settings_section"
+require "y2users/autoinst_profile/user_defaults_section"
 
 module Y2Users
   module Autoinst
     # This reader builds a Y2Users::Config from an AutoYaST profile hash
+    #
+    # Reads the following sections of the profile: <users>, <groups>, <login_settings> and
+    # <user_defaults>. Some attributes of the latter are ignored, since they only exist for
+    # historical reasons. See {#read} for some background.
     class Reader
       include Yast::Logger
 
@@ -44,7 +50,9 @@ module Y2Users
         @groups_section = Y2Users::AutoinstProfile::GroupsSection.new_from_hashes(
           content["groups"] || []
         )
-
+        @user_defaults_section = Y2Users::AutoinstProfile::UserDefaultsSection.new_from_hashes(
+          content["user_defaults"] || {}
+        )
         return unless content["login_settings"]
 
         @login_settings_section = Y2Users::AutoinstProfile::LoginSettingsSection.new_from_hashes(
@@ -52,7 +60,33 @@ module Y2Users
         )
       end
 
-      # Generates a new config with the information from the AutoYaST profile
+      # Generates a new config with the information from the AutoYaST profile, that includes the
+      # lists of users and groups and also the login settings and the useradd configuration.
+      #
+      # The configuration historically managed by YaST and exposed by the <user_defaults> section of
+      # the profile goes beyond what is supported by the current configuration of useradd that is
+      # represented by the UseraddConfig class. It was considered to create a UserDefaults class to
+      # represent that extended configuration (see https://github.com/yast/yast-users/pull/298), but
+      # the idea was discarded after testing the real behavior of AutoYaST regarding creation of
+      # initial users in SLE-11-SPX, SLE-12-SPX and SLE-15-SPX.
+      #
+      # The "groups" and "no_groups" entries in the <user_defaults> section of the AutoYaST profile
+      # were used to specify a list of secondary groups to which all new users should be added
+      # during its creation. There is no counterpart in the useradd configuration because the
+      # corresponding key GROUPS was dropped from the useradd configuration with no substitute when
+      # the package "pwdutils" was dropped in favor of "shadow" (see more at bsc#1099153). Even if
+      # the GROUPS key is present in /etc/default/useradd, its value will be completely ignored by
+      # useradd and by YaST. Moreover, manual testing has proved that AutoYaST has ignored that list
+      # at least since SLE-11. It used to write the list into /etc/default/useradd for later usage
+      # (YaST used that list to pre-fill the corresponding field in the user interface) but it
+      # didn't add the new users to the groups.
+      #
+      # The "skel" entry was used to specify a custom skeleton directory. But, for reasons explained
+      # in the documentation of {UseraddConfig}, there is no setter in that class to write the value
+      # of the "skel" option and make it persistent in the useradd configuration of the final
+      # system. And specifying an alternative skel that would only be honored by AutoYaST during the
+      # installation of the system is not much useful (it's very unlikely to have a custom skel at
+      # that point). Thus, the entry in the AutoYaST profile is ignored.
       #
       # @return [Y2Users::ReadResult] Configuration and issues that were found
       def read
@@ -60,6 +94,7 @@ module Y2Users
         config = Config.new.tap do |cfg|
           read_elements(cfg, issues)
           read_login(cfg)
+          read_user_defaults(cfg)
         end
         Y2Users::ReadResult.new(config, issues)
       end
@@ -80,6 +115,11 @@ module Y2Users
       #
       # @return [AutoinstProfile::LoginSettingsSections]
       attr_reader :login_settings_section
+
+      # Profile section describing the default configuration for new users
+      #
+      # @return [AutoinstProfile::UserDefaultsSection]
+      attr_reader :user_defaults_section
 
       # Reads users and groups from the AutoYaST profile
       #
@@ -199,6 +239,20 @@ module Y2Users
       # @return [Date, String, nil]
       def shadow_date_field_value(value)
         value.to_s.empty? ? value : Date.parse(value)
+      end
+
+      # Creates a {UseraddConfig} object based on the information in the profile
+      #
+      # @param config [Config]
+      def read_user_defaults(config)
+        config.useradd = UseraddConfig.new(
+          group:             user_defaults_section.group,
+          home:              user_defaults_section.home,
+          expiration:        user_defaults_section.expire,
+          inactivity_period: user_defaults_section.inactive,
+          shell:             user_defaults_section.shell,
+          umask:             user_defaults_section.umask
+        )
       end
     end
   end
