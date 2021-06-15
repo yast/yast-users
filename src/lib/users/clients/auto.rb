@@ -46,17 +46,23 @@ module Y2Users
 
       def import(param)
         check_users(param["users"] || [])
-        reader = Y2Users::Autoinst::Reader.new(param)
-        result = reader.read
-        read_linuxrc_root_pwd(result.config)
+        # Use new API for autoinstallation
+        if Yast::Stage.initial
+          reader = Y2Users::Autoinst::Reader.new(param)
+          result = reader.read
+          read_linuxrc_root_pwd(result.config)
 
-        if result.issues?
-          return false unless Y2Issues.report(result.issues) == :yes
+          if result.issues?
+            return false unless Y2Issues.report(result.issues) == :yes
+          end
+
+          Y2Users::ConfigManager.instance.register(result.config, as: :autoinst)
+
+          true
+        # and old one for running system like autoyast UI
+        else
+          Yast::Users.Import(param)
         end
-
-        Y2Users::ConfigManager.instance.register(result.config, as: :autoinst)
-
-        true
       end
 
       def summary
@@ -79,9 +85,6 @@ module Y2Users
         Yast::Users.SetExportAll(true)
         progress_orig = Yast::Progress.set(false)
         ret = Yast::Users.Read == ""
-
-        system = Y2Users::ConfigManager.instance.system(force_read: true)
-        Y2Users::ConfigManager.instance.target = system.copy
 
         Yast::Progress.set(progress_orig)
         ret
@@ -109,7 +112,7 @@ module Y2Users
       end
 
       def reset
-        Y2Users::ConfigManager.instance.unregister(:autoinst)
+        import({})
       end
 
     private
