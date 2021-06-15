@@ -54,8 +54,7 @@ module Y2Users
         err = check_characters
         add_fatal_issue(list, err, NAME_LOC)
 
-        # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
-        # the initial user during installation, it simply checks against a hard-coded list of
+        # checks against a hard-coded list of
         # system user names that are expected to exist in a system right after installation.
         err = check_username_conflict
         add_fatal_issue(list, err, NAME_LOC)
