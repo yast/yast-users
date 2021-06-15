@@ -411,9 +411,11 @@ my $valid_logname_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ
 
 my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#\$%^&*() ,;:._+/|?{}=\['\"`~<>]|]";# the ']' is or-ed...
 
-# error popup	
+# TRANSLATORS: Keep symbols in its ASCII variants that can be preset on default us keyboard layout
 my $valid_password_message = __("The password may only contain the following characters:
 0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
+Basically these are the available keys on the default keyboard layout to prevent
+problems when an emergency login from the console is needed.
 Try again.");
 
 my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@/_.-]";
@@ -527,7 +529,9 @@ sub CheckFullname {
     my ($self, $fullname)        = @_;
 
     if (defined $fullname && $fullname =~ m/[:,]/) {
-	# error popup
+	# TRANSLATORS: take care to preserve the ASCII characters
+        #  : (U+003A COLON)  , (U+002C COMMA),
+        #  not replacing them with your native script variants
         return __("The user's full name cannot contain
 \":\" or \",\" characters.
 Try again.");
@@ -772,9 +776,11 @@ sub CheckUsernameContents {
     $stdout =~ s/\n//g;
     if ($stdout ne $filtered) {
 	y2warning ("username $username doesn't match to $character_class");
-	# error popup
+	# TRANSLATORS: take care to preserve the ASCII characters
+        #  - (U+002D HYPHEN-MINUS)  . (U+002E FULL STOP) _ (U+005F UNDERSCORE),
+        #  not replacing them with your native script variants
 	return __("The username may contain only
-letters, digits, \"-\", \".\", and \"_\"
+Latin letters and digits, \"-\", \".\", and \"_\"
 and must begin with a letter or \"_\".
 Try again.");
     }

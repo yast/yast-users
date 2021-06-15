@@ -75,6 +75,15 @@ describe Y2Users::UserValidator do
         end
       end
 
+      context "and using invalid characters" do
+        # See UserValidator::CHAR_REGEXP
+        let(:username) { "abc++" }
+
+        it "includes a fatal issue for the username length" do
+          expect(fatal_issues_messages).to include(/username may contain/)
+        end
+      end
+
       context "and using a conflicting username" do
         # See Yast::UsersSimple$system_users
         let(:username) { "ldap" }
