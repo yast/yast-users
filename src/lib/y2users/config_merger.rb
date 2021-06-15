@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/useradd_config"
 
 module Y2Users
   # Helper class to merge users and groups from one config into another config
@@ -39,8 +40,8 @@ module Y2Users
     # @see merge_login
     def merge
       merge_elements
-
       merge_login
+      merge_useradd
     end
 
   private
@@ -71,6 +72,21 @@ module Y2Users
       return unless rhs.login?
 
       rhs.login.copy_to(lhs)
+    end
+
+    # Merges the useradd configuration
+    #
+    # Basically overwrites all lhs values with the non-null ones coming from rhs
+    def merge_useradd
+      return unless rhs.useradd
+
+      lhs.useradd ||= UseraddConfig.new
+      lhs.useradd.class.writable_attributes.each do |attr|
+        value = rhs.useradd.public_send(attr)
+        next if value.nil?
+
+        lhs.useradd.public_send(:"#{attr}=", value)
+      end
     end
 
     # Merges an element into a config
