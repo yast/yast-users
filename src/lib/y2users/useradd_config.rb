@@ -40,17 +40,8 @@ module Y2Users
   # useradd lifecycle (it was possible to adjust it in version 3.x but not in 4.x).
   #
   # Many of the attributes in this class have their counterpart in the <user_defaults> section of
-  # the AutoYaST profile. But note there is not a 1:1 relationship because some of the attributes
-  # from the profile simply don't have an equivalent setter in this class, so (Auto)YaST cannot
-  # change the default value to affect the useradd behavior (eg. "skel").
-  #
-  # Moreover, there are two attributes from that AutoYaST section that don't even have a counterpart
-  # in the useradd configuration: "groups" and "no_groups". The corresponding key GROUPS was dropped
-  # from the useradd configuration with no substitute. Even if the GROUPS key is present in
-  # /etc/default/useradd, its value will be completely ignored by useradd and by YaST.
-  #
-  # The "groups", "no_groups" and "skel" attributes from the profile may still be honored by
-  # AutoYaST when creating users by any other mechanism other than UseraddConfig.
+  # the AutoYaST profile. But note there is not a 1:1 relationship, check {Autoinst::Reader} for
+  # more information.
   class UseraddConfig
     class << self
       # Names of the attributes that can be persisted to the configuration of the system and thus
@@ -125,7 +116,7 @@ module Y2Users
     # This attribute corresponds to the UMASK variable in login.defs (see Yast::ShadowConfig).
     # In the past this was read from the UMASK key handled by "useradd -D", but such value has been
     # ignored by useradd for years, although YaST kept using it (instead of the value at login.defs)
-    # for some additional time.
+    # for some additional time. See bsc#1099153 for more details.
     #
     # @return [String, nil]
     attr_reader :umask

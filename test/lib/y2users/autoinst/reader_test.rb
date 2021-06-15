@@ -49,6 +49,11 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.password.account_expiration.expire?).to eq(false)
 
       expect(config.login?).to eq(false)
+
+      expect(config.useradd.expiration).to eq nil
+      expect(config.useradd.inactivity_period).to eq(-1)
+      expect(config.useradd.group).to eq "100"
+      expect(config.useradd.umask).to eq "022"
     end
 
     context "for a specific user" do
@@ -382,6 +387,17 @@ describe Y2Users::Autoinst::Reader do
         config = result.config
 
         expect(config.login?).to eq(false)
+      end
+
+      it "creates an empty useradd configuration" do
+        config = subject.read.config
+
+        expect(config.useradd.group).to be_nil
+        expect(config.useradd.home).to be_nil
+        expect(config.useradd.umask).to be_nil
+        expect(config.useradd.expiration).to be_nil
+        expect(config.useradd.inactivity_period).to be_nil
+        expect(config.useradd.umask).to be_nil
       end
     end
 

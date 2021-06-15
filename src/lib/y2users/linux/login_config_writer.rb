@@ -27,7 +27,7 @@ module Y2Users
 
       # Constructor
       #
-      # @param login [LoginConfig] see #login_config
+      # @param login [LoginConfig, nil] see #login_config
       def initialize(login)
         @login_config = login
       end

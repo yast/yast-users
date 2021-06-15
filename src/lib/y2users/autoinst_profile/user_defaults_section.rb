@@ -39,7 +39,7 @@ module Y2Users
       def self.attributes
         [
           { name: :expire },
-          { name: :group  },
+          { name: :group },
           { name: :groups },
           { name: :home },
           { name: :inactive },
@@ -65,7 +65,7 @@ module Y2Users
       #   @return [String,nil] Default expiration in date format (YYYY-MM-DD)
       #
       # @!attribute inactive
-      #   @return [String,nil] Number of days after password expiration to disable the account
+      #   @return [Integer,nil] Number of days after password expiration to disable the account
       #
       # @!attribute no_groups
       #   @return [Boolean,nil] Do not use secondary groups
@@ -78,6 +78,16 @@ module Y2Users
       #
       # @!attribute umask
       #   @return [String,nil] File creation mode mask for the home directory
+
+      # Method used by {.new_from_hashes} to populate the attributes.
+      #
+      # @param hash [Hash] see {.new_from_hashes}
+      def init_from_hashes(hash)
+        super
+        return unless inactive
+
+        @inactive = inactive.to_i
+      end
     end
   end
 end

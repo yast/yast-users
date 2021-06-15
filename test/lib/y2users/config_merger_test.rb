@@ -223,7 +223,7 @@ describe Y2Users::ConfigMerger do
           lhs.login = Y2Users::LoginConfig.new
         end
 
-        it "replaces the lhs login cofing with a copy of the rhs login config" do
+        it "replaces the lhs login config with a copy of the rhs login config" do
           login_config = lhs.login
 
           subject.merge
@@ -260,5 +260,45 @@ describe Y2Users::ConfigMerger do
         end
       end
     end
+
+    context "when rhs config contains a useradd config" do
+      let(:rhs_useradd) { Y2Users::UseraddConfig.new(rhs_useradd_attrs) }
+      let(:rhs_useradd_attrs) do
+        { group: "150", home: "/users", umask: "123", expiration: "2012-12-21" }
+      end
+
+      before { rhs.useradd = rhs_useradd }
+
+      context "and lhs does not contain a useradd config" do
+        it "copies the rhs useradd config into lhs" do
+          subject.merge
+
+          expect(lhs.useradd).to be_a(Y2Users::UseraddConfig)
+          expect(lhs.useradd.group).to eq "150"
+          expect(lhs.useradd.home).to eq "/users"
+          expect(lhs.useradd.inactivity_period).to be_nil
+        end
+      end
+
+      context "and lhs contains a useradd config" do
+        let(:lhs_useradd) { Y2Users::UseraddConfig.new(lhs_useradd_attrs) }
+        let(:lhs_useradd_attrs) do
+          { group: "100", home: "/home", umask: "022", shell: "/shell" }
+        end
+
+        before { lhs.useradd = lhs_useradd }
+
+        it "replaces the values of the lhs config with the ones from rhs" do
+          subject.merge
+
+          expect(lhs.useradd.group).to eq "150"
+          expect(lhs.useradd.umask).to eq "123"
+          expect(lhs.useradd.shell).to eq "/shell"
+          expect(lhs.useradd.expiration).to eq "2012-12-21"
+          expect(lhs.useradd.inactivity_period).to be_nil
+        end
+      end
+    end
+
   end
 end
