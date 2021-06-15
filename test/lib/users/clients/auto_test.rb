@@ -20,6 +20,7 @@ describe Y2Users::Clients::Auto do
     allow(Yast).to receive(:import).with("Ldap")
     allow(Yast).to receive(:import).with("LdapPopup")
     allow(Yast::Mode).to receive(:mode).and_return(mode)
+    allow(Yast::Stage).to receive(:initial).and_return(true)
     allow(Yast::WFM).to receive(:Args).and_return(args)
   end
 
@@ -196,16 +197,13 @@ describe Y2Users::Clients::Auto do
 
     context "Reset" do
       let(:func) { "Reset" }
-      let(:config) { Y2Users::Config.new }
-
-      before do
-        Y2Users::ConfigManager.instance.register(config, as: :autoinst)
-      end
 
       it "removes the configuration object" do
-        expect { subject.run }
-          .to change { Y2Users::ConfigManager.instance.config(:autoinst) }
-          .from(config).to(nil)
+        # reset is not called during installation
+        allow(Yast::Stage).to receive(:initial).and_return(false)
+        expect(Yast::Users).to receive(:Import).with({})
+
+        subject.run
       end
     end
   end
