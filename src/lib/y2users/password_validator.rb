@@ -84,8 +84,8 @@ module Y2Users
       # escaping in perl
       _("The password may only contain the following characters:\n" \
         "0-9, a-z, A-Z, and any of \"`~!@#$%^&* ,.;:._-+/|?='{[(<>)]}\\\".\n" \
-        "Basically it is available keys on default keyboard layout to prevent\n" \
-        "problems when emergency login from console is needed.\n" \
+        "Basically these are the available keys on the default keyboard layout to prevent\n" \
+        "problems when an emergency login from the console is needed.\n" \
         "Try again.")
     end
 

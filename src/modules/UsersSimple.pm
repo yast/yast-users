@@ -414,8 +414,8 @@ my $valid_password_chars = "[-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN
 # TRANSLATORS: Keep symbols in its ASCII variants that can be preset on default us keyboard layout
 my $valid_password_message = __("The password may only contain the following characters:
 0-9, a-z, A-Z, and any of \"`~!\@#\$%^&* ,.;:._-+/|\?='{[(<>)]}\\\".
-Basically it is available keys on default keyboard layout to prevent
-problems when emergency login from console is needed.
+Basically these are the available keys on the default keyboard layout to prevent
+problems when an emergency login from the console is needed.
 Try again.");
 
 my $valid_home_chars = "[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@/_.-]";
