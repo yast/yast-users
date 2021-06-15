@@ -113,7 +113,7 @@ module Y2Users
 
       # Profile section describing the login settings
       #
-      # @return [AutoinstProfile::LoginSettingsSections]
+      # @return [AutoinstProfile::LoginSettingsSection]
       attr_reader :login_settings_section
 
       # Profile section describing the default configuration for new users
