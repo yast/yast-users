@@ -82,7 +82,16 @@ module Y2Users
     def users
       return [] unless attached?
 
-      config.users.select { |u| u.gid == gid || users_name.include?(u.name) }
+      config.users.select { |u| same_gid?(u) || users_name.include?(u.name) }
+    end
+
+  private
+
+    # @see #users
+    def same_gid?(user)
+      return false unless gid
+
+      user.gid == gid
     end
   end
 end
