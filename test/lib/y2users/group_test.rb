@@ -37,18 +37,22 @@ describe Y2Users::Group do
 
     let(:user2) { Y2Users::User.new("test2") }
 
-    let(:user3) { Y2Users::User.new("test2") }
+    let(:user3) { Y2Users::User.new("test3") }
 
     let(:config) { Y2Users::Config.new }
 
+    let(:user_names) { [] }
+
     before do
       subject.gid = 100
+      subject.users_name = user_names
 
       config.attach(users)
     end
 
     context "if the group is not attached to any config" do
       let(:users) { [user1, user2, user3] }
+      let(:user_names) { ["test1"] }
 
       it "returns an empty list" do
         expect(subject.users).to be_empty
@@ -61,8 +65,16 @@ describe Y2Users::Group do
       end
 
       context "and the group does not specify any user name" do
-        before do
-          subject.users_name = []
+        let(:user_names) { [] }
+        let(:users) { [user1, user2, user3] }
+
+        context "and the gid of the group is nil" do
+          before { subject.gid = nil }
+
+          # Regression test: it used to include all users with a nil gid
+          it "returns an empty list" do
+            expect(subject.users).to be_empty
+          end
         end
 
         context "and the config has no user with this group as primary group" do
@@ -83,15 +95,13 @@ describe Y2Users::Group do
       end
 
       context "and the group specifies some user names" do
-        before do
-          subject.users_name = ["test2", "test3", "test4"]
-        end
+        let(:user_names) { ["test2", "test4"] }
 
-        context "and the config contains users with that names" do
+        context "and the config contains users with those names" do
           let(:users) { [user2, user3] }
 
           it "includes users from config with that names" do
-            expect(subject.users).to include(user2, user3)
+            expect(subject.users).to contain_exactly(*user2)
           end
 
           it "does not include users that are not found in the config" do
@@ -102,8 +112,17 @@ describe Y2Users::Group do
             let(:users) { [user1, user2, user3] }
 
             it "includes users from config which have this group as primary group" do
-              expect(subject.users.size).to eq(3)
+              expect(subject.users.size).to eq(2)
               expect(subject.users).to include(user1)
+            end
+          end
+
+          context "and the gid of the group is nil" do
+            before { subject.gid = nil }
+
+            # Regression test
+            it "does not include users with gid nil" do
+              expect(subject.users).to_not include(user3)
             end
           end
         end
