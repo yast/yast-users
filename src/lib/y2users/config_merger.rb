@@ -39,9 +39,15 @@ module Y2Users
     # @see merge_elements
     # @see merge_login
     def merge
+      log.debug "Starting Y2Users configuration merge"
+      log.debug "lhs: #{lhs.inspect}"
+      log.debug "rhs: #{rhs.inspect}"
+
       merge_elements
       merge_login
       merge_useradd
+
+      log.debug "Result of Y2Users merge: #{lhs.inspect}"
     end
 
   private
