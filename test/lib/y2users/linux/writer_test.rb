@@ -365,6 +365,8 @@ describe Y2Users::Linux::Writer do
 
       context "when modifying a user attribute fails" do
         before do
+          allow(Yast).to receive(:y2_logger)
+
           current_user = config.users.by_id(user.id)
           current_user.home = "/home/new"
           allow(Yast::Execute).to receive(:on_target!)
@@ -373,7 +375,7 @@ describe Y2Users::Linux::Writer do
         end
 
         it "returns an issue" do
-          expect(writer.log).to receive(:error).with(/Error modifying user '#{user.name}'/)
+          expect(Yast).to receive(:y2_logger).with(any_args, /Error modifying user '#{user.name}'/)
           issues = writer.write
           expect(issues.first.message).to match("The user '#{user.name}' could not be modified")
         end
@@ -637,19 +639,21 @@ describe Y2Users::Linux::Writer do
       end
 
       it "executes groupadd" do
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100")
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100", "users")
         writer.write
       end
 
       context "when creating the groupadd fails" do
         before do
+          allow(Yast).to receive(:y2_logger)
+
           allow(Yast::Execute).to receive(:on_target!)
             .with(/groupadd/, any_args)
             .and_raise(Cheetah::ExecutionFailed.new("", "", "", ""))
         end
 
         it "returns an issue" do
-          expect(writer.log).to receive(:error).with(/Error creating group '#{group.name}'/)
+          expect(Yast).to receive(:y2_logger).with(any_args, /Error creating group '#{group.name}'/)
           issues = writer.write
           expect(issues.first.message).to match("The group '#{group.name}' could not be created")
         end

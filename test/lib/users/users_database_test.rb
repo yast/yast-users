@@ -33,6 +33,10 @@ describe Users::UsersDatabase do
     allow(File).to receive(:atime).with(/root/).and_return(Time.new(2016))
     allow(File).to receive(:atime).with(/root2/).and_return(Time.new(2017))
     allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2018))
+
+    # Mock max system uid, it seems to be different in the container running the CI tests
+    allow(Yast::ShadowConfig).to receive(:fetch)
+    allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_max).and_return("499")
   end
 
   describe ".all" do

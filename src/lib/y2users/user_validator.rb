@@ -24,7 +24,7 @@ module Y2Users
   # Internal class to validate the attributes of a {User} object.
   # This is not part of the stable API.
   class UserValidator
-    Yast.import "UsersSimple"
+    include Yast::I18n
 
     # Issue location describing the User#name attribute
     NAME_LOC = "field:name".freeze
@@ -36,6 +36,7 @@ module Y2Users
     #
     # @param user [Y2Users::User] see {#user}
     def initialize(user)
+      textdomain "users"
       @user = user
     end
 
@@ -47,21 +48,21 @@ module Y2Users
       list = Y2Issues::List.new
 
       if !skip.include?(:name)
-        err = Yast::UsersSimple.CheckUsernameLength(user.name)
+        err = check_length
         add_fatal_issue(list, err, NAME_LOC)
 
-        err = Yast::UsersSimple.CheckUsernameContents(user.name, "")
+        err = check_characters
         add_fatal_issue(list, err, NAME_LOC)
 
         # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
         # the initial user during installation, it simply checks against a hard-coded list of
         # system user names that are expected to exist in a system right after installation.
-        err = Yast::UsersSimple.CheckUsernameConflicts(user.name)
+        err = check_username_conflict
         add_fatal_issue(list, err, NAME_LOC)
       end
 
       if !skip.include?(:full_name)
-        err = Yast::UsersSimple.CheckFullname(user.full_name)
+        err = check_full_name
         add_fatal_issue(list, err, FULL_NAME_LOC)
       end
 
@@ -89,6 +90,133 @@ module Y2Users
       return if error.empty?
 
       list << Y2Issues::Issue.new(error, location: location, severity: :fatal)
+    end
+
+    MIN_LENGTH = 2
+    # reason: see for example man utmp, UT_NAMESIZE
+    MAX_LENGTH = 32
+    def check_length
+      # note duplicite string as in UsersSimple. Keep them in sync.
+      return _("No username entered.\nTry again.") if user.name.nil? || user.name.empty?
+
+      return "" if (MIN_LENGTH..MAX_LENGTH).include?(user.name.size)
+
+      # note duplicite string as in UsersSimple. Keep them in sync.
+      format(_("The username must be between %i and %i characters in length.\n" \
+        "Try again."), MIN_LENGTH, MAX_LENGTH)
+    end
+
+    LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".freeze
+    NUMBERS = "0123456789".freeze
+    # Regexp for allowed characters.
+    # NOTE: this is based on default in login.defs, maybe read it on running system?
+    CHAR_REGEXP = /\A[#{LETTERS}_][#{LETTERS}#{NUMBERS}_.-]*[#{LETTERS}#{NUMBERS}_.$-]?\z/.freeze
+    def check_characters
+      return "" if user.name =~ CHAR_REGEXP
+
+      # note duplicite string as in UsersSimple. Keep them in sync.
+      _("The username may contain only\n" \
+        "Latin letters and digits, \"-\", \".\", and \"_\"\n" \
+        "and must begin with a letter or \"_\".\n" \
+        "Try again.")
+    end
+
+    # hard-coded list of known system users
+    KNOWN_USERS = [
+      "root",
+      "bin",
+      "uucp",
+      "daemon",
+      "lp",
+      "mail",
+      "news",
+      "uucp",
+      "games",
+      "man",
+      "at",
+      "wwwrun",
+      "ftp",
+      "named",
+      "gdm",
+      "postfix",
+      "sshd",
+      "ntp",
+      "ldap",
+      "nobody",
+      "amanda",
+      "vscan",
+      "bigsister",
+      "wnn",
+      "cyrus",
+      "dpbox",
+      "gnats",
+      "gnump3d",
+      "hacluster",
+      "irc",
+      "mailman",
+      "mdom",
+      "mysql",
+      "oracle",
+      "postgres",
+      "pop",
+      "sapdb",
+      "snort",
+      "squid",
+      "stunnel",
+      "zope",
+      "radiusd",
+      "otrs",
+      "privoxy",
+      "vdr",
+      "icecream",
+      "bitlbee",
+      "dhcpd",
+      "distcc",
+      "dovecot",
+      "fax",
+      "partimag",
+      "avahi",
+      "beagleindex",
+      "casaauth",
+      "dvbdaemon",
+      "festival",
+      "haldaemon",
+      "icecast",
+      "lighttpd",
+      "nagios",
+      "pdns",
+      "polkituser",
+      "pound",
+      "pulse",
+      "quagga",
+      "sabayon-admin",
+      "tomcat",
+      "pegasus",
+      "cimsrvr",
+      "ulogd",
+      "uuidd",
+      "suse-ncc",
+      "messagebus",
+      "nx"
+    ].freeze
+    def check_username_conflict
+      return "" unless KNOWN_USERS.include?(user.name)
+
+      # note duplicite string as in UsersSimple. Keep them in sync.
+      _("There is a conflict between the entered\n" \
+        "username and an existing username.\n" \
+        "Try another one.")
+    end
+
+    def check_full_name
+      return "" unless user.full_name
+
+      return "" if user.full_name !~ /[:,]/
+
+      # note duplicite string as in UsersSimple. Keep them in sync.
+      _("The user's full name cannot contain\n" \
+        "\":\" or \",\" characters.\n" \
+        "Try again.")
     end
   end
 end

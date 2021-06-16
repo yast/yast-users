@@ -44,6 +44,7 @@ module Y2Users
       #
       # @param issues [Y2Issues::List] the list of issues found while writing changes
       def write(issues)
+        log.info "Starting to write useradd configuration"
         write_useradd(issues)
         write_shadow_config
       end
@@ -107,7 +108,11 @@ module Y2Users
       #
       # @param issues [Y2Issues::List]
       def write_useradd(issues)
-        return unless write_useradd?
+        if !write_useradd?
+          log.info "Not writing useradd file. " \
+            "#{useradd_config.inspect} - #{initial_useradd_config.inspect}"
+          return
+        end
 
         # Instead of modifying directly the /etc/default/useradd file using the agent
         # etc.default.useradd, we rely on "useradd -D". That should be more future-proof because:
@@ -137,7 +142,10 @@ module Y2Users
 
       # Writes the attributes that are handled via login.defs
       def write_shadow_config
-        return unless write_shadow_config?
+        if !write_shadow_config?
+          log.info "Not writing useradd shadow config. #{value(:umask)} - #{initial_value(:umask)}"
+          return
+        end
 
         Yast::ShadowConfig.set(:umask, value(:umask))
         Yast::ShadowConfig.write
