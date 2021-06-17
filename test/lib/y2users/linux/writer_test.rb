@@ -479,6 +479,35 @@ describe Y2Users::Linux::Writer do
       end
     end
 
+    context "for mix of user with specified uid and without uid" do
+      before do
+        user2 = Y2Users::User.new("testuser2")
+
+        user.uid = 1001
+        user.gid = 2001
+        user.shell = "/bin/y2shell"
+        user.home = "/home/y2test"
+        user.gecos = ["First line of", "GECOS"]
+
+        config.attach(user2)
+        config.attach(user)
+        config.attach(group)
+      end
+
+      it "executes useradd for user with uid before user without it" do
+        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args) do |*args|
+          expect(args.last).to eq username
+          expect(args).to include(
+            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups"
+          )
+        end
+
+        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, "--create-home", "testuser2")
+
+        writer.write
+      end
+    end
+
     context "for a new system user" do
       before do
         user.home = "/var/lib/y2test"

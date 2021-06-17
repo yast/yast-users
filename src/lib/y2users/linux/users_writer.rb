@@ -48,7 +48,10 @@ module Y2Users
       def add_users(issues)
         new_users = config.users.without(initial_config.users.ids)
 
-        new_users.each { |u| add_user(u, issues) }
+        new_users.all.
+          # 2**64 just to have really high number to assign uids after new user with specific uid
+          sort_by { |u| u.uid || 2**64 }.
+          each { |u| add_user(u, issues) }
       end
 
       # Applies changes for the edited users
