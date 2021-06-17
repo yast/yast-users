@@ -229,6 +229,9 @@ module Y2Users
           opts.concat(create_home_options(user))
         end
 
+        # user is already warned in advance
+        opts << "--non-unique" if user.uid
+
         opts << user.name
         opts
       end

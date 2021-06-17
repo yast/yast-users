@@ -498,7 +498,7 @@ describe Y2Users::Linux::Writer do
         expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args) do |*args|
           expect(args.last).to eq username
           expect(args).to include(
-            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups"
+            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups", "--non-unique"
           )
         end
 
