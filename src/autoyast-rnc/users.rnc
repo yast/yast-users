@@ -30,6 +30,12 @@ gr_group = element group {
   )
 }
 
+# TODO: groups, no_groups and skel are not longer read by AutoYaST (see
+# https://github.com/yast/yast-users/pull/306) or documented (see
+# https://github.com/SUSE/doc-sle/pull/901). We should remove them from the
+# schema at some point. We cannot do it yet because the attributes are still
+# exported (export uses old code not yet converted to Y2Users), but that
+# limitation should disappear at some point.
 user_defaults =
   element user_defaults {
     MAP,
