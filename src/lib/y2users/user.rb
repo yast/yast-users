@@ -74,6 +74,13 @@ module Y2Users
     # @return [String, nil] nil if it is not assigned yet
     attr_accessor :home
 
+    # Whether a btrfs subvolume is used as home directory, especially relevant when creating the
+    # user in the system
+    #
+    # @return [Boolean, nil] nil if irrelevant or unknown (some readers may not provide an accurate
+    #   value for this attribute)
+    attr_accessor :btrfs_subvolume_home
+
     # Fields for the GECOS entry
     #
     # @return [Array<String>]

@@ -274,6 +274,44 @@ describe Y2Users::Autoinst::Reader do
           expect(user.password.account_expiration.content).to eq(shadow_date.to_s)
         end
       end
+
+      context "if home_btrfs_subvolume is not part of the user description" do
+        let(:profile) do
+          { "users" => [{ "username" => "test" }] }
+        end
+
+        it "sets User#btrfs_subvolume_home to nil" do
+          user = subject.read.config.users.by_name("test")
+
+          expect(user.btrfs_subvolume_home).to be_nil
+        end
+      end
+
+      context "if home_btrfs_subvolume is part of the user description" do
+        let(:profile) do
+          { "users" => [{ "username" => "test", "home_btrfs_subvolume" => subvol }] }
+        end
+
+        context "and set to true" do
+          let(:subvol) { true }
+
+          it "sets User#btrfs_subvolume_home to true" do
+            user = subject.read.config.users.by_name("test")
+
+            expect(user.btrfs_subvolume_home).to eq true
+          end
+        end
+
+        context "and set to false" do
+          let(:subvol) { false }
+
+          it "sets User#btrfs_subvolume_home to false" do
+            user = subject.read.config.users.by_name("test")
+
+            expect(user.btrfs_subvolume_home).to eq false
+          end
+        end
+      end
     end
 
     context "when the users list is missing" do
