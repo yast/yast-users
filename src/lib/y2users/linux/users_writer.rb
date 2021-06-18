@@ -291,7 +291,7 @@ module Y2Users
         opts = []
         opts << "-e" if user.password&.value&.encrypted?
         opts << {
-          stdin:    [user.name, user.password&.value&.content].join(":"),
+          stdin:    [user.name, user.password_content].join(":"),
           recorder: cheetah_recorder
         }
         opts

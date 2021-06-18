@@ -19,13 +19,14 @@
 # find current contact information at www.suse.com.
 
 require_relative "../../../test_helper"
-require "users/widgets/inst_root_first"
 require "cwm/rspec"
+require "users/widgets/inst_root_first"
+require "y2users/user"
 
 describe Y2Users::Widgets::InstRootFirst do
   subject(:widget) { described_class.new(root_user) }
 
-  let(:root_user) { Y2Users::User.new("root") }
+  let(:root_user) { Y2Users::User.create_root }
 
   include_examples "CWM::CustomWidget"
 

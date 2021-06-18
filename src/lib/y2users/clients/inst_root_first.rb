@@ -19,39 +19,79 @@
 
 require "yast"
 require "y2users"
-require "y2users/users_simple"
 require "users/dialogs/inst_root_first"
-
-Yast.import "UsersSimple"
 
 module Y2Users
   # YaST "clients" are the CLI entry points
   module Clients
     # A client for displaying and managing the root user configuration
     class InstRootFirst
+      Yast.import "GetInstArgs"
+
       # Runs the client
       def run
+        return :auto unless run?
+
         result = Yast::InstRootFirstDialog.new(root_user).run
 
-        Y2Users::UsersSimple::Writer.new(users_config).write if result == :next
+        update_target_config if result == :next
 
         result
       end
 
     private
 
-      # Config object holding the users and passwords
+      # Whether to run the client
       #
-      # @return [Y2Users::Config]
-      def users_config
-        @users_config ||= Y2Users::UsersSimple::Reader.new.read
+      # Note that this client should be automatically skipped when root was configured to use the
+      # same password as a user.
+      #
+      # @return [Boolean]
+      def run?
+        force? || !root_password_from_user?
       end
 
-      # The root user
+      def force?
+        Yast::GetInstArgs.argmap.fetch("force", false)
+      end
+
+      # Whether root is configured to use the same password as a user
+      #
+      # @return [Boolean]
+      def root_password_from_user?
+        root_password = root_user.password&.value
+
+        return false unless root_password
+
+        users.any? { |u| u.password&.value == root_password }
+      end
+
+      # Updates the target config to reflect the changes in the root user
+      def update_target_config
+        config.attach(root_user) unless root_user.attached?
+
+        ConfigManager.instance.target = config
+      end
+
+      # All users from the target config without the root user
+      #
+      # @return [Y2Users::UsersCollection]
+      def users
+        config.users.reject(&:root?)
+      end
+
+      # Root user from the target config, or a new root user if there is no root yet
       #
       # @return [Y2Users::User]
       def root_user
-        users_config.users.root
+        @root_user ||= config.users.root || User.create_root
+      end
+
+      # A copy of the current target config, or a new config if there is no target yet
+      #
+      # @return [Y2Users::Config]
+      def config
+        @config ||= ConfigManager.instance.target&.copy || Config.new
       end
     end
   end

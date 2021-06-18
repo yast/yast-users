@@ -25,6 +25,17 @@ require "y2users"
 require "date"
 
 describe Y2Users::User do
+  describe ".create_root" do
+    it "returns a detached root user" do
+      user = described_class.create_root
+
+      expect(user).to be_a(described_class)
+      expect(user.root?).to eq(true)
+      expect(user.uid).to eq("0")
+      expect(user.attached?).to eq(false)
+    end
+  end
+
   subject { described_class.new("test") }
 
   before do
@@ -193,6 +204,40 @@ describe Y2Users::User do
           it "does not include the primary group" do
             expect(subject.groups).to_not include(group1)
           end
+        end
+      end
+    end
+  end
+
+  describe "#password_content" do
+    before do
+      subject.password = password
+    end
+
+    context "when the user has no password" do
+      let(:password) { nil }
+
+      it "returns nil" do
+        expect(subject.password_content).to be_nil
+      end
+    end
+
+    context "when the user has a password" do
+      let(:password) { Y2Users::Password.new(value) }
+
+      context "and the password has no value" do
+        let(:value) { nil }
+
+        it "returns nil" do
+          expect(subject.password_content).to be_nil
+        end
+      end
+
+      context "and the password has a value" do
+        let(:value) { Y2Users::PasswordPlainValue.new("s3cr3t") }
+
+        it "returns the content of the password value" do
+          expect(subject.password_content).to eq("s3cr3t")
         end
       end
     end

@@ -17,20 +17,17 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
-require "y2users"
-require "y2users/users_simple"
+require "yast"
 require "cwm/dialog"
 require "users/widgets/inst_root_first"
 
 Yast.import "Mode"
-Yast.import "UsersSimple"
 Yast.import "Popup"
 
 module Yast
-  # This library provides a simple dialog for setting new password for the
-  # system adminitrator (root) including checking quality of the password
-  # itself. The new password is not stored here, just set in UsersSimple module
-  # and stored later during inst_finish.
+  # This library provides a simple dialog for setting new password for the system administrator
+  # (root) including checking quality of the password itself. The new password is not written to the
+  # system, just stored in the target config and written later during inst_finish.
   class InstRootFirstDialog < ::CWM::Dialog
     # Constructor
     #
@@ -45,13 +42,6 @@ module Yast
     # @see CWM::AbstractWidget
     def title
       _("Authentication for the System Administrator \"root\"")
-    end
-
-    # @see CWM::Dialog
-    def run
-      return :auto unless root_password_dialog_needed?
-
-      super
     end
 
     # Returns a UI widget-set for the dialog
@@ -76,16 +66,6 @@ module Yast
     #   all manually on a running system
     def should_open_dialog?
       Mode.normal
-    end
-
-    # Returns whether we need to run this dialog
-    def root_password_dialog_needed?
-      if UsersSimple.RootPasswordDialogSkipped
-        log.info "root password was set with first user, skipping"
-        return false
-      end
-
-      true
     end
   end
 end

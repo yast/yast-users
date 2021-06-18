@@ -26,19 +26,17 @@ require "users/local_password"
 
 Yast.import "Popup"
 Yast.import "Report"
-Yast.import "UsersSimple"
 
 module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
+    include Y2Users::HelpTexts
     include Y2Users::PasswordHelper
 
     class << self
       attr_accessor :approved_pwd
     end
-
-    include Y2Users::HelpTexts
 
     # If `little_space` is `false` (the default), the widget will
     # use a vertical layout, and include a "don't forget this" label.
@@ -56,7 +54,6 @@ module Users
       textdomain "users"
 
       @user = user
-      @user_to_validate = user.copy
 
       @little_space = little_space
       @focus = focus
@@ -127,21 +124,15 @@ module Users
       # do not ask again if already approved (bsc#1025835)
       return true if self.class.approved_pwd == password1
 
-      @user_to_validate.password = Y2Users::Password.create_plain(password1)
+      @user.password = Y2Users::Password.create_plain(password1)
 
-      return false unless valid_password_for?(@user_to_validate)
+      return false unless valid_password_for?(@user)
 
       self.class.approved_pwd = password1
 
       true
     end
     # rubocop:enable Metrics/CyclomaticComplexity
-
-    def store
-      return if allow_empty? && empty?
-
-      @user.password = @user_to_validate.password
-    end
 
     def help # rubocop:disable Metrics/MethodLength
       # help text ( explain what the user "root" is and does ) 1
@@ -210,8 +201,7 @@ module Users
     #
     # @return [String]
     def current_password
-      pwd = @user.password&.value&.content
-      pwd.to_s
+      @user.password_content.to_s
     end
   end
 end

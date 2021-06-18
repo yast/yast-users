@@ -37,7 +37,7 @@ describe Y2Users::UsersCollection do
     context "if the collection contains a root user" do
       let(:elements) { [user1, root, user3] }
 
-      let(:root) { Y2Users::User.new("root") }
+      let(:root) { Y2Users::User.create_root }
 
       it "returns the root user" do
         expect(subject.root).to be_a(Y2Users::User)

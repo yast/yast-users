@@ -18,8 +18,6 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2users"
-require "y2users/users_simple"
 
 Yast.import "UI"
 Yast.import "Popup"

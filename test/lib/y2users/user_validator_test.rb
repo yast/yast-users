@@ -20,16 +20,15 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
-
+require "y2users/config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/user_validator"
 
-Yast.import "UsersSimple"
-
 describe Y2Users::UserValidator do
   subject(:validator) { described_class.new(user) }
 
+  let(:config) { Y2Users::Config.new }
   let(:user) { Y2Users::User.new(username) }
   let(:username) { "test" }
   let(:full_name) { "Test user" }
@@ -58,7 +57,6 @@ describe Y2Users::UserValidator do
       end
 
       context "and using too short username" do
-        # See Yast::UsersSimple$min_length_login
         let(:username) { "y" }
 
         it "includes a fatal issue for the username length" do
@@ -67,7 +65,6 @@ describe Y2Users::UserValidator do
       end
 
       context "and using too long username" do
-        # See Yast::UsersSimple$max_length_login
         let(:username) { "ANTeLSIverIDEbUrcHROlDpIOlUSEYHOb" }
 
         it "includes a fatal issue for the username length" do
@@ -85,8 +82,19 @@ describe Y2Users::UserValidator do
       end
 
       context "and using a conflicting username" do
-        # See Yast::UsersSimple$system_users
         let(:username) { "ldap" }
+
+        it "includes a fatal issue for the conflictive username" do
+          expect(fatal_issues_messages).to include(/There is a conflict/)
+        end
+      end
+
+      context "and using an existing username" do
+        let(:username) { "test" }
+
+        before do
+          config.attach(user, Y2Users::User.new(username))
+        end
 
         it "includes a fatal issue for the conflictive username" do
           expect(fatal_issues_messages).to include(/There is a conflict/)
@@ -106,7 +114,6 @@ describe Y2Users::UserValidator do
       end
 
       context "and using too short username" do
-        # See Yast::UsersSimple$min_length_login
         let(:username) { "y" }
 
         it "does not include a fatal issue for the username length" do
@@ -115,7 +122,6 @@ describe Y2Users::UserValidator do
       end
 
       context "and using too long username" do
-        # See Yast::UsersSimple$max_length_login
         let(:username) { "ANTeLSIverIDEbUrcHROlDpIOlUSEYHOb" }
 
         it "does not include a fatal issue for the username length" do
@@ -124,8 +130,19 @@ describe Y2Users::UserValidator do
       end
 
       context "and using a conflicting username" do
-        # See Yast::UsersSimple$system_users
         let(:username) { "ldap" }
+
+        it "does not include a fatal issue for the conflictive username" do
+          expect(fatal_issues_messages).to_not include(/There is a conflict/)
+        end
+      end
+
+      context "and using an existing username" do
+        let(:username) { "test" }
+
+        before do
+          config.attach(user, Y2Users::User.new(username))
+        end
 
         it "does not include a fatal issue for the conflictive username" do
           expect(fatal_issues_messages).to_not include(/There is a conflict/)

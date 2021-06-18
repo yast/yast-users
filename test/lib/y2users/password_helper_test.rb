@@ -21,7 +21,9 @@
 
 require_relative "test_helper"
 
+require "yast"
 require "y2users/password_helper"
+require "y2users/user"
 
 class DummyDialog
   include Yast::I18n

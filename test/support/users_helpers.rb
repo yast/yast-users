@@ -17,20 +17,9 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "yast"
-
-Yast.import "UsersSimple"
-
 module Yast
   module RSpec
     module UsersHelpers
-      # Resets Yast::UsersSimple to an initial state
-      def reset_users_simple
-        UsersSimple.SetUsers([])
-        UsersSimple.SetRootPassword("")
-        UsersSimple.SetAutologinUser("")
-      end
-
       # Reads authorized keys from given path
       #
       # @param path [String] the path for reading authorized keys
