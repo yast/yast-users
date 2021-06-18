@@ -26,7 +26,7 @@ require "cwm/rspec"
 describe Y2Users::Widgets::PublicKeySelector do
   subject(:widget) { described_class.new(root_user) }
 
-  let(:root_user) { Y2Users::User.new("root") }
+  let(:root_user) { Y2Users::User.create_root }
 
   include_examples "CWM::CustomWidget"
 
