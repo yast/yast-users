@@ -24,7 +24,6 @@ require "y2users/autoinst/reader"
 require "y2issues"
 
 Yast.import "Users"
-Yast.import "UsersSimple"
 Yast.import "Linuxrc"
 Yast.import "Mode"
 Yast.import "Progress"
