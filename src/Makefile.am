@@ -96,8 +96,8 @@ ylib_y2users_DATA = \
   lib/y2users/password_validator.rb \
   lib/y2users/shadow_date.rb \
   lib/y2users/user.rb \
+  lib/y2users/username.rb \
   lib/y2users/useradd_config.rb \
-  lib/y2users/users_simple.rb \
   lib/y2users/user_validator.rb \
   lib/y2users/validation_config.rb \
   lib/y2users/config_element.rb \
@@ -108,6 +108,7 @@ ylib_y2users_DATA = \
 
 ylib_y2users_clientsdir = @ylibdir@/y2users/clients
 ylib_y2users_clients_DATA = \
+  lib/y2users/clients/inst_user_first.rb \
   lib/y2users/clients/inst_root_first.rb
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
@@ -127,11 +128,6 @@ ylib_y2users_parsers_DATA = \
   lib/y2users/parsers/group.rb \
   lib/y2users/parsers/passwd.rb \
   lib/y2users/parsers/shadow.rb
-
-ylib_y2users_userssimpledir = @ylibdir@/y2users/users_simple
-ylib_y2users_userssimple_DATA = \
-  lib/y2users/users_simple/reader.rb \
-  lib/y2users/users_simple/writer.rb
 
 ylib_y2users_autoinstdir = @ylibdir@/y2users/autoinst
 ylib_y2users_autoinst_DATA = \
@@ -167,6 +163,6 @@ scalable_DATA = \
   icons/hicolor/scalable/apps/yast-users.svg \
   icons/hicolor/scalable/apps/yast-users-system.svg
 
-EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_clients_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_autoinst_profile_DATA) $(ylib_y2users_userssimple_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
+EXTRA_DIST = $(module_DATA) $(module1_DATA) $(client_DATA) $(ynclude_DATA) $(ylibdialog_DATA) $(ylib_DATA) $(ylib_users_DATA) $(ylib_y2users_DATA) $(ylib_y2users_clients_DATA) $(ylib_y2users_linux_DATA) $(ylib_y2users_parsers) $(ylib_y2users_autoinst_DATA) $(ylib_y2users_autoinst_profile_DATA) $(scrconf_DATA) $(agent_SCRIPTS) $(schemafiles_DATA) $(desktop_DATA) $(ylibclient_DATA) $(scalable_DATA)
 
 include $(top_srcdir)/Makefile.am.common
