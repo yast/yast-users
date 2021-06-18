@@ -27,7 +27,6 @@ require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
-require "y2users/users_simple/reader"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -38,7 +37,6 @@ module Yast
       textdomain "users"
 
       Yast.import "Users"
-      Yast.import "UsersSimple"
       Yast.import "Report"
     end
 
@@ -99,7 +97,7 @@ module Yast
       report_issues(issues)
     end
 
-    # Writes users during the installation
+    # Writes the config during the installation
     #
     # The linux writer will process all the differences between the system and the target configs.
     # The target config is created from the system one, and then it adds the users configured during
@@ -108,6 +106,8 @@ module Yast
     #
     # All the issues detected by the writer are reported to the user.
     def write_install
+      target_config = system_config.merge(Y2Users::ConfigManager.instance.target)
+
       writer = Y2Users::Linux::Writer.new(target_config, system_config)
       issues = writer.write
 
@@ -121,21 +121,6 @@ module Yast
     # @return [Y2Users::Config]
     def system_config
       @system_config ||= Y2Users::ConfigManager.instance.system(force_read: true)
-    end
-
-    # Target config, which extends the system config with the new users that should be created
-    # during the installation.
-    #
-    # @return [Y2Users::Config]
-    def target_config
-      @target_config ||= system_config.merge(users_simple_config)
-    end
-
-    # Config with users configured in the installation clients
-    #
-    # @return [Y2Users::Config]
-    def users_simple_config
-      @users_simple_config ||= Y2Users::UsersSimple::Reader.new.read
     end
 
     # Reports issues
