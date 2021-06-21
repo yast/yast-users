@@ -26,8 +26,6 @@ require "y2users/password"
 require "y2users/password_validator"
 require "users/local_password"
 
-Yast.import "UsersSimple"
-
 describe Y2Users::PasswordValidator do
   subject(:validator) { described_class.new(user) }
 

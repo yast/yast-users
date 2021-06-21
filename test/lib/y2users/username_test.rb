@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2018-2021] SUSE LLC
+# Copyright (c) [2021] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,24 +20,26 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
+require "y2users/username"
 
-Yast.import "UsersSimple"
-
-describe Yast::UsersSimple do
-  subject(:users) { Yast::UsersSimple }
-
-  describe "CheckUsernameContents" do
-    it "returns empty string for valid username" do
-      expect(users.CheckUsernameContents("abc", "local")).to eq ""
+describe Y2Users::Username do
+  describe ".generate_from" do
+    it "generates the username from the first given word" do
+      expect(Y2Users::Username.generate_from("john brown")).to eq("john")
     end
 
-    it "allows '$' at the end for ldap users" do
-      expect(users.CheckUsernameContents("abc$", "ldap")).to eq ""
+    it "generates a lowercase name" do
+      expect(Y2Users::Username.generate_from("John Brown")).to eq("john")
     end
 
-    it "returns non-empty string for invalid username" do
-      expect(users.CheckUsernameContents("abc; touch > /tmp/hacker.was.here; echo abc", "ldap"))
-        .to_not be_empty
+    it "converts UTF-8 characters to similar ASCII ones" do
+      expect(Y2Users::Username.generate_from("Jiří")).to eq("jiri")
+      expect(Y2Users::Username.generate_from("Ærøskøbing")).to eq("aeroskobing")
+    end
+
+    it "deletes not allowed characters for username" do
+      expect(Y2Users::Username.generate_from("t?ux")).to eq("tux")
+      expect(Y2Users::Username.generate_from("日本語")).to eq("")
     end
   end
 end

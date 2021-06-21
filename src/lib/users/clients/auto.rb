@@ -24,7 +24,6 @@ require "y2users/autoinst/reader"
 require "y2issues"
 
 Yast.import "Users"
-Yast.import "UsersSimple"
 Yast.import "Linuxrc"
 Yast.import "Mode"
 Yast.import "Progress"
@@ -56,7 +55,7 @@ module Y2Users
             return false unless Y2Issues.report(result.issues) == :yes
           end
 
-          Y2Users::ConfigManager.instance.register(result.config, as: :autoinst)
+          Y2Users::ConfigManager.instance.target = result.config
 
           true
         # and old one for running system like autoyast UI

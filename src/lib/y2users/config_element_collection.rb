@@ -82,8 +82,8 @@ module Y2Users
     #
     # @param ids [Array<Integer>]
     # @return [Collection]
-    def without(ids)
-      elements = (self.ids - ids).map { |i| by_id(i) }
+    def without(*ids)
+      elements = (self.ids - ids.flatten).map { |i| by_id(i) }
 
       self.class.new(elements)
     end

@@ -155,7 +155,9 @@ module Y2Users
           res.home = user_section.home
           res.shell = user_section.shell
           res.uid = user_section.uid
+          res.btrfs_subvolume_home = user_section.home_btrfs_subvolume
           res.password = create_password(user_section)
+          res.authorized_keys = user_section.authorized_keys
           users << res
         end
       end

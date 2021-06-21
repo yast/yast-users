@@ -106,6 +106,33 @@ describe Y2Users::Linux::Writer do
       end
     end
 
+    RSpec.shared_examples "using btrfs subvolume" do
+      context "when a btrfs subvolume must be used as home" do
+        before do
+          config.users.by_id(user.id).btrfs_subvolume_home = true
+        end
+
+        it "executes useradd with the right --btrfs-subvolume-home argument" do
+          expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+            expect(args.last).to eq user.name
+            expect(args).to include("--btrfs-subvolume-home")
+          end
+
+          writer.write
+        end
+      end
+
+      context "when home is not requested to be a btrfs subvolume" do
+        it "executes useradd with no --btrfs-subvolume-home argument" do
+          expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+            expect(args).to_not include("--btrfs-subvolume-home")
+          end
+
+          writer.write
+        end
+      end
+    end
+
     RSpec.shared_examples "setting password attributes" do
       context "setting some password attributes" do
         before do
@@ -451,6 +478,7 @@ describe Y2Users::Linux::Writer do
       include_examples "setting password"
       include_examples "setting password attributes"
       include_examples "writing authorized keys"
+      include_examples "using btrfs subvolume"
 
       it "executes useradd with all the parameters, including creation of home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
@@ -471,6 +499,7 @@ describe Y2Users::Linux::Writer do
 
       include_examples "setting password"
       include_examples "setting password attributes"
+      include_examples "using btrfs subvolume"
 
       it "executes useradd only with the argument to create the home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--create-home", username)
@@ -522,6 +551,7 @@ describe Y2Users::Linux::Writer do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
           expect(args.last).to eq username
           expect(args).to_not include "--create-home"
+          expect(args).to_not include "--btrfs-subvolume-home"
           expect(args).to include "--system"
         end
 
@@ -576,24 +606,77 @@ describe Y2Users::Linux::Writer do
     end
 
     context "when there is any error adding users" do
+      let(:exit_double) { instance_double(Process::Status) }
+      let(:error) { Cheetah::ExecutionFailed.new("", exit_double, "", "", "initial error") }
+
       before do
         config.attach(user)
+        allow(exit_double).to receive(:exitstatus).and_return exitstatus
+
+        call_count = 0
+        allow(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+          call_count += 1
+          raise(error) if call_count == 1
+
+          second_call.call(*args)
+        end
       end
 
-      let(:error) { Cheetah::ExecutionFailed.new("", "", "", "", "error") }
+      context "and there is no specific handling for the error" do
+        let(:exitstatus) { 1 }
+        let(:second_call) { ->(*args) {} }
 
-      before do
-        allow(Yast::Execute).to receive(:on_target!)
-          .with(/useradd/, any_args)
-          .and_raise(error)
+        it "returns an issue notifying the user was not created" do
+          result = writer.write
+
+          expect(result).to be_a(Y2Issues::List)
+          expect(result).to_not be_empty
+          expect(result.map(&:message)).to include(/user.*could not be created/)
+        end
+
+        it "does not perform a second attempt to call useradd" do
+          expect(second_call).to_not receive(:call)
+          writer.write
+        end
       end
 
-      it "returns an issues list containing the issue" do
-        result = writer.write
+      context "and the error was a problem creating the home" do
+        let(:exitstatus) { 12 }
+        let(:second_call) do
+          lambda do |*args|
+            expect(args.last).to eq user.name
+            expect(args).to_not include "--create-home"
+            expect(args).to include "--no-create-home"
+          end
+        end
 
-        expect(result).to be_a(Y2Issues::List)
-        expect(result).to_not be_empty
-        expect(result.map(&:message)).to include(/user.*could not be created/)
+        it "executes useradd again explicitly avoiding the home creation" do
+          expect(second_call).to receive(:call).and_call_original
+          writer.write
+        end
+
+        context "and the second useradd calls succeeds" do
+          it "returns an issue notifying the user was created without home" do
+            result = writer.write
+
+            expect(result).to be_a(Y2Issues::List)
+            expect(result.to_a.size).to eq 1
+            expect(result.first.message).to match(/create home/)
+          end
+        end
+
+        context "and the second useradd call also fails" do
+          let(:second_error) { Cheetah::ExecutionFailed.new("", "", "", "", "second error") }
+          let(:second_call) { ->(*_args) { raise(second_error) } }
+
+          it "returns an issue notifying the user was not created" do
+            result = writer.write
+
+            expect(result).to be_a(Y2Issues::List)
+            expect(result.to_a.size).to eq 1
+            expect(result.first.message).to match(/could not be created/)
+          end
+        end
       end
     end
 

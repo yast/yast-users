@@ -83,6 +83,11 @@ module Y2Users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
 
+      # Exit code returned by useradd when the operation is aborted because the home directory could
+      # not be created
+      USERADD_E_HOMEDIR = 12
+      private_constant :USERADD_E_HOMEDIR
+
       # Command for modifying users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
@@ -104,19 +109,42 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
-      # Executes the command for creating the user
+      # Executes the sequence of commands for creating the user
       #
       # @param user [User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_user(user, issues)
-        Yast::Execute.on_target!(USERADD, *useradd_options(user))
+        run_useradd(user, issues)
         change_password(user, issues) if user.password
         write_auth_keys(user, issues)
+      end
+
+      # Executes the command for creating the user, retrying in the event of a recoverable error
+      #
+      # @see #add_user
+      #
+      # @param user [User] the user to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def run_useradd(user, issues)
+        try_useradd(user, issues)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
         )
         log.error("Error creating user '#{user.name}' - #{e.message}")
+      end
+
+      # @see #run_useradd
+      def try_useradd(user, issues)
+        Yast::Execute.on_target!(USERADD, *useradd_options(user))
+      rescue Cheetah::ExecutionFailed => e
+        raise(e) unless e.status.exitstatus == USERADD_E_HOMEDIR
+
+        Yast::Execute.on_target!(USERADD, *useradd_options(user, skip_home: true))
+        issues << Y2Issues::Issue.new(
+          format(_("Failed to create home directory for user '%s'"), user.name)
+        )
+        log.warn("User '#{user.name}' created without home '#{user.home}'")
       end
 
       # Executes the commands for setting the password and all its associated
@@ -127,6 +155,11 @@ module Y2Users
       def change_password(user, issues)
         set_password_value(user, issues)
         set_password_attributes(user, issues)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("Error setting the password for user '%s'"), user.name)
+        )
+        log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 
       # Writes authorized keys for given user
@@ -211,8 +244,9 @@ module Y2Users
       # Generates and returns the options expected by `useradd` for given user
       #
       # @param user [User]
+      # @param skip_home [Boolean] whether the home creation should be explicitly avoided
       # @return [Array<String>]
-      def useradd_options(user)
+      def useradd_options(user, skip_home: false)
         opts = {
           "--uid"      => user.uid,
           "--gid"      => user.gid,
@@ -225,6 +259,8 @@ module Y2Users
 
         if user.system?
           opts << "--system"
+        elsif skip_home
+          opts << "--no-create-home"
         else
           opts.concat(create_home_options(user))
         end
@@ -282,11 +318,12 @@ module Y2Users
 
       # Options for `useradd` to create the home directory
       #
-      # @param _user [User]
+      # @param user [User]
       # @return [Array<String>]
-      def create_home_options(_user)
-        # TODO: "--btrfs-subvolume-home" if needed
-        ["--create-home"]
+      def create_home_options(user)
+        opts = ["--create-home"]
+        opts << "--btrfs-subvolume-home" if user.btrfs_subvolume_home
+        opts
       end
 
       # Generates and returns the options expected by `chpasswd` for the given user
@@ -297,7 +334,7 @@ module Y2Users
         opts = []
         opts << "-e" if user.password&.value&.encrypted?
         opts << {
-          stdin:    [user.name, user.password&.value&.content].join(":"),
+          stdin:    [user.name, user.password_content].join(":"),
           recorder: cheetah_recorder
         }
         opts

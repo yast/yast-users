@@ -1,7 +1,27 @@
 #!/usr/bin/env rspec
 
+# Copyright (c) [2016-2021] SUSE LLC
+#
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
+#
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
+
 require_relative "test_helper"
 require "users/widgets"
+require "y2users"
 
 def stub_widget_value(id, value)
   allow(Yast::UI).to receive(:QueryWidget).with(Id(id), :Value).and_return(value)
@@ -10,7 +30,7 @@ end
 describe Users::PasswordWidget do
   subject { described_class.new(root_user) }
 
-  let(:root_user) { Y2Users::User.new("root") }
+  let(:root_user) { Y2Users::User.create_root }
 
   it "has help text" do
     expect(subject.help).to_not be_empty
@@ -116,24 +136,6 @@ describe Users::PasswordWidget do
         expect(Y2Users::Password).to_not receive(:create_plain)
         expect(subject.validate).to eq(true)
       end
-    end
-  end
-
-  describe "#store" do
-    # NOTE: testing only examples that make sense. I.e., those that happens when the widget
-    # validates successfully, required condition to dispatch the #store method.
-    let(:password) { "new cool password" }
-
-    before do
-      stub_widget_value(:pw1, password)
-      stub_widget_value(:pw2, password)
-    end
-
-    it "writes chosen and validated password to the root user" do
-      subject.validate
-      subject.store
-
-      expect(root_user.password).to be_a(Y2Users::Password)
     end
   end
 

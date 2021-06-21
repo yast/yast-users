@@ -32,6 +32,7 @@ require "shellwords"
 
 require "users/ssh_public_key"
 require "yast2/popup"
+require "y2users/username"
 
 module Yast
   module UsersDialogsInclude
@@ -1120,16 +1121,9 @@ module Yast
             uname = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
             login_modified = false if login_modified && uname == "" # reenable suggestion
             if !login_modified
-              full = Convert.to_string(UI.QueryWidget(Id(ret), :Value))
-              full = Ops.get(Builtins.splitstring(full, " "), 0, "")
-              full = UsersSimple.Transliterate(full)
-              UI.ChangeWidget(
-                Id(:username),
-                :Value,
-                Builtins.tolower(
-                  Builtins.filterchars(full, UsersSimple.ValidLognameChars)
-                )
-              )
+              full_name = UI.QueryWidget(Id(ret), :Value)
+              username = Y2Users::Username.generate_from(full_name)
+              UI.ChangeWidget(Id(:username), :Value, username)
             end
           end
           login_modified = true if ret == :username

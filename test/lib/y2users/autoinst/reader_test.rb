@@ -47,6 +47,7 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
       expect(root_user.password.aging).to be_nil
       expect(root_user.password.account_expiration.expire?).to eq(false)
+      expect(root_user.authorized_keys).to contain_exactly("ssh-rsa AAAAB3Nza")
 
       expect(config.login?).to eq(false)
 
@@ -272,6 +273,44 @@ describe Y2Users::Autoinst::Reader do
 
           expect(user.password.account_expiration).to be_a(Y2Users::AccountExpiration)
           expect(user.password.account_expiration.content).to eq(shadow_date.to_s)
+        end
+      end
+
+      context "if home_btrfs_subvolume is not part of the user description" do
+        let(:profile) do
+          { "users" => [{ "username" => "test" }] }
+        end
+
+        it "sets User#btrfs_subvolume_home to nil" do
+          user = subject.read.config.users.by_name("test")
+
+          expect(user.btrfs_subvolume_home).to be_nil
+        end
+      end
+
+      context "if home_btrfs_subvolume is part of the user description" do
+        let(:profile) do
+          { "users" => [{ "username" => "test", "home_btrfs_subvolume" => subvol }] }
+        end
+
+        context "and set to true" do
+          let(:subvol) { true }
+
+          it "sets User#btrfs_subvolume_home to true" do
+            user = subject.read.config.users.by_name("test")
+
+            expect(user.btrfs_subvolume_home).to eq true
+          end
+        end
+
+        context "and set to false" do
+          let(:subvol) { false }
+
+          it "sets User#btrfs_subvolume_home to false" do
+            user = subject.read.config.users.by_name("test")
+
+            expect(user.btrfs_subvolume_home).to eq false
+          end
         end
       end
     end

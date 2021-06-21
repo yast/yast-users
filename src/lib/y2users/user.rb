@@ -54,25 +54,32 @@ module Y2Users
 
     # User ID
     #
-    # @return [String, nil] nil if it is not assigned yet
+    # @return [String, nil] nil if unknown
     attr_accessor :uid
 
     # Primary group ID
     #
     # @note To get the primary group (and not only its ID), see {#primary_group}
     #
-    # @return [String, nil] nil if it is not assigned yet
+    # @return [String, nil] nil if unknown
     attr_accessor :gid
 
     # Default user shell
     #
-    # @return [String, nil] nil if it is not assigned yet
+    # @return [String, nil] nil if unknown
     attr_accessor :shell
 
     # Path to the home directory
     #
-    # @return [String, nil] nil if it is not assigned yet
+    # @return [String, nil] nil if unknown
     attr_accessor :home
+
+    # Whether a btrfs subvolume is used as home directory, especially relevant when creating the
+    # user in the system
+    #
+    # @return [Boolean, nil] nil if irrelevant or unknown (some readers may not provide an accurate
+    #   value for this attribute)
+    attr_accessor :btrfs_subvolume_home
 
     # Fields for the GECOS entry
     #
@@ -86,7 +93,7 @@ module Y2Users
 
     # Password for the user
     #
-    # @return [Password]
+    # @return [Password, nil] nil if unknown
     attr_accessor :password
 
     # Authorized keys
@@ -98,6 +105,19 @@ module Y2Users
     # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
       :secondary_groups_name
+
+    # Creates a prototype root user
+    #
+    # The generated root user is not attached to any config.
+    #
+    # @return [User]
+    def self.create_root
+      new("root").tap do |root|
+        root.uid = "0"
+        root.gecos = ["root"]
+        root.home = "/root"
+      end
+    end
 
     # Constructor
     #
@@ -147,6 +167,13 @@ module Y2Users
     # @return [Array<String>]
     def secondary_groups_name
       groups(with_primary: false).map(&:name).sort
+    end
+
+    # Content of the password
+    #
+    # @return [String, nil] nil if no password or the password has no value
+    def password_content
+      password&.value&.content
     end
 
     # @return [Date, nil] date when the account expires or nil if never
