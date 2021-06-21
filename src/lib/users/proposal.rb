@@ -226,7 +226,7 @@ module Users
     def imported_users_summary
       # TRANSLATORS: summary line,
       #   %{hs} and %{he} are the hyperlink start and end respectively.
-      #   %{qty} will be replacrd by the number of users
+      #   %{qty} will be replaced by the number of users
       format(
         n_(
           "%{hs}%{qty} user%{he} will be imported", "%{hs}%{qty} users%{he} will be imported",
