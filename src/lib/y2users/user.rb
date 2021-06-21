@@ -99,7 +99,7 @@ module Y2Users
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
       :secondary_groups_name
 
-    # Creates a propotype root user
+    # Creates a prototype root user
     #
     # The generated root user is not attached to any config.
     #
@@ -107,6 +107,8 @@ module Y2Users
     def self.create_root
       new("root").tap do |root|
         root.uid = "0"
+        root.gecos = ["root"]
+        root.home = "/root"
       end
     end
 

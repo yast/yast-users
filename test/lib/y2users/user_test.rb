@@ -32,6 +32,8 @@ describe Y2Users::User do
       expect(user).to be_a(described_class)
       expect(user.root?).to eq(true)
       expect(user.uid).to eq("0")
+      expect(user.gecos).to contain_exactly("root")
+      expect(user.home).to eq("/root")
       expect(user.attached?).to eq(false)
     end
   end
