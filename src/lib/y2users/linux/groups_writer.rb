@@ -47,6 +47,8 @@ module Y2Users
       def add_groups(issues)
         new_groups = (config.groups.map(&:id) - initial_config.groups.map(&:id))
         new_groups.map! { |id| config.groups.find { |g| g.id == id } }
+        # empty string to process groups without gid the last
+        new_groups.sort_by! { |g| g.gid || "" }.reverse!
         new_groups.each { |g| add_group(g, issues) }
       end
 
@@ -73,7 +75,7 @@ module Y2Users
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_group(group, issues)
         args = []
-        args << "--gid" << group.gid if group.gid
+        args << "--non-unique" << "--gid" << group.gid if group.gid
         args << group.name
         # TODO: system groups?
         Yast::Execute.on_target!(GROUPADD, *args)

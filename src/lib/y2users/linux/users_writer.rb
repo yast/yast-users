@@ -49,7 +49,7 @@ module Y2Users
         new_users = config.users.without(initial_config.users.ids)
 
         new_users.all.
-          # empty string to process users with uid the last
+          # empty string to process users without uid the last
           sort_by { |u| u.uid || "" }.reverse.
           each { |u| add_user(u, issues) }
       end
