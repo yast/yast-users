@@ -32,9 +32,6 @@ module Users
       Yast.import "Wizard"
       Yast.import "Mode"
       textdomain "users"
-
-      @users_event_id = "users--user"
-      @root_event_id = "users--root"
     end
 
     def make_proposal(_attrs)
@@ -48,7 +45,7 @@ module Users
         {
           "preformatted_proposal" => HTML.List([users_proposal, root_proposal]),
           "language_changed"      => false,
-          "links"                 => [users_event_id, root_event_id]
+          "links"                 => [USERS_EVENT_ID, ROOT_EVEN_ID]
         }
       end
     end
@@ -63,10 +60,10 @@ module Users
       Wizard.OpenAcceptDialog
 
       case param["chosen_id"]
-      when root_event_id
+      when ROOT_EVEN_ID
         client = "inst_root_first"
         args["force"] = true
-      when users_event_id
+      when USERS_EVENT_ID
         client = "inst_user_first"
       else
         raise "Unknown action id: #{param["chosen_id"]}"
@@ -85,7 +82,7 @@ module Users
       menu = []
 
       if !Mode.auto
-        id = users_event_id
+        id = USERS_EVENT_ID
         menu = [
           # menu button label
           { "id" => "users--user", "title" => _("&User") },
@@ -104,19 +101,16 @@ module Users
 
   private
 
-    attr_reader :users_event_id, :root_event_id
+    USERS_EVENT_ID = "users--user".freeze
+    ROOT_EVENT_ID = "users--root".freeze
+
+    private_constant :USERS_EVENT_ID, :ROOT_EVENT_ID
 
     # The config holding users and groups to create
     #
     # @return [Y2Users::Config]
     def config
-      return @config if @config
-
-      # FIXME: should AutoYaST use `target` configuration as well?
-      id = Mode.auto ? :autoinst : :target
-
-      @config = Y2Users::ConfigManager.instance.config(id)&.copy
-      @config ||= Y2Users::Config.new
+      @config ||= Y2Users::ConfigManager.instance.target&.copy || Y2Users::Config.new
     end
 
     # All users to be created
@@ -195,14 +189,14 @@ module Users
     #
     # @return [String]
     def root_hyperlink
-      "<a href='#{root_event_id}'>"
+      "<a href='#{ROOT_EVEN_ID}'>"
     end
 
     # Returns the HTML hyperlink open tag for user event id
     #
     # @return [String]
     def users_hyperlink
-      "<a href='#{users_event_id}'>"
+      "<a href='#{USERS_EVENT_ID}'>"
     end
 
     # Returns the HTML hyperlink close tag
