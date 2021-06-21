@@ -27,7 +27,7 @@ module Y2Users
   #
   # @example
   #   user = User.new("john")
-  #   user.uid = 1001
+  #   user.uid = "1001"
   #   user.system? #=> false
   #   user.attached? #=> false
   #   user.id #=> 1

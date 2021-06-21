@@ -438,8 +438,8 @@ describe Y2Users::Linux::Writer do
 
     context "for a new regular user with all the attributes" do
       before do
-        user.uid = 1001
-        user.gid = 2001
+        user.uid = "1001"
+        user.gid = "2001"
         user.shell = "/bin/y2shell"
         user.home = "/home/y2test"
         user.gecos = ["First line of", "GECOS"]
@@ -483,8 +483,8 @@ describe Y2Users::Linux::Writer do
       before do
         user2 = Y2Users::User.new("testuser2")
 
-        user.uid = 1001
-        user.gid = 2001
+        user.uid = "1001"
+        user.gid = "2001"
         user.shell = "/bin/y2shell"
         user.home = "/home/y2test"
         user.gecos = ["First line of", "GECOS"]
