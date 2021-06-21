@@ -65,7 +65,7 @@ describe Y2Users::Clients::Auto do
             allow(Yast::Report).to receive(:Error) # fixture contain dup uids
             expect(subject.run).to eq(true)
 
-            config = Y2Users::ConfigManager.instance.config(:autoinst)
+            config = Y2Users::ConfigManager.instance.target
             root_user = config.users.root
             expect(root_user.password.value.encrypted?).to eq true
             expect(root_user.password.value.content).to match(/^\$6\$AS/)
@@ -77,7 +77,7 @@ describe Y2Users::Clients::Auto do
 
           it "sets root password to linuxrc value" do
             expect(subject.run).to eq(true)
-            config = Y2Users::ConfigManager.instance.config(:autoinst)
+            config = Y2Users::ConfigManager.instance.target
             root_user = config.users.root
             expect(root_user.password.value.encrypted?).to eq false
             expect(root_user.password.value.content).to eq "test"

@@ -1,23 +1,26 @@
-# Copyright (c) 2016 SUSE LLC.
-#  All Rights Reserved.
+# Copyright (c) [2016-2021] SUSE LLC
+#
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of version 2 of the GNU General Public License as published
+# by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, contact SUSE LLC.
+#
+# To contact SUSE LLC about this file by physical or electronic mail, you may
+# find current contact information at www.suse.com.
 
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of version 2 or 3 of the GNU General
-#  Public License as published by the Free Software Foundation.
-
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   See the
-#  GNU General Public License for more details.
-
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, contact SUSE LLC.
-
-#  To contact SUSE about this file by physical or electronic mail,
-#  you may find current contact information at www.suse.com
-
+require "yast"
+require "y2users"
+require "users/users_database"
 require "installation/proposal_client"
-require "users/encryption_method"
 
 module Users
   # Default proposal for the users YaST module
@@ -40,9 +43,9 @@ module Users
         }
       else
         {
-          "preformatted_proposal" => HTML.List([users_proposal, root_proposal, encrypt_proposal]),
+          "preformatted_proposal" => HTML.List([users_proposal, root_proposal]),
           "language_changed"      => false,
-          "links"                 => ["users--user", "users--root", "users--encryption"]
+          "links"                 => [USERS_EVENT_ID, ROOT_EVEN_ID]
         }
       end
     end
@@ -57,14 +60,11 @@ module Users
       Wizard.OpenAcceptDialog
 
       case param["chosen_id"]
-      when "users--root"
-        UsersSimple.SkipRootPasswordDialog(false) # do not skip now...
+      when ROOT_EVEN_ID
         client = "inst_root_first"
-      when "users" || "users--user"
-        args["root_dialog_follows"] = false
+        args["force"] = true
+      when USERS_EVENT_ID
         client = "inst_user_first"
-      when "users--encryption"
-        client = "users_encryption_method"
       else
         raise "Unknown action id: #{param["chosen_id"]}"
       end
@@ -78,18 +78,17 @@ module Users
     end
 
     def description
-      menu = []
       id = ""
+      menu = []
 
       if !Mode.auto
-        menu = [ # menu button label
+        id = USERS_EVENT_ID
+        menu = [
+          # menu button label
           { "id" => "users--user", "title" => _("&User") },
           # menu button label
-          { "id" => "users--root", "title" => _("&Root Password") },
-          # menu button label
-          { "id" => "users--encryption", "title" => _("Password &Encryption Type") }
+          { "id" => "users--root", "title" => _("&Root Password") }
         ]
-        id = "users"
       end
 
       {
@@ -102,69 +101,168 @@ module Users
 
   private
 
+    USERS_EVENT_ID = "users--user".freeze
+    ROOT_EVENT_ID = "users--root".freeze
+
+    private_constant :USERS_EVENT_ID, :ROOT_EVENT_ID
+
+    # The config holding users and groups to create
+    #
+    # @return [Y2Users::Config]
+    def config
+      @config ||= Y2Users::ConfigManager.instance.target&.copy || Y2Users::Config.new
+    end
+
+    # All users to be created
+    #
+    # @return [Array<Y2Users::User>]
+    def users
+      return @users if @users
+
+      @users = config.users
+      @users = @users.reject(&:root?) unless Mode.auto
+    end
+
+    # The first user to be created
+    #
+    # @return [Y2Users::User]
+    def user
+      @user = users.first
+    end
+
+    # The root user
+    #
+    # @return [Y2Users::User]
+    def root_user
+      @root_user ||= config.users.root || Y2Users::User.create_root
+    end
+
+    # Whether {#users} is the result of importing a user from another system
+    #
+    # @return [Boolean] true if config holds more than one user or it was imported; false otherwise
+    def imported_users?
+      users.size > 1 || importable_users.include?(user)
+    end
+
+    # Users from a different system that can be imported into the new installation
+    #
+    # @return [Array<Y2Users::User>]
+    def importable_users
+      UsersDatabase.all.first&.users || []
+    end
+
     def users_ay
-      export = Users.Export()
       ret = _("Number of defined users/groups:")
-      ret += "<ul>\n<li>" + format(_("Users: %d"), export["users"].count) + "</li>\n"
-      ret += "<li>" + format(_("Groups: %d"), export["groups"].count) + "</li></ul>"
+      ret += "<ul>\n<li>" + format(_("Users: %d"), config.users.size) + "</li>\n"
+      ret += "<li>" + format(_("Groups: %d"), config.groups.size) + "</li></ul>"
       ret
     end
 
-    def root_proposal
-      msg = if UsersSimple.GetRootPassword != ""
-        # TRANSLATORS: summary label <%1>-<%2> are HTML tags, leave untouched
-        _("<%1>Root Password<%2> set")
-      else
-        # TRANSLATORS: summary label <%1>-<%2> are HTML tags, leave untouched
-        _("<%1>Root Password<%2> not set")
-      end
-      Builtins.sformat(msg, "a href=\"users--root\"", "/a")
-    end
-
+    # Returns the users summary used during normal installation
+    #
+    # @return [String]
     def users_proposal
-      href = "\"users--user\""
-      ahref = "a href=#{href}"
-      # summary label <%1>-<%2> are HTML tags, leave untouched
-      prop = Builtins.sformat(_("No <%1>user<%2> configured"), ahref, "/a")
-      users = UsersSimple.GetUsers
-      user = users.first || {}
-      if users.size > 1 || !user["__imported"].nil?
-        # TRANSLATORS: summary line, %d is the number of users
-        prop = format(
-          n_(
-            "<a href=%s>%d user</a> will be imported", "<a href=%s>%d users</a> will be imported",
-            users.size
-          ), href, users.size
-        )
-      elsif user.fetch("uid", "") != ""
-        # TRANSLATORS: summary line: <%1>-<%2> are HTML tags, leave untouched,
-        # %3 is login name
-        prop = Builtins.sformat(
-          _("<%1>User<%2> %3 configured"),
-          ahref,
-          "/a",
-          user.fetch("uid", "")
-        )
-        if user.fetch("cn", "") != ""
-          # summary line: <%1>-<%2> are HTML tags, leave untouched,
-          # %3 is full name, %4 login name
-          prop = Builtins.sformat(
-            _("<%1>User<%2> %3 (%4) configured"),
-            ahref,
-            "/a",
-            user.fetch("cn", ""),
-            user.fetch("uid", "")
-          )
-        end
-      end
+      return no_user_summary unless user
+      return imported_users_summary if imported_users?
 
-      prop
+      user_summary
     end
 
-    def encrypt_proposal
-      # TRANSLATORS: summary line. Second %s is the name of the method
-      format(_("Password Encryption Method: <a href=%s>%s</a>"),
-        "users--encryption", ::Users::EncryptionMethod.current.label)
+    # Returns the root user summary used during normal installation
+    #
+    # @return [String]
+    def root_proposal
+      password = root_user.password_content
+
+      text = if password.to_s.empty?
+        # TRANSLATORS: summary line: %{hs} and %{he} are the hyperlink start and end respectively.
+        _("%{hs}Root Password%{he} not set")
+      else
+        # TRANSLATORS: summary line: %{hs} and %{he} are the hyperlink start and end respectively.
+        _("%{hs}Root Password%{he} set")
+      end
+
+      format(text, hs: root_hyperlink, he: hyperlink_end)
+    end
+
+    # Returns the HTML hyperlink open tag for root event id
+    #
+    # @return [String]
+    def root_hyperlink
+      "<a href='#{ROOT_EVEN_ID}'>"
+    end
+
+    # Returns the HTML hyperlink open tag for user event id
+    #
+    # @return [String]
+    def users_hyperlink
+      "<a href='#{USERS_EVENT_ID}'>"
+    end
+
+    # Returns the HTML hyperlink close tag
+    #
+    # @return [String]
+    def hyperlink_end
+      "</a>"
+    end
+
+    # Text to display when there are no users configured
+    #
+    # @see #users_proposal
+    # @return [String]
+    def no_user_summary
+      # TRANSLATORS: summary line: %{hs} and %{he} are the hyperlink start and end respectively.
+      format(
+        _("No %{hs}user%{he} configured"),
+        hs: users_hyperlink,
+        he: hyperlink_end
+      )
+    end
+
+    # Text to display when users are being imported
+    #
+    # @see #users_proposal
+    # @return [String]
+    def imported_users_summary
+      # TRANSLATORS: summary line,
+      #   %{hs} and %{he} are the hyperlink start and end respectively.
+      #   %{qty} will be replaced by the number of users
+      format(
+        n_(
+          "%{hs}%{qty} user%{he} will be imported", "%{hs}%{qty} users%{he} will be imported",
+          users.size
+        ),
+        hs:  users_hyperlink,
+        he:  hyperlink_end,
+        qty: users.size
+      )
+    end
+
+    # Text for summarizing the user to be created
+    #
+    # @see #users_proposal
+    # @return [String]
+    def user_summary
+      text = if user.name == user.full_name
+        # TRANSLATORS: summary line,
+        #   %{hs} and %{he} are the hyperlink start and end respectively.
+        #   %{username} will be replaced by the user login name
+        _("%{hs}User%{he} %{username} configured")
+      else
+        # TRANSLATORS: summary line,
+        #   %{hs} and %{he} are the hyperlink start and end respectively.
+        #   %{username} will be replaced by the user login name
+        #   %{full_name} will be replaced by the user name
+        _("%{hs}User%{he} %{full_name} (%{username}) configured")
+      end
+
+      format(
+        text,
+        hs:        users_hyperlink,
+        he:        hyperlink_end,
+        username:  user.name,
+        full_name: user.full_name
+      )
     end
   end
 end

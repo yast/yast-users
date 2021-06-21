@@ -47,6 +47,7 @@ describe Y2Users::Autoinst::Reader do
       expect(root_user.password.value.content).to match(/^\$6\$AS/)
       expect(root_user.password.aging).to be_nil
       expect(root_user.password.account_expiration.expire?).to eq(false)
+      expect(root_user.authorized_keys).to contain_exactly("ssh-rsa AAAAB3Nza")
 
       expect(config.login?).to eq(false)
 

@@ -19,7 +19,6 @@
 require "yast"
 require "ui/installation_dialog"
 require "users/encryption_method"
-Yast.import "UsersSimple"
 
 module Yast
   # This dialog allows the user to select an encryption method for all user passwords

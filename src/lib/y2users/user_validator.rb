@@ -54,9 +54,6 @@ module Y2Users
         err = check_characters
         add_fatal_issue(list, err, NAME_LOC)
 
-        # Yast::UsersSimple.CheckUsernameConflicts is currently used only when manually creating
-        # the initial user during installation, it simply checks against a hard-coded list of
-        # system user names that are expected to exist in a system right after installation.
         err = check_username_conflict
         add_fatal_issue(list, err, NAME_LOC)
       end
@@ -199,8 +196,17 @@ module Y2Users
       "messagebus",
       "nx"
     ].freeze
+
+    # Checks whether the user name already exists in the config or it is included in a hard-coded
+    # list of system user names that are expected to exist in a system.
+    #
+    # @return [String] empty if no error
     def check_username_conflict
-      return "" unless KNOWN_USERS.include?(user.name)
+      usernames = []
+      usernames += user.config.users.without(user.id).map(&:name).compact if user.attached?
+      usernames += KNOWN_USERS
+
+      return "" unless usernames.include?(user.name)
 
       # note duplicite string as in UsersSimple. Keep them in sync.
       _("There is a conflict between the entered\n" \

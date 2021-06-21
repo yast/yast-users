@@ -78,7 +78,7 @@ module Users
     # @param names [Array<String>] names to filter by
     # @return [Y2Users::Config]
     def filtered_config(names)
-      filtered = config.clone
+      filtered = config.copy
 
       filtered.detach(*filtered.groups)
       skipped = filtered.users.reject { |u| names.include?(u.name) }

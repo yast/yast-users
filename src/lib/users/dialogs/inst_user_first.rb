@@ -18,19 +18,19 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "yast2/execute"
 require "ui/installation_dialog"
 require "users/dialogs/users_to_import"
 require "y2users"
-require "y2users/users_simple"
 require "y2users/help_texts"
 require "y2users/password_helper"
+require "y2users/username"
 require "users/users_database"
 require "tmpdir"
 
 module Yast
-  # Dialog for creation of local users during first stage of installation
-  # It stores the user(s) information in the UsersSimple module. The user(s)
-  # will then be created by that module during inst_finish
+  # Dialog for the creation of local users during the installation
+  #
   # rubocop:disable Metrics/ClassLength
   class InstUserFirstDialog < ::UI::InstallationDialog
     include Y2Users::PasswordHelper
@@ -48,10 +48,18 @@ module Yast
     #     :new_user, :import (only possible during installation) and :skip.
     attr_reader :action
 
-    def initialize
-      super
+    # Constructor
+    #
+    # @param config [Y2Users::Config] Config where the changes are reflected (it is modified).
+    # @param user [Y2Users::User] User to work on. If no user is given, then a new user is created.
+    def initialize(config, user: nil)
+      super()
       import_yast_modules
       textdomain "users"
+
+      @config = config
+      # The dialog does not support to have both at the same time, imported users and a new user.
+      @user = user unless imported_users?
 
       @login_modified = false
       # do not open package progress wizard window
@@ -59,17 +67,16 @@ module Yast
 
       init_action
       init_user_attributes
+      init_autologin
+      init_pw_for_root
 
-      # names of imported users selected for writing
-      @usernames_to_import = (action == :import) ? users.map(&:name) : []
+      @usernames_to_import = imported_users.map(&:name)
     end
 
     def run
-      if !enable_local_users?
-        reset
-        # Fate #326447: Allow system role to default to no local user
-        return :auto
-      end
+      # Fate #326447: Allow system role to default to no local user
+      return :auto unless enable_local_users?
+
       super
     end
 
@@ -93,20 +100,16 @@ module Yast
     end
 
     def next_handler
-      case action
+      success = case action
       when :new_user
-        return unless process_new_user_form
-
-        create_new_user
+        new_user_action
       when :import
-        return unless process_import_form
-
-        import_users
+        import_action
       when :skip
-        clean_users_info
+        skip_action
       end
 
-      super
+      super if success
     end
 
     def skip_handler
@@ -127,6 +130,8 @@ module Yast
 
   private
 
+    attr_reader :config
+
     # Imports all the used YaST modules
     #
     # Importing them before class initialization has been observed to
@@ -137,10 +142,8 @@ module Yast
       Yast.import "Label"
       Yast.import "Mode"
       Yast.import "Popup"
-      Yast.import "ProductFeatures"
       Yast.import "Progress"
       Yast.import "Report"
-      Yast.import "UsersSimple"
       Yast.import "ProductFeatures"
       Yast.import "Autologin"
     end
@@ -153,40 +156,36 @@ module Yast
       ProductFeatures::GetBooleanFeatureWithFallback("globals", "enable_local_users", true)
     end
 
-    # Reset things to properly support switching between a system role with
-    # local users and one without: Clear any user already entered including his
-    # password and make sure the password of this user will not be used as the
-    # root password, but the root password dialog will be shown.
-    def reset
-      @users_config = nil
-      @password = nil
-      @use_pw_for_root = false
-      clean_users_info
-    end
-
     def init_focus
       widget = WIDGETS[action].first
       UI.SetFocus(Id(widget)) if widget
     end
 
+    # Sets the initial value for the action selection
+    def init_action
+      @action = if imported_users?
+        :import
+      elsif editing_user?
+        :new_user
+      else
+        # New user is the default option
+        GetInstArgs.going_back ? :skip : :new_user
+      end
+    end
+
     # Initializes the instance variables used to configure a new user
     def init_user_attributes
-      new_user = (action == :new_user) ? user : nil
-      @username = new_user&.name || ""
-      @full_name = new_user&.full_name || ""
-      @password = new_user&.password&.value&.content || ""
-
-      init_autologin
-      init_pw_for_root
+      @username = user.name || ""
+      @full_name = user.full_name || ""
+      @password = user.password_content || ""
     end
 
     # Sets the initial default value for autologin
     def init_autologin
-      @autologin = users_config.login? ? users_config.login.autologin? : false
+      @autologin = config.login? ? config.login.autologin? : false
       # The autologin value from the control file is used only when opening the dialog for first
-      # time (i.e., when the user is not attached yet). Note that in general (e.g., when going back
-      # during the installation), the user is already attached to a config, see {#user}.
-      return if user.attached? || @autologin
+      # time, see {#editing_user?}.
+      return if editing_user? || @autologin
 
       @autologin = true if ProductFeatures.GetBooleanFeature("globals", "enable_autologin") == true
       Builtins.y2debug("autologin default value: %1", @autologin)
@@ -195,7 +194,12 @@ module Yast
     # Sets the initial default value for root pw checkbox
     def init_pw_for_root
       @use_pw_for_root = root_password_matches?
-      return if user.attached? || @use_pw_for_root
+      # Initial status of the "user password for root" option, see {#update_root_password}.
+      @initial_use_pw_for_root = @use_pw_for_root
+
+      # The the control file setting is used only when opening the dialog for first time, see
+      # {#editing_user?}.
+      return if editing_user? || @use_pw_for_root
 
       if ProductFeatures.GetBooleanFeature("globals", "root_password_as_first_user") == true
         @use_pw_for_root = true
@@ -204,62 +208,49 @@ module Yast
       Builtins.y2debug("root_pw default value: %1", @use_pw_for_root)
     end
 
-    # Sets the initial value for the action selection
-    def init_action
-      @action = case users.size
-      when 0
-        # New user is the default option
-        GetInstArgs.going_back ? :skip : :new_user
-      when 1
-        user_imported? ? :import : :new_user
-      else
-        :import
-      end
-    end
-
-    # Config object holding the users and passwords to create
-    #
-    # @return [Y2Users::Config]
-    def users_config
-      @users_config ||= Y2Users::UsersSimple::Reader.new.read
-    end
-
-    # All users to be created
-    #
-    # @return [Array<Y2Users::User>]
-    def users
-      users_config.users.reject(&:root?)
-    end
-
-    # User to be created, useful during the :new_user action in which {#users}
-    # is known to contain only one element
+    # User to work on
     #
     # @return [Y2Users::User]
     def user
-      @user ||= users.first || Y2Users::User.new("")
+      @user ||= Y2Users::User.new("")
+
+      config.attach(@user) unless @user.attached?
+
+      @user
     end
 
-    # Root users for which is possible to define the password during the :new_user action
+    # Root user for which is possible to define the password during the :new_user action
     #
     # @return [Y2Users::User]
     def root_user
-      @root_user ||= users_config.users.root
+      @root_user ||= config.users.root || Y2Users::User.create_root
+
+      config.attach(@root_user) unless @root_user.attached?
+
+      @root_user
     end
 
-    # Checks whether the information entered for the user is valid, reporting the problem to
-    # the user otherwise
+    # Whether the user is being edited
     #
-    # @param target_user [Y2Users::User]
+    # It is assumed that the user is going to be edited if it already has a password.
+    #
     # @return [Boolean]
-    def valid_user?(target_user)
-      issue = target_user.issues(skip: [:password]).first
-      if issue
-        Yast::Report.Error(issue.message)
-        focus_on(issue.location)
-        return false
-      end
+    def editing_user?
+      !user.password.nil?
+    end
 
-      true
+    # Checks whether the current information of the user is valid, reporting the problem otherwise
+    #
+    # @return [Boolean]
+    def valid_user?
+      issue = user.issues(skip: [:password]).first
+
+      return true unless issue
+
+      Yast::Report.Error(issue.message)
+      focus_on(issue.location)
+
+      false
     end
 
     # Whether chosen password if valid or not
@@ -307,14 +298,21 @@ module Yast
       Progress.set(@progress_orig)
     end
 
-    # Whether {#user} is the result of importing a user from another system
+    # Whether there are imported user
+    #
+    # @return [Boolean]
+    def imported_users?
+      imported_users.any?
+    end
+
+    # Imported users from the current config
     #
     # Note that imported users contain all the relevant information while non-imported users that
     # are created during the install process doesn't even have an uid yet at this point.
     #
-    # @return [Boolean]
-    def user_imported?
-      importable_users.include?(user)
+    # @return [Array<Y2Users::User>]
+    def imported_users
+      @imported_users = config.users.select { |u| importable_users.any?(u) }
     end
 
     # Users database that was imported from a different system (done during pre_install)
@@ -341,14 +339,12 @@ module Yast
       value.content == @password
     end
 
-    # Takes the first word from full name and proposes a login name which is then used
-    # to relace the current login name in UI
+    # Proposes the username based on the entered full name
+    #
+    # @see Y2Users::Username.generate_from
     def propose_login
-      # get the first name
       full_name = UI.QueryWidget(Id(:full_name), :Value)
-
-      login = full_name.strip.split(" ", 2).first || ""
-      login = UsersSimple.Transliterate(login).delete("^" + UsersSimple.ValidLognameChars).downcase
+      login = Y2Users::Username.generate_from(full_name)
 
       UI.ChangeWidget(Id(:username), :Value, login)
     end
@@ -366,10 +362,47 @@ module Yast
       refresh
     end
 
+    # Action for the new user option
+    #
+    # Processes the form and performs the actions needed
+    #
+    # @return [Boolean] whether everything was ok
+    def new_user_action
+      return false unless process_new_user_form
+
+      perform_new_user
+
+      true
+    end
+
+    # Action for the import option
+    #
+    # Processes the form and performs the actions needed
+    #
+    # @return [Boolean] whether everything was ok
+    def import_action
+      return false unless process_import_form
+
+      perform_import
+
+      true
+    end
+
+    # Action for the skip option
+    #
+    # Processes the form and performs the actions needed
+    #
+    # @return [Boolean] whether everything was ok
+    def skip_action
+      return false unless process_skip_form
+
+      perform_skip
+
+      true
+    end
+
     def process_new_user_form
       @use_pw_for_root = UI.QueryWidget(Id(:root_pw), :Value)
-
-      target_user = user.copy
 
       # username checks
       @username = UI.QueryWidget(Id(:username), :Value)
@@ -385,10 +418,10 @@ module Yast
 
       @full_name = UI.QueryWidget(Id(:full_name), :Value)
 
-      target_user.name = @username
-      target_user.gecos = [@full_name].compact
+      user.name = @username
+      user.gecos = [@full_name].compact
 
-      return false unless valid_user?(target_user)
+      return false unless valid_user?
 
       # password checks
       pw1 = UI.QueryWidget(Id(:pw1), :Value)
@@ -404,35 +437,17 @@ module Yast
 
       return false unless valid_password?(password)
 
-      target_user.password = password
+      user.password = password
 
       @autologin = UI.QueryWidget(Id(:autologin), :Value)
-
-      update_users_config(target_user)
 
       true
     end
 
-    # Updates the config according to the form values
-    #
-    # @param target_user [Y2Users::User] the user for updating the configuration
-    def update_users_config(target_user)
-      user.name     = target_user.name
-      user.gecos    = target_user.gecos
-      user.password = target_user.password
-      users_config.attach(user) unless user.attached?
-
-      root_user.password = target_user.password if @use_pw_for_root
-
-      autologin_user = @autologin ? user : nil
-      users_config.login ||= Y2Users::Login.new
-      users_config.login.autologin_user = autologin_user
-    end
-
-    # Writes the new user into Yast::UserSimple at the end of the process
-    def create_new_user
-      Y2Users::UsersSimple::Writer.new(users_config).write
-      UsersSimple.SkipRootPasswordDialog(@use_pw_for_root)
+    def perform_new_user
+      remove_imported_users
+      update_root_password
+      configure_login
     end
 
     def process_import_form
@@ -445,26 +460,72 @@ module Yast
         )
         return false
       end
+
+      @autologin = false
+      @use_pw_for_root = false
+
       true
     end
 
-    def import_users
-      config = importing_database.filtered_config(@usernames_to_import)
-      clean_users_info
-      Y2Users::UsersSimple::Writer.new(config).write
+    def perform_import
+      remove_user
+      remove_imported_users
+      configure_login
+      update_root_password
+
+      imported_users = importing_database.filtered_config(@usernames_to_import).users.all
+      config.attach(imported_users.map(&:copy))
     end
 
-    def clean_users_info
-      UsersSimple.SkipRootPasswordDialog(false)
+    def process_skip_form
+      @autologin = false
+      @use_pw_for_root = false
 
-      # Writes an empty config, containing only the root user if needed
-      config = Y2Users::Config.new
-      config.attach(root_user.copy) unless root_dialog_follows
+      true
+    end
 
-      Y2Users::UsersSimple::Writer.new(config).write
+    def perform_skip
+      remove_user
+      remove_imported_users
+      configure_login
+      update_root_password
+    end
 
-      # Invalidates previous config
-      @users_config = nil
+    def remove_user
+      config.detach(user)
+    end
+
+    def remove_imported_users
+      config.detach(imported_users) if imported_users?
+    end
+
+    # Configures the login options
+    def configure_login
+      autologin_user = @autologin ? user : nil
+      config.login ||= Y2Users::LoginConfig.new
+      config.login.autologin_user = autologin_user
+    end
+
+    # Updates the root password according to the selected form options
+    #
+    # The user password is copied to root when the option "use password for root" is selected in
+    # the form. Otherwise, there are two cases where the root password should be invalidated:
+    #
+    # * When the option "use password for root" was deselected, see {#use_pw_for_root_modified?}.
+    # * When the new user password matches with the current root password.
+    def update_root_password
+      if @use_pw_for_root
+        root_user.password = user.password.copy
+      elsif use_pw_for_root_modified? || root_password_matches?
+        root_user.password = nil
+      end
+    end
+
+    # Whether the status of the "use password for root" option in the new user form was modified
+    #
+    # @return [Boolean]
+    def use_pw_for_root_modified?
+      @initial_use_pw_for_root != @use_pw_for_root
     end
 
     def dialog_content
@@ -617,11 +678,6 @@ module Yast
         n_("%d user will be imported", "%d users will be imported", qty)
       end
       Label(Id(:import_qty_label), msg % qty)
-    end
-
-    # indication that client was called directly from proposal
-    def root_dialog_follows
-      @root_dialog_follows ||= GetInstArgs.argmap.fetch("root_dialog_follows", true)
     end
 
     def import_available?
