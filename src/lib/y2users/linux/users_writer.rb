@@ -49,8 +49,8 @@ module Y2Users
         new_users = config.users.without(initial_config.users.ids)
 
         new_users.all.
-          # 2**64 just to have really high number to assign uids after new user with specific uid
-          sort_by { |u| u.uid || 2**64 }.
+          # empty string to process users with uid the last
+          sort_by { |u| u.uid || "" }.reverse.
           each { |u| add_user(u, issues) }
       end
 
