@@ -50,114 +50,47 @@ describe Yast::UsersFinishClient do
       before do
         allow(Yast::Mode).to receive(:autoinst).and_return(autoinst)
         allow(Yast::Execute).to receive(:on_target!).and_return("")
+
+        Y2Users::ConfigManager.instance.target = target_config
+
+        allow(Y2Users::ConfigManager.instance).to receive(:system)
+          .with(force_read: true).and_return(system_config)
+
+        allow(Y2Users::Linux::Writer).to receive(:new).and_return(writer)
       end
+
+      let(:writer) { instance_double(Y2Users::Linux::Writer, write: issues) }
+
+      let(:issues) { [] }
 
       around do |example|
         change_scr_root(FIXTURES_PATH.join("root")) { example.run }
         FileUtils.rm_rf(FIXTURES_PATH.join("root", "var"))
       end
 
-      context "in autoinst mode" do
-        let(:autoinst) { true }
-        let(:initial_stage) { true }
+      let(:target_config) do
+        Y2Users::Config.new.tap { |c| c.attach(target_root) }
+      end
 
-        let(:ay_config) do
-          Y2Users::Config.new.tap { |c| c.attach(ay_root) }
-        end
-
-        let(:ay_root) do
-          Y2Users::User.new("root").tap do |user|
-            user.uid = "1"
-            user.gecos = ["Superuser"]
-          end
-        end
-
-        let(:system_config) do
-          Y2Users::Config.new.tap { |c| c.attach(system_root) }
-        end
-
-        let(:system_root) do
-          Y2Users::User.new("root").tap do |user|
-            user.uid = "0"
-            user.shell = "/bin/bash"
-          end
-        end
-
-        let(:writer) { instance_double(Y2Users::Linux::Writer, write: []) }
-
-        before do
-          allow(Yast::Stage).to receive(:initial).and_return(initial_stage)
-          allow(Y2Users::ConfigManager.instance).to receive(:config)
-            .with(:autoinst).and_return(ay_config)
-          allow(Y2Users::ConfigManager.instance).to receive(:system)
-            .with(force_read: true).and_return(system_config)
-        end
-
-        context "during the 1st stage" do
-          it "merges system and AutoYaST configuration keeping the original uids/gids" do
-            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
-              root = target.users.first
-              expect(root.uid).to eq("0")
-              expect(root.gecos).to eq(["Superuser"])
-              expect(root.shell).to eq("/bin/bash")
-              expect(sys).to eq(system_config)
-              writer
-            end
-            expect(writer).to receive(:write).and_return([])
-            subject.run
-          end
-        end
-
-        context "on an installed system" do
-          let(:initial_stage) { false }
-
-          it "merges system and AutoYaST configuration updating the uids/gids" do
-            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
-              root = target.users.first
-              expect(root.uid).to eq("1")
-              expect(root.gecos).to eq(["Superuser"])
-              # TODO: should we use the default value?
-              # expect(root.shell).to eq("/bin/bash")
-              expect(sys).to eq(system_config)
-              writer
-            end
-            expect(writer).to receive(:write).and_return([])
-            subject.run
-          end
+      let(:target_root) do
+        Y2Users::User.new("root").tap do |user|
+          user.uid = "1"
+          user.gecos = ["Superuser"]
         end
       end
 
-      context "not in autoinst mode" do
-        let(:autoinst) { false }
+      let(:system_config) do
+        Y2Users::Config.new.tap { |c| c.attach(system_root) }
+      end
 
-        before do
-          # Mocking to avoid to write to the system
-          allow_any_instance_of(Y2Users::Linux::Writer).to receive(:write).and_return(issues)
-
-          # Mocking to avoid to read from the system
-          allow(Y2Users::ConfigManager.instance).to receive(:system).and_return(system_config)
-
-          allow(system_config).to receive(:merge).with(Y2Users::ConfigManager.instance.target)
-            .and_return(target_config)
+      let(:system_root) do
+        Y2Users::User.new("root").tap do |user|
+          user.uid = "0"
+          user.shell = "/bin/bash"
         end
+      end
 
-        let(:system_config) { Y2Users::Config.new }
-
-        let(:target_config) { Y2Users::Config.new }
-
-        let(:writer) { instance_double(Y2Users::Linux::Writer, write: issues) }
-
-        let(:issues) { [] }
-
-        it "calls the linux writer with the expected configs" do
-          expect(Y2Users::Linux::Writer).to receive(:new).with(target_config, system_config)
-            .and_return(writer)
-
-          expect(writer).to receive(:write)
-
-          subject.run
-        end
-
+      shared_examples "issues report" do
         context "when the writer does not report issues" do
           let(:issues) { [] }
 
@@ -181,6 +114,75 @@ describe Yast::UsersFinishClient do
             subject.run
           end
         end
+      end
+
+      context "in autoinst mode" do
+        let(:autoinst) { true }
+
+        before do
+          allow(Yast::Stage).to receive(:initial).and_return(initial_stage)
+        end
+
+        context "during the 1st stage" do
+          let(:initial_stage) { true }
+
+          it "merges system and AutoYaST configuration keeping the original uids/gids" do
+            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
+              root = target.users.root
+              expect(root.uid).to eq("0")
+              expect(root.gecos).to eq(["Superuser"])
+              expect(root.shell).to eq("/bin/bash")
+              expect(sys).to eq(system_config)
+            end.and_return(writer)
+
+            expect(writer).to receive(:write)
+
+            subject.run
+          end
+
+          include_examples "issues report"
+        end
+
+        context "on an installed system" do
+          let(:initial_stage) { false }
+
+          it "merges system and AutoYaST configuration updating the uids/gids" do
+            expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
+              root = target.users.root
+              expect(root.uid).to eq("1")
+              expect(root.gecos).to eq(["Superuser"])
+              # TODO: should we use the default value?
+              # expect(root.shell).to eq("/bin/bash")
+              expect(sys).to eq(system_config)
+            end.and_return(writer)
+
+            expect(writer).to receive(:write)
+
+            subject.run
+          end
+
+          include_examples "issues report"
+        end
+      end
+
+      context "not in autoinst mode" do
+        let(:autoinst) { false }
+
+        it "merges system and target configuration" do
+          expect(Y2Users::Linux::Writer).to receive(:new) do |target, sys|
+            root = target.users.root
+            expect(root.uid).to eq("1")
+            expect(root.gecos).to eq(["Superuser"])
+            expect(root.shell).to be_nil
+            expect(sys).to eq(system_config)
+          end.and_return(writer)
+
+          expect(writer).to receive(:write)
+
+          subject.run
+        end
+
+        include_examples "issues report"
       end
     end
   end
