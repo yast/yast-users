@@ -50,8 +50,8 @@ module Y2Users
 
         new_users.all.
           # empty string to process users without uid the last
-          sort_by { |u| u.uid || "" }.reverse.
-          each { |u| add_user(u, issues) }
+          sort_by { |u| u.uid || "" }.reverse
+          .each { |u| add_user(u, issues) }
       end
 
       # Applies changes for the edited users

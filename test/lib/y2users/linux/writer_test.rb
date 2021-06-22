@@ -531,7 +531,8 @@ describe Y2Users::Linux::Writer do
           )
         end
 
-        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, "--create-home", "testuser2")
+        expect(Yast::Execute).to receive(:on_target!).ordered
+          .with(/useradd/, "--create-home", "testuser2")
 
         writer.write
       end
