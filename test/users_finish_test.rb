@@ -109,7 +109,7 @@ describe Yast::UsersFinishClient do
           let(:issue2) { Y2Issues::Issue.new("error 2") }
 
           it "reports all errors to the user" do
-            expect(Yast::Report).to receive(:Error).with("error 1\n\nerror 2")
+            expect(Yast2::Popup).to receive(:show).with(/error 1.*error 2/, anything)
 
             subject.run
           end

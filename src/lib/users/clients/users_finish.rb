@@ -29,6 +29,7 @@ require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
 require "y2users/ids_validator"
+require "y2issues/reporter"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -110,13 +111,9 @@ module Yast
 
     # Reports issues
     #
-    # TODO: This is a temporary solution. Probably, warnings should not be shown.
-    #
     # @param issues [Array<Y2Issues::Issue>]
     def report_issues(issues)
-      message = issues.map(&:message).join("\n\n")
-
-      Report.Error(message)
+      Y2Issues::Reporter.new(issues).report
     end
   end
 end
