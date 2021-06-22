@@ -28,6 +28,7 @@ require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
+require "y2users/ids_validator"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation
@@ -50,8 +51,9 @@ module Yast
     #
     # All the issues detected by the writer are reported to the user.
     def write
+      issues = check_ids
       writer = Y2Users::Linux::Writer.new(target_config, system_config)
-      issues = writer.write
+      issues.concat(writer.write)
 
       return if issues.empty?
 
@@ -91,6 +93,12 @@ module Yast
       merger.new(@target_config, Y2Users::ConfigManager.instance.target).merge
 
       @target_config
+    end
+
+    def check_ids
+      validator = Y2Users::IdsValidator.new(Y2Users::ConfigManager.instance.target)
+
+      validator.issues
     end
 
     # System config, which contains all the current users on the system
