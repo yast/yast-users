@@ -1,6 +1,6 @@
-# Use-cases of the Old YaST Users Module
+# Use-cases of the YaST Users Module
 
-This document is intended to describe the use-cases of the old YaST Users module.
+This document is intended to describe the use-cases of the YaST Users module.
 
 Disclaimer: Everything described here is the result of playing with the module's UI. It is not based on any official requirements. Some customer's use-cases could be overlooked.
 

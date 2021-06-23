@@ -7,8 +7,7 @@ itself is under the responsibility of the YaST Team at SUSE.
 
 ## The yast2-users package
 
-As explained in the [detailed document](./use-cases-old-modules.md), the YaST Users module can be
-used to:
+As explained in the [detailed document](./use-cases.md), the YaST Users module can be used to:
 
  * List, add, modify and delete local users and groups stored in the traditional Unix files
    `/etc/passwd`, `/etc/groups`, etc.
