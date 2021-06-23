@@ -86,7 +86,7 @@ module Y2Users
     def add_fatal_issue(list, error, location)
       return if error.empty?
 
-      list << Y2Issues::Issue.new(error, location: location, severity: :fatal)
+      list << Y2Issues::Issue.new(error, location: location, severity: :error)
     end
 
     MIN_LENGTH = 2

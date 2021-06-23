@@ -53,7 +53,7 @@ describe Y2Users::PasswordHelper do
     end
 
     context "when there is any fatal issue" do
-      let(:issues) { [Y2Issues::Issue.new("A fatal issue", severity: :fatal)] }
+      let(:issues) { [Y2Issues::Issue.new("A fatal issue", severity: :error)] }
 
       it "reports an error" do
         expect(Yast::Report).to receive(:Error).with(/fatal issue/)

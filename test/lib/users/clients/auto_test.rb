@@ -89,7 +89,7 @@ describe Y2Users::Clients::Auto do
         let(:users) { { "users" => [] } }
         let(:reader) { Y2Users::Autoinst::Reader.new(users) }
         let(:issues) { Y2Issues::List.new }
-        let(:continue?) { :yes }
+        let(:continue?) { true }
 
         let(:result) do
           Y2Users::ReadResult.new(Y2Users::Config.new, issues)
@@ -108,7 +108,7 @@ describe Y2Users::Clients::Auto do
         end
 
         context "and the user wants to continue" do
-          let(:continue?) { :yes }
+          let(:continue?) { true }
 
           it "returns true" do
             expect(subject.run).to eq(true)
@@ -116,7 +116,7 @@ describe Y2Users::Clients::Auto do
         end
 
         context "and the user does not want to continue" do
-          let(:continue?) { :no }
+          let(:continue?) { false }
 
           it "returns false" do
             expect(subject.run).to eq(false)
