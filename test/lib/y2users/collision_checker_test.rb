@@ -23,9 +23,9 @@ require_relative "test_helper"
 require "y2users/config"
 require "y2users/user"
 require "y2users/group"
-require "y2users/ids_validator"
+require "y2users/collision_checker"
 
-describe Y2Users::IdsValidator do
+describe Y2Users::CollisionChecker do
   subject(:validator) { described_class.new(config) }
 
   let(:config) { Y2Users::Config.new }
@@ -53,7 +53,7 @@ describe Y2Users::IdsValidator do
       end
     end
 
-    context "when there is a user collision" do
+    context "when there is a user uids collision" do
       before do
         user1 = Y2Users::User.new("test")
         config.attach(user1)
@@ -78,7 +78,29 @@ describe Y2Users::IdsValidator do
       end
     end
 
-    context "when there is a group collision" do
+    context "when there is a user names collision" do
+      before do
+        user1 = Y2Users::User.new("test")
+        config.attach(user1)
+
+        user2 = Y2Users::User.new("test2")
+        user2.uid = "1001"
+        config.attach(user2)
+
+
+        user4 = Y2Users::User.new("test")
+        user4.uid = "1000"
+        config.attach(user4)
+      end
+
+      it "returns issue for conflict" do
+        expect(validator.issues).to_not be_empty
+        expect(validator.issues.size).to eq 1
+        expect(validator.issues.to_a.first.message).to eq "User test is specified multiple times."
+      end
+    end
+
+    context "when there is a group gids collision" do
       before do
         group1 = Y2Users::Group.new("test")
         config.attach(group1)
@@ -102,5 +124,27 @@ describe Y2Users::IdsValidator do
         expect(validator.issues.to_a.first.message).to eq "Groups test3, test4 have same GID 1000."
       end
     end
+
+    context "when there is a group names collision" do
+      before do
+        group1 = Y2Users::Group.new("test")
+        config.attach(group1)
+
+        group2 = Y2Users::Group.new("test2")
+        group2.gid = "1001"
+        config.attach(group2)
+
+        group3 = Y2Users::Group.new("test")
+        group3.gid = "1000"
+        config.attach(group3)
+      end
+
+      it "returns issue for conflict" do
+        expect(validator.issues).to_not be_empty
+        expect(validator.issues.size).to eq 1
+        expect(validator.issues.to_a.first.message).to eq "Group test is specified multiple times."
+      end
+    end
+
   end
 end

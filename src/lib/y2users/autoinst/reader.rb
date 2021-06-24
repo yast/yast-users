@@ -19,6 +19,7 @@
 
 require "date"
 require "y2users/parsers/shadow"
+require "y2users/collision_checker"
 require "y2users/user"
 require "y2users/group"
 require "y2users/password"
@@ -96,6 +97,7 @@ module Y2Users
           read_login(cfg)
           read_user_defaults(cfg)
         end
+        issues.concat(CollisionChecker.new(config).issues)
         Y2Users::ReadResult.new(config, issues)
       end
 

@@ -20,16 +20,20 @@
 require "y2issues"
 
 module Y2Users
-  # Internal class to validate the ids.
+  # Internal class to check if there are collisions in config.
   # This is not part of the stable API.
-  class IdsValidator
+  class CollisionChecker
     include Yast::I18n
 
     # Issue location describing the Group#gid attribute
-    GROUP_LOC = "group:gid".freeze
+    GROUP_ID_LOC = "group:gid".freeze
+    # Issue location describing the Group#name attribute
+    GROUP_NAME_LOC = "group:name".freeze
     # Issue location describing the User#uid attribute
-    USER_LOC = "user:uid".freeze
-    private_constant :GROUP_LOC, :USER_LOC
+    USER_ID_LOC = "user:uid".freeze
+    # Issue location describing the User#uid attribute
+    USER_NAME_LOC = "user:name".freeze
+    private_constant :GROUP_ID_LOC, :GROUP_NAME_LOC, :USER_ID_LOC, :USER_NAME_LOC
 
     # Constructor
     #
@@ -45,8 +49,10 @@ module Y2Users
     def issues
       list = Y2Issues::List.new
 
-      list.concat(duplicite_users)
-      list.concat(duplicite_groups)
+      list.concat(duplicite_users_ids)
+      list.concat(duplicite_users_names)
+      list.concat(duplicite_groups_ids)
+      list.concat(duplicite_groups_names)
 
       list
     end
@@ -56,7 +62,7 @@ module Y2Users
     # @return [Y2Users::Config] config to validate
     attr_reader :config
 
-    def duplicite_users
+    def duplicite_users_ids
       grouped = config.users.all.group_by(&:uid)
       grouped.delete(nil)
       grouped.select! { |_uid, users| users.size > 1 } # colliding uids
@@ -65,13 +71,29 @@ module Y2Users
         msg = format(_("Users %{users} have same UID %{uid}."),
           users: users.map(&:name).join(", "),
           uid:   uid)
-        Y2Issues::Issue.new(msg, location: USER_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: USER_ID_LOC, severity: :warn)
       end
 
       Y2Issues::List.new(issues)
     end
 
-    def duplicite_groups
+    def duplicite_users_names
+      grouped = config.users.all.group_by(&:name)
+      # missing or invalid name is caught by user validation, so skip it here
+      grouped.delete(nil)
+      grouped.delete("")
+      grouped.select! { |_name, users| users.size > 1 } # colliding uids
+
+      issues = grouped.map do |name, users|
+        msg = format(_("User %{user} is specified multiple times."),
+          user: name)
+        Y2Issues::Issue.new(msg, location: USER_NAME_LOC, severity: :warn)
+      end
+
+      Y2Issues::List.new(issues)
+    end
+
+    def duplicite_groups_ids
       grouped = config.groups.all.group_by(&:gid)
       grouped.delete(nil)
       grouped.select! { |_gid, groups| groups.size > 1 } # colliding uids
@@ -80,7 +102,23 @@ module Y2Users
         msg = format(_("Groups %{groups} have same GID %{gid}."),
           groups: groups.map(&:name).join(", "),
           gid:    gid)
-        Y2Issues::Issue.new(msg, location: GROUP_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: GROUP_ID_LOC, severity: :warn)
+      end
+
+      Y2Issues::List.new(issues)
+    end
+
+    def duplicite_groups_names
+      grouped = config.groups.all.group_by(&:name)
+      # missing or invalid name is caught by user validation, so skip it here
+      grouped.delete(nil)
+      grouped.delete("")
+      grouped.select! { |_name, groups| groups.size > 1 } # colliding uids
+
+      issues = grouped.map do |name, groups|
+        msg = format(_("Group %{name} is specified multiple times."),
+          name: name)
+        Y2Issues::Issue.new(msg, location: GROUP_NAME_LOC, severity: :warn)
       end
 
       Y2Issues::List.new(issues)

@@ -28,7 +28,6 @@ require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
-require "y2users/ids_validator"
 require "y2issues/reporter"
 
 module Yast
@@ -52,9 +51,8 @@ module Yast
     #
     # All the issues detected by the writer are reported to the user.
     def write
-      issues = check_ids
       writer = Y2Users::Linux::Writer.new(target_config, system_config)
-      issues.concat(writer.write)
+      issues = writer.write
 
       return if issues.empty?
 
