@@ -21,6 +21,7 @@ require "yast"
 require "installation/finish_client"
 # target file to run system reader on target system
 require "yast2/target_file"
+require "y2issues"
 require "y2users/autoinst/reader"
 require "y2users/config_merger"
 require "y2users/autoinst/config_merger"
@@ -56,7 +57,7 @@ module Yast
       return if issues.empty?
 
       log.error(issues.inspect)
-      report_issues(issues)
+      Y2Issues.report(issues, warn: :continue, error: :continue)
     end
 
   protected
@@ -98,17 +99,6 @@ module Yast
     # @return [Y2Users::Config]
     def system_config
       @system_config ||= Y2Users::ConfigManager.instance.system(force_read: true)
-    end
-
-    # Reports issues
-    #
-    # TODO: This is a temporary solution. Probably, warnings should not be shown.
-    #
-    # @param issues [Array<Y2Issues::Issue>]
-    def report_issues(issues)
-      message = issues.map(&:message).join("\n\n")
-
-      Report.Error(message)
     end
   end
 end

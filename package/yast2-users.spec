@@ -32,8 +32,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libtool
 BuildRequires:  perl-Digest-SHA1
 BuildRequires:  update-desktop-files
-# SectionWithAttributes allows blank
-BuildRequires:  yast2 >= 4.4.9
+# Updated API for Y2Issues
+BuildRequires:  yast2 >= 4.4.14
 BuildRequires:  yast2-core-devel
 BuildRequires:  yast2-devtools >= 4.2.2
 BuildRequires:  yast2-perl-bindings
@@ -57,8 +57,8 @@ Requires:       yast2-perl-bindings >= 2.18.0
 # this forces using yast2-ldap with correct LDAP object names (fate#303596)
 Requires:       yast2-ldap >= 3.1.2
 
-# Support for umask in Yast::ShadowConfig
-Requires:       yast2 >= 4.4.6
+# Updated API for Y2Issues
+Requires:       yast2 >= 4.4.14
 # cryptsha256, cryptsha516
 Requires:       yast2-core >= 2.21.0
 

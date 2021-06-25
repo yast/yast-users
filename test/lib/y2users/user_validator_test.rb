@@ -44,7 +44,7 @@ describe Y2Users::UserValidator do
 
   describe "#issues" do
     let(:issues) { subject.issues(skip: skipped_attrs) }
-    let(:fatal_issues_messages) { issues.map.select(&:fatal?).map(&:message) }
+    let(:fatal_issues_messages) { issues.map.select(&:error?).map(&:message) }
     let(:skipped_attrs) { [] }
 
     context "when not skipping the name attribute validations" do

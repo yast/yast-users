@@ -52,7 +52,7 @@ module Y2Users
           read_linuxrc_root_pwd(result.config)
 
           if result.issues?
-            return false unless Y2Issues.report(result.issues) == :yes
+            return false unless Y2Issues.report(result.issues)
           end
 
           Y2Users::ConfigManager.instance.target = result.config
