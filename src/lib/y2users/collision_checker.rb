@@ -25,12 +25,6 @@ module Y2Users
   class CollisionChecker
     include Yast::I18n
 
-    # Issue location describing the Groups issue
-    GROUPS_LOC = "autoyast:groups".freeze
-    # Issue location describing the Users issue
-    USERS_LOC = "autoyast:users".freeze
-    private_constant :GROUPS_LOC, :USERS_LOC
-
     # Constructor
     #
     # @param config [Y2Users::Config] config to detect colliding ids
@@ -63,7 +57,7 @@ module Y2Users
         msg = format(_("Users %{users} have same UID %{uid}."),
           users: users.map(&:name).join(", "),
           uid:   uid)
-        Y2Issues::Issue.new(msg, location: USERS_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, severity: :warn)
       end
     end
 
@@ -71,7 +65,7 @@ module Y2Users
       duplicate_issues(config.users, :name) do |name, _users|
         msg = format(_("User %{user} is specified multiple times."),
           user: name)
-        Y2Issues::Issue.new(msg, location: USERS_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, severity: :warn)
       end
     end
 
@@ -80,7 +74,7 @@ module Y2Users
         msg = format(_("Groups %{groups} have same GID %{gid}."),
           groups: groups.map(&:name).join(", "),
           gid:    gid)
-        Y2Issues::Issue.new(msg, location: GROUPS_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, severity: :warn)
       end
     end
 
@@ -88,7 +82,7 @@ module Y2Users
       duplicate_issues(config.groups, :name) do |name, _groups|
         msg = format(_("Group %{name} is specified multiple times."),
           name: name)
-        Y2Issues::Issue.new(msg, location: GROUPS_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, severity: :warn)
       end
     end
 
