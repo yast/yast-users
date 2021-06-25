@@ -95,12 +95,6 @@ module Yast
       @target_config
     end
 
-    def check_ids
-      validator = Y2Users::IdsValidator.new(Y2Users::ConfigManager.instance.target)
-
-      validator.issues
-    end
-
     # System config, which contains all the current users on the system
     #
     # @return [Y2Users::Config]
