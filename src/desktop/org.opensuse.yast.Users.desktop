@@ -26,5 +26,5 @@ Exec=xdg-su -c "/sbin/yast2 users"
 
 Name=YaST User and Group Management
 GenericName=User and Group Management
-Comment=Add, Edit and Delete Users or User Groups
+Comment="Add, Edit and Delete Users or User Groups"
 StartupNotify=true
