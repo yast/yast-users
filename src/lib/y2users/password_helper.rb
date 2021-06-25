@@ -36,8 +36,8 @@ module Y2Users
       textdomain "users"
     end
 
-    # Checks whether the entered password is acceptable, reporting fatal problems to the user and
-    # asking for confirmation for the non-fatal ones
+    # Checks whether the entered password is acceptable, reporting errors to the user and asking
+    # for confirmation for the warnings
     #
     # @param user [Y2Users::User]
     # @return [Boolean]
@@ -47,7 +47,7 @@ module Y2Users
 
       Yast::UI.SetFocus(Id(:pw1))
 
-      fatal = issues.find(&:fatal?)
+      fatal = issues.find(&:error?)
       if fatal
         Yast::Report.Error(fatal.message)
         return false

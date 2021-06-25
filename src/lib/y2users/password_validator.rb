@@ -46,7 +46,7 @@ module Y2Users
 
       err = check_password
       if !err.empty?
-        list << Y2Issues::Issue.new(err, location: LOCATION, severity: :fatal)
+        list << Y2Issues::Issue.new(err, location: LOCATION, severity: :error)
         # We already have a fatal error, no need to continue. Subsequent steps may need
         # to load the cracklib extension.
         return list

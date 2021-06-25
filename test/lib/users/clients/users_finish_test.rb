@@ -23,10 +23,10 @@ require_relative "../../../test_helper"
 require "fileutils"
 require "yaml"
 require "users/clients/users_finish"
+require "y2issues"
 
 Yast.import "WFM"
 Yast.import "Autologin"
-Yast.import "Report"
 
 describe Yast::UsersFinishClient do
   describe "#run" do
@@ -95,21 +95,21 @@ describe Yast::UsersFinishClient do
           let(:issues) { [] }
 
           it "does not report errors to the user" do
-            expect(Yast::Report).to_not receive(:Error)
+            expect(Y2Issues).to_not receive(:report)
 
             subject.run
           end
         end
 
         context "when the writer reports issues" do
-          let(:issues) { [issue1, issue2] }
+          let(:issues) { Y2Issues::List.new([issue1, issue2]) }
 
           let(:issue1) { Y2Issues::Issue.new("error 1") }
 
           let(:issue2) { Y2Issues::Issue.new("error 2") }
 
           it "reports all errors to the user" do
-            expect(Yast2::Popup).to receive(:show).with(/error 1.*error 2/, anything)
+            expect(Y2Issues).to receive(:report).with(issues, any_args)
 
             subject.run
           end
