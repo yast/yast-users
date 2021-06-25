@@ -25,15 +25,11 @@ module Y2Users
   class CollisionChecker
     include Yast::I18n
 
-    # Issue location describing the Group#gid attribute
-    GROUP_ID_LOC = "group:gid".freeze
-    # Issue location describing the Group#name attribute
-    GROUP_NAME_LOC = "group:name".freeze
-    # Issue location describing the User#uid attribute
-    USER_ID_LOC = "user:uid".freeze
-    # Issue location describing the User#uid attribute
-    USER_NAME_LOC = "user:name".freeze
-    private_constant :GROUP_ID_LOC, :GROUP_NAME_LOC, :USER_ID_LOC, :USER_NAME_LOC
+    # Issue location describing the Groups issue
+    GROUPS_LOC = "autoyast:groups".freeze
+    # Issue location describing the Users issue
+    USERS_LOC = "autoyast:users".freeze
+    private_constant :GROUPS_LOC, :USERS_LOC
 
     # Constructor
     #
@@ -49,10 +45,10 @@ module Y2Users
     def issues
       list = Y2Issues::List.new
 
-      list.concat(duplicite_users_ids)
-      list.concat(duplicite_users_names)
-      list.concat(duplicite_groups_ids)
-      list.concat(duplicite_groups_names)
+      list.concat(duplicate_users_ids)
+      list.concat(duplicate_users_names)
+      list.concat(duplicate_groups_ids)
+      list.concat(duplicate_groups_names)
 
       list
     end
@@ -62,63 +58,49 @@ module Y2Users
     # @return [Y2Users::Config] config to validate
     attr_reader :config
 
-    def duplicite_users_ids
-      grouped = config.users.all.group_by(&:uid)
-      grouped.delete(nil)
-      grouped.select! { |_uid, users| users.size > 1 } # colliding uids
-
-      issues = grouped.map do |uid, users|
+    def duplicate_users_ids
+      duplicate_issues(config.users, :uid) do |uid, users|
         msg = format(_("Users %{users} have same UID %{uid}."),
           users: users.map(&:name).join(", "),
           uid:   uid)
-        Y2Issues::Issue.new(msg, location: USER_ID_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: USERS_LOC, severity: :warn)
       end
-
-      Y2Issues::List.new(issues)
     end
 
-    def duplicite_users_names
-      grouped = config.users.all.group_by(&:name)
-      # missing or invalid name is caught by user validation, so skip it here
-      grouped.delete(nil)
-      grouped.delete("")
-      grouped.select! { |_name, users| users.size > 1 } # colliding uids
-
-      issues = grouped.map do |name, _users|
+    def duplicate_users_names
+      duplicate_issues(config.users, :name) do |name, _users|
         msg = format(_("User %{user} is specified multiple times."),
           user: name)
-        Y2Issues::Issue.new(msg, location: USER_NAME_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: USERS_LOC, severity: :warn)
       end
-
-      Y2Issues::List.new(issues)
     end
 
-    def duplicite_groups_ids
-      grouped = config.groups.all.group_by(&:gid)
-      grouped.delete(nil)
-      grouped.select! { |_gid, groups| groups.size > 1 } # colliding uids
-
-      issues = grouped.map do |gid, groups|
+    def duplicate_groups_ids
+      duplicate_issues(config.groups, :gid) do |gid, groups|
         msg = format(_("Groups %{groups} have same GID %{gid}."),
           groups: groups.map(&:name).join(", "),
           gid:    gid)
-        Y2Issues::Issue.new(msg, location: GROUP_ID_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: GROUPS_LOC, severity: :warn)
       end
-
-      Y2Issues::List.new(issues)
     end
 
-    def duplicite_groups_names
-      grouped = config.groups.all.group_by(&:name)
-      # missing or invalid name is caught by user validation, so skip it here
-      grouped.delete(nil)
-      grouped.delete("")
-      grouped.select! { |_name, groups| groups.size > 1 } # colliding uids
-
-      issues = grouped.map do |name, _groups|
+    def duplicate_groups_names
+      duplicate_issues(config.groups, :name) do |name, _groups|
         msg = format(_("Group %{name} is specified multiple times."),
           name: name)
-        Y2Issues::Issue.new(msg, location: GROUP_NAME_LOC, severity: :warn)
+        Y2Issues::Issue.new(msg, location: GROUPS_LOC, severity: :warn)
+      end
+    end
+
+    def duplicate_issues(elements, attr, &block)
+      grouped = elements.all.group_by(&attr)
+      # missing or invalid values are caught by other validation, so skip it here
+      grouped.delete(nil)
+      grouped.delete("")
+      grouped.select! { |_k, v| v.size > 1 } # more them one, so collision
+
+      issues = grouped.map do |k, v|
+        block.call(k, v)
       end
 
       Y2Issues::List.new(issues)
