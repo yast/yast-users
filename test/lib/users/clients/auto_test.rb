@@ -30,9 +30,11 @@ describe Y2Users::Clients::Auto do
       let(:args) { [func, users] }
 
       context "when double users have been given in the profile" do
+        let(:mode) { "normal" }
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_error.yml")) }
 
         it "report error" do
+          allow(Yast::Stage).to receive(:initial).and_return(false)
           expect(Yast::Report).to receive(:Error)
             .with(_("Found users in profile with equal <username>."))
           expect(Yast::Report).to receive(:Error)
@@ -62,7 +64,7 @@ describe Y2Users::Clients::Auto do
           let(:users) { USERS_EXPORT }
 
           it "keeps root password from profile" do
-            allow(Yast::Report).to receive(:Error) # fixture contain dup uids
+            allow(Y2Issues).to receive(:report).and_return(true) # fixture contain dup uids
             expect(subject.run).to eq(true)
 
             config = Y2Users::ConfigManager.instance.target
