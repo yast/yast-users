@@ -84,7 +84,7 @@ module Y2Users
       grouped.delete("")
       grouped.select! { |_name, users| users.size > 1 } # colliding uids
 
-      issues = grouped.map do |name, users|
+      issues = grouped.map do |name, _users|
         msg = format(_("User %{user} is specified multiple times."),
           user: name)
         Y2Issues::Issue.new(msg, location: USER_NAME_LOC, severity: :warn)
@@ -115,7 +115,7 @@ module Y2Users
       grouped.delete("")
       grouped.select! { |_name, groups| groups.size > 1 } # colliding uids
 
-      issues = grouped.map do |name, groups|
+      issues = grouped.map do |name, _groups|
         msg = format(_("Group %{name} is specified multiple times."),
           name: name)
         Y2Issues::Issue.new(msg, location: GROUP_NAME_LOC, severity: :warn)

@@ -87,7 +87,6 @@ describe Y2Users::CollisionChecker do
         user2.uid = "1001"
         config.attach(user2)
 
-
         user4 = Y2Users::User.new("test")
         user4.uid = "1000"
         config.attach(user4)
