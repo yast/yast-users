@@ -18,7 +18,9 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
-require "y2issues"
+
+require "y2users"
+require "y2users/read_result"
 
 describe Y2Users::ReadResult do
   subject(:result) { Y2Users::ReadResult.new(config, issues) }

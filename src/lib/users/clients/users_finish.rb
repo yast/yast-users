@@ -29,6 +29,7 @@ require "y2users/linux/reader"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/config_manager"
+require "y2issues/reporter"
 
 module Yast
   # This client takes care of setting up the users at the end of the installation

@@ -48,7 +48,10 @@ module Y2Users
       def add_users(issues)
         new_users = config.users.without(initial_config.users.ids)
 
-        new_users.each { |u| add_user(u, issues) }
+        new_users.all.
+          # empty string to process users without uid the last
+          sort_by { |u| u.uid || "" }.reverse
+          .each { |u| add_user(u, issues) }
       end
 
       # Applies changes for the edited users
@@ -261,6 +264,9 @@ module Y2Users
         else
           opts.concat(create_home_options(user))
         end
+
+        # user is already warned in advance
+        opts << "--non-unique" if user.uid
 
         opts << user.name
         opts

@@ -44,7 +44,6 @@ module Y2Users
     protected
 
       def import(param)
-        check_users(param["users"] || [])
         # Use new API for autoinstallation
         if Yast::Stage.initial
           reader = Y2Users::Autoinst::Reader.new(param)
@@ -60,6 +59,7 @@ module Y2Users
           true
         # and old one for running system like autoyast UI
         else
+          check_users(param["users"] || [])
           Yast::Users.Import(param)
         end
       end

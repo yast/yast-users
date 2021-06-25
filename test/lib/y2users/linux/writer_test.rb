@@ -465,8 +465,8 @@ describe Y2Users::Linux::Writer do
 
     context "for a new regular user with all the attributes" do
       before do
-        user.uid = 1001
-        user.gid = 2001
+        user.uid = "1001"
+        user.gid = "2001"
         user.shell = "/bin/y2shell"
         user.home = "/home/y2test"
         user.gecos = ["First line of", "GECOS"]
@@ -503,6 +503,36 @@ describe Y2Users::Linux::Writer do
 
       it "executes useradd only with the argument to create the home directory" do
         expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--create-home", username)
+
+        writer.write
+      end
+    end
+
+    context "for mix of user with specified uid and without uid" do
+      before do
+        user2 = Y2Users::User.new("testuser2")
+
+        user.uid = "1001"
+        user.gid = "2001"
+        user.shell = "/bin/y2shell"
+        user.home = "/home/y2test"
+        user.gecos = ["First line of", "GECOS"]
+
+        config.attach(user2)
+        config.attach(user)
+        config.attach(group)
+      end
+
+      it "executes useradd for user with uid before user without it" do
+        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args) do |*args|
+          expect(args.last).to eq username
+          expect(args).to include(
+            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups", "--non-unique"
+          )
+        end
+
+        expect(Yast::Execute).to receive(:on_target!).ordered
+          .with(/useradd/, "--create-home", "testuser2")
 
         writer.write
       end
@@ -722,7 +752,8 @@ describe Y2Users::Linux::Writer do
       end
 
       it "executes groupadd" do
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "--gid", "100", "users")
+        expect(Yast::Execute).to receive(:on_target!)
+          .with(/groupadd/, "--non-unique", "--gid", "100", "users")
         writer.write
       end
 
