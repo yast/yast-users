@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2016 SUSE LINUX GmbH, Nuernberg, Germany.
 #
@@ -22,17 +20,20 @@
 require "yast"
 require "cwm/widget"
 
-require "users/ca_password_validator"
+require "y2users/help_texts"
+require "y2users/password_helper"
 require "users/local_password"
 
 Yast.import "Popup"
 Yast.import "Report"
-Yast.import "UsersSimple"
 
 module Users
   # The widget contains 2 password input fields
   # to type and retype the password
   class PasswordWidget < CWM::CustomWidget
+    include Y2Users::HelpTexts
+    include Y2Users::PasswordHelper
+
     class << self
       attr_accessor :approved_pwd
     end
@@ -42,9 +43,18 @@ module Users
     #
     # If `little_space` is `true`, the helpful label is omitted
     # and the password fields are laid out horizontally.
+    #
+    # @param user [Y2Users::User] the user to work with
+    # @param little_space [Boolean] whether the widget should use as little space as possible
+    #                               If set, the widget will shown the password and
+    #                               password confirmation horizally, in the same "row"
     # @param focus [Boolean] if set, then widget set focus to first password input field
-    def initialize(little_space: false, focus: false, allow_empty: false)
+    # @param allow_empty [Boolean] whether the user can left the password empty or not
+    def initialize(user, little_space: false, focus: false, allow_empty: false)
       textdomain "users"
+
+      @user = user
+
       @little_space = little_space
       @focus = focus
       @allow_empty = allow_empty
@@ -86,16 +96,13 @@ module Users
       # focus on first password, so user can immediately write. Also does not
       # break openQA current test
       Yast::UI.SetFocus(Id(:pw1)) if @focus
-      current_password = Yast::UsersSimple.GetRootPassword
-      return if !current_password || current_password.empty?
+      return if current_password.empty?
 
       Yast::UI.ChangeWidget(Id(:pw1), :Value, current_password)
       Yast::UI.ChangeWidget(Id(:pw2), :Value, current_password)
     end
 
-    # rubocop:disable Metrics/AbcSize
     # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/PerceivedComplexity
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
@@ -114,37 +121,20 @@ module Users
         return false
       end
 
-      error = Yast::UsersSimple.CheckPassword(password1, "local")
-
-      if error != ""
-        Yast::Report.Error(error)
-        Yast::UI.SetFocus(Id(:pw1))
-        return false
-      end
-
       # do not ask again if already approved (bsc#1025835)
       return true if self.class.approved_pwd == password1
 
-      passwd = ::Users::LocalPassword.new(username: "root", plain: password1)
-      # User can confirm using "invalid" password confirming all the errors
-      if !passwd.valid?
-        errors = passwd.errors + [_("Really use this password?")]
-        Yast::UI.SetFocus(Id(:pw1))
-        return false unless Yast::Popup.YesNo(errors.join("\n\n"))
-        self.class.approved_pwd = password1
-      end
+      @user.password = Y2Users::Password.create_plain(password1)
+
+      return false unless valid_password_for?(@user)
+
+      self.class.approved_pwd = password1
 
       true
     end
+    # rubocop:enable Metrics/CyclomaticComplexity
 
-    def store
-      return if allow_empty? && empty?
-      password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
-      Yast::UsersSimple.SetRootPassword(password1)
-    end
-
-    # rubocop:disable Metrics/MethodLength
-    def help
+    def help # rubocop:disable Metrics/MethodLength
       # help text ( explain what the user "root" is and does ) 1
       helptext = _(
         "<p>\n" \
@@ -175,7 +165,7 @@ module Users
           "</p>\n"
         )
 
-      helptext << Yast::UsersSimple.ValidPasswordHelptext
+      helptext << valid_password_text
 
       # help text, continued 4
       helptext << _(
@@ -184,7 +174,7 @@ module Users
         "</p>"
       )
 
-      helptext << ::Users::CAPasswordValidator.new.help_text
+      helptext << ca_password_text
     end
 
     # Determines whether the widget is empty or not
@@ -196,6 +186,8 @@ module Users
       pw1.to_s.empty? && pw2.to_s.empty?
     end
 
+  private
+
     # Determines whether is allowed to do not fill the password
     #
     # @note In that case, the password will not be validated or stored if it is left empty.
@@ -203,6 +195,13 @@ module Users
     # @return [Boolean]
     def allow_empty?
       @allow_empty
+    end
+
+    # Current password value
+    #
+    # @return [String]
+    def current_password
+      @user.password_content.to_s
     end
   end
 end

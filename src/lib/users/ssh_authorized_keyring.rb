@@ -93,8 +93,11 @@ module Yast
       end
 
       # Constructor
-      def initialize(home)
-        @keys = []
+      #
+      # @param home [String] path to the user home where keys will be written
+      # @param keys [Array<String>] List of authorized keys, empty by default
+      def initialize(home, keys = [])
+        @keys = keys
         @home = home
       end
 
@@ -132,6 +135,7 @@ module Yast
       def write_keys
         remove_authorized_keys_file
         return if keys.empty?
+
         if !FileUtils::Exists(home)
           log.error("Home directory '#{home}' does not exist!")
           raise HomeDoesNotExist, home
@@ -189,11 +193,13 @@ module Yast
       def create_ssh_dir(user, group)
         if FileUtils::Exists(ssh_dir_path)
           raise NotRegularSSHDirectory, ssh_dir_path unless FileUtils::IsDirectory(ssh_dir_path)
+
           return ssh_dir_path
         end
         ret = SCR.Execute(Path.new(".target.mkdir"), ssh_dir_path)
         log.info("Creating SSH directory: #{ret}")
         raise CouldNotCreateSSHDirectory, ssh_dir_path unless ret
+
         FileUtils::Chown("#{user}:#{group}", ssh_dir_path, false) &&
           FileUtils::Chmod(SSH_DIR_PERMS, ssh_dir_path, false)
       end
@@ -214,6 +220,7 @@ module Yast
       # Remove the authorized keys file
       def remove_authorized_keys_file
         return unless FileUtils::Exists(authorized_keys_path)
+
         SCR.Execute(Path.new(".target.remove"), authorized_keys_path)
       end
     end

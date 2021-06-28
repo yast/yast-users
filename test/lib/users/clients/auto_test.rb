@@ -3,7 +3,13 @@
 require_relative "../../../test_helper"
 require "yaml"
 require "users/clients/auto"
+require "y2users/autoinst/reader"
+require "y2issues"
+
 Yast.import "Report"
+
+# defines exported users
+require_relative "../../../fixtures/users_export"
 
 describe Y2Users::Clients::Auto do
   let(:mode) { "autoinstallation" }
@@ -14,6 +20,7 @@ describe Y2Users::Clients::Auto do
     allow(Yast).to receive(:import).with("Ldap")
     allow(Yast).to receive(:import).with("LdapPopup")
     allow(Yast::Mode).to receive(:mode).and_return(mode)
+    allow(Yast::Stage).to receive(:initial).and_return(true)
     allow(Yast::WFM).to receive(:Args).and_return(args)
   end
 
@@ -23,9 +30,11 @@ describe Y2Users::Clients::Auto do
       let(:args) { [func, users] }
 
       context "when double users have been given in the profile" do
+        let(:mode) { "normal" }
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_error.yml")) }
 
         it "report error" do
+          allow(Yast::Stage).to receive(:initial).and_return(false)
           expect(Yast::Report).to receive(:Error)
             .with(_("Found users in profile with equal <username>."))
           expect(Yast::Report).to receive(:Error)
@@ -43,6 +52,77 @@ describe Y2Users::Clients::Auto do
           expect(Yast::Report).not_to receive(:Error)
             .with(_("Found users in profile with equal <uid>."))
           expect(subject.run).to eq(true)
+        end
+      end
+
+      context "when root password linuxrc attribute is set" do
+        before do
+          allow(Yast::Linuxrc).to receive(:InstallInf).with("RootPassword").and_return("test")
+        end
+
+        context "when profile contain root password" do
+          let(:users) { USERS_EXPORT }
+
+          it "keeps root password from profile" do
+            allow(Y2Issues).to receive(:report).and_return(true) # fixture contain dup uids
+            expect(subject.run).to eq(true)
+
+            config = Y2Users::ConfigManager.instance.target
+            root_user = config.users.root
+            expect(root_user.password.value.encrypted?).to eq true
+            expect(root_user.password.value.content).to match(/^\$6\$AS/)
+          end
+        end
+
+        context "when profile does not contain root password" do
+          let(:users) { {} }
+
+          it "sets root password to linuxrc value" do
+            expect(subject.run).to eq(true)
+            config = Y2Users::ConfigManager.instance.target
+            root_user = config.users.root
+            expect(root_user.password.value.encrypted?).to eq false
+            expect(root_user.password.value.content).to eq "test"
+          end
+        end
+      end
+
+      context "when some issue is registered" do
+        let(:users) { { "users" => [] } }
+        let(:reader) { Y2Users::Autoinst::Reader.new(users) }
+        let(:issues) { Y2Issues::List.new }
+        let(:continue?) { true }
+
+        let(:result) do
+          Y2Users::ReadResult.new(Y2Users::Config.new, issues)
+        end
+
+        before do
+          allow(Y2Users::Autoinst::Reader).to receive(:new).and_return(reader)
+          allow(reader).to receive(:read).and_return(result)
+          issues << Y2Issues::InvalidValue.new("dummy", location: nil)
+          allow(Y2Issues).to receive(:report).and_return(continue?)
+        end
+
+        it "reports the issues" do
+          expect(Y2Issues).to receive(:report).with(issues)
+          subject.run
+        end
+
+        context "and the user wants to continue" do
+          let(:continue?) { true }
+
+          it "returns true" do
+            expect(subject.run).to eq(true)
+          end
+        end
+
+        context "and the user does not want to continue" do
+          let(:continue?) { false }
+
+          it "returns false" do
+            expect(subject.run).to eq(false)
+          end
         end
       end
     end
@@ -120,8 +200,11 @@ describe Y2Users::Clients::Auto do
     context "Reset" do
       let(:func) { "Reset" }
 
-      it "import empty profile" do
+      it "removes the configuration object" do
+        # reset is not called during installation
+        allow(Yast::Stage).to receive(:initial).and_return(false)
         expect(Yast::Users).to receive(:Import).with({})
+
         subject.run
       end
     end

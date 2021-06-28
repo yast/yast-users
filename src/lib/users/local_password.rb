@@ -109,11 +109,9 @@ module Users
       args_for_cpui = {
         "uid"          => username,
         "userPassword" => plain,
-        "type"         => username == "root" ? "system" : "local"
+        "type"         => (username == "root") ? "system" : "local"
       }
-      if username != "root"
-        args_for_cpui["root"] = also_for_root
-      end
+      args_for_cpui["root"] = also_for_root if username != "root"
       @errors += Yast::UsersSimple.CheckPasswordUI(args_for_cpui)
     end
 

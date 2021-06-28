@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2006-2012 Novell, Inc. All Rights Reserved.
 #
@@ -19,21 +17,25 @@
 # current contact information at www.novell.com.
 # ------------------------------------------------------------------------------
 
+require "yast"
 require "cwm/dialog"
 require "users/widgets/inst_root_first"
 
 Yast.import "Mode"
-Yast.import "UsersSimple"
 Yast.import "Popup"
 
 module Yast
-  # This library provides a simple dialog for setting new password for the
-  # system adminitrator (root) including checking quality of the password
-  # itself. The new password is not stored here, just set in UsersSimple module
-  # and stored later during inst_finish.
+  # This library provides a simple dialog for setting new password for the system administrator
+  # (root) including checking quality of the password itself. The new password is not written to the
+  # system, just stored in the target config and written later during inst_finish.
   class InstRootFirstDialog < ::CWM::Dialog
-    def initialize
+    # Constructor
+    #
+    # @param root_user [Y2Users::Users] object holding the root user configuration
+    def initialize(root_user)
       textdomain "users"
+
+      @root_user = root_user
     end
 
     # @return [String] Dialog's title
@@ -42,15 +44,11 @@ module Yast
       _("Authentication for the System Administrator \"root\"")
     end
 
-    # @see CWM::Dialog
-    def run
-      return :auto unless root_password_dialog_needed?
-      super
-    end
-
     # Returns a UI widget-set for the dialog
     def contents
-      VBox(Y2Users::Widgets::InstRootFirst.new)
+      VBox(
+        Y2Users::Widgets::InstRootFirst.new(@root_user)
+      )
     end
 
     # Request confirmation for aborthing the dialog
@@ -62,20 +60,12 @@ module Yast
 
     # Returns whether we need/ed to create new UI Wizard
     #
+    # @see CWM::Dialog
+    #
     # @note We do not need to create a wizard dialog in installation, but it's helpful when testing
     #   all manually on a running system
     def should_open_dialog?
       Mode.normal
-    end
-
-    # Returns whether we need to run this dialog
-    def root_password_dialog_needed?
-      if UsersSimple.RootPasswordDialogSkipped
-        log.info "root password was set with first user, skipping"
-        return false
-      end
-
-      true
     end
   end
 end

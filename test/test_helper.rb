@@ -17,7 +17,7 @@
 #  you may find current contact information at www.suse.com
 
 # Set the paths
-src_path = File.expand_path("../../src", __FILE__)
+src_path = File.expand_path("../src", __dir__)
 ENV["Y2DIR"] = src_path
 
 # make sure we run the tests in English locale
@@ -27,6 +27,7 @@ ENV["LC_ALL"] = "en_US.UTF-8"
 require "yast"
 require "pathname"
 require "yast/rspec"
+require_relative "support/users_helpers"
 
 if ENV["COVERAGE"]
   require "simplecov"
@@ -63,6 +64,7 @@ RSpec.configure do |config|
 
     config.extend Yast::I18n  # available in context/describe
     config.include Yast::I18n # available in it/let/before/...
+    config.include Yast::RSpec::UsersHelpers
   end
 end
 

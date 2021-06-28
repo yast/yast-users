@@ -33,6 +33,10 @@ describe Users::UsersDatabase do
     allow(File).to receive(:atime).with(/root/).and_return(Time.new(2016))
     allow(File).to receive(:atime).with(/root2/).and_return(Time.new(2017))
     allow(File).to receive(:atime).with(/root3/).and_return(Time.new(2018))
+
+    # Mock max system uid, it seems to be different in the container running the CI tests
+    allow(Yast::ShadowConfig).to receive(:fetch)
+    allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_uid_max).and_return("499")
   end
 
   describe ".all" do
@@ -44,18 +48,17 @@ describe Users::UsersDatabase do
       Users::UsersDatabase.import(fixture_root3)
     end
 
-    it "returns found users databases" do
-      expect(databases.size).to eq(3)
+    it "returns found users databases which contain importable users" do
+      expect(databases.size).to eq(2)
     end
 
     it "returns the users databasers sorted desc atime" do
       expect(databases[0].atime).to eq(Time.new(2018))
       expect(databases[1].atime).to eq(Time.new(2017))
-      expect(databases[2].atime).to eq(Time.new(2016))
     end
 
     it "returns the most recent accesed first" do
-      expect(databases.first.passwd).to start_with("b_user")
+      expect(databases.first.users.map(&:name)).to include "b_user"
     end
   end
 
@@ -65,8 +68,8 @@ describe Users::UsersDatabase do
 
       Users::UsersDatabase.import(fixture_root2)
       Users::UsersDatabase.import(fixture_root)
-      expect(databases.size).to eq(2)
-      expect(databases.first.passwd).to start_with("a_user")
+      expect(databases.size).to eq(1)
+      expect(databases.first.users.map(&:name)).to include "a_user"
 
       databases.clear
       expect(databases).to be_empty
@@ -74,8 +77,8 @@ describe Users::UsersDatabase do
       Users::UsersDatabase.import(fixture_root3)
       Users::UsersDatabase.import(fixture_root2)
       Users::UsersDatabase.import(fixture_root)
-      expect(databases.size).to eq(3)
-      expect(databases.first.passwd).to start_with("b_user")
+      expect(databases.size).to eq(2)
+      expect(databases.first.users.map(&:name)).to include "b_user"
     end
 
     it "ignores wrong root directories" do
@@ -91,7 +94,7 @@ describe Users::UsersDatabase do
   describe "#read_files" do
     let(:passwd_atime) { Time.new(2018) }
     let(:shadow_atime) { Time.new(2017) }
-    let(:dir) { fixture_root2.join("etc") }
+    let(:wrong_dir) { fixture_root2.join("wrong") }
 
     before do
       # Mock access time: passwd is more recent than shadow
@@ -99,29 +102,29 @@ describe Users::UsersDatabase do
       allow(File).to receive(:atime).with(/shadow$/).and_return(shadow_atime)
     end
 
-    it "reads the content of the passwd file" do
-      subject.read_files(dir)
+    it "reads the users" do
+      subject.read_files(fixture_root2)
 
-      expect(subject.passwd).to start_with("a_user")
+      expect(subject.users.map(&:name)).to include "a_user"
     end
 
-    it "reads the content of the shadow file" do
-      subject.read_files(dir)
+    it "reads the passwords" do
+      subject.read_files(fixture_root2)
 
-      expect(subject.shadow).to start_with("a_user")
+      user = subject.users.find { |u| u.name = "a_user" }
+      expect(user.password.value.content).to start_with "$6$pLaWhcXR$iiiiiilTEV9B"
     end
 
     it "stores the most recent access time" do
-      subject.read_files(dir)
+      subject.read_files(fixture_root2)
 
       expect(subject.atime).to eq passwd_atime
     end
 
     it "does nothing if the files are not there" do
-      subject.read_files(fixture_root2)
+      subject.read_files(wrong_dir)
 
-      expect(subject.passwd).to be_nil
-      expect(subject.shadow).to be_nil
+      expect(subject.users).to be_empty
       expect(subject.atime).to be_nil
     end
   end

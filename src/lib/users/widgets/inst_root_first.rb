@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -30,8 +28,12 @@ module Y2Users
     # This class displays the initial configuration settings for the root user.
     class InstRootFirst < ::CWM::CustomWidget
       # Constructor
-      def initialize
+      #
+      # @param user [Y2Users::User] the root user to work with
+      def initialize(user)
         textdomain "users"
+
+        @user = user
       end
 
       # Returns a UI widget-set for the dialog
@@ -55,6 +57,7 @@ module Y2Users
       # @see CWM::AbstractWidget
       def validate
         return true unless password_widget.empty? && public_key_selector.empty?
+
         Yast2::Popup.show(
           _("You need to provide at least a password or a public key."), headline: :error
         )
@@ -63,13 +66,15 @@ module Y2Users
 
     private
 
+      attr_reader :user
+
       # Returns a password widget
       #
       # @note The widget is memoized
       #
       # @return [Users::PasswordWidget] Password widget
       def password_widget
-        @password_widget ||= ::Users::PasswordWidget.new(focus: true, allow_empty: true)
+        @password_widget ||= ::Users::PasswordWidget.new(user, focus: true, allow_empty: true)
       end
 
       # Returns a public key selection widget
@@ -78,7 +83,7 @@ module Y2Users
       #
       # @return [Y2Users::Widgets::PublicKeySelector] Public key selection widget
       def public_key_selector
-        @public_key_selector ||= ::Y2Users::Widgets::PublicKeySelector.new
+        @public_key_selector ||= ::Y2Users::Widgets::PublicKeySelector.new(user)
       end
     end
   end

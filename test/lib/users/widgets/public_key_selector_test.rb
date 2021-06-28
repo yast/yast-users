@@ -1,6 +1,4 @@
 #!/usr/bin/env rspec
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -21,11 +19,14 @@
 # find current contact information at www.suse.com.
 
 require_relative "../../../test_helper"
+require "y2users"
 require "users/widgets/public_key_selector"
 require "cwm/rspec"
 
 describe Y2Users::Widgets::PublicKeySelector do
-  subject(:widget) { described_class.new }
+  subject(:widget) { described_class.new(root_user) }
+
+  let(:root_user) { Y2Users::User.create_root }
 
   include_examples "CWM::CustomWidget"
 
@@ -209,8 +210,8 @@ describe Y2Users::Widgets::PublicKeySelector do
     end
 
     context "when a key was read" do
-      it "imports the key" do
-        expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with(key.to_s)
+      it "uses it as a user authorized keys" do
+        expect(root_user).to receive(:authorized_keys=).with([key.to_s])
         widget.store
       end
     end
@@ -218,8 +219,8 @@ describe Y2Users::Widgets::PublicKeySelector do
     context "when no key was read" do
       let(:key) { nil }
 
-      it "does not try to import any key" do
-        expect(Yast::UsersSimple).to receive(:SetRootPublicKey).with("")
+      it "unsets user authorized keys" do
+        expect(root_user).to receive(:authorized_keys=).with([])
         widget.store
       end
     end

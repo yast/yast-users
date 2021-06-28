@@ -1,7 +1,6 @@
 #!/usr/bin/env rspec
-# encoding: utf-8
 
-# Copyright (c) [2018] SUSE LLC
+# Copyright (c) [2018-2021] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -22,25 +21,14 @@
 
 require_relative "../../../test_helper"
 require "users/dialogs/inst_root_first"
+require "y2users/user"
 require "cwm/rspec"
 
 describe Yast::InstRootFirstDialog do
-  subject(:dialog) { described_class.new }
+  subject(:dialog) { described_class.new(root_user) }
+  let(:root_user) { Y2Users::User.create_root }
 
   include_examples "CWM::Dialog"
-
-  describe "#run" do
-    context "when the root user does not need a separate password" do
-      before do
-        allow(Yast::UsersSimple).to receive(:RootPasswordDialogSkipped)
-          .and_return(true)
-      end
-
-      it "returns :auto" do
-        expect(dialog.run).to eq(:auto)
-      end
-    end
-  end
 
   describe "#abort_handler" do
     it "requests confirmation for aborting the process" do

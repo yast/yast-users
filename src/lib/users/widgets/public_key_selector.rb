@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # Copyright (c) [2018] SUSE LLC
 #
 # All Rights Reserved.
@@ -28,7 +26,6 @@ require "tmpdir"
 Yast.import "Arch"
 Yast.import "Label"
 Yast.import "UI"
-Yast.import "UsersSimple"
 
 module Y2Users
   module Widgets
@@ -40,8 +37,12 @@ module Y2Users
       end
 
       # Constructor
-      def initialize
+      #
+      # @param user [Y2Users::User] the user to work with
+      def initialize(user)
         textdomain "users"
+
+        @user = user
       end
 
       # @return [String] Widget label
@@ -77,7 +78,7 @@ module Y2Users
 
       # @see CWM::AbstractWdiget
       def store
-        Yast::UsersSimple.SetRootPublicKey(value.to_s)
+        @user.authorized_keys = [value&.to_s].compact
         nil
       end
 
@@ -276,6 +277,7 @@ module Y2Users
         # as SSH public key
         path = Yast::UI.AskForExistingFile(dir, "*.pub", _("Select a public key"))
         return unless path && File.exist?(path)
+
         self.value = SSHPublicKey.new(File.read(path))
       rescue SSHPublicKey::InvalidKey
         report_invalid_key

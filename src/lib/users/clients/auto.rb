@@ -19,9 +19,12 @@
 
 require "yast"
 require "installation/auto_client"
+require "y2users"
+require "y2users/autoinst/reader"
+require "y2issues"
 
 Yast.import "Users"
-Yast.import "UsersSimple"
+Yast.import "Linuxrc"
 Yast.import "Mode"
 Yast.import "Progress"
 Yast.import "Report"
@@ -41,8 +44,24 @@ module Y2Users
     protected
 
       def import(param)
-        check_users(param["users"] || [])
-        Yast::Users.Import(param)
+        # Use new API for autoinstallation
+        if Yast::Stage.initial
+          reader = Y2Users::Autoinst::Reader.new(param)
+          result = reader.read
+          read_linuxrc_root_pwd(result.config)
+
+          if result.issues?
+            return false unless Y2Issues.report(result.issues)
+          end
+
+          Y2Users::ConfigManager.instance.target = result.config
+
+          true
+        # and old one for running system like autoyast UI
+        else
+          check_users(param["users"] || [])
+          Yast::Users.Import(param)
+        end
       end
 
       def summary
@@ -65,6 +84,7 @@ module Y2Users
         Yast::Users.SetExportAll(true)
         progress_orig = Yast::Progress.set(false)
         ret = Yast::Users.Read == ""
+
         Yast::Progress.set(progress_orig)
         ret
       end
@@ -105,10 +125,29 @@ module Y2Users
         end
         # Do not check users without defined UID. (bnc#996823)
         check_users = users.dup
-        check_users.reject! { |u| !u.key?("uid") }
-        if check_users.size > check_users.uniq { |u| u["uid"] }.size
-          Yast::Report.Error(_("Found users in profile with equal <uid>."))
+        check_users.select! { |u| u.key?("uid") }
+        report = check_users.size > check_users.uniq { |u| u["uid"] }.size
+
+        Yast::Report.Error(_("Found users in profile with equal <uid>.")) if report
+      end
+
+      def read_linuxrc_root_pwd(config)
+        root_user = config.users.root
+        # use param only if profile does not contain it yet.
+        return if root_user&.password
+
+        # root user not defined
+        if !root_user
+          root_user = Y2Users::User.new("root")
+          root_user.uid = "0"
+          config.attach(root_user)
         end
+
+        root_user.password = Y2Users::Password.create_plain(
+          Yast::Linuxrc.InstallInf("RootPassword")
+        )
+
+        root_user
       end
     end
   end
