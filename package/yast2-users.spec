@@ -49,7 +49,8 @@ Requires:       yast2-country
 # CFA::Nsswitch
 Requires:       yast2-pam >= 4.3.0
 
-Requires:       yast2-security
+# Security::SafeRead
+Requires:       yast2-security >= 4.3.17
 
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
