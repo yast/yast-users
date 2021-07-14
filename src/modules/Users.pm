@@ -172,8 +172,8 @@ my $pass_min_days		= "0";
 my $pass_max_days		= "99999";
 
 # password encryption method
-my $encryption_method		= "des";
-my $group_encryption_method	= "des";
+my $encryption_method		= "sha512";
+my $group_encryption_method	= "sha512";
 
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
