@@ -172,8 +172,8 @@ my $pass_min_days		= "0";
 my $pass_max_days		= "99999";
 
 # password encryption method
-my $encryption_method		= "des";
-my $group_encryption_method	= "des";
+my $encryption_method		= "sha512";
+my $group_encryption_method	= "sha512";
 
 # User/group names must match the following regex expression. (/etc/login.defs)
 my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
@@ -1321,11 +1321,13 @@ sub ReadSystemDefaults {
     my $self		= shift;
     my $force		= shift;
 
-    return if ($system_defaults_read && !$force);
+    if ($system_defaults_read && !$force) {
+	return Security->read_error || "";
+    }
 
     if (! Security->GetModified ()) {
 	my $progress_orig = Progress->set (0);
-	Security->Read ();
+	Security->SafeRead ();
 	Progress->set ($progress_orig);
     }
     $security_modified 		= $security_modified || Security->GetModified ();
@@ -1336,9 +1338,9 @@ sub ReadSystemDefaults {
     $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
 
     # command to call before/after adding/deleting user
-    $useradd_cmd 	= $security{"USERADD_CMD"};
-    $userdel_precmd 	= $security{"USERDEL_PRECMD"};
-    $userdel_postcmd 	= $security{"USERDEL_POSTCMD"};
+    $useradd_cmd 	= $security{"USERADD_CMD"} 	|| $useradd_cmd;
+    $userdel_precmd 	= $security{"USERDEL_PRECMD"} 	|| $userdel_precmd;
+    $userdel_postcmd 	= $security{"USERDEL_POSTCMD"}	|| $userdel_postcmd;
 
     # command to call after adding group
     $groupadd_cmd       = ShadowConfig->fetch("GROUPADD_CMD") || "";
@@ -1370,6 +1372,8 @@ sub ReadSystemDefaults {
 
     UsersCache->InitConstants (\%security);
     $system_defaults_read	= 1;
+
+    return Security->read_error || "";
 }
 
 ##------------------------------------
@@ -1627,7 +1631,13 @@ sub Read {
     # default system settings
     if ($use_gui) { Progress->NextStage (); }
 
-    $self->ReadSystemDefaults (1);
+    $error_msg = $self->ReadSystemDefaults (1);
+
+    if ($use_gui && $error_msg ne "") {
+	my $message = __("It was not possible to read some system settings. Some default values will be used. \n\nSee Details for more information.");
+
+	Popup->WarningDetails ($message, $error_msg);
+    }
 
     $self->ReadAllShells();
 
