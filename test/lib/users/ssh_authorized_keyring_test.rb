@@ -52,6 +52,24 @@ describe Yast::Users::SSHAuthorizedKeyring do
     end
   end
 
+  describe "#changed?" do
+    before { keyring.read_keys }
+
+    context "when new keys has been added" do
+      before { keyring.add_keys(["ssh-rsa 123ABC"]) }
+
+      it "returns true" do
+        expect(keyring.changed?).to eq(true)
+      end
+    end
+
+    context "when no new keys has been added" do
+      it "returns false" do
+        expect(keyring.changed?).to eq(false)
+      end
+    end
+  end
+
   describe "#empty?" do
     context "when keyring is empty" do
       it "returns true" do
