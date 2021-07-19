@@ -127,23 +127,65 @@ describe Yast::Users::SSHAuthorizedKeysFile do
   end
 
   describe "#add_key" do
-    let(:key) { "ssh-dsa 123ABC" }
-
-    context "when the contains keys" do
-      let(:path) { FIXTURES_PATH.join("home", "user1", ".ssh", "authorized_keys") }
+    context "when a valid key is given" do
+      let(:key) { "ssh-dsa 123ABC" }
 
       it "adds the new key" do
         file.add_key(key)
+
         expect(file.keys).to include(key)
       end
     end
 
-    context "when the file does not contain keys" do
-      let(:path) { FIXTURES_PATH.join("home", "user2", ".ssh", "authorized_keys") }
+    context "when a not valid key is given" do
+      let(:key) { "AAA-DSA 123ABC" }
 
-      it "adds the new key" do
+      it "does not add the new key" do
         file.add_key(key)
-        expect(file.keys).to eq([key])
+
+        expect(file.keys).to_not include(key)
+      end
+
+      it "logs an error" do
+        expect(subject.log).to receive(:warn).with /.*#{key}.*does not look.*valid.*/
+
+        file.add_key(key)
+      end
+    end
+
+    context "when given key actually represents an empty line" do
+      let(:key) { " " }
+
+      it "ignores it" do
+        expect(file).to_not receive(:valid_key?).with(key)
+
+        file.add_key(key)
+
+        expect(file.keys).to_not include(key)
+      end
+
+      it "does not logs an error" do
+        expect(subject.log).to_not receive(:warn).with /.*#{key}.*/
+
+        file.add_key(key)
+      end
+    end
+
+    context "when given key actually is a comment" do
+      let(:key) { "# Just a comment, not a key " }
+
+      it "ignores it" do
+        expect(file).to_not receive(:valid_key?).with(key)
+
+        file.add_key(key)
+
+        expect(file.keys).to_not include(key)
+      end
+
+      it "does not logs an error" do
+        expect(subject.log).to_not receive(:warn).with /.*#{key}.*/
+
+        file.add_key(key)
       end
     end
   end
