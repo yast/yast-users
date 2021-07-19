@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
 Fri Jul 16 13:13:26 UTC 2021 - David Diaz <dgonzalez@suse.com>
 
-- Use a more reliable way of knowing if editing a user (related to
-  bsc#1188068).
+- Use a more reliable way of knowing if a user is being
+  edited (related to bsc#1188068).
 - 4.4.4
 
 -------------------------------------------------------------------
