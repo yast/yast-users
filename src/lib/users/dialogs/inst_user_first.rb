@@ -61,6 +61,11 @@ module Yast
       # The dialog does not support to have both at the same time, imported users and a new user.
       @user = user unless imported_users?
 
+      # NOTE: the only way to know if the user is going to be created or edited is through
+      # {Y2Users::ConfigElement#attached?} method BEFORE the #user method attaches it to the current
+      # #config for validation purposes. See #editing_user?
+      @editing_user = !!user&.attached?
+
       @login_modified = false
       # do not open package progress wizard window
       @progress_orig = Progress.set(false)
@@ -232,11 +237,12 @@ module Yast
 
     # Whether the user is being edited
     #
-    # It is assumed that the user is going to be edited if it already has a password.
+    # It is considered that the user is going to be edited if it was not attached to a configuration
+    # when the dialog was initialized
     #
     # @return [Boolean]
     def editing_user?
-      !user.password.nil?
+      @editing_user
     end
 
     # Checks whether the current information of the user is valid, reporting the problem otherwise
