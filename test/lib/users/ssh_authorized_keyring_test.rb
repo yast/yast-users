@@ -50,7 +50,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
     context "if some keys are present in the given home directory" do
       let(:expected_keys) { authorized_keys_from_home(home) }
 
-      it "returns true" do
+      it "returns read keys" do
         expect(keyring.read_keys).to eq(expected_keys)
       end
 
