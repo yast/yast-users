@@ -106,7 +106,7 @@ module Yast
       #
       # @return [Array<String>] Registered authorized keys
       def add_keys(new_keys)
-        keys.concat(new_keys)
+        @keys |= new_keys.compact
       end
 
       # Determines if the keyring is empty

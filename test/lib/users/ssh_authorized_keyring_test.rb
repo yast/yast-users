@@ -30,6 +30,28 @@ describe Yast::Users::SSHAuthorizedKeyring do
     File.read(file_path).lines.map(&:strip).grep(/ssh-/)
   end
 
+  describe "#add_keys" do
+    let(:known_key) { keyring.keys.first }
+    let(:new_key) { "ssh-rsa 123ABC" }
+
+    before { keyring.read_keys }
+
+    it "adds only keys not already present in the keyring" do
+      keyring.add_keys([known_key, new_key])
+
+      expect(keyring.keys).to include(new_key)
+      expect(keyring.keys).to include(known_key)
+      expect(keyring.keys).to_not include(known_key).twice
+    end
+
+    it "preserves the keys order" do
+      keyring.add_keys([new_key, known_key])
+
+      expect(keyring.keys.first).to eq(known_key)
+      expect(keyring.keys.last).to eq(new_key)
+    end
+  end
+
   describe "#empty?" do
     context "when keyring is empty" do
       it "returns true" do
@@ -135,9 +157,12 @@ describe Yast::Users::SSHAuthorizedKeyring do
           authorized_keys_path
         )
         keyring.read_keys
+        keyring.add_keys([key])
       end
 
       context "but no new keys are added" do
+        let(:key) { keyring.keys.first }
+
         it "does not write keys again" do
           expect(Yast::SCR).to_not receive(:Execute)
             .with(Yast::Path.new(".target.remove"), authorized_keys_path)
@@ -148,10 +173,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
       end
 
       context "but new keys are added" do
-        before do
-          keyring.add_keys([key])
-        end
-
         it "deletes old authorized_keys file" do
           expect(Yast::SCR).to receive(:Execute)
             .with(Yast::Path.new(".target.remove"), authorized_keys_path)
