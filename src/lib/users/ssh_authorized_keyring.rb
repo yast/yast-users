@@ -218,13 +218,8 @@ module Yast
       def write_file(owner, group)
         file = SSHAuthorizedKeysFile.new(authorized_keys_path)
         file.keys = keys
-
         log.info "Writing #{keys.size} keys in #{authorized_keys_path}"
-
-        return unless file.save
-
-        FileUtils::Chown("#{owner}:#{group}", authorized_keys_path, false)
-        FileUtils::Chmod(AUTHORIZED_KEYS_PERMS, authorized_keys_path, false)
+        file.save && FileUtils::Chown("#{owner}:#{group}", authorized_keys_path, false)
       rescue SSHAuthorizedKeysFile::NotRegularFile
         raise NotRegularAuthorizedKeysFile, authorized_keys_path
       end
