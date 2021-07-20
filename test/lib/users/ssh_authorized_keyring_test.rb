@@ -182,8 +182,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
         let(:key) { keyring.keys.first }
 
         it "does not write keys again" do
-          expect(Yast::SCR).to_not receive(:Execute)
-            .with(Yast::Path.new(".target.remove"), authorized_keys_path)
           expect(file).to_not receive(:save)
 
           keyring.write_keys
@@ -191,13 +189,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
       end
 
       context "but new keys are added" do
-        it "deletes old authorized_keys file" do
-          expect(Yast::SCR).to receive(:Execute)
-            .with(Yast::Path.new(".target.remove"), authorized_keys_path)
-
-          keyring.write_keys
-        end
-
         it "writes the keys" do
           expect(file).to receive(:save)
 
@@ -214,12 +205,6 @@ describe Yast::Users::SSHAuthorizedKeyring do
             .with("#{uid}:#{gid}", authorized_keys_path, false)
 
           keyring.write_keys
-        end
-
-        it "sets authorized_keys permissions to 0600" do
-          keyring.write_keys
-          mode = File.stat(authorized_keys_path).mode.to_s(8)
-          expect(mode).to eq("100600")
         end
 
         context "when home directory does not exist" do

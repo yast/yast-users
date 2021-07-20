@@ -163,8 +163,6 @@ module Yast
       AUTHORIZED_KEYS_FILE = "authorized_keys".freeze
       # @return [String] Permissions to be set on SSH_DIR directory
       SSH_DIR_PERMS = "0700".freeze
-      # @return [String] Permissions to be set on `authorized_keys` file
-      AUTHORIZED_KEYS_PERMS = "0600".freeze
 
       # Determine the path to the user's SSH directory
       #

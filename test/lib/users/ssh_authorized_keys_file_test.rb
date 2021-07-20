@@ -18,6 +18,7 @@
 #  you may find current contact information at www.suse.com
 require_relative "../../test_helper"
 require "users/ssh_authorized_keys_file"
+require "tmpdir"
 
 describe Yast::Users::SSHAuthorizedKeysFile do
   subject(:file) { Yast::Users::SSHAuthorizedKeysFile.new(path) }
@@ -66,29 +67,34 @@ describe Yast::Users::SSHAuthorizedKeysFile do
     let(:key1) { "ssh-rsa 456DEF" }
     let(:expected_content) { "ssh-dsa 123ABC\nssh-rsa 456DEF\n" }
 
-    let(:path) { "/tmp/home/user" }
+    let(:tmpdir) { Dir.mktmpdir }
+    let(:ssh_dir) { File.join(tmpdir, "/home/user/.ssh/") }
+    let(:path) { File.join(ssh_dir, "authorized_keys") }
     let(:dir)  { File.dirname(path) }
     let(:file_exists) { false }
 
-    before do
-      allow(Yast::FileUtils).to receive(:Exists).with(dir)
-        .and_return(dir_exists)
-      allow(Yast::FileUtils).to receive(:Exists).with(path)
-        .and_return(file_exists)
-    end
+    after { FileUtils.rm_rf(tmpdir) if File.exist?(tmpdir) }
 
     context "if the directory exists" do
-      let(:dir_exists) { true }
+      before { FileUtils.mkdir_p(ssh_dir) }
 
-      it "creates the file with the registered keys and returns true" do
-        expect(Yast::SCR).to receive(:Write)
-          .with(Yast::Path.new(".target.string"), path, expected_content)
-        file.keys = [key0, key1]
-        file.save
+      context "and the file does not exist" do
+        it "creates the file with the registered keys and returns true" do
+          expect(Yast::SCR).to receive(:Write)
+            .with(Yast::Path.new(".target.string"), path, expected_content)
+          file.keys = [key0, key1]
+          file.save
+        end
+
+        it "sets permissions to 0600" do
+          file.save
+          mode = File.stat(path).mode.to_s(8)
+          expect(mode).to eq("100600")
+        end
       end
 
       context "and the file exists and it is a regular one" do
-        let(:file_exists) { true }
+        before { FileUtils.touch(path) }
 
         it "updates the file with the registered keys and returns true" do
           allow(Yast::FileUtils).to receive(:IsFile).with(path)
@@ -102,7 +108,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       end
 
       context "and the file exists but it is not a regular one" do
-        let(:file_exists) { true }
+        before { FileUtils.mkdir(path) }
 
         it "raises NotRegularFile exception and does not update the file" do
           allow(Yast::FileUtils).to receive(:IsFile).with(path)
@@ -117,8 +123,6 @@ describe Yast::Users::SSHAuthorizedKeysFile do
     end
 
     context "if the directory does not exist" do
-      let(:dir_exists) { false }
-
       it "returns false" do
         file.keys = [key0, key1]
         expect(file.save).to eq(false)
@@ -147,7 +151,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       end
 
       it "logs an error" do
-        expect(subject.log).to receive(:warn).with /.*#{key}.*does not look.*valid.*/
+        expect(subject.log).to receive(:warn).with(/.*#{key}.*does not look.*valid.*/)
 
         file.add_key(key)
       end
@@ -165,7 +169,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       end
 
       it "does not logs an error" do
-        expect(subject.log).to_not receive(:warn).with /.*#{key}.*/
+        expect(subject.log).to_not receive(:warn).with(/.*#{key}.*/)
 
         file.add_key(key)
       end
@@ -183,7 +187,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
       end
 
       it "does not logs an error" do
-        expect(subject.log).to_not receive(:warn).with /.*#{key}.*/
+        expect(subject.log).to_not receive(:warn).with(/.*#{key}.*/)
 
         file.add_key(key)
       end
