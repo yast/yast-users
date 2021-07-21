@@ -5937,7 +5937,8 @@ sub ImportUser {
 		"gidNumber"	=> $gid,
 		"homeDirectory"	=> $user->{"homeDirectory"} || $user->{"home"} || $existing{"homeDirectory"} || $home,
 		"type"		=> $type,
-		"modified"	=> "imported"
+		"modified"	=> "imported",
+		"authorized_keys"	=> $user->{"authorized_keys"} || $existing{"authorized_keys"} || []
 	    );
 	}
     }
@@ -5959,7 +5960,8 @@ sub ImportUser {
 	"grouplist"	  => \%grouplist,
 	"homeDirectory"	  => $user->{"homeDirectory"} || $user->{"home"} || $home,
 	"type"		  => $type,
-	"modified"	  => "imported"
+	"modified"	  => "imported",
+	"authorized_keys"	=> $user->{"authorized_keys"} || []
 	);
     }
     my %translated = (
@@ -5989,14 +5991,6 @@ sub ImportUser {
 	$ret{"shadowLastChange"} eq "") {
 	$ret{"shadowLastChange"}	= LastChangeIsNow ();
     }
-
-  # Import authorized keys from profile (FATE#319471)
-  if (defined($user->{"authorized_keys"})) {
-    $ret{"authorized_keys"} = $user->{"authorized_keys"},
-  } else {
-    my @authorized_keys = ();
-    $ret{"authorized_keys"} = \@authorized_keys;
-  }
 
     # AutoYaST-imported users don't go through AddUser(). This means we have
     # to replicate some of that logic here:
