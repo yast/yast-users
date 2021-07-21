@@ -41,7 +41,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
       expect(keyring.keys).to include(new_key)
       expect(keyring.keys).to include(known_key)
-      expect(keyring.keys).to_not include(known_key).twice
+      expect(keyring.keys).to eq(keyring.keys.uniq)
     end
 
     it "preserves the keys order" do
