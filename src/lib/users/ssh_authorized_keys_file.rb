@@ -71,6 +71,10 @@ module Yast
       # @return [Boolean] +true+ if the key was added; +false+ otherwise
       def add_key(key)
         new_key = key.strip
+
+        # Ignores comments or empty lines given as key
+        return if new_key.empty? || new_key.start_with?("#")
+
         if valid_key?(new_key)
           keys << new_key
           true

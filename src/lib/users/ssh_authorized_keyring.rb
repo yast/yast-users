@@ -95,6 +95,7 @@ module Yast
       # Constructor
       def initialize(home)
         @keys = []
+        @old_keys = []
         @home = home
       end
 
@@ -105,7 +106,7 @@ module Yast
       #
       # @return [Array<String>] Registered authorized keys
       def add_keys(new_keys)
-        keys.concat(new_keys)
+        @keys |= new_keys.compact
       end
 
       # Determines if the keyring is empty
@@ -115,14 +116,21 @@ module Yast
         keys.empty?
       end
 
+      # Determines if the keyring has changed
+      #
+      # @return [Boolean] +true+ if it has changed; +false+ otherwise
+      def changed?
+        @keys != @old_keys
+      end
+
       # Read keys from a given home directory and add them to the keyring
       #
       # @return [Array<String>] List of authorized keys
       def read_keys
         path = authorized_keys_path
-        @keys = FileUtils::Exists(path) ? SSHAuthorizedKeysFile.new(path).keys : []
-        log.info "Read #{@keys.size} keys from #{path}"
-        @keys
+        @old_keys = FileUtils::Exists(path) ? SSHAuthorizedKeysFile.new(path).keys : []
+        log.info "Read #{@old_keys.size} keys from #{path}"
+        @keys = @old_keys.dup
       end
 
       # Write user keys to the given file
@@ -130,12 +138,17 @@ module Yast
       # If SSH_DIR does not exist in the given directory, it will be
       # created inheriting owner/group and setting permissions to SSH_DIR_PERM.
       def write_keys
+        return unless changed?
+
         remove_authorized_keys_file
+
         return if keys.empty?
+
         if !FileUtils::Exists(home)
           log.error("Home directory '#{home}' does not exist!")
           raise HomeDoesNotExist, home
         end
+
         user = FileUtils::GetOwnerUserID(home)
         group = FileUtils::GetOwnerGroupID(home)
         create_ssh_dir(user, group)
@@ -150,8 +163,6 @@ module Yast
       AUTHORIZED_KEYS_FILE = "authorized_keys".freeze
       # @return [String] Permissions to be set on SSH_DIR directory
       SSH_DIR_PERMS = "0700".freeze
-      # @return [String] Permissions to be set on `authorized_keys` file
-      AUTHORIZED_KEYS_PERMS = "0600".freeze
 
       # Determine the path to the user's SSH directory
       #
