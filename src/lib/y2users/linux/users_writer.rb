@@ -105,6 +105,10 @@ module Y2Users
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
 
+      # Command for editing a password (i.e., used for deleting the password)
+      PASSWD = "/usr/bin/passwd".freeze
+      private_constant :PASSWD
+
       # Command for configuring the attributes in /etc/shadow
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
@@ -162,6 +166,20 @@ module Y2Users
         log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 
+      # Executes the command for deleting the password of the given user
+      #
+      # @param user [User]
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def delete_password(user, issues)
+        Yast::Execute.on_target!(PASSWD, "--delete", user.name)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("The password for '%s' cannot be deleted"), user.name)
+        )
+        log.error("Error deleting password for '#{user.name}' - #{e.message}")
+      end
+
       # Writes authorized keys for given user
       #
       # @see Yast::Users::SSHAuthorizedKeyring#write_keys
@@ -217,7 +235,7 @@ module Y2Users
       end
 
       # Attributes to modify using `usermod`
-      USERMOD_ATTRS = [:gid, :home, :shell, :gecos].freeze
+      USERMOD_ATTRS = [:name, :gid, :home, :shell, :gecos].freeze
 
       # Edits the user
       #
@@ -232,13 +250,25 @@ module Y2Users
         usermod_changes ||= different_groups?(new_user, old_user)
 
         Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
-        change_password(new_user, issues) if old_user.password != new_user.password
+
+        edit_password(new_user, old_user, issues)
         write_auth_keys(new_user, issues) if old_user.authorized_keys != new_user.authorized_keys
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be modified"), username: new_user.name)
         )
         log.error("Error modifying user '#{new_user.name}' - #{e.message}")
+      end
+
+      # Edits the user's password
+      #
+      # @param new_user [User] User containing the updated information
+      # @param old_user [User] Original user
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def edit_password(new_user, old_user, issues)
+        return if old_user.password == new_user.password
+
+        new_user.password ? change_password(new_user, issues) : delete_password(new_user, issues)
       end
 
       # Generates and returns the options expected by `useradd` for given user
@@ -282,8 +312,21 @@ module Y2Users
       # rubocop:disable Metrics/PerceivedComplexity
       def usermod_options(new_user, old_user)
         args = []
+        args << "--login" << new_user.name if new_user.name != old_user.name && new_user.name
         args << "--gid" << new_user.gid if new_user.gid != old_user.gid && new_user.gid
         args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
+        # With the --move-home option, all the content from the previous home directory is moved to
+        # the new location, and ownership is also adapted. But take into account that the new home
+        # will be created only if the old home directory exists. Otherwise, the user will continue
+        # without a home directory.
+        #
+        # For now, this code only supports to move an existing home directory/subvolume. Creating
+        # or deleting the home directory/subvolume of an existing user is not implemented yet.
+        #
+        # For creating the home directory of an existing user, see mkhomedir_helper.
+        #
+        # For deleting the home directory of an existing user, use --home "", and then manually
+        # remove the directory with rm -rf.
         if new_user.home != old_user.home && new_user.home
           args << "--home" << new_user.home << "--move-home"
         end
@@ -291,7 +334,7 @@ module Y2Users
         if different_groups?(new_user, old_user)
           args << "--groups" << new_user.secondary_groups_name.join(",")
         end
-        args << new_user.name
+        args << old_user.name
         args
       end
       # rubocop:enable Metrics/CyclomaticComplexity
