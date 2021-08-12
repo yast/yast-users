@@ -29,9 +29,7 @@ module Y2Users
     # Writes users and groups to the system using Yast2::Execute and standard
     # linux tools.
     #
-    # NOTE: currently it only creates new users or modifies the password value
-    # of existing ones.  Removing or fully modifying users is still not covered.
-    # No group management or passowrd configuration either.
+    # NOTE: Removing or fully modifying users is still not covered.
     #
     # A brief history of the differences with the Yast::Users (perl) module:
     #
