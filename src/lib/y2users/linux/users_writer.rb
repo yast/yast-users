@@ -166,6 +166,20 @@ module Y2Users
         log.error("Error setting password for '#{user.name}' - #{e.message}")
       end
 
+      # Executes the command for deleting the password of the given user
+      #
+      # @param user [User]
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def delete_password(user, issues)
+        Yast::Execute.on_target!(PASSWD, "--delete", user.name)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("The password for '%s' cannot be deleted"), user.name)
+        )
+        log.error("Error deleting password for '#{user.name}' - #{e.message}")
+      end
+
       # Writes authorized keys for given user
       #
       # @see Yast::Users::SSHAuthorizedKeyring#write_keys
@@ -236,13 +250,25 @@ module Y2Users
         usermod_changes ||= different_groups?(new_user, old_user)
 
         Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
-        change_password(new_user, issues) if old_user.password != new_user.password
+
+        edit_password(new_user, old_user, issues)
         write_auth_keys(new_user, issues) if old_user.authorized_keys != new_user.authorized_keys
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be modified"), username: new_user.name)
         )
         log.error("Error modifying user '#{new_user.name}' - #{e.message}")
+      end
+
+      # Edits the user's password
+      #
+      # @param new_user [User] User containing the updated information
+      # @param old_user [User] Original user
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def edit_password(new_user, old_user, issues)
+        return if old_user.password == new_user.password
+
+        new_user.password ? change_password(new_user, issues) : delete_password(new_user, issues)
       end
 
       # Generates and returns the options expected by `useradd` for given user

@@ -463,6 +463,19 @@ describe Y2Users::Linux::Writer do
         end
       end
 
+      context "whose password was removed" do
+        before do
+          current_user = config.users.by_id(user.id)
+          current_user.password = nil
+        end
+
+        it "executes passwd with --delete option" do
+          expect(Yast::Execute).to receive(:on_target!).with(/passwd/, "--delete", user.name)
+
+          writer.write
+        end
+      end
+
       context "whose password was not edited" do
         it "does not execute chpasswd" do
           expect(Yast::Execute).to_not receive(:on_target!).with(/chpasswd/, any_args)

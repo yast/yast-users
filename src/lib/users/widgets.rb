@@ -102,11 +102,18 @@ module Users
       Yast::UI.ChangeWidget(Id(:pw2), :Value, current_password)
     end
 
+    # FIXME: Validation methods should only check values. Note that with the current implementation,
+    #   this method is taking care of setting/removing the user's password. This method should not
+    #   modify the user.
     # rubocop:disable Metrics/CyclomaticComplexity
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
-      return true if allow_empty? && password1.empty?
+
+      if allow_empty? && password1.empty?
+        @user.password = nil
+        return true
+      end
 
       if password1 != password2
         # report misspellings of the password

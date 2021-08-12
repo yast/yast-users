@@ -126,15 +126,49 @@ describe Users::PasswordWidget do
       expect(subject.validate).to eq true
     end
 
-    context "when the widget is allowed to be empty" do
-      subject { described_class.new(root_user, allow_empty: true) }
+    context "when no password was entered" do
+      subject { described_class.new(root_user, allow_empty: allow_empty) }
 
-      it "does not validate the password" do
+      before do
         stub_widget_value(:pw1, "")
         stub_widget_value(:pw2, "")
 
-        expect(Y2Users::Password).to_not receive(:create_plain)
-        expect(subject.validate).to eq(true)
+        root_user.password = Y2Users::Password.create_plain("S3cr3T")
+      end
+
+      context "when the widget is allowed to be empty" do
+        let(:allow_empty) { true }
+
+        it "removes the current password" do
+          subject.validate
+
+          expect(root_user.password).to be_nil
+        end
+
+        it "returns true" do
+          expect(subject.validate).to eq(true)
+        end
+      end
+
+      context "when the widget is not allowed to be empty" do
+        let(:allow_empty) { false }
+
+        it "does not remove the current password" do
+          subject.validate
+
+          expect(root_user.password).to_not be_nil
+        end
+
+        it "reports an error" do
+          expect(Yast::Popup).to receive(:Error).with(/No password entered/)
+
+          subject.validate
+        end
+
+        it "returns false" do
+          expect(subject.validate).to eq(false)
+        end
+
       end
     end
   end
