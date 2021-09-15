@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2issues/with_issues"
 require "yast/i18n"
 require "yast2/execute"
 require "users/ssh_authorized_keyring"
@@ -30,6 +31,7 @@ module Y2Users
     class UsersWriter
       include Yast::I18n
       include Yast::Logger
+      include Y2Issues::WithIssues
 
       # Constructor
       #
@@ -42,27 +44,43 @@ module Y2Users
         @initial_config = initial_config
       end
 
+      # Performs the changes in the system in order to create, edit or delete users according to
+      # the configs.
+      #
+      # TODO: complete edit and delete users
+      #
+      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
+      def write
+        with_issues do |issues|
+          issues.concat(add_users)
+          issues.concat(edit_users)
+        end
+      end
+
       # Creates the new users
       #
-      # @param issues [Y2Issues::List] the list of issues found while writing changes
-      def add_users(issues)
+      # @return [Y2Issues::List] the list of issues found while creating users; empty when none
+      def add_users
         new_users = config.users.without(initial_config.users.ids)
+        # empty string to process users without uid the last
+        sorted_users = new_users.all.sort_by { |u| u.uid || "" }.reverse
 
-        new_users.all.
-          # empty string to process users without uid the last
-          sort_by { |u| u.uid || "" }.reverse
-          .each { |u| add_user(u, issues) }
+        with_issues do |issues|
+          sorted_users.each { |u| add_user(u, issues) }
+        end
       end
 
       # Applies changes for the edited users
       #
-      # @param issues [Y2Issues::List] the list of issues found while writing changes
-      def edit_users(issues)
+      # @return [Y2Issues::List] the list of issues found while editing users; empty when none
+      def edit_users
         edited_users = config.users.changed_from(initial_config.users)
 
-        edited_users.each do |user|
-          initial_user = initial_config.users.by_id(user.id)
-          edit_user(user, initial_user, issues)
+        with_issues do |issues|
+          edited_users.each do |user|
+            initial_user = initial_config.users.by_id(user.id)
+            edit_user(user, initial_user, issues)
+          end
         end
       end
 
@@ -113,24 +131,27 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
-      # Executes the sequence of commands for creating the user
+      # Performs all needed actions in order to create and configure a new user (create user, set
+      # password, etc).
       #
       # @param user [User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def add_user(user, issues)
-        run_useradd(user, issues)
+        create_user(user, issues)
         change_password(user, issues) if user.password
         write_auth_keys(user, issues)
       end
 
-      # Executes the command for creating the user, retrying in the event of a recoverable error
+      # Creates a new user
+      #
+      # Issues are generated when the user cannot be created.
       #
       # @see #add_user
       #
       # @param user [User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def run_useradd(user, issues)
-        try_useradd(user, issues)
+      def create_user(user, issues)
+        try_create_user(user, issues)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
@@ -138,8 +159,15 @@ module Y2Users
         log.error("Error creating user '#{user.name}' - #{e.message}")
       end
 
-      # @see #run_useradd
-      def try_useradd(user, issues)
+      # Executes the command for creating the user, retrying in case of a recoverable error
+      #
+      # Issues are generated when the user cannot be created.
+      #
+      # @see #create_user
+      #
+      # @param user [User] the user to be created on the system
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      def try_create_user(user, issues)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
       rescue Cheetah::ExecutionFailed => e
         raise(e) unless e.status.exitstatus == USERADD_E_HOMEDIR

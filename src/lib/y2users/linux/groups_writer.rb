@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2issues/with_issues"
 require "yast/i18n"
 require "yast2/execute"
 
@@ -29,6 +30,7 @@ module Y2Users
     class GroupsWriter
       include Yast::I18n
       include Yast::Logger
+      include Y2Issues::WithIssues
 
       # Constructor
       #
@@ -41,15 +43,29 @@ module Y2Users
         @initial_config = initial_config
       end
 
+      # Performs the changes in the system in order to create, edit or delete groups according to
+      # the configs.
+      #
+      # TODO: edit and delete groups
+      #
+      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
+      def write
+        with_issues do |issues|
+          issues.concat(add_groups)
+        end
+      end
+
       # Creates the new groups
       #
-      # @param issues [Y2Issues::List] the list of issues found while writing changes
-      def add_groups(issues)
-        new_groups = (config.groups.map(&:id) - initial_config.groups.map(&:id))
-        new_groups.map! { |id| config.groups.find { |g| g.id == id } }
-        # empty string to process groups without gid the last
-        new_groups.sort_by! { |g| g.gid || "" }.reverse!
-        new_groups.each { |g| add_group(g, issues) }
+      # @return [Y2Issues::List] the list of issues found while creating groups; empty when none
+      def add_groups
+        with_issues do |issues|
+          new_groups = (config.groups.map(&:id) - initial_config.groups.map(&:id))
+          new_groups.map! { |id| config.groups.find { |g| g.id == id } }
+          # empty string to process groups without gid the last
+          new_groups.sort_by! { |g| g.gid || "" }.reverse!
+          new_groups.each { |g| add_group(g, issues) }
+        end
       end
 
     private
