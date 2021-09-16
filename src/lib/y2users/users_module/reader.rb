@@ -108,7 +108,7 @@ module Y2Users
         user
       end
 
-      # Creates a {Group} object based on the data structure of a Users user
+      # Creates a {Group} object based on the data structure of a Users group
       #
       # @param group_attrs [Hash] a group representation in the format used by Users
       # @return [Group]
