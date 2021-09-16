@@ -133,7 +133,7 @@ module Y2Users
       # Value of the given field for the given Users user
       #
       # @param attr [#to_s] name of the attribute
-      # @param user [Hash] a user representation in the format used by Users
+      # @param user [Hash] a user or group representation in the format used by Users
       # @return [String, nil] nil if the value is missing or empty
       def attr_value(attr, user)
         value = user[attr.to_s]
