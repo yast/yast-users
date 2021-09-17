@@ -26,6 +26,7 @@ require "y2users/login_config"
 require "y2users/useradd_config"
 
 Yast.import "Users"
+Yast.import "Autologin"
 
 module Y2Users
   module UsersModule
@@ -37,7 +38,7 @@ module Y2Users
       def read
         Config.new.tap do |config|
           read_elements(config)
-          # TODO: read auto-login, but it is not exposed
+          config.login = read_autologin
           config.useradd = read_useradd_defaults
         end
       end
@@ -62,6 +63,23 @@ module Y2Users
         UseraddConfig.new(y2users_map)
       end
 
+      # Reads the Autlogin config from Autologin module
+      #
+      # @note Users reads and sets autologin directly and do not expose it
+      #   so it is easier to read it directly
+      #
+      # @return [LoginConfig]
+      def read_autologin
+        res = LoginConfig.new
+        res.autologin_user = if Yast::Autologin.user.empty?
+            nil
+          else
+            Yast::Autologin.user
+          end
+        res.passwordless = Yast::Autologin.pw_less
+
+        res
+      end
 
       # Reads the users and groups
       #
@@ -169,5 +187,6 @@ if $0 == __FILE__
   require "pp"
 
   Yast::Users.Read
+  Yast::Autologin.Read
   pp Y2Users::UsersModule::Reader.new.read
 end
