@@ -52,13 +52,13 @@ module Y2Users
         users_map = Yast::Users.GetLoginDefaults
         # notes: groups are deprecated and usrskell and create_mail_spool is not in users
         y2users_map = {
-          group: users_map["group"],
-          home: users_map["home"],
-          umask: users_map["umask"],
-          expiration: users_map["expire"],
-          inactivity_period: users_map["inactive"],
-          shell: users_map["shell"],
-          skel: users_map["skel"],
+          group:             users_map["group"],
+          home:              users_map["home"],
+          umask:             users_map["umask"],
+          expiration:        users_map["expire"],
+          inactivity_period: users_map["inactive"]&.to_i,
+          shell:             users_map["shell"],
+          skel:              users_map["skel"]
         }
         UseraddConfig.new(y2users_map)
       end
@@ -72,10 +72,10 @@ module Y2Users
       def read_autologin
         res = LoginConfig.new
         res.autologin_user = if Yast::Autologin.user.empty?
-            nil
-          else
-            Yast::Autologin.user
-          end
+          nil
+        else
+          Yast::Autologin.user
+        end
         res.passwordless = Yast::Autologin.pw_less
 
         res
@@ -85,17 +85,17 @@ module Y2Users
       #
       # @param config [Config]
       def read_elements(config)
-        config.attach(users)
         config.attach(groups)
+        config.attach(users(config))
       end
 
       # Returns the list of users
       #
       # @return [Array<User>] the collection of users
-      def users
+      def users(config)
         all_local = Yast::Users.GetUsers("uid", "local").values +
           Yast::Users.GetUsers("uid", "system").values
-        all_local.map { |u| user(u) }
+        all_local.map { |u| user(u, config) }
       end
 
       def groups
@@ -108,17 +108,17 @@ module Y2Users
       #
       # @param user_attrs [Hash] a user representation in the format used by Users
       # @return [User]
-      def user(user_attrs)
+      def user(user_attrs, config)
         user = User.new(user_attrs["uid"])
 
-        user.uid   = attr_value(:uidNumber, user_attrs)
-        user.gid   = attr_value(:gidNumber, user_attrs)
+        user.uid   = attr_value(:uidNumber, user_attrs)&.to_s
+        user.gid   = attr_value(:gidNumber, user_attrs)&.to_s
+        user.gid ||= config.groups.by_name(attr_value["groupname"])&.gid
+
         user.shell = attr_value(:loginShell, user_attrs)
         user.home  = attr_value(:homeDirectory, user_attrs)
         user.gecos = [attr_value(:cn, user_attrs), *user_attrs["addit_data"].split(",")].compact
-        if !user.uid && user_attrs["type"] == "system"
-          user.system = true
-        end
+        user.system = true if !user.uid && user_attrs["type"] == "system"
 
         # set password only if specified, nil means not touch it
         user.password = create_password(user_attrs) if user_attrs["userPassword"]
@@ -136,7 +136,7 @@ module Y2Users
       def group(group_attrs)
         group = Group.new(group_attrs["cn"])
 
-        group.gid   = attr_value(:gidNumber, group_attrs)
+        group.gid = attr_value(:gidNumber, group_attrs)&.to_s
         group.users_name = group_attrs["userlist"].keys
 
         # TODO: no system support for groups
@@ -175,21 +175,13 @@ module Y2Users
           expiration = user["shadowExpire"]
 
           password.aging = PasswordAging.new(last_change) if last_change
-          password.minimum_age = user["shadowMin"]
-          password.maximum_age = user["shadowMax"]
-          password.warning_period = user["shadowWarning"]
-          password.inactivity_period = user["shadowInactive"]
+          password.minimum_age = user["shadowMin"]&.to_s
+          password.maximum_age = user["shadowMax"]&.to_s
+          password.warning_period = user["shadowWarning"]&.to_s
+          password.inactivity_period = user["shadowInactive"]&.to_s
           password.account_expiration = AccountExpiration.new(expiration) if expiration
         end
       end
     end
   end
-end
-
-if $0 == __FILE__
-  require "pp"
-
-  Yast::Users.Read
-  Yast::Autologin.Read
-  pp Y2Users::UsersModule::Reader.new.read
 end
