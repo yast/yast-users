@@ -123,6 +123,9 @@ module Y2Users
         # set password only if specified, nil means not touch it
         user.password = create_password(user_attrs) if user_attrs["userPassword"]
 
+        # set authorized keys only if set in users module
+        user.authorized_keys = user_attrs["authorized_keys"] if user_attrs["authorized_keys"]
+
         user
       end
 
