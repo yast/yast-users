@@ -38,8 +38,8 @@ module Y2Users
       def read
         Config.new.tap do |config|
           read_elements(config)
-          config.login = read_autologin
-          config.useradd = read_useradd_defaults
+          read_autologin(config)
+          read_useradd_defaults(config)
         end
       end
 
@@ -47,10 +47,11 @@ module Y2Users
 
       # Reads the useradd defaults from Users module
       #
+      # @param config [Config]
       # @return [UseraddConfig]
-      def read_useradd_defaults
+      def read_useradd_defaults(config)
         users_map = Yast::Users.GetLoginDefaults
-        # notes: groups are deprecated and usrskell and create_mail_spool is not in users
+        # notes: groups are deprecated and usrskel and create_mail_spool is not in users
         y2users_map = {
           group:             users_map["group"],
           home:              users_map["home"],
@@ -60,25 +61,23 @@ module Y2Users
           shell:             users_map["shell"],
           skel:              users_map["skel"]
         }
-        UseraddConfig.new(y2users_map)
+
+        config.useradd = UseraddConfig.new(y2users_map)
       end
 
-      # Reads the Autlogin config from Autologin module
+      # Reads the Autologin config from Autologin module
       #
-      # @note Users reads and sets autologin directly and do not expose it
+      # @note Users reads and sets autologin directly and does not expose it
       #   so it is easier to read it directly
       #
+      # @param config [Config]
       # @return [LoginConfig]
-      def read_autologin
+      def read_autologin(config)
         res = LoginConfig.new
-        res.autologin_user = if Yast::Autologin.user.empty?
-          nil
-        else
-          Yast::Autologin.user
-        end
+        res.autologin_user = Yast::Autologin.user.empty? ? nil : Yast::Autologin.user
         res.passwordless = Yast::Autologin.pw_less
 
-        res
+        config.login = res
       end
 
       # Reads the users and groups
@@ -91,6 +90,7 @@ module Y2Users
 
       # Returns the list of users
       #
+      # @param config [Config]
       # @return [Array<User>] the collection of users
       def users(config)
         all_local = Yast::Users.GetUsers("uid", "local").values +
@@ -107,6 +107,7 @@ module Y2Users
       # Creates a {User} object based on the data structure of a Users user
       #
       # @param user_attrs [Hash] a user representation in the format used by Users
+      # @param config [Config]
       # @return [User]
       def user(user_attrs, config)
         user = User.new(user_attrs["uid"])
@@ -163,9 +164,9 @@ module Y2Users
         value
       end
 
-      # Creates a {Password} object based on the data structure of a UsersSimple user
+      # Creates a {Password} object based on the data structure of a Users user
       #
-      # @param user [Hash] a user representation in the format used by UsersSimple
+      # @param user [Hash] a user representation in the format used by Users
       # @return [Password]
       def create_password(user)
         create_method = user["encrypted"] ? :create_encrypted : :create_plain
