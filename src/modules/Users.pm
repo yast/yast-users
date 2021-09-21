@@ -974,7 +974,9 @@ sub GetUser {
 }
 
 ##------------------------------------
-# get set of users of given type indexed by given key
+# gets map of users of given type indexed by given key
+# Example of call to get all system users indexed by their names
+# GetUsers("uid", "system")
 BEGIN { $TYPEINFO{GetUsers} = [ "function",
     ["map", "any", "any" ],
     "string", "string"]; # index key, type
