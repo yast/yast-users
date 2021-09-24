@@ -340,6 +340,7 @@ describe Y2Users::User do
       subject.home = Y2Users::Home.new("/home/test1")
       subject.gecos = ["User Test1", "Other"]
       subject.source = [:ldap]
+      subject.receive_system_mail = true
       subject.password = Y2Users::Password.create_plain("S3cr3T")
     end
 
@@ -414,6 +415,16 @@ describe Y2Users::User do
     context "when the #source does not match" do
       before do
         other.source = :local
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when #receive_system_mail does not match" do
+      before do
+        other.receive_system_mail = false
       end
 
       it "returns false" do
@@ -581,6 +592,36 @@ describe Y2Users::User do
 
           expect(subject.system?).to eq(false)
         end
+      end
+    end
+  end
+
+  describe "#receive_system_mail?" do
+    before do
+      subject.receive_system_mail = value
+    end
+
+    context "when the value is set to nil" do
+      let(:value) { nil }
+
+      it "returns false" do
+        expect(subject.receive_system_mail?).to eq(false)
+      end
+    end
+
+    context "when the value is set to false" do
+      let(:value) { false }
+
+      it "returns false" do
+        expect(subject.receive_system_mail?).to eq(false)
+      end
+    end
+
+    context "when the value is set to true" do
+      let(:value) { true }
+
+      it "returns true" do
+        expect(subject.receive_system_mail?).to eq(true)
       end
     end
   end

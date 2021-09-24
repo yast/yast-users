@@ -95,10 +95,15 @@ module Y2Users
     # @return [Array<String>]
     attr_accessor :authorized_keys
 
+    # Whether the user should receive system mails (i.e., be a root alias)
+    #
+    # @return [Boolean]
+    attr_accessor :receive_system_mail
+
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
-      :secondary_groups_name
+      :receive_system_mail, :secondary_groups_name
 
     # Creates a prototype root user
     #
@@ -234,6 +239,13 @@ module Y2Users
       raise "The uid (#{uid}) is already defined" if uid
 
       @system = value
+    end
+
+    # @see receive_system_mail
+    #
+    # @return [Boolean]
+    def receive_system_mail?
+      !!@receive_system_mail
     end
 
     # Generates a deep copy of the user
