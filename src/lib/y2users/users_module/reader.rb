@@ -20,6 +20,7 @@
 require "yast"
 require "y2users/config"
 require "y2users/user"
+require "y2users/home"
 require "y2users/group"
 require "y2users/password"
 require "y2users/login_config"
@@ -110,24 +111,45 @@ module Y2Users
       # @param config [Config]
       # @return [User]
       def user(user_attrs, config)
-        user = User.new(user_attrs["uid"])
+        User.new(user_attrs["uid"]).tap do |user|
+          user.uid = attr_value(:uidNumber, user_attrs)&.to_s
+          user.gid = user_gid(user_attrs, config)
+          user.home = home(user_attrs)
+          user.shell = attr_value(:loginShell, user_attrs)
+          user.gecos = [attr_value(:cn, user_attrs), *user_attrs["addit_data"].split(",")].compact
+          user.system = true if !user.uid && user_attrs["type"] == "system"
+          user.receive_system_mail = Yast::Users.GetRootAliases[user.name] == 1
 
-        user.uid   = attr_value(:uidNumber, user_attrs)&.to_s
-        user.gid   = attr_value(:gidNumber, user_attrs)&.to_s
-        user.gid ||= config.groups.by_name(attr_value["groupname"])&.gid
+          # set password only if specified, nil means not touch it
+          user.password = create_password(user_attrs) if user_attrs["userPassword"]
 
-        user.shell = attr_value(:loginShell, user_attrs)
-        user.home  = attr_value(:homeDirectory, user_attrs)
-        user.gecos = [attr_value(:cn, user_attrs), *user_attrs["addit_data"].split(",")].compact
-        user.system = true if !user.uid && user_attrs["type"] == "system"
+          # set authorized keys only if set in users module
+          user.authorized_keys = user_attrs["authorized_keys"] if user_attrs["authorized_keys"]
+        end
+      end
 
-        # set password only if specified, nil means not touch it
-        user.password = create_password(user_attrs) if user_attrs["userPassword"]
+      # Obtains the gid for the user
+      #
+      # @param user_attrs [Hash] a user representation in the format used by Users
+      # @param config [Config]
+      #
+      # @return [String, nil] nil if the gid is unknown
+      def user_gid(user_attrs, config)
+        gid = attr_value(:gidNumber, user_attrs)&.to_s
 
-        # set authorized keys only if set in users module
-        user.authorized_keys = user_attrs["authorized_keys"] if user_attrs["authorized_keys"]
+        gid || config.groups.by_name(attr_value["groupname"])&.gid
+      end
 
-        user
+      # Creates a home from the given attributes
+      #
+      # @param user_attrs [Hash] a user representation in the format used by Users
+      # @return [Home]
+      def home(user_attrs)
+        Home.new(attr_value(:homeDirectory, user_attrs)).tap do |home|
+          # permissions is an octal number starting by 0 (e.g., "0755")
+          home.permissions = attr_value(:home_mode, user_attrs)&.prepend("0")
+          home.btrfs_subvol = attr_value(:btrfs_subvolume, user_attrs)
+        end
       end
 
       # Creates a {Group} object based on the data structure of a Users group
