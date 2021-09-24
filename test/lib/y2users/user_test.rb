@@ -33,7 +33,7 @@ describe Y2Users::User do
       expect(user.root?).to eq(true)
       expect(user.uid).to eq("0")
       expect(user.gecos).to contain_exactly("root")
-      expect(user.home).to eq("/root")
+      expect(user.home.path).to eq("/root")
       expect(user.attached?).to eq(false)
     end
   end
@@ -48,10 +48,33 @@ describe Y2Users::User do
 
   describe "#copy" do
     before do
+      subject.home = Y2Users::Home.new("/home/test")
+      subject.password = Y2Users::Password.create_plain("test")
       subject.assign_config(Y2Users::Config.new)
     end
 
-    it "uses a dup of authorized keys" do
+    it "generates a copy of the user" do
+      other = subject.copy
+
+      expect(other).to be_a(described_class)
+      expect(other).to eq(subject)
+    end
+
+    it "generates a copy with a duplicated home" do
+      other = subject.copy
+      other.home.path = "/home/other"
+
+      expect(subject.home.path).to eq("/home/test")
+    end
+
+    it "generates a copy with a duplicated password" do
+      other = subject.copy
+      other.password.value = Y2Users::PasswordPlainValue.new("other")
+
+      expect(subject.password_content).to eq("test")
+    end
+
+    it "generates a copy with duplicated authorized keys" do
       other = subject.copy
 
       expect(other.authorized_keys).to eq(subject.authorized_keys)
@@ -314,7 +337,7 @@ describe Y2Users::User do
       subject.uid = 1000
       subject.gid = 100
       subject.shell = "/dev/bash"
-      subject.home = "/home/test1"
+      subject.home = Y2Users::Home.new("/home/test1")
       subject.gecos = ["User Test1", "Other"]
       subject.source = [:ldap]
       subject.password = Y2Users::Password.create_plain("S3cr3T")
@@ -370,7 +393,7 @@ describe Y2Users::User do
 
     context "when the #home does not match" do
       before do
-        other.home = "/home/test2"
+        other.home.path = "/home/test2"
       end
 
       it "returns false" do
