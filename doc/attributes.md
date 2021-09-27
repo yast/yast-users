@@ -6,38 +6,38 @@ This document describes the attributes that can be indicated for users and group
 
 The YaST UI for creating and editing a user offers the following attributes:
 
-| UI Field | Y2Users attr | Only when adding | Only when editing | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| full name | `#gecos` | | | |
-| name | `#name` | | | |
-| password | `#password` | | | |
-| system mail | `#receive_system_mail` | | | See `MailAliases` module |
-| disable login | * password starting by `!` | | | |
-| uid | `#uid` | | | |
-| home dir | `Home#path` | | | | |
-| home dir permission | `Home#permissions` | yes | | `useradd -K HOME_MODE=0755` |
-| empty home | `CommitConfig#home_without_skel` | yes | | `rm -rf` after creating. No way to ignore `/usr/etc/skel` |
-| Move to new location | `CommitConfig#move_home` | | yes |  |
-| Btrfs subvolume | `Home#btrfs_subvol` | | | |
-| Additional info | `#gecos` | | | |
-| login shell | `#shell` | | | |
-| group | `#primary_group` | | | |
-| additional groups | `#groups` | | | |
-| ssh public keys | `#authorized_keys` | | | |
+| UI Field | Y2Users attr | Usage | Description |
+| :--- | :--- | :--- | :--- |
+| full name | `#gecos` | add && edit | |
+| name | `#name` | add && edit  | |
+| password | `#password` | add && edit  |
+| system mail | `#receive_system_mail` | add && edit | See `MailAliases` module |
+| disable login | * password starting by `!` | add && edit | |
+| uid | `#uid` | add && edit | |
+| home dir | `Home#path` | add && edit | |
+| home dir permission | `Home#permissions` | add | | `useradd -K HOME_MODE=0755` |
+| empty home | `CommitConfig#home_without_skel` | add | | `rm -rf` after creating. No way to ignore `/usr/etc/skel` |
+| Move to new location | `CommitConfig#move_home` | edit |  |
+| Btrfs subvolume | `Home#btrfs_subvol` | add && edit | |
+| Additional info | `#gecos` | add && edit | |
+| login shell | `#shell` | add && edit | |
+| group | `#primary_group` | add && edit | |
+| additional groups | `#groups` | add && edit | |
+| ssh public keys | `#authorized_keys` | add && edit | |
 
 
 ## Password
 
 The YaST UI for creating and editing a user offers the following attributes for the password:
 
-| UI Field | Y2Users attr | Only when adding | Only when editing | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| force change  | aging == 0  | | | |
-| days to warning | warning_period | | | |
-| days usable after expiration | inactivity_period | | | |
-| max days same password | maximum_age | | | |
-| min days same password | minimum_age | | | |
-| expiration date | account_expiration | | | |
+| UI Field | Y2Users attr | Usage | Description |
+| :--- | :--- | :--- | :--- |
+| force change  | aging == 0  | add && edit | |
+| days to warning | warning_period | add && edit | |
+| days usable after expiration | inactivity_period | add && edit | |
+| max days same password | maximum_age | add && edit | |
+| min days same password | minimum_age | add && edit | |
+| expiration date | account_expiration | add && edit | |
 
 
 ## Home management
@@ -76,8 +76,8 @@ This section describes how the YaST users client behaves when dealing with the u
 ~~~
 Y2Users::Home
   #path
+  #permissions
   #btrfs_subvol
-  #mode
 ~~~
 
 * Use cases
@@ -87,7 +87,7 @@ Y2Users::Home
       * adapt ownership (`CommitConfig#adapt_home_ownership`)
     * if the path does not exist:
       * create new home as dir/subvolume (`Home#btrfs_subvol`)
-      * create with/without content (`CommitConfig#use_skel`)
+      * create with/without content (`CommitConfig#home_without_skel`)
       * create with custom permissions (`Home#permissions`)
   * create a new user without a home (`Home#path` is empty)
     * do not create a home on disk
