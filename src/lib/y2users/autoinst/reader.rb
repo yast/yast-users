@@ -21,6 +21,7 @@ require "date"
 require "y2users/parsers/shadow"
 require "y2users/collision_checker"
 require "y2users/user"
+require "y2users/home"
 require "y2users/group"
 require "y2users/password"
 require "y2users/useradd_config"
@@ -154,10 +155,10 @@ module Y2Users
           res.gecos = [user_section.fullname]
           # TODO: handle forename/lastname
           res.gid = user_section.gid
-          res.home = user_section.home
+          res.home = Home.new(user_section.home)
+          res.home.btrfs_subvol = user_section.home_btrfs_subvolume
           res.shell = user_section.shell
           res.uid = user_section.uid
-          res.btrfs_subvolume_home = user_section.home_btrfs_subvolume
           res.password = create_password(user_section)
           res.authorized_keys = user_section.authorized_keys
           users << res

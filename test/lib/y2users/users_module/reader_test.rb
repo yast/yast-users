@@ -30,7 +30,7 @@ describe Y2Users::UsersModule::Reader do
       # real data with data dumper from perl after modifications in UI
       {
         "addit_data"        => "",
-        "btrfs_subvolume"   => false,
+        "btrfs_subvolume"   => true,
         "chown_home"        => true,
         "cn"                => "test5",
         "create_home"       => true,
@@ -124,6 +124,7 @@ describe Y2Users::UsersModule::Reader do
     mapped_sys_groups = Hash[sys_groups.map { |g| [g["cn"], g] }]
     mapped_local_groups = Hash[local_groups.map { |g| [g["cn"], g] }]
     allow(Yast::Users).to receive(:GetGroups).and_return(mapped_sys_groups, mapped_local_groups)
+    allow(Yast::Users).to receive(:GetRootAliases).and_return("test5" => 1)
   end
 
   describe "#read" do
@@ -137,9 +138,13 @@ describe Y2Users::UsersModule::Reader do
 
       test_user = config.users.by_name("test5")
       expect(test_user.uid).to eq "1002"
-      expect(test_user.home).to eq "/home/test5"
+      expect(test_user.home).to be_a(Y2Users::Home)
+      expect(test_user.home.path).to eq "/home/test5"
+      expect(test_user.home.btrfs_subvol?).to eq true
+      expect(test_user.home.permissions).to eq "0755"
       expect(test_user.shell).to eq "/bin/bash"
       expect(test_user.primary_group.name).to eq "users"
+      expect(test_user.receive_system_mail?).to eq true
       expect(test_user.password.value.encrypted?).to eq true
       expect(test_user.password.value.content).to match(/^\$6\$CI/)
       expect(test_user.password.aging.content).to eq("18887")

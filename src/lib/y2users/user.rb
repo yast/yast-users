@@ -20,6 +20,7 @@
 require "y2users/config_element"
 require "y2users/user_validator"
 require "y2users/password_validator"
+require "y2users/home"
 require "yast2/equatable"
 
 module Y2Users
@@ -69,17 +70,10 @@ module Y2Users
     # @return [String, nil] nil if unknown
     attr_accessor :shell
 
-    # Path to the home directory
+    # User home
     #
-    # @return [String, nil] nil if unknown
+    # @return [Home, nil] nil if unknown
     attr_accessor :home
-
-    # Whether a btrfs subvolume is used as home directory, especially relevant when creating the
-    # user in the system
-    #
-    # @return [Boolean, nil] nil if irrelevant or unknown (some readers may not provide an accurate
-    #   value for this attribute)
-    attr_accessor :btrfs_subvolume_home
 
     # Fields for the GECOS entry
     #
@@ -101,10 +95,15 @@ module Y2Users
     # @return [Array<String>]
     attr_accessor :authorized_keys
 
+    # Whether the user should receive system mails (i.e., be a root alias)
+    #
+    # @return [Boolean]
+    attr_accessor :receive_system_mail
+
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
-      :secondary_groups_name
+      :receive_system_mail, :secondary_groups_name
 
     # Creates a prototype root user
     #
@@ -115,7 +114,7 @@ module Y2Users
       new("root").tap do |root|
         root.uid = "0"
         root.gecos = ["root"]
-        root.home = "/root"
+        root.home = Home.new("/root")
       end
     end
 
@@ -242,6 +241,13 @@ module Y2Users
       @system = value
     end
 
+    # @see receive_system_mail
+    #
+    # @return [Boolean]
+    def receive_system_mail?
+      !!@receive_system_mail
+    end
+
     # Generates a deep copy of the user
     #
     # @see ConfigElement#copy
@@ -249,6 +255,7 @@ module Y2Users
     # @return [User]
     def copy
       user = super
+      user.home = home.dup if home
       user.password = password.copy if password
       user.authorized_keys = authorized_keys.map(&:dup)
 

@@ -22,13 +22,19 @@ require "y2issues/with_issues"
 require "yast/i18n"
 require "yast2/execute"
 require "users/ssh_authorized_keyring"
+require "y2users/commit_config"
+
+Yast.import "MailAliases"
 
 module Y2Users
   module Linux
     # Writes users to the system using Yast2::Execute and standard linux tools.
     #
     # @note: this is not meant to be used directly, but to be used by the general {Linux::Writer}
-    class UsersWriter
+    #
+    # FIXME: This class is too big. Consider refactoring it, for example, by splitting it in actions
+    #   for creating, editing and deleting users.
+    class UsersWriter # rubocop:disable Metrics/ClassLength
       include Yast::I18n
       include Yast::Logger
       include Y2Issues::WithIssues
@@ -37,23 +43,42 @@ module Y2Users
       #
       # @param config [Config] see #config
       # @param initial_config [Config] see #initial_config
-      def initialize(config, initial_config)
+      # @param commit_configs [CommitConfigCollection]
+      def initialize(config, initial_config, commit_configs)
         textdomain "users"
 
         @config = config
         @initial_config = initial_config
+        @commit_configs = commit_configs
+        @root_aliases = []
       end
 
       # Performs the changes in the system in order to create, edit or delete users according to
-      # the configs.
+      # the differences between the initial and the target configs. Commit actions can be addressed
+      # with the commit configs, see {CommitConfig}.
       #
-      # TODO: complete edit and delete users
+      # TODO: delete users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
         with_issues do |issues|
           issues.concat(add_users)
           issues.concat(edit_users)
+          issues.concat(update_root_aliases)
+        end
+      end
+
+      # Update root aliases
+      #
+      # @return [Y2Issues::List] a list holding an issue if Yast::MailAliases#SetRootAlias fails
+      def update_root_aliases
+        with_issues do |issues|
+          result = Yast::MailAliases.SetRootAlias(root_aliases.join(", "))
+
+          unless result
+            issues << Y2Issues::Issue.new(_("Error setting root mail aliases"))
+            log.error("Error root mail aliases")
+          end
         end
       end
 
@@ -97,6 +122,16 @@ module Y2Users
       # @return [Config]
       attr_reader :initial_config
 
+      # Collection holding names of users set to receive system mail (i.e., to be aliases of root)
+      #
+      # @return [Array<User>]
+      attr_accessor :root_aliases
+
+      # Collection of commit configs to address the commit actions to perform for each user
+      #
+      # @return [CommitConfigCollection]
+      attr_reader :commit_configs
+
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
@@ -131,6 +166,24 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
+      # Command for changing ownership
+      CHOWN = "/usr/bin/chown".freeze
+      private_constant :CHOWN
+
+      # Command for finding files
+      FIND = "/usr/bin/find".freeze
+      private_constant :FIND
+
+      # Commit actions for a specific user
+      #
+      # @param user [User] Note that the commit config of a user is found by the user name. Due to
+      #   the user name can change, always use the user from the target config.
+      # @return [CommitConfig] commit config for the given user or a new commit config if there is
+      #   no config for that user.
+      def commit_config(user)
+        commit_configs.by_username(user.name) || CommitConfig.new
+      end
+
       # Performs all needed actions in order to create and configure a new user (create user, set
       # password, etc).
       #
@@ -152,6 +205,7 @@ module Y2Users
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def create_user(user, issues)
         try_create_user(user, issues)
+        root_aliases << user.name if user.receive_system_mail?
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
@@ -168,7 +222,10 @@ module Y2Users
       # @param user [User] the user to be created on the system
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def try_create_user(user, issues)
+        reusing_home = exist_user_home?(user)
         Yast::Execute.on_target!(USERADD, *useradd_options(user))
+        clear_home(user, issues) if !reusing_home && commit_config(user).home_without_skel?
+        chown_home(user, issues) if commit_config(user).adapt_home_ownership?
       rescue Cheetah::ExecutionFailed => e
         raise(e) unless e.status.exitstatus == USERADD_E_HOMEDIR
 
@@ -177,6 +234,53 @@ module Y2Users
           format(_("Failed to create home directory for user '%s'"), user.name)
         )
         log.warn("User '#{user.name}' created without home '#{user.home}'")
+      end
+
+      # Clear the content of the home directory/subvolume for the given user
+      #
+      # Issues are generated when the home cannot be cleaned up.
+      #
+      # @param user [User]
+      # @param issues [Y2Issues::List] new issues can be added
+      def clear_home(user, issues)
+        return unless exist_user_home?(user)
+
+        Yast::Execute.on_target!(FIND, user.home.path, "-mindepth", "1", "-delete")
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("Cannot clean up '%s'"), user.home.path)
+        )
+        log.error("Error cleaning up '#{user.home.path}' - #{e.message}")
+      end
+
+      # Changes ownership of the home directory/subvolume for the given user
+      #
+      # Issues are generated when ownership cannot be changed.
+      #
+      # @param user [User]
+      # @param issues [Y2Issues::List] new issues can be added
+      def chown_home(user, issues)
+        return unless exist_user_home?(user)
+
+        owner = user.name.dup
+        owner << ":#{user.gid}" if user.gid
+
+        Yast::Execute.on_target!(CHOWN, "-R", owner, user.home.path)
+      rescue Cheetah::ExecutionFailed => e
+        issues << Y2Issues::Issue.new(
+          format(_("Cannot change ownership of '%s'"), user.home.path)
+        )
+        log.error("Error changing ownership of '#{user.home.path}' - #{e.message}")
+      end
+
+      # Whether the home directory/subvolume of the given user exists on disk
+      #
+      # @param user [User]
+      # @return [Boolean]
+      def exist_user_home?(user)
+        return false unless user.home&.path
+
+        File.exist?(user.home.path)
       end
 
       # Executes the commands for setting the password and all its associated
@@ -262,44 +366,59 @@ module Y2Users
         log.error("Error setting password attributes for '#{user.name}' - #{e.message}")
       end
 
-      # Attributes to modify using `usermod`
-      USERMOD_ATTRS = [:name, :gid, :home, :shell, :gecos].freeze
-
       # Edits the user
       #
       # @param new_user [User] User containing the updated information
       # @param old_user [User] Original user
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
       def edit_user(new_user, old_user, issues)
-        usermod_changes = USERMOD_ATTRS.any? do |attr|
-          !new_user.public_send(attr).nil? &&
-            (new_user.public_send(attr) != old_user.public_send(attr))
-        end
-        usermod_changes ||= different_groups?(new_user, old_user)
+        return if new_user == old_user
 
-        Yast::Execute.on_target!(USERMOD, *usermod_options(new_user, old_user)) if usermod_changes
+        return unless modify_user(new_user, old_user, issues)
 
-        edit_password(new_user, old_user, issues)
+        chown_home(new_user, issues) if commit_config(new_user).adapt_home_ownership?
+        edit_password(new_user, issues) if old_user.password != new_user.password
         write_auth_keys(new_user, issues) if old_user.authorized_keys != new_user.authorized_keys
+      end
+
+      # Applies changes in the user by calling to usermod command
+      #
+      # @param new_user [User] User containing the updated information
+      # @param old_user [User] Original user
+      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
+      #
+      # @return [Boolean] true on success; false otherwise
+      def modify_user(new_user, old_user, issues)
+        options = usermod_options(new_user, old_user)
+        Yast::Execute.on_target!(USERMOD, *options, old_user.name) if options.any?
+
+        root_aliases << new_user.name if new_user.receive_system_mail?
+
+        true
       rescue Cheetah::ExecutionFailed => e
+        root_aliases << old_user.name if old_user.receive_system_mail?
         issues << Y2Issues::Issue.new(
-          format(_("The user '%{username}' could not be modified"), username: new_user.name)
+          format(_("The user '%{username}' could not be modified"), username: old_user.name)
         )
-        log.error("Error modifying user '#{new_user.name}' - #{e.message}")
+        log.error("Error modifying user '#{old_user.name}' - #{e.message}")
+
+        false
       end
 
       # Edits the user's password
       #
       # @param new_user [User] User containing the updated information
-      # @param old_user [User] Original user
       # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def edit_password(new_user, old_user, issues)
-        return if old_user.password == new_user.password
-
+      def edit_password(new_user, issues)
         new_user.password ? change_password(new_user, issues) : delete_password(new_user, issues)
       end
 
-      # Generates and returns the options expected by `useradd` for given user
+      # Generates and returns the options expected by `useradd` for the given user
+      #
+      # Note that the home is not created if:
+      #   * requested with skip_hope param
+      #   * user has not a home path
+      #   * the home path points to an existing home, see {#create_home_options}
       #
       # @param user [User]
       # @param skip_home [Boolean] whether the home creation should be explicitly avoided
@@ -309,7 +428,7 @@ module Y2Users
           "--uid"      => user.uid,
           "--gid"      => user.gid,
           "--shell"    => user.shell,
-          "--home-dir" => user.home,
+          "--home-dir" => user.home&.path,
           "--comment"  => user.gecos.join(","),
           "--groups"   => user.secondary_groups_name.join(",")
         }
@@ -317,7 +436,7 @@ module Y2Users
 
         if user.system?
           opts << "--system"
-        elsif skip_home
+        elsif skip_home || !opts.include?("--home-dir")
           opts << "--no-create-home"
         else
           opts.concat(create_home_options(user))
@@ -341,28 +460,33 @@ module Y2Users
       def usermod_options(new_user, old_user)
         args = []
         args << "--login" << new_user.name if new_user.name != old_user.name && new_user.name
+        args << "--uid" << new_user.uid if new_user.uid != old_user.uid && new_user.uid
         args << "--gid" << new_user.gid if new_user.gid != old_user.gid && new_user.gid
         args << "--comment" << new_user.gecos.join(",") if new_user.gecos != old_user.gecos
+
+        # With the --home option, the home path of the user is updated in the passwd file, but the
+        # home is not created. The only ways to create a new home for an existing user is:
+        #   * reusing an existing directory/subvolume
+        #   * moving the current home to a new path (see --move-home option below)
+        # Creating the home directory/subvolume of an existing user is not supported by the shadow
+        # tools.
+        if new_user.home&.path && new_user.home.path != old_user.home&.path
+          args << "--home" << new_user.home.path
+        end
+
         # With the --move-home option, all the content from the previous home directory is moved to
         # the new location, and ownership is also adapted. But take into account that the new home
         # will be created only if the old home directory exists. Otherwise, the user will continue
-        # without a home directory.
-        #
-        # For now, this code only supports to move an existing home directory/subvolume. Creating
-        # or deleting the home directory/subvolume of an existing user is not implemented yet.
-        #
-        # For creating the home directory of an existing user, see mkhomedir_helper.
-        #
-        # For deleting the home directory of an existing user, use --home "", and then manually
-        # remove the directory with rm -rf.
-        if new_user.home != old_user.home && new_user.home
-          args << "--home" << new_user.home << "--move-home"
-        end
+        # without a home directory. Also note that if the new home already exists, then the content
+        # of the old home is not moved neither.
+        args << "--move-home" if commit_config(new_user).move_home? && args.include?("--home")
+
         args << "--shell" << new_user.shell if new_user.shell != old_user.shell && new_user.shell
+
         if different_groups?(new_user, old_user)
           args << "--groups" << new_user.secondary_groups_name.join(",")
         end
-        args << old_user.name
+
         args
       end
       # rubocop:enable Metrics/CyclomaticComplexity
@@ -389,11 +513,15 @@ module Y2Users
 
       # Options for `useradd` to create the home directory
       #
+      # Note that useradd command will not try to create the home directory if it already exists, it
+      # does not matter whether --create-home was passed.
+      #
       # @param user [User]
       # @return [Array<String>]
       def create_home_options(user)
         opts = ["--create-home"]
-        opts << "--btrfs-subvolume-home" if user.btrfs_subvolume_home
+        opts << "--btrfs-subvolume-home" if user.home&.btrfs_subvol?
+        opts << "--key" << "HOME_MODE=#{user.home.permissions}" if user.home&.permissions
         opts
       end
 

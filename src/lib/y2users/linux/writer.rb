@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2users/commit_config_collection"
 require "y2issues/with_issues"
 require "y2users/linux/useradd_config_writer"
 require "y2users/linux/login_config_writer"
@@ -85,9 +86,11 @@ module Y2Users
       #
       # @param config [Config] see #config
       # @param initial_config [Config] see #initial_config
-      def initialize(config, initial_config)
+      # @param commit_configs [CommitConfigCollection] configuration to address the commit process
+      def initialize(config, initial_config, commit_configs = nil)
         @config = config
         @initial_config = initial_config
+        @commit_configs = commit_configs || CommitConfigCollection.new
       end
 
       # Performs the changes in the system
@@ -150,6 +153,11 @@ module Y2Users
       # @return [Config]
       attr_reader :initial_config
 
+      # Collection of commit configs to address the commit actions for each user
+      #
+      # @return [CommitConfigCollection]
+      attr_reader :commit_configs
+
       # Writes the useradd configuration to the system
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
@@ -175,7 +183,7 @@ module Y2Users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write_users
-        UsersWriter.new(config, initial_config).write
+        UsersWriter.new(config, initial_config, commit_configs).write
       end
     end
   end

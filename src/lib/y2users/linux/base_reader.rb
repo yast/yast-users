@@ -116,7 +116,7 @@ module Y2Users
         config.users.each do |user|
           next unless user.home
 
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
+          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home.path).read_keys
         end
       end
 
