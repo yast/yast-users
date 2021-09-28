@@ -27,6 +27,11 @@ TESTS = \
   lib/y2users/linux/local_reader_test.rb \
   lib/y2users/linux/reader_test.rb \
   lib/y2users/linux/writer_test.rb \
+  lib/y2users/home_test.rb \
+  lib/y2users/commit_config_test.rb \
+  lib/y2users/commit_config_collection_test.rb \
+  lib/y2users/users_module/reader_test.rb \
+  lib/y2users/users_module/commit_config_reader_test.rb \
   lib/y2users/autoinst/config_merger_test.rb \
   lib/y2users/autoinst/reader_test.rb \
   lib/y2users/autoinst_profile/group_section_test.rb \
