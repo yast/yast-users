@@ -55,7 +55,7 @@ describe Y2Users::Linux::LocalReader do
 
       root_user = config.users.root
       expect(root_user.uid).to eq "0"
-      expect(root_user.home).to eq "/root"
+      expect(root_user.home.path).to eq "/root"
       expect(root_user.shell).to eq "/bin/bash"
       expect(root_user.primary_group.name).to eq "root"
       expect(root_user.password.value.encrypted?).to eq true
