@@ -184,6 +184,7 @@ describe Yast::InstUserFirstDialog do
           subject.next_handler
 
           expect(config.users.by_name("test")).to_not be_nil
+          expect(config.users.by_name("test").home.path).to eq("/home/test")
         end
 
         it "configures the autologin" do
