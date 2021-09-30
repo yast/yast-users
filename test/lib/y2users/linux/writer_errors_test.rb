@@ -197,7 +197,6 @@ describe Y2Users::Linux::Writer do
       let(:error) { Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new user.home }
 
       before do
-        user.home = Y2Users::Home.new("/home/y2test")
         config.attach(user)
 
         allow(keyring).to receive(:write_keys).and_raise(error)

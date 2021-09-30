@@ -38,6 +38,36 @@ describe Y2Users::User do
     end
   end
 
+  describe ".create_system" do
+    it "creates a system user" do
+      user = described_class.create_system("test")
+
+      expect(user).to be_a(described_class)
+      expect(user.system?).to eq(true)
+    end
+
+    it "creates the user without home" do
+      user = described_class.create_system("test")
+
+      expect(user.home).to be_nil
+    end
+  end
+
+  describe ".new" do
+    it "creates a local user" do
+      user = described_class.new("test")
+
+      expect(user).to be_a(described_class)
+      expect(user.system?).to eq(false)
+    end
+
+    it "creates the user with the default home" do
+      user = described_class.new("test")
+
+      expect(user.home.path).to eq("/home/test")
+    end
+  end
+
   subject { described_class.new("test") }
 
   before do
@@ -48,7 +78,6 @@ describe Y2Users::User do
 
   describe "#copy" do
     before do
-      subject.home = Y2Users::Home.new("/home/test")
       subject.password = Y2Users::Password.create_plain("test")
       subject.assign_config(Y2Users::Config.new)
     end
@@ -90,6 +119,15 @@ describe Y2Users::User do
     it "returns an array holding authorized keys" do
       expect(subject.authorized_keys).to be_an(Array)
       expect(subject.authorized_keys).to contain_exactly("ssh-rsa auth-key")
+    end
+  end
+
+  describe "#default_home" do
+    it "returns a home with the default path for the home user" do
+      home = subject.default_home
+
+      expect(home).to be_a(Y2Users::Home)
+      expect(home.path).to eq("/home/test")
     end
   end
 
@@ -337,7 +375,6 @@ describe Y2Users::User do
       subject.uid = 1000
       subject.gid = 100
       subject.shell = "/dev/bash"
-      subject.home = Y2Users::Home.new("/home/test1")
       subject.gecos = ["User Test1", "Other"]
       subject.source = [:ldap]
       subject.receive_system_mail = true
