@@ -150,6 +150,9 @@ module Y2Users
 
     # Default home for the user
     #
+    # Generates a new {Home} object with the default user home path. The attributes of the current
+    # home object associated to the user are not copied.
+    #
     # @return [Home]
     def default_home
       Home.new("/home/#{name}")
