@@ -425,10 +425,26 @@ module Yast
       @full_name = UI.QueryWidget(Id(:full_name), :Value)
 
       user.name = @username
+      # In case of editing the user, the home should be updated to the default value (just in case
+      # the user name has changed) in order to keep the home path as /home/new_username.
+      user.home = user.default_home
       user.gecos = [@full_name].compact
 
       return false unless valid_user?
 
+      return false unless process_password
+
+      @autologin = UI.QueryWidget(Id(:autologin), :Value)
+
+      true
+    end
+
+    # Processes the password for the user
+    #
+    # Errors could be reported.
+    #
+    # @return [Boolean] if the password was correctly assigned to the user
+    def process_password
       # password checks
       pw1 = UI.QueryWidget(Id(:pw1), :Value)
       pw2 = UI.QueryWidget(Id(:pw2), :Value)
@@ -444,9 +460,6 @@ module Yast
       return false unless valid_password?(password)
 
       user.password = password
-
-      @autologin = UI.QueryWidget(Id(:autologin), :Value)
-
       true
     end
 

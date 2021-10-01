@@ -619,11 +619,17 @@ describe Y2Users::Linux::Writer do
         config.attach(user)
       end
 
+      let(:username) { "test" }
+
       include_examples "setting password"
       include_examples "setting password attributes"
 
-      it "does not create the user home" do
-        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, "--no-create-home", username)
+      it "creates the default user home" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+          args = args.join(" ")
+          expect(args).to include("--home-dir /home/test")
+          expect(args).to include("--create-home")
+        end
 
         writer.write
       end
@@ -631,30 +637,19 @@ describe Y2Users::Linux::Writer do
 
     describe "creating users both with specified uid and without uid" do
       before do
-        user2 = Y2Users::User.new("testuser2")
+        user1 = Y2Users::User.new("test1")
+        user1.uid = nil
 
-        user.uid = "1001"
-        user.gid = "2001"
-        user.shell = "/bin/y2shell"
-        user.home = Y2Users::Home.new("/home/y2test")
-        user.gecos = ["First line of", "GECOS"]
-        user.password = nil # not needed for this test
+        user2 = Y2Users::User.new("test2")
+        user2.uid = "1001"
 
-        config.attach(user2)
-        config.attach(user)
-        config.attach(group)
+        config.attach(user1, user2, group)
       end
 
       it "executes useradd for user with uid before user without it" do
-        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args) do |*args|
-          expect(args.last).to eq username
-          expect(args).to include(
-            "--uid", "--gid", "--shell", "--home-dir", "--create-home", "--groups", "--non-unique"
-          )
-        end
+        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args, "test2")
 
-        expect(Yast::Execute).to receive(:on_target!).ordered
-          .with(/useradd/, "--no-create-home", "testuser2")
+        expect(Yast::Execute).to receive(:on_target!).ordered.with(/useradd/, any_args, "test1")
 
         writer.write
       end

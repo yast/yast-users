@@ -118,13 +118,27 @@ module Y2Users
       end
     end
 
+    # Creates a system user
+    #
+    # @return [User]
+    def self.create_system(name)
+      new(name).tap do |user|
+        user.system = true
+        user.home = nil
+      end
+    end
+
     # Constructor
+    #
+    # This creates a local user with its default home. See also {User.create_system} for
+    # specifically creating a system user.
     #
     # @param name [String]
     def initialize(name)
       super()
 
       @name = name
+      @home = default_home
       # TODO: GECOS
       @gecos = []
       @authorized_keys = []
@@ -132,6 +146,16 @@ module Y2Users
 
       # See #system?
       @system = false
+    end
+
+    # Default home for the user
+    #
+    # Generates a new {Home} object with the default user home path. The attributes of the current
+    # home object associated to the user are not copied.
+    #
+    # @return [Home]
+    def default_home
+      Home.new("/home/#{name}")
     end
 
     # Primary group for the user
