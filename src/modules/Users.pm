@@ -3971,14 +3971,6 @@ sub WriteCustomSets {
 }
 
 ##------------------------------------
-# Writes settings to /etc/defaults/useradd
-# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
-sub WriteLoginDefaults {
-    y2error ("Calling obsolete WriteLoginDefaults");
-    return 1;
-}
-
-##------------------------------------
 # Save Security settings (encryption method) if changed in Users module
 BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
