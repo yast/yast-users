@@ -3972,6 +3972,7 @@ sub WriteCustomSets {
 
 ##------------------------------------
 # Writes settings to /etc/defaults/useradd
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
 sub WriteLoginDefaults {
     y2error ("Calling obsolete WriteLoginDefaults");
     return 1;
@@ -4022,6 +4023,7 @@ sub WriteShadow {
 }
 
 # Write authorized keys to users home (FATE#319471)
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
 BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
     y2error ("Calling obsolete WriteAuthorizedKeys");
@@ -4030,6 +4032,8 @@ sub WriteAuthorizedKeys {
 
 ##------------------------------------
 # execute USERDEL_PRECMD scripts for users which should be deleted
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users, which uses
+# userdel (so there is no need to execute USERDEL_PRECMD manually).
 sub PreDeleteUsers {
     y2error ("Calling obsolete PreDeleteUsers");
     return 1;
@@ -5360,8 +5364,7 @@ sub SetRootPassword {
 
 ##------------------------------------
 # Writes password of superuser
-# This is called during install
-# @return true on success
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
     y2error ("Calling obsolete WriteRootPassword");
