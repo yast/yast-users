@@ -337,6 +337,16 @@ sub Modified {
     return $ret;
 }
 
+BEGIN { $TYPEINFO{RemovedUsers} = ["function", ["map", "string", "any"]]; }
+sub RemovedUsers {
+    return \%removed_users;
+}
+
+BEGIN { $TYPEINFO{RemovedGroups} = ["function", ["map", "string", "any"]]; }
+sub RemovedGroups {
+    return \%removed_groups;
+}
+
 # if root password value should be explicitely written
 BEGIN { $TYPEINFO{SaveRootPassword} = ["function", "void", "boolean"]; }
 sub SaveRootPassword {
