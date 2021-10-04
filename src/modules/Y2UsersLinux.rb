@@ -20,6 +20,7 @@
 require "yast"
 require "y2users/users_module/reader"
 require "y2users/users_module/commit_config_reader"
+require "y2users/linux/useradd_config_reader"
 require "y2users/linux/writer"
 require "y2issues"
 
@@ -28,6 +29,23 @@ module Yast
   # the {Y2Users::Linux::Writer} and the # {Y2Users::Linux::UseraddConfigReader
   class Y2UsersLinuxClass < Module
     include Yast::Logger
+
+    EXPORTED_USERADD_ATTRS =
+      ["group", "home", "inactivity_period", "expiration", "shell", "umask"].freeze
+    private_constant :EXPORTED_USERADD_ATTRS
+
+    # Reads the defaults for useradd
+    #
+    # These values are used by {Yast::Users} for initializing the UI fields
+    #
+    # @return [Hash<String, String>]
+    def read_useradd_config
+      useradd_config = Y2Users::Linux::UseraddConfigReader.new.read
+
+      EXPORTED_USERADD_ATTRS.each_with_object({}) do |attr, result|
+        result[attr] = useradd_config.public_send(attr) || ""
+      end
+    end
 
     # Persists the changes from {Yast::Users} to the system
     #
@@ -44,6 +62,7 @@ module Yast
       issues.map(&:message)
     end
 
+    publish function: :read_useradd_config, type: "map ()"
     publish function: :write_from_users_module, type: "list <string> ()"
 
   private
