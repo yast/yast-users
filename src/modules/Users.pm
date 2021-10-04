@@ -250,34 +250,11 @@ YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersSimple");
 YaST::YCP::Import ("UsersUI");
-YaST::YCP::Import ("SSHAuthorizedKeys");
+YaST::YCP::Import ("Y2UsersLinux");
 YaST::YCP::Import ("Nsswitch");
 
 ##-------------------------------------------------------------------------
 ##----------------- various routines --------------------------------------
-
-# Check whether the argument is a directory and is not empty.
-#
-# Return 1 (non-empty dir) or 0.
-#
-# Note: do NOT use FileUtils->GetSize() for this!
-#
-sub dir_not_empty
-{
-  my $dir = shift;
-  my $not_empty = 0;
-
-  if(opendir my $d, $dir) {
-    while(readdir $d) {
-      next if /^(\.|\.\.)$/;
-      $not_empty = 1;
-      last;
-    }
-    closedir $d;
-  }
-
-  return $not_empty;
-}
 
 sub contains {
     my ( $list, $key, $ignorecase ) = @_;
@@ -3994,26 +3971,6 @@ sub WriteCustomSets {
 }
 
 ##------------------------------------
-# Writes settings to /etc/defaults/useradd
-sub WriteLoginDefaults {
-
-    my $self	= shift;
-    my $ret 	= 1;
-
-    foreach my $key (keys %useradd_defaults) {
-	my $value	= $useradd_defaults{$key};
-	$ret = $ret && SCR->Write (".etc.default.useradd.\"\Q$key\E\"", $value);
-    }
-
-    if ($ret) {
-	SCR->Write (".etc.default.useradd", "force");
-    }
-    y2milestone ("Succesfully written useradd defaults: $ret");
-    y2usernote ("File '/etc/default/useradd' was modified.");
-    return $ret;
-}
-
-##------------------------------------
 # Save Security settings (encryption method) if changed in Users module
 BEGIN { $TYPEINFO{WriteSecurity} = ["function", "boolean"]; }
 sub WriteSecurity {
@@ -4039,124 +3996,46 @@ sub WriteSecurity {
 ##------------------------------------
 BEGIN { $TYPEINFO{WriteGroup} = ["function", "boolean"]; }
 sub WriteGroup {
-
-    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/group' '".String->Quote($base_directory)."/group.YaST2save'";
-    if (SCR->Execute (".target.bash", $cmd) != 0)
-    {
-	y2error ("creating backup of $base_directory/group failed");
-	return 0;
-    }
-    y2usernote ("Backup created: '$cmd'");
-    my $ret	= UsersPasswd->WriteGroups (\%groups);
-    $cmd	= "/usr/bin/diff -U 1 '".String->Quote($base_directory)."/group.YaST2save' '".String->Quote($base_directory)."/group'";
-    my $out	= SCR->Execute (".target.bash_output", $cmd);
-    my $stdout	= $out->{"stdout"} || "";
-    y2usernote ("Comparing original and new version:
-$stdout`");
-    return $ret;
+    y2error ("Calling obsolete WriteGroup");
+    return 1;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WritePasswd} = ["function", "boolean"]; }
 sub WritePasswd {
-    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/passwd' '".String->Quote($base_directory)."/passwd.YaST2save'";
-    if (SCR->Execute (".target.bash", $cmd) != 0)
-    {
-	y2error ("creating backup of $base_directory/passwd failed");
-	return 0;
-    }
-    y2usernote ("Backup created: '$cmd'");
-    my $ret	= UsersPasswd->WriteUsers (\%users);
-    $cmd	= "/usr/bin/diff -U 1 '".String->Quote($base_directory)."/passwd.YaST2save' '".String->Quote($base_directory)."/passwd'";
-    my $out	= SCR->Execute (".target.bash_output", $cmd);
-    my $stdout	= $out->{"stdout"} || "";
-    y2usernote ("Comparing original and new version:
-$stdout`");
-    return $ret;
+    y2error ("Calling obsolete WritePasswd");
+    return 1;
 }
 
 ##------------------------------------
 BEGIN { $TYPEINFO{WriteShadow} = ["function", "boolean"]; }
 sub WriteShadow {
-
-    my $cmd	= "/usr/bin/cp '".String->Quote($base_directory)."/shadow' '".String->Quote($base_directory)."/shadow.YaST2save'";
-    if (SCR->Execute (".target.bash", $cmd) != 0)
-    {
-	if (FileUtils->Exists ("$base_directory/shadow")) {
-	    y2error ("creating backup of $base_directory/shadow failed");
-	    return 0;
-	} else {
-	    y2milestone ("$base_directory/shadow does not exists, so it won't be written");
-	    return 1;
-	}
-    }
-    else
-    {
-	y2usernote ("Backup created: '$cmd'");
-        return UsersPasswd->WriteShadow (\%shadow);
-    }
+    y2error ("Calling obsolete WriteShadow");
+    return 1;
 }
 
-
 # Write authorized keys to users home (FATE#319471)
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
 BEGIN { $TYPEINFO{WriteAuthorizedKeys} = ["function", "boolean"]; }
 sub WriteAuthorizedKeys {
-    foreach my $username (keys %{$modified_users{"local"}}) {
-        my %user	= %{$modified_users{"local"}{$username}};
-        # Write authorized keys to user's home (FATE#319471)
-        SSHAuthorizedKeys->write_keys($user{"homeDirectory"}, $user{"authorized_keys"});
-    }
-
-    # Do not crash if 'root' is undefined (bsc#1088183)
-    if (defined($modified_users{"system"}{"root"})) {
-      # Write root authorized keys(bsc#1066342)
-      my %root_user = %{$modified_users{"system"}{"root"}};
-      SSHAuthorizedKeys->write_keys($root_user{"homeDirectory"}, $root_user{"authorized_keys"});
-    }
-
+    y2error ("Calling obsolete WriteAuthorizedKeys");
     return 1;
 }
 
 ##------------------------------------
 # execute USERDEL_PRECMD scripts for users which should be deleted
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users, which uses
+# userdel (so there is no need to execute USERDEL_PRECMD manually).
 sub PreDeleteUsers {
-
-    my $ret = 1;
-
-    if ($userdel_precmd eq "" || !FileUtils->Exists ($userdel_precmd)) {
-	return $ret;
-    }
-
-    foreach my $type ("system", "local") {
-	if (!defined $removed_users{$type}) {
-	    next;
-	}
-	foreach my $username (keys %{$removed_users{$type}}) {
-	    my %user = %{$removed_users{$type}{$username}};
-	    my $cmd = sprintf ("$userdel_precmd '".String->Quote($username)."' %i %i '%s'",
-		$user{"uidNumber"}, $user{"gidNumber"}, String->Quote($user{"homeDirectory"}));
-	    SCR->Execute (".target.bash", $cmd);
-	    y2usernote ("User pre-deletion script called: '$cmd'");
-	};
-    };
-    return $ret;
+    y2error ("Calling obsolete PreDeleteUsers");
+    return 1;
 }
 
 ##------------------------------------
-# 1. remove home directories,
-# 2. execute USERDEL_POSTCMD scripts for deleted local/system users
-# 3. call Write function of plugins to do the delete action
+# call Write function of plugins to do the delete action
 sub PostDeleteUsers {
 
     my $ret	= 1;
-
-    foreach my $home (keys %removed_homes) {
-	$ret = $ret && UsersRoutines->DeleteHome ($home);
-    };
-
-    if ($userdel_postcmd eq "" || !FileUtils->Exists($userdel_postcmd)) {
-	return $ret;
-    }
 
     foreach my $type ("system", "local") {
 	if (!defined $removed_users{$type}) {
@@ -4165,11 +4044,6 @@ sub PostDeleteUsers {
 	my $plugin_error;
 	foreach my $username (keys %{$removed_users{$type}}) {
 	    my %user = %{$removed_users{$type}{$username}};
-	    my $uid     = $user{"uidNumber"} || 0;
-	    Syslog->Log ("User deleted by YaST: name=$username, UID=$uid");
-	    my $cmd = sprintf ("$userdel_postcmd '".String->Quote($username)."' $uid %i '%s'",
-              $user{"gidNumber"} || 0, String->Quote($user{"homeDirectory"} || ""));
-	    SCR->Execute (".target.bash", $cmd);
 	    # call the "Write" function from plugins...
 	    my $args	= {
 	    	"what"		=> "user",
@@ -4178,8 +4052,6 @@ sub PostDeleteUsers {
 	    };
 	    my $result		= UsersPlugins->Apply ("Write", $args, \%user);
 	    $plugin_error	= GetPluginError ($args, $result);
-	    y2usernote ("User post-deletion script called: '$cmd'");
-	    Syslog->Log ("USERDEL_POSTCMD command called by YaST: $cmd");
 	};
     };
     return $ret;
@@ -4312,34 +4184,18 @@ sub Write {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
-		__("Write LDAP users and groups"),
+		__("Write LDAP users, groups and settings"),
 		# progress stage label
-		__("Write groups"),
+		__("Write local users, groups and settings"),
 		# progress stage label
-		__("Check for deleted users"),
-		# progress stage label
-		__("Write users"),
-		# progress stage label
-		__("Write passwords"),
-		# progress stage label
-		__("Write the custom settings"),
-		# progress stage label
-		__("Write the default login settings")
+		__("Write the custom settings")
            ], [
 		# progress step label
-		__("Writing LDAP users and groups..."),
+		__("Writing LDAP users, groups and settings..."),
 		# progress step label
-		__("Writing groups..."),
-		# progress step label
-		__("Checking deleted users..."),
-		# progress step label
-		__("Writing users..."),
-		# progress step label
-		__("Writing passwords..."),
+		__("Writing local users, groups and settings..."),
 		# progress step label
 		__("Writing the custom settings..."),
-		# progress step label
-		__("Writing the default login settings..."),
 		# final progress step label
 		__("Finished")
 	    ], "" );
@@ -4410,18 +4266,17 @@ sub Write {
 	}
     }
 
-    # Write groups 
+    if ($sysconfig_ldap_modified) {
+        SCR->Write (".sysconfig.ldap.FILE_SERVER", Ldap->file_server? "yes": "no");
+        SCR->Write (".sysconfig.ldap", undef);
+    }
+
+    # Write groups and users
     if ($use_gui) { Progress->NextStage (); }
 
     my $plugin_error	= "";
 
     if ($groups_modified) {
-	if ($group_not_read) {
-	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not read correctly, so it will not be written."), $base_directory."/group");
-	    Report->Error ($ret);
-	    return $ret;
-	}
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_groups)  {
 	    if ($type eq "ldap") { next; }
@@ -4437,40 +4292,12 @@ sub Write {
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
-	# -------------------------------------- write /etc/group
-        if ($plugin_error eq "" && ! WriteGroup ()) {
-            $ret = Message->ErrorWritingFile ("$base_directory/group");
-	    Report->Error ($ret);
-	    return $ret;
-        }
 	if (!$write_only) {
 	    $nscd_group		= 1;
 	}
     }
 
-    # Check for deleted users
-    if ($use_gui) { Progress->NextStage (); }
-
     if ($users_modified) {
-        if (!PreDeleteUsers ()) {
-       	    # error popup
-	    $ret = __("An error occurred while removing users.");
-	    Report->Error ($ret);
-	    return $ret;
-	}
-    }
-
-    # Write users
-    if ($use_gui) { Progress->NextStage (); }
-
-
-    if ($users_modified) {
-	if ($passwd_not_read) {
-	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), $base_directory."/passwd");
-	    Report->Error ($ret);
-	    return $ret;
-	}
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_users)  {
 	    if ($type eq "ldap") { next; }
@@ -4486,149 +4313,23 @@ sub Write {
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
-	# -------------------------------------- write /etc/passwd
-        if ($plugin_error eq "" && !WritePasswd ()) {
-            $ret = Message->ErrorWritingFile ("$base_directory/passwd");
-	    Report->Error ($ret);
-	    return $ret;
-	}
+
 	if (!$write_only) {
 	    $nscd_passwd	= 1;
 	}
 
-	# check for homedir changes,
-	# and while going through modified users, log what was done to the user log (y2usernote)
-        foreach my $type (keys %modified_users)  {
-	    if ($type eq "ldap") {
-		next; #rest of work with homes for LDAP are ruled in WriteLDAP
-	    }
-	    foreach my $username (keys %{$modified_users{$type}}) {
-
-		my %user	        = %{$modified_users{$type}{$username}};
-		my $home 	        = $user{"homeDirectory"} || "";
-		my $use_btrfs_subvolume = bool($user{"btrfs_subvolume"});
-		my $uid		        = $user{"uidNumber"} || 0;
-		my $command 	        = "";
-		my $user_mod 	        = $user{"modified"} || "no";
-		my $gid 	        = $user{"gidNumber"};
-		my $create_home	        = $user{"create_home"};
-		my $chown_home	        = $user{"chown_home"};
-		$chown_home	        = 1 if (!defined $chown_home);
-		my $skel	        = $useradd_defaults{"skel"};
-		my $copy_usr_skel	= "yes";
-
-		if ($user_mod eq "imported" || $user_mod eq "added") {
-		    y2usernote ("User '$username' created");
-
-		    if ($user_mod eq "imported" && dir_not_empty($home)) {
-			# directory already exists AND is not empty
-			y2milestone ("home directory $home of user $username already exists and is not empty");
-			next;
-		    }
-		    if (bool ($user{"no_skeleton"})) {
-			$skel = "";
-			$copy_usr_skel = "";
-		    }
-		    if (bool ($create_home) || $user_mod eq "imported")
-		    {
-			UsersRoutines->CreateHome ($skel, $home, $use_btrfs_subvolume, $copy_usr_skel);
-		    }
-		    if ($home ne "/var/lib/nobody" && bool ($chown_home)) {
-			if (UsersRoutines->ChownHome ($uid, $gid, $home))
-			{
-			    my $mode = 777 - String->CutZeros ($umask);
-			    if (defined ($user{"home_mode"})) {
-				$mode	= $user{"home_mode"};
-			    }
-			    UsersRoutines->ChmodHome($home, $mode);
-			}
-		    }
-		    Syslog->Log ("User added by YaST: name=$username, uid=$uid, gid=$gid, home=$home");
-		    if ($useradd_cmd ne "" && FileUtils->Exists ($useradd_cmd))
-		    {
-			$command = sprintf ("%s %s", $useradd_cmd, $username);
-			push @useradd_postcommands, $command;
-		    }
-		}
-		if ($user_mod eq "edited") {
-		    my $org_username	= $user{"org_user"}{"uid"} || $username;
-		    if ($username ne $org_username) {
-			y2usernote ("User '$org_username' renamed to '$username'");
-		    }
-		    else {
-			y2usernote ("User '$username' modified");
-		    }
-		}
-		if ($user_mod eq "edited" && $home ne "/var/lib/nobody") {
-		    my $org_home = $user{"org_user"}{"homeDirectory"} || $home;
-		    my $org_uid = $uid;
-		    $org_uid	= $user{"org_user"}{"uidNumber"} if (defined $user{"org_user"}{"uidNumber"});
-		    my $org_gid = $gid;
-		    if (defined $user{"org_user"}{"gidNumber"}) {
-			$org_gid = $user{"org_user"}{"gidNumber"};
-		    }
-		    # this would be actually caused by group modification
-		    elsif (defined $user{"org_gidNumber"}) {
-			$org_gid = $user{"org_gidNumber"};
-		    }
-		    # chown only when directory was changed (#39417)
-		    if ($home ne $org_home || $uid ne $org_uid || $gid ne $org_gid) {
-			# move the home directory
-			if (bool ($create_home)) {
-			    UsersRoutines->MoveHome ($org_home, $home);
-			}
-			# create new home directory
-			elsif (not %{SCR->Read (".target.stat", $home)}) {
-			    UsersRoutines->CreateHome ($skel, $home, "", $copy_usr_skel);
-			}
-			# do not change root's ownership of home directories
-			if (bool ($chown_home))
-			{
-			    UsersRoutines->ChownHome ($uid, $gid, $home);
-			}
-		    }
-		}
-
-		# Write authorized keys to user's home (FATE#319471)
-		if (defined($user{"authorized_keys"})) {
-		    SSHAuthorizedKeys->write_keys($home, $user{"authorized_keys"});
-		}
-
-                my %saved_passwords;
-
-                # hide passwords for logging
-                for my $pw (qw (userPassword text_userpassword)) {
-                    $saved_passwords{$pw} = $user{$pw};
-                    $user{$pw} = "*****";
-                }
-
-		y2milestone ("User = ", Dumper(\%user));
-
-		# restore
-		for my $pw (keys %saved_passwords) {
-		    $user{$pw} = $saved_passwords{$pw};
-		}
-	    }
-	}
+	# There used to be a big loop here managing homedir changes, but is not longer necessary:
+	#  - work with homes for LDAP users are ruled in WriteLDAP
+	#  - homes for local and system users are handed by Y2Users
+	#  - is not possible to add NIS users or to configure their homes
     }
 
-    WriteAuthorizedKeys();
-
-    # Write passwords
-    if ($use_gui) { Progress->NextStage (); }
-
-    if ($users_modified) {
-	if ($shadow_not_read) {
-	    # error popup (%s is a file name)
-            $ret = sprintf (__("File %s was not correctly read, so it will not be written."), $base_directory."/shadow");
-	    Report->Error ($ret);
-	    return $ret;
- 	}
-        if (! WriteShadow ()) {
-            $ret = Message->ErrorWritingFile ("$base_directory/shadow");
-	    Report->Error ($ret);
-	    return $ret;
-        }
+    # Commit changes to the system using Y2Users
+    my @write_errors = @{Y2UsersLinux->write_from_users_module()};
+    if (@write_errors) {
+	$ret = $write_errors[0];
+	Report->Error ($ret);
+	return $ret;
     }
 
     # remove the passwd cache for nscd (bug 24748, 41648)
@@ -4689,30 +4390,6 @@ sub Write {
 		my $result = UsersPlugins->Apply ("Write", $args,
 		    $modified_groups{$type}{$groupname});
 		$plugin_error	= GetPluginError ($args, $result);
-		
-		my $group	= $modified_groups{$type}{$groupname};
-		my $mod 	= $group->{"modified"} || "no";
-
-		# store commands for calling groupadd_cmd script
-		if ($groupadd_cmd ne "" && FileUtils->Exists ($groupadd_cmd)) {
-		    if ($mod eq "imported" || $mod eq "added") {
-			my $cmd = sprintf ("%s %s", $groupadd_cmd, $groupname);
-			push @groupadd_postcommands, $cmd;
-		    }
-		}
-		# now, log what was done to current modified group
-		if ($mod eq "imported" || $mod eq "added") {
-		    y2usernote ("Group '$groupname' created");
-		}
-		elsif ($mod eq "edited") {
-		    my $org_groupname	= $group->{"org_group"}{"cn"} || $groupname;
-		    if ($groupname ne $org_groupname) {
-			y2usernote ("Group '$org_groupname' renamed to '$groupname'");
-		    }
-		    else {
-			y2usernote ("Group '$groupname' modified");
-		    }
-		}
 	    }
 	    # unset the 'modified' flags after write
 	    $self->UpdateGroupsAfterWrite ("local");
@@ -4738,26 +4415,6 @@ sub Write {
 	}
     }
 
-    # complete adding groups
-    if ($groups_modified && @groupadd_postcommands > 0) {
-	foreach my $command (@groupadd_postcommands) {
-	    y2milestone ("'$command' returns: ", 
-		SCR->Execute (".target.bash", $command));
-	    y2usernote ("Group post-add script called: '$command'");
-	    Syslog->Log ("GROUPADD_CMD command called by YaST: $command");
-	}
-    }
-
-    # complete adding users
-    if ($users_modified && @useradd_postcommands > 0) {
-	foreach my $command (@useradd_postcommands) {
-	    y2milestone ("'$command' returns: ", 
-		SCR->Execute (".target.bash", $command));
-	    y2usernote ("User post-add script called: '$command'");
-	    Syslog->Log ("USERADD_CMD command called by YaST: $command");
-	}
-    }
-
     # complete deleting of users
     if ($users_modified) {
         if (!PostDeleteUsers ()) {
@@ -4766,6 +4423,10 @@ sub Write {
 	    Report->Error ($ret);
 	    return $ret;
 	}
+    }
+
+    if ($security_modified) {
+	WriteSecurity();
     }
 
     # Write the custom settings
@@ -4777,53 +4438,11 @@ sub Write {
 	}
     }
 
-    # Write the default login settings
-    if ($use_gui) { Progress->NextStage (); }
-
-    if ($defaults_modified) {
-        if ($self->WriteLoginDefaults()) {
-	    $defaults_modified	= 0;
-	}
-    }
-
-    if ($security_modified) {
-	WriteSecurity();
-    }
-    if ($sysconfig_ldap_modified) {
-        SCR->Write (".sysconfig.ldap.FILE_SERVER", Ldap->file_server? "yes": "no");
-        SCR->Write (".sysconfig.ldap", undef);
-    }
-
-    my @new_aliases	= sort (keys %root_aliases);
-    my @old_aliases	= sort (keys %root_aliases_orig);
-
-    # mail forward from root
-    if (!same_arrays (\@new_aliases, \@old_aliases)) {
-	$root_mail	= join (", ", keys %root_aliases);
-	if (!MailAliases->SetRootAlias ($root_mail)) {
-        
-	    # error popup
-	    $ret = __("An error occurred while setting forwarding for root's mail.");
-	    Report->Error ($ret);
-	    return $ret;
-	}
-	else {
-          SCR->Execute (".target.bash", "/usr/sbin/config.postfix");
-	}
-    }
-
-    Autologin->Write (Stage->cont () || $write_only);
-
     # do not show user in first dialog when all has been writen
     if (Stage->cont ()) {
         $use_next_time	= 0;
         undef %saved_user;
         undef %user_in_work;
-    }
-
-    if (Stage->firstboot () && $save_root_password) {
-	$self->WriteRootPassword ();
-	$save_root_password	= 0;
     }
 
     $users_modified	= 0;
@@ -5737,16 +5356,11 @@ sub SetRootPassword {
 
 ##------------------------------------
 # Writes password of superuser
-# This is called during install
-# @return true on success
+# Obsolete: currently this subroutine does nothing. Functionality moved to Y2Users
 BEGIN { $TYPEINFO{WriteRootPassword} = ["function", "boolean"];}
 sub WriteRootPassword {
-
-    my $self		= shift;
-    # Crypt the root password according to method defined in encryption_method
-    my $crypted		= $self->CryptPassword ($root_password, "system");
-    Syslog->Log ("Root password changed by YaST");
-    return SCR->Write (".target.passwd.root", $crypted);
+    y2error ("Calling obsolete WriteRootPassword");
+    return 1;
 }
 
 ##------------------------------------
