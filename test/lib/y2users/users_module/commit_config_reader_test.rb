@@ -75,7 +75,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
           "type"             => "local",
           "uid"              => "test6",
           "uidNumber"        => 1001,
-          "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyzAt" \
+          "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyz" \
             "VoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
           "what"             => "delete_user"
         },
@@ -102,7 +102,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
           "type"             => "local",
           "uid"              => "test2",
           "uidNumber"        => 1002,
-          "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGKEf" \
+          "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGK" \
             "b2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
           "what"             => "delete_user"
         }

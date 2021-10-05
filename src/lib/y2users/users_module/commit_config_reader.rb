@@ -72,6 +72,8 @@ module Y2Users
         end
 
         config.remove_home = user["delete_home"]
+
+        nil
       end
 
       # Generates a commit config from the given user
