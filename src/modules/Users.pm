@@ -161,12 +161,6 @@ my $passwd_not_read 		= 1;
 my $shadow_not_read 		= 1;
 my $group_not_read 		= 1;
 
-# paths to commands that should be run before (after) adding (deleting) a user
-my $useradd_cmd 		= "";
-my $userdel_precmd 		= "";
-my $userdel_postcmd 		= "";
-my $groupadd_cmd 		= "";
-
 my $pass_warn_age		= "7";
 my $pass_min_days		= "0";
 my $pass_max_days		= "99999";
@@ -1325,14 +1319,6 @@ sub ReadSystemDefaults {
     $pass_warn_age	= $security{"PASS_WARN_AGE"}	|| $pass_warn_age;
     $pass_min_days	= $security{"PASS_MIN_DAYS"}	|| $pass_min_days;
     $pass_max_days	= $security{"PASS_MAX_DAYS"}	|| $pass_max_days;
-
-    # command to call before/after adding/deleting user
-    $useradd_cmd 	= $security{"USERADD_CMD"} 	|| $useradd_cmd;
-    $userdel_precmd 	= $security{"USERDEL_PRECMD"} 	|| $userdel_precmd;
-    $userdel_postcmd 	= $security{"USERDEL_POSTCMD"}	|| $userdel_postcmd;
-
-    # command to call after adding group
-    $groupadd_cmd       = ShadowConfig->fetch("GROUPADD_CMD") || "";
 
     $encryption_method	= $security{"PASSWD_ENCRYPTION"} || $encryption_method;
     UsersSimple->SetEncryptionMethod ($encryption_method);
@@ -4171,8 +4157,6 @@ sub Write {
     my $ret		= "";
     my $nscd_passwd	= 0;
     my $nscd_group	= 0;
-    my @useradd_postcommands	= ();
-    my @groupadd_postcommands	= ();
 
     my $umask		= $self->GetUmask ();
 
