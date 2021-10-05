@@ -142,7 +142,7 @@ module Yast
         "samba"    => _("Samba")
       }
 
-      # auth methods and respective module calls 
+      # auth methods and respective module calls
       @auth_methods = {
         "nis" => {
           # menubutton label
@@ -195,10 +195,8 @@ module Yast
               VSpacing(0.2),
               "defaults_global",
               "defaultgroup",
-              "groups",
               "shell",
               HBox("home", VBox(Label(""), "browse_home")),
-              HBox("skel", VBox(Label(""), "browse_skel")),
               "umask",
               "expire",
               "inactive",
@@ -210,12 +208,9 @@ module Yast
           "widget_names" => [
             "defaults_global",
             "defaultgroup",
-            "groups",
             "shell",
             "home",
             "browse_home",
-            "skel",
-            "browse_skel",
             "umask",
             "expire",
             "inactive"
@@ -340,17 +335,6 @@ module Yast
             "boolean (string, map)"
           )
         },
-        "groups"            => {
-          "widget"            => :textentry,
-          # text entry
-          "label"             => _("Se&condary Groups"),
-          "no_help"           => true,
-          "validate_type"     => :function,
-          "validate_function" => fun_ref(
-            method(:ValidateGroupList),
-            "boolean (string, map)"
-          )
-        },
         "home"              => {
           "widget"            => :textentry,
           # text entry
@@ -369,28 +353,6 @@ module Yast
           # push button label
           "label"   => _("&Browse..."),
           "opt"     => [:key_F6],
-          "handle"  => fun_ref(
-            method(:HandleBrowseDirectory),
-            "symbol (string, map)"
-          ),
-          "no_help" => true
-        },
-        "skel"              => {
-          "widget"            => :textentry,
-          # text entry
-          "label"             => _("&Skeleton for Home Directory"),
-          "no_help"           => true,
-          "validate_type"     => :function,
-          "validate_function" => fun_ref(
-            method(:ValidateSkeleton),
-            "boolean (string, map)"
-          )
-        },
-        "browse_skel"       => {
-          "widget"  => :push_button,
-          # push button label
-          "label"   => _("Bro&wse..."),
-          "opt"     => [:key_F7],
           "handle"  => fun_ref(
             method(:HandleBrowseDirectory),
             "symbol (string, map)"
@@ -1667,23 +1629,6 @@ Continue anyway?"))
       true
     end
 
-    # Validation function for home directory skeleton directory
-    def ValidateSkeleton(key, event)
-      event = deep_copy(event)
-      new_skel = Convert.to_string(UI.QueryWidget(Id(key), :Value))
-      if SCR.Read(path(".target.dir"), new_skel) == nil
-        # popup error label
-        Report.Error(
-          _(
-            "The entered home directory skeleton is not a directory.\nTry again.\n"
-          )
-        )
-        UI.SetFocus(Id(key))
-        return false
-      end
-      true
-    end
-
     # Validation function for the default home prefix
     def ValidateHomePrefix(key, event)
       event = deep_copy(event)
@@ -1717,57 +1662,6 @@ Continue anyway?"))
       true
     end
 
-    # Validation function for the value of the default list of groups
-    def ValidateGroupList(key, event)
-      event = deep_copy(event)
-      groups = Users.GetDefaultGrouplist("local")
-      grouplist = Builtins.mergestring(Builtins.maplist(groups) { |g, i| g }, ",")
-      new_grouplist = Convert.to_string(UI.QueryWidget(Id(key), :Value))
-
-      if new_grouplist != grouplist
-        l_grouplist = []
-        dont_exist = []
-        Builtins.foreach(Builtins.splitstring(new_grouplist, ",")) do |g|
-          # check for group existence
-          if Ops.get(@all_groupnames, ["local", g], 0) == 0 &&
-              Ops.get(@all_groupnames, ["system", g], 0) == 0
-            dont_exist = Convert.convert(
-              Builtins.union(dont_exist, [g]),
-              :from => "list",
-              :to   => "list <string>"
-            )
-          else
-            # filter out the duplicates
-            l_grouplist = Convert.convert(
-              Builtins.union(l_grouplist, [g]),
-              :from => "list",
-              :to   => "list <string>"
-            )
-          end
-        end
-        if dont_exist != []
-          # error message
-          Report.Error(
-            Builtins.sformat(
-              _(
-                "These groups do not exist in your system:\n" +
-                  "%1\n" +
-                  "Try again.\n"
-              ),
-              Builtins.mergestring(dont_exist, ",")
-            )
-          )
-
-          UI.SetFocus(Id("groups"))
-          return false
-        end
-        new_grouplist = Builtins.mergestring(l_grouplist, ",")
-        UI.ChangeWidget(Id("groups"), :Value, new_grouplist)
-      end
-      true
-    end
-
-    # Validation function for the default login shell
     def ValidateShell(key, event)
       event = deep_copy(event)
       new_shell = Convert.to_string(UI.QueryWidget(Id(key), :Value))
@@ -1804,18 +1698,10 @@ Continue anyway?"))
       UI.ChangeWidget(Id("shell"), :Items, Users.AllShells)
       UI.ChangeWidget(Id("shell"), :Value, Users.GetDefaultShell("local"))
 
-      groups = Users.GetDefaultGrouplist("local")
-      grouplist = Builtins.mergestring(Builtins.maplist(groups) { |g, i| g }, ",")
-      UI.ChangeWidget(Id("groups"), :Value, grouplist)
       UI.ChangeWidget(
         Id("home"),
         :Value,
         Ops.get_string(defaults, "home", "/home")
-      )
-      UI.ChangeWidget(
-        Id("skel"),
-        :Value,
-        Ops.get_string(defaults, "skel", "/etc/skel")
       )
 
       UI.ChangeWidget(
@@ -1851,19 +1737,12 @@ Continue anyway?"))
       event = deep_copy(event)
       defaults = Users.GetLoginDefaults
       new_defaults = {}
-      Builtins.foreach(["home", "shell", "skel", "inactive", "umask"]) do |key2|
+      Builtins.foreach(["home", "shell", "inactive", "umask"]) do |key2|
         val = UI.QueryWidget(Id(key2), :Value)
         val = Builtins.sformat("%1", val) if Ops.is_integer?(val)
         if Ops.get(defaults, key2) != val
           Ops.set(new_defaults, key2, Convert.to_string(val))
         end
-      end
-      new_grouplist = Convert.to_string(UI.QueryWidget(Id("groups"), :Value))
-      if Builtins.sort(
-          Builtins.splitstring(Ops.get_string(defaults, "groups", ""), ",")
-        ) !=
-          Builtins.sort(Builtins.splitstring(new_grouplist, ","))
-        Ops.set(new_defaults, "groups", new_grouplist)
       end
 
       new_exp_date = Convert.to_string(UI.QueryWidget(Id("expire"), :Value))
