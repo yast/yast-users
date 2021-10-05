@@ -112,13 +112,6 @@ module Yast
             "The group name of a new user's primary group.\n" +
             "</p>\n"
         ) +
-        # Help text 1.5/6
-        _(
-          "<p>\n" +
-            "<b>Secondary Groups</b><br>\n" +
-            "Names of additional groups to which to assign new users.\n" +
-            "</p>\n"
-        ) +
         # Help text 2/6
         _(
           "<p><b>Default Login Shell</b><br>\nThe name of the new user's login shell. Select one from the list or enter your own path to the shell.</P>\n"
@@ -129,10 +122,6 @@ module Yast
             "The initial path prefix for a new user's home directory. The username is added\n" +
             "to the end of this value to create the default name of the home directory.\n" +
             "</P>\n"
-        ) +
-        # Help text 4/6
-        _(
-          "<p><b>Skeleton Directory</b><br>\nThe contents of this directory are copied to a user's home directory when a new user is added. </p>\n"
         ) +
         # Help text 4.5/6
         _(
