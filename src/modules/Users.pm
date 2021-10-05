@@ -4412,6 +4412,9 @@ sub Write {
     }
 
     if ($security_modified) {
+	# It does not matter whether this is executed before or after write_from_users_module,
+	# because the encryption is not delegated to the Y2Users writer. Yast::Users encrypts the
+	# passwords right away when initially creating the data structures in memory.
 	WriteSecurity();
     }
 
