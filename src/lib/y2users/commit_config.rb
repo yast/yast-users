@@ -23,6 +23,8 @@ module Y2Users
   # Writers can receive a collection of objects of this class (see {CommitConfigCollection}) in
   # order to decide what actions to perform over the user. For example, a writer can use the commit
   # config to check whether the content of the home directory should be moved or not.
+  # TODO: It is confusing to have config for different commit actions, so for future it makes sense
+  # to split it
   class CommitConfig
     # Name of the user this commit config applies to
     #
@@ -45,6 +47,11 @@ module Y2Users
     # @return [Boolean]
     attr_writer :adapt_home_ownership
 
+    # Whether to remove user home when removing it.
+    #
+    # @return [Boolean]
+    attr_writer :remove_home
+
     # @return [Boolean]
     def home_without_skel?
       !!@home_without_skel
@@ -58,6 +65,11 @@ module Y2Users
     # @return [Boolean]
     def adapt_home_ownership?
       !!@adapt_home_ownership
+    end
+
+    # @return [Boolean]
+    def remove_home?
+      !!@remove_home
     end
   end
 end
