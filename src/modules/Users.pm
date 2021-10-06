@@ -1728,6 +1728,7 @@ sub RemoveUserFromGroup {
     my $ret		= 0;
     my $group_type	= $group_in_work{"type"};
 
+    CreateGroupOrg();
     if ($group_type eq "ldap") {
         $user           = $user_in_work{"dn"};
 	if (defined $user_in_work{"org_dn"}) {
