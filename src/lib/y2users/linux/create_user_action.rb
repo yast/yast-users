@@ -78,47 +78,52 @@ module Y2Users
 
       # Generates options for `useradd` according to the user
       #
-      # Note that the home is not created if explicitly requested with :skip_hope param or the user
-      # has no home path.
-      #
       # @param skip_home [Boolean] whether the home creation should be explicitly skip
       # @return [Array<String>]
       def useradd_options(skip_home: false)
-        opts = {
-          "--uid"      => user.uid,
-          "--gid"      => user.gid,
-          "--shell"    => user.shell,
-          "--home-dir" => user.home&.path,
-          "--comment"  => user.gecos.join(","),
-          "--groups"   => user.secondary_groups_name.join(",")
-        }
-        opts = opts.reject { |_, v| v.to_s.empty? }.flatten
+        user_options + home_options(skip_home: skip_home) + user.name
+      end
 
-        if user.system?
-          opts << "--system"
-        elsif skip_home || !opts.include?("--home-dir")
-          opts << "--no-create-home"
-        else
-          opts.concat(create_home_options)
-        end
+      # Options from user attributes
+      #
+      # @return [Array<String>]
+      def user_options
+        opts = {
+          "--uid"     => user.uid,
+          "--gid"     => user.gid,
+          "--shell"   => user.shell,
+          "--comment" => user.gecos.join(","),
+          "--groups"  => user.secondary_groups_name.join(",")
+        }
+
+        opts = opts.reject { |_, v| v.to_s.empty? }.flatten
 
         # user is already warned in advance
         opts << "--non-unique" if user.uid
 
-        opts << user.name
+        opts << "--system" if user.system?
+
         opts
       end
 
-      # Generates options for `useradd` about how to create home
+      # Generates options for `useradd` about how to deal with home
+      #
+      # The home is not created if explicitly requested with `:skip_hope` param or the user has no
+      # home path.
       #
       # Note that `useradd` will not try to create the home if the path already exists, it does not
-      # matter whether --create-home was passed.
+      # matter whether --create-home is passed.
       #
+      # @param skip_home [Boolean]
       # @return [Array<String>]
-      def create_home_options
-        opts = ["--create-home"]
-        opts << "--btrfs-subvolume-home" if user.home&.btrfs_subvol?
-        opts << "--key" << "HOME_MODE=#{user.home.permissions}" if user.home&.permissions
+      def home_options(skip_home: false)
+        return [] if user.system?
+
+        return ["--no-create-home"] if skip_home || !user.home&.path
+
+        opts = ["--create-home", "--home-dir", user.home.path]
+        opts << "--btrfs-subvolume-home" if user.home.btrfs_subvol?
+        opts << "--key" << "HOME_MODE=#{user.home.permissions}" if user.home.permissions
         opts
       end
     end

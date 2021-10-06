@@ -72,11 +72,33 @@ module Y2Users
       #
       # @return [Array<String>]
       def usermod_options
-        args = []
-        args << "--login" << user.name if user.name != initial_user.name && user.name
-        args << "--uid" << user.uid if user.uid != initial_user.uid && user.uid
-        args << "--gid" << user.gid if user.gid != initial_user.gid && user.gid
-        args << "--comment" << user.gecos.join(",") if user.gecos != initial_user.gecos
+        user_options + home_options
+      end
+
+      # Options from the user attributes
+      #
+      # @return [Array<String>]
+      def user_options
+        opts = {
+          name:    ["--login", user.name],
+          uid:     ["--uid", user.uid],
+          gid:     ["--gid", user.gid],
+          shell:   ["--shell", user.shell],
+          comment: ["--comment", user.gecos.join(",")]
+        }
+
+        opts = opts.select { |k, _| new_value_for?(k) }.values.flatten
+
+        opts += ["--groups", user.secondary_groups_name.join(",")] if different_groups?
+
+        opts
+      end
+
+      # Options to deal with home
+      #
+      # @return [Array<String>]
+      def home_options
+        opts = []
 
         # With the --home option, the home path of the user is updated in the passwd file, but the
         # home is not created. The only ways to create a new home for an existing user is:
@@ -85,7 +107,7 @@ module Y2Users
         # Creating the home directory/subvolume of an existing user is not supported by the shadow
         # tools.
         if user.home&.path && user.home.path != initial_user.home&.path
-          args << "--home" << user.home.path
+          opts << "--home" << user.home.path
         end
 
         # With the --move-home option, all the content from the previous home directory is moved to
@@ -93,25 +115,26 @@ module Y2Users
         # will be created only if the old home directory exists. Otherwise, the user will continue
         # without a home directory. Also note that if the new home already exists, then the content
         # of the old home is not moved neither.
-        args << "--move-home" if commit_config&.move_home? && args.include?("--home")
+        opts << "--move-home" if commit_config&.move_home? && opts.include?("--home")
 
-        args << "--shell" << user.shell if user.shell != initial_user.shell && user.shell
+        opts
+      end
 
-        if different_groups?(user, initial_user)
-          args << "--groups" << user.secondary_groups_name.join(",")
-        end
+      # Whether there is a new value for the given user attribute
+      #
+      # @param attr [Symbol]
+      # @return [Boolean]
+      def new_value_for?(attr)
+        return false unless user.public_send(attr)
 
-        args
+        user.public_send(attr) != initial_user.plublic_send(attr)
       end
 
       # Whether the users have different groups
       #
-      # @param user1 [User]
-      # @param user2 [User]
-      #
       # @return [Boolean]
-      def different_groups?(user1, user2)
-        sorted_groups(user1) != sorted_groups(user2)
+      def different_groups?
+        sorted_groups(user) != sorted_groups(initial_user)
       end
 
       # Groups of a user, sorted by id

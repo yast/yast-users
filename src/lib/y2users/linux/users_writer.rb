@@ -61,7 +61,7 @@ module Y2Users
         delete_users
         add_users
         edit_users
-        set_root_aliases
+        write_root_aliases
 
         issues
       end
@@ -92,9 +92,8 @@ module Y2Users
       # Deletes users
       def delete_users
         deleted_users.each do |user|
-          if !delete_user(user)
-            root_alias_cadidates << user
-          end
+          success = delete_user(user)
+          root_alias_cadidates << user unless success
         end
       end
 
@@ -116,9 +115,9 @@ module Y2Users
 
         commit_config = commit_config(user)
         remove_home_content(user) if !reusing_home && commit_config.home_without_skel?
-        set_home_ownership(user) if commit_config.adapt_home_ownership?
-        set_password(user) if user.password
-        set_auth_keys(user)
+        adapt_home_ownership(user) if commit_config.adapt_home_ownership?
+        write_password(user) if user.password
+        write_auth_keys(user)
       end
 
       # Edits users
@@ -144,9 +143,9 @@ module Y2Users
         root_alias_candidates << target_user
 
         commit_config = commit_config(target_user)
-        set_home_ownership(target_user) if commit_config.adapt_home_ownership?
+        adapt_home_ownership(target_user) if commit_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
-        set_auth_keys(target_user) if initial_user.authorized_keys != target_user.authorized_keys
+        write_auth_keys(target_user) if initial_user.authorized_keys != target_user.authorized_keys
       end
 
       # Updates root aliases
@@ -154,7 +153,7 @@ module Y2Users
       # @see #root_alias_candidates
       #
       # Issues are generated if the root aliases cannot be set
-      def set_root_aliases
+      def write_root_aliases
         names = root_alias_candidates.select(&:receive_system_mail?).map(&:name)
 
         return if Yast::MailAliases.SetRootAlias(names.join(", "))
@@ -230,14 +229,14 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def edit_password(user)
-        user.password ? set_password(user) : delete_password(user)
+        user.password ? write_password(user) : delete_password(user)
       end
 
       # Performs the action for setting the password of the given user
       #
       # @param user [User]
       # @return [Boolean] true on success
-      def set_password(user)
+      def write_password(user)
         action = SetUserPasswordAction.new(user, commit_config(user))
 
         perform_action(action)
@@ -269,7 +268,7 @@ module Y2Users
       #
       # @param user [User]
       # @return [Boolean] true on success
-      def set_home_ownership(user)
+      def adapt_home_ownership(user)
         return true unless exist_user_home?(user)
 
         action = SetHomeOwnershipAction.new(user, commit_config(user))
@@ -281,7 +280,7 @@ module Y2Users
       #
       # @param user [User]
       # @return [Boolean] true on success
-      def set_auth_keys(user)
+      def write_auth_keys(user)
         return true unless user.home
 
         action = SetAuthKeysAction.new(user, commit_config(user))
