@@ -24,11 +24,14 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for deleting the user password
     class DeleteUserPasswordAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,17 +44,19 @@ module Y2Users
       PASSWD = "/usr/bin/passwd".freeze
       private_constant :PASSWD
 
-      # Executes the command for deleting the password of the given user
+      # @see UserAction#run_action
+      #
+      # Issues are generated when the password cannot be deleted
       def run_action
         Yast::Execute.on_target!(PASSWD, "--delete", user.name)
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("The password for '%s' cannot be deleted"), user.name)
         )
         log.error("Error deleting password for '#{user.name}' - #{e.message}")
-        result(false)
+        false
       end
     end
   end

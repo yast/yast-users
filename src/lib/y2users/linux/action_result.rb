@@ -21,15 +21,26 @@ require "y2issues/list"
 
 module Y2Users
   module Linux
+    # Result of performing an action
+    #
+    # An ActionResult stores whether performing the action was successful and the list of generated
+    # issues.
     class ActionResult
+      # @return [Y2Issues::List] list of issues while performing the action
       attr_reader :issues
 
       # Constructor
+      #
+      # @param success [Boolean] see #success?
+      # @param issues [Y2Issues::List, nil] see #issues
       def initialize(success, issues = nil)
         @success = success
         @issues = issues || Y2Issues::List.new
       end
 
+      # Whether the action was successful
+      #
+      # @return [Boolean]
       def success?
         @success
       end

@@ -23,32 +23,66 @@ require "abstract_method"
 
 module Y2Users
   module Linux
+    # Abstract base class for actions to perform over a user
+    #
+    # Derived classes must implement #run_action method.
+    #
+    # @example
+    #   class ActionTest < UserAction
+    #     def run_action
+    #       print("test")
+    #       true
+    #     end
+    #   end
+    #
+    #   action = ActionTest.new(user, commit_action)
+    #   result = action.perform
+    #   result.success?       #=> true
+    #   result.issues.empty?  #=> true
     class UserAction
       # Constructor
+      #
+      # @param user [User]
+      # @param commit_config [CommitConfig, nil] optional configuration for the commit
       def initialize(user, commit_config = nil)
         @user = user
         @commit_config = commit_config
       end
 
-      # Executes the commands to perform the action
+      # Performs the action
       #
-      # @return [Boolean] true on success
+      # @return [ActionResult] result of performing the action
       def perform
         @issues = Y2Issues::List.new
 
-        run_action
+        result(run_action)
       end
 
     private
 
+      # @return [User]
       attr_reader :user
 
+      # @return [CommitConfig]
       attr_reader :commit_config
 
+      # Issues generated while performing the action
+      #
+      # @return [Y2Issues::List]
       attr_reader :issues
 
+      # Executes the needed actions
+      #
+      # This method is expected to generate issues if something goes wrong, see {#issues}.
+      #
+      # @return [Boolean] true on success
       abstract_method :run_action
 
+      # Generates an action result, containing the issues generated while performing the action, see
+      # {#issues}.
+      #
+      # @param success [Boolean] whether the result was successful
+      # @return [ActionResult]
       def result(success)
         ActionResult.new(success, issues)
       end

@@ -24,11 +24,14 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for setting the user password
     class SetUserPasswordAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -37,10 +40,9 @@ module Y2Users
 
     private
 
+      # @see UserAction#run_action
       def run_action
-        success = set_password_value && set_password_attributes
-
-        result(success)
+        set_password_value && set_password_attributes
       end
 
       # Command for setting a user password
@@ -51,7 +53,7 @@ module Y2Users
       #   requires to enter the password twice, which it's not possible using
       #   the Cheetah stdin argument.
       #
-      #   * the `--password` useradd option because the encrypted
+      #   * the `--password` option of `useradd` because the encrypted
       #   password is visible as part of the process name
       CHPASSWD = "/usr/sbin/chpasswd".freeze
       private_constant :CHPASSWD
@@ -60,9 +62,11 @@ module Y2Users
       CHAGE = "/usr/bin/chage".freeze
       private_constant :CHAGE
 
-      # Executes the command for setting the password of given user
+      # Executes the command for setting the password
       #
-      # @param user [User]
+      # Issues are generated when the password cannot be set.
+      #
+      # @return [Boolean] true on success
       def set_password_value
         options = chpasswd_options
         Yast::Execute.on_target!(CHPASSWD, *options) if options.any?
@@ -77,6 +81,10 @@ module Y2Users
       end
 
       # Executes the command for setting the dates and limits in /etc/shadow
+      #
+      # Issues are generated when the password options cannot be set.
+      #
+      # @return [Boolean] true on success
       def set_password_attributes
         options = chage_options
         Yast::Execute.on_target!(CHAGE, *options, user.name) if options.any?
@@ -90,7 +98,7 @@ module Y2Users
         false
       end
 
-      # Generates and returns the options expected by `chpasswd` for the given user
+      # Generates options for `chpasswd`
       #
       # @return [Array<String, Hash>]
       def chpasswd_options
@@ -105,7 +113,7 @@ module Y2Users
         opts
       end
 
-      # Generates and returns the options expected by `chage` for the given user
+      # Generates options for `chage`
       #
       # @return [Array<String>]
       def chage_options
@@ -123,7 +131,7 @@ module Y2Users
         opts.reject { |_, v| v.nil? }.flatten
       end
 
-      # Returns the right value for a given chage option value
+      # Returns the right value for a given `chage` option value
       #
       # @see #chage_options
       #
@@ -143,8 +151,7 @@ module Y2Users
         @cheetah_recorder ||= Recorder.new(Yast::Y2Logger.instance)
       end
 
-      # Class to prevent Yast::Execute from leaking to the logs passwords
-      # provided via stdin
+      # Class to prevent Yast::Execute from leaking to the logs passwords provided via stdin
       class Recorder < Cheetah::DefaultRecorder
         # To prevent leaking stdin, just do nothing
         def record_stdin(_stdin); end

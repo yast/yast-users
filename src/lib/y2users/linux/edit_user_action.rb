@@ -24,11 +24,14 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for editing an existing user
     class EditUserAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(initial_user, target_user, commit_config = nil)
         textdomain "users"
 
@@ -39,33 +42,35 @@ module Y2Users
 
     private
 
+      # Initial state of the user
+      #
+      # It is used to calculate the changes to apply over the user.
+      #
+      # @return [User]
       attr_reader :initial_user
 
       # Command for modifying users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
 
-      # Applies changes in the user by calling to usermod command
+      # @see UserAction#run_action
       #
-      # @return [Boolean] true on success; false otherwise
+      # Issues are generated when the user cannot be edited.
       def run_action
         options = usermod_options
         Yast::Execute.on_target!(USERMOD, *options, initial_user.name) if options.any?
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be modified"), username: initial_user.name)
         )
         log.error("Error modifying user '#{initial_user.name}' - #{e.message}")
-        result(false)
+        false
       end
 
-      # Command to modify the user
+      # Generates options for `usermod` according to the changes in the user
       #
-      # @return [Array<String>] usermod options
-      # rubocop:disable Metrics/CyclomaticComplexity
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/PerceivedComplexity
+      # @return [Array<String>]
       def usermod_options
         args = []
         args << "--login" << user.name if user.name != initial_user.name && user.name
@@ -98,9 +103,6 @@ module Y2Users
 
         args
       end
-      # rubocop:enable Metrics/CyclomaticComplexity
-      # rubocop:enable Metrics/AbcSize
-      # rubocop:enable Metrics/PerceivedComplexity
 
       # Whether the users have different groups
       #

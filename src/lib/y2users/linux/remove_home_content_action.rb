@@ -24,11 +24,18 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for removing the content of the user home
+    #
+    # Note that this action is not intended to remove the home itself, but only its content.
+    # Basically, this action exists to supply the use case of creating a home without skel files,
+    # which is not currently supported by the shadow tools.
     class RemoveHomeContentAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,18 +48,20 @@ module Y2Users
       FIND = "/usr/bin/find".freeze
       private_constant :FIND
 
-      # Clear the content of the home directory/subvolume for the given user
+      # @see UserAction#run_action
+      #
+      # Removes the content of the user home, even the hidden files.
       #
       # Issues are generated when the home cannot be cleaned up.
       def run_action
         Yast::Execute.on_target!(FIND, user.home.path, "-mindepth", "1", "-delete")
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("Cannot clean up '%s'"), user.home.path)
         )
         log.error("Error cleaning up '#{user.home.path}' - #{e.message}")
-        result(false)
+        false
       end
     end
   end

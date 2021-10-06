@@ -24,11 +24,14 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for creating a new user
     class CreateUserAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,29 +44,26 @@ module Y2Users
       USERADD = "/usr/sbin/useradd".freeze
       private_constant :USERADD
 
-      # Exit code returned by useradd when the operation is aborted because the home directory could
-      # not be created
+      # Exit code returned by `useradd` when the operation is aborted because the home directory
+      # could not be created
       USERADD_E_HOMEDIR = 12
       private_constant :USERADD_E_HOMEDIR
 
-      # Performs all needed actions in order to create and configure a new user (create user, set
-      # password, etc).
+      # @see UserAction#run_action
+      #
+      # Issues are generated when the user cannot be created.
       def run_action
         create_user
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
         )
         log.error("Error creating user '#{user.name}' - #{e.message}")
-        result(false)
+        false
       end
 
       # Executes the command for creating the user, retrying in case of a recoverable error
-      #
-      # Issues are generated when the user cannot be created.
-      #
-      # @see #create_user
       def create_user
         Yast::Execute.on_target!(USERADD, *useradd_options)
       rescue Cheetah::ExecutionFailed => e
@@ -76,15 +76,12 @@ module Y2Users
         log.warn("User '#{user.name}' created without home '#{user.home}'")
       end
 
-      # Generates and returns the options expected by `useradd` for the given user
+      # Generates options for `useradd` according to the user
       #
-      # Note that the home is not created if:
-      #   * requested with skip_hope param
-      #   * user has not a home path
-      #   * the home path points to an existing home, see {#create_home_options}
+      # Note that the home is not created if explicitly requested with :skip_hope param or the user
+      # has no home path.
       #
-      # @param user [User]
-      # @param skip_home [Boolean] whether the home creation should be explicitly avoided
+      # @param skip_home [Boolean] whether the home creation should be explicitly skip
       # @return [Array<String>]
       def useradd_options(skip_home: false)
         opts = {
@@ -112,12 +109,11 @@ module Y2Users
         opts
       end
 
-      # Options for `useradd` to create the home directory
+      # Generates options for `useradd` about how to create home
       #
-      # Note that useradd command will not try to create the home directory if it already exists, it
-      # does not matter whether --create-home was passed.
+      # Note that `useradd` will not try to create the home if the path already exists, it does not
+      # matter whether --create-home was passed.
       #
-      # @param user [User]
       # @return [Array<String>]
       def create_home_options
         opts = ["--create-home"]

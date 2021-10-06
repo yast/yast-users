@@ -19,17 +19,19 @@
 
 require "yast"
 require "yast/i18n"
-require "yast2/execute"
 require "y2issues/issue"
 require "users/ssh_authorized_keyring"
 
 module Y2Users
   module Linux
+    # Action for setting the authorized keys of a user
     class SetAuthKeysAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -38,19 +40,19 @@ module Y2Users
 
     private
 
-      # Writes authorized keys for given user
+      # @see UserAction#run_action
       #
-      # @see Yast::Users::SSHAuthorizedKeyring#write_keys
+      # Issues are generated when the authorized keys cannot be set.
       def run_action
         Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
-        result(true)
+        true
       rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("Error writing authorized keys for '%s'"), user.name)
         )
         log.error("Error writing authorized keys for '#{user.name}' - #{e.message}")
-        result(false)
+        false
       end
     end
   end

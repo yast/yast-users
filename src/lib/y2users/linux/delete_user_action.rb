@@ -24,11 +24,14 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for deleting an existing user
     class DeleteUserAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,19 +44,24 @@ module Y2Users
       USERDEL = "/usr/sbin/userdel".freeze
       private_constant :USERDEL
 
-      # Executes the command for deleting the given user
+      # @see UserAction#run_action
+      #
+      # Issues are generated when the user cannot be deleted.
       def run_action
         Yast::Execute.on_target!(USERDEL, *userdel_options, user.name)
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("The user '%s' cannot be deleted"), user.name)
         )
         log.error("Error deleting user '#{user.name}' - #{e.message}")
-        result(false)
+        false
       end
 
+      # Generates options for `userdel`
+      #
+      # @return [Array<String>]
       def userdel_options
         options = []
         options << "--remove" if commit_config&.remove_home?

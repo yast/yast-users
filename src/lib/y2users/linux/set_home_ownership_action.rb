@@ -24,11 +24,17 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
+    # Action for changing the ownership of the home
+    #
+    # This action is needed when reusing an existing home in order to adapt home ownership to the
+    # user.
     class SetHomeOwnershipAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
+      #
+      # @see UserAction
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,7 +47,7 @@ module Y2Users
       CHOWN = "/usr/bin/chown".freeze
       private_constant :CHOWN
 
-      # Changes ownership of the home directory/subvolume for the given user
+      # @see UserAction#run_action
       #
       # Issues are generated when ownership cannot be changed.
       def run_action
@@ -49,13 +55,13 @@ module Y2Users
         owner << ":#{user.gid}" if user.gid
 
         Yast::Execute.on_target!(CHOWN, "-R", owner, user.home.path)
-        result(true)
+        true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("Cannot change ownership of '%s'"), user.home.path)
         )
         log.error("Error changing ownership of '#{user.home.path}' - #{e.message}")
-        result(false)
+        false
       end
     end
   end
