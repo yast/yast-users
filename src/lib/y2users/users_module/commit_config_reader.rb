@@ -37,6 +37,9 @@ module Y2Users
           users.each do |user|
             collection.add(commit_config(user))
           end
+          removed_users.each do |user|
+            update_user(user, collection)
+          end
         end
       end
 
@@ -48,6 +51,29 @@ module Y2Users
       def users
         Yast::Users.GetUsers("uid", "local").values +
           Yast::Users.GetUsers("uid", "system").values
+      end
+
+      # Removed local users from the Yast::Users module
+      #
+      # @return [Array<Hash>]
+      def removed_users
+        users = Yast::Users.RemovedUsers
+        (users["local"] || []) + (users["system"] || [])
+      end
+
+      # Updates existing commit config or creates a new one
+      def update_user(user, collection)
+        name = user["uid"]
+        config = collection.by_username(name)
+        if !config
+          config = CommitConfig.new
+          config.username = name
+          collection.add(config)
+        end
+
+        config.remove_home = user["delete_home"]
+
+        nil
       end
 
       # Generates a commit config from the given user

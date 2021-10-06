@@ -51,9 +51,68 @@ describe Y2Users::UsersModule::CommitConfigReader do
       ]
     end
 
+    let(:removed_users) do
+      { "local" => [
+        {
+          "addit_data"       => "",
+          "authorized_keys"  => [],
+          "cn"               => "test6",
+          "delete_home"      => false,
+          "gidNumber"        => "100",
+          "grouplist"        => {},
+          "groupname"        => "users",
+          "homeDirectory"    => "/home/test6",
+          "loginShell"       => "/bin/bash",
+          "modified"         => "deleted",
+          "plugins"          => [],
+          "shadowExpire"     => "",
+          "shadowFlag"       => "",
+          "shadowInactive"   => "",
+          "shadowLastChange" => "18899",
+          "shadowMax"        => "99999",
+          "shadowMin"        => "0",
+          "shadowWarning"    => "7",
+          "type"             => "local",
+          "uid"              => "test6",
+          "uidNumber"        => 1001,
+          "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyz" \
+            "VoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
+          "what"             => "delete_user"
+        },
+        {
+          "addit_data"       => "",
+          "authorized_keys"  => [],
+          "cn"               => "test2",
+          "delete_home"      => true,
+          "gidNumber"        => "100",
+          "grouplist"        => {},
+          "groupname"        => "users",
+          "homeDirectory"    => "/home/test2",
+          "loginShell"       => "/bin/bash",
+          "modified"         => "deleted",
+          "org_user"         => {},
+          "plugins"          => [],
+          "shadowExpire"     => "",
+          "shadowFlag"       => "",
+          "shadowInactive"   => "",
+          "shadowLastChange" => "18899",
+          "shadowMax"        => "99999",
+          "shadowMin"        => "0",
+          "shadowWarning"    => "7",
+          "type"             => "local",
+          "uid"              => "test2",
+          "uidNumber"        => 1002,
+          "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGK" \
+            "b2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
+          "what"             => "delete_user"
+        }
+      ] }
+    end
+
     before do
       mapped_users = Hash[users.map { |u| [u["uid"], u] }]
       allow(Yast::Users).to receive(:GetUsers).and_return(mapped_users, {})
+      allow(Yast::Users).to receive(:RemovedUsers).and_return(removed_users)
     end
 
     it "generates a commit config collection with the read data" do
@@ -61,7 +120,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
 
       expect(commit_configs).to be_a(Y2Users::CommitConfigCollection)
 
-      expect(commit_configs.size).to eq(2)
+      expect(commit_configs.size).to eq(3)
 
       commit_config1 = commit_configs.by_username("test1")
       expect(commit_config1.username).to eq("test1")
@@ -74,6 +133,11 @@ describe Y2Users::UsersModule::CommitConfigReader do
       expect(commit_config2.home_without_skel?).to eq(false)
       expect(commit_config2.move_home?).to eq(false)
       expect(commit_config2.adapt_home_ownership?).to eq(false)
+      expect(commit_config2.remove_home?).to eq(true)
+
+      commit_config3 = commit_configs.by_username("test6")
+      expect(commit_config3.username).to eq("test6")
+      expect(commit_config3.remove_home?).to eq(false)
     end
   end
 end
