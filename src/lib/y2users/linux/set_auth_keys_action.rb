@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 require "users/ssh_authorized_keyring"
 
 module Y2Users
@@ -40,7 +41,7 @@ module Y2Users
       # Writes authorized keys for given user
       #
       # @see Yast::Users::SSHAuthorizedKeyring#write_keys
-      def run_action(issues)
+      def run_action
         Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
         true
       rescue Yast::Users::SSHAuthorizedKeyring::PathError => e

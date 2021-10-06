@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2issues/with_issues"
+require "y2issues/list"
 require "y2users/commit_config"
 require "y2users/linux/create_user_action"
 require "y2users/linux/edit_user_action"
@@ -36,7 +36,8 @@ module Y2Users
     # @note: this is not meant to be used directly, but to be used by the general {Linux::Writer}
     class UsersWriter
       include Yast::Logger
-      include Y2Issues::WithIssues
+
+      attr_reader :issues
 
       # Constructor
       #
@@ -58,12 +59,14 @@ module Y2Users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write
-        with_issues do |issues|
-          add_users(issues)
-          edit_users(issues)
-          # issues.concat(delete_users)
-          # issues.concat(update_root_aliases)
-        end
+        @issues = Y2Issues::List.new
+
+        add_users
+        edit_users
+        # delete_users
+        # set_root_alias
+
+        issues
       end
 
       # Update root aliases
@@ -104,38 +107,33 @@ module Y2Users
       attr_accessor :root_aliases
 
       # Creates the new users
-      #
-      # @return [Y2Issues::List] the list of issues found while creating users; empty when none
-      def add_users(issues)
-        sorted_users.each { |u| add_user(u, issues) }
+      def add_users
+        new_users.each { |u| add_user(u) }
       end
 
       # Performs all needed actions in order to create and configure a new user (create user, set
       # password, etc).
       #
       # @param user [User] the user to be created on the system
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def add_user(user, issues)
+      def add_user(user)
         reusing_home = exist_user_home?(user)
 
-        return unless create_user(user, issues)
+        return unless create_user(user)
 
         commit_config = commit_config(user)
-        remove_home_content(user, issues) if !reusing_home && commit_config.home_without_skel?
-        set_home_ownership(user, issues) if commit_config.adapt_home_ownership?
-        set_password(user, issues) if user.password
-        set_auth_keys(user, issues)
+        remove_home_content(user) if !reusing_home && commit_config.home_without_skel?
+        set_home_ownership(user) if commit_config.adapt_home_ownership?
+        set_password(user) if user.password
+        set_auth_keys(user)
 
         root_aliases << user.name if user.receive_system_mail?
       end
 
       # Applies changes for the edited users
-      #
-      # @return [Y2Issues::List] the list of issues found while editing users; empty when none
-      def edit_users(issues)
+      def edit_users
         edited_users.each do |user|
           initial_user = initial_config.users.by_id(user.id)
-          edit_user(initial_user, target_user, issues)
+          edit_user(initial_user, target_user)
         end
       end
 
@@ -143,28 +141,27 @@ module Y2Users
       #
       # @param new_user [User] User containing the updated information
       # @param old_user [User] Original user
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def edit_user(initial_user, target_user, issues)
+      def edit_user(initial_user, target_user)
         return if target_user == initial_user
 
-        return unless modify_user(initial_user, target_user, issues)
+        return unless modify_user(initial_user, target_user)
 
         commit_config = commit_config(target_user)
-        set_home_ownership(target_user, issues) if commit_config.adapt_home_ownership?
-        edit_password(target_user, issues) if initial_user.password != target_user.password
-
-        return if initial_user.authorized_keys == target_user.authorized_keys
-        set_auth_keys(target_user, issues)
+        set_home_ownership(target_user) if commit_config.adapt_home_ownership?
+        edit_password(target_user) if initial_user.password != target_user.password
+        set_auth_keys(target_user) if initial_user.authorized_keys == target_user.authorized_keys
       end
 
       def new_users
+        return @new_users if @new_users
+
         new_users = target_config.users.without(initial_config.users.ids)
         # empty string to process users without uid the last
-        sorted_users = new_users.all.sort_by { |u| u.uid || "" }.reverse
+        @new_users = new_users.all.sort_by { |u| u.uid || "" }.reverse
       end
 
       def edited_users
-        target_config.users.changed_from(initial_config.users)
+        @edited_users ||= target_config.users.changed_from(initial_config.users)
       end
 
       # Creates a new user
@@ -174,37 +171,35 @@ module Y2Users
       # @see #add_user
       #
       # @param user [User] the user to be created on the system
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def create_user(user, issues)
+      def create_user(user)
         action = CreateUserAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
-      def modify_user(initial_user, target_user, issues)
+      def modify_user(initial_user, target_user)
         action = EditUserAction.new(initial_user, target_user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
       # Edits the user's password
       #
       # @param user [User] User containing the updated information
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def edit_password(user, issues)
-        user.password ? set_password(user, issues) : delete_password(user, issues)
+      def edit_password(user)
+        user.password ? set_password(user) : delete_password(user)
       end
 
-      def set_password(user, issues)
+      def set_password(user)
         action = SetUserPasswordAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
-      def delete_password(user, issues)
+      def delete_password(user)
         action = DeleteUserPasswordAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
       # Clear the content of the home directory/subvolume for the given user
@@ -212,32 +207,31 @@ module Y2Users
       # Issues are generated when the home cannot be cleaned up.
       #
       # @param user [User]
-      # @param issues [Y2Issues::List] new issues can be added
-      def remove_home_content(user, issues)
+      def remove_home_content(user)
         return true unless exist_user_home?(user)
 
         action = RemoveHomeContentAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
-      def set_home_ownership(user, issues)
+      def set_home_ownership(user)
         return true unless exist_user_home?(user)
 
         action = SetHomeOwnershipAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
-      def set_auth_keys(user, issues)
+      def set_auth_keys(user)
         return true unless user.home
 
         action = SetAuthKeysAction.new(user, commit_config(user))
 
-        perform_action(action, issues)
+        perform_action(action)
       end
 
-      def perform_action(action, issues)
+      def perform_action(action)
         success = action.perform
         issues.concat(action.issues)
 

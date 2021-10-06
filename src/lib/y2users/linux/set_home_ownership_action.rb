@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -43,7 +44,7 @@ module Y2Users
       # Changes ownership of the home directory/subvolume for the given user
       #
       # Issues are generated when ownership cannot be changed.
-      def run_action(issues)
+      def run_action
         owner = user.name.dup
         owner << ":#{user.gid}" if user.gid
 

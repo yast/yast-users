@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -44,17 +45,10 @@ module Y2Users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
 
-      # Edits the user
-      def run_action(issues)
-        return true if user == initial_user
-
-        edit_user(issues)
-      end
-
       # Applies changes in the user by calling to usermod command
       #
       # @return [Boolean] true on success; false otherwise
-      def edit_user(issues)
+      def run_action
         options = usermod_options
         Yast::Execute.on_target!(USERMOD, *options, initial_user.name) if options.any?
         true

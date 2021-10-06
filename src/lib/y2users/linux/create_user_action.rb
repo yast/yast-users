@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -47,10 +48,8 @@ module Y2Users
 
       # Performs all needed actions in order to create and configure a new user (create user, set
       # password, etc).
-      #
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def run_action(issues)
-        create_user(issues)
+      def run_action
+        create_user
         true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
@@ -65,7 +64,7 @@ module Y2Users
       # Issues are generated when the user cannot be created.
       #
       # @see #create_user
-      def create_user(issues)
+      def create_user
         Yast::Execute.on_target!(USERADD, *useradd_options)
       rescue Cheetah::ExecutionFailed => e
         raise(e) unless e.status.exitstatus == USERADD_E_HOMEDIR

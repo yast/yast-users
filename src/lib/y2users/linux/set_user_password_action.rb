@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -36,8 +37,8 @@ module Y2Users
 
     private
 
-      def run_action(issues)
-        set_password_value(issues) && set_password_attributes(issues)
+      def run_action
+        set_password_value && set_password_attributes
       end
 
       # Command for setting a user password
@@ -60,8 +61,7 @@ module Y2Users
       # Executes the command for setting the password of given user
       #
       # @param user [User]
-      # @param issues [Y2Issues::List] a collection for adding an issue if something goes wrong
-      def set_password_value(issues)
+      def set_password_value
         options = chpasswd_options
         Yast::Execute.on_target!(CHPASSWD, *options) if options.any?
         true
@@ -75,7 +75,7 @@ module Y2Users
       end
 
       # Executes the command for setting the dates and limits in /etc/shadow
-      def set_password_attributes(issues)
+      def set_password_attributes
         options = chage_options
         Yast::Execute.on_target!(CHAGE, *options, user.name) if options.any?
         true

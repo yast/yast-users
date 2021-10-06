@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -41,7 +42,7 @@ module Y2Users
       private_constant :PASSWD
 
       # Executes the command for deleting the password of the given user
-      def run_action(issues)
+      def run_action
         Yast::Execute.on_target!(PASSWD, "--delete", user.name)
         true
       rescue Cheetah::ExecutionFailed => e

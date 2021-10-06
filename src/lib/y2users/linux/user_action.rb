@@ -18,14 +18,11 @@
 # find current contact information at www.suse.com.
 
 require "y2issues/list"
-require "y2issues/with_issues"
 require "abstract_method"
 
 module Y2Users
   module Linux
     class UserAction
-      include Y2Issues::WithIssues
-
       attr_reader :issues
 
       # Constructor
@@ -37,14 +34,9 @@ module Y2Users
       # Executes the commands for setting the password and all its associated
       # attributes for the given user
       def perform
-        success = nil
+        @issues = Y2Issues::List.new
 
-        with_issues do |issues|
-          sucess = run_action(issues)
-          @issues = issues
-        end
-
-        success
+        run_action
       end
 
     private

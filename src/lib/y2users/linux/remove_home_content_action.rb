@@ -20,6 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "yast2/execute"
+require "y2issues/issue"
 
 module Y2Users
   module Linux
@@ -43,7 +44,7 @@ module Y2Users
       # Clear the content of the home directory/subvolume for the given user
       #
       # Issues are generated when the home cannot be cleaned up.
-      def run_action(issues)
+      def run_action
         Yast::Execute.on_target!(FIND, user.home.path, "-mindepth", "1", "-delete")
         true
       rescue Cheetah::ExecutionFailed => e
