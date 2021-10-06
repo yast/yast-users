@@ -41,6 +41,7 @@ use MIME::Base64 qw(encode_base64);
 use Digest::MD5;
 use Digest::SHA1 qw(sha1);
 use Data::Dumper;
+use Storable qw(dclone);
 
 $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Terse = 1;
@@ -2405,8 +2406,7 @@ sub CreateGroupOrg {
 	}
 
 	# save first map for later checks of modification (in Commit)
-	my %org_group			= %group_in_work;
-	$group_in_work{"org_group"}	= \%org_group;
+	$group_in_work{"org_group"}	= dclone(\%group_in_work);
     }
 }
 
