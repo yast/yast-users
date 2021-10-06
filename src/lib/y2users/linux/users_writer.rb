@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2issues/issue"
 require "y2issues/list"
 require "y2users/commit_config"
 require "y2users/linux/create_user_action"
@@ -38,8 +39,6 @@ module Y2Users
     class UsersWriter
       include Yast::Logger
 
-      attr_reader :issues
-
       # Constructor
       #
       # @param config [Config] see #config
@@ -49,7 +48,6 @@ module Y2Users
         @initial_config = initial_config
         @target_config = target_config
         @commit_configs = commit_configs
-        @root_aliases = []
       end
 
       # Performs the changes in the system in order to create, edit or delete users according to
@@ -65,23 +63,9 @@ module Y2Users
         delete_users
         add_users
         edit_users
-        # set_root_alias
+        set_root_aliases
 
         issues
-      end
-
-      # Update root aliases
-      #
-      # @return [Y2Issues::List] a list holding an issue if Yast::MailAliases#SetRootAlias fails
-      def update_root_aliases
-        with_issues do |issues|
-          result = Yast::MailAliases.SetRootAlias(root_aliases.join(", "))
-
-          unless result
-            issues << Y2Issues::Issue.new(_("Error setting root mail aliases"))
-            log.error("Error root mail aliases")
-          end
-        end
       end
 
     private
@@ -102,13 +86,14 @@ module Y2Users
       # @return [CommitConfigCollection]
       attr_reader :commit_configs
 
-      # Collection holding names of users set to receive system mail (i.e., to be aliases of root)
-      #
-      # @return [Array<User>]
-      attr_accessor :root_aliases
+      attr_reader :issues
 
       def delete_users
-        deleted_users.each { |u| delete_user(u) }
+        deleted_users.each do |user|
+          if !delete_user(user)
+            root_alias_cadidates << user
+          end
+        end
       end
 
       # Creates the new users
@@ -125,20 +110,20 @@ module Y2Users
 
         return unless create_user(user)
 
+        root_alias_candidates << user
+
         commit_config = commit_config(user)
         remove_home_content(user) if !reusing_home && commit_config.home_without_skel?
         set_home_ownership(user) if commit_config.adapt_home_ownership?
         set_password(user) if user.password
         set_auth_keys(user)
-
-        root_aliases << user.name if user.receive_system_mail?
       end
 
       # Applies changes for the edited users
       def edit_users
         edited_users.each do |user|
           initial_user = initial_config.users.by_id(user.id)
-          edit_user(initial_user, target_user)
+          edit_user(initial_user, user)
         end
       end
 
@@ -149,12 +134,33 @@ module Y2Users
       def edit_user(initial_user, target_user)
         return if target_user == initial_user
 
-        return unless modify_user(initial_user, target_user)
+        if !modify_user(initial_user, target_user)
+          root_alias_candidates << initial_user
+          return
+        end
+
+        root_alias_candidates << target_user
 
         commit_config = commit_config(target_user)
         set_home_ownership(target_user) if commit_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
         set_auth_keys(target_user) if initial_user.authorized_keys != target_user.authorized_keys
+      end
+
+      # Update root aliases
+      #
+      # @return [Y2Issues::List] a list holding an issue if Yast::MailAliases#SetRootAlias fails
+      def set_root_aliases
+        names = root_alias_candidates.select(&:receive_system_mail?).map(&:name)
+
+        return if Yast::MailAliases.SetRootAlias(names.join(", "))
+
+        issues << Y2Issues::Issue.new(_("Error setting root mail aliases"))
+        log.error("Error setting root mail aliases")
+      end
+
+      def root_alias_candidates
+        @root_alias_candidates ||= target_config.users.without(edited_users.ids)
       end
 
       def deleted_users
