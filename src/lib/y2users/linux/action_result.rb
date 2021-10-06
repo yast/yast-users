@@ -18,39 +18,20 @@
 # find current contact information at www.suse.com.
 
 require "y2issues/list"
-require "y2users/linux/action_result"
-require "abstract_method"
 
 module Y2Users
   module Linux
-    class UserAction
-      # Constructor
-      def initialize(user, commit_config = nil)
-        @user = user
-        @commit_config = commit_config
-      end
-
-      # Executes the commands to perform the action
-      #
-      # @return [Boolean] true on success
-      def perform
-        @issues = Y2Issues::List.new
-
-        run_action
-      end
-
-    private
-
-      attr_reader :user
-
-      attr_reader :commit_config
-
+    class ActionResult
       attr_reader :issues
 
-      abstract_method :run_action
+      # Constructor
+      def initialize(success, issues = nil)
+        @success = success
+        @issues = issues || Y2Issues::List.new
+      end
 
-      def result(success)
-        ActionResult.new(success, issues)
+      def success?
+        @success
       end
     end
   end

@@ -50,13 +50,13 @@ module Y2Users
       # password, etc).
       def run_action
         create_user
-        true
+        result(true)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be created"), username: user.name)
         )
         log.error("Error creating user '#{user.name}' - #{e.message}")
-        false
+        result(false)
       end
 
       # Executes the command for creating the user, retrying in case of a recoverable error

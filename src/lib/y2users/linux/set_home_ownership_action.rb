@@ -49,13 +49,13 @@ module Y2Users
         owner << ":#{user.gid}" if user.gid
 
         Yast::Execute.on_target!(CHOWN, "-R", owner, user.home.path)
-        true
+        result(true)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("Cannot change ownership of '%s'"), user.home.path)
         )
         log.error("Error changing ownership of '#{user.home.path}' - #{e.message}")
-        false
+        result(false)
       end
     end
   end

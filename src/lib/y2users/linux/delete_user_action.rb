@@ -24,7 +24,7 @@ require "y2issues/issue"
 
 module Y2Users
   module Linux
-    class RemoveHomeContentAction < UserAction
+    class DeleteUserAction < UserAction
       include Yast::I18n
       include Yast::Logger
 
@@ -37,22 +37,28 @@ module Y2Users
 
     private
 
-      # Command for finding files
-      FIND = "/usr/bin/find".freeze
-      private_constant :FIND
+      # Command for deleting a user
+      USERDEL = "/usr/sbin/userdel".freeze
+      private_constant :USERDEL
 
-      # Clear the content of the home directory/subvolume for the given user
-      #
-      # Issues are generated when the home cannot be cleaned up.
+      # Executes the command for deleting the given user
       def run_action
-        Yast::Execute.on_target!(FIND, user.home.path, "-mindepth", "1", "-delete")
+        Yast::Execute.on_target!(USERDEL, *userdel_options, user.name)
         result(true)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          format(_("Cannot clean up '%s'"), user.home.path)
+          # TRANSLATORS: %s is a placeholder for a username
+          format(_("The user '%s' cannot be deleted"), user.name)
         )
-        log.error("Error cleaning up '#{user.home.path}' - #{e.message}")
+        log.error("Error deleting user '#{user.name}' - #{e.message}")
         result(false)
+      end
+
+      def userdel_options
+        options = []
+        options << "--remove" if commit_config&.remove_home?
+
+        options
       end
     end
   end

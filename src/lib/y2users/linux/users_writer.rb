@@ -26,6 +26,7 @@ require "y2users/linux/set_password_action"
 require "y2users/linux/delete_password_action"
 require "y2users/linux/remove_home_content_action"
 require "y2users/linux/set_home_ownership_action"
+require "y2users/linux/delete_user_action"
 
 Yast.import "MailAliases"
 
@@ -61,9 +62,9 @@ module Y2Users
       def write
         @issues = Y2Issues::List.new
 
+        delete_users
         add_users
         edit_users
-        # delete_users
         # set_root_alias
 
         issues
@@ -105,6 +106,10 @@ module Y2Users
       #
       # @return [Array<User>]
       attr_accessor :root_aliases
+
+      def delete_users
+        deleted_users.each { |u| delete_user(u) }
+      end
 
       # Creates the new users
       def add_users
@@ -149,7 +154,11 @@ module Y2Users
         commit_config = commit_config(target_user)
         set_home_ownership(target_user) if commit_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
-        set_auth_keys(target_user) if initial_user.authorized_keys == target_user.authorized_keys
+        set_auth_keys(target_user) if initial_user.authorized_keys != target_user.authorized_keys
+      end
+
+      def deleted_users
+        @deleted_users ||= initial_config.users.without(target_config.users.ids)
       end
 
       def new_users
@@ -231,11 +240,17 @@ module Y2Users
         perform_action(action)
       end
 
-      def perform_action(action)
-        success = action.perform
-        issues.concat(action.issues)
+      def delete_user(user)
+        action = DeleteUserAction.new(user, commit_config(user))
 
-        success
+        perform_action(action)
+      end
+
+      def perform_action(action)
+        result = action.perform
+        issues.concat(result.issues)
+
+        result.success?
       end
 
       # Commit actions for a specific user

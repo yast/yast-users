@@ -51,13 +51,13 @@ module Y2Users
       def run_action
         options = usermod_options
         Yast::Execute.on_target!(USERMOD, *options, initial_user.name) if options.any?
-        true
+        result(true)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           format(_("The user '%{username}' could not be modified"), username: initial_user.name)
         )
         log.error("Error modifying user '#{initial_user.name}' - #{e.message}")
-        false
+        result(false)
       end
 
       # Command to modify the user

@@ -38,7 +38,9 @@ module Y2Users
     private
 
       def run_action
-        set_password_value && set_password_attributes
+        success = set_password_value && set_password_attributes
+
+        result(success)
       end
 
       # Command for setting a user password

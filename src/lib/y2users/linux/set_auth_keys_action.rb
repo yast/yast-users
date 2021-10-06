@@ -43,14 +43,14 @@ module Y2Users
       # @see Yast::Users::SSHAuthorizedKeyring#write_keys
       def run_action
         Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
-        true
+        result(true)
       rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("Error writing authorized keys for '%s'"), user.name)
         )
         log.error("Error writing authorized keys for '#{user.name}' - #{e.message}")
-        false
+        result(false)
       end
     end
   end

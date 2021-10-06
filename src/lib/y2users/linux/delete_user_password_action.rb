@@ -44,14 +44,14 @@ module Y2Users
       # Executes the command for deleting the password of the given user
       def run_action
         Yast::Execute.on_target!(PASSWD, "--delete", user.name)
-        true
+        result(true)
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("The password for '%s' cannot be deleted"), user.name)
         )
         log.error("Error deleting password for '#{user.name}' - #{e.message}")
-        false
+        result(false)
       end
     end
   end
