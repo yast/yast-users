@@ -1758,6 +1758,7 @@ sub AddUserToGroup {
     my $user		= $_[0];
     my $group_type	= $group_in_work{"type"};
 
+    CreateGroupOrg();
     if ($group_type eq "ldap") {
         $user           = $user_in_work{"dn"};
 	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
@@ -2390,6 +2391,25 @@ sub EditUser {
 }
 
 ##------------------------------------
+sub CreateGroupOrg {
+    # check if group is edited for first time
+    if (!defined $group_in_work{"org_group"} &&
+	($group_in_work{"what"} || "") ne "add_group") {
+
+	# password we have read was real -> set "encrypted" flag
+	if (defined ($group_in_work{"userPassword"}) &&
+	    (!defined $group_in_work{"encrypted"} ||
+	     bool ($group_in_work{"encrypted"}))) {
+	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
+	}
+
+	# save first map for later checks of modification (in Commit)
+	my %org_group			= %group_in_work;
+	$group_in_work{"org_group"}	= \%org_group;
+    }
+}
+
+
 BEGIN { $TYPEINFO{EditGroup} = ["function",
     "string",
     ["map", "string", "any" ]];		# data to change in group_in_work
@@ -2407,21 +2427,7 @@ sub EditGroup {
 	$type = $data{"type"};
     }
 
-    # check if group is edited for first time
-    if (!defined $group_in_work{"org_group"} &&
-	($group_in_work{"what"} || "") ne "add_group") {
-
-	# password we have read was real -> set "encrypted" flag
-	if (defined ($group_in_work{"userPassword"}) &&
-	    (!defined $group_in_work{"encrypted"} ||
-	     bool ($group_in_work{"encrypted"}))) {
-	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	}
-
-	# save first map for later checks of modification (in Commit)
-	my %org_group			= %group_in_work;
-	$group_in_work{"org_group"}	= \%org_group;
-    }
+    CreateGroupOrg();
 
     # ------------------------- initialize list of current user plugins
     if (!defined $group_in_work{"plugins"}) {
