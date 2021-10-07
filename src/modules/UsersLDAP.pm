@@ -458,6 +458,8 @@ exists on the LDAP server. Create it now?"), $dn)))
 	    push @grouplist, UsersCache->get_first ($dn);
 	}
 	$useradd_defaults{"groups"}	= join (",", @grouplist);
+    } else {
+	$useradd_defaults{"groups"}	= "";
     };
 
     # password length (there is no check if it is correct for current hash)
@@ -576,10 +578,6 @@ sub InitConstants {
 	foreach my $key (keys %$local_defaults) {
 	    $useradd_defaults{$key}	= $local_defaults->{$key};
 	}
-	# do not use local groups as secondary groups here (#38987)
-	if (defined $local_defaults->{"groups"}) {
-	    $useradd_defaults{"groups"}	= "";
-	}    
     }
 }
 

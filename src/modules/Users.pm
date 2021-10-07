@@ -121,7 +121,6 @@ my %useradd_defaults		= (
     "inactive"		=> "",
     "expire"		=> "",
     "shell"		=> "",
-    "groups"		=> "",
     "umask"		=> "022"
 );
 
@@ -778,12 +777,9 @@ sub GetDefaultGrouplist {
 
     if ($type eq "ldap") {
 	$grouplist	= UsersLDAP->GetDefaultGrouplist ();
-    }
-    else {
-	$grouplist	= $useradd_defaults{"groups"};
-    }
-    foreach my $group (split (/,/, $grouplist)) {
-	$grouplist{$group}	= 1;
+	foreach my $group (split (/,/, $grouplist)) {
+	    $grouplist{$group} = 1;
+	}
     }
     return \%grouplist;
 }
@@ -5775,11 +5771,6 @@ sub Import {
     }
     else {
         %useradd_defaults 	= %{$settings{"user_defaults"}};
-        # if no_groups key is specifed, use no secondary groups
-        if ($useradd_defaults{"no_groups"} || 0) {
-          delete $useradd_defaults{"no_groups"};
-          $useradd_defaults{"groups"}   = "";
-        }
         $defaults_modified	= 1;
     }
     if (defined $settings{"login_settings"} &&
@@ -6243,10 +6234,6 @@ sub Export {
         "groups"	=> \@exported_groups,
         "user_defaults"	=> \%useradd_defaults
     );
-    # special key for special case of no secondary groups (bnc#789635)
-    if (($useradd_defaults{"groups"} || "") eq "") {
-      $ret{"user_defaults"}{"no_groups"}        = YaST::YCP::Boolean (1);
-    }
     if (Autologin->used ()) {
 	my %autologin	= ();
 	if (Autologin->pw_less ()) {
