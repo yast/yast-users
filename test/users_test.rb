@@ -60,7 +60,7 @@ describe "Users" do
         "users"          => [root_user, local_user, system_user],
         "groups"         => [users_group, local_group, system_group],
         "login_settings" => { "autologin_user" => "root", "password_less_login" => true },
-        "user_defaults"  => { "group" => "100", "home" => "/srv/Users" }
+        "user_defaults"  => { "group" => "100", "home" => "/srv/Users", "skel" => "/etc/sk" }
       )
     end
 
@@ -92,6 +92,13 @@ describe "Users" do
     it "exports user defaults" do
       exported = subject.Export
       expect(exported["user_defaults"]).to include("home" => "/srv/Users")
+    end
+
+    it "does not export 'groups', 'no_groups' or 'skel' as part of the user defaults" do
+      exported = subject.Export
+      expect(exported["user_defaults"].keys).to_not include "skel"
+      expect(exported["user_defaults"].keys).to_not include "groups"
+      expect(exported["user_defaults"].keys).to_not include "no_groups"
     end
 
     context "when 'compact' target is required" do
