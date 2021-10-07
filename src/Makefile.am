@@ -156,7 +156,6 @@ ylib_y2users_autoinst_profile_DATA = \
   lib/y2users/autoinst_profile/users_section.rb
 
 scrconf_DATA = \
-  scrconf/etc_default_useradd.scr \
   scrconf/nis.scr
 
 agent_SCRIPTS = \
