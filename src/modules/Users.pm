@@ -121,7 +121,6 @@ my %useradd_defaults		= (
     "inactive"		=> "",
     "expire"		=> "",
     "shell"		=> "",
-    "skel"		=> "",
     "groups"		=> "",
     "umask"		=> "022"
 );

@@ -31,7 +31,7 @@ module Yast
     include Yast::Logger
 
     EXPORTED_USERADD_ATTRS =
-      ["group", "home", "inactivity_period", "expiration", "shell", "umask"].freeze
+      ["group", "home", "inactivity_period", "expiration", "shell", "skel", "umask"].freeze
     private_constant :EXPORTED_USERADD_ATTRS
 
     # Reads the defaults for useradd

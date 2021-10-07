@@ -78,8 +78,9 @@ my $filters_read 		= 0;
 # default shadow settings for LDAP users
 my %shadow 			= ();
 
-# other default settings (home, shell, etc.) for LDAP users
-# (has the same structure as Users::useradd_defaults)
+# other default settings (home, shell, etc.) for LDAP users.
+# This has the same basic structure as Users::useradd_defaults, but it can contain extra keys that
+# have been dropped from the former (eg. "groups" or "skel")
 my %useradd_defaults		= ();
 
 # some default values for LDAP users
@@ -167,6 +168,7 @@ YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersUI");
+YaST::YCP::Import ("Y2UsersLinux");
 
 ##------------------------------------
 
@@ -444,7 +446,10 @@ exists on the LDAP server. Create it now?"), $dn)))
     }
     if (defined $user_config{"suseSkelDir"}[0]) {
 	$useradd_defaults{"skel"}	= $user_config{"suseSkelDir"}[0];
+    } else {
+	$useradd_defaults{"skel"}	= ${Y2UsersLinux->read_useradd_config()}{"skel"};
     }
+
     # set default secondary groups
     # Warning: there are DN's, but we want (?) only names...
     if (defined ($user_template{"suseSecondaryGroup"})) {
