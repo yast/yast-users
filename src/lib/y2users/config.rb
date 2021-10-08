@@ -20,6 +20,7 @@
 require "y2users/config_merger"
 require "y2users/users_collection"
 require "y2users/groups_collection"
+require "y2users/user"
 
 module Y2Users
   # Class to represent a configuration of users and groups
