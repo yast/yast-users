@@ -75,7 +75,7 @@ describe Y2Users::Config do
       groups = subject.groups
 
       expect(groups).to be_a(Y2Users::GroupsCollection)
-      expect { groups.add(Y2Users::User.new("test")) }.to raise_error(RuntimeError)
+      expect { groups.add(Y2Users::Group.new("test")) }.to raise_error(RuntimeError)
     end
 
     context "when there are no attached groups" do
