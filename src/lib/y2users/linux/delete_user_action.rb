@@ -21,6 +21,7 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
+require "y2users/linux/user_action"
 
 module Y2Users
   module Linux
