@@ -23,7 +23,7 @@ describe Y2Users::Linux::DeleteUserAction do
     end
 
     it "passes user name as last parameter" do
-      expect(Yast::Execute).to receive(:on_target!) do |cmd, *args|
+      expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
         expect(args.last).to eq "test"
       end
 
@@ -34,7 +34,7 @@ describe Y2Users::Linux::DeleteUserAction do
       let(:commit_config) { Y2Users::CommitConfig.new.tap { |c| c.remove_home = true } }
 
       it "passes --remove parameter" do
-        expect(Yast::Execute).to receive(:on_target!) do |cmd, *args|
+        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
           expect(args).to include "--remove"
         end
 
@@ -43,5 +43,3 @@ describe Y2Users::Linux::DeleteUserAction do
     end
   end
 end
-
-
