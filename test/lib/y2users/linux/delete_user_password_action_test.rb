@@ -31,5 +31,14 @@ describe Y2Users::Linux::DeleteUserPasswordAction do
 
       action.perform
     end
+
+    it "returns result without success and with issues if cmd failed" do
+      allow(Yast::Execute).to receive(:on_target!)
+        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
+
+      result = action.perform
+      expect(result.success?).to eq false
+      expect(result.issues).to_not be_empty
+    end
   end
 end

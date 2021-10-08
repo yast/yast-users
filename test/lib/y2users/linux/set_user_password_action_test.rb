@@ -257,5 +257,14 @@ describe Y2Users::Linux::SetUserPasswordAction do
         subject.perform
       end
     end
+
+    it "returns result without success and with issues if cmd failed" do
+      allow(Yast::Execute).to receive(:on_target!)
+        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
+
+      result = subject.perform
+      expect(result.success?).to eq false
+      expect(result.issues).to_not be_empty
+    end
   end
 end
