@@ -283,6 +283,19 @@ sub DebugMap {
     UsersCache->DebugMap ($_[0]);
 }
 
+# Loads the data from the given hash into useradd_defaults, making sure no extra
+# unexpected keys are added to useradd_defaults in the process.
+# Needed because useradd_defaults is a hash instead of a well defined data structure.
+sub load_useradd_defaults {
+    my %data = %{$_[0]};
+
+    foreach my $key (keys %useradd_defaults) {
+        if (exists($data{$key})) {
+            $useradd_defaults{$key} = $data{$key};
+	}
+    };
+}
+
 ##------------------------------------
 BEGIN { $TYPEINFO{LastChangeIsNow} = ["function", "string"]; }
 sub LastChangeIsNow {
@@ -1353,14 +1366,7 @@ sub ReadLoginDefaults {
 
     my $self = shift;
 
-    my %defaults = %{Y2UsersLinux->read_useradd_config()};
-
-    $useradd_defaults{"home"} = $defaults{"home"};
-    $useradd_defaults{"group"} = $defaults{"group"};
-    $useradd_defaults{"umask"} = $defaults{"umask"};
-    $useradd_defaults{"expire"} = $defaults{"expiration"};
-    $useradd_defaults{"inactive"} = $defaults{"inactivity_period"};
-    $useradd_defaults{"shell"} = $defaults{"shell"};
+    load_useradd_defaults (Y2UsersLinux->read_useradd_config());
 
     UsersLDAP->InitConstants (\%useradd_defaults);
     UsersLDAP->SetDefaultShadow ($self->GetDefaultShadow ("local"));
@@ -5770,8 +5776,8 @@ sub Import {
         $self->ReadLoginDefaults ();
     }
     else {
-        %useradd_defaults 	= %{$settings{"user_defaults"}};
-        $defaults_modified	= 1;
+        load_useradd_defaults ($settings{"user_defaults"});
+        $defaults_modified = 1;
     }
     if (defined $settings{"login_settings"} &&
 	ref ($settings{"login_settings"}) eq "HASH")

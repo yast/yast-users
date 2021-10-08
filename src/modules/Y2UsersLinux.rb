@@ -30,20 +30,27 @@ module Yast
   class Y2UsersLinuxClass < Module
     include Yast::Logger
 
-    EXPORTED_USERADD_ATTRS =
-      ["group", "home", "inactivity_period", "expiration", "shell", "skel", "umask"].freeze
+    EXPORTED_USERADD_ATTRS = [
+      "group", "home", "shell", "skel", "umask", { "inactivity_period" => "inactive" },
+      { "expiration" => "expire" }
+    ]
     private_constant :EXPORTED_USERADD_ATTRS
 
     # Reads the defaults for useradd
     #
     # These values are used by {Yast::Users} for initializing the UI fields
     #
-    # @return [Hash<String, String>]
+    # @return [Hash<String, String>] A hash with the structure (ie. keys) used by {Yast::Users} to
+    #   handle, receive and return the useradd defaults
     def read_useradd_config
       useradd_config = Y2Users::Linux::UseraddConfigReader.new.read
 
       EXPORTED_USERADD_ATTRS.each_with_object({}) do |attr, result|
-        result[attr] = useradd_config.public_send(attr) || ""
+        if attr.is_a?(Hash)
+          result[attr.values.first] = useradd_config.public_send(attr.keys.first) || ""
+        else
+          result[attr] = useradd_config.public_send(attr) || ""
+        end
       end
     end
 
