@@ -258,13 +258,25 @@ describe Y2Users::Linux::SetUserPasswordAction do
       end
     end
 
-    it "returns result without success and with issues if cmd failed" do
-      allow(Yast::Execute).to receive(:on_target!)
+    it "returns result without success and with issues if chpasswd failed" do
+      expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args)
         .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
 
       result = subject.perform
       expect(result.success?).to eq false
       expect(result.issues).to_not be_empty
     end
+
+    it "returns result without success and with issues if chage failed" do
+      password.minimum_age = 5
+
+      expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args)
+        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
+
+      result = subject.perform
+      expect(result.success?).to eq false
+      expect(result.issues).to_not be_empty
+    end
+
   end
 end
