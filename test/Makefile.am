@@ -39,7 +39,7 @@ TESTS = \
   lib/y2users/linux/useradd_config_writer_test.rb \
   lib/y2users/linux/users_writer_test.rb \
   lib/y2users/linux/writer_test.rb \
-  lib/y2users/home_test.rb \ \
+  lib/y2users/home_test.rb \
   lib/y2users/commit_config_test.rb \
   lib/y2users/commit_config_collection_test.rb \
   lib/y2users/users_module/reader_test.rb \
