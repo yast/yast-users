@@ -63,13 +63,44 @@ describe Y2Users::Linux::DeleteUserAction do
       end
     end
 
-    it "returns result without success and with issues if cmd failed" do
-      allow(Yast::Execute).to receive(:on_target!)
-        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
+    context "when the command for deleting the user fails" do
+      before do
+        allow(Yast::Execute).to receive(:on_target!)
+          .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: exit_status), nil, nil))
+      end
 
-      result = action.perform
-      expect(result.success?).to eq false
-      expect(result.issues).to_not be_empty
+      context "and error is because the user is logged in" do
+        let(:exit_status) { 8 }
+
+        it "returns a failed result with issue for logged in user" do
+          result = action.perform
+
+          expect(result.success?).to eq(false)
+          expect(result.issues.first.message).to match(/is currently logged in/)
+        end
+      end
+
+      context "and error is because some files cannot be deleted" do
+        let(:exit_status) { 12 }
+
+        it "returns a failed result with issue for files that cannot deleted" do
+          result = action.perform
+
+          expect(result.success?).to eq(false)
+          expect(result.issues.first.message).to match(/home or mail spool/)
+        end
+      end
+
+      context "and error is because other reason" do
+        let(:exit_status) { 1 }
+
+        it "returns a failed result with issue for deleting user" do
+          result = action.perform
+
+          expect(result.success?).to eq(false)
+          expect(result.issues.first.message).to match(/cannot be deleted/)
+        end
+      end
     end
   end
 end

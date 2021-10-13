@@ -52,11 +52,7 @@ module Y2Users
         Yast::Execute.on_target!(USERDEL, *userdel_options, user.name)
         true
       rescue Cheetah::ExecutionFailed => e
-        issues << Y2Issues::Issue.new(
-          # TRANSLATORS: %s is a placeholder for a username
-          format(_("The user '%s' cannot be deleted"), user.name)
-        )
-        log.error("Error deleting user '#{user.name}' - #{e.message}")
+        handle_error(e)
         false
       end
 
@@ -68,6 +64,65 @@ module Y2Users
         options << "--remove" if commit_config&.remove_home?
 
         options
+      end
+
+      # Handles the error
+      #
+      # An issue is generated.
+      #
+      # @param error [Cheetah::ExecutionFailed]
+      def handle_error(error)
+        issue = case error.status.exitstatus
+        when 8
+          logged_user_issue(error)
+        when 12
+          remove_file_issue(error)
+        else
+          delete_user_issue(error)
+        end
+
+        issues << issue
+
+        log.error("Error deleting user '#{user.name}': #{error.stderr}")
+      end
+
+      # @return [Y2Issues::Issue]
+      def logged_user_issue(_error)
+        message = format(
+          # TRANSLATORS: %{user} is replaced by a username
+          _("The user %{user} cannot be deleted because is currently logged in"),
+          user: user.name
+        )
+
+        Y2Issues::Issue.new(message)
+      end
+
+      # @param error [Cheetah::ExecutionFailed]
+      # @return [Y2Issues::Issue]
+      def remove_file_issue(error)
+        message = format(
+          # TRANSLATORS: %{user} is replaced by a username and %{error} is replaced by an error
+          #   message.
+          _("The home or mail spool of the user %{user} cannot be deleted: %{error}"),
+          user:  user.name,
+          error: error.stderr
+        )
+
+        Y2Issues::Issue.new(message)
+      end
+
+      # @param error [Cheetah::ExecutionFailed]
+      # @return [Y2Issues::Issue]
+      def delete_user_issue(error)
+        message = format(
+          # TRANSLATORS: %{user} is replaced by a username and %{error} is replaced by an error
+          #   message.
+          _("The user %{user} cannot be deleted: %{error}"),
+          user:  user.name,
+          error: error.stderr
+        )
+
+        Y2Issues::Issue.new(message)
       end
     end
   end
