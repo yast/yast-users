@@ -52,61 +52,63 @@ describe Y2Users::UsersModule::CommitConfigReader do
     end
 
     let(:removed_users) do
-      { "local" => [
-        {
-          "addit_data"       => "",
-          "authorized_keys"  => [],
-          "cn"               => "test6",
-          "delete_home"      => false,
-          "gidNumber"        => "100",
-          "grouplist"        => {},
-          "groupname"        => "users",
-          "homeDirectory"    => "/home/test6",
-          "loginShell"       => "/bin/bash",
-          "modified"         => "deleted",
-          "plugins"          => [],
-          "shadowExpire"     => "",
-          "shadowFlag"       => "",
-          "shadowInactive"   => "",
-          "shadowLastChange" => "18899",
-          "shadowMax"        => "99999",
-          "shadowMin"        => "0",
-          "shadowWarning"    => "7",
-          "type"             => "local",
-          "uid"              => "test6",
-          "uidNumber"        => 1001,
-          "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyz" \
-            "VoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
-          "what"             => "delete_user"
-        },
-        {
-          "addit_data"       => "",
-          "authorized_keys"  => [],
-          "cn"               => "test2",
-          "delete_home"      => true,
-          "gidNumber"        => "100",
-          "grouplist"        => {},
-          "groupname"        => "users",
-          "homeDirectory"    => "/home/test2",
-          "loginShell"       => "/bin/bash",
-          "modified"         => "deleted",
-          "org_user"         => {},
-          "plugins"          => [],
-          "shadowExpire"     => "",
-          "shadowFlag"       => "",
-          "shadowInactive"   => "",
-          "shadowLastChange" => "18899",
-          "shadowMax"        => "99999",
-          "shadowMin"        => "0",
-          "shadowWarning"    => "7",
-          "type"             => "local",
-          "uid"              => "test2",
-          "uidNumber"        => 1002,
-          "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGK" \
-            "b2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
-          "what"             => "delete_user"
+      {
+        "local" => {
+          "test6" => {
+            "addit_data"       => "",
+            "authorized_keys"  => [],
+            "cn"               => "test6",
+            "delete_home"      => false,
+            "gidNumber"        => "100",
+            "grouplist"        => {},
+            "groupname"        => "users",
+            "homeDirectory"    => "/home/test6",
+            "loginShell"       => "/bin/bash",
+            "modified"         => "deleted",
+            "plugins"          => [],
+            "shadowExpire"     => "",
+            "shadowFlag"       => "",
+            "shadowInactive"   => "",
+            "shadowLastChange" => "18899",
+            "shadowMax"        => "99999",
+            "shadowMin"        => "0",
+            "shadowWarning"    => "7",
+            "type"             => "local",
+            "uid"              => "test6",
+            "uidNumber"        => 1001,
+            "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOM" \
+              "yzVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
+            "what"             => "delete_user"
+          },
+          "test2" => {
+            "addit_data"       => "",
+            "authorized_keys"  => [],
+            "cn"               => "test2",
+            "delete_home"      => true,
+            "gidNumber"        => "100",
+            "grouplist"        => {},
+            "groupname"        => "users",
+            "homeDirectory"    => "/home/test2",
+            "loginShell"       => "/bin/bash",
+            "modified"         => "deleted",
+            "org_user"         => {},
+            "plugins"          => [],
+            "shadowExpire"     => "",
+            "shadowFlag"       => "",
+            "shadowInactive"   => "",
+            "shadowLastChange" => "18899",
+            "shadowMax"        => "99999",
+            "shadowMin"        => "0",
+            "shadowWarning"    => "7",
+            "type"             => "local",
+            "uid"              => "test2",
+            "uidNumber"        => 1002,
+            "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQ" \
+              "GKb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
+            "what"             => "delete_user"
+          }
         }
-      ] }
+      }
     end
 
     before do

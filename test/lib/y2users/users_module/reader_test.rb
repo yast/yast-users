@@ -204,75 +204,79 @@ describe Y2Users::UsersModule::Reader do
   end
 
   let(:removed_users) do
-    { "local" => [
-      {
-        "addit_data"       => "",
-        "authorized_keys"  => [],
-        "cn"               => "test6",
-        "delete_home"      => false,
-        "gidNumber"        => "100",
-        "grouplist"        => {},
-        "groupname"        => "users",
-        "homeDirectory"    => "/home/test6",
-        "loginShell"       => "/bin/bash",
-        "modified"         => "deleted",
-        "plugins"          => [],
-        "shadowExpire"     => "",
-        "shadowFlag"       => "",
-        "shadowInactive"   => "",
-        "shadowLastChange" => "18899",
-        "shadowMax"        => "99999",
-        "shadowMin"        => "0",
-        "shadowWarning"    => "7",
-        "type"             => "local",
-        "uid"              => "test6",
-        "uidNumber"        => 1001,
-        "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyzAt" \
-          "VoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
-        "what"             => "delete_user"
-      },
-      {
-        "addit_data"       => "",
-        "authorized_keys"  => [],
-        "cn"               => "test7",
-        "delete_home"      => true,
-        "gidNumber"        => "100",
-        "grouplist"        => {},
-        "groupname"        => "users",
-        "homeDirectory"    => "/home/test7",
-        "loginShell"       => "/bin/bash",
-        "modified"         => "deleted",
-        "org_user"         => {},
-        "plugins"          => [],
-        "shadowExpire"     => "",
-        "shadowFlag"       => "",
-        "shadowInactive"   => "",
-        "shadowLastChange" => "18899",
-        "shadowMax"        => "99999",
-        "shadowMin"        => "0",
-        "shadowWarning"    => "7",
-        "type"             => "local",
-        "uid"              => "test7",
-        "uidNumber"        => 1002,
-        "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGKEf" \
-          "b2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
-        "what"             => "delete_user"
+    {
+      "local" => {
+        "test6" => {
+          "addit_data"       => "",
+          "authorized_keys"  => [],
+          "cn"               => "test6",
+          "delete_home"      => false,
+          "gidNumber"        => "100",
+          "grouplist"        => {},
+          "groupname"        => "users",
+          "homeDirectory"    => "/home/test6",
+          "loginShell"       => "/bin/bash",
+          "modified"         => "deleted",
+          "plugins"          => [],
+          "shadowExpire"     => "",
+          "shadowFlag"       => "",
+          "shadowInactive"   => "",
+          "shadowLastChange" => "18899",
+          "shadowMax"        => "99999",
+          "shadowMin"        => "0",
+          "shadowWarning"    => "7",
+          "type"             => "local",
+          "uid"              => "test6",
+          "uidNumber"        => 1001,
+          "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyzA" \
+            "tVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
+          "what"             => "delete_user"
+        },
+        "test7" => {
+          "addit_data"       => "",
+          "authorized_keys"  => [],
+          "cn"               => "test7",
+          "delete_home"      => true,
+          "gidNumber"        => "100",
+          "grouplist"        => {},
+          "groupname"        => "users",
+          "homeDirectory"    => "/home/test7",
+          "loginShell"       => "/bin/bash",
+          "modified"         => "deleted",
+          "org_user"         => {},
+          "plugins"          => [],
+          "shadowExpire"     => "",
+          "shadowFlag"       => "",
+          "shadowInactive"   => "",
+          "shadowLastChange" => "18899",
+          "shadowMax"        => "99999",
+          "shadowMin"        => "0",
+          "shadowWarning"    => "7",
+          "type"             => "local",
+          "uid"              => "test7",
+          "uidNumber"        => 1002,
+          "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGKE" \
+            "fb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
+          "what"             => "delete_user"
+        }
       }
-    ] }
+    }
   end
 
   let(:removed_groups) do
     {
-      "local" => [{
-        "cn"           => "testing",
-        "gidNumber"    => 1000,
-        "modified"     => "deleted",
-        "more_users"   => {},
-        "type"         => "local",
-        "userPassword" => "x",
-        "userlist"     => {},
-        "what"         => "delete_group"
-      }]
+      "local" => {
+        "testing" => {
+          "cn"           => "testing",
+          "gidNumber"    => 1000,
+          "modified"     => "deleted",
+          "more_users"   => {},
+          "type"         => "local",
+          "userPassword" => "x",
+          "userlist"     => {},
+          "what"         => "delete_group"
+        }
+      }
     }
   end
 
