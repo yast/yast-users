@@ -57,8 +57,8 @@ module Y2Users
       #
       # @return [Array<Hash>]
       def removed_users
-        users = Yast::Users.RemovedUsers
-        (users["local"] || []) + (users["system"] || [])
+        (Yast::Users.RemovedUsers["local"] || {}).values +
+          (Yast::Users.RemovedUsers["system"] || {}).values
       end
 
       # Updates existing commit config or creates a new one
