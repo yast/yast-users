@@ -2,6 +2,14 @@
 <body>
 <h1>YaST2: Users configuration module</h1>
 
+<p>
+    Note this document has not been revisited since the year 2005.
+    Thus, it may contain outdated information, specially since many
+    components are been totally or partially rewritten in Ruby (under
+    the namespace <tt>Y2Users</tt>) following a completely different
+    approach.
+</p>
+
 <h2>Features (SL 9.3)</h2>
 
 <p>
@@ -37,8 +45,6 @@ Group attributes:
 <li>special attributes for LDAP groups
 </ul>
 
-<a href="Todo.txt">TODO file</a>
-
 <hr>
 <h2>Implementation</h2>
 
@@ -57,8 +63,7 @@ YaST Users module consists from following subcomponents:
     <ul>
     <li>SCR agent for reading and writing the main user/group config files
 	(e.g. /etc/passwd)
-    <li>SCR agent for reading and writing /etc/default/useradd config file
-    li>SCR agent for testing the password strength ("agent-crack")
+    <li>SCR agent for testing the password strength ("agent-crack")
     <li>SCR agent for testing if the UIDs/usernames are unique ("agent-uid")
     </ul>
 <li>User interface files (dialog behaviour definition and implementation)
@@ -203,8 +208,7 @@ $[
     "inactive"	: "-1",
     "expire"	: "",
     "shell"	: "/bin/bash",
-    "skel"	: "/etc/skel",
-    "groups"	: "dialout,uucp,video,audio",
+    "skel"	: "/etc/skel"
 ]
 </pre>
 <p>
@@ -326,13 +330,6 @@ $[
       All possible problems should be resolved in check functions before
       CommitUser is called, so theoreticaly this function should never
       fail.
-
-<h3>The workflow</h3>
-
-<p>
-<img src="workflow.png">
-<p>
-
 
 <h2>The files</h2>
 
