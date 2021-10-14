@@ -94,7 +94,7 @@ describe Y2Users::Linux::UsersWriter do
 
     before do
       # Prevent to perform real actions into the system
-      allow_any_instance_of(Y2Users::Linux::UserAction).to receive(:perform).and_return(success)
+      allow_any_instance_of(Y2Users::Linux::Action).to receive(:perform).and_return(success)
       allow(Yast::MailAliases).to receive(:SetRootAlias)
     end
 
@@ -343,7 +343,7 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         it "does not perform more actions" do
-          expect_any_instance_of(Y2Users::Linux::UserAction).to_not receive(:perform)
+          expect_any_instance_of(Y2Users::Linux::Action).to_not receive(:perform)
 
           subject.write
         end
@@ -560,7 +560,7 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         it "does not perform more actions" do
-          expect_any_instance_of(Y2Users::Linux::UserAction).to_not receive(:perform)
+          expect_any_instance_of(Y2Users::Linux::Action).to_not receive(:perform)
 
           subject.write
         end

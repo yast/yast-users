@@ -21,18 +21,18 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
     # Action for deleting the user password
-    class DeleteUserPasswordAction < UserAction
+    class DeleteUserPasswordAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,11 +41,13 @@ module Y2Users
 
     private
 
+      alias_method :user, :action_element
+
       # Command for editing a password (i.e., used for deleting the password)
       PASSWD = "/usr/bin/passwd".freeze
       private_constant :PASSWD
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Issues are generated when the password cannot be deleted
       def run_action

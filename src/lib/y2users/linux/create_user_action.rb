@@ -21,18 +21,18 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
     # Action for creating a new user
-    class CreateUserAction < UserAction
+    class CreateUserAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -40,6 +40,8 @@ module Y2Users
       end
 
     private
+
+      alias_method :user, :action_element
 
       # Command for creating new users
       USERADD = "/usr/sbin/useradd".freeze
@@ -50,7 +52,7 @@ module Y2Users
       USERADD_E_HOMEDIR = 12
       private_constant :USERADD_E_HOMEDIR
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Issues are generated when the user cannot be created.
       def run_action

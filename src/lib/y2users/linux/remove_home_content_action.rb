@@ -21,7 +21,7 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
@@ -30,13 +30,13 @@ module Y2Users
     # Note that this action is not intended to remove the home itself, but only its content.
     # Basically, this action exists to supply the use case of creating a home without skel files,
     # which is not currently supported by the shadow tools.
-    class RemoveHomeContentAction < UserAction
+    class RemoveHomeContentAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -45,11 +45,13 @@ module Y2Users
 
     private
 
+      alias_method :user, :action_element
+
       # Command for finding files
       FIND = "/usr/bin/find".freeze
       private_constant :FIND
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Removes the content of the user home, even the hidden files.
       #
