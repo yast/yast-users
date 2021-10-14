@@ -20,8 +20,8 @@
 require "yast"
 require "yast/i18n"
 require "y2issues/issue"
-require "y2issues/list"
 require "y2users/commit_config"
+require "y2users/linux/action_writer"
 require "y2users/linux/create_user_action"
 require "y2users/linux/edit_user_action"
 require "y2users/linux/set_user_password_action"
@@ -38,7 +38,7 @@ module Y2Users
     # Writes users to the system using standard Linux tools.
     #
     # @note: this is not meant to be used directly, but to be used by the general {Linux::Writer}
-    class UsersWriter
+    class UsersWriter < ActionWriter
       include Yast::I18n
       include Yast::Logger
       include Yast::I18n
@@ -54,22 +54,6 @@ module Y2Users
         @initial_config = initial_config
         @target_config = target_config
         @commit_configs = commit_configs
-      end
-
-      # Performs the changes in the system in order to create, edit or delete users according to
-      # the differences between the initial and the target configs. Commit actions can be addressed
-      # with the commit configs, see {CommitConfig}. Root mail aliases are also updated.
-      #
-      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
-      def write
-        @issues = Y2Issues::List.new
-
-        delete_users
-        add_users
-        edit_users
-        write_root_aliases
-
-        issues
       end
 
     private
@@ -94,6 +78,18 @@ module Y2Users
       #
       # @return [Y2Issues::List]
       attr_reader :issues
+
+      # Performs the changes in the system in order to create, edit or delete users according to
+      # the differences between the initial and the target configs. Commit actions can be addressed
+      # with the commit configs, see {CommitConfig}. Root mail aliases are also updated.
+      #
+      # @see ActionWriter
+      def actions
+        delete_users
+        add_users
+        edit_users
+        write_root_aliases
+      end
 
       # Deletes users
       def delete_users
@@ -303,19 +299,6 @@ module Y2Users
         action = DeleteUserAction.new(user, commit_config(user))
 
         perform_action(action)
-      end
-
-      # Performs the given action
-      #
-      # Issues can be generated while performing the action, see {#issues}.
-      #
-      # @param action [UserAction]
-      # @return [Boolean] true on success
-      def perform_action(action)
-        result = action.perform
-        issues.concat(result.issues)
-
-        result.success?
       end
 
       # Commit actions for a specific user
