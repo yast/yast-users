@@ -98,6 +98,6 @@ This package provides GUI for maintenance of linux users and groups.
 %{yast_plugindir}
 %{yast_icondir}
 %license COPYING
-%doc %{yast_docdir}
+%doc README.md
 
 %changelog
