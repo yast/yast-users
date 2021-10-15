@@ -185,4 +185,88 @@ describe Y2Users::Group do
       end
     end
   end
+
+  describe "#system?" do
+    before do
+      allow(Yast::ShadowConfig).to receive(:fetch).with(:sys_gid_max).and_return("499")
+    end
+
+    context "when the group has gid" do
+      before do
+        subject.gid = gid
+      end
+
+      context "and the gid is smaller than the max system gid" do
+        let(:gid) { 300 }
+
+        it "returns true" do
+          expect(subject.system?).to eq(true)
+        end
+      end
+
+      context "and the gid is bigger than the max system gid" do
+        let(:gid) { 500 }
+
+        it "returns false" do
+          expect(subject.system?).to eq(false)
+        end
+      end
+    end
+
+    context "when the group has no gid" do
+      before do
+        subject.system = is_system
+      end
+
+      context "and the group was configured as a system group" do
+        let(:is_system) { true }
+
+        it "returns true" do
+          expect(subject.system?).to eq(true)
+        end
+      end
+
+      context "and the user was not configured as a system user" do
+        let(:is_system) { false }
+
+        it "returns false" do
+          expect(subject.system?).to eq(false)
+        end
+      end
+    end
+  end
+
+  describe "#system=" do
+    before do
+      subject.gid = gid
+    end
+
+    context "if the group has already a gid" do
+      let(:gid) { 1000 }
+
+      it "raises an error" do
+        expect { subject.system = true }.to raise_error(RuntimeError)
+      end
+    end
+
+    context "if the group has no gid yet" do
+      let(:gid) { nil }
+
+      context "and true is given" do
+        it "marks the group as a system group" do
+          subject.system = true
+
+          expect(subject.system?).to eq(true)
+        end
+      end
+
+      context "and false is given" do
+        it "marks the group as a local group" do
+          subject.system = false
+
+          expect(subject.system?).to eq(false)
+        end
+      end
+    end
+  end
 end

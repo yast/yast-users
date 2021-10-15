@@ -68,6 +68,7 @@ module Y2Users
       def groupadd_options
         opts = []
         opts += ["--non-unique", "--gid", group.gid] if group.gid
+        opts << "--system" if group.system?
         opts << group.name
 
         opts

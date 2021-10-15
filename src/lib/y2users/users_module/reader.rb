@@ -205,15 +205,7 @@ module Y2Users
 
         group.gid = attr_value(:gidNumber, group_attrs)&.to_s
         group.users_name = group_attrs["userlist"].keys
-
-        # TODO: no system support for groups
-        # if !group.gid && group_attrs["type"] == "system"
-        #  group.system = true
-        # end
-
-        # set password only if specified, nil means not touch it
-        # TODO: group passwords not supported
-        # group.password = create_password(group_attrs) if group_attrs["userPassword"]
+        group.system = true if !group.gid && group_attrs["type"] == "system"
 
         group
       end

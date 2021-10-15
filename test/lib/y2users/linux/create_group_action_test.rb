@@ -80,6 +80,34 @@ describe Y2Users::Linux::CreateGroupAction do
       end
     end
 
+    context "when the group is a local group" do
+      before do
+        group.system = false
+      end
+
+      it "calls groupadd without --system option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args) do |*args|
+          expect(args).to_not include("--system")
+        end
+
+        subject.perform
+      end
+    end
+
+    context "when the group is a system group" do
+      before do
+        group.system = true
+      end
+
+      it "calls groupadd with --system option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args) do |*args|
+          expect(args).to include("--system")
+        end
+
+        subject.perform
+      end
+    end
+
     context "when the command for creating the group successes" do
       it "returns a successful result" do
         result = subject.perform
