@@ -98,6 +98,27 @@ describe Y2Users::Linux::UsersWriter do
       allow(Yast::MailAliases).to receive(:SetRootAlias)
     end
 
+    it "deletes, edits and creates users in that order" do
+      deleted_user = target_config.users.by_id(test2.id)
+      target_config.detach(deleted_user)
+
+      edited_user = target_config.users.by_id(test1.id)
+      edited_user.name = "new_name"
+
+      new_user = Y2Users::User.new("test3")
+      target_config.attach(new_user)
+
+      delete_action = mock_action(delete_user_action, success, test2)
+      edit_action = mock_action(edit_user_action, success, test1, edited_user)
+      create_action = mock_action(create_user_action, success, new_user)
+
+      expect(delete_action).to receive(:perform).ordered
+      expect(edit_action).to receive(:perform).ordered
+      expect(create_action).to receive(:perform).ordered
+
+      subject.write
+    end
+
     context "when a user is deleted from the target config" do
       let(:deleted_user) { target_config.users.by_id(test2.id) }
 
@@ -106,7 +127,7 @@ describe Y2Users::Linux::UsersWriter do
       end
 
       it "performs the action for deleting the user" do
-        action = mock_action(delete_user_action, success, deleted_user)
+        action = mock_action(delete_user_action, success, test2)
 
         expect(action).to receive(:perform)
 
@@ -114,239 +135,11 @@ describe Y2Users::Linux::UsersWriter do
       end
 
       it "returns the generated issues" do
-        mock_action(delete_user_action, success("deleting user issue"), deleted_user)
+        mock_action(delete_user_action, success("deleting user issue"), test2)
 
         issues = subject.write
 
         expect(issues.map(&:message)).to include(/deleting user issue/)
-      end
-    end
-
-    context "when a user is added to the target config" do
-      let(:test3) { Y2Users::User.new("test3") }
-
-      before do
-        target_config.attach(test3)
-      end
-
-      it "performs the action for creating the user" do
-        action = mock_action(create_user_action, success, test3)
-
-        expect(action).to receive(:perform)
-
-        subject.write
-      end
-
-      it "returns the generated issues" do
-        mock_action(create_user_action, success("creating user issue"), test3)
-
-        issues = subject.write
-
-        expect(issues.map(&:message)).to include(/creating user issue/)
-      end
-
-      context "and the action for creating the user successes" do
-        before do
-          mock_action(create_user_action, success, test3)
-        end
-
-        let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
-            config.username = test3.name
-            config.home_without_skel = home_without_skel
-            config.adapt_home_ownership = adapt_home_ownership
-          end
-        end
-
-        let(:home_without_skel) { nil }
-
-        let(:adapt_home_ownership) { nil }
-
-        before do
-          allow(File).to receive(:exist?).and_call_original
-        end
-
-        context "and the user home should be created without skel" do
-          let(:home_without_skel) { true }
-
-          before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
-          end
-
-          context "and the home already existed on disk" do
-            let(:exist_home) { true }
-
-            it "does not perform the action for removing the home content" do
-              expect_any_instance_of(remove_home_content_action).to_not receive(:perform)
-
-              subject.write
-            end
-          end
-
-          context "and the home did no exist on disk yet" do
-            let(:exist_home) { false }
-
-            context "and the home was created" do
-              before do
-                allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home, true)
-              end
-
-              it "performs the action for removing the home content" do
-                action = mock_action(remove_home_content_action, success, test3)
-
-                expect(action).to receive(:perform)
-
-                subject.write
-              end
-
-              it "returns the generated issues" do
-                mock_action(remove_home_content_action, success("issue removing home"), test3)
-
-                issues = subject.write
-
-                expect(issues.map(&:message)).to include(/issue removing home/)
-              end
-            end
-          end
-        end
-
-        context "and the user home should be created with skel" do
-          let(:home_without_skel) { false }
-
-          it "does not perform the action for removing the home content" do
-            expect_any_instance_of(remove_home_content_action).to_not receive(:perform)
-
-            subject.write
-          end
-        end
-
-        context "and the home ownership should be set" do
-          let(:adapt_home_ownership) { true }
-
-          before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
-          end
-
-          context "and the home was created" do
-            let(:exist_home) { true }
-
-            it "performs the action for setting the home ownership" do
-              action = mock_action(set_home_ownership_action, success, test3)
-
-              expect(action).to receive(:perform)
-
-              subject.write
-            end
-
-            it "returns the generated issues" do
-              mock_action(set_home_ownership_action, success("issue adapting ownership"), test3)
-
-              issues = subject.write
-
-              expect(issues.map(&:message)).to include(/issue adapting ownership/)
-            end
-          end
-
-          context "and the home was not created" do
-            let(:exist_home) { false }
-
-            it "does not perform the action for setting the home ownership" do
-              expect_any_instance_of(set_home_ownership_action).to_not receive(:perform)
-
-              subject.write
-            end
-          end
-        end
-
-        context "and the home ownership should not be set" do
-          let(:adapt_home_ownership) { false }
-
-          it "does not perform the action for setting the home ownership" do
-            expect_any_instance_of(set_home_ownership_action).to_not receive(:perform)
-
-            subject.write
-          end
-        end
-
-        context "and the user has a password" do
-          before do
-            test3.password = Y2Users::Password.create_plain("s3cr3t")
-          end
-
-          it "performs the action for setting the password" do
-            action = mock_action(set_user_password_action, success, test3)
-
-            expect(action).to receive(:perform)
-
-            subject.write
-          end
-
-          it "returns the generated issues" do
-            mock_action(set_user_password_action, success("issue setting password"), test3)
-
-            issues = subject.write
-
-            expect(issues.map(&:message)).to include(/issue setting password/)
-          end
-        end
-
-        context "and the user has no password" do
-          before do
-            test3.password = nil
-          end
-
-          it "does not perform the action for setting the password" do
-            expect_any_instance_of(set_user_password_action).to_not receive(:perform)
-
-            subject.write
-          end
-        end
-
-        context "and the user home exists" do
-          before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(true)
-          end
-
-          it "performs the action for setting the authorized keys" do
-            action = mock_action(set_auth_keys_action, success, test3)
-
-            expect(action).to receive(:perform)
-
-            subject.write
-          end
-
-          it "returns the generated issues" do
-            mock_action(create_user_action, success("issue auth keys"), test3)
-
-            issues = subject.write
-
-            expect(issues.map(&:message)).to include(/issue auth keys/)
-          end
-        end
-
-        context "and the user home does not exist" do
-          before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(false)
-          end
-
-          it "does not perform the action for setting the authorized keys" do
-            expect_any_instance_of(set_auth_keys_action).to_not receive(:perform)
-
-            subject.write
-          end
-        end
-      end
-
-      context "and the action for creating the user fails" do
-        before do
-          mock_action(create_user_action, failure, test3)
-        end
-
-        it "does not perform more actions" do
-          expect_any_instance_of(Y2Users::Linux::Action).to_not receive(:perform)
-
-          subject.write
-        end
       end
     end
 
@@ -663,6 +456,234 @@ describe Y2Users::Linux::UsersWriter do
           issues = subject.write
 
           expect(issues.map(&:message)).to include(/Error setting root mail aliases/)
+        end
+      end
+    end
+
+    context "when a user is added to the target config" do
+      let(:test3) { Y2Users::User.new("test3") }
+
+      before do
+        target_config.attach(test3)
+      end
+
+      it "performs the action for creating the user" do
+        action = mock_action(create_user_action, success, test3)
+
+        expect(action).to receive(:perform)
+
+        subject.write
+      end
+
+      it "returns the generated issues" do
+        mock_action(create_user_action, success("creating user issue"), test3)
+
+        issues = subject.write
+
+        expect(issues.map(&:message)).to include(/creating user issue/)
+      end
+
+      context "and the action for creating the user successes" do
+        before do
+          mock_action(create_user_action, success, test3)
+        end
+
+        let(:commit_config) do
+          Y2Users::CommitConfig.new.tap do |config|
+            config.username = test3.name
+            config.home_without_skel = home_without_skel
+            config.adapt_home_ownership = adapt_home_ownership
+          end
+        end
+
+        let(:home_without_skel) { nil }
+
+        let(:adapt_home_ownership) { nil }
+
+        before do
+          allow(File).to receive(:exist?).and_call_original
+        end
+
+        context "and the user home should be created without skel" do
+          let(:home_without_skel) { true }
+
+          before do
+            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
+          end
+
+          context "and the home already existed on disk" do
+            let(:exist_home) { true }
+
+            it "does not perform the action for removing the home content" do
+              expect_any_instance_of(remove_home_content_action).to_not receive(:perform)
+
+              subject.write
+            end
+          end
+
+          context "and the home did no exist on disk yet" do
+            let(:exist_home) { false }
+
+            context "and the home was created" do
+              before do
+                allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home, true)
+              end
+
+              it "performs the action for removing the home content" do
+                action = mock_action(remove_home_content_action, success, test3)
+
+                expect(action).to receive(:perform)
+
+                subject.write
+              end
+
+              it "returns the generated issues" do
+                mock_action(remove_home_content_action, success("issue removing home"), test3)
+
+                issues = subject.write
+
+                expect(issues.map(&:message)).to include(/issue removing home/)
+              end
+            end
+          end
+        end
+
+        context "and the user home should be created with skel" do
+          let(:home_without_skel) { false }
+
+          it "does not perform the action for removing the home content" do
+            expect_any_instance_of(remove_home_content_action).to_not receive(:perform)
+
+            subject.write
+          end
+        end
+
+        context "and the home ownership should be set" do
+          let(:adapt_home_ownership) { true }
+
+          before do
+            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
+          end
+
+          context "and the home was created" do
+            let(:exist_home) { true }
+
+            it "performs the action for setting the home ownership" do
+              action = mock_action(set_home_ownership_action, success, test3)
+
+              expect(action).to receive(:perform)
+
+              subject.write
+            end
+
+            it "returns the generated issues" do
+              mock_action(set_home_ownership_action, success("issue adapting ownership"), test3)
+
+              issues = subject.write
+
+              expect(issues.map(&:message)).to include(/issue adapting ownership/)
+            end
+          end
+
+          context "and the home was not created" do
+            let(:exist_home) { false }
+
+            it "does not perform the action for setting the home ownership" do
+              expect_any_instance_of(set_home_ownership_action).to_not receive(:perform)
+
+              subject.write
+            end
+          end
+        end
+
+        context "and the home ownership should not be set" do
+          let(:adapt_home_ownership) { false }
+
+          it "does not perform the action for setting the home ownership" do
+            expect_any_instance_of(set_home_ownership_action).to_not receive(:perform)
+
+            subject.write
+          end
+        end
+
+        context "and the user has a password" do
+          before do
+            test3.password = Y2Users::Password.create_plain("s3cr3t")
+          end
+
+          it "performs the action for setting the password" do
+            action = mock_action(set_user_password_action, success, test3)
+
+            expect(action).to receive(:perform)
+
+            subject.write
+          end
+
+          it "returns the generated issues" do
+            mock_action(set_user_password_action, success("issue setting password"), test3)
+
+            issues = subject.write
+
+            expect(issues.map(&:message)).to include(/issue setting password/)
+          end
+        end
+
+        context "and the user has no password" do
+          before do
+            test3.password = nil
+          end
+
+          it "does not perform the action for setting the password" do
+            expect_any_instance_of(set_user_password_action).to_not receive(:perform)
+
+            subject.write
+          end
+        end
+
+        context "and the user home exists" do
+          before do
+            allow(File).to receive(:exist?).with(test3.home.path).and_return(true)
+          end
+
+          it "performs the action for setting the authorized keys" do
+            action = mock_action(set_auth_keys_action, success, test3)
+
+            expect(action).to receive(:perform)
+
+            subject.write
+          end
+
+          it "returns the generated issues" do
+            mock_action(create_user_action, success("issue auth keys"), test3)
+
+            issues = subject.write
+
+            expect(issues.map(&:message)).to include(/issue auth keys/)
+          end
+        end
+
+        context "and the user home does not exist" do
+          before do
+            allow(File).to receive(:exist?).with(test3.home.path).and_return(false)
+          end
+
+          it "does not perform the action for setting the authorized keys" do
+            expect_any_instance_of(set_auth_keys_action).to_not receive(:perform)
+
+            subject.write
+          end
+        end
+      end
+
+      context "and the action for creating the user fails" do
+        before do
+          mock_action(create_user_action, failure, test3)
+        end
+
+        it "does not perform more actions" do
+          expect_any_instance_of(Y2Users::Linux::Action).to_not receive(:perform)
+
+          subject.write
         end
       end
     end

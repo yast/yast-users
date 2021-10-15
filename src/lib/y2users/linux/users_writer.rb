@@ -86,8 +86,8 @@ module Y2Users
       # @see ActionWriter
       def actions
         delete_users
-        add_users
         edit_users
+        add_users
         write_root_aliases
       end
 
