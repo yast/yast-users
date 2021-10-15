@@ -34,61 +34,160 @@ describe Y2Users::Linux::GroupsWriter do
 
   let(:test1) { Y2Users::Group.new("test1") }
 
-  let(:groups) { [test1] }
+  let(:test2) { Y2Users::Group.new("test2") }
+
+  let(:groups) { [test1, test2] }
 
   describe "#write" do
-    before do
-      allow(Yast::Execute).to receive(:on_target!)
+    let(:create_group_action) { Y2Users::Linux::CreateGroupAction }
+
+    let(:edit_group_action) { Y2Users::Linux::EditGroupAction }
+
+    let(:delete_group_action) { Y2Users::Linux::DeleteGroupAction }
+
+    def mock_action(action, result, *groups)
+      action_instance = instance_double(action, perform: result)
+
+      allow(action).to receive(:new).with(*groups).and_return(action_instance)
+
+      action_instance
     end
 
-    context "when adding groups" do
-      let(:test2) { Y2Users::Group.new("test2") }
+    def success(*messages)
+      Y2Users::Linux::ActionResult.new(true, issues(messages))
+    end
 
-      let(:test3) { Y2Users::Group.new("test3") }
+    def failure(*messages)
+      Y2Users::Linux::ActionResult.new(false, issues(messages))
+    end
 
-      let(:test4) { Y2Users::Group.new("test4") }
+    def issues(messages)
+      issues = messages.map { |m| Y2Issues::Issue.new(m) }
+
+      Y2Issues::List.new(issues)
+    end
+
+    before do
+      # Prevent to perform real actions into the system
+      allow_any_instance_of(Y2Users::Linux::Action).to receive(:perform).and_return(success)
+    end
+
+    it "deletes, edits and creates groups in that order" do
+      deleted_group = target_config.groups.by_id(test2.id)
+      target_config.detach(deleted_group)
+
+      edited_group = target_config.groups.by_id(test1.id)
+      edited_group.name = "new_name"
+
+      new_group = Y2Users::Group.new("test3")
+      target_config.attach(new_group)
+
+      delete_action = mock_action(delete_group_action, success, test2)
+      edit_action = mock_action(edit_group_action, success, test1, edited_group)
+      create_action = mock_action(create_group_action, success, new_group)
+
+      expect(delete_action).to receive(:perform).ordered
+      expect(edit_action).to receive(:perform).ordered
+      expect(create_action).to receive(:perform).ordered
+
+      subject.write
+    end
+
+    context "when a group is deleted from the target config" do
+      let(:deleted_group) { target_config.groups.by_id(test2.id) }
 
       before do
-        target_config.attach([test2, test3, test4])
+        target_config.detach(deleted_group)
       end
 
-      it "creates the new groups" do
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "test2")
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "test3")
-        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "test4")
+      it "performs the action for deleting the group" do
+        action = mock_action(delete_group_action, success, test2)
 
-        expect(Yast::Execute).to_not receive(:on_target!).with(/groupadd/, "test1")
+        expect(action).to receive(:perform)
 
         subject.write
       end
 
-      context "when there are groups without gid" do
-        before do
-          test2.gid = "1001"
-          test3.gid = nil
-          test4.gid = "1002"
-        end
+      it "returns the generated issues" do
+        mock_action(delete_group_action, success("deleting group issue"), test2)
 
-        it "creates groups with gid first" do
-          expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args, "test4").ordered
-          expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args, "test2").ordered
-          expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, "test3").ordered
+        issues = subject.write
 
-          subject.write
-        end
+        expect(issues.map(&:message)).to include(/deleting group issue/)
+      end
+    end
+
+    context "when a group is edited in the target config" do
+      let(:initial_group) { test2 }
+
+      let(:target_group) { target_config.groups.by_id(initial_group.id) }
+
+      before do
+        target_group.name = "new_name"
       end
 
-      context "when the group creation fails" do
-        before do
-          allow(Yast::Execute).to receive(:on_target!).with(/groupadd/, "test2")
-            .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
-        end
+      it "performs the action for editing the group" do
+        action = mock_action(edit_group_action, success, initial_group, target_group)
 
-        it "generates an issue" do
-          issues = subject.write
+        expect(action).to receive(:perform)
 
-          expect(issues.first.message).to match(/'test2' could not be created/)
-        end
+        subject.write
+      end
+
+      it "returns the generated issues" do
+        mock_action(edit_group_action, success("issue editing group"), initial_group, target_group)
+
+        issues = subject.write
+
+        expect(issues.map(&:message)).to include(/issue editing group/)
+      end
+    end
+
+    context "when a group is added to the target config" do
+      let(:test3) { Y2Users::Group.new("test3") }
+
+      before do
+        target_config.attach(test3)
+      end
+
+      it "performs the action for creating the group" do
+        action = mock_action(create_group_action, success, test3)
+
+        expect(action).to receive(:perform)
+
+        subject.write
+      end
+
+      it "returns the generated issues" do
+        mock_action(create_group_action, success("creating group issue"), test3)
+
+        issues = subject.write
+
+        expect(issues.map(&:message)).to include(/creating group issue/)
+      end
+    end
+
+    context "when there are new groups without gid" do
+      let(:test3) { Y2Users::Group.new("test3").tap { |g| g.gid = "1000" } }
+
+      let(:test4) { Y2Users::Group.new("test4") }
+
+      let(:test5) { Y2Users::Group.new("test5").tap { |g| g.gid = "1001" } }
+
+      before do
+        target_config.attach(test3, test4, test5)
+      end
+
+      it "creates groups with gid first" do
+        action_test3 = mock_action(create_group_action, success, test3)
+        action_test4 = mock_action(create_group_action, success, test4)
+        action_test5 = mock_action(create_group_action, success, test5)
+
+        expect(action_test5).to receive(:perform).ordered
+        expect(action_test3).to receive(:perform).ordered
+        expect(action_test4).to receive(:perform).ordered
+
+        subject.write
       end
     end
   end
