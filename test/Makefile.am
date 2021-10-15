@@ -36,6 +36,9 @@ TESTS = \
   lib/y2users/linux/set_auth_keys_action_test.rb \
   lib/y2users/linux/set_home_ownership_action_test.rb \
   lib/y2users/linux/set_user_password_action_test.rb \
+  lib/y2users/linux/delete_group_action_test.rb \
+  lib/y2users/linux/edit_group_action_test.rb \
+  lib/y2users/linux/create_group_action_test.rb \
   lib/y2users/linux/useradd_config_writer_test.rb \
   lib/y2users/linux/users_writer_test.rb \
   lib/y2users/linux/writer_test.rb \

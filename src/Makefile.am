@@ -119,24 +119,28 @@ ylib_y2users_clients_DATA = \
 
 ylib_y2users_linuxdir = @ylibdir@/y2users/linux
 ylib_y2users_linux_DATA = \
-  lib/y2users/linux/action_result.rb \
   lib/y2users/linux/base_reader.rb \
+  lib/y2users/linux/local_reader.rb \
+  lib/y2users/linux/useradd_config_reader.rb \
+  lib/y2users/linux/reader.rb \
   lib/y2users/linux/create_user_action.rb \
   lib/y2users/linux/delete_user_action.rb \
   lib/y2users/linux/delete_user_password_action.rb \
   lib/y2users/linux/edit_user_action.rb \
-  lib/y2users/linux/groups_writer.rb \
-  lib/y2users/linux/local_reader.rb \
-  lib/y2users/linux/login_config_writer.rb \
-  lib/y2users/linux/reader.rb \
   lib/y2users/linux/remove_home_content_action.rb \
   lib/y2users/linux/set_auth_keys_action.rb \
   lib/y2users/linux/set_home_ownership_action.rb \
   lib/y2users/linux/set_user_password_action.rb \
-  lib/y2users/linux/user_action.rb \
-  lib/y2users/linux/useradd_config_reader.rb \
+  lib/y2users/linux/delete_group_action.rb \
+  lib/y2users/linux/edit_group_action.rb \
+  lib/y2users/linux/create_group_action.rb \
+  lib/y2users/linux/action.rb \
+  lib/y2users/linux/action_result.rb \
   lib/y2users/linux/useradd_config_writer.rb \
+  lib/y2users/linux/login_config_writer.rb \
+  lib/y2users/linux/action_writer.rb \
   lib/y2users/linux/users_writer.rb \
+  lib/y2users/linux/groups_writer.rb \
   lib/y2users/linux/writer.rb
 
 ylib_y2users_users_moduledir = @ylibdir@/y2users/users_module
