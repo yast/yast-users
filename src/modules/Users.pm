@@ -2544,16 +2544,6 @@ sub EditGroup {
 		$group_in_work{"removed_userlist"} = \%removed;
 	    }
 	}
-	if ($key eq "userPassword" && (defined $data{$key}) &&
-	    # crypt password only once (when changed)
-	    !bool ($data{"encrypted"}))
-	{
-		$group_in_work{$key}		=
-		    $self->CryptPassword ($data{$key}, $type, "group");
-		$group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-		$data{"encrypted"}		= YaST::YCP::Boolean (1);
-		next;
-	}
 	$group_in_work{$key}	= $data{$key};
     }
     $group_in_work{"what"}	= "edit_group";
@@ -3295,16 +3285,7 @@ sub AddGroup {
     # ----------------------------------------------------------------
 
     foreach my $key (keys %data) {
-	if ($key eq "userPassword" && (defined $data{$key}) &&
-	    !bool ($data{"encrypted"}))
-	{
-	    $group_in_work{$key}	=
-		$self->CryptPassword ($data{$key}, $type, "group");
-	    $group_in_work{"encrypted"}	= YaST::YCP::Boolean (1);
-	}
-	else {
-	    $group_in_work{$key}	= $data{$key};
-	}
+	$group_in_work{$key}	= $data{$key};
     }
 
     $group_in_work{"type"}		= $type;
