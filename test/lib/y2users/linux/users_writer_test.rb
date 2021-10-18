@@ -521,7 +521,7 @@ describe Y2Users::Linux::UsersWriter do
             end
           end
 
-          context "and the home did no exist on disk yet" do
+          context "and the home did not exist on disk yet" do
             let(:exist_home) { false }
 
             context "and the home was created" do

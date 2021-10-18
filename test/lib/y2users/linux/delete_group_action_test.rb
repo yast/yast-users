@@ -29,7 +29,7 @@ describe Y2Users::Linux::DeleteGroupAction do
 
   let(:group) { Y2Users::Group.new("test") }
 
-  describe "#write" do
+  describe "#perform" do
     before do
       allow(Yast::Execute).to receive(:on_target!)
     end

@@ -31,7 +31,7 @@ describe Y2Users::Linux::EditGroupAction do
 
   let(:target_group) { initial_group.copy }
 
-  describe "#write" do
+  describe "#perform" do
     before do
       allow(Yast::Execute).to receive(:on_target!)
     end

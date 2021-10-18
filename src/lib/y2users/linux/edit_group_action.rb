@@ -49,7 +49,7 @@ module Y2Users
       #
       # It is used to calculate the changes to apply over the group.
       #
-      # @return [User]
+      # @return [Group]
       attr_reader :initial_group
 
       # Command for modifying groups
@@ -60,7 +60,7 @@ module Y2Users
       #
       # Issues are generated when the group cannot be edited.
       def run_action
-        options = usermod_options
+        options = groupmod_options
         Yast::Execute.on_target!(GROUPMOD, *options, initial_group.name) if options.any?
         true
       rescue Cheetah::ExecutionFailed => e
@@ -75,7 +75,7 @@ module Y2Users
       # Generates options for `groupmod` according to the changes in the group
       #
       # @return [Array<String>]
-      def usermod_options
+      def groupmod_options
         opts = []
         opts += ["--new-name", group.name] if group.name && group.name != initial_group.name
         opts += ["--gid", group.gid] if group.gid && group.gid != initial_group.gid

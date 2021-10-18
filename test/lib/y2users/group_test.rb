@@ -226,7 +226,7 @@ describe Y2Users::Group do
         end
       end
 
-      context "and the user was not configured as a system user" do
+      context "and the group was not configured as a system group" do
         let(:is_system) { false }
 
         it "returns false" do
