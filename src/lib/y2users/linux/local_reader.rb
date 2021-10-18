@@ -64,7 +64,14 @@ module Y2Users
       # @param path [String, Pathname] the path to the file to be read
       # @return [String] the content of the read file
       def load_file(path)
-        File.read(File.join(source_dir, path))
+        full_path = File.join(source_dir, path)
+
+        if File.exist?(full_path)
+          File.read(full_path)
+        else
+          log.error("File #{full_path} does not exist")
+          ""
+        end
       end
     end
   end
