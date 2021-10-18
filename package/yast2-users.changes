@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Oct 18 14:36:43 UTC 2021 - José Iván López González <jlopez@suse.com>
+
+- Users client uses the shadow tools to write changes into the
+  system (jsc#SLE-20592).
+- The shadow tools are also used for reading the useradd default
+  values (bsc#1190864).
+- 4.4.7
+
+-------------------------------------------------------------------
 Thu Aug 12 14:35:20 UTC 2021 - José Iván López González <jlopez@suse.com>
 
 - Allow to edit the name of an existing user (bsc#1188612).
