@@ -19,21 +19,21 @@
 
 require "yast"
 require "yast/i18n"
+require "yast2/execute"
 require "y2issues/issue"
-require "users/ssh_authorized_keyring"
 require "y2users/linux/action"
 
 module Y2Users
   module Linux
-    # Action for setting the authorized keys of a user
-    class SetAuthKeysAction < Action
+    # Action for creating a new group
+    class CreateGroupAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
       # @see Action
-      def initialize(user, commit_config = nil)
+      def initialize(group, commit_config = nil)
         textdomain "users"
 
         super
@@ -41,21 +41,37 @@ module Y2Users
 
     private
 
-      alias_method :user, :action_element
+      alias_method :group, :action_element
+
+      # Command for creating new groups
+      GROUPADD = "/usr/sbin/groupadd".freeze
+      private_constant :GROUPADD
 
       # @see Action#run_action
       #
-      # Issues are generated when the authorized keys cannot be set.
+      # Issues are generated when the group cannot be created.
       def run_action
-        Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
+        Yast::Execute.on_target!(GROUPADD, *groupadd_options)
         true
-      rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
+      rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          # TRANSLATORS: %s is a placeholder for a username
-          format(_("Error writing authorized keys for '%s'"), user.name)
+          # TRANSLATORS: %{group} is replaced by a group name.
+          format(_("The group %{group} could not be created"), group: group.name)
         )
-        log.error("Error writing authorized keys for '#{user.name}' - #{e.message}")
+        log.error("Error creating group #{group.name}: #{e.stderr}")
         false
+      end
+
+      # Generates options for `groupadd` according to the group attributes
+      #
+      # @return [Array<String>]
+      def groupadd_options
+        opts = []
+        opts += ["--non-unique", "--gid", group.gid] if group.gid
+        opts << "--system" if group.system?
+        opts << group.name
+
+        opts
       end
     end
   end

@@ -145,12 +145,11 @@ describe Y2Users::UsersModule::Reader do
       # real data with data dumper from perl after modifications in UI
       {
         "cn"            => "users",
-        "gidNumber"     => 100,
+        "gidNumber"     => "100",
         "more_users"    => {},
         "org_cn"        => "users",
         "org_gidNumber" => 100,
         "type"          => "local",
-        "userPassword"  => "x",
         "userlist"      => {}
       },
       {
@@ -161,11 +160,17 @@ describe Y2Users::UsersModule::Reader do
         "org_cn"        => "wheel",
         "org_gidNumber" => 497,
         "type"          => "system",
-        "userPassword"  => "x",
         "userlist"      => {
           "test5" => 1
         },
         "what"          => "user_change"
+      },
+      {
+        "cn"         => "test",
+        "gidNumber"  => "",
+        "more_users" => {},
+        "type"       => "system",
+        "userlist"   => {}
       }
     ]
   end
@@ -181,7 +186,6 @@ describe Y2Users::UsersModule::Reader do
         "org_gidNumber" => 1000,
         "plugins"       => [],
         "type"          => "local",
-        "userPassword"  => nil,
         "userlist"      => {
           "test2" => 1
         },
@@ -299,7 +303,7 @@ describe Y2Users::UsersModule::Reader do
       expect(target_config).to be_a(Y2Users::Config)
 
       expect(target_config.users.size).to eq 2
-      expect(target_config.groups.size).to eq 3
+      expect(target_config.groups.size).to eq 4
 
       test_user = target_config.users.by_name("test5")
       expect(test_user.uid).to eq "1002"
@@ -319,6 +323,9 @@ describe Y2Users::UsersModule::Reader do
       expect(test_group.gid).to eq "497"
       expect(test_group.users.map(&:name)).to eq(["test5"])
 
+      test_group = target_config.groups.by_name("test")
+      expect(test_group.system?).to eq(true)
+
       useradd = target_config.useradd
       expect(useradd.group).to eq "100"
       expect(useradd.expiration).to eq ""
@@ -328,7 +335,7 @@ describe Y2Users::UsersModule::Reader do
       expect(system_config).to be_a(Y2Users::Config)
 
       expect(system_config.users.size).to eq 3
-      expect(system_config.groups.size).to eq 3
+      expect(system_config.groups.size).to eq 4
 
       added_user = system_config.users.by_name("test5")
       expect(added_user).to eq nil

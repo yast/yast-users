@@ -21,18 +21,18 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
     # Action for setting the user password
-    class SetUserPasswordAction < UserAction
+    class SetUserPasswordAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,7 +41,9 @@ module Y2Users
 
     private
 
-      # @see UserAction#run_action
+      alias_method :user, :action_element
+
+      # @see Action#run_action
       def run_action
         set_password_value && set_password_attributes
       end

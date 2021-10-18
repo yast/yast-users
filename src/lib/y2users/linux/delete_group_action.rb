@@ -19,21 +19,21 @@
 
 require "yast"
 require "yast/i18n"
+require "yast2/execute"
 require "y2issues/issue"
-require "users/ssh_authorized_keyring"
 require "y2users/linux/action"
 
 module Y2Users
   module Linux
-    # Action for setting the authorized keys of a user
-    class SetAuthKeysAction < Action
+    # Action for deleting a group
+    class DeleteGroupAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
       # @see Action
-      def initialize(user, commit_config = nil)
+      def initialize(group, commit_config = nil)
         textdomain "users"
 
         super
@@ -41,20 +41,24 @@ module Y2Users
 
     private
 
-      alias_method :user, :action_element
+      alias_method :group, :action_element
+
+      # Command for deleting groups
+      GROUPDEL = "/usr/sbin/groupdel".freeze
+      private_constant :GROUPDEL
 
       # @see Action#run_action
       #
-      # Issues are generated when the authorized keys cannot be set.
+      # Issues are generated when the group cannot be deleted.
       def run_action
-        Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
+        Yast::Execute.on_target!(GROUPDEL, group.name)
         true
-      rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
+      rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(
-          # TRANSLATORS: %s is a placeholder for a username
-          format(_("Error writing authorized keys for '%s'"), user.name)
+          # TRANSLATORS: %{group} is replaced by a group name.
+          format(_("The group %{group} could not be deleted"), group: group.name)
         )
-        log.error("Error writing authorized keys for '#{user.name}' - #{e.message}")
+        log.error("Error deleting group #{group.name}: #{e.stderr}")
         false
       end
     end

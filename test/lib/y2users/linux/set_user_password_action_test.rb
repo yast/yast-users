@@ -59,7 +59,7 @@ describe Y2Users::Linux::SetUserPasswordAction do
 
   let(:account_expiration) { nil }
 
-  describe "#write" do
+  describe "#perform" do
     before do
       allow(Yast::Execute).to receive(:on_target!)
     end

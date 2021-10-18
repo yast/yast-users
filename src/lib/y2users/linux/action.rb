@@ -23,12 +23,12 @@ require "abstract_method"
 
 module Y2Users
   module Linux
-    # Abstract base class for actions to perform over a user
+    # Abstract base class for actions over the system (e.g., create a user, delete a group, etc)
     #
     # Derived classes must implement #run_action method.
     #
     # @example
-    #   class ActionTest < UserAction
+    #   class ActionTest < Action
     #     def run_action
     #       print("test")
     #       true
@@ -39,13 +39,13 @@ module Y2Users
     #   result = action.perform
     #   result.success?       #=> true
     #   result.issues.empty?  #=> true
-    class UserAction
+    class Action
       # Constructor
       #
-      # @param user [User]
+      # @param action_element [Object] object to perform the action (e.g., a user)
       # @param commit_config [CommitConfig, nil] optional configuration for the commit
-      def initialize(user, commit_config = nil)
-        @user = user
+      def initialize(action_element, commit_config = nil)
+        @action_element = action_element
         @commit_config = commit_config
       end
 
@@ -60,8 +60,8 @@ module Y2Users
 
     private
 
-      # @return [User]
-      attr_reader :user
+      # @return [Object]
+      attr_reader :action_element
 
       # @return [CommitConfig]
       attr_reader :commit_config

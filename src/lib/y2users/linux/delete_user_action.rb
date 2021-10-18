@@ -21,18 +21,18 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
     # Action for deleting an existing user
-    class DeleteUserAction < UserAction
+    class DeleteUserAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -41,11 +41,13 @@ module Y2Users
 
     private
 
+      alias_method :user, :action_element
+
       # Command for deleting a user
       USERDEL = "/usr/sbin/userdel".freeze
       private_constant :USERDEL
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Issues are generated when the user cannot be deleted.
       def run_action

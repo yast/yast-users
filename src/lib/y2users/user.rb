@@ -17,6 +17,7 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
 require "y2users/config_element"
 require "y2users/user_validator"
 require "y2users/password_validator"

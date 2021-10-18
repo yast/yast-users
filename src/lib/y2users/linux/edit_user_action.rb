@@ -21,18 +21,18 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
     # Action for editing an existing user
-    class EditUserAction < UserAction
+    class EditUserAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(initial_user, target_user, commit_config = nil)
         textdomain "users"
 
@@ -42,6 +42,8 @@ module Y2Users
       end
 
     private
+
+      alias_method :user, :action_element
 
       # Initial state of the user
       #
@@ -54,7 +56,7 @@ module Y2Users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Issues are generated when the user cannot be edited.
       def run_action

@@ -21,7 +21,7 @@ require "yast"
 require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
-require "y2users/linux/user_action"
+require "y2users/linux/action"
 
 module Y2Users
   module Linux
@@ -29,13 +29,13 @@ module Y2Users
     #
     # This action is needed when reusing an existing home in order to adapt home ownership to the
     # user.
-    class SetHomeOwnershipAction < UserAction
+    class SetHomeOwnershipAction < Action
       include Yast::I18n
       include Yast::Logger
 
       # Constructor
       #
-      # @see UserAction
+      # @see Action
       def initialize(user, commit_config = nil)
         textdomain "users"
 
@@ -44,11 +44,13 @@ module Y2Users
 
     private
 
+      alias_method :user, :action_element
+
       # Command for changing ownership
       CHOWN = "/usr/bin/chown".freeze
       private_constant :CHOWN
 
-      # @see UserAction#run_action
+      # @see Action#run_action
       #
       # Issues are generated when ownership cannot be changed.
       def run_action
