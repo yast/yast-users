@@ -34,9 +34,8 @@ describe Y2Users::Linux::LocalReader do
   end
 
   before do
-    useradd_content = File.read(File.join(root_dir, "etc/default/useradd"))
     allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
-      .and_return(useradd_content)
+      .and_return(useradd_default_values)
 
     allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("044")
   end

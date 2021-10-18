@@ -44,9 +44,8 @@ describe Y2Users::Linux::Reader do
     allow(Yast::Execute).to receive(:on_target!).with(/getent/, "shadow", anything)
       .and_return(shadow_content)
 
-    useradd_content = File.read(File.join(FIXTURES_PATH, "/root/etc/default/useradd"))
     allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
-      .and_return(useradd_content)
+      .and_return(useradd_default_values)
 
     allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("024")
   end
