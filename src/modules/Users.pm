@@ -251,6 +251,7 @@ YaST::YCP::Import ("UsersRoutines");
 YaST::YCP::Import ("UsersSimple");
 YaST::YCP::Import ("UsersUI");
 YaST::YCP::Import ("SSHAuthorizedKeys");
+YaST::YCP::Import ("Y2UsersLinux");
 YaST::YCP::Import ("Nsswitch");
 
 ##-------------------------------------------------------------------------
@@ -1380,14 +1381,16 @@ sub ReadSystemDefaults {
 BEGIN { $TYPEINFO{ReadLoginDefaults} = ["function", "boolean"]; }
 sub ReadLoginDefaults {
 
-    my $self		= shift;
-    foreach my $key (sort keys %useradd_defaults) {
-        my $entry = SCR->Read (".etc.default.useradd.\"\Q$key\E\"");
-        # use the defaults set in this file if $entry not defined
-        next if !defined $entry;
-	$entry =~ s/\"//g;
-        $useradd_defaults{$key} = $entry;
-    }
+    my $self = shift;
+
+    my %defaults = %{Y2UsersLinux->read_useradd_config()};
+
+    $useradd_defaults{"home"} = $defaults{"home"};
+    $useradd_defaults{"group"} = $defaults{"group"};
+    $useradd_defaults{"umask"} = $defaults{"umask"};
+    $useradd_defaults{"expire"} = $defaults{"expiration"};
+    $useradd_defaults{"inactive"} = $defaults{"inactivity_period"};
+    $useradd_defaults{"shell"} = $defaults{"shell"};
 
     UsersLDAP->InitConstants (\%useradd_defaults);
     UsersLDAP->SetDefaultShadow ($self->GetDefaultShadow ("local"));
