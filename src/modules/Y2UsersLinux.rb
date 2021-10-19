@@ -26,7 +26,7 @@ require "y2issues"
 
 module Yast
   # Module to make possible for Yast::Users to use some of the Y2Users::Linux components, like
-  # the {Y2Users::Linux::Writer} and the # {Y2Users::Linux::UseraddConfigReader}
+  # the {Y2Users::Linux::Writer} and the {Y2Users::Linux::UseraddConfigReader}
   class Y2UsersLinuxClass < Module
     include Yast::Logger
 
