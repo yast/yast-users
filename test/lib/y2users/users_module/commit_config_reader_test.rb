@@ -29,14 +29,16 @@ describe Y2Users::UsersModule::CommitConfigReader do
     let(:users) do
       [
         {
-          "uid"               => "test1",
-          "chown_home"        => true,
-          "create_home"       => true,
-          "homeDirectory"     => "/home/test",
-          "org_homeDirectory" => "/home/test1",
-          "home_mode"         => "755",
-          "modified"          => "edited",
-          "no_skeleton"       => true
+          "uid"           => "test1",
+          "chown_home"    => true,
+          "create_home"   => true,
+          "homeDirectory" => "/home/test",
+          "org_user"      => {
+            "homeDirectory" => "/home/test1"
+          },
+          "home_mode"     => "755",
+          "modified"      => "edited",
+          "no_skeleton"   => true
         },
         {
           "uid"               => "test2",

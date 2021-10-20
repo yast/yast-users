@@ -168,6 +168,36 @@ describe Y2Users::Linux::UsersWriter do
         expect(issues.map(&:message)).to include(/issue editing user/)
       end
 
+      context "and the new home path already exists" do
+        before do
+          target_user.home.path = "/home/new_home"
+
+          allow(File).to receive(:exist?)
+          allow(File).to receive(:exist?).with("/home/new_home").and_return(true)
+        end
+
+        let(:commit_config) do
+          Y2Users::CommitConfig.new.tap do |config|
+            config.username = target_user.name
+            config.move_home = true
+          end
+        end
+
+        it "forces to not move the content of the current home" do
+          action = instance_double(edit_user_action, perform: success)
+
+          expect(edit_user_action)
+            .to receive(:new).with(initial_user, target_user, anything) do |*args|
+              commit_config = args.last
+              expect(commit_config.move_home?).to eq(false)
+            end.and_return(action)
+
+          expect(action).to receive(:perform)
+
+          subject.write
+        end
+      end
+
       context "and the action for editing the user successes" do
         before do
           mock_action(edit_user_action, success, initial_user, target_user)

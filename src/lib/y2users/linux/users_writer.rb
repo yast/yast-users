@@ -222,7 +222,14 @@ module Y2Users
       #
       # @return [Boolean] true on success
       def modify_user(initial_user, target_user)
-        action = EditUserAction.new(initial_user, target_user, commit_config(target_user))
+        # If a new home was assigned to the user and that home already exists, then the content of
+        # previous home cannot be moved to the new home. Note that "usermod --move-home" fails in
+        # that scenario (exit status different to 0). To prevent such errors, the commit config is
+        # forced to not move the home content in that case.
+        commit_config = commit_config(target_user).dup
+        commit_config.move_home = false if exist_user_home?(target_user)
+
+        action = EditUserAction.new(initial_user, target_user, commit_config)
 
         perform_action(action)
       end

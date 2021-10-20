@@ -94,7 +94,10 @@ module Y2Users
       # @param user [Hash] a user representation in the format used by Yast::Users
       # @return [Boolean]
       def move_home?(user)
-        previous_home = user_attr(user, "org_homeDirectory")
+        # Surprisingly, when a user is edited, the "org_homeDirectory" attribute does not contain
+        # the original home value but the current one (i.e., the same value as "homeDirectory"). It
+        # is more reliable to check the old value from the "org_user" hash.
+        previous_home = user_attr(user.fetch("org_user", {}), "homeDirectory")
         home = user_attr(user, "homeDirectory")
 
         return false if previous_home.nil? || home.nil?
