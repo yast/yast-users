@@ -28,6 +28,7 @@ require "y2users/linux/useradd_config_reader"
 require "users/ssh_authorized_keyring"
 
 Yast.import "Autologin"
+Yast.import "MailAliases"
 
 module Y2Users
   module Linux
@@ -41,6 +42,7 @@ module Y2Users
       def read
         Config.new.tap do |config|
           read_elements(config)
+          read_root_aliases(config)
           read_passwords(config)
           read_authorized_keys(config)
           read_useradd_config(config)
@@ -84,6 +86,18 @@ module Y2Users
       # @!method load_groups
       #   @return [String] loaded groups from the system
       abstract_method :load_groups
+
+      # Set root aliases (i.e., users receiving system mails)
+      #
+      # @see Yast::MailAliases#GetRootAlias
+      #
+      # @param config [Config]
+      def read_root_aliases(config)
+        Yast::MailAliases.GetRootAlias.split(", ").each do |name|
+          user = config.users.by_name(name)
+          user.receive_system_mail = true if user
+        end
+      end
 
       # Parses the content retrieved by {#load_passwords} and sets user passwords
       #

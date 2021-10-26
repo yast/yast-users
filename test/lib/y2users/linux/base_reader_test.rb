@@ -44,6 +44,7 @@ describe Y2Users::Linux::BaseReader do
       allow(subject).to receive(:load_passwords).and_return(shadow_content)
 
       allow(subject.log).to receive(:warn)
+      allow(Yast::MailAliases).to receive(:GetRootAlias).and_return("games, unknown, news")
     end
 
     it "generates a config with read data" do
@@ -70,6 +71,15 @@ describe Y2Users::Linux::BaseReader do
       expect(subject.log).to receive(:warn).with(/Found password for.*fakeuser./)
 
       subject.read
+    end
+
+    it "sets root aliases" do
+      config = subject.read
+
+      root_aliases = config.users.select(&:receive_system_mail?)
+
+      expect(root_aliases.size).to eq 2
+      expect(root_aliases.map(&:name)).to contain_exactly("games", "news")
     end
   end
 end
