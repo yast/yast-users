@@ -31,9 +31,9 @@ describe Y2Users::Linux::BaseReader do
   end
 
   describe "#read" do
-    let(:passwd_content) { File.read(File.join(FIXTURES_PATH, "/root/etc/passwd")) }
-    let(:group_content)  { File.read(File.join(FIXTURES_PATH, "/root/etc/group")) }
-    let(:shadow_content) { File.read(File.join(FIXTURES_PATH, "/root/etc/shadow")) }
+    let(:passwd_content) { File.read(File.join(FIXTURES_PATH, "/root2/etc/passwd")) }
+    let(:group_content)  { File.read(File.join(FIXTURES_PATH, "/root2/etc/group")) }
+    let(:shadow_content) { File.read(File.join(FIXTURES_PATH, "/root2/etc/shadow")) }
     let(:root_home) { FIXTURES_PATH.join("home", "root").to_s }
     let(:expected_root_auth_keys) { authorized_keys_from(root_home) }
 
@@ -45,9 +45,13 @@ describe Y2Users::Linux::BaseReader do
 
       allow(subject.log).to receive(:warn)
       allow(Yast::MailAliases).to receive(:GetRootAlias).and_return("games, unknown, news")
+
+      # mocks to check reading of home permissions
+      allow(Dir).to receive(:exist?)
+      allow(Dir).to receive(:exist?).with("/home/a_user").and_return(true)
       allow(Yast::Execute).to receive(:locally!)
       allow(Yast::Execute).to receive(:locally!)
-        .with("/usr/bin/stat", any_args, "/root", stdout: :capture)
+        .with("/usr/bin/stat", any_args, "/home/a_user", stdout: :capture)
         .and_return("700")
     end
 
@@ -56,8 +60,8 @@ describe Y2Users::Linux::BaseReader do
 
       expect(config).to be_a(Y2Users::Config)
 
-      expect(config.users.size).to eq 18
-      expect(config.groups.size).to eq 37
+      expect(config.users.size).to eq 19
+      expect(config.groups.size).to eq 7
 
       root_user = config.users.root
       expect(root_user.uid).to eq "0"
@@ -89,8 +93,8 @@ describe Y2Users::Linux::BaseReader do
     it "sets home permissions" do
       config = subject.read
 
-      root = config.users.root
-      expect(root.home.permissions).to eq("700")
+      user = config.users.by_name("a_user")
+      expect(user.home.permissions).to eq("700")
     end
   end
 end

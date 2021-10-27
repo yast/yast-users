@@ -47,6 +47,7 @@ describe Y2Users::Linux::Reader do
     allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
       .and_return(useradd_default_values)
 
+    allow(Yast::ShadowConfig).to receive(:fetch)
     allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("024")
   end
 
