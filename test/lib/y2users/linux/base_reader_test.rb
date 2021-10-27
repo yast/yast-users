@@ -45,6 +45,10 @@ describe Y2Users::Linux::BaseReader do
 
       allow(subject.log).to receive(:warn)
       allow(Yast::MailAliases).to receive(:GetRootAlias).and_return("games, unknown, news")
+      allow(Yast::Execute).to receive(:locally!)
+      allow(Yast::Execute).to receive(:locally!)
+        .with("/usr/bin/stat", any_args, "/root", stdout: :capture)
+        .and_return("700")
     end
 
     it "generates a config with read data" do
@@ -80,6 +84,13 @@ describe Y2Users::Linux::BaseReader do
 
       expect(root_aliases.size).to eq 2
       expect(root_aliases.map(&:name)).to contain_exactly("games", "news")
+    end
+
+    it "sets home permissions" do
+      config = subject.read
+
+      root = config.users.root
+      expect(root.home.permissions).to eq("700")
     end
   end
 end

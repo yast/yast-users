@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "yast2/execute"
 require "abstract_method"
 require "y2users/config"
 require "y2users/login_config"
@@ -44,6 +45,7 @@ module Y2Users
           read_elements(config)
           read_root_aliases(config)
           read_passwords(config)
+          read_home_permissions(config)
           read_authorized_keys(config)
           read_useradd_config(config)
           read_login(config)
@@ -121,6 +123,24 @@ module Y2Users
       # @!method load_passwords
       #   @return [String] loaded passwords from the system
       abstract_method :load_passwords
+
+      # Command for reading home directory permissions
+      STAT = "/usr/bin/stat".freeze
+      private_constant :STAT
+
+      # Reads home permissions
+      #
+      # @return [Array<Y2Users::User>]
+      def read_home_permissions(config)
+        config.users.reject(&:system?).each do |user|
+          next unless user.home && Dir.exist?(user.home.path)
+
+          user.home.permissions = Yast::Execute.locally!(
+            STAT, "--printf", "%a", user.home.path,
+            stdout: :capture
+          )
+        end
+      end
 
       # Reads users authorized keys
       #
