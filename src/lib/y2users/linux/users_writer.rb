@@ -146,9 +146,8 @@ module Y2Users
         adapt_home_ownership(target_user) if commit_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
 
-        if initial_user.authorized_keys != target_user.authorized_keys
-          write_auth_keys(target_user, initial_user.authorized_keys)
-        end
+        previous_keys = initial_user.authorized_keys
+        write_auth_keys(target_user, previous_keys) if previous_keys != target_user.authorized_keys
       end
 
       # Updates root aliases
