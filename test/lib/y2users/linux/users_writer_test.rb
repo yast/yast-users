@@ -73,7 +73,7 @@ describe Y2Users::Linux::UsersWriter do
     def mock_action(action, result, *users)
       action_instance = instance_double(action, perform: result)
 
-      allow(action).to receive(:new).with(*users, anything).and_return(action_instance)
+      allow(action).to receive(:new).with(*users, any_args).and_return(action_instance)
 
       action_instance
     end
@@ -342,6 +342,18 @@ describe Y2Users::Linux::UsersWriter do
               action = mock_action(set_auth_keys_action, success, target_user)
 
               expect(action).to receive(:perform)
+
+              subject.write
+            end
+
+            it "provides previous keys to the action for setting authorized keys" do
+              action = instance_double(set_auth_keys_action, perform: success)
+
+              expect(set_auth_keys_action)
+                .to receive(:new).with(target_user, any_args) do |*args|
+                  previous_keys = args.last
+                  expect(previous_keys).to eq(initial_user.authorized_keys)
+                end.and_return(action)
 
               subject.write
             end
