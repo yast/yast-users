@@ -34,7 +34,8 @@ describe Y2Users::Linux::SetAuthKeysAction do
     it "calls SSHAuthorizedKeyring#write_keys" do
       obj = double
       expect(obj).to receive(:write_keys)
-      expect(Yast::Users::SSHAuthorizedKeyring).to receive(:new).with(user.home, ["test"])
+      expect(obj).to receive(:add_keys).with(["test"])
+      expect(Yast::Users::SSHAuthorizedKeyring).to receive(:new).with("/home/test", [])
         .and_return(obj)
 
       subject.perform
@@ -42,9 +43,10 @@ describe Y2Users::Linux::SetAuthKeysAction do
 
     it "returns result without success and with issues if cmd failed" do
       obj = double
+      expect(obj).to receive(:add_keys).with(["test"])
       expect(obj).to receive(:write_keys)
-        .and_raise(Yast::Users::SSHAuthorizedKeyring::PathError, user.home)
-      expect(Yast::Users::SSHAuthorizedKeyring).to receive(:new).with(user.home, ["test"])
+        .and_raise(Yast::Users::SSHAuthorizedKeyring::PathError, "/home/test")
+      expect(Yast::Users::SSHAuthorizedKeyring).to receive(:new).with("/home/test", [])
         .and_return(obj)
 
       result = action.perform
