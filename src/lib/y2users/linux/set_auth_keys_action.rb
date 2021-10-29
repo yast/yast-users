@@ -35,8 +35,8 @@ module Y2Users
       # @see Action
       # @param user [User] user to perform the action
       # @param commit_config [CommitConfig, nil] optional configuration for the commit
-      # @param previous_keys [Array<String>, nil] optional collection holding previous keys, if any
-      def initialize(user, commit_config = nil, previous_keys = nil)
+      # @param previous_keys [Array<String>] optional collection holding previous SSH keys, if any
+      def initialize(user, commit_config = nil, previous_keys = [])
         textdomain "users"
 
         super(user, commit_config)
@@ -45,7 +45,8 @@ module Y2Users
 
     private
 
-      attr_accessor :previous_keys
+      # @return [Array<String>] collection holding previous SSH public keys for given user
+      attr_reader :previous_keys
 
       alias_method :user, :action_element
 

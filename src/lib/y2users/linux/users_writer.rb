@@ -146,7 +146,7 @@ module Y2Users
         adapt_home_ownership(target_user) if commit_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
 
-        previous_keys = initial_user.authorized_keys
+        previous_keys = initial_user.authorized_keys || []
         write_auth_keys(target_user, previous_keys) if previous_keys != target_user.authorized_keys
       end
 
@@ -291,9 +291,9 @@ module Y2Users
       # Performs the action for setting the authorized keys for the given user
       #
       # @param user [User]
-      # @param previous_keys [Array<String>, nil] previous auth keys for given user, if any
+      # @param previous_keys [Array<String>] previous auth keys for given user, if any
       # @return [Boolean] true on success
-      def write_auth_keys(user, previous_keys = nil)
+      def write_auth_keys(user, previous_keys = [])
         return true unless exist_user_home?(user)
 
         action = SetAuthKeysAction.new(user, commit_config(user), previous_keys)
