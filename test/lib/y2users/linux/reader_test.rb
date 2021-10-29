@@ -25,43 +25,51 @@ require "y2users/config"
 require "y2users/linux/reader"
 
 describe Y2Users::Linux::Reader do
-  around do |example|
-    # Let's use test/fixtures/home as src root for reading authorized keys from there
-    change_scr_root(FIXTURES_PATH.join("home")) { example.run }
-  end
-
-  before do
-    # mock Yast::Execute calls and provide file content from fixture
-    passwd_content = File.read(File.join(FIXTURES_PATH, "/root/etc/passwd"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "passwd", anything)
-      .and_return(passwd_content)
-
-    group_content = File.read(File.join(FIXTURES_PATH, "/root/etc/group"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "group", anything)
-      .and_return(group_content)
-
-    shadow_content = File.read(File.join(FIXTURES_PATH, "/root/etc/shadow"))
-    allow(Yast::Execute).to receive(:on_target!).with(/getent/, "shadow", anything)
-      .and_return(shadow_content)
-
-    allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
-      .and_return(useradd_default_values)
-
-    allow(Yast::ShadowConfig).to receive(:fetch)
-    allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("024")
-  end
-
   describe "#read" do
+    let(:passwd_content) { File.read(File.join(FIXTURES_PATH, "/root2/etc/passwd")) }
+    let(:group_content)  { File.read(File.join(FIXTURES_PATH, "/root2/etc/group")) }
+    let(:shadow_content) { File.read(File.join(FIXTURES_PATH, "/root2/etc/shadow")) }
     let(:root_home) { FIXTURES_PATH.join("home", "root").to_s }
     let(:expected_root_auth_keys) { authorized_keys_from(root_home) }
+
+    around do |example|
+      # Let's use test/fixtures/home as src root for reading authorized keys from there
+      change_scr_root(FIXTURES_PATH.join("home")) { example.run }
+    end
+
+    before do
+      # mock Yast::Execute calls and provide file content from fixture
+      allow(Yast::Execute).to receive(:on_target!).with(/getent/, "passwd", anything)
+        .and_return(passwd_content)
+      allow(Yast::Execute).to receive(:on_target!).with(/getent/, "group", anything)
+        .and_return(group_content)
+      allow(Yast::Execute).to receive(:on_target!).with(/getent/, "shadow", anything)
+        .and_return(shadow_content)
+      allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
+        .and_return(useradd_default_values)
+
+      allow(Yast::ShadowConfig).to receive(:fetch)
+      allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("044")
+
+      # mocks root aliases
+      allow(Yast::MailAliases).to receive(:GetRootAlias).and_return("games, unknown, news")
+
+      # mocks to check reading of home permissions
+      allow(Dir).to receive(:exist?)
+      allow(Dir).to receive(:exist?).with("/home/a_user").and_return(true)
+      allow(Yast::Execute).to receive(:locally!)
+      allow(Yast::Execute).to receive(:locally!)
+        .with("/usr/bin/stat", any_args, "/home/a_user", stdout: :capture)
+        .and_return("700")
+    end
 
     it "generates a config with read data" do
       config = subject.read
 
       expect(config).to be_a(Y2Users::Config)
 
-      expect(config.users.size).to eq 18
-      expect(config.groups.size).to eq 37
+      expect(config.users.size).to eq 19
+      expect(config.groups.size).to eq 7
 
       root_user = config.users.root
       expect(root_user.uid).to eq "0"
@@ -79,9 +87,25 @@ describe Y2Users::Linux::Reader do
       expect(useradd.expiration).to eq ""
       expect(useradd.inactivity_period).to eq(-1)
       expect(useradd.create_mail_spool).to eq true
-      expect(useradd.umask).to eq "024"
+      expect(useradd.umask).to eq "044"
 
       expect(config.login?).to eq(false)
+    end
+
+    it "sets root aliases" do
+      config = subject.read
+
+      root_aliases = config.users.select(&:receive_system_mail?)
+
+      expect(root_aliases.size).to eq 2
+      expect(root_aliases.map(&:name)).to contain_exactly("games", "news")
+    end
+
+    it "sets home permissions" do
+      config = subject.read
+
+      user = config.users.by_name("a_user")
+      expect(user.home.permissions).to eq("700")
     end
 
     context "when there are login settings" do

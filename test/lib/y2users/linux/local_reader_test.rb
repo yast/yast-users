@@ -36,16 +36,10 @@ describe Y2Users::Linux::LocalReader do
   before do
     allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
       .and_return(useradd_default_values)
-
-    allow(Yast::ShadowConfig).to receive(:fetch)
-    allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("044")
   end
 
   describe "#read" do
     context "when all expected files are present" do
-      let(:root_home) { FIXTURES_PATH.join("home", "root").to_s }
-      let(:expected_root_auth_keys) { authorized_keys_from(root_home) }
-
       it "generates a config with read data" do
         config = subject.read
 
@@ -61,14 +55,6 @@ describe Y2Users::Linux::LocalReader do
         expect(root_user.primary_group.name).to eq "root"
         expect(root_user.password.value.encrypted?).to eq true
         expect(root_user.password.value.content).to match(/^\$6\$pL/)
-        expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
-
-        useradd = config.useradd
-        expect(useradd.group).to eq "100"
-        expect(useradd.expiration).to eq ""
-        expect(useradd.inactivity_period).to eq(-1)
-        expect(useradd.create_mail_spool).to eq true
-        expect(useradd.umask).to eq "044"
 
         expect(config.login?).to eq(false)
       end
@@ -96,13 +82,6 @@ describe Y2Users::Linux::LocalReader do
 
         expect(config.users.size).to eq 0
         expect(config.groups.size).to eq 0
-
-        useradd = config.useradd
-        expect(useradd.group).to eq "100"
-        expect(useradd.expiration).to eq ""
-        expect(useradd.inactivity_period).to eq(-1)
-        expect(useradd.create_mail_spool).to eq true
-        expect(useradd.umask).to eq "044"
 
         expect(config.login?).to eq(false)
       end
