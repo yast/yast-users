@@ -67,10 +67,10 @@ module Y2Users
         config.users.reject(&:system?).each do |user|
           next unless user.home && Dir.exist?(user.home.path)
 
-          user.home.permissions = Yast::Execute.locally!(
+          user.home.permissions = Yast::Execute.on_target!(
             STAT, "--printf", "%a", user.home.path,
             stdout: :capture
-          )
+          ).prepend("0")
         end
       end
 

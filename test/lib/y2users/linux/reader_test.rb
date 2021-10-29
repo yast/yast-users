@@ -57,8 +57,7 @@ describe Y2Users::Linux::Reader do
       # mocks to check reading of home permissions
       allow(Dir).to receive(:exist?)
       allow(Dir).to receive(:exist?).with("/home/a_user").and_return(true)
-      allow(Yast::Execute).to receive(:locally!)
-      allow(Yast::Execute).to receive(:locally!)
+      allow(Yast::Execute).to receive(:on_target!)
         .with("/usr/bin/stat", any_args, "/home/a_user", stdout: :capture)
         .and_return("700")
     end
@@ -101,11 +100,11 @@ describe Y2Users::Linux::Reader do
       expect(root_aliases.map(&:name)).to contain_exactly("games", "news")
     end
 
-    it "sets home permissions" do
+    it "sets home permissions (octal number starting by 0)" do
       config = subject.read
 
       user = config.users.by_name("a_user")
-      expect(user.home.permissions).to eq("700")
+      expect(user.home.permissions).to eq("0700")
     end
 
     context "when there are login settings" do
