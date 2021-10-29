@@ -33,13 +33,20 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(user, commit_config = nil)
+      # @param user [User] user to perform the action
+      # @param commit_config [CommitConfig, nil] optional configuration for the commit
+      # @param previous_keys [Array<String>] optional collection holding previous SSH keys, if any
+      def initialize(user, commit_config = nil, previous_keys = [])
         textdomain "users"
 
-        super
+        super(user, commit_config)
+        @previous_keys = previous_keys || []
       end
 
     private
+
+      # @return [Array<String>] collection holding previous SSH public keys for given user
+      attr_reader :previous_keys
 
       alias_method :user, :action_element
 
@@ -47,7 +54,9 @@ module Y2Users
       #
       # Issues are generated when the authorized keys cannot be set.
       def run_action
-        Yast::Users::SSHAuthorizedKeyring.new(user.home, user.authorized_keys).write_keys
+        keyring = Yast::Users::SSHAuthorizedKeyring.new(user.home.path, previous_keys)
+        keyring.add_keys(user.authorized_keys)
+        keyring.write_keys
         true
       rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
         issues << Y2Issues::Issue.new(
