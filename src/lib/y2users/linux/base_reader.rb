@@ -20,14 +20,9 @@
 require "yast"
 require "abstract_method"
 require "y2users/config"
-require "y2users/login_config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
-require "y2users/linux/useradd_config_reader"
-require "users/ssh_authorized_keyring"
-
-Yast.import "Autologin"
 
 module Y2Users
   module Linux

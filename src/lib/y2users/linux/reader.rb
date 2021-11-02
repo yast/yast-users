@@ -19,7 +19,11 @@
 
 require "yast2/execute"
 require "y2users/linux/base_reader"
+require "y2users/login_config"
+require "y2users/linux/useradd_config_reader"
+require "users/ssh_authorized_keyring"
 
+Yast.import "Autologin"
 Yast.import "MailAliases"
 
 module Y2Users
