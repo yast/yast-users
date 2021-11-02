@@ -59,7 +59,7 @@ describe Y2Users::Linux::Reader do
       allow(Dir).to receive(:exist?).with("/home/a_user").and_return(true)
       allow(Yast::Execute).to receive(:on_target!)
         .with("/usr/bin/stat", any_args, "/home/a_user", stdout: :capture)
-        .and_return("700")
+        .and_return("0700")
     end
 
     it "generates a config with read data" do
