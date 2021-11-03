@@ -328,7 +328,10 @@ module Y2Users
       def exist_user_home?(user)
         return false unless user.home&.path
 
-        File.exist?(user.home.path)
+        Yast::Execute.on_target!("/usr/bin/stat", user.home.path)
+        true
+      rescue Cheetah::ExecutionFailed
+        false
       end
     end
   end

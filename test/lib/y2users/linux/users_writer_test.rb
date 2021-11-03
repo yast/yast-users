@@ -93,6 +93,7 @@ describe Y2Users::Linux::UsersWriter do
     end
 
     before do
+      allow(Yast::Execute).to receive(:on_target!)
       # Prevent to perform real actions into the system
       allow_any_instance_of(Y2Users::Linux::Action).to receive(:perform).and_return(success)
       allow(Yast::MailAliases).to receive(:SetRootAlias)
@@ -172,8 +173,7 @@ describe Y2Users::Linux::UsersWriter do
         before do
           target_user.home.path = "/home/new_home"
 
-          allow(File).to receive(:exist?)
-          allow(File).to receive(:exist?).with("/home/new_home").and_return(true)
+          allow(subject).to receive(:exist_user_home?).with(target_user).and_return(true)
         end
 
         let(:commit_config) do
@@ -202,7 +202,7 @@ describe Y2Users::Linux::UsersWriter do
         before do
           mock_action(edit_user_action, success, initial_user, target_user)
 
-          allow(File).to receive(:exist?).and_call_original
+          allow(subject).to receive(:exist_user_home?).and_call_original
         end
 
         let(:commit_config) do
@@ -218,7 +218,7 @@ describe Y2Users::Linux::UsersWriter do
           let(:adapt_home_ownership) { true }
 
           before do
-            allow(File).to receive(:exist?).with(target_user.home.path).and_return(exist_home)
+            allow(subject).to receive(:exist_user_home?).with(target_user).and_return(exist_home)
           end
 
           context "and the user home exists" do
@@ -335,7 +335,7 @@ describe Y2Users::Linux::UsersWriter do
 
           context "and the user home exists" do
             before do
-              allow(File).to receive(:exist?).with(target_user.home.path).and_return(true)
+              allow(subject).to receive(:exist_user_home?).with(target_user).and_return(true)
             end
 
             it "performs the action for setting the authorized keys" do
@@ -369,7 +369,7 @@ describe Y2Users::Linux::UsersWriter do
 
           context "and the user home does not exist" do
             before do
-              allow(File).to receive(:exist?).with(target_user.home.path).and_return(false)
+              allow(subject).to receive(:exist_user_home?).with(target_user).and_return(false)
             end
 
             it "does not perform the action for setting the authorized keys" do
@@ -543,14 +543,14 @@ describe Y2Users::Linux::UsersWriter do
         let(:adapt_home_ownership) { nil }
 
         before do
-          allow(File).to receive(:exist?).and_call_original
+          allow(subject).to receive(:exist_user_home?).and_call_original
         end
 
         context "and the user home should be created without skel" do
           let(:home_without_skel) { true }
 
           before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
+            allow(subject).to receive(:exist_user_home?).with(test3).and_return(exist_home)
           end
 
           context "and the home already existed on disk" do
@@ -568,7 +568,8 @@ describe Y2Users::Linux::UsersWriter do
 
             context "and the home was created" do
               before do
-                allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home, true)
+                allow(subject).to receive(:exist_user_home?).with(test3)
+                  .and_return(exist_home, true)
               end
 
               it "performs the action for removing the home content" do
@@ -604,7 +605,7 @@ describe Y2Users::Linux::UsersWriter do
           let(:adapt_home_ownership) { true }
 
           before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(exist_home)
+            allow(subject).to receive(:exist_user_home?).with(test3).and_return(exist_home)
           end
 
           context "and the home was created" do
@@ -684,7 +685,7 @@ describe Y2Users::Linux::UsersWriter do
 
         context "and the user home exists" do
           before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(true)
+            allow(subject).to receive(:exist_user_home?).with(test3).and_return(true)
           end
 
           it "performs the action for setting the authorized keys" do
@@ -706,7 +707,7 @@ describe Y2Users::Linux::UsersWriter do
 
         context "and the user home does not exist" do
           before do
-            allow(File).to receive(:exist?).with(test3.home.path).and_return(false)
+            allow(subject).to receive(:exist_user_home?).with(test3).and_return(false)
           end
 
           it "does not perform the action for setting the authorized keys" do
