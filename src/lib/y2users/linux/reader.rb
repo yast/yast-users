@@ -71,9 +71,8 @@ module Y2Users
         config.users.reject(&:system?).each do |user|
           next unless user.home && Dir.exist?(user.home.path)
 
-          # NOTE: '#' printf flag is needed to make sure permissions bits
-          # returned by the %a stat format sequence are in octal notation
-          # starting by 0, which is needed for some commands like useradd.
+          # "stat --printf %#a" returns the permissions in octal format
+          # (e.g., 0755), as expected by {Home#permissions}.
           user.home.permissions = Yast::Execute.on_target!(
             STAT, "--printf", "%#a", user.home.path,
             stdout: :capture
