@@ -6149,15 +6149,6 @@ sub ExportGroup {
     {
 	$ret{"gid"}		= $group->{"gidNumber"};
     }
-    if (defined $group->{"userPassword"}) {
-
-    	my $encrypted	= bool ($group->{"encrypted"});
-    	if (!defined $group->{"encrypted"}) {
-	    $encrypted	= 1;
-	}
-	$ret{"encrypted"}	= YaST::YCP::Boolean ($encrypted);
-	$ret{"group_password"}	= $group->{"userPassword"};
-    }
 
     return \%ret;
 }
