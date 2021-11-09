@@ -512,5 +512,42 @@ describe Y2Users::Autoinst::Reader do
         expect(issue.location.to_s).to eq("autoyast:groups,0:groupname")
       end
     end
+
+    context "when a group has a password" do
+      let(:group_password) { "s3cr3T" }
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "root", "gid" => "100" },
+            { "groupname" => "passworded-group", "group_password" => group_password }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::Issue)
+        expect(issue.location.to_s).to eq("autoyast:groups,1:group_password")
+      end
+
+      context "but it is empty (which means no password)" do
+        let(:group_password) { "" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
+      end
+
+      context "but it is 'x' (which means no password)" do
+        let(:group_password) { "x" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
+      end
+    end
   end
 end

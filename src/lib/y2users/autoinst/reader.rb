@@ -41,11 +41,14 @@ module Y2Users
     # historical reasons. See {#read} for some background.
     class Reader
       include Yast::Logger
+      include Yast::I18n
 
       # @param content [Hash] Hash containing AutoYaST data
       # @option content [Hash] "users" List of users
       # @option content [Hash] "groups" List of groups
       def initialize(content)
+        textdomain "users"
+
         @users_section = Y2Users::AutoinstProfile::UsersSection.new_from_hashes(
           content["users"] || []
         )
@@ -169,6 +172,8 @@ module Y2Users
         groups_section.groups.each_with_object([]) do |group_section, groups|
           next unless check_group(group_section, issues)
 
+          check_group_password(group_section, issues)
+
           res = Group.new(group_section.groupname)
           res.gid = group_section.gid
           users_name = group_section.userlist.to_s.split(",")
@@ -225,6 +230,25 @@ module Y2Users
 
         issues << invalid_value_issue(group_section, :groupname)
         false
+      end
+
+      # Check if given group contains a group password for warning about
+      # ignoring it
+      #
+      # @note empty or "x" password actually means no password and the user
+      #   will be not warned about it.
+      #
+      # @param group_section [Installation::AutoinstProfile::GroupSection]
+      # @param issues [Y2Issues::List] Issues list
+      def check_group_password(group_section, issues)
+        group_password = group_section.group_password.to_s
+
+        return if group_password.empty? || group_password == "x"
+
+        issues << Y2Issues::Issue.new(
+          _("Attribute no longer supported by YaST. Ignoring it."),
+          location: "autoyast:#{group_section.section_path}:group_password"
+        )
       end
 
       # Helper method that returns an InvalidValue issue for the given section and attribute
