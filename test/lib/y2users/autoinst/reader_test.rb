@@ -513,7 +513,7 @@ describe Y2Users::Autoinst::Reader do
       end
     end
 
-    context "when a group has a group password" do
+    context "when a group has a password" do
       let(:group_password) { "s3cr3T" }
       let(:profile) do
         {
