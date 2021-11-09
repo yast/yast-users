@@ -4426,6 +4426,10 @@ sub Write {
     $users_modified	= 0;
     $groups_modified	= 0;
 
+    # Reset lists of removed elements
+    %removed_users      = ();
+    %removed_groups	= ();
+
     return $ret;
 }
 
