@@ -4428,7 +4428,7 @@ sub Write {
 
     # Reset lists of removed elements
     %removed_users      = ();
-    %removed_groups	= ();
+    %removed_groups     = ();
 
     return $ret;
 }
