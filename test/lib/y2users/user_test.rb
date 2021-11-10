@@ -61,10 +61,10 @@ describe Y2Users::User do
       expect(user.system?).to eq(false)
     end
 
-    it "creates the user with the default home" do
+    it "creates the user with unknown home path" do
       user = described_class.new("test")
 
-      expect(user.home.path).to eq("/home/test")
+      expect(user.home.path).to be_nil
     end
   end
 
@@ -90,6 +90,8 @@ describe Y2Users::User do
     end
 
     it "generates a copy with a duplicated home" do
+      subject.home.path = "/home/test"
+
       other = subject.copy
       other.home.path = "/home/other"
 
@@ -119,15 +121,6 @@ describe Y2Users::User do
     it "returns an array holding authorized keys" do
       expect(subject.authorized_keys).to be_an(Array)
       expect(subject.authorized_keys).to contain_exactly("ssh-rsa auth-key")
-    end
-  end
-
-  describe "#default_home" do
-    it "returns a home with the default path for the home user" do
-      home = subject.default_home
-
-      expect(home).to be_a(Y2Users::Home)
-      expect(home.path).to eq("/home/test")
     end
   end
 

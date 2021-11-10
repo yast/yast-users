@@ -1418,6 +1418,12 @@ module Yast
               focus_tab.call(current, :home)
               next
             end
+            if new_home.empty?
+              Report.Error(_("Home cannot be empty."))
+              UI.ChangeWidget(Id(:home), :Value, home)
+              focus_tab.call(current, :home)
+              next
+            end
             failed = false
             begin
               error_map = Users.CheckHomeUI(new_i_uid, new_home, ui_map)

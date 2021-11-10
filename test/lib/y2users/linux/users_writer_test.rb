@@ -47,9 +47,9 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:users) { [test1, test2] }
 
-  let(:test1) { Y2Users::User.new("test1") }
+  let(:test1) { Y2Users::User.new("test1").tap { |u| u.home.path = "/home/test1" } }
 
-  let(:test2) { Y2Users::User.new("test2") }
+  let(:test2) { Y2Users::User.new("test2").tap { |u| u.home.path = "/home/test2" } }
 
   let(:commit_config) { Y2Users::CommitConfig.new }
 
@@ -507,7 +507,7 @@ describe Y2Users::Linux::UsersWriter do
     end
 
     context "when a user is added to the target config" do
-      let(:test3) { Y2Users::User.new("test3") }
+      let(:test3) { Y2Users::User.new("test3").tap { |u| u.home.path = "/home/test3" } }
 
       before do
         target_config.attach(test3)

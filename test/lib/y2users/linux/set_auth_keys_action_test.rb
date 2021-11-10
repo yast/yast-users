@@ -27,7 +27,12 @@ require "y2users/user"
 
 describe Y2Users::Linux::SetAuthKeysAction do
   subject(:action) { described_class.new(user, commit_config) }
-  let(:user) { Y2Users::User.new("test").tap { |u| u.authorized_keys = ["test"] } }
+  let(:user) do
+    Y2Users::User.new("test").tap do |user|
+      user.home.path = "/home/test"
+      user.authorized_keys = ["test"]
+    end
+  end
   let(:commit_config) { nil }
 
   describe "#perform" do

@@ -48,6 +48,11 @@ module Y2Users
     # @return [LoginConfig, nil] nil if not defined (unknown)
     attr_accessor :login
 
+    # Useradd configuration to be applied to the system before creating the users
+    #
+    # @return [UseraddConfig, nil] nil if the configuration is unknown
+    attr_accessor :useradd
+
     # Constructor
     #
     # @see UsersCollection
@@ -143,11 +148,6 @@ module Y2Users
 
       self
     end
-
-    # Useradd configuration to be applied to the system before creating the users
-    #
-    # @return [UseraddConfig, nil] nil if the configuration is unknown
-    attr_accessor :useradd
 
   private
 
