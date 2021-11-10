@@ -27,6 +27,7 @@ require "y2users/password_helper"
 require "y2users/username"
 require "users/users_database"
 require "tmpdir"
+require "pathname"
 
 module Yast
   # Dialog for the creation of local users during the installation
@@ -425,10 +426,10 @@ module Yast
       @full_name = UI.QueryWidget(Id(:full_name), :Value)
 
       user.name = @username
-      # In case of editing the user, the home should be updated to the default value (just in case
-      # the user name has changed) in order to keep the home path as /home/new_username.
-      user.home = user.default_home
       user.gecos = [@full_name].compact
+      # In case of editing an existing user, the home should be updated in order to keep the home
+      # path as /home/new_username.
+      update_home
 
       return false unless valid_user?
 
@@ -437,6 +438,17 @@ module Yast
       @autologin = UI.QueryWidget(Id(:autologin), :Value)
 
       true
+    end
+
+    # Updates the user home path if needed
+    def update_home
+      return if !user.home&.path || user.home.path.empty?
+
+      home_path = Pathname.new(user.home.path)
+
+      return if user.name == home_path.basename.to_s
+
+      user.home.path = home_path.dirname.join(user.name).to_s
     end
 
     # Processes the password for the user
