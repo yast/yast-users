@@ -36,7 +36,6 @@ describe Y2Users::Linux::CreateUserAction do
   end
 
   describe "#perform" do
-
     it "creates user with useradd" do
       expect(Yast::Execute).to receive(:on_target!) do |cmd, *_args|
         expect(cmd).to eq "/usr/sbin/useradd"
@@ -73,17 +72,6 @@ describe Y2Users::Linux::CreateUserAction do
       expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
         expect(args).to include "--shell"
         expect(args).to include "bash"
-      end
-
-      action.perform
-    end
-
-    it "passes --home-dir parameter" do
-      user.home.path = "/home/test5"
-
-      expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
-        expect(args).to include "--home-dir"
-        expect(args).to include "/home/test5"
       end
 
       action.perform
@@ -139,10 +127,24 @@ describe Y2Users::Linux::CreateUserAction do
       action.perform
     end
 
-    context "non-system users" do
+    context "for a local user" do
       it "passes --create-home parameter" do
         expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
-          expect(args).to include "--create-home"
+          expect(args).to include("--create-home")
+          expect(args).to_not include("--home-dir")
+          expect(args).to_not include("--btrfs-subvolume-home")
+          expect(args).to_not include("--key")
+        end
+
+        action.perform
+      end
+
+      it "passes --home-dir parameter if the home path is known" do
+        user.home.path = "/home/test"
+
+        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+          expect(args).to include("--home-dir")
+          expect(args).to include("/home/test")
         end
 
         action.perform

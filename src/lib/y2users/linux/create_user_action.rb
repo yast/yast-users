@@ -111,22 +111,32 @@ module Y2Users
 
       # Generates options for `useradd` about how to deal with home
       #
-      # The home is not created if explicitly requested with `:skip_hope` param or the user has no
-      # home path.
+      # The home is created in the given home path. If the home path is unknown, then the home is
+      # created in the default path indicated by the useradd defaults configuration.
       #
-      # Note that `useradd` will not try to create the home if the path already exists, it does not
-      # matter whether --create-home is passed.
+      # The home is not created if explicitly requested with `:skip_hope` param.
+      #
+      # Note that `useradd` will not try to create the home if the given path already exists, it
+      # does not matter whether --create-home is passed.
       #
       # @param skip_home [Boolean]
       # @return [Array<String>]
       def home_options(skip_home: false)
         return [] if user.system?
 
-        return ["--no-create-home"] if skip_home || !user.home&.path
+        return ["--no-create-home"] if skip_home
 
-        opts = ["--create-home", "--home-dir", user.home.path]
-        opts << "--btrfs-subvolume-home" if user.home.btrfs_subvol?
-        opts << "--key" << "HOME_MODE=#{user.home.permissions}" if user.home.permissions
+        create_home_options
+      end
+
+      # Options when the home has to be created
+      #
+      # @return [Array<String>]
+      def create_home_options
+        opts = ["--create-home"]
+        opts += ["--home-dir", user.home.path] if user.home&.path && !user.home.path.empty?
+        opts += ["--btrfs-subvolume-home"] if user.home&.btrfs_subvol?
+        opts += ["--key", "HOME_MODE=#{user.home.permissions}"] if user.home&.permissions
         opts
       end
     end

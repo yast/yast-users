@@ -73,6 +73,9 @@ module Y2Users
 
     # User home
     #
+    # @note If home is unknown, then the {Linux::Writer} will create the default home according to
+    #   the useradd defaults configuration.
+    #
     # @return [Home, nil] nil if unknown
     attr_accessor :home
 
@@ -131,32 +134,20 @@ module Y2Users
 
     # Constructor
     #
-    # This creates a local user with its default home. See also {User.create_system} for
-    # specifically creating a system user.
+    # This creates a local user. See also {User.create_system} for creating a system user.
     #
     # @param name [String]
     def initialize(name)
       super()
 
       @name = name
-      @home = default_home
-      # TODO: GECOS
+      @home = Home.new
       @gecos = []
       @authorized_keys = []
       @source = :unknown
 
       # See #system?
       @system = false
-    end
-
-    # Default home for the user
-    #
-    # Generates a new {Home} object with the default user home path. The attributes of the current
-    # home object associated to the user are not copied.
-    #
-    # @return [Home]
-    def default_home
-      Home.new("/home/#{name}")
     end
 
     # Primary group for the user
