@@ -104,7 +104,7 @@ module Y2Users
         all_local = Yast::Users.GetUsers("uid", "local").values +
           Yast::Users.GetUsers("uid", "system").values
         all_local.each do |user_hash|
-          if user_hash["what"] == "add_user" # new user
+          if user_hash["modified"] == "added" # new user
             target_config.attach(user(user_hash, target_config))
           else # everything else is edit of different kinds
             # at first create original user
@@ -127,7 +127,7 @@ module Y2Users
         all_local = Yast::Users.GetGroups("cn", "local").values +
           Yast::Users.GetGroups("cn", "system").values
         all_local.each do |group_hash|
-          if group_hash["what"] == "add_group" # new group
+          if group_hash["modified"] == "added" # new group
             target_config.attach(group(group_hash))
           else # everything else is edit of different kinds
             # at first create original group
