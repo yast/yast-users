@@ -19,6 +19,9 @@ groups =
     LIST,
     gr_group*
   }
+
+# TODO: "group_password" is no longer supported by YaST. We should remove it
+# along with "encrypted" from the schema at some point.
 gr_group = element group {
   MAP,
   (

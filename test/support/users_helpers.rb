@@ -27,6 +27,24 @@ module Yast
         file_path = File.join(path, ".ssh", "authorized_keys")
         File.read(file_path).lines.map(&:strip).grep(/ssh-/)
       end
+
+      # Returns useradd default values
+      #
+      # See useradd(8) man page.
+      #
+      # @return [String]
+      def useradd_default_values
+        <<~USERADD
+          GROUP=100
+          HOME=/home
+          INACTIVE=-1
+          EXPIRE=
+          SHELL=/bin/bash
+          SKEL=/etc/skel
+          USRSKEL=/usr/etc/skel
+          CREATE_MAIL_SPOOL=yes
+        USERADD
+      end
     end
   end
 end

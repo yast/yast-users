@@ -300,50 +300,29 @@ module Yast
       # help text 1/6
       helptext = Ops.add(
         Ops.add(
-          Ops.add(
-            Ops.add(
-              _("<p>\nEnter the group data here.   \n</p>\n") +
-                # help text 2/6
-                _(
-                  "<p>\n" +
-                    "<b>Group Name:</b>\n" +
-                    "Avoid long names for groups. Normal lengths are between \n" +
-                    "two and eight characters.  \n" +
-                    "You can redefine the list of characters allowed for group names in\n" +
-                    "the /etc/login.defs file. Read its man page for information.\n" +
-                    "</p>\n"
-                ),
-              # help text 3/6, %1 is number
-              Builtins.sformat(
-                _(
-                  "<p>\n" +
-                    "<b>Group ID (gid):</b>\n" +
-                    "In addition to its name, a group must be assigned a numerical ID for its\n" +
-                    "internal representation. These values are between 0 and\n" +
-                    "%1. Some of the IDs are already assigned during installation. You will be\n" +
-                    "warned if you try to use an already set one.\n" +
-                    "</p>\n"
-                ),
-                UsersCache.GetMaxGID("local")
-              )
-            ),
-            # help text 4/6
+          _("<p>\nEnter the group data here.   \n</p>\n") +
+            # help text 2/6
             _(
               "<p>\n" +
-                "<b>Password:</b>\n" +
-                "To require users who are not members of the group to identify themselves when\n" +
-                "switching to this group (see the man page of <tt>newgrp</tt>), assign a\n" +
-                "password to this group. For security reasons, this password is not shown\n" +
-                "here. This entry is not required.\n" +
+                "<b>Group Name:</b>\n" +
+                "Avoid long names for groups. Normal lengths are between \n" +
+                "two and eight characters.  \n" +
+                "You can redefine the list of characters allowed for group names in\n" +
+                "the /etc/login.defs file. Read its man page for information.\n" +
                 "</p>\n"
-            )
-          ),
-          # help text 5/6
-          _(
-            "<p>\n" +
-              "<b>Confirm Password:</b>\n" +
-              "Enter the password a second time to avoid typing errors.\n" +
-              "</p>\n"
+            ),
+          # help text 3/6, %1 is number
+          Builtins.sformat(
+            _(
+              "<p>\n" +
+                "<b>Group ID (gid):</b>\n" +
+                "In addition to its name, a group must be assigned a numerical ID for its\n" +
+                "internal representation. These values are between 0 and\n" +
+                "%1. Some of the IDs are already assigned during installation. You will be\n" +
+                "warned if you try to use an already set one.\n" +
+                "</p>\n"
+            ),
+            UsersCache.GetMaxGID("local")
           )
         ),
         # help text 6/6

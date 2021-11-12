@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "y2users/user"
+require "y2users/home"
 
 module Y2Users
   module Parsers
@@ -46,7 +47,7 @@ module Y2Users
           user.gid =   values[PASSWD_MAPPING["gid"]]
           user.shell = values[PASSWD_MAPPING["shell"]]
           user.gecos = values[PASSWD_MAPPING["gecos"]].to_s.split(",")
-          user.home =  values[PASSWD_MAPPING["home"]]
+          user.home =  Home.new(values[PASSWD_MAPPING["home"]])
           user
         end
       end

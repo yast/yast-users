@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "y2issues/with_issues"
 require "yast/i18n"
 require "yast2/execute"
 
@@ -27,6 +28,8 @@ module Y2Users
     class UseraddConfigWriter
       include Yast::I18n
       include Yast::Logger
+      include Y2Issues::WithIssues
+
       Yast.import "ShadowConfig"
 
       # Constructor
@@ -42,11 +45,13 @@ module Y2Users
 
       # Performs the changes in the system
       #
-      # @param issues [Y2Issues::List] the list of issues found while writing changes
-      def write(issues)
-        log.info "Starting to write useradd configuration"
-        write_useradd(issues)
-        write_shadow_config
+      # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
+      def write
+        with_issues do |issues|
+          log.info "Starting to write useradd configuration"
+          write_useradd(issues)
+          write_shadow_config
+        end
       end
 
     private

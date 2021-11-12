@@ -20,6 +20,7 @@
 require "y2users/config_merger"
 require "y2users/users_collection"
 require "y2users/groups_collection"
+require "y2users/user"
 
 module Y2Users
   # Class to represent a configuration of users and groups
@@ -46,6 +47,11 @@ module Y2Users
     #
     # @return [LoginConfig, nil] nil if not defined (unknown)
     attr_accessor :login
+
+    # Useradd configuration to be applied to the system before creating the users
+    #
+    # @return [UseraddConfig, nil] nil if the configuration is unknown
+    attr_accessor :useradd
 
     # Constructor
     #
@@ -142,11 +148,6 @@ module Y2Users
 
       self
     end
-
-    # Useradd configuration to be applied to the system before creating the users
-    #
-    # @return [UseraddConfig, nil] nil if the configuration is unknown
-    attr_accessor :useradd
 
   private
 

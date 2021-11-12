@@ -34,42 +34,57 @@ describe Y2Users::Linux::LocalReader do
   end
 
   before do
-    useradd_content = File.read(File.join(root_dir, "etc/default/useradd"))
     allow(Yast::Execute).to receive(:on_target!).with(/useradd/, "-D", anything)
-      .and_return(useradd_content)
-
-    allow(Yast::ShadowConfig).to receive(:fetch).with(:umask).and_return("044")
+      .and_return(useradd_default_values)
   end
 
   describe "#read" do
-    let(:root_home) { FIXTURES_PATH.join("home", "root").to_s }
-    let(:expected_root_auth_keys) { authorized_keys_from(root_home) }
+    context "when all expected files are present" do
+      it "generates a config with read data" do
+        config = subject.read
 
-    it "generates a config with read data" do
-      config = subject.read
+        expect(config).to be_a(Y2Users::Config)
 
-      expect(config).to be_a(Y2Users::Config)
+        expect(config.users.size).to eq 18
+        expect(config.groups.size).to eq 37
 
-      expect(config.users.size).to eq 18
-      expect(config.groups.size).to eq 37
+        root_user = config.users.root
+        expect(root_user.uid).to eq "0"
+        expect(root_user.home.path).to eq "/root"
+        expect(root_user.shell).to eq "/bin/bash"
+        expect(root_user.primary_group.name).to eq "root"
+        expect(root_user.password.value.encrypted?).to eq true
+        expect(root_user.password.value.content).to match(/^\$6\$pL/)
 
-      root_user = config.users.root
-      expect(root_user.uid).to eq "0"
-      expect(root_user.home).to eq "/root"
-      expect(root_user.shell).to eq "/bin/bash"
-      expect(root_user.primary_group.name).to eq "root"
-      expect(root_user.password.value.encrypted?).to eq true
-      expect(root_user.password.value.content).to match(/^\$6\$pL/)
-      expect(root_user.authorized_keys).to eq(expected_root_auth_keys)
+        expect(config.login?).to eq(false)
+      end
+    end
 
-      useradd = config.useradd
-      expect(useradd.group).to eq "100"
-      expect(useradd.expiration).to eq ""
-      expect(useradd.inactivity_period).to eq(-1)
-      expect(useradd.create_mail_spool).to eq true
-      expect(useradd.umask).to eq "044"
+    context "when any file is missing" do
+      let(:root_dir) { File.join(FIXTURES_PATH, "/root-missing-files/") }
 
-      expect(config.login?).to eq(false)
+      it "does not crash" do
+        expect { subject.read }.to_not raise_error
+      end
+
+      it "logs an error" do
+        expect(subject.log).to receive(:error)
+          .with(/File.*does not exist/)
+          .at_least(:once)
+
+        subject.read
+      end
+
+      it "generates a config" do
+        config = subject.read
+
+        expect(config).to be_a(Y2Users::Config)
+
+        expect(config.users.size).to eq 0
+        expect(config.groups.size).to eq 0
+
+        expect(config.login?).to eq(false)
+      end
     end
   end
 end

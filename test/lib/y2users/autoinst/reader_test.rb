@@ -281,10 +281,10 @@ describe Y2Users::Autoinst::Reader do
           { "users" => [{ "username" => "test" }] }
         end
 
-        it "sets User#btrfs_subvolume_home to nil" do
+        it "sets Home#btrfs_subvol to nil" do
           user = subject.read.config.users.by_name("test")
 
-          expect(user.btrfs_subvolume_home).to be_nil
+          expect(user.home.btrfs_subvol).to be_nil
         end
       end
 
@@ -296,20 +296,20 @@ describe Y2Users::Autoinst::Reader do
         context "and set to true" do
           let(:subvol) { true }
 
-          it "sets User#btrfs_subvolume_home to true" do
+          it "sets Home#btrfs_subvol to true" do
             user = subject.read.config.users.by_name("test")
 
-            expect(user.btrfs_subvolume_home).to eq true
+            expect(user.home.btrfs_subvol).to eq true
           end
         end
 
         context "and set to false" do
           let(:subvol) { false }
 
-          it "sets User#btrfs_subvolume_home to false" do
+          it "sets Home#btrfs_subvol to false" do
             user = subject.read.config.users.by_name("test")
 
-            expect(user.btrfs_subvolume_home).to eq false
+            expect(user.home.btrfs_subvol?).to eq false
           end
         end
       end
@@ -510,6 +510,43 @@ describe Y2Users::Autoinst::Reader do
         issue = result.issues.first
         expect(issue).to be_a(Y2Issues::InvalidValue)
         expect(issue.location.to_s).to eq("autoyast:groups,0:groupname")
+      end
+    end
+
+    context "when a group has a password" do
+      let(:group_password) { "s3cr3T" }
+      let(:profile) do
+        {
+          "groups" => [
+            { "groupname" => "root", "gid" => "100" },
+            { "groupname" => "passworded-group", "group_password" => group_password }
+          ]
+        }
+      end
+
+      it "registers an issue" do
+        result = subject.read
+        issue = result.issues.first
+        expect(issue).to be_a(Y2Issues::Issue)
+        expect(issue.location.to_s).to eq("autoyast:groups,1:group_password")
+      end
+
+      context "but it is empty (which means no password)" do
+        let(:group_password) { "" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
+      end
+
+      context "but it is 'x' (which means no password)" do
+        let(:group_password) { "x" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
       end
     end
   end

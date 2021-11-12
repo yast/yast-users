@@ -17,9 +17,11 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "yast"
 require "y2users/config_element"
 require "y2users/user_validator"
 require "y2users/password_validator"
+require "y2users/home"
 require "yast2/equatable"
 
 module Y2Users
@@ -69,17 +71,13 @@ module Y2Users
     # @return [String, nil] nil if unknown
     attr_accessor :shell
 
-    # Path to the home directory
+    # User home
     #
-    # @return [String, nil] nil if unknown
+    # @note If home is unknown, then the {Linux::Writer} will create the default home according to
+    #   the useradd defaults configuration.
+    #
+    # @return [Home, nil] nil if unknown
     attr_accessor :home
-
-    # Whether a btrfs subvolume is used as home directory, especially relevant when creating the
-    # user in the system
-    #
-    # @return [Boolean, nil] nil if irrelevant or unknown (some readers may not provide an accurate
-    #   value for this attribute)
-    attr_accessor :btrfs_subvolume_home
 
     # Fields for the GECOS entry
     #
@@ -101,10 +99,15 @@ module Y2Users
     # @return [Array<String>]
     attr_accessor :authorized_keys
 
+    # Whether the user should receive system mails (i.e., be a root alias)
+    #
+    # @return [Boolean]
+    attr_accessor :receive_system_mail
+
     # Only relevant attributes are compared. For example, the config in which the user is attached
     # and the internal user id are not considered.
     eql_attr :name, :uid, :gid, :shell, :home, :gecos, :source, :password, :authorized_keys,
-      :secondary_groups_name
+      :receive_system_mail, :secondary_groups_name
 
     # Creates a prototype root user
     #
@@ -115,18 +118,30 @@ module Y2Users
       new("root").tap do |root|
         root.uid = "0"
         root.gecos = ["root"]
-        root.home = "/root"
+        root.home = Home.new("/root")
+      end
+    end
+
+    # Creates a system user
+    #
+    # @return [User]
+    def self.create_system(name)
+      new(name).tap do |user|
+        user.system = true
+        user.home = nil
       end
     end
 
     # Constructor
+    #
+    # This creates a local user. See also {User.create_system} for creating a system user.
     #
     # @param name [String]
     def initialize(name)
       super()
 
       @name = name
-      # TODO: GECOS
+      @home = Home.new
       @gecos = []
       @authorized_keys = []
       @source = :unknown
@@ -242,6 +257,13 @@ module Y2Users
       @system = value
     end
 
+    # @see receive_system_mail
+    #
+    # @return [Boolean]
+    def receive_system_mail?
+      !!@receive_system_mail
+    end
+
     # Generates a deep copy of the user
     #
     # @see ConfigElement#copy
@@ -249,6 +271,7 @@ module Y2Users
     # @return [User]
     def copy
       user = super
+      user.home = home.dup if home
       user.password = password.copy if password
       user.authorized_keys = authorized_keys.map(&:dup)
 

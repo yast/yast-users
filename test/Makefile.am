@@ -24,9 +24,29 @@ TESTS = \
   lib/y2users/clients/inst_user_first_test.rb \
   lib/y2users/clients/inst_root_first_test.rb \
   lib/y2users/linux/base_reader_test.rb \
+  lib/y2users/linux/create_user_action_test.rb \
+  lib/y2users/linux/delete_user_action_test.rb \
+  lib/y2users/linux/delete_user_password_action_test.rb \
+  lib/y2users/linux/edit_user_action_test.rb \
+  lib/y2users/linux/groups_writer_test.rb \
   lib/y2users/linux/local_reader_test.rb \
+  lib/y2users/linux/login_config_writer_test.rb \
   lib/y2users/linux/reader_test.rb \
+  lib/y2users/linux/remove_home_content_action_test.rb \
+  lib/y2users/linux/set_auth_keys_action_test.rb \
+  lib/y2users/linux/set_home_ownership_action_test.rb \
+  lib/y2users/linux/set_user_password_action_test.rb \
+  lib/y2users/linux/delete_group_action_test.rb \
+  lib/y2users/linux/edit_group_action_test.rb \
+  lib/y2users/linux/create_group_action_test.rb \
+  lib/y2users/linux/useradd_config_writer_test.rb \
+  lib/y2users/linux/users_writer_test.rb \
   lib/y2users/linux/writer_test.rb \
+  lib/y2users/home_test.rb \
+  lib/y2users/commit_config_test.rb \
+  lib/y2users/commit_config_collection_test.rb \
+  lib/y2users/users_module/reader_test.rb \
+  lib/y2users/users_module/commit_config_reader_test.rb \
   lib/y2users/autoinst/config_merger_test.rb \
   lib/y2users/autoinst/reader_test.rb \
   lib/y2users/autoinst_profile/group_section_test.rb \

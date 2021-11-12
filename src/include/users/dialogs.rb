@@ -1418,6 +1418,12 @@ module Yast
               focus_tab.call(current, :home)
               next
             end
+            if new_home.empty?
+              Report.Error(_("Home cannot be empty."))
+              UI.ChangeWidget(Id(:home), :Value, home)
+              focus_tab.call(current, :home)
+              next
+            end
             failed = false
             begin
               error_map = Users.CheckHomeUI(new_i_uid, new_home, ui_map)
@@ -1963,7 +1969,6 @@ module Yast
       # create a local copy of current group
       group = Users.GetCurrentGroup
       groupname = Ops.get_string(group, "cn", "")
-      password = Ops.get_string(group, "userPassword")
       gid = GetInt(Ops.get(group, "gidNumber"), -1)
       # these are the users with this group as a default:
       more_users = Ops.get_map(group, "more_users", {})
@@ -2007,7 +2012,6 @@ module Yast
       # initialize local variables with current state of group
       reinit_groupdata = lambda do
         groupname = Ops.get_string(group, "cn", groupname)
-        password = Ops.get_string(group, "userPassword", password)
         gid = GetInt(Ops.get(group, "gidNumber"), gid)
         more_users = Convert.convert(
           Ops.get(group, "more_users", more_users),
@@ -2069,11 +2073,6 @@ module Yast
                   _("Group &ID (gid)"),
                   Builtins.sformat("%1", gid)
                 )
-              ),
-              VSpacing(1),
-              Bottom(Password(Id(:pw1), Opt(:hstretch), Label.Password, "")),
-              Bottom(
-                Password(Id(:pw2), Opt(:hstretch), Label.ConfirmPassword, "")
               ),
               VSpacing(1)
             )
@@ -2257,8 +2256,6 @@ module Yast
 
         # 1. click inside Group Data dialog or moving outside of it
         if current == :edit && (ret == :next || tab)
-          pw1 = Convert.to_string(UI.QueryWidget(Id(:pw1), :Value))
-          pw2 = Convert.to_string(UI.QueryWidget(Id(:pw2), :Value))
           new_gid = Convert.to_string(UI.QueryWidget(Id(:gid), :Value))
           new_i_gid = Builtins.tointeger(new_gid)
           new_groupname = Convert.to_string(
@@ -2271,50 +2268,6 @@ module Yast
             Report.Error(error2)
             focus_tab.call(current, :groupname)
             next
-          end
-          # --------------------------------- password checks
-          if pw1 != pw2
-            # The two group password information do not match
-            # error popup
-            Report.Error(_("The passwords do not match.\nTry again."))
-
-            focus_tab.call(current, :pw1)
-            next
-          end
-          if pw1 != "" && pw1 != @default_pw
-            error2 = UsersSimple.CheckPassword(pw1, group_type)
-            if error2 != ""
-              Report.Error(error2)
-              focus_tab.call(current, :pw1)
-              next
-            end
-
-            errors = UsersSimple.CheckPasswordUI(
-              {
-                "cn"           => new_groupname,
-                "userPassword" => pw1,
-                "type"         => group_type
-              }
-            )
-            if errors != []
-              message = Ops.add(
-                Ops.add(
-                  Builtins.mergestring(errors, "\n\n"),
-                  # last part of message popup
-                  "\n\n"
-                ),
-                _("Really use this password?")
-              )
-              if !Popup.YesNo(message)
-                focus_tab.call(current, :pw1)
-                next
-              end
-            end
-
-            password = pw1
-            if Ops.get_boolean(group, "encrypted", false)
-              Ops.set(group, "encrypted", false)
-            end
           end
 
           # --------------------------------- gid checks
@@ -2364,7 +2317,6 @@ module Yast
 
           # --------------------------------- now everything should be OK
           Ops.set(group, "cn", new_groupname)
-          Ops.set(group, "userPassword", password)
           Ops.set(group, "more_users", more_users)
           Ops.set(group, "gidNumber", new_i_gid)
           Ops.set(group, "type", new_type)
@@ -2485,12 +2437,6 @@ module Yast
           end
 
           UI.SetFocus(Id(:groupname)) if what == "add_group"
-          if what == "edit_group"
-            if password != nil
-              UI.ChangeWidget(Id(:pw1), :Value, @default_pw)
-              UI.ChangeWidget(Id(:pw2), :Value, @default_pw)
-            end
-          end
 
           if more
             # set of users having this group as default - cannot be edited!

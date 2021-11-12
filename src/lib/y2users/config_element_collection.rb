@@ -17,34 +17,16 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
-require "forwardable"
+require "y2users/collection"
 
 module Y2Users
   # Base class for collection of config elements (e.g., {User}, {Group}).
-  class ConfigElementCollection
-    extend Forwardable
-
-    def_delegators :@elements, :each, :select, :find, :reject, :map, :any?, :size, :empty?, :first
-
+  class ConfigElementCollection < Collection
     # Constructor
     #
     # @param elements [Array<ConfigElement>]
     def initialize(elements = [])
       @elements = elements
-    end
-
-    # Adds an element to the collection
-    #
-    # @raise [FrozenError] see {#check_editable}
-    #
-    # @param element [ConfigElement]
-    # @return [self]
-    def add(element)
-      check_editable
-
-      @elements << element
-
-      self
     end
 
     # Deletes the element with the given id from the collection
@@ -59,23 +41,6 @@ module Y2Users
       @elements.reject! { |e| e.id == id }
 
       self
-    end
-
-    # List with all the elements
-    #
-    # @return [Array<ConfigElement>]
-    def all
-      @elements.dup
-    end
-
-    alias_method :to_a, :all
-
-    # Generates a new collection with the sum of elements
-    #
-    # @param other [Collection]
-    # @return [Collection]
-    def +(other)
-      self.class.new(all + other.all)
     end
 
     # Generates a new collection without the elements whose id is included in the list of ids
@@ -124,20 +89,6 @@ module Y2Users
     # @return [Array<Integer>]
     def ids
       map(&:id)
-    end
-
-  private
-
-    # Checks whether the collection can be modified
-    #
-    # Modifications in the list of elements should be prevented when the collection is frozen.
-    #
-    # @raise [FrozenError] if the collection is frozen
-    # @return [Boolean]
-    def check_editable
-      return true unless frozen?
-
-      raise FrozenError, "can't modify frozen #{self.class}: #{inspect}"
     end
   end
 end

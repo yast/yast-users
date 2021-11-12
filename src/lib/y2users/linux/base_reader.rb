@@ -20,14 +20,9 @@
 require "yast"
 require "abstract_method"
 require "y2users/config"
-require "y2users/login_config"
 require "y2users/parsers/group"
 require "y2users/parsers/passwd"
 require "y2users/parsers/shadow"
-require "y2users/linux/useradd_config_reader"
-require "users/ssh_authorized_keyring"
-
-Yast.import "Autologin"
 
 module Y2Users
   module Linux
@@ -42,9 +37,6 @@ module Y2Users
         Config.new.tap do |config|
           read_elements(config)
           read_passwords(config)
-          read_authorized_keys(config)
-          read_useradd_config(config)
-          read_login(config)
         end
       end
 
@@ -107,40 +99,6 @@ module Y2Users
       # @!method load_passwords
       #   @return [String] loaded passwords from the system
       abstract_method :load_passwords
-
-      # Reads users authorized keys
-      #
-      # @see Yast::Users::SSHAuthorizedKeyring#read_keys
-      # @return [Array<Y2Users::User>]
-      def read_authorized_keys(config)
-        config.users.each do |user|
-          next unless user.home
-
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home).read_keys
-        end
-      end
-
-      # Reads the configuration for useradd
-      #
-      # @param config [Config]
-      def read_useradd_config(config)
-        config.useradd = UseraddConfigReader.new.read
-      end
-
-      # Reads the login information
-      #
-      # @param config [Config]
-      def read_login(config)
-        Yast::Autologin.Read
-
-        return unless Yast::Autologin.used
-
-        login = LoginConfig.new
-        login.autologin_user = config.users.by_name(Yast::Autologin.user)
-        login.passwordless = Yast::Autologin.pw_less
-
-        config.login = login
-      end
     end
   end
 end

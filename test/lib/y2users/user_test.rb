@@ -33,8 +33,38 @@ describe Y2Users::User do
       expect(user.root?).to eq(true)
       expect(user.uid).to eq("0")
       expect(user.gecos).to contain_exactly("root")
-      expect(user.home).to eq("/root")
+      expect(user.home.path).to eq("/root")
       expect(user.attached?).to eq(false)
+    end
+  end
+
+  describe ".create_system" do
+    it "creates a system user" do
+      user = described_class.create_system("test")
+
+      expect(user).to be_a(described_class)
+      expect(user.system?).to eq(true)
+    end
+
+    it "creates the user without home" do
+      user = described_class.create_system("test")
+
+      expect(user.home).to be_nil
+    end
+  end
+
+  describe ".new" do
+    it "creates a local user" do
+      user = described_class.new("test")
+
+      expect(user).to be_a(described_class)
+      expect(user.system?).to eq(false)
+    end
+
+    it "creates the user with unknown home path" do
+      user = described_class.new("test")
+
+      expect(user.home.path).to be_nil
     end
   end
 
@@ -48,10 +78,34 @@ describe Y2Users::User do
 
   describe "#copy" do
     before do
+      subject.password = Y2Users::Password.create_plain("test")
       subject.assign_config(Y2Users::Config.new)
     end
 
-    it "uses a dup of authorized keys" do
+    it "generates a copy of the user" do
+      other = subject.copy
+
+      expect(other).to be_a(described_class)
+      expect(other).to eq(subject)
+    end
+
+    it "generates a copy with a duplicated home" do
+      subject.home.path = "/home/test"
+
+      other = subject.copy
+      other.home.path = "/home/other"
+
+      expect(subject.home.path).to eq("/home/test")
+    end
+
+    it "generates a copy with a duplicated password" do
+      other = subject.copy
+      other.password.value = Y2Users::PasswordPlainValue.new("other")
+
+      expect(subject.password_content).to eq("test")
+    end
+
+    it "generates a copy with duplicated authorized keys" do
       other = subject.copy
 
       expect(other.authorized_keys).to eq(subject.authorized_keys)
@@ -314,9 +368,9 @@ describe Y2Users::User do
       subject.uid = 1000
       subject.gid = 100
       subject.shell = "/dev/bash"
-      subject.home = "/home/test1"
       subject.gecos = ["User Test1", "Other"]
       subject.source = [:ldap]
+      subject.receive_system_mail = true
       subject.password = Y2Users::Password.create_plain("S3cr3T")
     end
 
@@ -370,7 +424,7 @@ describe Y2Users::User do
 
     context "when the #home does not match" do
       before do
-        other.home = "/home/test2"
+        other.home.path = "/home/test2"
       end
 
       it "returns false" do
@@ -391,6 +445,16 @@ describe Y2Users::User do
     context "when the #source does not match" do
       before do
         other.source = :local
+      end
+
+      it "returns false" do
+        expect(subject == other).to eq(false)
+      end
+    end
+
+    context "when #receive_system_mail does not match" do
+      before do
+        other.receive_system_mail = false
       end
 
       it "returns false" do
@@ -558,6 +622,36 @@ describe Y2Users::User do
 
           expect(subject.system?).to eq(false)
         end
+      end
+    end
+  end
+
+  describe "#receive_system_mail?" do
+    before do
+      subject.receive_system_mail = value
+    end
+
+    context "when the value is set to nil" do
+      let(:value) { nil }
+
+      it "returns false" do
+        expect(subject.receive_system_mail?).to eq(false)
+      end
+    end
+
+    context "when the value is set to false" do
+      let(:value) { false }
+
+      it "returns false" do
+        expect(subject.receive_system_mail?).to eq(false)
+      end
+    end
+
+    context "when the value is set to true" do
+      let(:value) { true }
+
+      it "returns true" do
+        expect(subject.receive_system_mail?).to eq(true)
       end
     end
   end

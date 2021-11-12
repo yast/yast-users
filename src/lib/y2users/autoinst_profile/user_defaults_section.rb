@@ -74,7 +74,8 @@ module Y2Users
       #   @return [String,nil] Default shell
       #
       # @!attribute skel
-      #   @return [String,nil] Location of the files to be used as skeleton
+      #   @return [String,nil] Location of the files to be used as skeleton. Currently used only for
+      #     LDAP users, for which the home directory is still created directly by YaST.
       #
       # @!attribute umask
       #   @return [String,nil] File creation mode mask for the home directory

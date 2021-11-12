@@ -148,6 +148,7 @@ describe Y2Users::Autoinst::ConfigMerger do
             user = Y2Users::User.new("test1")
             user.uid = 1003
             user.gid = 103
+            user.home = nil
             user
           end
 

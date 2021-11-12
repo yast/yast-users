@@ -193,6 +193,34 @@ describe Yast::InstUserFirstDialog do
           expect(config.login.autologin?).to eq(true)
         end
 
+        context "when the user name has changed" do
+          let(:user) { Y2Users::User.new("oldname") }
+
+          context "and the user has a home path" do
+            before do
+              user.home.path = "/home/oldname"
+            end
+
+            it "updates the home path according to the new user name" do
+              subject.next_handler
+
+              expect(user.home.path).to eq("/home/test")
+            end
+          end
+
+          context "and the user has no home path" do
+            before do
+              user.home.path = nil
+            end
+
+            it "does not set a home path" do
+              subject.next_handler
+
+              expect(user.home.path).to be_nil
+            end
+          end
+        end
+
         context "when the option \"use passwor for root\" is selected" do
           let(:root_pw) { true }
 
