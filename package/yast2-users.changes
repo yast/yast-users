@@ -5,7 +5,7 @@ Tue Oct 19 10:36:08 UTC 2021 - José Iván López González <jlopez@suse.com>
   system (jsc#SLE-20592).
 - Remove support for group password.
 - Avoid crash when trying to read a shadow suite file
-  (e.g., /etc/group) and the file does not exist (bsc#11915919).
+  (e.g., /etc/group) and the file does not exist (bsc#1191591).
 - 4.4.8
 
 -------------------------------------------------------------------
