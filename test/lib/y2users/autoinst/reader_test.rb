@@ -548,6 +548,24 @@ describe Y2Users::Autoinst::Reader do
           expect(result.issues).to be_empty
         end
       end
+
+      context "but it is '!' (which means no password)" do
+        let(:group_password) { "!" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
+      end
+
+      context "but it is '*' (which means no password)" do
+        let(:group_password) { "*" }
+
+        it "does not register an issue" do
+          result = subject.read
+          expect(result.issues).to be_empty
+        end
+      end
     end
   end
 end
