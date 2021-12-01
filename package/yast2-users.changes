@@ -2,7 +2,7 @@
 Tue Nov 30 20:40:58 UTC 2021 - David Diaz <dgonzalez@suse.com>
 
 - AutoYaST: do not warning about deprecated <group_password>
-  when found a blank one (related to jsc#SLE-20592).
+  when it is empty, "x", "!", or "*" (related to jsc#SLE-20592).
 - 4.4.9
 
 -------------------------------------------------------------------
