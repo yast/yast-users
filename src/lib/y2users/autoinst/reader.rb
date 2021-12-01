@@ -107,6 +107,16 @@ module Y2Users
 
     private
 
+      # Group password values that actually means "no password".
+      #
+      # Although YaST does not support group passwords anymore and ignores them when importing the
+      # profile, the user receives a warning about it ONLY when found a `<group_password>` with none
+      # of these values, which means *no password*.
+      #
+      # @see #check_group_password
+      BLANK_GROUP_PASSWORD = ["", "x", "*", "!"].freeze
+      private_constant :BLANK_GROUP_PASSWORD
+
       # Profile section describing the users
       #
       # @return [AutoinstProfile::UsersSection]
@@ -232,18 +242,14 @@ module Y2Users
         false
       end
 
-      # Check if given group contains a group password for warning about
-      # ignoring it
-      #
-      # @note empty or "x" password actually means no password and the user
-      #   will be not warned about it.
+      # Check if given group contains a group password for warning about ignoring it
       #
       # @param group_section [Installation::AutoinstProfile::GroupSection]
       # @param issues [Y2Issues::List] Issues list
       def check_group_password(group_section, issues)
         group_password = group_section.group_password.to_s
 
-        return if group_password.empty? || group_password == "x"
+        return if BLANK_GROUP_PASSWORD.include?(group_password)
 
         issues << Y2Issues::Issue.new(
           _("Attribute no longer supported by YaST. Ignoring it."),
