@@ -284,8 +284,9 @@ module Y2Users
     #
     # @param args [Array] additional arguments for {UserValidator#issues}
     # @return [Y2Issues::List]
-    def issues(*args)
-      UserValidator.new(self).issues(*args)
+    def issues(**args)
+      # TODO: use ... when all supported systems contain ruby3
+      UserValidator.new(self).issues(**args)
     end
 
     # Validation errors of the current password
