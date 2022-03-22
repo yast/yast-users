@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2018-2021] SUSE LLC
+# Copyright (c) [2018-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -221,7 +221,7 @@ describe Yast::InstUserFirstDialog do
           end
         end
 
-        context "when the option \"use passwor for root\" is selected" do
+        context "when the option \"use password for root\" is selected" do
           let(:root_pw) { true }
 
           it "assigns the same password to the root user" do
@@ -231,7 +231,7 @@ describe Yast::InstUserFirstDialog do
           end
         end
 
-        context "when the option \"use passwor for root\" is not selected" do
+        context "when the option \"use password for root\" is not selected" do
           let(:root_pw) { false }
 
           context "but it was initially selected" do
@@ -253,7 +253,7 @@ describe Yast::InstUserFirstDialog do
             end
           end
 
-          context "but the new password matches with the curren root password" do
+          context "but the new password matches with the current root password" do
             before do
               root = Y2Users::User.create_root
               root.password = Y2Users::Password.create_plain("SuperS3cr3T")
@@ -323,7 +323,7 @@ describe Yast::InstUserFirstDialog do
 
       let(:user) { Y2Users::User.new("test") }
 
-      it "removes previously configued user" do
+      it "removes previously configured user" do
         subject.choose_users_handler
         subject.next_handler
 
@@ -344,6 +344,37 @@ describe Yast::InstUserFirstDialog do
 
         expect(config.users.by_name("imported2")).to_not be_nil
         expect(config.users.by_name("imported4")).to_not be_nil
+      end
+
+      context "when the imported user has a primary group" do
+        let(:group) { Y2Users::Group.new("imported2").tap { |g| g.gid = "100" } }
+
+        before do
+          user = importing_config.users.by_name("imported2")
+          user.gid = group.gid
+        end
+
+        context "and the config contains such a group" do
+          before do
+            config.attach(group)
+          end
+
+          it "imports the user including the information about the primary group" do
+            subject.choose_users_handler
+            subject.next_handler
+
+            expect(config.users.by_name("imported2").gid).to eq("100")
+          end
+        end
+
+        context "and the config does not contain such a group" do
+          it "imports the user without the information about the primary group" do
+            subject.choose_users_handler
+            subject.next_handler
+
+            expect(config.users.by_name("imported2").gid).to be_nil
+          end
+        end
       end
 
       it "disables autologin" do
