@@ -1,4 +1,4 @@
-# Copyright (c) [2016-2021] SUSE LLC
+# Copyright (c) [2016-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -336,6 +336,19 @@ module Yast
       importing_database&.users || []
     end
 
+    # Returns a copy of the given user with sanitized data
+    #
+    # It removes the information about the group if the group is not included in the current config.
+    #
+    # @param user [Y2Users::User]
+    # @return [Y2Users::User]
+    def sanitized_user(user)
+      user.copy.tap do |u|
+        group = config.groups.by_gid(u.gid).first
+        u.gid = nil unless group
+      end
+    end
+
     # Whether the password of root and the new user are equal
     #
     # @return [Boolean]
@@ -505,7 +518,9 @@ module Yast
       update_root_password
 
       imported_users = importing_database.filtered_config(@usernames_to_import).users.all
-      config.attach(imported_users.map(&:copy))
+      imported_users = imported_users.map { |u| sanitized_user(u) }
+
+      config.attach(imported_users)
     end
 
     def process_skip_form

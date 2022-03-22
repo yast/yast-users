@@ -26,7 +26,7 @@ module Y2Users
   #
   # @example
   #   group = Group.new("admins")
-  #   group.gid = 110
+  #   group.gid = "110"
   #   group.attached? #=> false
   #   group.id #=> 1
   #
