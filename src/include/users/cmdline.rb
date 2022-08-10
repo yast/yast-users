@@ -36,40 +36,12 @@ module Yast
       Yast.import "Ldap"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersSimple"
       Yast.import "Report"
     end
 
     # --------------------------------------------------------------------------
     # --------------------------------- helper functions -----------------------
-
-    # set LDAP admin password and read LDAP users and groups
-    def bind_and_read_LDAP(options)
-      options = deep_copy(options)
-      pw = Ops.get_string(options, "ldap_password", "")
-      if Users.LDAPAvailable && Users.LDAPNotRead
-        if Ldap.bind_pass == nil
-          if pw == "" && !Builtins.haskey(options, "batchmode")
-            # password entering label
-            pw = CommandLine.PasswordInput(_("LDAP Server Password:"))
-          end
-          Ldap.SetBindPassword(pw) 
-          # TODO check bind...
-        end
-        error = UsersLDAP.ReadSettings
-        if error != ""
-          CommandLine.Print(error)
-          return false
-        end
-        error = Users.ReadLDAPSet("Users")
-        if error != ""
-          CommandLine.Print(error)
-          return false
-        end
-      end
-      true
-    end
 
     def convert_keys(input)
       input = deep_copy(input)
@@ -88,7 +60,6 @@ module Yast
         "new_groupname"              => "cn",
         "new_uid"                    => "uidNumber",
         "new_gid"                    => "gidNumber",
-        UsersLDAP.GetMemberAttribute => "userlist"
       }
       Builtins.foreach(input) do |key, value|
         new_key = Ops.get_string(keys, key, key)
@@ -476,9 +447,6 @@ module Yast
       if !Builtins.contains(attributes, "cn")
         attributes = Builtins.prepend(attributes, "cn")
       end
-      if Builtins.contains(attributes, "userlist")
-        attributes = Builtins.add(attributes, UsersLDAP.GetMemberAttribute)
-      end
 
       Builtins.foreach(sets) do |type|
         if type == "nis" && Users.NISAvailable && Users.NISNotRead
@@ -573,10 +541,6 @@ module Yast
         "userlist"                   => _(
           "List of Members:"
         ),
-        # label shown at command line (user attribute)
-        UsersLDAP.GetMemberAttribute => _(
-          "List of Members:"
-        )
       }
       Builtins.foreach(group) do |key, value|
         key = Ops.get_string(keys, key, "")
@@ -641,7 +605,7 @@ module Yast
       group = convert_keys(options)
       type = Ops.get_string(group, "type", "local")
       return false if !bind_and_read_LDAP(options) if type == "ldap"
-      member_attr = type == "ldap" ? UsersLDAP.GetMemberAttribute : "userlist"
+      member_attr = type == "ldap"
       if Builtins.haskey(group, "userlist")
         if type == "ldap"
           Ops.set(group, member_attr, Ops.get_map(group, "userlist", {}))
@@ -706,14 +670,6 @@ module Yast
       if type == "ldap" && !Builtins.haskey(changes, "dn")
         Ops.set(changes, "dn", Ops.get_string(group, "dn", "")) 
         # for groupname changes...
-      end
-      if type == "ldap" && Builtins.haskey(changes, "userlist")
-        Ops.set(
-          changes,
-          UsersLDAP.GetMemberAttribute,
-          Ops.get_map(changes, "userlist", {})
-        )
-        changes = Builtins.remove(changes, "userlist")
       end
       error = Users.EditGroup(
         Convert.convert(changes, :from => "map", :to => "map <string, any>")

@@ -7,12 +7,8 @@ module_DATA = \
   modules/UsersPluginQuota.pm \
   modules/Users.pm \
   modules/UsersPlugins.pm \
-  modules/UsersPluginLDAPShadowAccount.pm \
-  modules/UsersLDAP.pm \
   modules/UsersSimple.pm \
   modules/UsersCache.pm \
-  modules/UsersPluginLDAPAll.pm \
-  modules/UsersPluginLDAPPasswordPolicy.pm \
   modules/UsersPluginKerberos.pm \
   modules/UsersPasswd.pm \
   modules/Y2UsersLinux.rb

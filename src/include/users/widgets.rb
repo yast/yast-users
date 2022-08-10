@@ -35,7 +35,6 @@ module Yast
       Yast.import "Autologin"
       Yast.import "CWMTab"
       Yast.import "Label"
-      Yast.import "Ldap"
       Yast.import "Message"
       Yast.import "Mode"
       Yast.import "Package"
@@ -47,13 +46,11 @@ module Yast
       Yast.import "Summary"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersRoutines"
       Yast.import "Wizard"
 
       Yast.include include_target, "users/complex.rb"
       Yast.include include_target, "users/routines.rb"
-      Yast.include include_target, "users/ldap_dialogs.rb"
 
       textdomain "users"
 
@@ -65,8 +62,6 @@ module Yast
         "local"  => _("&Local Users"),
         # the type of user set
         "nis"    => _("&NIS Users"),
-        # the type of user set
-        "ldap"   => _("L&DAP Users"),
         # the type of user set
         "samba"  => _("Sam&ba Users"),
         # the type of user set
@@ -82,8 +77,6 @@ module Yast
         # the type of user set
         "nis"    => _("NIS Users"),
         # the type of user set
-        "ldap"   => _("LDAP Users"),
-        # the type of user set
         "samba"  => _("Samba Users"),
         # the type of user set
         "custom" => _("Custom")
@@ -98,8 +91,6 @@ module Yast
         # the type of group set
         "nis"    => _("&NIS Groups"),
         # the type of group set
-        "ldap"   => _("L&DAP Groups"),
-        # the type of group set
         "samba"  => _("Sam&ba Groups"),
         # the type of group set
         "custom" => _("&Custom")
@@ -112,8 +103,6 @@ module Yast
         "local"  => _("Local Groups"),
         # the type of group set
         "nis"    => _("NIS Groups"),
-        # the type of group set
-        "ldap"   => _("LDAP Groups"),
         # the type of group set
         "samba"  => _("Samba Groups"),
         # the type of group set
@@ -266,7 +255,6 @@ module Yast
             # these are for user/group types
             "local",
             "system",
-            "ldap",
             "nis",
             "custom",
             :customize
@@ -304,8 +292,6 @@ module Yast
             :enc,
             :autologinconf,
             :save,
-            :ldapfilter,
-            :ldapconf
           ],
           "no_help"       => true
         },
@@ -584,344 +570,6 @@ module Yast
       ret
     end
 
-    # Popup for configuration user/group filter for making the LDAP search
-    # @return modified?
-    def LDAPSearchFilterPopup
-      default_user_f = UsersLDAP.GetDefaultUserFilter
-      default_group_f = UsersLDAP.GetDefaultGroupFilter
-
-      user_f = UsersLDAP.GetCurrentUserFilter
-      group_f = UsersLDAP.GetCurrentGroupFilter
-
-      user_f = default_user_f if user_f == ""
-      group_f = default_group_f if group_f == ""
-
-      ret = false
-
-      # attributes are listed here, because during filter editing, the connection
-      # to LDAP server doesn't have to be run yet
-      user_attributes = [
-        "objectClass",
-        "loginShell",
-        "gecos",
-        "description",
-        "cn",
-        "uid",
-        "uidNumber",
-        "gidNumber",
-        "homeDirectory",
-        "shadowLastChange",
-        "shadowMin",
-        "shadowMax",
-        "shadowWarning",
-        "shadowInactive",
-        "shadowExpire",
-        "shadowFlag",
-        "audio",
-        "businessCategory",
-        "carLicense",
-        "departmentNumber",
-        "displayName",
-        "employeeNumber",
-        "employeeType",
-        "givenName",
-        "homePhone",
-        "homePostalAddress",
-        "initials",
-        "jpegPhoto",
-        "labeledUri",
-        "mail",
-        "manager",
-        "mobile",
-        "o",
-        "pager",
-        "photo",
-        "roomNumber",
-        "secretary",
-        "userCertificate",
-        "x500uniqueIdentifier",
-        "preferredLanguage",
-        "userSMIMECertificate",
-        "userPKCS12",
-        "title",
-        "x121Address",
-        "registeredAddress",
-        "destinationIndicator",
-        "preferredDeliveryMethod",
-        "telexNumber",
-        "teletexTerminalIdentifier",
-        "telephoneNumber",
-        "internationalISDNNumber",
-        "facsimileTelephoneNumber",
-        "street",
-        "postOfficeBox",
-        "postalCode",
-        "postalAddress",
-        "physicalDeliveryOfficeName",
-        "ou",
-        "st",
-        "l",
-        "seeAlso",
-        "sn"
-      ]
-      group_attributes = [
-        "objectClass",
-        "memberUid",
-        "description",
-        "gidNumber",
-        "businessCategory",
-        "seeAlso",
-        "owner",
-        "ou",
-        "o",
-        "member",
-        "cn"
-      ]
-
-      connectives = [
-        # combo box item
-        Item(Id("and"), _("AND")),
-        # combo box item
-        Item(Id("or"), _("OR"))
-      ]
-      equality = ["=", "~=", "<=", ">="]
-      curr_shown = UsersCache.GetCurrentSummary == "users" ? :users : :groups
-
-      help_text =
-        # helptext 1/4 - caption
-        _("<p><b>LDAP Search Filter Changes</b></p>") +
-          # helptext 2/4
-          _(
-            "<p>Here, extend the search filters for users and groups beyond the default search filters.</p>"
-          ) +
-          # helptext 3/4
-          _(
-            "<p>With <b>Default</b>, load the default filter from the user and group\n" +
-              "configuration modules saved on the LDAP server (values of 'suseSearchFilter' attributes).\n" +
-              "If you are not connected yet, you are prompted for the password.</p>\n"
-          ) +
-          # helptext 4/4 (do not translate the value (written as <tt> font))
-          _(
-            "<p><b>Example:</b>\n" +
-              "<br>With the user filter\n" +
-              "<br>\n" +
-              "<tt>(&(objectClass=posixAccount)(uid=u*))</tt>\n" +
-              "<br>\n" +
-              "only obtain users with a username beginning with 'u'.</p>\n"
-          )
-
-
-      contents = HBox(
-        HSpacing(1.5),
-        VBox(
-          HSpacing(70), # max 65 with help on left side...
-          VSpacing(0.5),
-          Left(
-            RadioButtonGroup(
-              VBox(
-                Left(
-                  RadioButton(
-                    Id(:users),
-                    Opt(:notify),
-                    # radiobutton label
-                    _("Search Filter for &Users"),
-                    curr_shown == :users
-                  )
-                ),
-                Left(
-                  RadioButton(
-                    Id(:groups),
-                    Opt(:notify),
-                    # radiobutton label
-                    _("Search Filter for &Groups"),
-                    curr_shown == :groups
-                  )
-                )
-              )
-            )
-          ),
-          TextEntry(Id(:currf), "", curr_shown == :users ? user_f : group_f),
-          VSpacing(0.5),
-          # frame label
-          Frame(
-            _("New Condition for Current Filter"),
-            HBox(
-              HSpacing(0.5),
-              VBox(
-                Left(ComboBox(Id(:andor), "", connectives)),
-                HBox(
-                  ReplacePoint(
-                    Id(:rpa),
-                    # combobox label
-                    ComboBox(
-                      Id(:atrs),
-                      Opt(:editable),
-                      _("&Attribute"),
-                      curr_shown == :users ? user_attributes : group_attributes
-                    )
-                  ),
-                  HSpacing(),
-                  VBox(Label(""), ComboBox(Id(:eq), "", equality)),
-                  HSpacing(),
-                  # textentry label
-                  TextEntry(Id(:val), _("&Value"), "")
-                ),
-                # pushbuttton label
-                Right(PushButton(Id(:addu), _("A&dd to Filter")))
-              ),
-              HSpacing(0.5)
-            )
-          ),
-          VSpacing(),
-          HBox(
-            PushButton(Id(:ok), Opt(:default, :key_F10), Label.OKButton),
-            PushButton(Id(:cancel), Opt(:key_F9), Label.CancelButton),
-            PushButton(Id(:help), Opt(:key_F2), Label.HelpButton),
-            # Pushbutton label
-            PushButton(Id(:read), Opt(:key_F3), _("De&fault"))
-          ),
-          VSpacing(0.5)
-        ),
-        HSpacing(1.5)
-      )
-
-      UI.OpenDialog(Opt(:decorated), contents)
-      button = :notnext
-      begin
-        button = Convert.to_symbol(UI.UserInput)
-
-        if button == :help
-          Wizard.ShowHelp(help_text)
-          next
-        end
-        if button == :read
-          if Ldap.bind_pass == nil
-            Ldap.SetBindPassword(Ldap.GetLDAPPassword(true))
-          end
-          if Ldap.bind_pass != nil && UsersLDAP.ReadFilters == ""
-            UI.ChangeWidget(
-              Id(:currf),
-              :Value,
-              curr_shown == :users ?
-                UsersLDAP.GetDefaultUserFilter :
-                UsersLDAP.GetDefaultGroupFilter
-            )
-          end
-          next
-        end
-        curr_f = Convert.to_string(UI.QueryWidget(Id(:currf), :Value))
-        if button == :addu
-          if Convert.to_string(UI.QueryWidget(Id(:val), :Value)) == ""
-            # error popup
-            Popup.Error(_("Enter the value for the attribute."))
-            UI.SetFocus(Id(:val))
-            next
-          end
-          new_value = Builtins.sformat(
-            "%1%2%3",
-            Convert.to_string(UI.QueryWidget(Id(:atrs), :Value)),
-            Convert.to_string(UI.QueryWidget(Id(:eq), :Value)),
-            Convert.to_string(UI.QueryWidget(Id(:val), :Value))
-          )
-
-          conn = Convert.to_string(UI.QueryWidget(Id(:andor), :Value))
-          UI.ChangeWidget(
-            Id(:currf),
-            :Value,
-            UsersLDAP.AddToFilter(curr_f, new_value, conn)
-          )
-        end
-        if button == :ok || button == :users || button == :groups
-          if (button == :groups || button == :ok && curr_shown == :users) &&
-              user_f != curr_f
-            curr_user_f = curr_f
-            if curr_user_f == ""
-              # error popup
-              Popup.Error(_("Enter the value of the user filter."))
-              UI.SetFocus(Id(:currf))
-              button = :notnext
-              next
-            end
-            if !Builtins.issubstring(
-                Builtins.tolower(curr_user_f),
-                Builtins.tolower(default_user_f)
-              ) &&
-                # yes/no popup question
-                !Popup.YesNo(
-                  _(
-                    "The new user filter does not contain the default user filter.\nReally use it?\n"
-                  )
-                )
-              UI.SetFocus(Id(:currf))
-              button = :notnext
-              next
-            end
-            user_f = curr_user_f
-          end
-          if (button == :users || button == :ok && curr_shown == :groups) &&
-              group_f != curr_f
-            curr_group_f = curr_f
-            if curr_group_f == ""
-              # error popup
-              Popup.Error(_("Enter the value of the group filter."))
-              UI.SetFocus(Id(:currf))
-              button = :notnext
-              next
-            end
-            if !Builtins.issubstring(
-                Builtins.tolower(curr_group_f),
-                Builtins.tolower(default_group_f)
-              )
-              # yes/no popup question
-              if !Popup.YesNo(
-                  _(
-                    "The new group filter does not contain the default group filter.\nReally use it?\n"
-                  )
-                )
-                UI.SetFocus(Id(:currf))
-                button = :notnext
-                next
-              end
-            end
-            group_f = curr_group_f
-          end
-          if button == :ok
-            # checks are OK, let's update the values now
-            if user_f != UsersLDAP.GetCurrentUserFilter
-              UsersLDAP.SetCurrentUserFilter(user_f)
-              ret = true
-            end
-            if group_f != UsersLDAP.GetCurrentGroupFilter
-              UsersLDAP.SetCurrentGroupFilter(group_f)
-              ret = true
-            end
-          else
-            UI.ChangeWidget(Id(curr_shown), :Value, false)
-            curr_shown = curr_shown == :users ? :groups : :users
-            UI.ChangeWidget(Id(curr_shown), :Value, true)
-            UI.ChangeWidget(
-              Id(:currf),
-              :Value,
-              curr_shown == :users ? user_f : group_f
-            )
-            UI.ReplaceWidget(
-              Id(:rpa),
-              # combobox label
-              ComboBox(
-                Id(:atrs),
-                Opt(:editable),
-                _("&Attribute"),
-                curr_shown == :users ? user_attributes : group_attributes
-              )
-            )
-          end
-        end
-      end while button != :ok && button != :cancel
-
-      UI.CloseDialog
-      ret
-    end
-
     # Popup for Login settings (Auotolgin feature, login without passwords)
     # @return modified?
     #
@@ -952,8 +600,6 @@ module Yast
       user = Autologin.user
       pw_less = Autologin.pw_less
       auto_used = user != ""
-
-      # TODO check if nis/ldap users were read?
 
       usernames = UsersCache.GetUsernames("local")
 
@@ -1105,10 +751,6 @@ Continue anyway?"))
       no_home = false
       # check if dir exists with this owner
       stat = Convert.to_map(SCR.Read(path(".target.stat"), home))
-      if type == "ldap" && !Ldap.file_server ||
-          Ops.get_integer(stat, "uid", -1) != uid
-        no_home = true
-      end
 
       # if the user want to delete a system user
       if type == "system"
@@ -1177,12 +819,10 @@ Continue anyway?"))
       delete = true
       type = UsersCache.GetGroupType
       group = Users.GetCurrentGroup
-      member_attribute = UsersLDAP.GetMemberAttribute
 
       # if no user is in this group
       if Ops.get_map(group, "userlist", {}) == {} &&
-          Ops.get_map(group, "more_users", {}) == {} &&
-          Ops.get_map(group, member_attribute, {}) == {}
+          Ops.get_map(group, "more_users", {}) == {}
         #if the group is a system group ask the user ..
         if type == "system"
           # yes-no popup headline
@@ -1299,12 +939,6 @@ Continue anyway?"))
       end if ret == :ok
       UI.CloseDialog
       if modified
-        if Builtins.contains(new_customs, "ldap") && Ldap.bind_pass == nil
-          Ldap.SetBindPassword(Ldap.GetLDAPPassword(true))
-          if Ldap.bind_pass == nil || UsersLDAP.ReadSettings != ""
-            new_customs = Builtins.filter(new_customs) { |set| set != "ldap" }
-          end
-        end
         modified = Users.ChangeCustoms(what, new_customs)
       end
       modified
@@ -1319,11 +953,6 @@ Continue anyway?"))
         # (item of list with the headline 'Choose the type of user to add')
         "local"  => _(
           "Local"
-        ),
-        # type of user/group
-        # (item of list with the headline 'Choose the type of user to add')
-        "ldap"   => _(
-          "LDAP"
         ),
         # type of user/group
         # (item of list with the headline 'Choose the type of user to add')
@@ -1451,23 +1080,6 @@ Continue anyway?"))
     end
 
     # return the list of menu items for LDAP expert options
-    def GetLDAPExpertList
-      expert_list = []
-      if !Mode.config && Users.LDAPAvailable && !Users.LDAPModified
-        expert_list = Builtins.add(
-          expert_list,
-          # menubutton label
-          Item(Id(:ldapfilter), _("LDAP &Search Filter"))
-        )
-        expert_list = Builtins.add(
-          expert_list,
-          # menubutton label
-          Item(Id(:ldapconf), _("L&DAP User and Group Configuration"))
-        )
-      end
-      deep_copy(expert_list)
-    end
-
     #================================================================
     #----------------- some help texts ------------------------------
 
@@ -1870,7 +1482,7 @@ Continue anyway?"))
         MenuButton(
           Id(:expertlist),
           _("E&xpert Options"),
-          Builtins.union(GetExpertList(), GetLDAPExpertList())
+          GetExpertList()
         )
       )
 
@@ -1982,65 +1594,6 @@ Continue anyway?"))
         SummaryTableInit("table")
         return nil
       end
-      if ev_id == :ldapfilter
-        # change of search filter (only when LDAP was not modified yet)
-        if LDAPSearchFilterPopup() && !Users.LDAPModified
-          Users.SetLDAPNotRead(true)
-          current = current_summary == "users" ?
-            Users.GetCurrentUsers :
-            Users.GetCurrentGroups
-          if Builtins.contains(current, "ldap")
-            # simulate the action "show LDAP users"
-            HandleFilterLine(widget_id, { "ID" => "ldap" })
-          end
-          # now update the other list (not current_summary)
-          current = current_summary == "users" ?
-            Users.GetCurrentGroups :
-            Users.GetCurrentUsers
-          if Builtins.contains(current, "ldap")
-            # customize view is lost... TODO
-            if current_summary == "users"
-              Users.ChangeCurrentGroups("ldap")
-            else
-              Users.ChangeCurrentUsers("ldap")
-            end
-          end
-        end
-        return nil
-      end
-      if ev_id == :ldapconf
-        if LdapAdministrationDialog() && Ldap.ldap_modified
-          if !Users.LDAPNotRead &&
-              # yes/no popup (data were changed)
-              Popup.YesNo(_("Reread all data from LDAP server?"))
-            # read all LDAP configuration again!
-            Users.SetLDAPNotRead(true)
-            UsersLDAP.SetFiltersRead(false)
-            UsersLDAP.SetInitialized(false)
-            current = current_summary == "users" ?
-              Users.GetCurrentUsers :
-              Users.GetCurrentGroups
-            if Builtins.contains(current, "ldap")
-              # simulate the action "show LDAP users"
-              HandleFilterLine(widget_id, { "ID" => "ldap" })
-            end
-            # now update the other list (not current_summary)
-            current = current_summary == "users" ?
-              Users.GetCurrentGroups :
-              Users.GetCurrentUsers
-            if Builtins.contains(current, "ldap")
-              # customize view is lost... TODO
-              if current_summary == "users"
-                Users.ChangeCurrentGroups("ldap")
-              else
-                Users.ChangeCurrentUsers("ldap")
-              end
-            end
-          end
-          Ldap.ldap_modified = false
-        end
-        return nil
-      end
       if !Ops.is_symbol?(ev_id)
         Builtins.y2error("strange ev_id value: %1", ev_id)
         return nil
@@ -2104,20 +1657,7 @@ Continue anyway?"))
             Users.GetAvailableUserSets,
             Convert.to_string(ev_id)
           )
-        if ev_id == "ldap" && Ldap.bind_pass == nil
-          Ldap.SetBindPassword(Ldap.GetLDAPPassword(true))
-          return nil if Ldap.bind_pass == nil
-        end
         popup = false
-        if ev_id == "ldap" && Users.LDAPNotRead ||
-            ev_id == "nis" && Users.NISNotRead
-          UI.OpenDialog(
-            Opt(:decorated),
-            # wait popup
-            Label(_("Reading sets of users and groups. Please wait..."))
-          )
-          popup = true
-        end
         if Users.ChangeCurrentUsers(Convert.to_string(ev_id))
           if popup
             UI.CloseDialog
@@ -2136,19 +1676,7 @@ Continue anyway?"))
             Users.GetAvailableGroupSets,
             Convert.to_string(ev_id)
           )
-        if ev_id == "ldap" && Ldap.bind_pass == nil
-          Ldap.SetBindPassword(Ldap.GetLDAPPassword(true))
-        end
         popup = false
-        if ev_id == "ldap" && Users.LDAPNotRead ||
-            ev_id == "nis" && Users.NISNotRead
-          UI.OpenDialog(
-            Opt(:decorated),
-            # wait popup
-            Label(_("Reading sets of users and groups. Please wait..."))
-          )
-          popup = true
-        end
         if Users.ChangeCurrentGroups(Convert.to_string(ev_id))
           if popup
             UI.CloseDialog
@@ -2331,14 +1859,12 @@ Continue anyway?"))
     def StoreAuthData(key, event)
       event = deep_copy(event)
       was_nis_available = Users.NISAvailable
-      was_ldap_available = Users.LDAPAvailable
       Users.ReadSourcesSettings
 
       # enabling NIS/LDAP could add + lines (they are not in current cache that
       # would be saved after user modifications):
-      if !was_nis_available && Users.NISAvailable ||
-          !was_ldap_available && Users.LDAPAvailable
-        Builtins.y2milestone("ldap or nis enabled now")
+      if !was_nis_available && Users.NISAvailable
+        Builtins.y2milestone("nis enabled now")
         Users.AddPlusPasswd("+::::::")
         Users.AddPlusGroup("+:::")
         Users.AddPlusShadow("+")

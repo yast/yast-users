@@ -137,23 +137,16 @@ my $read_local			= 1;
 
 my $users_modified		= 0;
 my $groups_modified		= 0;
-my $ldap_modified		= 0;
 my $customs_modified 		= 0;
 my $defaults_modified 		= 0;
 my $security_modified 		= 0;
-my $sysconfig_ldap_modified     = 0;
-my $ldap_settings_read          = 0;
 
 # variables describing available users sets:
 my $nis_available 		= 1;
-my $ldap_available 		= 1;
 my $nis_master			= 0;
 
 # nis users are not read by default, but could be read on demand:
 my $nis_not_read 		= 1;
-
-# ldap users are not read by default, but could be read on demand:
-my $ldap_not_read 		= 1;
 
 # check if config files were read before w try to write them
 my $passwd_not_read 		= 1;
@@ -237,7 +230,6 @@ YaST::YCP::Import ("Stage");
 YaST::YCP::Import ("String");
 YaST::YCP::Import ("Syslog");
 YaST::YCP::Import ("UsersCache");
-YaST::YCP::Import ("UsersLDAP");
 YaST::YCP::Import ("UsersPasswd");
 YaST::YCP::Import ("UsersPlugins");
 YaST::YCP::Import ("UsersRoutines");
@@ -312,7 +304,6 @@ sub Modified {
 
     my $ret =	$users_modified 	||
 		$groups_modified	||
-		$ldap_modified		||
 		$customs_modified	||
 		$defaults_modified	||
 		$security_modified;
@@ -351,27 +342,6 @@ sub NISMaster {
 BEGIN { $TYPEINFO{NISNotRead} = ["function", "boolean"]; }
 sub NISNotRead {
     return $nis_not_read;
-}
-
-BEGIN { $TYPEINFO{LDAPAvailable} = ["function", "boolean"]; }
-sub LDAPAvailable {
-    return $ldap_available;
-}
-
-BEGIN { $TYPEINFO{LDAPModified} = ["function", "boolean"]; }
-sub LDAPModified {
-    return $ldap_modified;
-}
-
-BEGIN { $TYPEINFO{LDAPNotRead} = ["function", "boolean"]; }
-sub LDAPNotRead {
-    return $ldap_not_read;
-}
-
-BEGIN { $TYPEINFO{SetLDAPNotRead} = ["function", "void", "boolean"]; }
-sub SetLDAPNotRead {
-    my $self		= shift;
-    $ldap_not_read	= $_[0];
 }
 
 # OBSOLETE 
@@ -523,12 +493,6 @@ sub ChangeCurrentUsers {
     else {
         @current_users = ( $new );
     }
-    if (contains (\@current_users, "ldap") && $ldap_not_read) {
-        if (!$self->ReadNewSet ("ldap")) {
-            @current_users = @backup;
-            return 0;
-        }
-    }
 
     if (contains (\@current_users, "nis") && $nis_not_read) {
         if (!$self->ReadNewSet ("nis")) {
@@ -561,13 +525,6 @@ sub ChangeCurrentGroups {
     }
     else {
         @current_groups = ( $new );
-    }
-
-    if (contains (\@current_groups, "ldap") && $ldap_not_read) {
-        if (!$self->ReadNewSet ("ldap")) {
-            @current_groups = @backup;
-            return 0;
-        }
     }
 
     if (contains (\@current_groups, "nis") && $nis_not_read) {
@@ -788,12 +745,6 @@ sub GetDefaultGrouplist {
     my %grouplist	= ();
     my $grouplist	= "";
 
-    if ($type eq "ldap") {
-	$grouplist	= UsersLDAP->GetDefaultGrouplist ();
-	foreach my $group (split (/,/, $grouplist)) {
-	    $grouplist{$group} = 1;
-	}
-    }
     return \%grouplist;
 }
 
@@ -805,9 +756,6 @@ sub GetDefaultGID {
     my $type	= $_[0];
     my $gid	= $useradd_defaults{"group"};
 
-    if ($type eq "ldap") {
-	$gid	= UsersLDAP->GetDefaultGID ();
-    }
     return $gid;
 }
 
@@ -818,12 +766,7 @@ sub GetDefaultShell {
     my $self	= shift;
     my $type 	= $_[0];
 
-    if ($type eq "ldap") {
-	return UsersLDAP->GetDefaultShell ();
-    }
-    else {
-        return $useradd_defaults{"shell"};
-    }
+    return $useradd_defaults{"shell"};
 }
 
 ##------------------------------------
@@ -833,9 +776,6 @@ sub GetDefaultHome {
     my $self	= shift;
     my $home 	= $useradd_defaults{"home"} || "";
 
-    if ($_[0] eq "ldap") {
-	$home	= UsersLDAP->GetDefaultHome ();
-    }
     if (substr ($home, -1, 1) ne "/") {
 	$home.="/";
     }
@@ -861,9 +801,6 @@ sub GetDefaultShadow {
             "shadowLastChange"	=> "",
 	    "userPassword"	=> undef
     );
-    if ($type eq "ldap") {
-	%ret	= %{UsersLDAP->GetDefaultShadow()};
-    }
     return \%ret;
 }
 
@@ -881,9 +818,6 @@ sub GetDefaultGroupname {
 	
     my $gid	= $self->GetDefaultGID ($type);
     my %group	= ();
-    if ($type eq "ldap") {
-	%group	= %{$self->GetGroup ($gid, "ldap")};
-    }
     if (!%group) {
 	%group	= %{$self->GetGroup ($gid, "local")};
     }
@@ -1159,18 +1093,11 @@ sub FindGroupsBelongUser {
     foreach my $type (keys %groups) {
 
 	my $uname	= $user->{"uid"};
-	if ($type eq "ldap") {# LDAP groups have list of user DN's
-	    $uname	= $user->{"dn"};
-	}
 	if (!defined $uname) { next; }
         foreach my $gid (keys %{$groups{$type}}) {
 
 	    my $group	= $groups{$type}{$gid};
             my $userlist = $group->{"userlist"};
-	    if ($type eq "ldap") { 
-		my $member_attribute	= UsersLDAP->GetMemberAttribute ();
-		$userlist = $group->{$member_attribute};
-	    }
             if (defined $userlist->{$uname}) {
 		$grouplist{$group->{"cn"}}	= 1;
             }
@@ -1203,12 +1130,6 @@ sub ReadCustomSets {
 	SCR->Write (".target.ycp", $file, \%customs);
 	$customs_modified	= 1;
 
-	if ($ldap_available && Ldap->initial_defaults_used () &&
-	    !Mode->config ())
-	{
-	    @user_custom_sets	= ("ldap");
-	    @group_custom_sets	= ("ldap");
-	}
     }
     else {
 	my $customs = SCR->Read (".target.ycp", $file);
@@ -1244,15 +1165,6 @@ sub ReadCustomSets {
     if (@group_custom_sets == 0) {
 	@group_custom_sets = ("local");
     }
-    # LDAP is not set in nsswitch, but in customs: remove from customs (#360600)
-    if (!$ldap_available &&
-	(contains (\@user_custom_sets, "ldap") ||
-	 contains (\@group_custom_sets, "ldap")))
-    {
-	@user_custom_sets       = grep (!/^ldap$/, @user_custom_sets);
-	@group_custom_sets      = grep (!/^ldap$/, @group_custom_sets);
-	$customs_modified       = 1;
-    }
 }
 
 ##------------------------------------
@@ -1287,15 +1199,10 @@ sub ReadSourcesSettings {
 
     $nis_available		= ReadNISAvailable ();
     $nis_master 		= ReadNISMaster ();
-    $ldap_available 		= UsersLDAP->ReadAvailable ();
 
     if (!$nis_master && $nis_available) {
         push @available_usersets, "nis";
         push @available_groupsets, "nis";
-    }
-    if ($ldap_available) {
-        push @available_usersets, "ldap";
-        push @available_groupsets, "ldap";
     }
     push @available_usersets, "custom";
     push @available_groupsets, "custom";
@@ -1368,9 +1275,6 @@ sub ReadLoginDefaults {
 
     load_useradd_defaults (Y2UsersLinux->read_useradd_config());
 
-    UsersLDAP->InitConstants (\%useradd_defaults);
-    UsersLDAP->SetDefaultShadow ($self->GetDefaultShadow ("local"));
-
     if (%useradd_defaults) {
         return 1;
     }
@@ -1378,39 +1282,6 @@ sub ReadLoginDefaults {
 }
 
 ##------------------------------------
-BEGIN { $TYPEINFO{ReadLDAPSet} = ["function", "string", "string"]; }
-sub ReadLDAPSet {
-    
-    my $self	= shift;
-    my $type	= "ldap";
-    # generate ldap users/groups list in the agent:
-    my $ldap_mesg = UsersLDAP->Read();
-    if ($ldap_mesg ne "") {
-        Ldap->LDAPErrorMessage ("read", $ldap_mesg);
-        return $ldap_mesg;
-    }
-    # read the LDAP data (users, groups, items)
-    $users{$type}		= \%{SCR->Read (".ldap.users")};
-    $users_by_uidnumber{$type}	= \%{SCR->Read (".ldap.users.by_uidnumber")};
-    $groups{$type}		= \%{SCR->Read (".ldap.groups")};
-    $groups_by_gidnumber{$type}	= \%{SCR->Read (".ldap.groups.by_gidnumber")};
-    # read the necessary part of LDAP user configuration
-    UsersSimple->SetMinPasswordLength("ldap",UsersLDAP->GetMinPasswordLength());
-    UsersSimple->SetMaxPasswordLength("ldap",UsersLDAP->GetMaxPasswordLength());
-
-    if ($use_gui) {
-	UsersCache->BuildUserItemList ($type, $users{$type});
-	UsersCache->BuildGroupItemList ($type, $groups{$type});
-    }
-    
-    UsersCache->ReadUsers ($type);
-    UsersCache->ReadGroups ($type);
-
-    $ldap_not_read = 0;
-
-    return $ldap_mesg;
-}
-
 ##------------------------------------
 # Read new set of users - "on demand" (called from running module)
 # @param type the type of users, currently "ldap" or "nis"
@@ -1438,11 +1309,6 @@ sub ReadNewSet {
     }
     elsif ($type eq "ldap") {
 
-	# read all needed LDAP settings now:
-	if (UsersLDAP->ReadSettings () ne "") {
-	    return 0;
-	}
-	
 	# and now the real user/group data
 	if ($self->ReadLDAPSet () ne "") {
 	    return 0;
@@ -1519,7 +1385,6 @@ sub ReadAvailablePlugins {
 
     # update internal keys with the values from plugins
 
-    my @user_internals	= @{UsersLDAP->GetUserInternal ()};
     my $internals	= UsersPlugins->Apply ("InternalAttributes", {
 	"what" 	=> "user" }, {});
     if (defined $internals && ref ($internals) eq "HASH") {
@@ -1532,9 +1397,6 @@ sub ReadAvailablePlugins {
 		}
 	    }
 	}
-	UsersLDAP->SetUserInternal (\@user_internals);
-    }
-    my @group_internals	= @{UsersLDAP->GetGroupInternal ()};
     $internals		= UsersPlugins->Apply ("InternalAttributes", {
 	"what" 	=> "group" }, {});
     if (defined $internals && ref ($internals) eq "HASH") {
@@ -1547,8 +1409,6 @@ sub ReadAvailablePlugins {
 		}
 	    }
 	}
-	UsersLDAP->SetGroupInternal (\@group_internals);
-    }
 }
 
 ##------------------------------------
@@ -1731,19 +1591,7 @@ sub RemoveUserFromGroup {
     my $group_type	= $group_in_work{"type"};
 
     CreateGroupOrg();
-    if ($group_type eq "ldap") {
-        $user           = $user_in_work{"dn"};
-	if (defined $user_in_work{"org_dn"}) {
-	    $user	= $user_in_work{"org_dn"};
-	}
-	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
-	if (defined $group_in_work{$member_attribute}{$user}) {
-	    delete $group_in_work{$member_attribute}{$user};
-	    $ret			= 1;
-	    $group_in_work{"what"}	= "user_change";
-	}
-    }
-    elsif (defined $group_in_work{"userlist"}{$user}) {
+    if (defined $group_in_work{"userlist"}{$user}) {
 	$ret			= 1;
 	$group_in_work{"what"}	= "user_change";
 	delete $group_in_work{"userlist"}{$user};
@@ -1762,16 +1610,7 @@ sub AddUserToGroup {
     my $group_type	= $group_in_work{"type"};
 
     CreateGroupOrg();
-    if ($group_type eq "ldap") {
-        $user           = $user_in_work{"dn"};
-	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
-	if (!defined $group_in_work{$member_attribute}{$user}) {
-            $group_in_work{$member_attribute}{$user}	= 1;
-	    $group_in_work{"what"}			= "user_change";
-	    $ret					= 1;
-	}
-    }
-    elsif (!defined $group_in_work{"userlist"}{$user}) {
+    if (!defined $group_in_work{"userlist"}{$user}) {
         $group_in_work{"userlist"}{$user}	= 1;
         $ret					= 1;
         $group_in_work{"what"}			= "user_change";
@@ -1818,25 +1657,6 @@ sub SelectUser {
     LoadShadow ();
     UsersCache->SetUserType ($user_in_work{"type"});
 }
-
-##------------------------------------
-# this is hacked a bit; there probably could be a case when more groups have
-# different DN, but same 'cn'
-# (let's rule out this case with properly set "group_base")
-BEGIN { $TYPEINFO{SelectGroupByDN} = [ "function",
-    "void",
-    "string"];
-}
-sub SelectGroupByDN {
-
-    my $self		= shift;
-    my $cn		= UsersCache->get_first ($_[0]);
-    my $group		= $self->GetGroupByName ($cn, "ldap");
-    if (defined $group->{"dn"} && $group->{"dn"} eq $_[0]) {
-	%group_in_work	= %$group;
-    }
-}
-
 
 ##------------------------------------
 BEGIN { $TYPEINFO{SelectGroupByName} = [ "function",
@@ -1926,12 +1746,7 @@ sub GetUserPlugins {
     my $adding	= shift;
     my @plugins	= ();
 
-    if ($type eq "ldap") {
-	@plugins	= @{UsersLDAP->GetUserPlugins ()};
-    }
-    else {
 	@plugins	= @local_plugins;
-    }
     # check for default plug-ins for adding user
     # (and only when adding user, otherwise the check for presence was already done...)
     if (defined $adding) {
@@ -1956,12 +1771,7 @@ BEGIN { $TYPEINFO{GetGroupPlugins} = ["function", ["list", "string"], "string"]}
 sub GetGroupPlugins {
 
     my $self		= shift;
-    if ($_[0] eq "ldap") {
-	return UsersLDAP->GetGroupPlugins ();
-    }
-    else {
 	return \@local_plugins;
-    }
 }
 
 ##------------------------------------
@@ -2121,30 +1931,6 @@ sub EnableUser {
     return "";
 }
 
-# read the rest of attributes of LDAP user which will be edited
-sub ReadLDAPUser {
-
-    my $dn	= $user_in_work{"dn"} || "";
-    my $res 	= SCR->Read (".ldap.search", {
-	"base_dn"       => $dn,
-	"scope"         => YaST::YCP::Integer (0),
-        "single_values" => YaST::YCP::Boolean (1),
-	"attrs"         => [ "*", "+" ] # read also operational attributes (#238254)
-    });
-    my $u	= {};
-    if (defined $res && ref ($res) eq "ARRAY" && ref ($res->[0]) eq "HASH") {
-	$u	= $res->[0];
-    }
-    
-    foreach my $key (keys %$u) {
-	if (!defined $user_in_work{$key}) {
-	    $user_in_work{$key}	= $u->{$key};
-	    next;
-	}
-    }
-}
-
-
 ##------------------------------------
 #Edit is used in 2 diffr. situations
 #	1. initialization (creates "org_user")	- could be in SelectUser?
@@ -2168,10 +1954,6 @@ sub EditUser {
     # check if user is edited for first time
     if (!defined $user_in_work{"org_user"} &&
 	($user_in_work{"what"} || "") ne "add_user") {
-	# read the rest of LDAP if necessary
-	if ($type eq "ldap" && ($user_in_work{"modified"} || "") ne "added") {
-	    ReadLDAPUser ();
-	}
 
 	# password we have read was real -> set "encrypted" flag
 	my $pw	= $user_in_work{"userPassword"};
@@ -2200,7 +1982,7 @@ sub EditUser {
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
 	# grouplist wasn't fully generated while reading nis & ldap users
-	if ($type eq "nis" || $type eq "ldap") {
+	if ($type eq "nis" ) {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
 	    # set 'groupname' if default group is not LDAP (#43433)
 	    if (!defined $user_in_work{"groupname"}) {
@@ -2291,17 +2073,6 @@ sub EditUser {
 		    $user_in_work{$org_key} ne $user_in_work{$key}))
 	    {
 		$user_in_work{$org_key}	= $user_in_work{$key};
-	    }
-	}
-	# change of DN requires special handling:
-	if ($type eq "ldap" && $key eq "dn") {
-
-	    my $new_dn	= UsersLDAP->CreateUserDN (\%data);
-	    if (defined $new_dn && ($user_in_work{$key} ne $new_dn ||
-				    !defined $user_in_work{"org_dn"})) {
-		$user_in_work{"org_dn"} = $user_in_work{$key}; 	
-		$user_in_work{$key}	= $new_dn;
-		next;
 	    }
 	}
 	# compare the differences, create removed_grouplist
@@ -2505,38 +2276,11 @@ sub EditGroup {
 		$group_in_work{$org_key}	= $group_in_work{$key};
 	    }
 	}
-	# change of DN requires special handling:
-	if ($type eq "ldap" && $key eq "dn") {
-
-	    my $new_dn	= UsersLDAP->CreateGroupDN (\%data);
-	    if (defined $new_dn && ($group_in_work{$key} ne $new_dn ||
-				    !defined $group_in_work{"org_dn"}))
-	    {
-		$group_in_work{"org_dn"} 	= $group_in_work{$key}; 	
-		$group_in_work{$key}		= $new_dn;
-		next;
-	    }
-	}
 	# compare the differences, create removed_userlist
 	if ($key eq "userlist" && defined $group_in_work{"userlist"}) {
 	    my %removed = ();
 	    foreach my $user (keys %{$group_in_work{"userlist"}}) {
 		if (!defined $data{"userlist"}{$user}) {
-		    $removed{$user} = 1;
-		}
-	    }
-	    if (%removed) {
-		$group_in_work{"removed_userlist"} = \%removed;
-	    }
-	}
-	# same, but for LDAP groups
-	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
-	if ($key eq $member_attribute &&
-	    defined $group_in_work{$member_attribute})
-	{
-	    my %removed = ();
-	    foreach my $user (keys %{$group_in_work{$member_attribute}}) {
-		if (!defined $data{$member_attribute}{$user}) {
 		    $removed{$user} = 1;
 		}
 	    }
@@ -3133,22 +2877,6 @@ sub AddUser {
 	$user_in_work{"no_skeleton"}	= YaST::YCP::Boolean (1);
     }
 
-    if ($type eq "ldap") {
-        # add other default values
-	my %ldap_defaults	= %{UsersLDAP->GetUserDefaults()};
-	foreach my $attr (keys %ldap_defaults) {
-	    if (!defined ($user_in_work{$attr})) {
-		$user_in_work{$attr}	= $ldap_defaults{$attr};
-	    }
-	};
-	# created DN if not present yet
-	if (!defined $user_in_work{"dn"}) {
-	    my $dn = UsersLDAP->CreateUserDN (\%data);
-	    if (defined $dn) {
-		$user_in_work{"dn"} = $dn;
-	    }
-	}
-    }
     # --------------------------------- now call Add function from plugins
     foreach my $plugin (sort @{$plugins}) {
 	if ($plugin_error) { last; }
@@ -3297,22 +3025,6 @@ sub AddGroup {
 	$group_in_work{"gidNumber"}	= UsersCache->NextFreeGID ($type);
     }
     
-    if ($type eq "ldap") {
-        # add other default values
-	my %ldap_defaults	= %{UsersLDAP->GetGroupDefaults()};
-	foreach my $attr (keys %ldap_defaults) {
-	    if (!defined ($group_in_work{$attr})) {
-		$group_in_work{$attr}	= $ldap_defaults{$attr};
-	    }
-	};
-	# created DN if not present yet
-	if (!defined $group_in_work{"dn"}) {
-	    my $dn = UsersLDAP->CreateGroupDN (\%data);
-	    if (defined $dn) {
-		$group_in_work{"dn"} = $dn;
-	    }
-	}
-    }
     # --------------------------------- now call Add function from plugins
     foreach my $plugin (sort @{$plugins}) {
 	if ($plugin_error) { last; }
@@ -3419,11 +3131,10 @@ sub UserReallyModified {
 	}
 	return $ret;
     }
-    my @internal_keys	= @{UsersLDAP->GetUserInternal ()};
     foreach my $key (keys %user) {
 	last if $ret;
 	my $value = $user{$key};
-	if (!defined $user{$key} || contains (\@internal_keys, $key) ||
+	if (!defined $user{$key} ||
 	    ref ($value) eq "HASH" ) {
 	    next;
 	}
@@ -3461,7 +3172,6 @@ BEGIN { $TYPEINFO{SubstituteUserValues} = ["function", "void"] }
 sub SubstituteUserValues {
 
     my $self	= shift;
-    my $substituted = UsersLDAP->SubstituteValues ("user", \%user_in_work);
     if (defined $substituted && ref ($substituted) eq "HASH") {
 	%user_in_work = %{$substituted};
     }
@@ -3503,23 +3213,13 @@ sub CommitUser {
 	!$users_modified && $self->UserReallyModified (\%user)) {
 	    $users_modified = 1;
     }
-    if ($type eq "ldap" && !$ldap_modified && $self->UserReallyModified (\%user)) {
-        $ldap_modified = 1;
-    }
 
-    y2milestone ("commiting user '$username', action is '$what_user', modified: $users_modified, ldap modified: $ldap_modified");
+    y2milestone ("commiting user '$username', action is '$what_user', modified: $users_modified");
 
     # --- 1. do the special action
     if ($what_user eq "add_user") {
 	
         $user{"modified"}	= "added";
-
-	if ($type eq "ldap") {
-	    my $substituted = UsersLDAP->SubstituteValues ("user", \%user);
-	    if (defined $substituted && ref ($substituted) eq "HASH") {
-		%user = %{$substituted};
-	    }
-	}
 
         # update the affected groups
         foreach my $group (keys %grouplist) {
@@ -3736,7 +3436,6 @@ BEGIN { $TYPEINFO{SubstituteGroupValues} = ["function", "void"] }
 sub SubstituteGroupValues {
 
     my $self	= shift;
-    my $substituted = UsersLDAP->SubstituteValues ("group", \%group_in_work);
     if (defined $substituted && ref ($substituted) eq "HASH") {
 	%group_in_work = %{$substituted};
     }
@@ -3782,13 +3481,6 @@ sub CommitGroup {
     if ($what_group ne "user_change_default" &&
 	($type eq "system" || $type eq "local")) {
 	$groups_modified = 1;
-    }
-    if ($type eq "ldap" && $what_group ne "") {
-	$ldap_modified	= 1;
-	my $member_attribute	= UsersLDAP->GetMemberAttribute ();
-	if (defined $group{$member_attribute}) {
-	    %userlist	= %{$group{$member_attribute}};
-	}
     }
 
     # 1. specific action
@@ -4179,73 +3871,6 @@ sub Write {
     # Write LDAP users and groups
     if ($use_gui) { Progress->NextStage (); }
 
-    if ($ldap_modified) {
-	my $error_msg	= "";
-
-	if (defined ($removed_users{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteUsers ($removed_users{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("users", $error_msg);
-	    }
-	    else {
-		delete $removed_users{"ldap"};
-	    }
-	    $nscd_passwd	= 1;
-	}
-		
-	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
-
-	    # only remember for which users we need to call cryptconfig
-	    foreach my $username (keys %{$modified_users{"ldap"}}) {
-		my %user	= %{$modified_users{"ldap"}{$username}};
-	    }
-	    $error_msg	= UsersLDAP->WriteUsers ($modified_users{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("users", $error_msg);
-	    }
-	    else {
-		$self->UpdateUsersAfterWrite ("ldap");
-		delete $modified_users{"ldap"};
-	    }
-	    $nscd_passwd	= 1;
-	}
-
-	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteGroups ($removed_groups{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("groups", $error_msg);
-	    }
-	    else {
-		delete $removed_groups{"ldap"};
-	    }
-	    $nscd_group		= 1;
-	}
-
-	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
-	    $error_msg	= UsersLDAP->WriteGroups ($modified_groups{"ldap"});
-	    if ($error_msg ne "") {
-		Ldap->LDAPErrorMessage ("groups", $error_msg);
-	    }
-	    else {
-		$self->UpdateGroupsAfterWrite ("ldap");
-		delete $modified_groups{"ldap"};
-	    }
-	    $nscd_group		= 1;
-	}
-
-	if ($error_msg eq "") {
-	    $ldap_modified = 0;
-	}
-	else {
-	    return $error_msg;
-	}
-    }
-
-    if ($sysconfig_ldap_modified) {
-        SCR->Write (".sysconfig.ldap.FILE_SERVER", Ldap->file_server? "yes": "no");
-        SCR->Write (".sysconfig.ldap", undef);
-    }
-
     # Write groups and users
     if ($use_gui) { Progress->NextStage (); }
 
@@ -4490,11 +4115,6 @@ sub CheckUID {
     }
     if ($type eq "system" && $uid< UsersCache->GetMinUID("system") && $uid >=0){
 	# system id's 0..100 are ok
-	return "";
-    }
-
-    if ($type eq "ldap" && $uid >=0 && $uid <= $max) {
-	# LDAP uid could be from any range (#38556)
 	return "";
     }
 
@@ -4787,10 +4407,6 @@ sub CheckHomeUI {
 	return \%ret;
     }
 
-    if ($type eq "ldap" && !Ldap->file_server ()) {
-	return \%ret;
-    }
-	
     my %stat 	= %{SCR->Read (".target.stat", $home)};
     
     if ((($ui_map{"not_dir"} || "") ne $home)	&&
@@ -4885,11 +4501,6 @@ sub CheckGID {
     }
     if ($type eq "system" && $gid< UsersCache->GetMinGID("system") && $gid >=0){
 	# system id's 0..100 are ok
-	return "";
-    }
-
-    if ($type eq "ldap" && $gid >=0 && $gid <= $max) {
-	# LDAP gid could be from any range (#38556)
 	return "";
     }
 
@@ -5199,7 +4810,6 @@ sub CheckGroupForDelete {
 	$group	= shift;
     }
     my $error	= "";
-    my $m_attr  = UsersLDAP->GetMemberAttribute ();
 
     if (defined $group->{"more_users"} && %{$group->{"more_users"}}) {
 
@@ -5316,13 +4926,6 @@ sub CryptPassword {
 	return "crypted_".$pw;
     }
 
-    if ($type eq "ldap") {
-	$method = lc (UsersLDAP->GetEncryption ());
-	if ($method eq "clear") {
-	    return $pw;
-	}
-	return _hashPassword ($method, $pw);
-    }
     # TODO crypt using some perl function...
     return UsersUI->HashPassword ($method, $pw);
 }
@@ -6263,26 +5866,6 @@ sub SetModified {
     $defaults_modified = $security_modified = $_[0];
 }
 
-# Sets modified flag for sysconfig/ldap
-BEGIN { $TYPEINFO{SetLdapSysconfigModified} = ["function", "void", "boolean"];}
-sub SetLdapSysconfigModified {
-    my $self	= shift;
-    $sysconfig_ldap_modified = shift;
-}
-
-# Remember reading Ldap client config
-BEGIN { $TYPEINFO{SetLdapSettingsRead} = ["function", "void", "boolean"];}
-sub SetLdapSettingsRead {
-    my $self	= shift;
-    $ldap_settings_read = shift;
-}
-
-# Check if Ldap client config was read
-BEGIN { $TYPEINFO{LdapSettingsRead} = ["function", "boolean"];}
-sub LdapSettingsRead {
-    return $ldap_settings_read;
-}
-
 BEGIN { $TYPEINFO{SetExportAll} = ["function", "void", "boolean"];}
 sub SetExportAll {
     my $self	= shift;
@@ -6314,7 +5897,6 @@ sub SetGUI {
     my $self	= shift;
     $use_gui 	= $_[0];
     UsersCache->SetGUI ($use_gui);
-    UsersLDAP->SetGUI ($use_gui);
     Report->DisplayErrors ($use_gui, 0);
 }
 

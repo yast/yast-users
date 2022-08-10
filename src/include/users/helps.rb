@@ -38,7 +38,6 @@ module Yast
       Yast.import "Stage"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersRoutines"
     end
 
@@ -47,6 +46,9 @@ module Yast
     # @return [String] help text
     def help_password(type)
       password_length = ""
+      # CRITICAL!!!!
+      # LITERALLY NONE OF THESE TYPES ARE ACCEPTABLE IN 2022!
+
       enc_to_string = {
         # encryption type
         "des"   => _("DES"),
@@ -56,7 +58,6 @@ module Yast
         "md5"   => _("MD5")
       }
       method = Users.EncryptionMethod
-      method = UsersLDAP.GetEncryption if type == "ldap"
 
       # help text 1/4
       help_text = _(

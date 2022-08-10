@@ -55,9 +55,6 @@ Requires:       yast2-security >= 4.4.1
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
 
-# this forces using yast2-ldap with correct LDAP object names (fate#303596)
-Requires:       yast2-ldap >= 3.1.2
-
 # Y2Issues::WithIssues mixin
 Requires:       yast2 >= 4.4.18
 # cryptsha256, cryptsha516

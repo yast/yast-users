@@ -54,7 +54,6 @@ module Yast
       Yast.import "String"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersPlugins"
       Yast.import "UsersRoutines"
       Yast.import "UsersSimple"
@@ -993,7 +992,6 @@ module Yast
       current = nil
       login_modified = false
       tabids = [:edit, :details, :passwordsettings, :plugins]
-      ldap_user_defaults = UsersLDAP.GetUserDefaults
 
       # switch focus to specified tab (after error message) and widget inside
       focus_tab = lambda do |tab, widget|
@@ -1207,21 +1205,12 @@ module Yast
           # build default home dir
           if home == "" || home == default_home ||
               Builtins.issubstring(home, "%")
-            # LDAP: maybe value of homedirectory should be substituted?
-            if user_type == "ldap" && Builtins.issubstring(home, "%")
-              user = UsersLDAP.SubstituteValues("user", user)
-              home = Ops.get_string(user, "homeDirectory", default_home)
-            end
             if home == default_home || home == ""
               home = Ops.add(default_home, username)
             end
           end
           if ret != :details && username != org_username
             generated_home = Ops.add(default_home, username)
-            if user_type == "ldap" && Builtins.issubstring(default_home, "%")
-              tmp_user = UsersLDAP.SubstituteValues("user", user)
-              generated_home = Ops.get_string(tmp_user, "homeDirectory", home)
-            end
             if home != generated_home &&
                 (what == "add_user" ||
                   Popup.YesNo(
@@ -1977,11 +1966,6 @@ module Yast
       group_type = Ops.get_string(group, "type", "")
       new_type = group_type
       additional_users = []
-      member_attribute = UsersLDAP.GetMemberAttribute
-
-      if group_type == "ldap"
-        userlist = Ops.get_map(group, member_attribute, {})
-      end
 
       more = Ops.greater_than(Builtins.size(more_users), 0)
 
@@ -1991,16 +1975,12 @@ module Yast
           "local"  => _("New Local Group"),
           # dialog caption:
           "system" => _("New System Group"),
-          # dialog caption:
-          "ldap"   => _("New LDAP Group")
         },
         "edit_group" => {
           # dialog caption:
           "local"  => _("Existing Local Group"),
           # dialog caption:
           "system" => _("Existing System Group"),
-          # dialog caption:
-          "ldap"   => _("Existing LDAP Group")
         }
       }
 
