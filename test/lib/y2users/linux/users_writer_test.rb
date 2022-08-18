@@ -53,6 +53,12 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:commit_config) { Y2Users::CommitConfig.new }
 
+  let(:system_config) { initial_config }
+
+  before do
+    allow(Y2Users::Linux::Reader).to receive(:new).and_return(double(read: system_config))
+  end
+
   describe "#write" do
     let(:create_user_action) { Y2Users::Linux::CreateUserAction }
 
@@ -331,56 +337,44 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         context "and the authorized keys has changed" do
+          let(:system_user) { target_user.copy }
+
           before do
             target_user.authorized_keys = ["new-key"]
+            # cannot overwrite here system_config as we need to have there recent
+            # target user which is modified in `before` code
+            system_config = Y2Users::Config.new.tap { |c| c.attach([system_user]) }
+            allow(Y2Users::Linux::Reader).to receive(:new).and_return(double(read: system_config))
+            allow(Yast::FileUtils).to receive(:IsDirectory).with(target_user.home.path)
+              .and_return(true)
           end
 
-          context "and the user home exists" do
-            before do
-              allow(Yast::FileUtils).to receive(:IsDirectory).with(target_user.home.path)
-                .and_return(true)
-            end
+          it "performs the action for setting the authorized keys" do
+            action = mock_action(set_auth_keys_action, success, system_user)
 
-            it "performs the action for setting the authorized keys" do
-              action = mock_action(set_auth_keys_action, success, target_user)
+            expect(action).to receive(:perform)
 
-              expect(action).to receive(:perform)
-
-              subject.write
-            end
-
-            it "provides previous keys to the action for setting authorized keys" do
-              action = instance_double(set_auth_keys_action, perform: success)
-
-              expect(set_auth_keys_action)
-                .to receive(:new).with(target_user, any_args) do |*args|
-                  previous_keys = args.last
-                  expect(previous_keys).to eq(initial_user.authorized_keys)
-                end.and_return(action)
-
-              subject.write
-            end
-
-            it "returns the generated issues" do
-              mock_action(set_auth_keys_action, success("issue auth keys"), target_user)
-
-              issues = subject.write
-
-              expect(issues.map(&:message)).to include(/issue auth keys/)
-            end
+            subject.write
           end
 
-          context "and the user home does not exist" do
-            before do
-              allow(Yast::FileUtils).to receive(:IsDirectory).with(target_user.home.path)
-                .and_return(false)
-            end
+          it "provides previous keys to the action for setting authorized keys" do
+            action = instance_double(set_auth_keys_action, perform: success)
 
-            it "does not perform the action for setting the authorized keys" do
-              expect_any_instance_of(set_auth_keys_action).to_not receive(:perform)
+            expect(set_auth_keys_action)
+              .to receive(:new).with(target_user, any_args) do |*args|
+                previous_keys = args.last
+                expect(previous_keys).to eq(initial_user.authorized_keys)
+              end.and_return(action)
 
-              subject.write
-            end
+            subject.write
+          end
+
+          it "returns the generated issues" do
+            mock_action(set_auth_keys_action, success("issue auth keys"), target_user)
+
+            issues = subject.write
+
+            expect(issues.map(&:message)).to include(/issue auth keys/)
           end
         end
 
@@ -690,6 +684,9 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         context "and the user home exists" do
+          let(:system_user) { test3.copy }
+          let(:system_config) { Y2Users::Config.new.tap { |c| c.attach([system_user]) }}
+
           before do
             allow(Yast::FileUtils).to receive(:IsDirectory).with(test3.home.path).and_return(true)
           end
