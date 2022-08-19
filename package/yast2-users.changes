@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Aug 19 08:37:53 UTC 2022 - Josef Reidinger <jreidinger@suse.com>
+
+- AY: Fix writing ssh keys for user without specified home
+  (bsc#1201185)
+- 4.4.11
+
+-------------------------------------------------------------------
 Mon Dec  6 13:43:07 UTC 2021 - Josef Reidinger <jreidinger@suse.com>
 
 - Prepare code for ruby3 (bsc#1193192)
