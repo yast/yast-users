@@ -685,7 +685,7 @@ describe Y2Users::Linux::UsersWriter do
 
         context "and the user home exists" do
           let(:system_user) { test3.copy }
-          let(:system_config) { Y2Users::Config.new.tap { |c| c.attach([system_user]) }}
+          let(:system_config) { Y2Users::Config.new.tap { |c| c.attach([system_user]) } }
 
           before do
             allow(Yast::FileUtils).to receive(:IsDirectory).with(test3.home.path).and_return(true)

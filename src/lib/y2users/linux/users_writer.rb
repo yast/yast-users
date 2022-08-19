@@ -121,6 +121,7 @@ module Y2Users
             next
           end
 
+          system_user.authorized_keys = user.authorized_keys
           write_user_auth_keys(system_user, old_keys)
         end
       end
@@ -168,9 +169,9 @@ module Y2Users
         edit_password(target_user) if initial_user.password != target_user.password
 
         previous_keys = initial_user.authorized_keys || []
-        if previous_keys != target_user.authorized_keys
-          @users_to_write_ssh_keys[target_user] = previous_keys
-        end
+        return if previous_keys == target_user.authorized_keys
+
+        @users_to_write_ssh_keys[target_user] = previous_keys
       end
 
       # Updates root aliases
