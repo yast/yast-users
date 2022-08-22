@@ -116,7 +116,9 @@ module Y2Users
         @users_to_write_ssh_keys.each_pair do |user, old_keys|
           system_user = system_users.by_name(user.name)
           if !system_user
-            issues << Y2Issues::Issue.new(_("Failed to find user with name '#{user.name}'"))
+            issues << Y2Issues::Issue.new(
+              format(_("Failed to find user with name '%s'"), user.name)
+            )
             log.error("Failed to find user with name #{user.name}")
             next
           end
