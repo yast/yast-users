@@ -56,7 +56,8 @@ describe Y2Users::Linux::UsersWriter do
   let(:system_config) { initial_config }
 
   before do
-    allow(Y2Users::Linux::Reader).to receive(:new).and_return(double(read: system_config))
+    allow(Y2Users::Linux::Reader).to receive(:new)
+      .and_return(instance_double(Y2Users::Linux::Reader, read: system_config))
   end
 
   describe "#write" do
@@ -343,8 +344,9 @@ describe Y2Users::Linux::UsersWriter do
             target_user.authorized_keys = ["new-key"]
             # cannot overwrite here system_config as we need to have there recent
             # target user which is modified in `before` code
-            system_config = Y2Users::Config.new.tap { |c| c.attach([system_user]) }
-            allow(Y2Users::Linux::Reader).to receive(:new).and_return(double(read: system_config))
+            system_config = Y2Users::Config.new.tap { |c| c.attach(system_user) }
+            allow(Y2Users::Linux::Reader).to receive(:new)
+              .and_return(instance_double(Y2Users::Linux::Reader, read: system_config))
             allow(Yast::FileUtils).to receive(:IsDirectory).with(target_user.home.path)
               .and_return(true)
           end
