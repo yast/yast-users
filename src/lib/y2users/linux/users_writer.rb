@@ -30,6 +30,7 @@ require "y2users/linux/remove_home_content_action"
 require "y2users/linux/set_home_ownership_action"
 require "y2users/linux/set_auth_keys_action"
 require "y2users/linux/delete_user_action"
+require "y2users/linux/reader"
 
 Yast.import "MailAliases"
 
@@ -54,6 +55,7 @@ module Y2Users
         @initial_config = initial_config
         @target_config = target_config
         @commit_configs = commit_configs
+        @users_to_write_ssh_keys = {}
       end
 
     private
@@ -89,6 +91,7 @@ module Y2Users
         edit_users
         add_users
         write_root_aliases
+        write_ssh_auth_keys
       end
 
       # Deletes users
@@ -102,6 +105,27 @@ module Y2Users
       # Creates the new users
       def add_users
         new_users.each { |u| add_user(u) }
+      end
+
+      def write_ssh_auth_keys
+        # we need to re-read system users as for some newly created users
+        # the default home can be used and it depends on useradd and login
+        # defaults. So instead of mimic useradd behavior just read what
+        # useradd creates. (bsc#1201185)
+        system_users = Reader.new.read.users
+        @users_to_write_ssh_keys.each_pair do |user, old_keys|
+          system_user = system_users.by_name(user.name)
+          if !system_user
+            issues << Y2Issues::Issue.new(
+              format(_("Failed to find user with name '%s'"), user.name)
+            )
+            log.error("Failed to find user with name #{user.name}")
+            next
+          end
+
+          system_user.authorized_keys = user.authorized_keys
+          write_user_auth_keys(system_user, old_keys)
+        end
       end
 
       # Performs all needed actions in order to create and configure a new user (create user, set
@@ -119,7 +143,7 @@ module Y2Users
         remove_home_content(user) if !reusing_home && commit_config.home_without_skel?
         adapt_home_ownership(user) if commit_config.adapt_home_ownership?
         write_password(user) if user.password
-        write_auth_keys(user)
+        @users_to_write_ssh_keys[user] = []
       end
 
       # Edits users
@@ -147,7 +171,9 @@ module Y2Users
         edit_password(target_user) if initial_user.password != target_user.password
 
         previous_keys = initial_user.authorized_keys || []
-        write_auth_keys(target_user, previous_keys) if previous_keys != target_user.authorized_keys
+        return if previous_keys == target_user.authorized_keys
+
+        @users_to_write_ssh_keys[target_user] = previous_keys
       end
 
       # Updates root aliases
@@ -293,9 +319,7 @@ module Y2Users
       # @param user [User]
       # @param previous_keys [Array<String>] previous auth keys for given user, if any
       # @return [Boolean] true on success
-      def write_auth_keys(user, previous_keys = [])
-        return true unless exist_user_home?(user)
-
+      def write_user_auth_keys(user, previous_keys = [])
         action = SetAuthKeysAction.new(user, commit_config(user), previous_keys)
 
         perform_action(action)
