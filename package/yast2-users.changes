@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 24 08:17:17 UTC 2022 - David Diaz <dgonzalez@suse.com>
+
+- Remove LDAP support (gh#yast/yast-users#364)
+- 4.5.3
+
+-------------------------------------------------------------------
 Fri Aug 19 08:37:53 UTC 2022 - Josef Reidinger <jreidinger@suse.com>
 
 - AY: Fix writing ssh keys for user without specified home
