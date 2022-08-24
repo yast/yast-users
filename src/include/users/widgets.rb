@@ -1079,10 +1079,6 @@ Continue anyway?"))
       deep_copy(expert_list)
     end
 
-    # return the list of menu items for LDAP expert options
-    #================================================================
-    #----------------- some help texts ------------------------------
-
     # First part of the help text.
     # @return [String] help text
     def help_main_start
@@ -1095,7 +1091,6 @@ Continue anyway?"))
           "</p>\n"
       )
     end
-
 
     # Last part of the help text.
     # @return [String] help text
@@ -1861,7 +1856,7 @@ Continue anyway?"))
       was_nis_available = Users.NISAvailable
       Users.ReadSourcesSettings
 
-      # enabling NIS/LDAP could add + lines (they are not in current cache that
+      # enabling NIS could add + lines (they are not in current cache that
       # would be saved after user modifications):
       if !was_nis_available && Users.NISAvailable
         Builtins.y2milestone("nis enabled now")

@@ -108,10 +108,6 @@ module Yast
         "NTP daemon"                                     => _(
           "NTP Daemon"
         ),
-        # User name for user: "ldap"
-        "User for OpenLDAP"                              => _(
-          "User for OpenLDAP"
-        ),
         # User name for user: "nobody"
         "nobody"                                         => _(
           "Nobody"

@@ -145,11 +145,7 @@ module Yast
             "help"            => _(
               "Add new group"
             ),
-            "options"         => ["non_strict"],
-            # help text for unknown parameter name
-            "non_strict_help" => _(
-              "Additional (LDAP) group parameters"
-            )
+            "options"         => ["non_strict"]
           },
           "edit"   => {
             "handler"         => fun_ref(
@@ -160,11 +156,7 @@ module Yast
             "help"            => _(
               "Edit an existing group"
             ),
-            "options"         => ["non_strict"],
-            # help text for unknown parameter name
-            "non_strict_help" => _(
-              "Additional (LDAP) group parameters"
-            )
+            "options"         => ["non_strict"]
           }
         },
         "options"    => {
@@ -178,12 +170,6 @@ module Yast
             # translators: command line help text for list system option
             "help" => _(
               "List of system groups"
-            )
-          },
-          "ldap"          => {
-            # translators: command line help text for list ldap option
-            "help" => _(
-              "List of LDAP groups"
             )
           },
           "nis"           => {
@@ -216,7 +202,7 @@ module Yast
           "userlist"      => {
             # translators: command line help text for 'user' option
             "help" => _(
-              "List of group members, usually usernames, separated by commas. The list of LDAP user DNs must be separated by colons."
+              "List of group members, usually usernames, separated by commas."
             ),
             "type" => "string"
           },
@@ -238,13 +224,6 @@ module Yast
             # translators: command line help text for show option
             "help" => _(
               "Type of the group (local, system, nis, ldap)"
-            ),
-            "type" => "string"
-          },
-          "ldap_password" => {
-            # translators: command line help text for ldap_password option
-            "help" => _(
-              "Password for LDAP server"
             ),
             "type" => "string"
           },

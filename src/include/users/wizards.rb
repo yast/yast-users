@@ -36,7 +36,6 @@ module Yast
       Yast.import "CWM"
       Yast.import "CWMTab"
       Yast.import "Label"
-      Yast.import "Ldap"
       Yast.import "Mode"
       Yast.import "Popup"
       Yast.import "Sequencer"
@@ -62,14 +61,9 @@ module Yast
     end
 
     # Before showing the table for first time,
-    # read LDAP/NIS if they are included in custom set
+    # read NIS if they are included in custom set
     def InitializeTableItems
       if UsersCache.CustomizedUsersView || UsersCache.CustomizedGroupsView
-        if (Builtins.contains(Users.GetUserCustomSets, "ldap") ||
-            Builtins.contains(Users.GetGroupCustomSets, "ldap")) &&
-            Ldap.bind_pass == nil
-          Ldap.SetBindPassword(Ldap.GetLDAPPassword(true))
-        end
         Users.ChangeCurrentUsers("custom") if UsersCache.CustomizedUsersView
         Users.ChangeCurrentGroups("custom") if UsersCache.CustomizedGroupsView
       end
@@ -130,20 +124,11 @@ module Yast
         old_gui = Users.GetGUI
         Users.SetGUI(false)
         Users.Read
-        # read also LDAP again: bug #41299
-        current_users = Users.GetCurrentUsers
-        if Builtins.contains(current_users, "ldap")
-          Users.SetLDAPNotRead(true)
-          Users.ChangeCurrentUsers("ldap")
-        else
-          # update the user item list
-          Users.ChangeCurrentUsers("custom")
-        end
         Users.SetGUI(old_gui)
         ret = :back
       end
 
-      Convert.to_symbol(ret)
+      ret
     end
 
 
@@ -268,9 +253,6 @@ module Yast
       ret = Sequencer.Run(aliases, sequence)
 
       UI.CloseDialog if !Stage.cont
-
-      # read LDAP again in the next run
-      Users.SetLDAPNotRead(true)
 
       Convert.to_symbol(ret)
     end

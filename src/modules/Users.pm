@@ -212,7 +212,6 @@ YaST::YCP::Import ("Autologin");
 YaST::YCP::Import ("Call");
 YaST::YCP::Import ("Directory");
 YaST::YCP::Import ("FileUtils");
-YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Linuxrc");
 YaST::YCP::Import ("Installation");
 YaST::YCP::Import ("MailAliases");
@@ -868,8 +867,8 @@ sub SetLoginDefaults {
 
 ##------------------------------------
 # Returns the map of user specified by its UID
-# @param uid	user's identification number (UID) or uidnumber attribute for LDAP users
-# @param type	"local"/"system"/"nis"/"ldap"; if empty, all types are searched
+# @param uid	user's identification number (UID)
+# @param type	"local"/"system"/"nis"; if empty, all types are searched
 # @return the map of _first_ user matching the parameters
 BEGIN { $TYPEINFO{GetUser} = [ "function",
     ["map", "string", "any" ],
@@ -1022,7 +1021,7 @@ sub GetGroups {
 
 ##------------------------------------
 # Returns the map of first group with given GID
-# @param name 	group's GID (or gidnumber attribute for LDAP groups)
+# @param name 	group's GID
 # @param type 	if empty, all types are searched
 # @return the map of first group matching parameters
 BEGIN { $TYPEINFO{GetGroup} = [ "function",
@@ -1053,7 +1052,7 @@ sub GetGroup {
 
 ##------------------------------------
 # Returns the map of first group with given name
-# @param name 	group's name (or cn attribute for LDAP groups)
+# @param name 	group's name
 # @param type 	if empty, all types are searched
 # @return the map of first group matching parameters
 BEGIN { $TYPEINFO{GetGroupByName} = [ "function",
@@ -1190,7 +1189,7 @@ sub ReadAllShells {
 }
 
 ##------------------------------------
-# Checks the possible user sources (NIS/LDAP available?)
+# Checks the possible user sources (NIS available?)
 BEGIN { $TYPEINFO{ReadSourcesSettings} = ["function", "void"]; }
 sub ReadSourcesSettings {
 
@@ -1284,36 +1283,29 @@ sub ReadLoginDefaults {
 ##------------------------------------
 ##------------------------------------
 # Read new set of users - "on demand" (called from running module)
-# @param type the type of users, currently "ldap" or "nis"
+# @param type the type of users, currently "nis"
 # @return success
 BEGIN { $TYPEINFO{ReadNewSet} = ["function", "boolean", "string"]; }
 sub ReadNewSet {
-
     my $self	= shift;
     my $type	= $_[0];
+
     if ($type eq "nis") {
+      $nis_not_read = 0;
+	  $users{$type}		= \%{SCR->Read (".nis.users")};
+	  $users_by_uidnumber{$type}	= \%{SCR->Read (".nis.users.by_uidnumber")};
+	  $groups{$type}		= \%{SCR->Read (".nis.groups")};
+	  $groups_by_gidnumber{$type}	= \%{SCR->Read (".nis.groups.by_gidnumber")};
 
-        $nis_not_read = 0;
-	
-	$users{$type}		= \%{SCR->Read (".nis.users")};
-	$users_by_uidnumber{$type}	= \%{SCR->Read (".nis.users.by_uidnumber")};
-	$groups{$type}		= \%{SCR->Read (".nis.groups")};
-	$groups_by_gidnumber{$type}	= \%{SCR->Read (".nis.groups.by_gidnumber")};
-
-	if ($use_gui) {
+	  if ($use_gui) {
 	    UsersCache->BuildUserItemList ($type, $users{$type});
 	    UsersCache->BuildGroupItemList ($type, $groups{$type});
-	}
-	UsersCache->ReadUsers ($type);
-	UsersCache->ReadGroups ($type);
-    }
-    elsif ($type eq "ldap") {
+	  }
 
-	# and now the real user/group data
-	if ($self->ReadLDAPSet () ne "") {
-	    return 0;
-	}
+	  UsersCache->ReadUsers ($type);
+	  UsersCache->ReadGroups ($type);
     }
+
     return 1;
 }
 
@@ -1382,33 +1374,6 @@ sub ReadAvailablePlugins {
     if (Mode->test ()) { return; }
 
     UsersPlugins->Read ();
-
-    # update internal keys with the values from plugins
-
-    my $internals	= UsersPlugins->Apply ("InternalAttributes", {
-	"what" 	=> "user" }, {});
-    if (defined $internals && ref ($internals) eq "HASH") {
-	foreach my $plugin (keys %{$internals}) {
-	    if (ref ($internals->{$plugin}) eq "ARRAY") {
-		foreach my $int (@{$internals->{$plugin}}) {
-		    if (!contains (\@user_internals, $int)) {
-			push @user_internals, $int;
-		    }
-		}
-	    }
-	}
-    $internals		= UsersPlugins->Apply ("InternalAttributes", {
-	"what" 	=> "group" }, {});
-    if (defined $internals && ref ($internals) eq "HASH") {
-	foreach my $plugin (keys %{$internals}) {
-	    if (ref ($internals->{$plugin}) eq "ARRAY") {
-		foreach my $int (@{$internals->{$plugin}}) {
-		    if (!contains (\@group_internals, $int)) {
-			push @group_internals, $int;
-		    }
-		}
-	    }
-	}
 }
 
 ##------------------------------------
@@ -1621,14 +1586,11 @@ sub AddUserToGroup {
 ##------------------------------------
 # local users have to load shadow settings from global map
 sub LoadShadow {
-
-    if (%user_in_work && ($user_in_work{"type"} || "") ne "ldap") {
 	my $username	= $user_in_work{"uid"};
 	my $type	= $user_in_work{"type"};
 	foreach my $key (keys %{$shadow{$type}{$username}}) {
 	    $user_in_work{$key} = $shadow{$type}{$username}{$key};
 	}
-    }
 }
 					
 
@@ -1981,7 +1943,7 @@ sub EditUser {
 	# save first map for later checks of modification (in Commit)
 	my %org_user			= %user_in_work;
 	$user_in_work{"org_user"}	= \%org_user;
-	# grouplist wasn't fully generated while reading nis & ldap users
+	# grouplist wasn't fully generated while reading nis
 	if ($type eq "nis" ) {
 	    $user_in_work{"grouplist"} = FindGroupsBelongUser (\%org_user);
 	    # set 'groupname' if default group is not LDAP (#43433)
@@ -3085,7 +3047,7 @@ sub UserReallyModified {
     if (defined $user{"org_user"}) {
 	%org_user	= %{$user{"org_user"}};
     }
-    if ($user{"type"} ne "ldap") {
+
 	if (($user{"plugin_modified"} || 0) == 1) {
 	    return 1; #TODO save special plugin_modified global value?
 	}
@@ -3130,7 +3092,7 @@ sub UserReallyModified {
 	    }
 	}
 	return $ret;
-    }
+
     foreach my $key (keys %user) {
 	last if $ret;
 	my $value = $user{$key};
@@ -3165,18 +3127,6 @@ sub UserReallyModified {
     }
     return $ret;
 }
-
-
-# Substitute the values of LDAP atributes, predefined in LDAP user configuration
-BEGIN { $TYPEINFO{SubstituteUserValues} = ["function", "void"] }
-sub SubstituteUserValues {
-
-    my $self	= shift;
-    if (defined $substituted && ref ($substituted) eq "HASH") {
-	%user_in_work = %{$substituted};
-    }
-}
-
 
 ##------------------------------------
 # Update the global map of users using current user or group
@@ -3359,7 +3309,7 @@ sub CommitUser {
 	}
 
 	# store deleted directories... someone could want to use them
-	if ($type ne "ldap" && bool ($user{"delete_home"})) {
+	if (bool ($user{"delete_home"})) {
 	    my $h	= $home;
 	    if (defined $user{"org_user"}{"homeDirectory"}) {
 	        $h	= $user{"org_user"}{"homeDirectory"};
@@ -3378,9 +3328,8 @@ sub CommitUser {
 	    delete $users_by_uidnumber{$type}{$uid}{$username};
 	}
 
-        if ($type ne "ldap") {
-            delete $shadow{$type}{$username};
-	}
+    delete $shadow{$type}{$username};
+
 	if (defined $modified_users{$type}{$username}) {
 	    delete $modified_users{$type}{$username};
 	}
@@ -3430,17 +3379,6 @@ sub CommitUser {
     undef %user_in_work;
     return 1;
 }
-
-# Substitute the values of LDAP atributes,predefined in LDAP group configuration
-BEGIN { $TYPEINFO{SubstituteGroupValues} = ["function", "void"] }
-sub SubstituteGroupValues {
-
-    my $self	= shift;
-    if (defined $substituted && ref ($substituted) eq "HASH") {
-	%group_in_work = %{$substituted};
-    }
-}
-
 
 ##------------------------------------
 # Update the global map of groups using current group
@@ -3843,7 +3781,7 @@ sub Write {
 
     # progress caption
     my $caption 	= __("Writing User and Group Configuration");
-    my $no_of_steps 	= 8;
+    my $no_of_steps 	= 6;
 
     return $ret if (Stage->cont () && !$self->Modified ());
 
@@ -3851,14 +3789,10 @@ sub Write {
 	Progress->New ($caption, " ", $no_of_steps,
 	    [
 		# progress stage label
-		__("Write LDAP users, groups and settings"),
-		# progress stage label
 		__("Write local users, groups and settings"),
 		# progress stage label
 		__("Write the custom settings")
            ], [
-		# progress step label
-		__("Writing LDAP users, groups and settings..."),
 		# progress step label
 		__("Writing local users, groups and settings..."),
 		# progress step label
@@ -3868,9 +3802,6 @@ sub Write {
 	    ], "" );
     } 
 
-    # Write LDAP users and groups
-    if ($use_gui) { Progress->NextStage (); }
-
     # Write groups and users
     if ($use_gui) { Progress->NextStage (); }
 
@@ -3879,7 +3810,6 @@ sub Write {
     if ($groups_modified) {
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_groups)  {
-	    if ($type eq "ldap") { next; }
 	    foreach my $groupname (keys %{$modified_groups{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
@@ -3900,7 +3830,6 @@ sub Write {
     if ($users_modified) {
 	# -------------------------------------- call WriteBefore on plugins
         foreach my $type (keys %modified_users)  {
-	    if ($type eq "ldap") { next; }
 	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
@@ -3919,7 +3848,6 @@ sub Write {
 	}
 
 	# There used to be a big loop here managing homedir changes, but is not longer necessary:
-	#  - work with homes for LDAP users are ruled in WriteLDAP
 	#  - homes for local and system users are handed by Y2Users
 	#  - is not possible to add NIS users or to configure their homes
     }
@@ -3951,7 +3879,6 @@ sub Write {
     if ($users_modified) {
 	# -------------------------------------- call Write on plugins
         foreach my $type (keys %modified_users)  {
-	    if ($type eq "ldap") { next; }
 	    foreach my $username (keys %{$modified_users{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
@@ -3979,7 +3906,6 @@ sub Write {
 	# -------------------------------------- call Write on plugins,
 	# (+do some other work while looping over groups)
         foreach my $type (keys %modified_groups)  {
-	    if ($type eq "ldap") { next; }
 	    foreach my $groupname (keys %{$modified_groups{$type}}) {
 		if ($plugin_error) { last;}
 		my $args	= {
@@ -4168,21 +4094,6 @@ Really use it?");
 	}
     }
 
-    if (($ui_map{"ldap_range"} || -1) != $uid) {
-	if ($type eq "ldap" &&
-	    $uid < UsersCache->GetMinUID ("ldap"))
-	{
-	    $ret{"question_id"}	= "ldap_range";
-	    $ret{"question"}	= sprintf(
-# popup question, %i are numbers
-__("The selected user ID is not from a range
-defined for LDAP users (%i-%i).
-Really use it?"),
-		UsersCache->GetMinUID ("ldap"), UsersCache->GetMaxUID ("ldap"));
-	    return \%ret;
-	}
-    }
-
     if (($ui_map{"local"} || -1) != $uid) {
 	if ($type eq "system" &&
 	    $uid > UsersCache->GetMinUID ("local") &&
@@ -4237,9 +4148,9 @@ sub CheckUsername {
 
 	if (UsersCache->UsernameExists ($username)) {
 	    # additional sentence for error popup
-	    my $more	= (($self->NISAvailable () || $self->LDAPAvailable ()) &&
+	    my $more	= (($self->NISAvailable ()) &&
 		($type eq "local" || $type eq "system")) ? __("
-The existing username might belong to a NIS or LDAP user.
+The existing username might belong to a NIS user.
 ") : "";
 	    # error popup, %1 might be additional sentence ("The existing username...")
 	    return sformat (__("There is a conflict between the entered
@@ -4358,8 +4269,7 @@ Try again.");
     }
 
     # check if directory is writable
-    if (!Mode->config () && !Mode->test () &&
-	($type ne "ldap" || Ldap->file_server ()))
+    if (!Mode->config () && !Mode->test ())
     {
 	my $home_path = substr ($home, 0, rindex ($home, "/"));
         $home_path = $self->IsDirWritable ($home_path);
@@ -4552,21 +4462,6 @@ Really use it?");
 	}
     }
 
-    if (($ui_map{"ldap_range"} || -1) != $gid) {
-	if ($type eq "ldap" &&
-	    $gid < UsersCache->GetMinGID ("ldap"))
-	{
-	    $ret{"question_id"}	= "ldap_range";
-	    $ret{"question"}	= sprintf(
-# popup question, %i are numbers
-__("The selected group ID is not from a range
-defined for LDAP groups (%i-%i).
-Really use it?"),
-		UsersCache->GetMinGID ("ldap"), UsersCache->GetMaxGID ("ldap"));
-	    return \%ret;
-	}
-    }
-
     if (($ui_map{"local"} || -1) != $gid) {
 	if ($type eq "system" &&
 	    $gid > UsersCache->GetMinGID ("local") &&
@@ -4689,11 +4584,11 @@ sub CheckUser {
 	$error	= $self->CheckHome ($user{"homeDirectory"});
     }
 
-    if ($error eq "" && $type ne "ldap") {
+    if ($error eq "") {
 	$error	= $self->CheckFullname ($user{"cn"});
     }
 
-    if ($error eq "" && $type ne "ldap") {
+    if ($error eq "") {
 	$error	= $self->CheckGECOS ($user{"addit_data"});
     }
 
@@ -4818,8 +4713,7 @@ sub CheckGroupForDelete {
 there are users that use this group
 as their default group.");
     }
-    elsif ((defined $group->{"userlist"}   && %{$group->{"userlist"}}) ||
-	   (defined $group->{$m_attr}      && %{$group->{$m_attr}})) {
+    elsif ((defined $group->{"userlist"}   && %{$group->{"userlist"}})) {
 	# error message: group cannot be deleted
         $error = __("You cannot delete this group because
 there are users in the group.
@@ -4855,51 +4749,6 @@ sub SetEncryptionMethod {
 	$security_modified 		= 1;
     }
     UsersSimple->SetEncryptionMethod ($_[0]);
-}
-
-##------------------------------------
-# hash user password for LDAP users
-# (code provided by rhafer)
-sub _hashPassword {
-
-    my ($mech, $password) = @_;
-    if ($mech  eq "crypt" ) {
-        my $salt =  pack("C2",(int(rand 26)+65),(int(rand 26)+65));
-        $password = crypt $password,$salt;
-	$password = "{crypt}".$password;
-    }
-    elsif ($mech eq "md5") {
-        my $ctx = new Digest::MD5();
-        $ctx->add($password);
-        $password = "{md5}".encode_base64($ctx->digest, "");
-    }
-    elsif ($mech eq "smd5") {
-        my $salt =  pack("C5",(int(rand 26)+65),
-                              (int(rand 26)+65),
-                              (int(rand 26)+65),
-                              (int(rand 26)+65), 
-                              (int(rand 26)+65)
-                        );
-        my $ctx = new Digest::MD5();
-        $ctx->add($password);
-        $ctx->add($salt);
-        $password = "{smd5}".encode_base64($ctx->digest.$salt, "");
-    }
-    elsif( $mech eq "sha") {
-        $password = sha1($password);
-        $password = "{sha}".encode_base64($password, "");
-    }
-    elsif( $mech eq "ssha") {
-        my $salt =  pack("C5", (int(rand 26)+65),
-                               (int(rand 26)+65),
-                               (int(rand 26)+65),
-                               (int(rand 26)+65), 
-                               (int(rand 26)+65)
-                        );
-        $password = sha1($password.$salt);
-        $password = "{ssha}".encode_base64($password.$salt, "");
-    }
-    return $password;
 }
 
 ##------------------------------------
@@ -5858,7 +5707,7 @@ sub Summary {
 ##-------------------------------------------------------------------------
 ##-------------------------------------------------------------------------
 
-# Sets modified flags, except of ldap_modified!
+# Sets modified flags
 BEGIN { $TYPEINFO{SetModified} = ["function", "void", "boolean"];}
 sub SetModified {
     my $self	= shift;

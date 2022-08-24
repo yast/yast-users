@@ -17,8 +17,6 @@ describe Y2Users::Clients::Auto do
 
   before do
     allow(Yast).to receive(:import).and_call_original
-    allow(Yast).to receive(:import).with("Ldap")
-    allow(Yast).to receive(:import).with("LdapPopup")
     allow(Yast::Mode).to receive(:mode).and_return(mode)
     allow(Yast::Stage).to receive(:initial).and_return(true)
     allow(Yast::WFM).to receive(:Args).and_return(args)

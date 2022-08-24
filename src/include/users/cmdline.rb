@@ -33,7 +33,6 @@ module Yast
       textdomain "users"
 
       Yast.import "CommandLine"
-      Yast.import "Ldap"
       Yast.import "Users"
       Yast.import "UsersCache"
       Yast.import "UsersSimple"
@@ -125,10 +124,6 @@ module Yast
         if type == "nis" && Users.NISAvailable && Users.NISNotRead
           Users.ReadNewSet("nis")
         end
-        if type == "ldap" && Users.LDAPAvailable && Users.LDAPNotRead
-          Ldap.SetAnonymous(true)
-          Users.ReadNewSet("ldap")
-        end
         Builtins.foreach(
           Convert.convert(
             Users.GetUsers("uid", type),
@@ -181,10 +176,6 @@ module Yast
 
       if type == "nis" && Users.NISAvailable && Users.NISNotRead
         Users.ReadNewSet("nis")
-      end
-      if type == "ldap" && Users.LDAPAvailable && Users.LDAPNotRead
-        Ldap.SetAnonymous(true)
-        Users.ReadNewSet("ldap")
       end
 
       if uid != -1 && uid != nil
@@ -259,12 +250,6 @@ module Yast
 
       user = convert_keys(options)
       type = Ops.get_string(user, "type", "local")
-      if type == "ldap"
-        return false if !bind_and_read_LDAP(options)
-        if !Builtins.haskey(user, "sn")
-          Ops.set(user, "sn", Ops.get_string(user, "uid", ""))
-        end
-      end
 
       Users.ResetCurrentUser
 
@@ -340,7 +325,6 @@ module Yast
       delete_home = Builtins.haskey(options, "delete_home")
 
       type = Ops.get_string(options, "type", "local")
-      return false if !bind_and_read_LDAP(options) if type == "ldap"
       if uid != -1 && uid != nil
         Users.SelectUser(uid)
       elsif username != ""
@@ -390,7 +374,6 @@ module Yast
       username = Ops.get_string(options, "username", "")
 
       type = Ops.get_string(options, "type", "local")
-      return false if !bind_and_read_LDAP(options) if type == "ldap"
       if uid != -1 && uid != nil
         Users.SelectUser(uid)
       elsif username != ""
@@ -452,10 +435,6 @@ module Yast
         if type == "nis" && Users.NISAvailable && Users.NISNotRead
           Users.ReadNewSet("nis")
         end
-        if type == "ldap" && Users.LDAPAvailable && Users.LDAPNotRead
-          Ldap.SetAnonymous(true)
-          Users.ReadNewSet("ldap")
-        end
         Builtins.foreach(
           Convert.convert(
             Users.GetGroups("cn", type),
@@ -510,10 +489,6 @@ module Yast
 
       if type == "nis" && Users.NISAvailable && Users.NISNotRead
         Users.ReadNewSet("nis")
-      end
-      if type == "ldap" && Users.LDAPAvailable && Users.LDAPNotRead
-        Ldap.SetAnonymous(true)
-        Users.ReadNewSet("ldap")
       end
 
       if gid != -1 && gid != nil
@@ -578,7 +553,6 @@ module Yast
       )
 
       type = Ops.get_string(options, "type", "local")
-      return false if !bind_and_read_LDAP(options) if type == "ldap"
       if gid != -1 && gid != nil
         Users.SelectGroup(gid)
       elsif groupname != ""
@@ -604,7 +578,6 @@ module Yast
 
       group = convert_keys(options)
       type = Ops.get_string(group, "type", "local")
-      return false if !bind_and_read_LDAP(options) if type == "ldap"
       member_attr = type == "ldap"
       if Builtins.haskey(group, "userlist")
         if type == "ldap"
@@ -653,7 +626,6 @@ module Yast
       )
 
       type = Ops.get_string(options, "type", "local")
-      return false if !bind_and_read_LDAP(options) if type == "ldap"
       if gid != -1 && gid != nil
         Users.SelectGroup(gid)
       elsif groupname != ""

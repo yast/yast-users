@@ -129,7 +129,6 @@ textdomain ("users");
 
 
 # ------------------- imported modules
-YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Users");
 YaST::YCP::Import ("UsersCache");
 YaST::YCP::Import ("UsersPasswd");

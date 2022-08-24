@@ -57,25 +57,21 @@ my %removed_usernames	= ();
 my %min_uid			= (
     "local"		=> 1000,
     "system"		=> 100,
-    "ldap"		=> 1000
 );
 
 my %min_gid			= (
     "local"		=> 1000,
     "system"		=> 100,
-    "ldap"		=> 1000
 );
 
 my %max_uid			= (
     "local"		=> 60000,
     "system"		=> 499,
-    "ldap"		=> 60000
 );
 
 my %max_gid			= (
     "local"		=> 60000,
     "system"		=> 499,
-    "ldap"		=> 60000
 );
 
 # the highest ID in use
@@ -87,7 +83,6 @@ my %last_uid		= (
 my %last_gid		= (
     "local"		=> 1000,
     "system"		=> 100,
-    "ldap"		=> 1000
 );
 
 my $max_length_groupname 	= 32;
@@ -124,7 +119,6 @@ my $the_answer			= 42;
 ##------------------------------------
 ##------------------- global imports
 
-YaST::YCP::Import ("Ldap");
 YaST::YCP::Import ("Mode");
 YaST::YCP::Import ("SCR");
 YaST::YCP::Import ("UsersPasswd");
@@ -264,12 +258,6 @@ sub UIDExists {
     if ($ret) {
 	# check if uid wasn't just deleted...
 	my @sets_to_check = ("local", "system");
-	# LDAP: do not allow change uid of one user and use old one by
-	# another user - because users are saved by calling extern tool
-	# and colisions can be hardly avoided
-	if ($user_type ne "ldap") {
-	    push @sets_to_check, "ldap";
-	}
 	foreach my $type (@sets_to_check) {
 	    if (defined $removed_uids{$type}{$uid} && $removed_uids{$type}{$uid} > 0) { 
 		$ret = 0;
@@ -308,9 +296,6 @@ sub UsernameExists {
     $ret = UsernameConflicts ($username);
     if ($ret) {
 	my @sets_to_check = ("local", "system");
-	if ($user_type ne "ldap") {
-	    push @sets_to_check, "ldap";
-	}
 	foreach my $type (@sets_to_check) {
 	    if (defined $removed_usernames{$type}{$username}) {
 		$ret = 0;
@@ -329,12 +314,8 @@ sub GIDExists {
     my $gid	= $_[0];
     my $ret	= 0;
     
-    if ($group_type eq "ldap") {
-	$ret = ($gids{$group_type}{$gid} || 0) > 0;
-    }
-    else {
 	$ret = (($gids{"local"}{$gid} || 0) > 0 || ($gids{"system"}{$gid} || 0) > 0);
-    }
+
     return $ret;
 }
 
@@ -346,13 +327,7 @@ sub GroupnameExists {
     my $groupname	= $_[0];
     my $ret		= 0;
     
-    if ($group_type eq "ldap") {
-	$ret = defined $groupnames{$group_type}{$groupname};
-    }
-    else {
-	$ret = (defined $groupnames{"local"}{$groupname} ||
-		defined $groupnames{"system"}{$groupname});
-    }
+	$ret = (defined $groupnames{"local"}{$groupname} || defined $groupnames{"system"}{$groupname});
     return $ret;
 }
 
@@ -368,13 +343,6 @@ sub HomeExists {
     my $home		= $_[0];
     my $ret		= 0;
     my @sets_to_check	= ("local", "system");
-
-    if (Ldap->file_server ()) {
-	push @sets_to_check, "ldap";
-    }
-    elsif ($user_type eq "ldap") { #ldap client only
-	@sets_to_check = ("ldap");
-    }
 
     foreach my $type (@sets_to_check) {
         if (defined $homes{$type}{$home}) {
@@ -835,15 +803,6 @@ sub BuildGroupItem {
     if (defined ($group{"more_users"})) {
 	%more_users	= %{$group{"more_users"}};
     }
-    # which attribute have groups for list of members
-    my $ldap_member_attribute	= Ldap->member_attribute ();
-
-    if ($group{"type"} eq "ldap" && defined ($group{$ldap_member_attribute})) {
-	foreach my $dn (keys %{$group{$ldap_member_attribute}}) {
-	    my $user		= $self->get_first ($dn);
-	    $userlist{$user}	= 1;	
-	}
-    }
 
     my @all_users	= ();
     my @userlist	= sort keys %userlist;
@@ -923,9 +882,6 @@ sub CommitUser {
 
 
     if ($what eq "add_user") {
-	if ($type eq "ldap") {
-	    $userdns{$dn}	= 1;
-	}
 	if (defined $removed_uids{$type}{$uid} && $removed_uids{$type}{$uid} > 0) {
 	    $removed_uids{$type}{$uid} = $removed_uids{$type}{$uid} -1;
 	    y2debug ("uid $uid previously defined in removed_uids{$type}");
@@ -964,10 +920,6 @@ sub CommitUser {
 		delete $removed_usernames{$type}{$username};
 	    }
 	    $removed_usernames{$org_type}{$org_username}	= 1;
-	    if ($type eq "ldap") {
-		delete $userdns{$org_dn};
-		$userdns{$dn}	= 1;
-	    }
         }
 	if ($use_gui) {
 	    delete $user_items{$org_type}{$org_username};
@@ -982,9 +934,6 @@ sub CommitUser {
 	}
     }
     elsif ($what eq "delete_user") {
-	if ($type eq "ldap") {
-		delete $userdns{$org_dn};
-	}
         if (($uids{$type}{$uid} || 0) > 0) {
 	    $uids{$type}{$uid}	= $uids{$type}{$uid} - 1;
 	}
@@ -1156,10 +1105,7 @@ sub ReadUsers {
     my $self	= shift;
     my $type	= $_[0];
 
-    if ($type eq "ldap") {
-        %userdns	= %{SCR->Read (".ldap.users.userdns")};
-    }
-    elsif ($type ne "nis") { # only local/system
+    if ($type ne "nis") { # only local/system
 	$self->SetLastUID (UsersPasswd->GetLastUID ($type), $type);
 	$homes{$type} 		= UsersPasswd->GetHomes ($type);
 	$usernames{$type}	= UsersPasswd->GetUsernames ($type);
@@ -1222,7 +1168,7 @@ sub BuildAdditional {
     my $true		= YaST::YCP::Boolean (1);
     my $false		= YaST::YCP::Boolean (0);
     
-    # when LDAP/NIS users were not yet read, they are not in %usernames ->
+    # when NIS users were not yet read, they are not in %usernames ->
     # check for userlist before going through %usernames
     foreach my $user (keys %{$group->{"userlist"}}) {
 	my $id = YaST::YCP::Term ("id", $user);
@@ -1231,21 +1177,6 @@ sub BuildAdditional {
 
     foreach my $type (keys %usernames) {
 
-	# LDAP groups can contain only LDAP users...
-	if ($group_type eq "ldap") {
-	    if ($type ne "ldap") { next; }
-	    foreach my $dn (keys %userdns) {
-	    
-		my $id = YaST::YCP::Term ("id", $dn);
-		if (defined $group->{Ldap->member_attribute ()}{$dn}) {
-		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn, $true);
-		}
-		elsif (!defined $group->{"more_users"}{$dn}) {
-		    $additional{$dn} = YaST::YCP::Term("item", $id, $dn,$false);
-		}
-	    }
-	    next;
-	}
 	foreach my $user (keys %{$usernames{$type}}) {
 	
 	    my $id = YaST::YCP::Term ("id", $user);
