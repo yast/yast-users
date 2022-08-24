@@ -389,7 +389,7 @@ sub UserModify {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
 
     $error = Users->Read ();
     if ($error ne "") { return $error; }
@@ -483,7 +483,7 @@ sub UserFeatureAdd {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -570,7 +570,7 @@ sub UserFeatureDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -660,7 +660,7 @@ sub UserDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -842,7 +842,7 @@ sub UserGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1384,7 +1384,7 @@ sub GroupMemberDelete {
     
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1491,7 +1491,7 @@ sub GroupDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1574,7 +1574,7 @@ sub GroupGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1645,7 +1645,7 @@ sub GroupsGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     if (Users->Read ()) { return $ret; }
 
     if ($type eq "nis") {
@@ -1713,7 +1713,7 @@ sub GroupsGetByUser {
     
     my $type	= $config->{"type"} || "";# no type = search local&system groups
 
-    Users->SetReadLocal (true);
+    Users->SetReadLocal (1);
     if (Users->Read ()) { return $ret; }
 
     if ($type eq "nis") {
