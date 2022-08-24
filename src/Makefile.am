@@ -9,7 +9,6 @@ module_DATA = \
   modules/UsersPlugins.pm \
   modules/UsersSimple.pm \
   modules/UsersCache.pm \
-  modules/UsersPluginKerberos.pm \
   modules/UsersPasswd.pm \
   modules/Y2UsersLinux.rb
 
@@ -25,9 +24,6 @@ client_DATA = \
   clients/users_finish.rb \
   clients/groups.rb \
   clients/users_plugin_quota.rb \
-  clients/users_plugin_ldap_all.rb \
-  clients/users_plugin_ldap_shadowaccount.rb \
-  clients/users_plugin_ldap_passwordpolicy.rb \
   clients/users.rb \
   clients/inst_root_first.rb \
   clients/inst_user_first.rb \
@@ -42,7 +38,6 @@ yncludedir = @yncludedir@/users
 ynclude_DATA = \
   include/users/widgets.rb \
   include/users/wizards.rb \
-  include/users/ldap_dialogs.rb \
   include/users/dialogs.rb \
   include/users/complex.rb \
   include/users/routines.rb \
