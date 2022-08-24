@@ -389,7 +389,7 @@ sub UserModify {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
 
     $error = Users->Read ();
     if ($error ne "") { return $error; }
@@ -483,7 +483,7 @@ sub UserFeatureAdd {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -570,7 +570,7 @@ sub UserFeatureDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -660,7 +660,7 @@ sub UserDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -842,15 +842,12 @@ sub UserGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"uid"}) {
+    if (defined $config->{"uid"}) {
 	$key	= "uid";
     }
     elsif (defined $config->{"uidNumber"}) {
@@ -867,19 +864,7 @@ sub UserGet {
     elsif ($key ne "") {
 	$ret	= Users->GetUserByName ($config->{$key}, $type);
     }
-    elsif ($type eq "ldap") {
-	# only for LDAP, when filter was given, but no key...
-	my $users	= Users->GetUsers ("dn", $type);
-	if (ref ($users) eq "HASH" && %{$users}) {
-	    my @users	= sort values (%{$users});
-	    if (@users > 1) {
-		y2warning ("There are more users satisfying the input conditions");
-	    }
-	    if (@users > 0 && ref ($users[0]) eq "HASH") {
-		$ret = $users[0];
-	    }
-	}
-    }
+
     # return only requested attributes...
     if (($type eq "local" || $type eq "system") && $config->{"user_attributes"}) {
 	my $attrs	= {};
@@ -1098,19 +1083,6 @@ sub GroupAdd {
 
     my $type	= $config->{"type"} || "local";
 
-    # convert 'member' from list to hash if necessary
-	$member_attr	= "userlist";
-    if (defined $data->{$member_attr} && ref($data->{$member_attr}) eq "ARRAY"){
-	my @userlist		= @{$data->{$member_attr}};
-	$data->{$member_attr}	= {};
-	foreach my $u (@userlist) {
-	    $data->{$member_attr}{$u}	= 1;
-	}
-    }
-    if (!defined $data->{$member_attr}) {
-	$data->{$member_attr}   = {};
-    }
-
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1120,10 +1092,6 @@ sub GroupAdd {
     
     $error = Users->AddGroup ($data);
     if ($error ne "") { return $error; }
-
-    if ($type eq "ldap") {
-	Users->SubstituteGroupValues ();
-    }
 	
     $error = Users->CheckGroup ({});
     if ($error ne "") {
@@ -1207,10 +1175,7 @@ sub GroupModify {
 
     # 1. select group
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"cn"}) {
+    if (defined $config->{"cn"}) {
 	$key	= "cn";
     }
     elsif (defined $config->{"gidNumber"}) {
@@ -1237,13 +1202,6 @@ sub GroupModify {
     }
     elsif ($key ne "") {
 	Users->SelectGroupByName ($config->{$key}, $type);
-    }
-    # 'dn' has to be passed in $data map so it could be changed
-    # FIXME it is currently not possible to move entry deeper in the tree
-    # -> allow setting 'dn' in data map!
-    if ($type eq "ldap" && !defined $data->{"dn"}) {
-	my $group	= Users->GetCurrentGroup ();
-	$data->{"dn"}	= $group->{"dn"};
     }
 
     $error = Users->EditGroup ($data);
@@ -1316,10 +1274,7 @@ sub GroupMemberAdd {
     if ($error ne "") { return $error; }
 
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"cn"}) {
+    if (defined $config->{"cn"}) {
 	$key	= "cn";
     }
     elsif (defined $config->{"gidNumber"}) {
@@ -1347,9 +1302,8 @@ sub GroupMemberAdd {
     }
     # get the user which should be removed from the group
     my $user_id 	= $user->{"dn"};
-    if ($type ne "ldap") {
 	$user_id	= $user->{"uid"};
-    }
+
     if (!defined $user_id) {
 	my $usermap	= ();
 	if (defined $user->{"uid"}) {
@@ -1358,14 +1312,7 @@ sub GroupMemberAdd {
 	elsif (defined $user->{"uidNumber"}) {
 	    $usermap	= Users->GetUser ($user->{"uidNumber"}, $type);
 	}
-	if ($type eq "ldap") {
-	    $user_id	= $usermap->{"dn"};
-	    # TODO maybe there is ony one user loaded, but not specified by
-	    # uid/uidNumber/dn... ->GetUserByAttribute...
-	}
-	else {
-	    $user_id	= $usermap->{"uid"};
-	}
+	$user_id	= $usermap->{"uid"};
     }
     if (!defined $user_id) {
 	# error message
@@ -1437,15 +1384,12 @@ sub GroupMemberDelete {
     
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"cn"}) {
+    if (defined $config->{"cn"}) {
 	$key	= "cn";
     }
     elsif (defined $config->{"gidNumber"}) {
@@ -1473,9 +1417,7 @@ sub GroupMemberDelete {
     }
     # get the user which should be removed from the group
     my $user_id 	= $user->{"dn"};
-    if ($type ne "ldap") {
 	$user_id	= $user->{"uid"};
-    }
     if (!defined $user_id) {
 	my $usermap	= ();
 	if (defined $user->{"uid"}) {
@@ -1484,14 +1426,7 @@ sub GroupMemberDelete {
 	elsif (defined $user->{"uidNumber"}) {
 	    $usermap	= Users->GetUser ($user->{"uidNumber"}, $type);
 	}
-	if ($type eq "ldap") {
-	    $user_id	= $usermap->{"dn"};
-	    # TODO maybe there is ony one user loaded, but not specified by
-	    # uid/uidNumber/dn... ->GetUserByAttribute...
-	}
-	else {
-	    $user_id	= $usermap->{"uid"};
-	}
+	$user_id	= $usermap->{"uid"};
     }
     if (!defined $user_id) {
 	# error message
@@ -1556,15 +1491,12 @@ sub GroupDelete {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"cn"}) {
+    if (defined $config->{"cn"}) {
 	$key	= "cn";
     }
     elsif (defined $config->{"gidNumber"}) {
@@ -1642,15 +1574,12 @@ sub GroupGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
     my $key	= "";
-    if (defined $config->{"dn"} && $type eq "ldap") {
-	$key	= "dn";
-    }
-    elsif (defined $config->{"cn"}) {
+    if (defined $config->{"cn"}) {
 	$key	= "cn";
     }
     elsif (defined $config->{"gidNumber"}) {
@@ -1669,19 +1598,6 @@ sub GroupGet {
     }
     elsif ($key eq "dn") {
 	$ret	= Users->GetGroupByDN ($config->{$key}, $type);
-    }
-    elsif ($type eq "ldap") {
-	# only for LDAP, when filter was given, but no key...
-	my $groups	= Users->GetGroups ("dn", $type);
-	if (ref ($groups) eq "HASH" && %{$groups}) {
-	    my @groups	= sort values (%{$groups});
-	    if (@groups > 1) {
-		y2warning ("There are more groups satisfying the input conditions");
-	    }
-	    if (@groups > 0 && ref ($groups[0]) eq "HASH") {
-		$ret = $groups[0];
-	    }
-	}
     }
     return $ret;
 }
@@ -1729,7 +1645,7 @@ sub GroupsGet {
 
     my $type	= $config->{"type"} || "local";
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     if (Users->Read ()) { return $ret; }
 
     if ($type eq "nis") {
@@ -1797,7 +1713,7 @@ sub GroupsGetByUser {
     
     my $type	= $config->{"type"} || "";# no type = search local&system groups
 
-    Users->SetReadLocal ($type ne "ldap");
+    Users->SetReadLocal (true);
     if (Users->Read ()) { return $ret; }
 
     if ($type eq "nis") {
@@ -1807,9 +1723,7 @@ sub GroupsGetByUser {
     # index to search the output
     my $index		= $config->{"index"} || "gidNumber";
 
-    if ($type ne "ldap") {
 	# get the specified user
-
 	if (!defined $user->{"uid"} && !defined $user->{"uidNumber"}) {
 	    # error message
 	    my $error = __("User was not correctly specified.");
@@ -1840,10 +1754,7 @@ sub GroupsGetByUser {
 		}
 	    }
 	}
-    }
-    else {
-	$ret = Users->GetGroups ($index, $type);
-    }
+
     return $ret;
 }
 

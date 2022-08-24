@@ -297,10 +297,6 @@ module Yast
         return false
       end
 
-      if Ops.get_string(user, "type", "local") == "ldap"
-        Users.SubstituteUserValues
-      end
-
       error = Users.CheckUser({})
       if error != ""
         CommandLine.Print(error)
@@ -578,15 +574,6 @@ module Yast
 
       group = convert_keys(options)
       type = Ops.get_string(group, "type", "local")
-      member_attr = type == "ldap"
-      if Builtins.haskey(group, "userlist")
-        if type == "ldap"
-          Ops.set(group, member_attr, Ops.get_map(group, "userlist", {}))
-          group = Builtins.remove(group, "userlist")
-        end
-      else
-        Ops.set(group, member_attr, {})
-      end
 
       Users.ResetCurrentGroup
       error = Users.AddGroup(group)
@@ -594,10 +581,6 @@ module Yast
       if error != ""
         CommandLine.Print(error)
         return false
-      end
-
-      if Ops.get_string(group, "type", "local") == "ldap"
-        Users.SubstituteGroupValues
       end
 
       error = Users.CheckGroup({})
