@@ -1083,6 +1083,20 @@ sub GroupAdd {
 
     my $type	= $config->{"type"} || "local";
 
+    # convert 'member' from list to hash if necessary
+    my $member_attr	= "userlist";
+
+    if (defined $data->{$member_attr} && ref($data->{$member_attr}) eq "ARRAY"){
+	my @userlist		= @{$data->{$member_attr}};
+	$data->{$member_attr}	= {};
+	foreach my $u (@userlist) {
+	    $data->{$member_attr}{$u}	= 1;
+	}
+    }
+    if (!defined $data->{$member_attr}) {
+	$data->{$member_attr}   = {};
+    }
+
     $error = Users->Read ();
     if ($error ne "") { return $error; }
 
@@ -1183,7 +1197,7 @@ sub GroupModify {
     }
 
     # convert 'member' from list to hash if necessary
-	$member_attr	= "userlist";
+    my $member_attr	= "userlist";
     if (defined $data->{$member_attr} && ref($data->{$member_attr}) eq "ARRAY"){
 	my @userlist		= @{$data->{$member_attr}};
 	$data->{$member_attr}	= ();
@@ -1319,7 +1333,7 @@ sub GroupMemberAdd {
 	return __("User was not correctly specified.");
     }
 
-	$member_attr	= "userlist";
+	my $member_attr	= "userlist";
     my $data	= {
 	$member_attr	=> $group->{$member_attr}
     };
@@ -1433,7 +1447,7 @@ sub GroupMemberDelete {
 	return __("User was not correctly specified.");
     }
 
-	$member_attr	= "userlist";
+	my $member_attr	= "userlist";
     my $data	= {
 	$member_attr	=> $group->{$member_attr}
     };
