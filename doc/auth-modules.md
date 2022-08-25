@@ -13,24 +13,16 @@ As explained in the [detailed document](./use-cases.md), the YaST Users module c
    `/etc/passwd`, `/etc/groups`, etc.
  * List users and groups from the NIS databases known to the system, with the possibility of
    defining additional membership to groups.
- * List, add, modify and delete users and groups from an LDAP directory. The settings to access
-   the LDAP server are read from `/etc/openldap/ldap.conf`.
+ * ~~List, add, modify and delete users and groups from an LDAP directory. The settings to access
+   the LDAP server are read from `/etc/openldap/ldap.conf`.~~
 
 The yast2-users package also offers a plugins system that allows to define properties for each
 type of user and group. Each plugin can then define how those properties are represented in the user
 interface and how they are stored in the system.
 
-The package yast2-users itself offers the following plugins to configure LDAP users and groups:
-
- * LDAPAll: allows to manage the value of several attributes of the LDAP object representing a
-   given user (eg. *departmentOf*, *description*, *gecos*, *jpegPhoto*) or group (eg.
-   *businessCategory*, *description*, *memberOf*, *owner*).
- * Kerberos: makes it possible to add, delete and edit Kerberos principals associated to a user.
- * LDAPShadowAccount: enables to edit the following attributes of the LDAP object representing
-   a given user - *shadowInactive*, *shadowExpire*, *shadowLastChange*, *shadowMin*, *shadowMax*,
-   *shadowWarning* and *shadowFlag*.
- * LDAPPasswordPolicy: allows to define the password policy applied to a user and the value of the
-   corresponding *pwdAccountLockedTime* attribute.
+The package yast2-users itself used to offer the following plugins to configure
+LDAP users and groups, but they were removed in yast2-users 4.5.3. See
+https://github.com/yast/yast-users/pull/366.
 
 Additionally, the following plugin is available for local users:
 

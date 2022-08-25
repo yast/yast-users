@@ -19,23 +19,18 @@ The *Users* and *Groups* tabs contain an *Expert Options* menu button. Let's sta
     * Normal local users (1000 <= UID <= 60000)
     * System local users (100 <= UID <= 499)
     * NIS users
-    * LDAP users
+    * ~~LDAP users~~ Dropped at https://github.com/yast/yast-users/pull/366
 * A filter allows to select the type of users to display:
     * Normal users only
     * System users only
     * NIS users only (visible only if the system is configured to get users via NIS)
-    * LDAP users only (may ask for LDAP authentication if not provided before)
+    * ~~LDAP users only (may ask for LDAP authentication if not provided before)~~ Dropped at https://github.com/yast/yast-users/pull/366
     * Or several types at the same time (custom search)
 * Allows to add, edit and delete users
 
 ![Users filter](img/filters.png)
 
 Note: normal users have UID in the range 1000 - 60000, and system users are in the range 100 - 499. These values are configured in */etc/login.defs*.
-
-Obviously, to manage LDAP users and groups is necessary to connect to an LDAP directory. The
-settings for such connection are read from */etc/openldap/ldap.conf*. On the first access to the
-LDAP server (for example, when selecting "LDAP Users" in the mentioned filter) YaST asks for the
-BindDN and password, allowing also to select "anonymous access" instead.
 
 The forms for adding a new user or to edit an existing one depend on the type of user. When adding
 a new user, the type is chosen based on the current filter. For example, if the filter is set to
@@ -97,19 +92,9 @@ If a system is configured as a NIS server and as its own NIS client, then all th
 
 #### Managing LDAP users
 
-The forms for adding and editing LDAP users contain fewer tabs than the equivalent ones for local
-users because most of the LDAP properties are managed through plug-ins. The list of plug-ins varies
-based on the installed YaST packages (eg. the plug-in to modify the Samba-related attributes of the
-user is part of the yast2-samba-server package) and the configuration of the system (eg. the
-Kerberos or Samba plug-ins are listed only if the system seems to be part of a Kerberos and/or Samba
-infrastructure).
-
-![Add LDAP user](img/ldap_add1.png)
-
-![Add LDAP user](img/ldap_add2.png)
-
-![Add LDAP user](img/ldap_add3.png)
-
+**IMPORTANT:** this feature was removed in yast2-users 4.5.3. See
+https://github.com/yast/yast-users/issues/364 and
+https://github.com/yast/yast-users/pull/366
 
 ### Tab "Groups"
 
@@ -118,7 +103,7 @@ infrastructure).
     * Normal local groups
     * System local groups
     * NIS groups
-    * LDAP groups
+    * ~~LDAP groups~~ Dropped at https://github.com/yast/yast-users/pull/366
 * A filter makes it possible to select the type of groups to display, with a mechanism equivalent
   to the one described for users
 * Allows to add, edit and delete groups
@@ -175,18 +160,6 @@ There is an Expert Options select button with these options:
         * No way to see the encryption algorithm used for a user
 * Write changes now
     * Applies changes without closing the client
-* LDAP search filter
-    * Allows more fine grained search for LDAP users or groups
-    * Allows to select attributes (e.g., objectClass, memberUid, etc) and a value for the attribute
-    * Observations:
-        * Looks like too complex, only for LDAP experts
-        * Seems to be misplaced because there is a filter button where to set criteria to filter users and groups.
-* LDAP User and Group Configuration
-    * Allows to indicate whether to create a home directory in the machine for the LDAP users.
-    * Allows to configure Password Policies for LDAP
-    * Observations:
-        * Looks like too complex, only for LDAP experts
-
 
 ## AutoYaST
 
