@@ -39,7 +39,6 @@ module Yast
       Builtins.y2useritem("User and Group Management module started")
 
       Yast.import "CommandLine"
-      Yast.import "Ldap"
       Yast.import "Mode"
       Yast.import "Users"
       Yast.import "UsersCache"
@@ -140,10 +139,6 @@ module Yast
               "Add new user"
             ),
             "options"         => ["non_strict"],
-            # help text for unknown parameter name
-            "non_strict_help" => _(
-              "Additional (LDAP) user parameters"
-            )
           },
           "edit"   => {
             "handler"         => fun_ref(
@@ -155,10 +150,6 @@ module Yast
               "Edit an existing user"
             ),
             "options"         => ["non_strict"],
-            # help text for unknown parameter name
-            "non_strict_help" => _(
-              "Additional (LDAP) user parameters"
-            )
           },
           "delete" => {
             "handler" => fun_ref(
@@ -182,12 +173,6 @@ module Yast
             # translators: command line help text for list system option
             "help" => _(
               "List of system users"
-            )
-          },
-          "ldap"          => {
-            # translators: command line help text for list ldap option
-            "help" => _(
-              "List of LDAP users"
             )
           },
           "nis"           => {
@@ -268,13 +253,6 @@ module Yast
             # translators: command line help text for show option
             "help" => _(
               "Type of the user (local, system, nis, ldap)"
-            ),
-            "type" => "string"
-          },
-          "ldap_password" => {
-            # translators: command line help text for ldap_password option
-            "help" => _(
-              "Password for LDAP server"
             ),
             "type" => "string"
           },

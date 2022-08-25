@@ -43,8 +43,6 @@ module Yast
       Yast.import "GetInstArgs"
       Yast.import "FileUtils"
       Yast.import "Label"
-      Yast.import "Ldap"
-      Yast.import "LdapPopup"
       Yast.import "Message"
       Yast.import "Package"
       Yast.import "Popup"
@@ -54,7 +52,6 @@ module Yast
       Yast.import "String"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersPlugins"
       Yast.import "UsersRoutines"
       Yast.import "UsersSimple"
@@ -807,15 +804,7 @@ module Yast
                     # selection box label
                     _("Additional Gr&oups"),
                     additional_groups
-                  ),
-                  user_type == "ldap" ?
-                    MultiSelectionBox(
-                      Id(:ldapgrouplist),
-                      # selection box label
-                      _("&LDAP Groups"),
-                      additional_ldap_groups
-                    ) :
-                    Empty()
+                  )
                 )
               ),
               text_mode ? Empty() : HSpacing(1)
@@ -882,17 +871,13 @@ module Yast
           # dialog caption:
           "local"  => _("New Local User"),
           # dialog caption:
-          "system" => _("New System User"),
-          # dialog caption:
-          "ldap"   => _("New LDAP User")
+          "system" => _("New System User")
         },
         "edit_user" => {
           # dialog caption:
           "local"  => _("Existing Local User"),
           # dialog caption:
           "system" => _("Existing System User"),
-          # dialog caption:
-          "ldap"   => _("Existing LDAP User"),
           # dialog caption:
           "nis"    => _("Existing NIS User")
         }
@@ -993,7 +978,6 @@ module Yast
       current = nil
       login_modified = false
       tabids = [:edit, :details, :passwordsettings, :plugins]
-      ldap_user_defaults = UsersLDAP.GetUserDefaults
 
       # switch focus to specified tab (after error message) and widget inside
       focus_tab = lambda do |tab, widget|
@@ -1054,49 +1038,12 @@ module Yast
           end
 
           # now gather user data from dialog
-          if user_type == "ldap"
-            # Form the fullname for LDAP user
-            # sn (surname) and cn (fullname) are required attributes,
-            # they cannot be empty
-            givenname = Convert.to_string(
-              UI.QueryWidget(Id(:givenname), :Value)
-            )
-            sn = Convert.to_string(UI.QueryWidget(Id(:sn), :Value))
-
-            # create default cn/sn if they are not marked for substitution
-            if sn == "" &&
-                (what == "edit_user" ||
-                  !Builtins.haskey(ldap_user_defaults, "sn"))
-              if givenname == ""
-                sn = username
-              else
-                sn = givenname
-                givenname = ""
-              end
-            end
-            # enable changing of cn value only if LDAP user is not saved yet (bnc#904645)
-            if (cn == "" || action == "added") &&
-                # no substitution when editing: TODO bug 238282
-                (what == "edit_user" ||
-                  !# cn should not be substituted:
-                  Builtins.haskey(ldap_user_defaults, "cn"))
-              # if 'givenname' or 'sn' should be substituted, wait for it
-              # and do not create cn now:
-              if !Builtins.haskey(ldap_user_defaults, "sn") &&
-                  !Builtins.haskey(ldap_user_defaults, "givenName")
-                cn = Ops.add(Ops.add(givenname, givenname != "" ? " " : ""), sn)
-              end
-            end
-            UI.ChangeWidget(Id(:givenname), :Value, givenname)
-            UI.ChangeWidget(Id(:sn), :Value, sn)
-          else
-            cn = Convert.to_string(UI.QueryWidget(Id(:cn), :Value))
-            error = UsersSimple.CheckFullname(cn)
-            if error != ""
-              Report.Error(error)
-              focus_tab.call(current, :cn)
-              next
-            end
+          cn = Convert.to_string(UI.QueryWidget(Id(:cn), :Value))
+          error = UsersSimple.CheckFullname(cn)
+          if error != ""
+            Report.Error(error)
+            focus_tab.call(current, :cn)
+            next
           end
           if Builtins.haskey(user, "givenName") &&
               Ops.is_list?(Ops.get(user, "givenName"))
@@ -1116,7 +1063,6 @@ module Yast
           end
 
           # generate a login name from the full name
-          # (not for LDAP, there are customized rules...)
           if ret == :cn
             uname = Convert.to_string(UI.QueryWidget(Id(:username), :Value))
             login_modified = false if login_modified && uname == "" # reenable suggestion
@@ -1207,21 +1153,12 @@ module Yast
           # build default home dir
           if home == "" || home == default_home ||
               Builtins.issubstring(home, "%")
-            # LDAP: maybe value of homedirectory should be substituted?
-            if user_type == "ldap" && Builtins.issubstring(home, "%")
-              user = UsersLDAP.SubstituteValues("user", user)
-              home = Ops.get_string(user, "homeDirectory", default_home)
-            end
             if home == default_home || home == ""
               home = Ops.add(default_home, username)
             end
           end
           if ret != :details && username != org_username
             generated_home = Ops.add(default_home, username)
-            if user_type == "ldap" && Builtins.issubstring(default_home, "%")
-              tmp_user = UsersLDAP.SubstituteValues("user", user)
-              generated_home = Ops.get_string(tmp_user, "homeDirectory", home)
-            end
             if home != generated_home &&
                 (what == "add_user" ||
                   Popup.YesNo(
@@ -1738,19 +1675,6 @@ module Yast
             UI.ChangeWidget(Id(:autologin), :Value, false)
           end
 
-          # LDAP users can be disabled only with certain plugins (bnc#557714)
-          if UI.WidgetExists(Id(:ena)) && user_type == "ldap"
-            ena = Builtins.contains(
-              Ops.get_list(user, "plugins", []),
-              "UsersPluginLDAPShadowAccount"
-            ) ||
-              Builtins.contains(
-                Ops.get_list(user, "plugins", []),
-                "UsersPluginLDAPPasswordPolicy"
-              )
-            UI.ChangeWidget(Id(:ena), :Enabled, ena)
-          end
-
           current = ret
         end
         if ret == :details
@@ -1772,12 +1696,6 @@ module Yast
           if do_not_edit
             [:uid, :home, :move_home, :shell, :defaultgroup, :browse, :btrfs_subvolume].each do |widget|
               UI.ChangeWidget(Id(widget), :Enabled, false)
-            end
-          end
-          if user_type == "ldap" && !Ldap.file_server
-            UI.ChangeWidget(Id(:browse), :Enabled, false)
-            if UI.WidgetExists(Id(:move_home))
-              UI.ChangeWidget(Id(:move_home), :Enabled, false)
             end
           end
           if !FileUtils.Exists(home) && UI.WidgetExists(Id(:move_home))
@@ -1977,11 +1895,6 @@ module Yast
       group_type = Ops.get_string(group, "type", "")
       new_type = group_type
       additional_users = []
-      member_attribute = UsersLDAP.GetMemberAttribute
-
-      if group_type == "ldap"
-        userlist = Ops.get_map(group, member_attribute, {})
-      end
 
       more = Ops.greater_than(Builtins.size(more_users), 0)
 
@@ -1991,16 +1904,12 @@ module Yast
           "local"  => _("New Local Group"),
           # dialog caption:
           "system" => _("New System Group"),
-          # dialog caption:
-          "ldap"   => _("New LDAP Group")
         },
         "edit_group" => {
           # dialog caption:
           "local"  => _("Existing Local Group"),
           # dialog caption:
           "system" => _("Existing System Group"),
-          # dialog caption:
-          "ldap"   => _("Existing LDAP Group")
         }
       }
 

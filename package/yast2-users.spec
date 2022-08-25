@@ -17,7 +17,7 @@
 
 
 Name:           yast2-users
-Version:        4.5.2
+Version:        4.5.3
 Release:        0
 Summary:        YaST2 - User and Group Configuration
 License:        GPL-2.0-only
@@ -54,9 +54,6 @@ Requires:       yast2-security >= 4.4.1
 
 # y2usernote, y2useritem
 Requires:       yast2-perl-bindings >= 2.18.0
-
-# this forces using yast2-ldap with correct LDAP object names (fate#303596)
-Requires:       yast2-ldap >= 3.1.2
 
 # Y2Issues::WithIssues mixin
 Requires:       yast2 >= 4.4.18

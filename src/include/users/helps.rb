@@ -34,11 +34,9 @@ module Yast
       textdomain "users"
 
       Yast.import "Label"
-      Yast.import "Ldap"
       Yast.import "Stage"
       Yast.import "Users"
       Yast.import "UsersCache"
-      Yast.import "UsersLDAP"
       Yast.import "UsersRoutines"
     end
 
@@ -47,6 +45,9 @@ module Yast
     # @return [String] help text
     def help_password(type)
       password_length = ""
+      # CRITICAL!!!!
+      # LITERALLY NONE OF THESE TYPES ARE ACCEPTABLE IN 2022!
+
       enc_to_string = {
         # encryption type
         "des"   => _("DES"),
@@ -56,7 +57,6 @@ module Yast
         "md5"   => _("MD5")
       }
       method = Users.EncryptionMethod
-      method = UsersLDAP.GetEncryption if type == "ldap"
 
       # help text 1/4
       help_text = _(
@@ -187,24 +187,12 @@ module Yast
     # @return [String] help text
     def EditUserDialogHelp(mail, type, what)
       help = ""
-      if type == "ldap"
-        # help text 1/7
-        help = _(
-          "<p>\n" +
-            "Enter the <b>First Name</b>, <b>Last Name</b>, \n" +
-            "<b>Username</b>, and\n" +
-            "<b>Password</b> to assign to this user.\n" +
-            "</p>\n"
-        )
-      else
-        # alternative help text 1/7
-        help = _(
-          "<p>\n" +
-            "Enter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
-            "assign to this user account.\n" +
-            "</p>\n"
-        )
-      end
+      help = _(
+        "<p>\n" +
+          "Enter the <b>User's Full Name</b>, <b>Username</b>, and <b>Password</b> to\n" +
+          "assign to this user account.\n" +
+          "</p>\n"
+      )
 
       help = Ops.add(help, help_password(type))
 
@@ -350,7 +338,7 @@ module Yast
 
     # Help for EditUserDetailsDialog.
     #
-    # @param [String] user_type type of added/edited user (local/system/ldap/nis)
+    # @param [String] user_type type of added/edited user (local/system/nis)
     # @param [String] what what to do with a user (add_user/edit_user)
     #
     # @return [String] help text
@@ -421,13 +409,7 @@ module Yast
         )
       end
 
-      if user_type == "ldap"
-        helptext << _(
-          "<p>\n" \
-          "The home directory of an LDAP user can be changed only on the\n" \
-          "file server.</p>"
-        )
-      elsif user_type == "system" || user_type == "local"
+      if user_type == "system" || user_type == "local"
         helptext << _(
           "<p><b>Additional Information:</b>\n" \
           "Some additional user data could be set here. This field may contain up to\n" \

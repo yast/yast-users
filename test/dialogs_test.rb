@@ -15,8 +15,6 @@ describe "Yast::UsersDialogsInclude" do
 
   before do
     allow(Yast).to receive(:import).and_call_original
-    allow(Yast).to receive(:import).with("Ldap")
-    allow(Yast).to receive(:import).with("LdapPopup")
   end
 
   describe "#cleanpath" do

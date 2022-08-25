@@ -35,7 +35,6 @@ module Yast
 
       Yast.import "Autologin"
       Yast.import "Label"
-      Yast.import "Ldap"
       Yast.import "Popup"
       Yast.import "Report"
       Yast.import "Security"
@@ -80,15 +79,6 @@ module Yast
     def WriteDialog(useUI)
       # Set help text
       Wizard.RestoreHelp(WriteDialogHelp()) if useUI
-
-      if Users.LDAPModified && (Ldap.anonymous || Ldap.bind_pass == nil)
-        # ask for real LDAP password if reading was anonymous
-        Ldap.SetBindPassword(Ldap.LDAPAskAndBind(false))
-        if Ldap.bind_pass == nil
-          # popup text
-          return :back if Popup.YesNo(_("Really abort the writing process?"))
-        end
-      end
 
       Users.SetGUI(useUI)
       ret = :next
