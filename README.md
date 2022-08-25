@@ -5,7 +5,7 @@ https://github.com/yast/yast-users/actions?query=branch%3Amaster)
 [![Jenkins Status](https://ci.opensuse.org/buildStatus/icon?job=yast-yast-users-master)](
 https://ci.opensuse.org/view/Yast/job/yast-yast-users-master/)
 
-This module allows to use YaST to manage local and LDAP users and groups. It also makes possible to
+This module allows to use YaST to manage local users and groups. It also makes possible to
 configure some aspects of the system related to user management and authentication. For a partial
 description of what this module can do, check [the use-cases document](doc/use-cases.md). For an
 overview on how all the authentication-related YaST modules fit together, check
