@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -127,6 +127,107 @@ describe Y2Users::Linux::CreateUserAction do
       action.perform
     end
 
+    it "returns result without success and with issues if cmd failed" do
+      allow(Yast::Execute).to receive(:on_target!)
+        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
+
+      result = action.perform
+      expect(result.success?).to eq false
+      expect(result.issues).to_not be_empty
+    end
+
+    shared_examples "home options" do
+      it "passes --btrfs-subvolume-home parameter if btrfs home configured" do
+        user.home.btrfs_subvol = true
+
+        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+          expect(args).to include "--btrfs-subvolume-home"
+        end
+
+        action.perform
+      end
+
+      it "overwrites home mode parameter if home permission specified" do
+        user.home.permissions = "0533"
+
+        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+          expect(args).to include "--key"
+          expect(args).to include "HOME_MODE=0533"
+        end
+
+        action.perform
+      end
+    end
+
+    shared_examples "home creation failed" do
+      it "retries to create user if home creation failed" do
+        expect(Yast::Execute).to receive(:on_target!).twice do |_cmd, *args|
+          if !args.include?("--no-create-home")
+            raise Cheetah::ExecutionFailed.new([], double(exitstatus: 12), "", "")
+          end
+        end
+
+        action.perform
+      end
+    end
+
+    context "for a system user" do
+      before do
+        user.system = true
+      end
+
+      context "if the home path is known" do
+        before do
+          user.home.path = "/home/test"
+        end
+
+        it "passes --create-home parameter" do
+          expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+            expect(args).to include("--create-home")
+          end
+
+          action.perform
+        end
+
+        it "passes --home-dir parameter" do
+          user.home.path = "/home/test"
+
+          expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+            expect(args).to include("--home-dir")
+            expect(args).to include("/home/test")
+          end
+
+          action.perform
+        end
+
+        include_examples "home options"
+
+        include_examples "home creation failed"
+      end
+
+      context "if the home path is unknown" do
+        before do
+          user.home.path = ""
+        end
+
+        it "does not pass --create-home parameter" do
+          expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+            expect(args).to_not include("--create-home")
+          end
+
+          action.perform
+        end
+
+        it "does not pass --home-dir parameter" do
+          expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
+            expect(args).to_not include("--home-dir")
+          end
+
+          action.perform
+        end
+      end
+    end
+
     context "for a local user" do
       it "passes --create-home parameter" do
         expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
@@ -150,47 +251,9 @@ describe Y2Users::Linux::CreateUserAction do
         action.perform
       end
 
-      it "passes --btrfs-subvolume-home parameter if btrfs home configured" do
-        user.home.btrfs_subvol = true
+      include_examples "home options"
 
-        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
-          expect(args).to include "--btrfs-subvolume-home"
-        end
-
-        action.perform
-      end
-
-      it "overwrites home mode parameter if home permission specified" do
-        user.home.permissions = "0533"
-
-        expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|
-          expect(args).to include "--key"
-          expect(args).to include "HOME_MODE=0533"
-        end
-
-        action.perform
-      end
-    end
-
-    context "home creation failed" do
-      it "retry to create user if home.path is not specified" do
-        expect(Yast::Execute).to receive(:on_target!).twice do |_cmd, *args|
-          if !args.include?("--no-create-home")
-            raise Cheetah::ExecutionFailed.new([], double(exitstatus: 12), "", "")
-          end
-        end
-
-        action.perform
-      end
-    end
-
-    it "returns result without success and with issues if cmd failed" do
-      allow(Yast::Execute).to receive(:on_target!)
-        .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))
-
-      result = action.perform
-      expect(result.success?).to eq false
-      expect(result.issues).to_not be_empty
+      include_examples "home creation failed"
     end
   end
 end

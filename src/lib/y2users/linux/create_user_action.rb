@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -122,7 +122,10 @@ module Y2Users
       # @param skip_home [Boolean]
       # @return [Array<String>]
       def home_options(skip_home: false)
-        return [] if user.system?
+        # If a home is configured for a system user (e.g., with AutoYaST), then its home should be
+        # created (bsc#1202974).
+        home_dir = user.home&.path.to_s
+        return [] if user.system? && home_dir.empty?
 
         return ["--no-create-home"] if skip_home
 
