@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -97,6 +97,36 @@ describe Y2Users::Home do
 
       it "returns false" do
         expect(subject == other).to eq(false)
+      end
+    end
+  end
+
+  describe "path?" do
+    before do
+      subject.path = path
+    end
+
+    context "if the path is nil" do
+      let(:path) { nil }
+
+      it "returns false" do
+        expect(subject.path?).to eq(false)
+      end
+    end
+
+    context "if the path is empty" do
+      let(:path) { "" }
+
+      it "returns false" do
+        expect(subject.path?).to eq(false)
+      end
+    end
+
+    context "if the path is not empty" do
+      let(:path) { "/home/test" }
+
+      it "returns true" do
+        expect(subject.path?).to eq(true)
       end
     end
   end
