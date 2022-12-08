@@ -60,7 +60,7 @@ describe Users::LocalPassword do
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)
-          .with("uid" => "root", "userPassword" => "", "type" => "system")
+          .with({ "uid" => "root", "userPassword" => "", "type" => "system" })
         subject.errors
       end
 
@@ -118,7 +118,7 @@ describe Users::LocalPassword do
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)
-          .with("uid" => "user", "userPassword" => "", "type" => "local", "root" => true)
+          .with({ "uid" => "user", "userPassword" => "", "type" => "local", "root" => true })
         subject.errors
       end
 
@@ -176,7 +176,7 @@ describe Users::LocalPassword do
 
       it "calls UsersSimple with the expected arguments" do
         expect(Yast::UsersSimple).to receive(:CheckPasswordUI)
-          .with("uid" => "user", "userPassword" => "", "type" => "local", "root" => false)
+          .with({ "uid" => "user", "userPassword" => "", "type" => "local", "root" => false })
         subject.errors
       end
 
