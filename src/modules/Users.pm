@@ -169,7 +169,8 @@ my $encryption_method		= "sha512";
 my $group_encryption_method	= "sha512";
 
 # User/group names must match the following regex expression. (/etc/login.defs)
-my $character_class 		= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
+my $character_class_fallback	= "[[:alpha:]_][[:alnum:]_.-]*[[:alnum:]_.\$-]\\?";
+my $character_class             = $character_class_fallback;
 
 # the +/- entries in config files:
 my @pluses_passwd		= ();
@@ -1343,9 +1344,11 @@ sub ReadSystemDefaults {
     }
 
     $character_class = ShadowConfig->fetch("CHARACTER_CLASS");
-    if ($character_class) {
-        UsersSimple->SetCharacterClass ($character_class);
+    if (!$character_class) {
+        $character_class = $character_class_fallback;
+        y2warning ("Couldn't read CHARACTER_CLASS from login.defs, using fallback: $character_class")
     }
+    UsersSimple->SetCharacterClass ($character_class);
 
     my %max_lengths		= %{Security->PasswordMaxLengths ()};
     if (defined $max_lengths{$encryption_method}) {
