@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Jan 11 13:14:46 UTC 2023 - Martin Vidner <mvidner@suse.com>
+
+- Stop using Dir.exists? which no longer works in Ruby 3.2
+  (bsc#1206419)
+- 4.5.4
+
+-------------------------------------------------------------------
 Thu Dec  8 15:26:35 UTC 2022 - Stefan Hundhammer <shundhammer@suse.com>
 
 - Use a fallback if CHARACTER_CLASS cannot be read from /etc/login.defs
