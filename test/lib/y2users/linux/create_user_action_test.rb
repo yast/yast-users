@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021-2022] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -24,7 +24,6 @@ require_relative "../test_helper"
 require "date"
 require "y2users/user"
 require "y2users/linux/create_user_action"
-require "y2users/commit_config"
 
 describe Y2Users::Linux::CreateUserAction do
   subject(:action) { described_class.new(user, commit_config) }

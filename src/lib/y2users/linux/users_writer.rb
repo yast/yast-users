@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,7 +20,7 @@
 require "yast"
 require "yast/i18n"
 require "y2issues/issue"
-require "y2users/commit_config"
+require "y2users/user_commit_config"
 require "y2users/linux/action_writer"
 require "y2users/linux/create_user_action"
 require "y2users/linux/edit_user_action"
@@ -48,7 +48,7 @@ module Y2Users
       #
       # @param target_config [Config] see #target_config
       # @param initial_config [Config] see #initial_config
-      # @param commit_configs [CommitConfigCollection]
+      # @param commit_configs [UserCommitConfigCollection]
       def initialize(target_config, initial_config, commit_configs)
         textdomain "users"
 
@@ -73,7 +73,7 @@ module Y2Users
 
       # Collection of commit configs to address the commit actions to perform for each user
       #
-      # @return [CommitConfigCollection]
+      # @return [UserCommitConfigCollection]
       attr_reader :commit_configs
 
       # Issues generated during the process
@@ -83,7 +83,7 @@ module Y2Users
 
       # Performs the changes in the system in order to create, edit or delete users according to
       # the differences between the initial and the target configs. Commit actions can be addressed
-      # with the commit configs, see {CommitConfig}. Root mail aliases are also updated.
+      # with the commit configs, see {UserCommitConfig}. Root mail aliases are also updated.
       #
       # @see ActionWriter
       def actions
@@ -339,10 +339,10 @@ module Y2Users
       #
       # @param user [User] Note that the commit config of a user is found by the user name. Due to
       #   the user name can change, always use the user from the target config.
-      # @return [CommitConfig] commit config for the given user or a new commit config if there is
-      #   no config for that user.
+      # @return [UserCommitConfig] commit config for the given user or a new configuration if
+      #   there is none for that user.
       def commit_config(user)
-        commit_configs.by_username(user.name) || CommitConfig.new
+        commit_configs.by_username(user.name) || UserCommitConfig.new
       end
 
       # Whether the home directory/subvolume of the given user exists on disk

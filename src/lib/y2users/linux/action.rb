@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -43,7 +43,7 @@ module Y2Users
       # Constructor
       #
       # @param action_element [Object] object to perform the action (e.g., a user)
-      # @param commit_config [CommitConfig, nil] optional configuration for the commit
+      # @param commit_config [UserCommitConfig, nil] optional configuration for the commit
       def initialize(action_element, commit_config = nil)
         @action_element = action_element
         @commit_config = commit_config
@@ -63,7 +63,7 @@ module Y2Users
       # @return [Object]
       attr_reader :action_element
 
-      # @return [CommitConfig]
+      # @return [UserCommitConfig]
       attr_reader :commit_config
 
       # Issues generated while performing the action

@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -24,7 +24,7 @@ require_relative "../test_helper"
 require "date"
 require "y2users/user"
 require "y2users/linux/edit_user_action"
-require "y2users/commit_config"
+require "y2users/user_commit_config"
 
 describe Y2Users::Linux::EditUserAction do
   subject(:action) { described_class.new(old_user, new_user, commit_config) }
@@ -125,7 +125,7 @@ describe Y2Users::Linux::EditUserAction do
     end
 
     context "commit config contain move_home" do
-      let(:commit_config) { Y2Users::CommitConfig.new.tap { |c| c.move_home = true } }
+      let(:commit_config) { Y2Users::UserCommitConfig.new.tap { |c| c.move_home = true } }
 
       it "passes --move-home parameter" do
         new_user.home.path = "/home/test5"

@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -25,8 +25,8 @@ require "y2issues/list"
 require "y2issues/issue"
 require "y2users/linux/users_writer"
 require "y2users/config"
-require "y2users/commit_config_collection"
-require "y2users/commit_config"
+require "y2users/user_commit_config_collection"
+require "y2users/user_commit_config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/linux/delete_user_action"
@@ -43,7 +43,7 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:target_config) { initial_config.copy }
 
-  let(:commit_configs) { Y2Users::CommitConfigCollection.new([commit_config]) }
+  let(:commit_configs) { Y2Users::UserCommitConfigCollection.new([commit_config]) }
 
   let(:users) { [test1, test2] }
 
@@ -51,7 +51,7 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:test2) { Y2Users::User.new("test2").tap { |u| u.home.path = "/home/test2" } }
 
-  let(:commit_config) { Y2Users::CommitConfig.new }
+  let(:commit_config) { Y2Users::UserCommitConfig.new }
 
   let(:system_config) { initial_config }
 
@@ -185,7 +185,7 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.move_home = true
           end
@@ -214,7 +214,7 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.adapt_home_ownership = adapt_home_ownership
           end
@@ -531,7 +531,7 @@ describe Y2Users::Linux::UsersWriter do
         end
 
         let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = test3.name
             config.home_without_skel = home_without_skel
             config.adapt_home_ownership = adapt_home_ownership

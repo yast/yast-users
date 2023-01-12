@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,12 +20,12 @@
 module Y2Users
   # Class for configuring the commit action for a user
   #
-  # Writers can receive a collection of objects of this class (see {CommitConfigCollection}) in
+  # Writers can receive a collection of objects of this class (see {UserCommitConfigCollection}) in
   # order to decide what actions to perform over the user. For example, a writer can use the commit
   # config to check whether the content of the home directory should be moved or not.
   # TODO: It is confusing to have config for different commit actions, so for future it makes sense
   # to split it
-  class CommitConfig
+  class UserCommitConfig
     # Name of the user this commit config applies to
     #
     # @return [String]

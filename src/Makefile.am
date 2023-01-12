@@ -109,8 +109,8 @@ ylib_y2users_DATA = \
   lib/y2users/groups_collection.rb \
   lib/y2users/read_result.rb \
   lib/y2users/home.rb \
-  lib/y2users/commit_config.rb \
-  lib/y2users/commit_config_collection.rb
+  lib/y2users/user_commit_config.rb \
+  lib/y2users/user_commit_config_collection.rb
 
 ylib_y2users_clientsdir = @ylibdir@/y2users/clients
 ylib_y2users_clients_DATA = \

@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -34,7 +34,7 @@ module Y2Users
       #
       # @see Action
       # @param user [User] user to perform the action
-      # @param commit_config [CommitConfig, nil] optional configuration for the commit
+      # @param commit_config [UserCommitConfig, nil] optional configuration for the commit
       # @param previous_keys [Array<String>] optional collection holding previous SSH keys, if any
       def initialize(user, commit_config = nil, previous_keys = [])
         textdomain "users"

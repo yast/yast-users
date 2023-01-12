@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2users/commit_config_collection"
+require "y2users/user_commit_config_collection"
 require "y2issues/with_issues"
 require "y2users/linux/useradd_config_writer"
 require "y2users/linux/login_config_writer"
@@ -84,11 +84,11 @@ module Y2Users
       #
       # @param config [Config] see #config
       # @param initial_config [Config] see #initial_config
-      # @param commit_configs [CommitConfigCollection] configuration to address the commit process
+      # @param commit_configs [UserCommitConfigCollection] configuration to address the commit process
       def initialize(config, initial_config, commit_configs = nil)
         @config = config
         @initial_config = initial_config
-        @commit_configs = commit_configs || CommitConfigCollection.new
+        @commit_configs = commit_configs || UserCommitConfigCollection.new
       end
 
       # Performs the changes in the system
@@ -153,7 +153,7 @@ module Y2Users
 
       # Collection of commit configs to address the commit actions for each user
       #
-      # @return [CommitConfigCollection]
+      # @return [UserCommitConfigCollection]
       attr_reader :commit_configs
 
       # Writes the useradd configuration to the system

@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -24,7 +24,7 @@ require_relative "../test_helper"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/login_config"
-require "y2users/commit_config_collection"
+require "y2users/user_commit_config_collection"
 require "y2issues/list"
 require "y2issues/issue"
 
@@ -35,7 +35,7 @@ describe Y2Users::Linux::Writer do
 
   let(:target_config) { initial_config.copy }
 
-  let(:commit_configs) { Y2Users::CommitConfigCollection.new }
+  let(:commit_configs) { Y2Users::UserCommitConfigCollection.new }
 
   describe "#write" do
     before do

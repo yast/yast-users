@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,14 +20,14 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
-require "y2users/commit_config_collection"
-require "y2users/commit_config"
+require "y2users/user_commit_config_collection"
+require "y2users/user_commit_config"
 
-describe Y2Users::CommitConfigCollection do
+describe Y2Users::UserCommitConfigCollection do
   subject { described_class.new(elements) }
 
-  let(:commit_config1) { Y2Users::CommitConfig.new.tap { |c| c.username = "test1" } }
-  let(:commit_config2) { Y2Users::CommitConfig.new.tap { |c| c.username = "test2" } }
+  let(:commit_config1) { Y2Users::UserCommitConfig.new.tap { |c| c.username = "test1" } }
+  let(:commit_config2) { Y2Users::UserCommitConfig.new.tap { |c| c.username = "test2" } }
 
   describe "#by_username" do
     context "if the collection contains a commit config for the given username" do
