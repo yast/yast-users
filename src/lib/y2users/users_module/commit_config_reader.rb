@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -18,8 +18,8 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2users/commit_config_collection"
-require "y2users/commit_config"
+require "y2users/user_commit_config_collection"
+require "y2users/user_commit_config"
 
 Yast.import "Users"
 
@@ -27,13 +27,13 @@ module Y2Users
   module UsersModule
     # Class for reading the commit configs from Yast::Users module
     #
-    # @see CommitConfig
+    # @see UserCommitConfig
     class CommitConfigReader
       # Generates a collection of commit configs with the information from YaST::Users module
       #
-      # @return [CommitConfigCollection]
+      # @return [UserCommitConfigCollection]
       def read
-        CommitConfigCollection.new.tap do |collection|
+        UserCommitConfigCollection.new.tap do |collection|
           users.each do |user|
             collection.add(commit_config(user))
           end
@@ -66,7 +66,7 @@ module Y2Users
         name = user["uid"]
         config = collection.by_username(name)
         if !config
-          config = CommitConfig.new
+          config = UserCommitConfig.new
           config.username = name
           collection.add(config)
         end
@@ -79,9 +79,9 @@ module Y2Users
       # Generates a commit config from the given user
       #
       # @param user [Hash] a user representation in the format used by Yast::Users
-      # @return [CommitConfig]
+      # @return [UserCommitConfig]
       def commit_config(user)
-        CommitConfig.new.tap do |config|
+        UserCommitConfig.new.tap do |config|
           config.username = user["uid"]
           config.home_without_skel = user["no_skeleton"]
           config.move_home = move_home?(user)

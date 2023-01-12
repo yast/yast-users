@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -23,7 +23,7 @@ require_relative "../test_helper"
 
 require "y2users/user"
 require "y2users/linux/delete_user_action"
-require "y2users/commit_config"
+require "y2users/user_commit_config"
 
 describe Y2Users::Linux::DeleteUserAction do
   subject(:action) { described_class.new(user, commit_config) }
@@ -52,7 +52,7 @@ describe Y2Users::Linux::DeleteUserAction do
     end
 
     context "commit config contain remove_home" do
-      let(:commit_config) { Y2Users::CommitConfig.new.tap { |c| c.remove_home = true } }
+      let(:commit_config) { Y2Users::UserCommitConfig.new.tap { |c| c.remove_home = true } }
 
       it "passes --remove parameter" do
         expect(Yast::Execute).to receive(:on_target!) do |_cmd, *args|

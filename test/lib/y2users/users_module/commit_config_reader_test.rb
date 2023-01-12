@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -122,7 +122,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
     it "generates a commit config collection with the read data" do
       commit_configs = subject.read
 
-      expect(commit_configs).to be_a(Y2Users::CommitConfigCollection)
+      expect(commit_configs).to be_a(Y2Users::UserCommitConfigCollection)
 
       expect(commit_configs.size).to eq(3)
 
