@@ -30,8 +30,6 @@ module Y2Users
     # Writes users and groups to the system using Yast2::Execute and standard
     # linux tools.
     #
-    # NOTE: Removing or fully modifying users is still not covered.
-    #
     # A brief history of the differences with the Yast::Users (perl) module:
     #
     # Both useradd and YaST::Users call the helper script useradd.local which
