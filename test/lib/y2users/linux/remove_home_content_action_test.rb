@@ -26,9 +26,8 @@ require "y2users/user"
 require "y2users/linux/remove_home_content_action"
 
 describe Y2Users::Linux::RemoveHomeContentAction do
-  subject(:action) { described_class.new(user, commit_config) }
+  subject(:action) { described_class.new(user) }
   let(:user) { Y2Users::User.new("test") }
-  let(:commit_config) { nil }
 
   before do
     allow(Yast::Execute).to receive(:on_target!)

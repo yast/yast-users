@@ -25,14 +25,13 @@ require "y2users/linux/set_home_ownership_action"
 require "y2users/user"
 
 describe Y2Users::Linux::SetHomeOwnershipAction do
-  subject(:action) { described_class.new(user, commit_config) }
+  subject(:action) { described_class.new(user) }
   let(:user) do
     Y2Users::User.new("test").tap do |u|
       u.gid = "100"
       u.home.path = "/tmp/home"
     end
   end
-  let(:commit_config) { nil }
 
   describe "#perform" do
     it "calls chown on user home" do

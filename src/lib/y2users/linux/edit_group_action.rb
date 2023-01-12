@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -33,10 +33,10 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(initial_group, target_group, commit_config = nil)
+      def initialize(initial_group, target_group)
         textdomain "users"
 
-        super(target_group, commit_config)
+        super(target_group)
 
         @initial_group = initial_group
       end

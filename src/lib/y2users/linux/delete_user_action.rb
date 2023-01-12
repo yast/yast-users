@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -33,15 +33,24 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(user, commit_config = nil)
+      # @see #remove_home?
+      def initialize(user, remove_home: true)
         textdomain "users"
 
-        super
+        super(user)
+        @remove_home = remove_home
       end
 
     private
 
       alias_method :user, :action_element
+
+      # Whether to also remove the user home directory
+      #
+      # @return [Boolean]
+      def remove_home?
+        !!@remove_home
+      end
 
       # Command for deleting a user
       USERDEL = "/usr/sbin/userdel".freeze
@@ -63,7 +72,7 @@ module Y2Users
       # @return [Array<String>]
       def userdel_options
         options = []
-        options << "--remove" if commit_config&.remove_home?
+        options << "--remove" if remove_home?
 
         options
       end

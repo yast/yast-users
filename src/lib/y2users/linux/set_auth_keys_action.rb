@@ -34,12 +34,11 @@ module Y2Users
       #
       # @see Action
       # @param user [User] user to perform the action
-      # @param commit_config [UserCommitConfig, nil] optional configuration for the commit
       # @param previous_keys [Array<String>] optional collection holding previous SSH keys, if any
-      def initialize(user, commit_config = nil, previous_keys = [])
+      def initialize(user, previous_keys = [])
         textdomain "users"
 
-        super(user, commit_config)
+        super(user)
         @previous_keys = previous_keys || []
       end
 
