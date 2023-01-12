@@ -25,9 +25,8 @@ require "y2users/user"
 require "y2users/linux/delete_user_password_action"
 
 describe Y2Users::Linux::DeleteUserPasswordAction do
-  subject(:action) { described_class.new(user, commit_config) }
+  subject(:action) { described_class.new(user) }
   let(:user) { Y2Users::User.new("test") }
-  let(:commit_config) { nil }
 
   before do
     allow(Yast::Execute).to receive(:on_target!)

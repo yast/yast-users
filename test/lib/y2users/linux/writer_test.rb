@@ -24,18 +24,18 @@ require_relative "../test_helper"
 require "y2users/linux/writer"
 require "y2users/config"
 require "y2users/login_config"
-require "y2users/user_commit_config_collection"
+require "y2users/commit_config"
 require "y2issues/list"
 require "y2issues/issue"
 
 describe Y2Users::Linux::Writer do
-  subject { described_class.new(target_config, initial_config, commit_configs) }
+  subject { described_class.new(target_config, initial_config, commit_config) }
 
   let(:initial_config) { Y2Users::Config.new }
 
   let(:target_config) { initial_config.copy }
 
-  let(:commit_configs) { Y2Users::UserCommitConfigCollection.new }
+  let(:commit_config) { Y2Users::CommitConfig.new }
 
   describe "#write" do
     before do
@@ -46,7 +46,7 @@ describe Y2Users::Linux::Writer do
         .with(target_config, initial_config).and_return(useradd_writer)
 
       allow(Y2Users::Linux::UsersWriter).to receive(:new)
-        .with(target_config, initial_config, commit_configs).and_return(users_writer)
+        .with(target_config, initial_config, commit_config).and_return(users_writer)
 
       allow(Y2Users::Linux::LoginConfigWriter).to receive(:new)
         .with(login_config).and_return(login_writer)

@@ -18,7 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2users/user_commit_config_collection"
+require "y2users/commit_config"
 require "y2users/user_commit_config"
 
 Yast.import "Users"
@@ -27,18 +27,18 @@ module Y2Users
   module UsersModule
     # Class for reading the commit configs from Yast::Users module
     #
-    # @see UserCommitConfig
+    # @see CommitConfig
     class CommitConfigReader
-      # Generates a collection of commit configs with the information from YaST::Users module
+      # Generates a commit config with the information from YaST::Users module
       #
-      # @return [UserCommitConfigCollection]
+      # @return [CommitConfig]
       def read
-        UserCommitConfigCollection.new.tap do |collection|
+        CommitConfig.new.tap do |config|
           users.each do |user|
-            collection.add(commit_config(user))
+            config.user_configs.add(user_config(user))
           end
           removed_users.each do |user|
-            update_user(user, collection)
+            update_user(user, config.user_configs)
           end
         end
       end
@@ -80,7 +80,7 @@ module Y2Users
       #
       # @param user [Hash] a user representation in the format used by Yast::Users
       # @return [UserCommitConfig]
-      def commit_config(user)
+      def user_config(user)
         UserCommitConfig.new.tap do |config|
           config.username = user["uid"]
           config.home_without_skel = user["no_skeleton"]

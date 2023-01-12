@@ -1,4 +1,4 @@
-# Copyright (c) [2021-2022] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -33,7 +33,7 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(user, commit_config = nil)
+      def initialize(user)
         textdomain "users"
 
         super

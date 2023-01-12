@@ -48,13 +48,13 @@ module Y2Users
       #
       # @param target_config [Config] see #target_config
       # @param initial_config [Config] see #initial_config
-      # @param commit_configs [UserCommitConfigCollection]
-      def initialize(target_config, initial_config, commit_configs)
+      # @param commit_config [CommitConfig]
+      def initialize(target_config, initial_config, commit_config)
         textdomain "users"
 
         @initial_config = initial_config
         @target_config = target_config
-        @commit_configs = commit_configs
+        @commit_config = commit_config
         @users_to_write_ssh_keys = {}
       end
 
@@ -71,10 +71,10 @@ module Y2Users
       # @return [Config]
       attr_reader :target_config
 
-      # Collection of commit configs to address the commit actions to perform for each user
+      # Commit config to address the commit actions
       #
-      # @return [UserCommitConfigCollection]
-      attr_reader :commit_configs
+      # @return [CommitConfig]
+      attr_reader :commit_config
 
       # Issues generated during the process
       #
@@ -83,7 +83,7 @@ module Y2Users
 
       # Performs the changes in the system in order to create, edit or delete users according to
       # the differences between the initial and the target configs. Commit actions can be addressed
-      # with the commit configs, see {UserCommitConfig}. Root mail aliases are also updated.
+      # with the commit configs, see {CommitConfig}. Root mail aliases are also updated.
       #
       # @see ActionWriter
       def actions
@@ -139,9 +139,9 @@ module Y2Users
 
         root_alias_candidates << user
 
-        commit_config = commit_config(user)
-        remove_home_content(user) if !reusing_home && commit_config.home_without_skel?
-        adapt_home_ownership(user) if commit_config.adapt_home_ownership?
+        user_config = user_config(user)
+        remove_home_content(user) if !reusing_home && user_config.home_without_skel?
+        adapt_home_ownership(user) if user_config.adapt_home_ownership?
         write_password(user) if user.password
         @users_to_write_ssh_keys[user] = []
       end
@@ -166,8 +166,8 @@ module Y2Users
 
         root_alias_candidates << target_user
 
-        commit_config = commit_config(target_user)
-        adapt_home_ownership(target_user) if commit_config.adapt_home_ownership?
+        user_config = user_config(target_user)
+        adapt_home_ownership(target_user) if user_config.adapt_home_ownership?
         edit_password(target_user) if initial_user.password != target_user.password
 
         previous_keys = initial_user.authorized_keys || []
@@ -238,8 +238,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def create_user(user)
-        action = CreateUserAction.new(user, commit_config(user))
-
+        action = CreateUserAction.new(user)
         perform_action(action)
       end
 
@@ -252,12 +251,10 @@ module Y2Users
       def modify_user(initial_user, target_user)
         # If a new home was assigned to the user and that home already exists, then the content of
         # previous home cannot be moved to the new home. Note that "usermod --move-home" fails in
-        # that scenario (exit status different to 0). To prevent such errors, the commit config is
-        # forced to not move the home content in that case.
-        commit_config = commit_config(target_user).dup
-        commit_config.move_home = false if exist_user_home?(target_user)
-
-        action = EditUserAction.new(initial_user, target_user, commit_config)
+        # that scenario (exit status different to 0). To prevent such errors, the action is forced
+        # to not move the home content in that case.
+        move = exist_user_home?(target_user) ? false : user_config(target_user).move_home?
+        action = EditUserAction.new(initial_user, target_user, move_home: move)
 
         perform_action(action)
       end
@@ -275,8 +272,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def write_password(user)
-        action = SetUserPasswordAction.new(user, commit_config(user))
-
+        action = SetUserPasswordAction.new(user)
         perform_action(action)
       end
 
@@ -285,8 +281,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def delete_password(user)
-        action = DeleteUserPasswordAction.new(user, commit_config(user))
-
+        action = DeleteUserPasswordAction.new(user)
         perform_action(action)
       end
 
@@ -297,8 +292,7 @@ module Y2Users
       def remove_home_content(user)
         return true unless exist_user_home?(user)
 
-        action = RemoveHomeContentAction.new(user, commit_config(user))
-
+        action = RemoveHomeContentAction.new(user)
         perform_action(action)
       end
 
@@ -309,8 +303,7 @@ module Y2Users
       def adapt_home_ownership(user)
         return true unless exist_user_home?(user)
 
-        action = SetHomeOwnershipAction.new(user, commit_config(user))
-
+        action = SetHomeOwnershipAction.new(user)
         perform_action(action)
       end
 
@@ -320,8 +313,7 @@ module Y2Users
       # @param previous_keys [Array<String>] previous auth keys for given user, if any
       # @return [Boolean] true on success
       def write_user_auth_keys(user, previous_keys = [])
-        action = SetAuthKeysAction.new(user, commit_config(user), previous_keys)
-
+        action = SetAuthKeysAction.new(user, previous_keys)
         perform_action(action)
       end
 
@@ -330,19 +322,20 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def delete_user(user)
-        action = DeleteUserAction.new(user, commit_config(user))
+        home = user_config(user).remove_home?
+        action = DeleteUserAction.new(user, remove_home: home)
 
         perform_action(action)
       end
 
-      # Commit actions for a specific user
+      # Commit configuration for a specific user
       #
       # @param user [User] Note that the commit config of a user is found by the user name. Due to
       #   the user name can change, always use the user from the target config.
       # @return [UserCommitConfig] commit config for the given user or a new configuration if
       #   there is none for that user.
-      def commit_config(user)
-        commit_configs.by_username(user.name) || UserCommitConfig.new
+      def user_config(user)
+        commit_config.user_configs.by_username(user.name) || UserCommitConfig.new
       end
 
       # Whether the home directory/subvolume of the given user exists on disk

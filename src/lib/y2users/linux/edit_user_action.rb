@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -33,12 +33,13 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(initial_user, target_user, commit_config = nil)
+      def initialize(initial_user, target_user, move_home: false)
         textdomain "users"
 
-        super(target_user, commit_config)
+        super(target_user)
 
         @initial_user = initial_user
+        @move_home = move_home
       end
 
     private
@@ -55,6 +56,14 @@ module Y2Users
       # Command for modifying users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
+
+      # For cases in which the location of the home directory changed, whether to move the content
+      # of the current home to the new one
+      #
+      # @return [Boolean]
+      def move_home?
+        !!@move_home
+      end
 
       # @see Action#run_action
       #
@@ -118,7 +127,7 @@ module Y2Users
         # will be created only if the old home directory exists. Otherwise, the user will continue
         # without a home directory. Also note that if the new home already exists, then the content
         # of the old home is not moved neither.
-        opts << "--move-home" if commit_config&.move_home? && opts.include?("--home")
+        opts << "--move-home" if move_home? && opts.include?("--home")
 
         opts
       end

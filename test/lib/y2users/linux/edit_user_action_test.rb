@@ -24,13 +24,12 @@ require_relative "../test_helper"
 require "date"
 require "y2users/user"
 require "y2users/linux/edit_user_action"
-require "y2users/user_commit_config"
 
 describe Y2Users::Linux::EditUserAction do
-  subject(:action) { described_class.new(old_user, new_user, commit_config) }
+  subject(:action) { described_class.new(old_user, new_user, move_home: move_home) }
   let(:old_user) { Y2Users::User.new("test") }
   let(:new_user) { Y2Users::User.new("test2").tap { |u| u.assign_internal_id(old_user.id) } }
-  let(:commit_config) { nil }
+  let(:move_home) { false }
 
   before do
     allow(Yast::Execute).to receive(:on_target!)
@@ -125,7 +124,7 @@ describe Y2Users::Linux::EditUserAction do
     end
 
     context "commit config contain move_home" do
-      let(:commit_config) { Y2Users::UserCommitConfig.new.tap { |c| c.move_home = true } }
+      let(:move_home) { true }
 
       it "passes --move-home parameter" do
         new_user.home.path = "/home/test5"

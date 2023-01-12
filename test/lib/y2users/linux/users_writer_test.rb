@@ -25,7 +25,7 @@ require "y2issues/list"
 require "y2issues/issue"
 require "y2users/linux/users_writer"
 require "y2users/config"
-require "y2users/user_commit_config_collection"
+require "y2users/commit_config"
 require "y2users/user_commit_config"
 require "y2users/user"
 require "y2users/password"
@@ -33,7 +33,7 @@ require "y2users/linux/delete_user_action"
 require "y2users/linux/action_result"
 
 describe Y2Users::Linux::UsersWriter do
-  subject { described_class.new(target_config, initial_config, commit_configs) }
+  subject { described_class.new(target_config, initial_config, commit_config) }
 
   let(:initial_config) do
     Y2Users::Config.new.tap do |config|
@@ -43,15 +43,19 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:target_config) { initial_config.copy }
 
-  let(:commit_configs) { Y2Users::UserCommitConfigCollection.new([commit_config]) }
-
   let(:users) { [test1, test2] }
 
   let(:test1) { Y2Users::User.new("test1").tap { |u| u.home.path = "/home/test1" } }
 
   let(:test2) { Y2Users::User.new("test2").tap { |u| u.home.path = "/home/test2" } }
 
-  let(:commit_config) { Y2Users::UserCommitConfig.new }
+  let(:commit_config) do
+    config = Y2Users::CommitConfig.new
+    config.user_configs.add(user_config)
+    config
+  end
+
+  let(:user_config) { Y2Users::UserCommitConfig.new }
 
   let(:system_config) { initial_config }
 
@@ -184,7 +188,7 @@ describe Y2Users::Linux::UsersWriter do
             .and_return(true)
         end
 
-        let(:commit_config) do
+        let(:user_config) do
           Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.move_home = true
@@ -195,10 +199,8 @@ describe Y2Users::Linux::UsersWriter do
           action = instance_double(edit_user_action, perform: success)
 
           expect(edit_user_action)
-            .to receive(:new).with(initial_user, target_user, anything) do |*args|
-              commit_config = args.last
-              expect(commit_config.move_home?).to eq(false)
-            end.and_return(action)
+            .to receive(:new).with(initial_user, target_user, move_home: false)
+            .and_return(action)
 
           expect(action).to receive(:perform)
 
@@ -213,7 +215,7 @@ describe Y2Users::Linux::UsersWriter do
           allow(Yast::FileUtils).to receive(:IsDirectory).and_call_original
         end
 
-        let(:commit_config) do
+        let(:user_config) do
           Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.adapt_home_ownership = adapt_home_ownership
@@ -530,7 +532,7 @@ describe Y2Users::Linux::UsersWriter do
           mock_action(create_user_action, success, test3)
         end
 
-        let(:commit_config) do
+        let(:user_config) do
           Y2Users::UserCommitConfig.new.tap do |config|
             config.username = test3.name
             config.home_without_skel = home_without_skel
