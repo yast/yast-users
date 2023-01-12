@@ -26,6 +26,11 @@ module Y2Users
   # For example, a writer can use the commit config to check whether the content of the home
   # directory of a specific user should be moved or not.
   class CommitConfig
+    # Directory where the files passwd, shadow and group are located
+    #
+    # @return [String, nil] nil to use the default directory
+    attr_accessor :target_dir
+
     # Configuration for each user
     #
     # @return [UserCommitConfigCollection]

@@ -18,6 +18,7 @@
 # find current contact information at www.suse.com.
 
 require "yast"
+require "pathname"
 require "y2users/commit_config"
 require "y2users/user_commit_config"
 
@@ -34,6 +35,7 @@ module Y2Users
       # @return [CommitConfig]
       def read
         CommitConfig.new.tap do |config|
+          config.target_dir = target_dir
           users.each do |user|
             config.user_configs.add(user_config(user))
           end
@@ -116,6 +118,22 @@ module Y2Users
         return nil if value == ""
 
         value
+      end
+
+      # Default value for Yast::Users.GetBaseDirectory()
+      DEFAULT_BASE_DIR = "/etc".freeze
+      private_constant :DEFAULT_BASE_DIR
+
+      # Value for CommitConfig#target_dir
+      #
+      # See bsc#1206627
+      #
+      # @return [String, nil]
+      def target_dir
+        base_dir = Pathname.new(Yast::Users.GetBaseDirectory()).cleanpath.to_s
+        return nil if base_dir == DEFAULT_BASE_DIR
+
+        base_dir
       end
     end
   end

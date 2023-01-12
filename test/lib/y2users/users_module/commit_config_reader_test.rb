@@ -124,6 +124,8 @@ describe Y2Users::UsersModule::CommitConfigReader do
 
       expect(commit_config).to be_a(Y2Users::CommitConfig)
 
+      expect(commit_config.target_dir).to be_nil
+
       user_configs = commit_config.user_configs
       expect(user_configs.size).to eq(3)
 
@@ -143,6 +145,19 @@ describe Y2Users::UsersModule::CommitConfigReader do
       commit_config3 = user_configs.by_username("test6")
       expect(commit_config3.username).to eq("test6")
       expect(commit_config3.remove_home?).to eq(false)
+    end
+
+    context "if base_dir is set to a non-default value" do
+      before do
+        allow(Yast::Users).to receive(:GetBaseDirectory).and_return "/var/yp/yp_etc"
+      end
+
+      it "generates a commit config with the corresponding #target_dir" do
+        commit_config = subject.read
+        expect(commit_config).to be_a(Y2Users::CommitConfig)
+        expect(commit_config.target_dir).to eq "/var/yp/yp_etc"
+      end
+
     end
   end
 end
