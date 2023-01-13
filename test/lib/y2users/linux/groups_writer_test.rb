@@ -26,7 +26,7 @@ require "y2users/config"
 require "y2users/group"
 
 describe Y2Users::Linux::GroupsWriter do
-  subject { described_class.new(target_config, initial_config) }
+  subject { described_class.new(target_config, initial_config, commit_config) }
 
   let(:initial_config) { Y2Users::Config.new.tap { |c| c.attach(groups) } }
 
@@ -37,6 +37,14 @@ describe Y2Users::Linux::GroupsWriter do
   let(:test2) { Y2Users::Group.new("test2") }
 
   let(:groups) { [test1, test2] }
+
+  let(:commit_config) do
+    config = Y2Users::CommitConfig.new
+    config.target_dir = target_dir
+    config
+  end
+
+  let(:target_dir) { nil }
 
   describe "#write" do
     let(:create_group_action) { Y2Users::Linux::CreateGroupAction }

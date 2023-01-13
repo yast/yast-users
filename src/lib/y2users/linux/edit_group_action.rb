@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -33,12 +34,13 @@ module Y2Users
       # Constructor
       #
       # @see Action
-      def initialize(initial_group, target_group)
+      def initialize(initial_group, target_group, root_path: nil)
         textdomain "users"
 
         super(target_group)
 
         @initial_group = initial_group
+        @root_path = root_path
       end
 
     private
@@ -76,7 +78,7 @@ module Y2Users
       #
       # @return [Array<String>]
       def groupmod_options
-        opts = []
+        opts = root_path_options
         opts += ["--new-name", group.name] if group.name && group.name != initial_group.name
         opts += ["--gid", group.gid] if group.gid && group.gid != initial_group.gid
 

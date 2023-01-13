@@ -108,6 +108,18 @@ describe Y2Users::Linux::CreateGroupAction do
       end
     end
 
+    context "if an alternative root_path is passed" do
+      subject { described_class.new(group, root_path: "/tmp/root") }
+
+      it "calls groupadd with the corresponding --prefix option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/groupadd/, any_args) do |*args|
+          expect(args.join(" ")).to include "--prefix /tmp/root"
+        end
+
+        subject.perform
+      end
+    end
+
     context "when the command for creating the group successes" do
       it "returns a successful result" do
         result = subject.perform

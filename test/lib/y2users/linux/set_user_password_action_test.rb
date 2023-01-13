@@ -258,6 +258,26 @@ describe Y2Users::Linux::SetUserPasswordAction do
       end
     end
 
+    context "if an alternative root_path is passed" do
+      subject { described_class.new(user, root_path: "/tmp/root") }
+
+      it "executes chage with the corresponding --root option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
+          expect(args.join(" ")).to include "--root /tmp/root"
+        end
+
+        subject.perform
+      end
+
+      it "executes chpasswd with the corresponding --root option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
+          expect(args.join(" ")).to include "--root /tmp/root"
+        end
+
+        subject.perform
+      end
+    end
+
     it "returns result without success and with issues if chpasswd failed" do
       expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args)
         .and_raise(Cheetah::ExecutionFailed.new(nil, double(exitstatus: 1), nil, nil))

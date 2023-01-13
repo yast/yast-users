@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,14 +30,16 @@ module Y2Users
     class CreateUserAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
-      def initialize(user)
+      def initialize(user, root_path: nil)
         textdomain "users"
 
-        super
+        super(user)
+        @root_path = root_path
       end
 
     private
@@ -84,7 +87,7 @@ module Y2Users
       # @param skip_home [Boolean] whether the home creation should be explicitly skip
       # @return [Array<String>]
       def useradd_options(skip_home: false)
-        user_options + home_options(skip_home: skip_home) + [user.name]
+        root_path_options + user_options + home_options(skip_home: skip_home) + [user.name]
       end
 
       # Options from user attributes

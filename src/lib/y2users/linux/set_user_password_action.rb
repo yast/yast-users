@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,14 +30,18 @@ module Y2Users
     class SetUserPasswordAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
+
+      root_path_option :root
 
       # Constructor
       #
       # @see Action
-      def initialize(user)
+      def initialize(user, root_path: nil)
         textdomain "users"
 
-        super
+        super(user)
+        @root_path = root_path
       end
 
     private
@@ -107,7 +112,7 @@ module Y2Users
       def chpasswd_options
         return [] unless user.password&.value
 
-        opts = []
+        opts = root_path_options
         opts << "-e" if user.password&.value&.encrypted?
         opts << {
           stdin:    [user.name, user.password_content].join(":"),
@@ -131,7 +136,7 @@ module Y2Users
           "--lastday"    => chage_value(user.password.aging)
         }
 
-        opts.reject { |_, v| v.nil? }.flatten
+        opts.reject { |_, v| v.nil? }.flatten + root_path_options
       end
 
       # Returns the right value for a given `chage` option value
