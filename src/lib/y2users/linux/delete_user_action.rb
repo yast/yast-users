@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,16 +30,18 @@ module Y2Users
     class DeleteUserAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
       # @see #remove_home?
-      def initialize(user, remove_home: true)
+      def initialize(user, remove_home: true, root_path: nil)
         textdomain "users"
 
         super(user)
         @remove_home = remove_home
+        @root_path = root_path
       end
 
     private
@@ -71,7 +74,7 @@ module Y2Users
       #
       # @return [Array<String>]
       def userdel_options
-        options = []
+        options = root_path_options
         options << "--remove" if remove_home?
 
         options

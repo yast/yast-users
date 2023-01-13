@@ -174,7 +174,7 @@ module Y2Users
       #
       # @return [Y2Issues::List] the list of issues found while writing changes; empty when none
       def write_groups
-        GroupsWriter.new(config, initial_config).write
+        GroupsWriter.new(config, initial_config, commit_config).write
       end
 
       # Writes (creates, edits or deletes) users according to the configs
