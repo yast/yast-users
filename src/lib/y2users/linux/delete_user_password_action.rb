@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,14 +30,16 @@ module Y2Users
     class DeleteUserPasswordAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
-      def initialize(user)
+      def initialize(user, root_path: nil)
         textdomain "users"
 
-        super
+        super(user)
+        @root_path = root_path
       end
 
     private
@@ -51,7 +54,7 @@ module Y2Users
       #
       # Issues are generated when the password cannot be deleted
       def run_action
-        Yast::Execute.on_target!(PASSWD, "--delete", user.name)
+        Yast::Execute.on_target!(PASSWD, "--delete", *root_path_options, user.name)
         true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(

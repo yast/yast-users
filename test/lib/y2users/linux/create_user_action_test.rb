@@ -253,5 +253,17 @@ describe Y2Users::Linux::CreateUserAction do
 
       include_examples "home creation failed"
     end
+
+    context "if an alternative root_path is passed" do
+      subject { described_class.new(user, root_path: "/tmp/root") }
+
+      it "calls useradd with the corresponding --prefix option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+          expect(args.join(" ")).to include "--prefix /tmp/root"
+        end
+
+        subject.perform
+      end
+    end
   end
 end

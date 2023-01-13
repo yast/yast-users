@@ -51,9 +51,12 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:commit_config) do
     config = Y2Users::CommitConfig.new
+    config.target_dir = target_dir
     config.user_configs.add(user_config)
     config
   end
+
+  let(:target_dir) { nil }
 
   let(:user_config) { Y2Users::UserCommitConfig.new }
 
@@ -199,7 +202,7 @@ describe Y2Users::Linux::UsersWriter do
           action = instance_double(edit_user_action, perform: success)
 
           expect(edit_user_action)
-            .to receive(:new).with(initial_user, target_user, move_home: false)
+            .to receive(:new).with(initial_user, target_user, move_home: false, root_path: nil)
             .and_return(action)
 
           expect(action).to receive(:perform)
@@ -398,6 +401,48 @@ describe Y2Users::Linux::UsersWriter do
 
         it "does not perform more actions" do
           expect_any_instance_of(Y2Users::Linux::Action).to_not receive(:perform)
+
+          subject.write
+        end
+      end
+    end
+
+    context "if an alternative target_dir is configured" do
+      let(:target_dir) { "/var/yp/yp_etc" }
+      let(:tmp_regexp) { /\/tmp\/[^\/]+\/?$/ }
+
+      context "and a user is added to the target config" do
+        let(:test3) do
+          Y2Users::User.new("test3").tap do |user|
+            user.home.path = "/home/test3"
+            user.password = Y2Users::Password.new("s3cr3t")
+          end
+        end
+
+        before do
+          target_config.attach(test3)
+        end
+
+        # The concrete class of the action is not relevant
+        let(:action) { instance_double(create_user_action, perform: success) }
+
+        it "creates a temporary directory with a ./etc symlink pointing to target_dir" do
+          allow(create_user_action).to receive(:new).and_return(action)
+          allow(set_user_password_action).to receive(:new).and_return(action)
+
+          expect(Dir).to receive(:mktmpdir).and_call_original
+          expect(File).to receive(:symlink).with(target_dir, /\/tmp\/.*\/etc/)
+
+          subject.write
+        end
+
+        it "passes the temporary directory to the corresponding actions" do
+          allow(File).to receive(:symlink)
+
+          expect(create_user_action).to receive(:new).with(test3, root_path: tmp_regexp)
+            .and_return(action)
+          expect(set_user_password_action).to receive(:new).with(test3, root_path: tmp_regexp)
+            .and_return(action)
 
           subject.write
         end

@@ -31,6 +31,7 @@ require "y2users/linux/set_home_ownership_action"
 require "y2users/linux/set_auth_keys_action"
 require "y2users/linux/delete_user_action"
 require "y2users/linux/reader"
+require "y2users/linux/temporary_root"
 
 Yast.import "MailAliases"
 
@@ -43,6 +44,7 @@ module Y2Users
       include Yast::I18n
       include Yast::Logger
       include Yast::I18n
+      include TemporaryRoot
 
       # Constructor
       #
@@ -87,11 +89,13 @@ module Y2Users
       #
       # @see ActionWriter
       def actions
-        delete_users
-        edit_users
-        add_users
-        write_root_aliases
-        write_ssh_auth_keys
+        with_temporary_root(commit_config&.target_dir) do
+          delete_users
+          edit_users
+          add_users
+          write_root_aliases
+          write_ssh_auth_keys
+        end
       end
 
       # Deletes users
@@ -238,7 +242,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def create_user(user)
-        action = CreateUserAction.new(user)
+        action = CreateUserAction.new(user, root_path: temporary_root)
         perform_action(action)
       end
 
@@ -254,7 +258,9 @@ module Y2Users
         # that scenario (exit status different to 0). To prevent such errors, the action is forced
         # to not move the home content in that case.
         move = exist_user_home?(target_user) ? false : user_config(target_user).move_home?
-        action = EditUserAction.new(initial_user, target_user, move_home: move)
+        action = EditUserAction.new(
+          initial_user, target_user, move_home: move, root_path: temporary_root
+        )
 
         perform_action(action)
       end
@@ -272,7 +278,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def write_password(user)
-        action = SetUserPasswordAction.new(user)
+        action = SetUserPasswordAction.new(user, root_path: temporary_root)
         perform_action(action)
       end
 
@@ -281,7 +287,7 @@ module Y2Users
       # @param user [User]
       # @return [Boolean] true on success
       def delete_password(user)
-        action = DeleteUserPasswordAction.new(user)
+        action = DeleteUserPasswordAction.new(user, root_path: temporary_root)
         perform_action(action)
       end
 
@@ -323,7 +329,7 @@ module Y2Users
       # @return [Boolean] true on success
       def delete_user(user)
         home = user_config(user).remove_home?
-        action = DeleteUserAction.new(user, remove_home: home)
+        action = DeleteUserAction.new(user, remove_home: home, root_path: temporary_root)
 
         perform_action(action)
       end

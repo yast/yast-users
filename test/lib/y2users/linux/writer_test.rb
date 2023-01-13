@@ -40,7 +40,7 @@ describe Y2Users::Linux::Writer do
   describe "#write" do
     before do
       allow(Y2Users::Linux::GroupsWriter).to receive(:new)
-        .with(target_config, initial_config).and_return(groups_writer)
+        .with(target_config, initial_config, commit_config).and_return(groups_writer)
 
       allow(Y2Users::Linux::UseraddConfigWriter).to receive(:new)
         .with(target_config, initial_config).and_return(useradd_writer)
