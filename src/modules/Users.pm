@@ -2325,7 +2325,7 @@ sub EditUser {
 	    }
 	}
 	if ($key eq "create_home" || $key eq "delete_home" ||
-	    $key eq "chown_home" ||
+	    $key eq "chown_home" || $key eq "btrfs_subvolume" ||
 	    $key eq "encrypted" ||$key eq "no_skeleton" ||
 	    $key eq "disabled" || $key eq "enabled") {
 	    if (ref $data{$key} eq "YaST::YCP::Boolean") {
