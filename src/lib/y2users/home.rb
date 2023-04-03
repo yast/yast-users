@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2022] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -55,6 +55,13 @@ module Y2Users
     # @return [Boolean]
     def btrfs_subvol?
       !!@btrfs_subvol
+    end
+
+    # Whether home has a defined path
+    #
+    # @return [Boolean]
+    def path?
+      !path.to_s.empty?
     end
   end
 end
