@@ -31,6 +31,7 @@ require "y2users/linux/set_home_ownership_action"
 require "y2users/linux/set_auth_keys_action"
 require "y2users/linux/delete_user_action"
 require "y2users/linux/reader"
+require "y2users/linux/local_reader"
 require "y2users/linux/temporary_root"
 
 Yast.import "MailAliases"
@@ -116,7 +117,7 @@ module Y2Users
         # the default home can be used and it depends on useradd and login
         # defaults. So instead of mimic useradd behavior just read what
         # useradd creates. (bsc#1201185)
-        system_users = Reader.new.read.users
+        system_users = reader.read.users
         @users_to_write_ssh_keys.each_pair do |user, old_keys|
           system_user = system_users.by_name(user.name)
           if !system_user
@@ -130,6 +131,15 @@ module Y2Users
           system_user.authorized_keys = user.authorized_keys
           write_user_auth_keys(system_user, old_keys)
         end
+      end
+
+      # Reader used to re-read the users when they have been already created in the system
+      #
+      # @see #write_ssh_auth_keys
+      #
+      # @return [BaseReader]
+      def reader
+        temporary_root ? LocalReader.new(temporary_root) : Reader.new
       end
 
       # Performs all needed actions in order to create and configure a new user (create user, set
