@@ -262,17 +262,17 @@ describe Y2Users::Linux::SetUserPasswordAction do
       subject { described_class.new(user, root_path: "/tmp/root") }
       let(:minimum_age) { "10" }
 
-      it "executes chage with the corresponding --root option" do
+      it "executes chage with the corresponding --prefix option" do
         expect(Yast::Execute).to receive(:on_target!).with(/chage/, any_args) do |*args|
-          expect(args.join(" ")).to include "--root /tmp/root"
+          expect(args.join(" ")).to include "--prefix /tmp/root"
         end
 
         subject.perform
       end
 
-      it "executes chpasswd with the corresponding --root option" do
+      it "executes chpasswd with the corresponding --prefix option" do
         expect(Yast::Execute).to receive(:on_target!).with(/chpasswd/, any_args) do |*args|
-          expect(args.join(" ")).to include "--root /tmp/root"
+          expect(args.join(" ")).to include "--prefix /tmp/root"
         end
 
         subject.perform

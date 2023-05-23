@@ -26,10 +26,9 @@ module Y2Users
     # allow to define the path to what would be the root directory of a system. That implies the
     # tools always assume an extra ./etc directory within the provided path.
     #
-    # Some shadow commands provide both a --prefix argument and a --root one to specify such a root
-    # directory. Other commands provide only the --root one. Since --prefix is more convenient for
-    # the YaST purposes, that will be used by default unless another one is configured for the class
-    # using the provided macro root_path_option.
+    # The shadow commands provide both a --prefix argument and a --root one to specify such a root
+    # directory. YaST uses --prefix because the argument --root assumes the root directory contains
+    # a full system in which the commands may even try to authenticate.
     #
     # For more information, see bsc#1206627
     #
@@ -39,11 +38,6 @@ module Y2Users
     # Hopefully, this mixin will disappear (maybe substituted by a similar one) once the shadow
     # tools gain the ability to specify the exact location of the passwd, shadow and groups files.
     module RootPath
-      def self.included(base)
-        base.extend(ClassMethods)
-        base.root_path_option :prefix
-      end
-
       # Directory containing a ./etc subdirectory with the files to be modified by the command(s)
       #
       # @return [String, nil] nil to use the default location
@@ -55,21 +49,7 @@ module Y2Users
       def root_path_options
         return [] if root_path.nil? || root_path.empty?
 
-        ["--#{self.class.root_path_argument}", root_path]
-      end
-
-      # Class methods to be added
-      module ClassMethods
-        # Macro to redefine the name of the argument used to set the root path in the associated
-        # command(s). Needed because some of the shadow tools do not provide a --prefix argument.
-        #
-        # @param name [String] name of the argument, typically :prefix or :root
-        def root_path_option(name)
-          @root_path_argument = name
-        end
-
-        # @see #root_path_option
-        attr_reader :root_path_argument
+        ["--prefix", root_path]
       end
     end
   end

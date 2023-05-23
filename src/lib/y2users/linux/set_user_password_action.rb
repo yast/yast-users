@@ -32,8 +32,6 @@ module Y2Users
       include Yast::Logger
       include RootPath
 
-      root_path_option :root
-
       # Constructor
       #
       # @see Action
