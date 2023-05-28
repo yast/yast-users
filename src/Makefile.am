@@ -137,6 +137,8 @@ ylib_y2users_linux_DATA = \
   lib/y2users/linux/create_group_action.rb \
   lib/y2users/linux/action.rb \
   lib/y2users/linux/action_result.rb \
+  lib/y2users/linux/root_path.rb \
+  lib/y2users/linux/temporary_root.rb \
   lib/y2users/linux/useradd_config_writer.rb \
   lib/y2users/linux/login_config_writer.rb \
   lib/y2users/linux/action_writer.rb \
