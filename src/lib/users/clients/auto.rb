@@ -44,8 +44,13 @@ module Y2Users
     protected
 
       def import(param)
-        # Use new API for autoinstallation
-        if Yast::Stage.initial
+        # Use the old API when using the AutoYaST UI
+        if Yast::Mode.config
+          check_users(param["users"] || [])
+          Yast::Users.Import(param)
+
+        # and the new one for autoinstallation (and autoconfiguration)
+        else
           reader = Y2Users::Autoinst::Reader.new(param)
           result = reader.read
           read_linuxrc_root_pwd(result.config)
@@ -57,10 +62,6 @@ module Y2Users
           Y2Users::ConfigManager.instance.target = result.config
 
           true
-        # and old one for running system like autoyast UI
-        else
-          check_users(param["users"] || [])
-          Yast::Users.Import(param)
         end
       end
 
@@ -90,15 +91,21 @@ module Y2Users
       end
 
       # @note This code is not executed during autoinstallation (instead, the
-      # users_finish is used). However, it is used when running ayast_setup.
+      # users_finish is used). However, it is used when running ayast_setup and
+      # the AutoYaST UI.
       #
       # @return [Boolean] true if configuration was changed; false otherwise.
       def write
-        Yast::Users.SetWriteOnly(true)
-        progress_orig = Yast::Progress.set(false)
-        ret = Yast::Users.Write == ""
-        Yast::Progress.set(progress_orig)
-        ret
+        if Yast::Mode.normal # Use the old API for AutoYaST UI
+          Yast::Users.SetWriteOnly(true)
+          progress_orig = Yast::Progress.set(false)
+          ret = Yast::Users.Write == ""
+          Yast::Progress.set(progress_orig)
+          ret
+        else
+          Yast::WFM.CallFunction("users_finish", ["Write"])
+          true
+        end
       end
 
       def modified?

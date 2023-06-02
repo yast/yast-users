@@ -34,7 +34,7 @@ describe Y2Users::Clients::Auto do
         let(:users) { YAML.load_file(FIXTURES_PATH.join("users_error.yml")) }
 
         it "report error" do
-          allow(Yast::Stage).to receive(:initial).and_return(false)
+          allow(Yast::Mode).to receive(:config).and_return(true)
           expect(Yast::Report).to receive(:Error)
             .with(_("Found users in profile with equal <username>."))
           expect(Yast::Report).to receive(:Error)
@@ -202,7 +202,7 @@ describe Y2Users::Clients::Auto do
 
       it "removes the configuration object" do
         # reset is not called during installation
-        allow(Yast::Stage).to receive(:initial).and_return(false)
+        allow(Yast::Mode).to receive(:config).and_return(true)
         expect(Yast::Users).to receive(:Import).with({})
 
         subject.run
