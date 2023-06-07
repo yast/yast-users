@@ -208,5 +208,79 @@ describe Y2Users::Clients::Auto do
         subject.run
       end
     end
+
+    context "Write" do
+      let(:func) { "Write" }
+      let(:reader) do
+        instance_double(
+          Y2Users::UsersModule::Reader, read: [Y2Users::Config.new, target_config]
+        )
+      end
+      let(:writer) { instance_double(Y2Users::Linux::Writer, write: []) }
+      let(:system_config) { Y2Users::Config.new }
+      let(:target_config) do
+        Y2Users::Config.new.tap do |config|
+          config.attach(user)
+          config.attach(root)
+          config.attach(users_group)
+          config.attach(others_group)
+        end
+      end
+      let(:root) { Y2Users::User.new("root").tap { |u| u.uid = 0 } }
+      let(:user) { Y2Users::User.new("foo") }
+      let(:users_group) { Y2Users::Group.new("users") }
+      let(:others_group) { Y2Users::Group.new("others") }
+
+      before do
+        allow(Y2Users::ConfigManager.instance).to receive(:system)
+          .and_return(system_config)
+        allow(Y2Users::Linux::Writer).to receive(:new).and_return(writer)
+        allow(Y2Users::UsersModule::Reader).to receive(:new).and_return(reader)
+        allow(Yast::Users).to receive(:GetUsers).with("uid", "local")
+          .and_return("foo" => { "uid" => "foo", "modified" => true })
+        allow(Yast::Users).to receive(:GetUsers).with("uid", "system")
+          .and_return("root" => { "uid" => "root", "modified" => false })
+        allow(Yast::Users).to receive(:GetGroups).with("cn", "local")
+          .and_return("foo" => { "cn" => "users", "modified" => true })
+        allow(Yast::Users).to receive(:GetGroups).with("cn", "system")
+          .and_return("root" => { "cn" => "others", "modified" => false })
+      end
+
+      it "writes the users defined in the Users module" do
+        expect(Y2Users::Linux::Writer).to receive(:new) do |new_config, _|
+          names = new_config.users.map(&:name)
+          expect(names).to include("foo")
+          expect(names).to_not include("root")
+          writer
+        end
+        subject.run
+      end
+
+      it "writes the groups defined in the Users module" do
+        expect(Y2Users::Linux::Writer).to receive(:new) do |new_config, _|
+          names = new_config.groups.map(&:name)
+          expect(names).to include("users")
+          expect(names).to_not include("others")
+          writer
+        end
+        subject.run
+      end
+
+      context "when there are not issues" do
+        it "returns true" do
+          expect(subject.run).to eq(true)
+        end
+      end
+
+      context "when any issue was found" do
+        before do
+          allow(writer).to receive(:write).and_return([double("issue")])
+        end
+
+        it "returns false" do
+          expect(subject.run).to eq(false)
+        end
+      end
+    end
   end
 end
