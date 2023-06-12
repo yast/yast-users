@@ -3,8 +3,9 @@ Wed Jun  7 16:22:59 UTC 2023 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
 
 - Write the users when using AutoYaST on an installed system
   (bsc#1211753).
-- Move SSHAuthorizedKeysFile and SSHAuthorizedKeyring classes
-  to the Y2Users module.
+- Move Ruby classes in Yast::Users (SSHAuthorizedKeysFile and
+  SSHAuthorizedKeyring) to the Y2Users module to remove duplication
+  Yast::Users Perl module.
 - 4.6.2
 
 -------------------------------------------------------------------
