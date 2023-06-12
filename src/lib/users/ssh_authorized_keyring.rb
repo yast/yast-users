@@ -131,7 +131,7 @@ module Yast
       # @return [Array<String>] List of authorized keys
       def read_keys
         path = authorized_keys_path
-        @old_keys = FileUtils::Exists(path) ? SSHAuthorizedKeysFile.new(path).keys : []
+        @old_keys = FileUtils::Exists(path) ? Y2Users::SSHAuthorizedKeysFile.new(path).keys : []
         log.info "Read #{@old_keys.size} keys from #{path}"
         @keys = @old_keys.dup
       end
@@ -219,11 +219,11 @@ module Yast
       # @param owner [Fixnum] Users's UID
       # @param group [Fixnum] Group's GID
       def write_file(owner, group)
-        file = SSHAuthorizedKeysFile.new(authorized_keys_path)
+        file = Y2Users::SSHAuthorizedKeysFile.new(authorized_keys_path)
         file.keys = keys
         log.info "Writing #{keys.size} keys in #{authorized_keys_path}"
         file.save && FileUtils::Chown("#{owner}:#{group}", authorized_keys_path, false)
-      rescue SSHAuthorizedKeysFile::NotRegularFile
+      rescue Y2Users::SSHAuthorizedKeysFile::NotRegularFile
         raise NotRegularAuthorizedKeysFile, authorized_keys_path
       end
 
