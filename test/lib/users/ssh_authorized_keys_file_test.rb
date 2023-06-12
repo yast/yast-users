@@ -20,8 +20,8 @@ require_relative "../../test_helper"
 require "users/ssh_authorized_keys_file"
 require "tmpdir"
 
-describe Yast::Users::SSHAuthorizedKeysFile do
-  subject(:file) { Yast::Users::SSHAuthorizedKeysFile.new(path) }
+describe Y2Users::SSHAuthorizedKeysFile do
+  subject(:file) { described_class.new(path) }
   let(:path) { FIXTURES_PATH.join("home", "user1", ".ssh", "authorized_keys") }
 
   describe "#keys" do
@@ -117,7 +117,7 @@ describe Yast::Users::SSHAuthorizedKeysFile do
           expect(Yast::SCR).to_not receive(:Write)
             .with(Yast::Path.new(".target.string"), anything)
           file.keys = [key0, key1]
-          expect { file.save }.to raise_error(Yast::Users::SSHAuthorizedKeysFile::NotRegularFile)
+          expect { file.save }.to raise_error(Y2Users::SSHAuthorizedKeysFile::NotRegularFile)
         end
       end
     end
