@@ -34,16 +34,16 @@ describe Yast::SSHAuthorizedKeys do
   let(:authorized_keys_path) { File.join("ssh_dir", ".authorized_keys") }
   let(:key) { double("key") }
   let(:keys) { [key] }
-  let(:keyring) { instance_double(Yast::Users::SSHAuthorizedKeyring, add_keys: []) }
+  let(:keyring) { instance_double(Y2Users::SSHAuthorizedKeyring, add_keys: []) }
 
   before do
-    allow(Yast::Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
+    allow(Y2Users::SSHAuthorizedKeyring).to receive(:new).and_return(keyring)
   end
 
   describe "#write_keys" do
     context "when home directory does not exists" do
       let(:exception) do
-        Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist.new(home)
+        Y2Users::SSHAuthorizedKeyring::HomeDoesNotExist.new(home)
       end
 
       it "shows an error message" do
@@ -56,7 +56,7 @@ describe Yast::SSHAuthorizedKeys do
 
     context "SSH directory is not a directory" do
       let(:exception) do
-        Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory.new(ssh_dir)
+        Y2Users::SSHAuthorizedKeyring::NotRegularSSHDirectory.new(ssh_dir)
       end
 
       it "shows an error message" do
@@ -69,7 +69,7 @@ describe Yast::SSHAuthorizedKeys do
 
     context "SSH directory could not be created" do
       let(:exception) do
-        Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory.new(ssh_dir)
+        Y2Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory.new(ssh_dir)
       end
 
       it "shows an error message" do
@@ -82,7 +82,7 @@ describe Yast::SSHAuthorizedKeys do
 
     context "authorized_keys exists but it's not a regular file" do
       let(:exception) do
-        Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile.new(authorized_keys_path)
+        Y2Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile.new(authorized_keys_path)
       end
 
       it "shows an error message" do

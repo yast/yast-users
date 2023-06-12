@@ -21,8 +21,8 @@ require_relative "../../test_helper"
 require "users/ssh_authorized_keyring"
 require "tmpdir"
 
-describe Yast::Users::SSHAuthorizedKeyring do
-  subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new(home) }
+describe Y2Users::SSHAuthorizedKeyring do
+  subject(:keyring) { Y2Users::SSHAuthorizedKeyring.new(home) }
   let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
 
   def authorized_keys_from_home(path)
@@ -213,7 +213,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
           it "raises a HomeDoesNotExist exception and does not write authorized_keys" do
             expect(Y2Users::SSHAuthorizedKeysFile).to_not receive(:new)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::HomeDoesNotExist)
           end
         end
 
@@ -224,7 +224,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
               .with(Yast::Path.new(".target.mkdir"), anything)
               .and_return(false)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
           end
         end
 
@@ -236,7 +236,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
               .and_return(false)
             expect(Y2Users::SSHAuthorizedKeysFile).to_not receive(:new)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
           end
         end
 
@@ -285,7 +285,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
               .and_raise(Y2Users::SSHAuthorizedKeysFile::NotRegularFile)
 
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
           end
         end
       end

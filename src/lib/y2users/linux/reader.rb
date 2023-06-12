@@ -82,13 +82,13 @@ module Y2Users
 
       # Reads users authorized keys
       #
-      # @see Yast::Users::SSHAuthorizedKeyring#read_keys
+      # @see Y2Users::SSHAuthorizedKeyring#read_keys
       # @return [Array<Y2Users::User>]
       def read_authorized_keys(config)
         config.users.each do |user|
           next unless user.home
 
-          user.authorized_keys = Yast::Users::SSHAuthorizedKeyring.new(user.home.path).read_keys
+          user.authorized_keys = Y2Users::SSHAuthorizedKeyring.new(user.home.path).read_keys
         end
       end
 
