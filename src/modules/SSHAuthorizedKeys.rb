@@ -35,27 +35,27 @@ module Yast
 
     # Read keys from a given home directory
     #
-    # @see Yast::Users::SSHAuthorizedKeyring#read_keys
+    # @see Y2Y2Users::SSHAuthorizedKeyring#read_keys
     def read_keys(home)
-      keyring = Users::SSHAuthorizedKeyring.new(home)
+      keyring = Y2Users::SSHAuthorizedKeyring.new(home)
       keyring.read_keys
     end
 
     # Write keys to a given home directory
     #
-    # @see Yast::Users::SSHAuthorizedKeyring#write_keys
+    # @see Y2Y2Users::SSHAuthorizedKeyring#write_keys
     def write_keys(home, keys)
-      keyring = Users::SSHAuthorizedKeyring.new(home)
+      keyring = Y2Users::SSHAuthorizedKeyring.new(home)
       keyring.add_keys(keys)
       keyring.write_keys
-    rescue Users::SSHAuthorizedKeyring::HomeDoesNotExist => e
+    rescue Y2Users::SSHAuthorizedKeyring::HomeDoesNotExist => e
       log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
         format(_("Home directory '%s' does not exist\n" \
                  "so authorized keys will not be written."), e.path)
       )
-    rescue Users::SSHAuthorizedKeyring::NotRegularSSHDirectory => e
+    rescue Y2Users::SSHAuthorizedKeyring::NotRegularSSHDirectory => e
       log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
@@ -63,7 +63,7 @@ module Yast
                  "a security issue so authorized keys will not\n" \
                  "be written."), e.path)
       )
-    rescue Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile => e
+    rescue Y2Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile => e
       log.warn(e.message)
       Report.Warning(
         # TRANSLATORS: '%s' is a directory path
@@ -71,7 +71,7 @@ module Yast
                  "a security issue so authorized keys will not\n" \
                  "be written."), e.path)
       )
-    rescue Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory => e
+    rescue Y2Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory => e
       log.warn(e.message)
       Report.Warning(
         Message.UnableToCreateDirectory(e.path) + "\n" +

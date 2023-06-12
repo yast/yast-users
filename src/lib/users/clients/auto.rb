@@ -22,6 +22,11 @@ require "installation/auto_client"
 require "y2users"
 require "y2users/autoinst/reader"
 require "y2issues"
+require "y2users/config_merger"
+require "y2users/config_manager"
+require "y2users/autoinst/reader"
+require "y2users/users_module/reader"
+require "y2users/linux/writer"
 
 Yast.import "Users"
 Yast.import "Linuxrc"
@@ -90,15 +95,33 @@ module Y2Users
       end
 
       # @note This code is not executed during autoinstallation (instead, the
-      # users_finish is used). However, it is used when running ayast_setup.
+      # users_finish is used). However, it is used when running ayast_setup
+      # or using the AutoYaST UI.
+      #
+      # When working on an already installed system, the process of detecting
+      # which users/groups changed is tricky:
+      #
+      # * The approach followed by [Y2Users::UsersModule::Reader](https://github.com/yast/yast-users/blob/414b6c7373068c367c0a01be20a1399fbd0ef470/src/lib/y2users/users_module/reader.rb#L103),
+      #   checking the content of `org_user`, does not work because it is defined
+      #   only if the user was modified using the AutoYaST UI.
+      # * Directly comparing the users/groups from `system_config` and
+      #   `target_config` does not work because passwords are missing from the
+      #   `target_config` users.
+      #
+      # To overcome these limitations, we only consider those users/groups
+      # which 'modified' property is not nil, although it does not guarantee
+      # that they changed at all.
       #
       # @return [Boolean] true if configuration was changed; false otherwise.
       def write
-        Yast::Users.SetWriteOnly(true)
-        progress_orig = Yast::Progress.set(false)
-        ret = Yast::Users.Write == ""
-        Yast::Progress.set(progress_orig)
-        ret
+        system_config = Y2Users::ConfigManager.instance.system(force_read: true)
+        new_config = system_config.copy
+        _, target_config = Y2Users::UsersModule::Reader.new.read
+        remove_unchanged_elements(target_config)
+        Y2Users::ConfigMerger.new(new_config, target_config).merge
+        writer = Y2Users::Linux::Writer.new(new_config, system_config)
+        issues = writer.write
+        issues.empty?
       end
 
       def modified?
@@ -148,6 +171,23 @@ module Y2Users
         )
 
         root_user
+      end
+
+      # Clean users and groups that have not changed according to the 'modified' attributes
+      #
+      # @param config [Y2Users::Config] Configuration to clean
+      def remove_unchanged_elements(config)
+        all_users = Yast::Users.GetUsers("uid", "local").values +
+          Yast::Users.GetUsers("uid", "system").values
+        uids = all_users.select { |u| u["modified"] }.map { |u| u["uid"] }
+        users = config.users.reject { |u| uids.include?(u.name) }
+
+        all_groups = Yast::Users.GetGroups("cn", "local").values +
+          Yast::Users.GetGroups("cn", "system").values
+        gids = all_groups.select { |g| g["modified"] }.map { |g| g["cn"] }
+        groups = config.groups.reject { |g| gids.include?(g.name) }
+
+        (users + groups).each { |e| config.detach(e) }
       end
     end
   end

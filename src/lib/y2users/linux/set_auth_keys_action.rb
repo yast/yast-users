@@ -54,11 +54,11 @@ module Y2Users
       #
       # Issues are generated when the authorized keys cannot be set.
       def run_action
-        keyring = Yast::Users::SSHAuthorizedKeyring.new(user.home.path, previous_keys)
+        keyring = Y2Users::SSHAuthorizedKeyring.new(user.home.path, previous_keys)
         keyring.add_keys(user.authorized_keys)
         keyring.write_keys
         true
-      rescue Yast::Users::SSHAuthorizedKeyring::PathError => e
+      rescue Y2Users::SSHAuthorizedKeyring::PathError => e
         issues << Y2Issues::Issue.new(
           # TRANSLATORS: %s is a placeholder for a username
           format(_("Error writing authorized keys for '%s'"), user.name)
