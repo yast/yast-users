@@ -119,7 +119,9 @@ module Y2Users
       if Yast::FileUtils::Exists(path)
         raise NotRegularFile unless Yast::FileUtils::IsFile(path)
       else
-        Yast::SCR.Execute(Yast::Path.new(".target.bash"), "umask 0077 && /usr/bin/touch #{path.shellescape}")
+        Yast::SCR.Execute(
+          Yast::Path.new(".target.bash"), "umask 0077 && /usr/bin/touch #{path.shellescape}"
+        )
       end
       content = keys.join("\n") + "\n"
       Yast::SCR.Write(Yast::Path.new(".target.string"), path, content)
