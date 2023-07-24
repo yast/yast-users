@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,14 +30,16 @@ module Y2Users
     class CreateGroupAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
-      def initialize(group, commit_config = nil)
+      def initialize(group, root_path: nil)
         textdomain "users"
 
-        super
+        super(group)
+        @root_path = root_path
       end
 
     private
@@ -66,7 +69,7 @@ module Y2Users
       #
       # @return [Array<String>]
       def groupadd_options
-        opts = []
+        opts = root_path_options
         opts += ["--non-unique", "--gid", group.gid] if group.gid
         opts << "--system" if group.system?
         opts << group.name
