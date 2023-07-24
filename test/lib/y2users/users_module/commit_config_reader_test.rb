@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -119,29 +119,45 @@ describe Y2Users::UsersModule::CommitConfigReader do
       allow(Yast::Users).to receive(:RemovedUsers).and_return(removed_users)
     end
 
-    it "generates a commit config collection with the read data" do
-      commit_configs = subject.read
+    it "generates a commit config with the read data" do
+      commit_config = subject.read
 
-      expect(commit_configs).to be_a(Y2Users::CommitConfigCollection)
+      expect(commit_config).to be_a(Y2Users::CommitConfig)
 
-      expect(commit_configs.size).to eq(3)
+      expect(commit_config.target_dir).to be_nil
 
-      commit_config1 = commit_configs.by_username("test1")
+      user_configs = commit_config.user_configs
+      expect(user_configs.size).to eq(3)
+
+      commit_config1 = user_configs.by_username("test1")
       expect(commit_config1.username).to eq("test1")
       expect(commit_config1.home_without_skel?).to eq(true)
       expect(commit_config1.move_home?).to eq(true)
       expect(commit_config1.adapt_home_ownership?).to eq(true)
 
-      commit_config2 = commit_configs.by_username("test2")
+      commit_config2 = user_configs.by_username("test2")
       expect(commit_config2.username).to eq("test2")
       expect(commit_config2.home_without_skel?).to eq(false)
       expect(commit_config2.move_home?).to eq(false)
       expect(commit_config2.adapt_home_ownership?).to eq(false)
       expect(commit_config2.remove_home?).to eq(true)
 
-      commit_config3 = commit_configs.by_username("test6")
+      commit_config3 = user_configs.by_username("test6")
       expect(commit_config3.username).to eq("test6")
       expect(commit_config3.remove_home?).to eq(false)
+    end
+
+    context "if base_dir is set to a non-default value" do
+      before do
+        allow(Yast::Users).to receive(:GetBaseDirectory).and_return "/var/yp/yp_etc"
+      end
+
+      it "generates a commit config with the corresponding #target_dir" do
+        commit_config = subject.read
+        expect(commit_config).to be_a(Y2Users::CommitConfig)
+        expect(commit_config.target_dir).to eq "/var/yp/yp_etc"
+      end
+
     end
   end
 end

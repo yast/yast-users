@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,16 +30,19 @@ module Y2Users
     class EditUserAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
-      def initialize(initial_user, target_user, commit_config = nil)
+      def initialize(initial_user, target_user, move_home: false, root_path: nil)
         textdomain "users"
 
-        super(target_user, commit_config)
+        super(target_user)
 
         @initial_user = initial_user
+        @move_home = move_home
+        @root_path = root_path
       end
 
     private
@@ -55,6 +59,14 @@ module Y2Users
       # Command for modifying users
       USERMOD = "/usr/sbin/usermod".freeze
       private_constant :USERMOD
+
+      # For cases in which the location of the home directory changed, whether to move the content
+      # of the current home to the new one
+      #
+      # @return [Boolean]
+      def move_home?
+        !!@move_home
+      end
 
       # @see Action#run_action
       #
@@ -75,7 +87,7 @@ module Y2Users
       #
       # @return [Array<String>]
       def usermod_options
-        user_options + home_options
+        root_path_options + user_options + home_options
       end
 
       # Options from the user attributes
@@ -118,7 +130,7 @@ module Y2Users
         # will be created only if the old home directory exists. Otherwise, the user will continue
         # without a home directory. Also note that if the new home already exists, then the content
         # of the old home is not moved neither.
-        opts << "--move-home" if commit_config&.move_home? && opts.include?("--home")
+        opts << "--move-home" if move_home? && opts.include?("--home")
 
         opts
       end

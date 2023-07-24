@@ -110,7 +110,8 @@ ylib_y2users_DATA = \
   lib/y2users/read_result.rb \
   lib/y2users/home.rb \
   lib/y2users/commit_config.rb \
-  lib/y2users/commit_config_collection.rb
+  lib/y2users/user_commit_config.rb \
+  lib/y2users/user_commit_config_collection.rb
 
 ylib_y2users_clientsdir = @ylibdir@/y2users/clients
 ylib_y2users_clients_DATA = \
@@ -136,6 +137,8 @@ ylib_y2users_linux_DATA = \
   lib/y2users/linux/create_group_action.rb \
   lib/y2users/linux/action.rb \
   lib/y2users/linux/action_result.rb \
+  lib/y2users/linux/root_path.rb \
+  lib/y2users/linux/temporary_root.rb \
   lib/y2users/linux/useradd_config_writer.rb \
   lib/y2users/linux/login_config_writer.rb \
   lib/y2users/linux/action_writer.rb \

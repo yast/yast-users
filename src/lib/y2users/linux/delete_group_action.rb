@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -22,6 +22,7 @@ require "yast/i18n"
 require "yast2/execute"
 require "y2issues/issue"
 require "y2users/linux/action"
+require "y2users/linux/root_path"
 
 module Y2Users
   module Linux
@@ -29,14 +30,16 @@ module Y2Users
     class DeleteGroupAction < Action
       include Yast::I18n
       include Yast::Logger
+      include RootPath
 
       # Constructor
       #
       # @see Action
-      def initialize(group, commit_config = nil)
+      def initialize(group, root_path: nil)
         textdomain "users"
 
-        super
+        super(group)
+        @root_path = root_path
       end
 
     private
@@ -51,7 +54,7 @@ module Y2Users
       #
       # Issues are generated when the group cannot be deleted.
       def run_action
-        Yast::Execute.on_target!(GROUPDEL, group.name)
+        Yast::Execute.on_target!(GROUPDEL, *root_path_options, group.name)
         true
       rescue Cheetah::ExecutionFailed => e
         issues << Y2Issues::Issue.new(

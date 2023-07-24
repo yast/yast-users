@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -17,59 +17,28 @@
 # To contact SUSE LLC about this file by physical or electronic mail, you may
 # find current contact information at www.suse.com.
 
+require "y2users/user_commit_config_collection"
+
 module Y2Users
-  # Class for configuring the commit action for a user
+  # Class for configuring the commit actions
   #
-  # Writers can receive a collection of objects of this class (see {CommitConfigCollection}) in
-  # order to decide what actions to perform over the user. For example, a writer can use the commit
-  # config to check whether the content of the home directory should be moved or not.
-  # TODO: It is confusing to have config for different commit actions, so for future it makes sense
-  # to split it
+  # Writers can receive an object of this class in order to decide what actions to perform and how.
+  # For example, a writer can use the commit config to check whether the content of the home
+  # directory of a specific user should be moved or not.
   class CommitConfig
-    # Name of the user this commit config applies to
+    # Directory where the files passwd, shadow and group are located
     #
-    # @return [String]
-    attr_accessor :username
+    # @return [String, nil] nil to use the default directory
+    attr_accessor :target_dir
 
-    # Whether the home should be empty after the creation (i.e., do not use skels)
+    # Configuration for each user
     #
-    # @return [Boolean]
-    attr_writer :home_without_skel
+    # @return [UserCommitConfigCollection]
+    attr_reader :user_configs
 
-    # Whether to move the content of the current home directory to the new location
-    #
-    # @return [Boolean]
-    attr_writer :move_home
-
-    # Whether this user should own the home. This is useful when changing the home to reuse an
-    # existing directory/subvolume.
-    #
-    # @return [Boolean]
-    attr_writer :adapt_home_ownership
-
-    # Whether to remove user home when removing it.
-    #
-    # @return [Boolean]
-    attr_writer :remove_home
-
-    # @return [Boolean]
-    def home_without_skel?
-      !!@home_without_skel
-    end
-
-    # @return [Boolean]
-    def move_home?
-      !!@move_home
-    end
-
-    # @return [Boolean]
-    def adapt_home_ownership?
-      !!@adapt_home_ownership
-    end
-
-    # @return [Boolean]
-    def remove_home?
-      !!@remove_home
+    # Constructor
+    def initialize
+      @user_configs = UserCommitConfigCollection.new
     end
   end
 end

@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,22 +20,22 @@
 require "y2users/collection"
 
 module Y2Users
-  # Collection of commit configs
+  # Collection of user commit configs
   #
-  # @see CommitConfig
-  class CommitConfigCollection < Collection
+  # @see UserCommitConfig
+  class UserCommitConfigCollection < Collection
     # Constructor
     #
-    # @param commit_configs [Array<CommitConfig>]
-    def initialize(commit_configs = [])
+    # @param configs [Array<UserCommitConfig>]
+    def initialize(configs = [])
       super
     end
 
     # Commit config for the given user
     #
     # @param value [String] username
-    # @return [CommitConfig, nil] nil if the collection does not include a commit config for the
-    #   given username
+    # @return [UserCommitConfig, nil] nil if the collection does not include a configuration for
+    #   the given username
     def by_username(value)
       find { |c| c.username == value }
     end
