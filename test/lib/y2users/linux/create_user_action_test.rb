@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021-2022] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -24,12 +24,10 @@ require_relative "../test_helper"
 require "date"
 require "y2users/user"
 require "y2users/linux/create_user_action"
-require "y2users/commit_config"
 
 describe Y2Users::Linux::CreateUserAction do
-  subject(:action) { described_class.new(user, commit_config) }
+  subject(:action) { described_class.new(user) }
   let(:user) { Y2Users::User.new("test") }
-  let(:commit_config) { nil }
 
   before do
     allow(Yast::Execute).to receive(:on_target!)
@@ -254,6 +252,18 @@ describe Y2Users::Linux::CreateUserAction do
       include_examples "home options"
 
       include_examples "home creation failed"
+    end
+
+    context "if an alternative root_path is passed" do
+      subject { described_class.new(user, root_path: "/tmp/root") }
+
+      it "calls useradd with the corresponding --prefix option" do
+        expect(Yast::Execute).to receive(:on_target!).with(/useradd/, any_args) do |*args|
+          expect(args.join(" ")).to include "--prefix /tmp/root"
+        end
+
+        subject.perform
+      end
     end
   end
 end

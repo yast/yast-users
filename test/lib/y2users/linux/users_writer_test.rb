@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -25,15 +25,15 @@ require "y2issues/list"
 require "y2issues/issue"
 require "y2users/linux/users_writer"
 require "y2users/config"
-require "y2users/commit_config_collection"
 require "y2users/commit_config"
+require "y2users/user_commit_config"
 require "y2users/user"
 require "y2users/password"
 require "y2users/linux/delete_user_action"
 require "y2users/linux/action_result"
 
 describe Y2Users::Linux::UsersWriter do
-  subject { described_class.new(target_config, initial_config, commit_configs) }
+  subject { described_class.new(target_config, initial_config, commit_config) }
 
   let(:initial_config) do
     Y2Users::Config.new.tap do |config|
@@ -43,15 +43,22 @@ describe Y2Users::Linux::UsersWriter do
 
   let(:target_config) { initial_config.copy }
 
-  let(:commit_configs) { Y2Users::CommitConfigCollection.new([commit_config]) }
-
   let(:users) { [test1, test2] }
 
   let(:test1) { Y2Users::User.new("test1").tap { |u| u.home.path = "/home/test1" } }
 
   let(:test2) { Y2Users::User.new("test2").tap { |u| u.home.path = "/home/test2" } }
 
-  let(:commit_config) { Y2Users::CommitConfig.new }
+  let(:commit_config) do
+    config = Y2Users::CommitConfig.new
+    config.target_dir = target_dir
+    config.user_configs.add(user_config)
+    config
+  end
+
+  let(:target_dir) { nil }
+
+  let(:user_config) { Y2Users::UserCommitConfig.new }
 
   let(:system_config) { initial_config }
 
@@ -184,8 +191,8 @@ describe Y2Users::Linux::UsersWriter do
             .and_return(true)
         end
 
-        let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+        let(:user_config) do
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.move_home = true
           end
@@ -195,10 +202,8 @@ describe Y2Users::Linux::UsersWriter do
           action = instance_double(edit_user_action, perform: success)
 
           expect(edit_user_action)
-            .to receive(:new).with(initial_user, target_user, anything) do |*args|
-              commit_config = args.last
-              expect(commit_config.move_home?).to eq(false)
-            end.and_return(action)
+            .to receive(:new).with(initial_user, target_user, move_home: false, root_path: nil)
+            .and_return(action)
 
           expect(action).to receive(:perform)
 
@@ -213,8 +218,8 @@ describe Y2Users::Linux::UsersWriter do
           allow(Yast::FileUtils).to receive(:IsDirectory).and_call_original
         end
 
-        let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+        let(:user_config) do
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = target_user.name
             config.adapt_home_ownership = adapt_home_ownership
           end
@@ -402,6 +407,48 @@ describe Y2Users::Linux::UsersWriter do
       end
     end
 
+    context "if an alternative target_dir is configured" do
+      let(:target_dir) { "/var/yp/yp_etc" }
+      let(:tmp_regexp) { /\/tmp\/[^\/]+\/?$/ }
+
+      context "and a user is added to the target config" do
+        let(:test3) do
+          Y2Users::User.new("test3").tap do |user|
+            user.home.path = "/home/test3"
+            user.password = Y2Users::Password.new("s3cr3t")
+          end
+        end
+
+        before do
+          target_config.attach(test3)
+        end
+
+        # The concrete class of the action is not relevant
+        let(:action) { instance_double(create_user_action, perform: success) }
+
+        it "creates a temporary directory with a ./etc symlink pointing to target_dir" do
+          allow(create_user_action).to receive(:new).and_return(action)
+          allow(set_user_password_action).to receive(:new).and_return(action)
+
+          expect(Dir).to receive(:mktmpdir).and_call_original
+          expect(File).to receive(:symlink).with(target_dir, /\/tmp\/.*\/etc/)
+
+          subject.write
+        end
+
+        it "passes the temporary directory to the corresponding actions" do
+          allow(File).to receive(:symlink)
+
+          expect(create_user_action).to receive(:new).with(test3, root_path: tmp_regexp)
+            .and_return(action)
+          expect(set_user_password_action).to receive(:new).with(test3, root_path: tmp_regexp)
+            .and_return(action)
+
+          subject.write
+        end
+      end
+    end
+
     context "after working with users" do
       # Initial config is empty
       let(:users) { [] }
@@ -530,8 +577,8 @@ describe Y2Users::Linux::UsersWriter do
           mock_action(create_user_action, success, test3)
         end
 
-        let(:commit_config) do
-          Y2Users::CommitConfig.new.tap do |config|
+        let(:user_config) do
+          Y2Users::UserCommitConfig.new.tap do |config|
             config.username = test3.name
             config.home_without_skel = home_without_skel
             config.adapt_home_ownership = adapt_home_ownership

@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -20,9 +20,9 @@
 # find current contact information at www.suse.com.
 
 require_relative "test_helper"
-require "y2users/commit_config"
+require "y2users/user_commit_config"
 
-describe Y2Users::CommitConfig do
+describe Y2Users::UserCommitConfig do
   subject { described_class.new }
 
   describe "#home_without_skel?" do
