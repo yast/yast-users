@@ -24,9 +24,10 @@ require_relative "../test_helper"
 require "y2users/linux/groups_writer"
 require "y2users/config"
 require "y2users/group"
+require "y2users/commit_config"
 
 describe Y2Users::Linux::GroupsWriter do
-  subject { described_class.new(target_config, initial_config) }
+  subject { described_class.new(target_config, initial_config, commit_config) }
 
   let(:initial_config) { Y2Users::Config.new.tap { |c| c.attach(groups) } }
 
@@ -38,6 +39,14 @@ describe Y2Users::Linux::GroupsWriter do
 
   let(:groups) { [test1, test2] }
 
+  let(:commit_config) do
+    config = Y2Users::CommitConfig.new
+    config.target_dir = target_dir
+    config
+  end
+
+  let(:target_dir) { nil }
+
   describe "#write" do
     let(:create_group_action) { Y2Users::Linux::CreateGroupAction }
 
@@ -48,7 +57,7 @@ describe Y2Users::Linux::GroupsWriter do
     def mock_action(action, result, *groups)
       action_instance = instance_double(action, perform: result)
 
-      allow(action).to receive(:new).with(*groups).and_return(action_instance)
+      allow(action).to receive(:new).with(*groups, any_args).and_return(action_instance)
 
       action_instance
     end

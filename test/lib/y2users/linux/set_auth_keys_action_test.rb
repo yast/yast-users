@@ -1,6 +1,6 @@
 #!/usr/bin/env rspec
 
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -22,18 +22,16 @@
 require_relative "../test_helper"
 
 require "y2users/linux/set_auth_keys_action"
-require "y2users/commit_config"
 require "y2users/user"
 
 describe Y2Users::Linux::SetAuthKeysAction do
-  subject(:action) { described_class.new(user, commit_config) }
+  subject(:action) { described_class.new(user) }
   let(:user) do
     Y2Users::User.new("test").tap do |user|
       user.home.path = "/home/test"
       user.authorized_keys = ["test"]
     end
   end
-  let(:commit_config) { nil }
 
   describe "#perform" do
     it "calls SSHAuthorizedKeyring#write_keys" do

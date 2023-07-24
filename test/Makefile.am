@@ -43,8 +43,8 @@ TESTS = \
   lib/y2users/linux/users_writer_test.rb \
   lib/y2users/linux/writer_test.rb \
   lib/y2users/home_test.rb \
-  lib/y2users/commit_config_test.rb \
-  lib/y2users/commit_config_collection_test.rb \
+  lib/y2users/user_commit_config_test.rb \
+  lib/y2users/user_commit_config_collection_test.rb \
   lib/y2users/users_module/reader_test.rb \
   lib/y2users/users_module/commit_config_reader_test.rb \
   lib/y2users/autoinst/config_merger_test.rb \

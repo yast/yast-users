@@ -24,6 +24,7 @@ require "y2users/linux/action_writer"
 require "y2users/linux/delete_group_action"
 require "y2users/linux/create_group_action"
 require "y2users/linux/edit_group_action"
+require "y2users/linux/temporary_root"
 
 module Y2Users
   module Linux
@@ -33,16 +34,19 @@ module Y2Users
     class GroupsWriter < ActionWriter
       include Yast::I18n
       include Yast::Logger
+      include TemporaryRoot
 
       # Constructor
       #
       # @param target_config [Config] see #target_config
       # @param initial_config [Config] see #initial_config
-      def initialize(target_config, initial_config)
+      # @param commit_config [CommitConfig] see #commit_config
+      def initialize(target_config, initial_config, commit_config)
         textdomain "users"
 
         @initial_config = initial_config
         @target_config = target_config
+        @commit_config = commit_config
       end
 
     private
@@ -58,14 +62,21 @@ module Y2Users
       # @return [Config]
       attr_reader :target_config
 
+      # Commit config to address the commit actions
+      #
+      # @return [CommitConfig]
+      attr_reader :commit_config
+
       # Performs the changes in the system in order to create, edit or delete groups according to
       # the configs.
       #
       # @see ActionWriter
       def actions
-        delete_groups
-        edit_groups
-        add_groups
+        with_temporary_root(commit_config.target_dir) do
+          delete_groups
+          edit_groups
+          add_groups
+        end
       end
 
       # Deletes groups
@@ -78,8 +89,7 @@ module Y2Users
       # @param group [Group]
       # @return [Boolean] true on success
       def delete_group(group)
-        action = DeleteGroupAction.new(group)
-
+        action = DeleteGroupAction.new(group, root_path: temporary_root)
         perform_action(action)
       end
 
@@ -93,8 +103,7 @@ module Y2Users
       # @param group [Group]
       # @return [Boolean] true on success
       def add_group(group)
-        action = CreateGroupAction.new(group)
-
+        action = CreateGroupAction.new(group, root_path: temporary_root)
         perform_action(action)
       end
 
@@ -113,8 +122,7 @@ module Y2Users
       #
       # @return [Boolean] true on success
       def edit_group(initial_group, target_group)
-        action = EditGroupAction.new(initial_group, target_group)
-
+        action = EditGroupAction.new(initial_group, target_group, root_path: temporary_root)
         perform_action(action)
       end
 

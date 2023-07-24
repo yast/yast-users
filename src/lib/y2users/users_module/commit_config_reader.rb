@@ -1,4 +1,4 @@
-# Copyright (c) [2021] SUSE LLC
+# Copyright (c) [2021-2023] SUSE LLC
 #
 # All Rights Reserved.
 #
@@ -18,8 +18,9 @@
 # find current contact information at www.suse.com.
 
 require "yast"
-require "y2users/commit_config_collection"
+require "pathname"
 require "y2users/commit_config"
+require "y2users/user_commit_config"
 
 Yast.import "Users"
 
@@ -29,16 +30,17 @@ module Y2Users
     #
     # @see CommitConfig
     class CommitConfigReader
-      # Generates a collection of commit configs with the information from YaST::Users module
+      # Generates a commit config with the information from YaST::Users module
       #
-      # @return [CommitConfigCollection]
+      # @return [CommitConfig]
       def read
-        CommitConfigCollection.new.tap do |collection|
+        CommitConfig.new.tap do |config|
+          config.target_dir = target_dir
           users.each do |user|
-            collection.add(commit_config(user))
+            config.user_configs.add(user_config(user))
           end
           removed_users.each do |user|
-            update_user(user, collection)
+            update_user(user, config.user_configs)
           end
         end
       end
@@ -66,7 +68,7 @@ module Y2Users
         name = user["uid"]
         config = collection.by_username(name)
         if !config
-          config = CommitConfig.new
+          config = UserCommitConfig.new
           config.username = name
           collection.add(config)
         end
@@ -79,9 +81,9 @@ module Y2Users
       # Generates a commit config from the given user
       #
       # @param user [Hash] a user representation in the format used by Yast::Users
-      # @return [CommitConfig]
-      def commit_config(user)
-        CommitConfig.new.tap do |config|
+      # @return [UserCommitConfig]
+      def user_config(user)
+        UserCommitConfig.new.tap do |config|
           config.username = user["uid"]
           config.home_without_skel = user["no_skeleton"]
           config.move_home = move_home?(user)
@@ -116,6 +118,22 @@ module Y2Users
         return nil if value == ""
 
         value
+      end
+
+      # Default value for Yast::Users.GetBaseDirectory()
+      DEFAULT_BASE_DIR = "/etc".freeze
+      private_constant :DEFAULT_BASE_DIR
+
+      # Value for CommitConfig#target_dir
+      #
+      # See bsc#1206627
+      #
+      # @return [String, nil]
+      def target_dir
+        base_dir = Pathname.new(Yast::Users.GetBaseDirectory()).cleanpath.to_s
+        return nil if base_dir == DEFAULT_BASE_DIR
+
+        base_dir
       end
     end
   end
