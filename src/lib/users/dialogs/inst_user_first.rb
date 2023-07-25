@@ -321,6 +321,10 @@ module Yast
     def imported_users
       @imported_users = config.users.select do |u|
         importable_users.any? do |iu|
+          # sanitized_user is what meets each user when being prepared for writing
+          # basically it removes some user's config under some circumstances. When
+          # omited here, then it leads to failure detection of already imported (same)
+          # users when going back in installation.
           u == sanitized_user(iu)
         end
       end
