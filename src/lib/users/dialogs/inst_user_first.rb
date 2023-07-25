@@ -319,7 +319,15 @@ module Yast
     #
     # @return [Array<Y2Users::User>]
     def imported_users
-      @imported_users = config.users.select { |u| importable_users.any?(u) }
+      @imported_users = config.users.select do |u|
+        importable_users.any? do |iu|
+          # sanitized_user is what meets each user when being prepared for writing
+          # basically it removes some user's config under some circumstances. When
+          # omited here, then it leads to failure detection of already imported (same)
+          # users when going back in installation.
+          u == sanitized_user(iu)
+        end
+      end
     end
 
     # Users database that was imported from a different system (done during pre_install)
