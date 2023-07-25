@@ -319,7 +319,11 @@ module Yast
     #
     # @return [Array<Y2Users::User>]
     def imported_users
-      @imported_users = config.users.select { |u| importable_users.any?(u) }
+      @imported_users = config.users.select do |u|
+        importable_users.any? do |iu|
+          u == sanitized_user(iu)
+        end
+      end
     end
 
     # Users database that was imported from a different system (done during pre_install)
