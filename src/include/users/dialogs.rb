@@ -1326,7 +1326,7 @@ module Yast
 
         # inside Details dialog
         if current == :details && ret == :browse
-          start_dir = Dir.exists?(home) ? home : Users.GetDefaultHome(new_type)
+          start_dir = Dir.exist?(home) ? home : Users.GetDefaultHome(new_type)
           selected_dir = cleanpath(UI.AskForExistingDirectory(start_dir, ""))
           UI.ChangeWidget(Id(:home), :Value, selected_dir) unless selected_dir.empty?
         end
