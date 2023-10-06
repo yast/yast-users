@@ -27,3 +27,47 @@ old Perl components and the new Ruby ones (grouped on the namespace `Y2Users`) a
 in every operation. Apart from the mentioned documents, the `doc` directory contains several files
 describing how both the old Perl and the new Ruby components work and the correspondences between
 them.
+
+# Development
+
+You need to prepare your environment with:
+
+```
+ruby_version=$(ruby -e "puts RbConfig::CONFIG['ruby_version']")
+zypper install -C "rubygem(ruby:$ruby_version:yast-rake)"
+zypper install -C "rubygem(ruby:$ruby_version:rspec)"
+zypper install git yast2-devtools yast2-testsuite cracklib perl-Digest-SHA1 perl-X500-DN perl-gettext yast2-security yast2-perl-bindings yast2-ldap yast2-pam
+```
+
+You can then run the auth-server module with:
+
+```
+rake run
+rake run[module name]
+```
+
+# Tests
+
+```
+rake test:unit
+```
+
+# Logs
+
+If you are running as a non-root user, the logs are located in:
+
+```
+~/.y2log
+```
+
+If you are running as root, these logs are in:
+
+```
+/var/log/YaST2/y2log
+```
+
+For more detailed logging, you are able to execute YaST with debugging environment variables:
+
+```
+Y2DEBUG=1 rake run[module name]
+```
