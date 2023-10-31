@@ -89,8 +89,7 @@ module Y2Users
       #   @return [String,nil] Default shell
       #
       # @!attribute user_password
-      #   @return [String,nil] User's password. If set to an exclamation mark ('!'),
-      #   a random password is generated. See #encrypted.
+      #   @return [String,nil] User's password.
       #
       # @!attribute encrypted
       #   @return [Boolean,nil] Determine whether #user_password is encrypted or not.
