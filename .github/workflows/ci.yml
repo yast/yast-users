@@ -2,7 +2,7 @@
 
 name: CI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   Tests:
@@ -11,33 +11,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro:  [ "tumbleweed", "leap_latest" ]
+        distro: [ "tumbleweed" ]
 
     container:
       image: registry.opensuse.org/yast/head/containers_${{matrix.distro}}/yast-ruby
 
     steps:
+      - name: Git Checkout
+        uses: actions/checkout@v2
 
-    - name: Git Checkout
-      uses: actions/checkout@v2
+      # just for easier debugging...
+      - name: Inspect Installed Packages
+        run: rpm -qa | sort
 
-    # just for easier debugging...
-    - name: Inspect Installed Packages
-      run: rpm -qa | sort
+      - name: Unit Tests
+        run: rake test:unit
+        # enable code coverage reporting
+        env:
+          COVERAGE: 1
 
-    - name: Unit Tests
-      run: rake test:unit
-      # enable code coverage reporting
-      env:
-        COVERAGE: 1
-
-    # send the coverage report to coveralls.io
-    - name: Coveralls Report
-      # send it only from the TW build to avoid duplicate submits
-      if: ${{ matrix.distro == 'tumbleweed' }}
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      # send the coverage report to coveralls.io
+      - name: Coveralls Report
+        # send it only from the TW build to avoid duplicate submits
+        if: ${{ matrix.distro == 'tumbleweed' }}
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   Rubocop:
     runs-on: ubuntu-latest
@@ -45,18 +44,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [ "leap_latest" ]
+        distro: [ "tumbleweed" ]
 
     container:
       image: registry.opensuse.org/yast/head/containers_${{matrix.distro}}/yast-ruby
 
     steps:
+      - name: Git Checkout
+        uses: actions/checkout@v2
 
-    - name: Git Checkout
-      uses: actions/checkout@v2
-
-    - name: Rubocop
-      run: rake check:rubocop
+      - name: Rubocop
+        run: rake check:rubocop
 
   Package:
     runs-on: ubuntu-latest
@@ -64,28 +62,27 @@ jobs:
       image: registry.opensuse.org/yast/head/containers/yast-cpp:latest
 
     steps:
+      - name: Git Checkout
+        uses: actions/checkout@v2
 
-    - name: Git Checkout
-      uses: actions/checkout@v2
+      - name: Prepare System
+        run: |
+          # build_dependencies:install is not enough as some perl deps are runtime only
+          rake build_dependencies:install
+          zypper --non-interactive in --force-resolution --no-recommends \
+            cracklib-devel \
+            perl-Digest-SHA1 \
+            perl-X500-DN \
+            yast2-perl-bindings
 
-    - name: Prepare System
-      run: |
-        # build_dependencies:install is not enough as some perl deps are runtime only
-        rake build_dependencies:install
-        zypper --non-interactive in --force-resolution --no-recommends \
-          cracklib-devel \
-          perl-Digest-SHA1 \
-          perl-X500-DN \
-          yast2-perl-bindings
-
-    - name: Package Build
-      run: yast-ci-cpp
-      env:
-        # the tests require specific locale settings to pass
-        LANG: POSIX
-        LC_ALL: ""
-        # for the Perl syntax check
-        PERL5LIB: "./agents-perl/lib"
+      - name: Package Build
+        run: yast-ci-cpp
+        env:
+          # the tests require specific locale settings to pass
+          LANG: POSIX
+          LC_ALL: ""
+          # for the Perl syntax check
+          PERL5LIB: "./agents-perl/lib"
 
   Yardoc:
     runs-on: ubuntu-latest
@@ -93,18 +90,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro:  [ "tumbleweed", "leap_latest" ]
+        distro: [ "tumbleweed" ]
 
     container:
       image: registry.opensuse.org/yast/head/containers_${{matrix.distro}}/yast-ruby
 
     steps:
+      - name: Git Checkout
+        uses: actions/checkout@v2
 
-    - name: Git Checkout
-      uses: actions/checkout@v2
-
-    - name: Yardoc
-      run: rake check:doc
+      - name: Yardoc
+        run: rake check:doc
 
   Checks:
     runs-on: ubuntu-latest
@@ -112,16 +108,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [ "leap_latest" ]
+        distro: [ "tumbleweed" ]
 
     container:
       image: registry.opensuse.org/yast/head/containers_${{matrix.distro}}/yast-ruby
 
     steps:
+      - name: Git Checkout
+        uses: actions/checkout@v2
 
-    - name: Git Checkout
-      uses: actions/checkout@v2
-
-    - name: POT Check
-      run: rake check:pot
-
+      - name: POT Check
+        run: rake check:pot
