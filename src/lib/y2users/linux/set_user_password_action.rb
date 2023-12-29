@@ -125,7 +125,7 @@ module Y2Users
       def chage_options
         return [] unless user.password
 
-        opts = chage_options_hash.reject { |_, v| v.nil? }.flatten
+        opts = chage_options_hash.compact.flatten
         return [] if opts.empty?
 
         opts + root_path_options

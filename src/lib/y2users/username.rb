@@ -28,7 +28,7 @@ module Y2Users
       # @param text [String] text for generating the username (usually the user fullname)
       # @return [String] a valid username
       def generate_from(text)
-        username = text.split(" ").first || ""
+        username = text.split.first || ""
         username = transliterate(username)
         username = sanitize(username)
         username.downcase

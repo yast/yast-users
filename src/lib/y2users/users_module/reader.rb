@@ -119,7 +119,7 @@ module Y2Users
         ["local", "system"].each do |type|
           next unless removed_users[type]
 
-          removed_users[type].values.each { |u| system_config.attach(user(u, system_config)) }
+          removed_users[type].each_value { |u| system_config.attach(user(u, system_config)) }
         end
       end
 
@@ -142,7 +142,7 @@ module Y2Users
         ["local", "system"].each do |type|
           next unless removed_groups[type]
 
-          removed_groups[type].values.each { |u| system_config.attach(group(u)) }
+          removed_groups[type].each_value { |u| system_config.attach(group(u)) }
         end
       end
 
