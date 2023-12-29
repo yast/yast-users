@@ -40,6 +40,7 @@ module Y2Users
       end
 
       def initialize(users = [])
+        super()
         @users = users
       end
 

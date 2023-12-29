@@ -33,6 +33,7 @@ module Yast
     #
     # @param root_user [Y2Users::Users] object holding the root user configuration
     def initialize(root_user)
+      super()
       textdomain "users"
 
       @root_user = root_user

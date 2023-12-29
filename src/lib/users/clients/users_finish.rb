@@ -37,6 +37,7 @@ module Yast
     include Logger
 
     def initialize
+      super
       textdomain "users"
 
       Yast.import "Users"

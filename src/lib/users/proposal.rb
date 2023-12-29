@@ -29,6 +29,7 @@ module Users
     include Yast::Logger
 
     def initialize
+      super
       Yast.import "Wizard"
       Yast.import "Mode"
       textdomain "users"

@@ -51,6 +51,7 @@ module Users
     # @param focus [Boolean] if set, then widget set focus to first password input field
     # @param allow_empty [Boolean] whether the user can left the password empty or not
     def initialize(user, little_space: false, focus: false, allow_empty: false)
+      super()
       textdomain "users"
 
       @user = user

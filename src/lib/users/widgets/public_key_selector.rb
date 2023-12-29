@@ -40,6 +40,7 @@ module Y2Users
       #
       # @param user [Y2Users::User] the user to work with
       def initialize(user)
+        super()
         textdomain "users"
 
         @user = user

@@ -26,7 +26,7 @@ module Y2Users
     #
     # @param elements [Array<ConfigElement>]
     def initialize(elements = [])
-      @elements = elements
+      super
     end
 
     # Deletes the element with the given id from the collection

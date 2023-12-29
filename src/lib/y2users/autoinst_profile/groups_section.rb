@@ -41,6 +41,7 @@ module Y2Users
       end
 
       def initialize(groups = [])
+        super()
         @groups = groups
       end
 

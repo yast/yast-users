@@ -176,6 +176,7 @@ module Y2Users
     #
     # @param content [String] password value
     def initialize(content)
+      super()
       self.content = content
     end
 

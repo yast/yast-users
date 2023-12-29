@@ -100,9 +100,12 @@ module Y2Users
       keys
     end
 
+    # it is not our regexp
+    # rubocop:disable Lint/MixedRegexpCaptureTypes
     # https://github.com/puppetlabs/puppet/blob/master/lib/puppet/type/ssh_authorized_key.rb#L138
     AUTHORIZED_KEYS_REGEX =
       /\A(?<env>(.+)\s+)?(?<type>(ssh|ecdsa)-\S+)\s+(?<key>[^ ]+)\s*(?<comment>.*)\z/.freeze
+    # rubocop:enable Lint/MixedRegexpCaptureTypes
 
     # Determine is a string qualifies like a valid key
     #
