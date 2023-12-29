@@ -105,7 +105,6 @@ module Users
     # FIXME: Validation methods should only check values. Note that with the current implementation,
     #   this method is taking care of setting/removing the user's password. This method should not
     #   modify the user.
-    # rubocop:disable Metrics/CyclomaticComplexity
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
@@ -139,7 +138,6 @@ module Users
 
       true
     end
-    # rubocop:enable Metrics/CyclomaticComplexity
 
     def help # rubocop:disable Metrics/MethodLength
       # help text ( explain what the user "root" is and does ) 1

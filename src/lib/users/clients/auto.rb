@@ -55,9 +55,7 @@ module Y2Users
           result = reader.read
           read_linuxrc_root_pwd(result.config)
 
-          if result.issues?
-            return false unless Y2Issues.report(result.issues)
-          end
+          return false if result.issues? && !Y2Issues.report(result.issues)
 
           Y2Users::ConfigManager.instance.target = result.config
 

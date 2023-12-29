@@ -64,7 +64,7 @@ module Y2Users
     #
     # @see https://github.com/openssh/openssh-portable/blob/1a4a9cf80f5b92b9d1dadd0bfa8867c04d195391/sshkey.c#L955
     def formatted_fingerprint
-      fp = fingerprint.sub(/\=+\Z/, "")
+      fp = fingerprint.sub(/=+\Z/, "")
       "SHA256:#{fp}"
     end
 

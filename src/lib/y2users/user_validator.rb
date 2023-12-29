@@ -93,14 +93,14 @@ module Y2Users
     # reason: see for example man utmp, UT_NAMESIZE
     MAX_LENGTH = 32
     def check_length
-      # note duplicite string as in UsersSimple. Keep them in sync.
+      # NOTE: duplicite string as in UsersSimple. Keep them in sync.
       return _("No username entered.\nTry again.") if user.name.nil? || user.name.empty?
 
       return "" if (MIN_LENGTH..MAX_LENGTH).include?(user.name.size)
 
-      # note duplicite string as in UsersSimple. Keep them in sync.
+      # NOTE: duplicite string as in UsersSimple. Keep them in sync.
       format(_("The username must be between %i and %i characters in length.\n" \
-        "Try again."), MIN_LENGTH, MAX_LENGTH)
+               "Try again."), MIN_LENGTH, MAX_LENGTH)
     end
 
     LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".freeze
@@ -111,7 +111,7 @@ module Y2Users
     def check_characters
       return "" if user.name =~ CHAR_REGEXP
 
-      # note duplicite string as in UsersSimple. Keep them in sync.
+      # NOTE: duplicite string as in UsersSimple. Keep them in sync.
       _("The username may contain only\n" \
         "Latin letters and digits, \"-\", \".\", and \"_\"\n" \
         "and must begin with a letter or \"_\".\n" \
@@ -208,7 +208,7 @@ module Y2Users
 
       return "" unless usernames.include?(user.name)
 
-      # note duplicite string as in UsersSimple. Keep them in sync.
+      # NOTE: duplicite string as in UsersSimple. Keep them in sync.
       _("There is a conflict between the entered\n" \
         "username and an existing username.\n" \
         "Try another one.")
@@ -219,7 +219,7 @@ module Y2Users
 
       return "" if user.full_name !~ /[:,]/
 
-      # note duplicite string as in UsersSimple. Keep them in sync.
+      # NOTE: duplicite string as in UsersSimple. Keep them in sync.
       _("The user's full name cannot contain\n" \
         "\":\" or \",\" characters.\n" \
         "Try again.")

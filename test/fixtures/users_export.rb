@@ -273,7 +273,7 @@ USERS_EXPORT = {
                         "shell"                => "/bin/bash",
                         "uid"                  => "1000",
                         "user_password"        => "$6$Jn1sSsaWb5Jj$97bMFbWPGB5UgE/Vt7uuUMjLPIW4C" \
-                          "7McyvXxkyltK/0GgW0Q7qG6F0eKeVLYziskSihzlakgXUG1gPRw/ZKw10",
+                                                  "7McyvXxkyltK/0GgW0Q7qG6F0eKeVLYziskSihzlakgXUG1gPRw/ZKw10",
                         "username"             => "tux" },
                       { "authorized_keys"      => [],
                         "encrypted"            => true,
@@ -386,7 +386,7 @@ USERS_EXPORT = {
                         "shell"                => "/bin/bash",
                         "uid"                  => "0",
                         "user_password"        => "$6$ASfaLE9EGIam$Gk9YxWfX/EeB8sEv3qLYdHQXTx.9T" \
-                          "1wNoyn5Y34PMZ03wh8S48QhbpjC8gUQvdFnbdH.4HqGeT3z5Y2zdlM11/",
+                                                  "1wNoyn5Y34PMZ03wh8S48QhbpjC8gUQvdFnbdH.4HqGeT3z5Y2zdlM11/",
                         "username"             => "root" },
                       { "authorized_keys"      => [],
                         "encrypted"            => true,
@@ -547,7 +547,7 @@ USERS_EXPORT = {
                         "shell"                => "/bin/bash",
                         "uid"                  => "0",
                         "user_password"        => "$6$ASfaLE9EGIam$Gk9YxWfX/EeB8sEv3qLYdHQXTx.9T1" \
-                          "wNoyn5Y34PMZ03wh8S48QhbpjC8gUQvdFnbdH.4HqGeT3z5Y2zdlM11/",
+                                                  "wNoyn5Y34PMZ03wh8S48QhbpjC8gUQvdFnbdH.4HqGeT3z5Y2zdlM11/",
                         "username"             => "toor" },
                       { "authorized_keys"      => [],
                         "encrypted"            => true,

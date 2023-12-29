@@ -74,7 +74,7 @@ module Y2Users
     # @param other [ConfigElement]
     # @return [Boolean]
     def is?(other)
-      return false unless self.class == other.class
+      return false unless instance_of?(other.class)
       return false if id.nil? || other.id.nil?
 
       id == other.id

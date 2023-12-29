@@ -115,7 +115,7 @@ module Y2Users
       def write_useradd(issues)
         if !write_useradd?
           log.info "Not writing useradd file. " \
-            "#{useradd_config.inspect} - #{initial_useradd_config.inspect}"
+                   "#{useradd_config.inspect} - #{initial_useradd_config.inspect}"
           return
         end
 

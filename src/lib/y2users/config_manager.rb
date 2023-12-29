@@ -34,13 +34,11 @@ module Y2Users
     # @param [Config] config
     # @param [Symbol] as id of config
     # @note if given id is already registered, it is overwritten
-    # rubocop:disable Naming/UncommunicativeMethodParamName
     def register(config, as:)
       raise ArgumentError, "#{as.inspect} is not Symbol" unless as.is_a?(Symbol)
 
       @register[as] = config
     end
-    # rubocop:enable Naming/UncommunicativeMethodParamName
 
     # Unregister given id
     # @param [Symbol] id of config

@@ -92,6 +92,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :group
+
     attr_setter :group
 
     # This value is used as prefix to calculate the home directory for a new user, if no home
@@ -103,6 +104,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :home
+
     attr_setter :home
 
     # The file mode mask used to create new home directories, if HOME_MODE is not specified in
@@ -120,6 +122,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :umask
+
     attr_setter :umask
 
     # Password expiration date to use when creating a user, if none was set
@@ -131,6 +134,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :expiration
+
     attr_setter :expiration
 
     # Inactivity period to set when creating a user, if none was set
@@ -141,6 +145,7 @@ module Y2Users
     #
     # @return [Integer, nil]
     attr_reader :inactivity_period
+
     attr_setter :inactivity_period
 
     # Login shell to set for a newly created user, if none was specified
@@ -149,6 +154,7 @@ module Y2Users
     #
     # @return [String, nil]
     attr_reader :shell
+
     attr_setter :shell
 
     # Skeleton directory from which the files will be copied when creating a home directory for
