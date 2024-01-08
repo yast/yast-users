@@ -168,7 +168,7 @@ describe Y2Users::Clients::Auto do
       end
 
       context "when 'compact' export is wanted" do
-        let(:args) { [func, "target" => "compact"] }
+        let(:args) { [func, { "target" => "compact" }] }
 
         it "it exports only local users and groups" do
           expect(subject.run).to eq(local_users)

@@ -1,18 +1,28 @@
 # use the shared YaST defaults
 inherit_from:
-  /usr/share/YaST2/data/devtools/data/rubocop-0.71.0_yast_style.yml
+  /usr/share/YaST2/data/devtools/data/rubocop-1.24.1_yast_style.yml
 
 # Don't enforce any particular name for block params
-SingleLineBlockParams:
+Style/SingleLineBlockParams:
   Enabled: false
 
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+Metrics/AbcSize:
+  Max: 40
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
 Metrics/BlockLength:
   # rspec is known as DSL with big blocks
   Exclude:
     - test/**/*
+
+# do not break API
+Naming/MethodParameterName:
+  Enabled: false
 
 AllCops:
   Exclude:

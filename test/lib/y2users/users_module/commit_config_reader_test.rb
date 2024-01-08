@@ -79,7 +79,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
             "uid"              => "test6",
             "uidNumber"        => 1001,
             "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOM" \
-              "yzVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
+                                  "yzVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
             "what"             => "delete_user"
           },
           "test2" => {
@@ -106,7 +106,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
             "uid"              => "test2",
             "uidNumber"        => 1002,
             "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQ" \
-              "GKb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
+                                  "GKb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
             "what"             => "delete_user"
           }
         }
@@ -114,7 +114,7 @@ describe Y2Users::UsersModule::CommitConfigReader do
     end
 
     before do
-      mapped_users = Hash[users.map { |u| [u["uid"], u] }]
+      mapped_users = users.map { |u| [u["uid"], u] }.to_h
       allow(Yast::Users).to receive(:GetUsers).and_return(mapped_users, {})
       allow(Yast::Users).to receive(:RemovedUsers).and_return(removed_users)
     end

@@ -19,14 +19,13 @@
 
 require "yast"
 require "installation/auto_client"
+require "y2issues"
 require "y2users"
 require "y2users/autoinst/reader"
-require "y2issues"
-require "y2users/config_merger"
 require "y2users/config_manager"
-require "y2users/autoinst/reader"
-require "y2users/users_module/reader"
+require "y2users/config_merger"
 require "y2users/linux/writer"
+require "y2users/users_module/reader"
 
 Yast.import "Users"
 Yast.import "Linuxrc"
@@ -41,6 +40,7 @@ module Y2Users
     # AutoYaST users client
     class Auto < ::Installation::AutoClient
       def initialize
+        super
         textdomain "users"
 
         Yast.include self, "users/wizards.rb"
@@ -55,9 +55,7 @@ module Y2Users
           result = reader.read
           read_linuxrc_root_pwd(result.config)
 
-          if result.issues?
-            return false unless Y2Issues.report(result.issues)
-          end
+          return false if result.issues? && !Y2Issues.report(result.issues)
 
           Y2Users::ConfigManager.instance.target = result.config
 

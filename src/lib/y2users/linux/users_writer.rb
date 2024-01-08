@@ -53,6 +53,7 @@ module Y2Users
       # @param initial_config [Config] see #initial_config
       # @param commit_config [CommitConfig]
       def initialize(target_config, initial_config, commit_config)
+        super()
         textdomain "users"
 
         @initial_config = initial_config

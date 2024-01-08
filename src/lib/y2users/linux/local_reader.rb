@@ -27,6 +27,7 @@ module Y2Users
       #
       # @param source_dir [String, Pathname] path of source directory for reading files
       def initialize(source_dir = "/")
+        super()
         @source_dir = source_dir
       end
 

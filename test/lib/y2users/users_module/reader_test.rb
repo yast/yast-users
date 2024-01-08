@@ -63,7 +63,7 @@ describe Y2Users::UsersModule::Reader do
         "uid"               => "test1",
         "uidNumber"         => 1002,
         "userPassword"      => "$6$CIrJOmyF8WBnHsAn$Sh.pjryO9CD.Dfm9KzDdVYYXblxiTw05b9b0GVpMbckbU" \
-          "gK/fFvn7nM.ipqooa3Ks5fGgzV.6gPBGG1l8hs7L.",
+                               "gK/fFvn7nM.ipqooa3Ks5fGgzV.6gPBGG1l8hs7L.",
         "what"              => "group_change"
       },
       {
@@ -116,7 +116,7 @@ describe Y2Users::UsersModule::Reader do
           "uid"              => "test2",
           "uidNumber"        => 1001,
           "userPassword"     => "!$6$7CgeIaVsqcVd2OXq$T9ObPbjPCOm7E3U730S8ZLJ82GBBi9XXYJM4iUNadk" \
-            "gfpZ3CU/cXe.hdaGhdutqhixtFuZ2hrhEIZvlTcKgSc."
+                                "gfpZ3CU/cXe.hdaGhdutqhixtFuZ2hrhEIZvlTcKgSc."
         },
         "plugins"           => [],
         "removed_grouplist" => {
@@ -134,7 +134,7 @@ describe Y2Users::UsersModule::Reader do
         "uid"               => "test2",
         "uidNumber"         => 1001,
         "userPassword"      => "!$6$7CgeIaVsqcVd2OXq$T9ObPbjPCOm7E3U730S8ZLJ82GBBi9XXYJM4iUNadkg" \
-          "fpZ3CU/cXe.hdaGhdutqhixtFuZ2hrhEIZvlTcKgSc.",
+                               "fpZ3CU/cXe.hdaGhdutqhixtFuZ2hrhEIZvlTcKgSc.",
         "what"              => "edit_user"
       }
     ]
@@ -166,7 +166,7 @@ describe Y2Users::UsersModule::Reader do
           "uid"              => "test3",
           "uidNumber"        => 1001,
           "userPassword"     => "$6$jap/4cvK4.veohli$0JPqLC3sheKRTv79PoiW1fBtbudBad04hWKrUdfOMyzA" \
-            "tVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
+                                "tVoGCUZ1KZivJqq1bIFUlJUJPXIbwFOqxNU1wrpZ8/",
           "what"             => "delete_user"
         },
         "test4" => {
@@ -193,7 +193,7 @@ describe Y2Users::UsersModule::Reader do
           "uid"              => "test4",
           "uidNumber"        => 1002,
           "userPassword"     => "!$6$yRZunFQ0DSZghYQ4$7K2cLQ/XrhucUZr4btKmUbfMuUmbDmRX7msfs6VQGKE" \
-            "fb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
+                                "fb2nkrbNn0c2d3mNmG.MGfFgmYyv.540Yaq2GtpVaK1",
           "what"             => "delete_user"
         }
       }
@@ -285,10 +285,10 @@ describe Y2Users::UsersModule::Reader do
 
   before do
     allow(Yast::Users).to receive(:GetLoginDefaults).and_return(login_config)
-    mapped_users = Hash[users.map { |u| [u["uid"], u] }]
+    mapped_users = users.map { |u| [u["uid"], u] }.to_h
     allow(Yast::Users).to receive(:GetUsers).and_return({}, mapped_users)
-    mapped_sys_groups = Hash[sys_groups.map { |g| [g["cn"], g] }]
-    mapped_local_groups = Hash[local_groups.map { |g| [g["cn"], g] }]
+    mapped_sys_groups = sys_groups.map { |g| [g["cn"], g] }.to_h
+    mapped_local_groups = local_groups.map { |g| [g["cn"], g] }.to_h
     allow(Yast::Users).to receive(:GetGroups).and_return(mapped_sys_groups, mapped_local_groups)
     allow(Yast::Users).to receive(:RemovedUsers).and_return(removed_users)
     allow(Yast::Users).to receive(:RemovedGroups).and_return(removed_groups)

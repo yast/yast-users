@@ -52,9 +52,6 @@ describe Y2Users::Widgets::InstRootFirst do
     end
 
     context "when neither a password nor public key was given" do
-      before do
-      end
-
       it "returns false" do
         expect(widget.validate).to eq(false)
       end

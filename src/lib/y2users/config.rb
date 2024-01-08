@@ -188,7 +188,7 @@ module Y2Users
 
       if !exist
         log.warn("Detach element: element #{element} is attached to the config #{self}, but " \
-          "it cannot be found.")
+                 "it cannot be found.")
       end
 
       collection_for(element).delete(element.id) if exist

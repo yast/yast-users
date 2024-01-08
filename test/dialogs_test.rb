@@ -6,6 +6,7 @@ Yast.import "UI"
 
 class UsersDialogsDummy < Yast::Module
   def initialize
+    super
     Yast.include self, "users/dialogs.rb"
   end
 end

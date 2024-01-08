@@ -51,6 +51,7 @@ module Users
     # @param focus [Boolean] if set, then widget set focus to first password input field
     # @param allow_empty [Boolean] whether the user can left the password empty or not
     def initialize(user, little_space: false, focus: false, allow_empty: false)
+      super()
       textdomain "users"
 
       @user = user
@@ -105,7 +106,6 @@ module Users
     # FIXME: Validation methods should only check values. Note that with the current implementation,
     #   this method is taking care of setting/removing the user's password. This method should not
     #   modify the user.
-    # rubocop:disable Metrics/CyclomaticComplexity
     def validate
       password1 = Yast::UI.QueryWidget(Id(:pw1), :Value)
       password2 = Yast::UI.QueryWidget(Id(:pw2), :Value)
@@ -139,7 +139,6 @@ module Users
 
       true
     end
-    # rubocop:enable Metrics/CyclomaticComplexity
 
     def help # rubocop:disable Metrics/MethodLength
       # help text ( explain what the user "root" is and does ) 1
