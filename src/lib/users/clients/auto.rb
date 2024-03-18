@@ -25,6 +25,7 @@ require "y2issues"
 require "y2users/config_merger"
 require "y2users/config_manager"
 require "y2users/autoinst/reader"
+require "y2users/users_module/reader"
 require "y2users/linux/writer"
 
 Yast.import "Users"
