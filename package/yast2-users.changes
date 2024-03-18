@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 18 06:53:43 UTC 2024 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
+
+- Add a missing require in the auto client (bsc#1219422).
+- 4.4.16
+
+-------------------------------------------------------------------
 Mon Jul 24 13:21:21 UTC 2023 - Ancor Gonzalez Sosa <ancor@suse.com>
 
 - Allow to edit the NIS master server databases instead of the
