@@ -2,8 +2,7 @@
 
 [![Workflow Status](https://github.com/yast/yast-users/workflows/CI/badge.svg?branch=master)](
 https://github.com/yast/yast-users/actions?query=branch%3Amaster)
-[![Jenkins Status](https://ci.opensuse.org/buildStatus/icon?job=yast-yast-users-master)](
-https://ci.opensuse.org/view/Yast/job/yast-yast-users-master/)
+[![OBS](https://github.com/yast/yast-users/actions/workflows/submit.yml/badge.svg)](https://github.com/yast/yast-users/actions/workflows/submit.yml)
 
 This module allows to use YaST to manage local and LDAP users and groups. It also makes possible to
 configure some aspects of the system related to user management and authentication. For a partial
