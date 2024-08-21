@@ -21,8 +21,8 @@ require_relative "../../test_helper"
 require "users/ssh_authorized_keyring"
 require "tmpdir"
 
-describe Yast::Users::SSHAuthorizedKeyring do
-  subject(:keyring) { Yast::Users::SSHAuthorizedKeyring.new(home) }
+describe Y2Users::SSHAuthorizedKeyring do
+  subject(:keyring) { Y2Users::SSHAuthorizedKeyring.new(home) }
   let(:home) { FIXTURES_PATH.join("home", "user1").to_s }
 
   def authorized_keys_from_home(path)
@@ -130,7 +130,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
   describe "#write_keys" do
     let(:tmpdir) { Dir.mktmpdir }
     let(:home) { File.join(tmpdir, "/home/user") }
-    let(:file) { Yast::Users::SSHAuthorizedKeysFile.new(authorized_keys_path) }
+    let(:file) { Y2Users::SSHAuthorizedKeysFile.new(authorized_keys_path) }
     let(:ssh_dir) { File.join(home, ".ssh") }
     let(:key) { "ssh-rsa 123ABC" }
     let(:authorized_keys_path) { File.join(home, ".ssh", "authorized_keys") }
@@ -138,7 +138,7 @@ describe Yast::Users::SSHAuthorizedKeyring do
     before do
       FileUtils.mkdir_p(ssh_dir)
 
-      allow(Yast::Users::SSHAuthorizedKeysFile).to receive(:new).and_return(file)
+      allow(Y2Users::SSHAuthorizedKeysFile).to receive(:new).and_return(file)
     end
 
     after { FileUtils.rm_rf(tmpdir) if File.exist?(tmpdir) }
@@ -211,20 +211,20 @@ describe Yast::Users::SSHAuthorizedKeyring do
           let(:home_dir_exists) { false }
 
           it "raises a HomeDoesNotExist exception and does not write authorized_keys" do
-            expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
+            expect(Y2Users::SSHAuthorizedKeysFile).to_not receive(:new)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::HomeDoesNotExist)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::HomeDoesNotExist)
           end
         end
 
         context "when SSH directory could not be created" do
           it "raises a CouldNotCreateSSHDirectory exception and does not write authorized_keys" do
-            expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
+            expect(Y2Users::SSHAuthorizedKeysFile).to_not receive(:new)
             expect(Yast::SCR).to receive(:Execute)
               .with(Yast::Path.new(".target.mkdir"), anything)
               .and_return(false)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::CouldNotCreateSSHDirectory)
           end
         end
 
@@ -234,9 +234,9 @@ describe Yast::Users::SSHAuthorizedKeyring do
           it "raises a NotRegularSSHDirectory and does not write authorized_keys" do
             allow(Yast::FileUtils).to receive(:IsDirectory).with(ssh_dir)
               .and_return(false)
-            expect(Yast::Users::SSHAuthorizedKeysFile).to_not receive(:new)
+            expect(Y2Users::SSHAuthorizedKeysFile).to_not receive(:new)
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::NotRegularSSHDirectory)
           end
         end
 
@@ -282,10 +282,10 @@ describe Yast::Users::SSHAuthorizedKeyring do
 
           it "raises a NotRegularAuthorizedKeysFile" do
             allow(file).to receive(:save)
-              .and_raise(Yast::Users::SSHAuthorizedKeysFile::NotRegularFile)
+              .and_raise(Y2Users::SSHAuthorizedKeysFile::NotRegularFile)
 
             expect { keyring.write_keys }
-              .to raise_error(Yast::Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
+              .to raise_error(Y2Users::SSHAuthorizedKeyring::NotRegularAuthorizedKeysFile)
           end
         end
       end
