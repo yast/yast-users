@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Aug 21 13:21:10 UTC 2024 - Stefan Hundhammer <shundhammer@suse.com>
+
+- Relax check in GECOS field (bsc#1228149):
+  Allow any data except colons
+- 4.6.6
+
+-------------------------------------------------------------------
 Wed Aug 21 12:33:48 UTC 2024 - Josef Reidinger <jreidinger@suse.com>
 
 - Backport changes to avoid namespace collisions
