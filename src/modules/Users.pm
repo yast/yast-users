@@ -4659,14 +4659,6 @@ sub CheckGECOS {
 contain a colon (:).  Try again.");
     }
     
-    my @gecos_l = split (/,/, $gecos);
-    if (@gecos_l > 3 ) {
-	# error popup
-        return __("The \"Additional User Information\" entry can consist
-of up to three sections separated by commas.
-Remove the surplus.");
-    }
-    
     return "";
 }
 
