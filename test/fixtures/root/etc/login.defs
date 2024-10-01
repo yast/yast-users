@@ -217,8 +217,6 @@ DEFAULT_HOME	yes
 # It should remove any at/cron/print jobs etc. owned by
 # the user to be removed (passed as the first argument).
 #
-# See USERDEL_PRECMD/POSTCMD below.
-#
 #USERDEL_CMD	/usr/sbin/userdel_local
 
 #
@@ -263,25 +261,3 @@ CHARACTER_CLASS         [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_][
 # new created group.
 #
 GROUPADD_CMD             /usr/sbin/groupadd.local
-
-#
-# If defined, this command is run when adding a user.
-# It should rebuild any NIS database etc. to add the
-# new created account.
-#
-USERADD_CMD             /usr/sbin/useradd.local
-
-#
-# If defined, this command is run before removing a user.
-# It should remove any at/cron/print jobs etc. owned by
-# the user to be removed.
-#
-USERDEL_PRECMD          /usr/sbin/userdel-pre.local
-
-#
-# If defined, this command is run after removing a user.
-# It should rebuild any NIS database etc. to remove the
-# account from it.
-#
-USERDEL_POSTCMD         /usr/sbin/userdel-post.local
-
