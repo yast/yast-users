@@ -163,7 +163,7 @@ LOGIN_TIMEOUT		60
 # any combination of letters "frwh" (full name, room number, work
 # phone, home phone).  If not defined, no changes are allowed.
 # For backward compatibility, "yes" = "rwh" and "no" = "frwh".
-# 
+#
 CHFN_RESTRICT		rwh
 
 #
@@ -254,10 +254,3 @@ CREATE_HOME     no
 #
 #CHARACTER_CLASS                [A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_.$-]\?
 CHARACTER_CLASS         [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_][ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-]*[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.$-]\?
-
-#
-# If defined, this command is run when adding a group.
-# It should rebuild any NIS database etc. to add the
-# new created group.
-#
-GROUPADD_CMD             /usr/sbin/groupadd.local
