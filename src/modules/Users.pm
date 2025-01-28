@@ -4147,8 +4147,6 @@ sub Write {
 
     my $self		= shift;
     my $ret		= "";
-    my $nscd_passwd	= 0;
-    my $nscd_group	= 0;
 
     my $umask		= $self->GetUmask ();
 
@@ -4193,7 +4191,6 @@ sub Write {
 	    else {
 		delete $removed_users{"ldap"};
 	    }
-	    $nscd_passwd	= 1;
 	}
 		
 	if ($error_msg eq "" && defined ($modified_users{"ldap"})) {
@@ -4210,7 +4207,6 @@ sub Write {
 		$self->UpdateUsersAfterWrite ("ldap");
 		delete $modified_users{"ldap"};
 	    }
-	    $nscd_passwd	= 1;
 	}
 
 	if ($error_msg eq "" && defined ($removed_groups{"ldap"})) {
@@ -4221,7 +4217,6 @@ sub Write {
 	    else {
 		delete $removed_groups{"ldap"};
 	    }
-	    $nscd_group		= 1;
 	}
 
 	if ($error_msg eq "" && defined ($modified_groups{"ldap"})) {
@@ -4233,7 +4228,6 @@ sub Write {
 		$self->UpdateGroupsAfterWrite ("ldap");
 		delete $modified_groups{"ldap"};
 	    }
-	    $nscd_group		= 1;
 	}
 
 	if ($error_msg eq "") {
@@ -4270,9 +4264,6 @@ sub Write {
 		$plugin_error	= GetPluginError ($args, $result);
 	    }
 	}
-	if (!$write_only) {
-	    $nscd_group		= 1;
-	}
     }
 
     if ($users_modified) {
@@ -4292,10 +4283,6 @@ sub Write {
 	    }
 	}
 
-	if (!$write_only) {
-	    $nscd_passwd	= 1;
-	}
-
 	# There used to be a big loop here managing homedir changes, but is not longer necessary:
 	#  - work with homes for LDAP users are ruled in WriteLDAP
 	#  - homes for local and system users are handed by Y2Users
@@ -4310,22 +4297,6 @@ sub Write {
 	return $ret;
     }
 
-    # remove the passwd cache for nscd (bug 24748, 41648)
-    if (!$write_only && !Mode->test() && Package->Installed ("nscd")) {
-	if ($nscd_passwd) {
-	    my $cmd	= "/usr/sbin/nscd -i passwd";
-	    SCR->Execute (".target.bash", $cmd);
-	    y2usernote ("nscd cache invalidated: '$cmd'");
-	}
-	if ($nscd_group) {
-	    my $cmd	= "/usr/sbin/nscd -i group";
-	    SCR->Execute (".target.bash", $cmd);
-	    y2usernote ("nscd cache invalidated: '$cmd'");
-	}
-    }
-
-    # last operation on plugins must be done after nscd restart
-    # (at least quota seems to need it)
     if ($users_modified) {
 	# -------------------------------------- call Write on plugins
         foreach my $type (keys %modified_users)  {

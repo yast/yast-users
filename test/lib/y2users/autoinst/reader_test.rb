@@ -37,8 +37,8 @@ describe Y2Users::Autoinst::Reader do
       result = subject.read
 
       config = result.config
-      expect(config.users.size).to eq 29
-      expect(config.groups.size).to eq 43
+      expect(config.users.size).to eq 28
+      expect(config.groups.size).to eq 42
 
       root_user = config.users.root
       expect(root_user.shell).to eq "/bin/bash"

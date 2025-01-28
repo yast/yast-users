@@ -4,4 +4,3 @@ daemon:x:2:
 sys:x:3:
 tty:x:5:
 disk:x:6:
-nscd:x:495:

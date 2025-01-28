@@ -105,16 +105,6 @@ module Y2Users
           issues.concat(write_users)
           write_login_config
 
-          # After modifying the users and groups in the system, previous versions of yast-users used
-          # to update the NIS database and invalidate the nscd (Name Service Caching Daemon) cache.
-          #
-          # The nscd cache cleanup was initially introduced in the context of bsc#39748 and
-          # bsc#56648.
-          # It's not longer needed for local users because:
-          #  - The nscd daemon watches for changes in the relevant files (eg. /etc/passwd)
-          #  - The current implementation relies on the tools in the shadow suite (eg. useradd),
-          #    which already flush nscd and sssd caches when needed.
-          #
           # Updating the NIS database (make -C /var/yp) was done if the system was the master server
           # of a NIS domain. But turns out it was likely not that useful and reliable as originally
           # intended for several reasons.
@@ -134,7 +124,7 @@ module Y2Users
           #    update the database periodically (eg. every 15 minutes).
           #
           # To avoid the need of maintaining code to perform actions that doesn't have a clear
-          # benefit nowadays, YaST does not longer handle the status of nscd or NIS databases.
+          # benefit nowadays, YaST does not longer handle the status of the NIS database.
         end
       end
 
