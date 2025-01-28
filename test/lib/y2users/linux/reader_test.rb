@@ -67,8 +67,8 @@ describe Y2Users::Linux::Reader do
 
       expect(config).to be_a(Y2Users::Config)
 
-      expect(config.users.size).to eq 19
-      expect(config.groups.size).to eq 7
+      expect(config.users.size).to eq 18
+      expect(config.groups.size).to eq 6
 
       root_user = config.users.root
       expect(root_user.uid).to eq "0"

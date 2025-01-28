@@ -34,4 +34,3 @@ messagebus:x:499:
 sshd:x:498:
 tape:x:497:
 polkitd:x:496:
-nscd:x:495:
