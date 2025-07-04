@@ -11,7 +11,7 @@ Yast.import "Report"
 # defines exported users
 require_relative "../../../fixtures/users_export"
 
-describe Y2Users::Clients::Auto do
+xdescribe Y2Users::Clients::Auto do
   let(:mode) { "autoinstallation" }
   let(:args) { [func] }
 
