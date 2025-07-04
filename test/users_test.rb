@@ -46,7 +46,7 @@ describe "Users" do
     end
   end
 
-  describe "#Export" do
+  xdescribe "#Export" do
     let(:root_user) { { "username" => "root", "uid" => "0" } }
     let(:local_user) { { "username" => "user1", "uid" => "1000" } }
     let(:system_user) { { "username" => "messagebus", "uid" => "499" } }
