@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Aug 21 08:50:55 UTC 2025 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
+
+- Add a missing require (bsc#1248291).
+
+-------------------------------------------------------------------
 Fri Sep 06 07:14:32 UTC 2024 - Ladislav Slezák <lslezak@suse.com>
 
 - Branch package for SP7 (bsc#1230201)
