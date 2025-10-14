@@ -126,7 +126,7 @@ sub CreateHome {
         return 0;
     }
 
-    if (!FileUtils->Exists ($home) > 0) {
+    if (!FileUtils->Exists ($home)) {
         # Create the home as btrfs subvolume
         if ($use_btrfs) {
 	    # checking Btrfs location of parent path
