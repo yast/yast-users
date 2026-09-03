@@ -29,10 +29,10 @@
 
 require "pathname"
 require "shellwords"
-require "open3"
 require "users/ssh_public_key"
 require "yast2/popup"
 require "y2users/username"
+require "yast2/execute"
 
 module Yast
   module UsersDialogsInclude
@@ -206,15 +206,7 @@ module Yast
     # @param date_format [String] strftime format like "%x" (localized date)
     # @return [String]
     def format_days_after_epoch(count, date_format)
-      cmd_args = [
-        "date","--date=1970-01-01 00:00:01 #{count} days",
-        "+#{date_format}"
-      ]
-      Open3.popen2(*cmd_args) do |_stdin, stdout, _wait_thr|
-        # Read the output from the system date command and trim
-        # the newline character
-        stdout.read.chomp
-      end
+      Yast::Execute.locally!.stdout("/usr/bin/date", "--date=1970-01-01 00:00:01 #{count} days", "+#{date_format}").chomp
     end
 
     # generate contents for Password Settings Dialog
