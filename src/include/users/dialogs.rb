@@ -26,6 +26,9 @@
 #          Jiri Suchomel <jsuchome@suse.cz>
 #
 # $Id$
+
+require "yast2/execute"
+
 module Yast
   module UsersDialogsInclude
     def initialize_users_dialogs(include_target)
@@ -153,6 +156,16 @@ module Yast
       pw = Convert.to_string(UI.QueryWidget(Id(:pw1), :Value))
       UI.CloseDialog
       ret == :ok ? pw : nil
+    end
+
+    # @param count [Integer] number of days after 1970-01-01
+    # @param date_format [String] strftime format like "%x" (localized date)
+    # @return [String]
+    def format_days_after_epoch(count, date_format)
+      Yast::Execute.locally("/usr/bin/date", "--date=1970-01-01 00:00:01 #{count} days", "+#{date_format}", stdout: :capture).chomp
+      rescue Cheetah::ExecutionFailed => e
+        log.info(e.message)
+        ""
     end
 
     # Dialog for adding or editing a user.
@@ -779,50 +792,24 @@ module Yast
 
       # generate contents for Password Settings Dialog
       get_password_term = lambda do
-        last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
+        last_change = GetInt(Ops.get(user, "shadowLastChange"), 0)
         last_change_label = ""
-        expires = GetString(Ops.get(user, "shadowExpire"), "0")
-        expires = "0" if expires == ""
+        expires = GetInt(Ops.get(user, "shadowExpire"), 0)
 
         inact = GetInt(Ops.get(user, "shadowInactive"), -1)
         max = GetInt(Ops.get(user, "shadowMax"), -1)
         min = GetInt(Ops.get(user, "shadowMin"), -1)
         warn = GetInt(Ops.get(user, "shadowWarning"), -1)
 
-        if last_change != "0"
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Builtins.sformat(
-                "date --date='1970-01-01 00:00:01 %1 days' +\"%%x\"",
-                last_change
-              )
-            )
-          )
+        if last_change != 0
           # label (date of last password change)
-          last_change_label = Ops.get_locale(out, "stdout", _("Unknown"))
+          last_change_label = format_days_after_epoch(last_change, "%x")
         else
           # label (date of last password change)
           last_change_label = _("Never")
         end
-        if expires != "0" && expires != "-1" && expires != ""
-          out = Convert.to_map(
-            SCR.Execute(
-              path(".target.bash_output"),
-              Ops.add(
-                Builtins.sformat(
-                  "date --date='1970-01-01 00:00:01 %1 days' ",
-                  expires
-                ),
-                "+\"%Y-%m-%d\""
-              )
-            )
-          )
-          # remove \n from the end
-          exp_date = Builtins.deletechars(
-            Ops.get_string(out, "stdout", ""),
-            "\n"
-          )
+        if expires != 0 && expires != -1
+          exp_date = format_days_after_epoch(expires, "%Y-%m-%d")
         end
         HBox(
           HSpacing(3),
