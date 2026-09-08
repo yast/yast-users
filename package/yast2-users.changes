@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Aug  6 09:38:11 UTC 2026 - Noel Power <nopower@suse.com>
+
+- CVE-2026-59680: OS command injection via LDAP-supplied
+  shadowLastChange/shadowExpire attribute (bsc#1272839).
+- 4.4.17
+
+-------------------------------------------------------------------
 Mon Mar 18 06:53:43 UTC 2024 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
 
 - Add a missing require in the auto client (bsc#1219422).
