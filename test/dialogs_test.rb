@@ -19,6 +19,22 @@ describe "Yast::UsersDialogsInclude" do
     allow(Yast).to receive(:import).with("LdapPopup")
   end
 
+  describe "#GetString" do
+    context "when number" do
+      it "returns stringified number" do
+        expect(subject.GetString(1, "default")).to eq("1")
+      end
+    end
+  end
+
+  describe "#GetString" do
+    context "when string" do
+      it "returns string" do
+        expect(subject.GetString("not default", "default")).to eq("not default")
+      end
+    end
+  end
+
   describe "#cleanpath" do
     it "returns sanitized path" do
       expect(subject.cleanpath("/home/user/")).to eq("/home/user")

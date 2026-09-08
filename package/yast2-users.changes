@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Aug  6 09:38:11 UTC 2026 - Noel Power <nopower@suse.com>
+
+- CVE-2026-59680: OS command injection via LDAP-supplied
+  shadowLastChange/shadowExpire attribute (bsc#1272839).
+- 4.6.7
+
+-------------------------------------------------------------------
 Wed Aug 21 13:21:10 UTC 2024 - Stefan Hundhammer <shundhammer@suse.com>
 
 - Relax check in GECOS field (bsc#1228149):
