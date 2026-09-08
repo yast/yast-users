@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Aug  6 09:38:11 UTC 2026 - Noel Power <nopower@suse.com>
+
+- CVE-2026-59680: OS command injection via LDAP-supplied
+  shadowLastChange/shadowExpire attribute (bsc#1272839).
+- 5.0.9
+
+-------------------------------------------------------------------
 Tue Mar 10 09:00:28 UTC 2026 - Michal Filka <mfilka@suse.com>
 
 - jsc#PED-14507
