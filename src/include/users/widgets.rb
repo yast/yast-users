@@ -431,9 +431,10 @@ module Yast
         help_text,
         _(
           "<p>\n" +
-            "Choose a password encryption method for local and system users.\n" +
-            "<b>DES</b>, the Linux default method, works in all network environments, but it\n" +
-            "restricts passwords to eight characters or less.\n" +
+            "Choose a password hashing method for local and system users.\n" +
+            "<b>DES</b> is outdated and considered insecure: it restricts passwords to\n" +
+            "eight characters or less and is vulnerable to modern password cracking.\n" +
+            "Only choose it for compatibility with very old systems.\n" +
             "</p>\n"
         )
       )
@@ -443,8 +444,9 @@ module Yast
         help_text,
         _(
           "<p>\n" +
-            "<b>MD5</b> allows longer passwords, so provides more security, but some\n" +
-            "network protocols do not support this and you may have problems with NIS.\n" +
+            "<b>MD5</b> allows longer passwords than DES, but is also considered\n" +
+            "cryptographically weak and is not recommended. Some old network protocols\n" +
+            "still require it, and you may have problems with old NIS servers otherwise.\n" +
             "</p>"
         )
       )
