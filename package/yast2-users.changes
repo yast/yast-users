@@ -1,8 +1,25 @@
 -------------------------------------------------------------------
+Thu Aug  6 09:38:11 UTC 2026 - Noel Power <nopower@suse.com>
+
+- CVE-2026-59680: OS command injection via LDAP-supplied
+  shadowLastChange/shadowExpire attribute (bsc#1272839).
+- 5.0.9
+
+-------------------------------------------------------------------
+Thu Aug 21 08:50:55 UTC 2025 - Imobach Gonzalez Sosa <igonzalezsosa@suse.com>
+
+- Add a missing require (bsc#1248291).
+
+-------------------------------------------------------------------
+Fri Sep 06 07:14:32 UTC 2024 - Ladislav Slezák <lslezak@suse.com>
+
+- Branch package for SP7 (bsc#1230201)
+
+-------------------------------------------------------------------
 Tue Mar 10 09:00:28 UTC 2026 - Michal Filka <mfilka@suse.com>
 
 - jsc#PED-14507
-  - Removed reference to update-desktop-files from spec file 
+  - Removed reference to update-desktop-files from spec file
   - 5.0.8
 -------------------------------------------------------------------
 Mon Oct 13 14:09:17 UTC 2025 - Stefan Schubert <schubi@suse.de>
@@ -32,9 +49,9 @@ Tue Jan 28 09:46:57 UTC 2025 - Stefan Hundhammer <shundhammer@suse.com>
 -------------------------------------------------------------------
 Tue Oct  1 13:31:05 UTC 2024 - Stefan Hundhammer <shundhammer@suse.com>
 
-- Removed obsolete USERADD_CMD, USERDEL_PRECMD, USERDEL_POSTCMD, 
+- Removed obsolete USERADD_CMD, USERDEL_PRECMD, USERDEL_POSTCMD,
   GROUPADD_CMD (bsc#1231006)
-- 5.0.3 
+- 5.0.3
 
 -------------------------------------------------------------------
 Wed Aug 21 13:21:10 UTC 2024 - Stefan Hundhammer <shundhammer@suse.com>

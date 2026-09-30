@@ -29,10 +29,10 @@
 
 require "pathname"
 require "shellwords"
-
 require "users/ssh_public_key"
 require "yast2/popup"
 require "y2users/username"
+require "yast2/execute"
 
 module Yast
   module UsersDialogsInclude
@@ -206,7 +206,7 @@ module Yast
     # @param date_format [String] strftime format like "%x" (localized date)
     # @return [String]
     def format_days_after_epoch(count, date_format)
-      `date --date='1970-01-01 00:00:01 #{count} days' +#{date_format}`.chomp
+      Yast::Execute.locally!.stdout("/usr/bin/date", "--date=1970-01-01 00:00:01 #{count} days", "+#{date_format}").chomp
     end
 
     # generate contents for Password Settings Dialog
@@ -214,23 +214,22 @@ module Yast
     # @param exp_date [String] may be MODIFIED on return corresponding to the UI
     # @return [Term] ui_term
     def get_password_term(user, exp_date)
-      last_change = GetString(Ops.get(user, "shadowLastChange"), "0")
+      last_change = GetInt(Ops.get(user, "shadowLastChange"), 0)
       last_change_label = ""
-      expires = GetString(Ops.get(user, "shadowExpire"), "0")
-      expires = "0" if expires == ""
+      expires = GetInt(Ops.get(user, "shadowExpire"), 0)
 
       inact = GetInt(Ops.get(user, "shadowInactive"), -1)
       max = GetInt(Ops.get(user, "shadowMax"), -1)
       min = GetInt(Ops.get(user, "shadowMin"), -1)
       warn = GetInt(Ops.get(user, "shadowWarning"), -1)
 
-      if last_change != "0"
+      if last_change != 0
         last_change_label = format_days_after_epoch(last_change, "%x")
       else
         # label (date of last password change)
         last_change_label = _("Never")
       end
-      unless ["0", "-1", ""].include?(expires)
+      unless [0, -1].include?(expires)
         exp_date.replace(format_days_after_epoch(expires, "%Y-%m-%d"))
       end
       HBox(
